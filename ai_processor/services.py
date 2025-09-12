@@ -5,14 +5,14 @@ import fitz
 import numpy as np
 from django.core.files.uploadedfile import UploadedFile
 from environ import Env
-from fitz_new.mupdf import pdf_document
 from openai import OpenAI
 from paddleocr import PaddleOCR
 from pdf2image import convert_from_bytes
-from PIL import Image
+
+# from PIL import Image
 from pytesseract import pytesseract
 
-from ai_processor.validators import AssignmentStructure, logger
+from ai_processor.validators import logger
 
 env = Env()
 env.read_env(".env")
@@ -91,22 +91,22 @@ Do not include any explanatory text before or after the JSON
                 json_data = json.loads(content)
             except json.JSONDecodeError as e:
                 print("Error decoding JSON")
-                raise Exception(f"Invalid JSON: {e}")
+                raise Exception(f"Invalid JSON: {e}") from Exception
 
             # Validate structure with Pydantic
-            assignment = AssignmentStructure(**json_data)
-            logger.info(
-                f"Successfully extracted assignment: {assignment.assignment_name}"
-            )
-            logger.info(
-                f"Questions: {assignment.question_count}, Total points: {assignment.total_points}"
-            )
-            logger.info(f"Confidence: {assignment.extraction_confidence}")
+            # assignment = AssignmentStructure(**json_data)
+            # logger.info(
+            #     f"Successfully extracted assignment: {assignment.assignment_name}"
+            # )
+            # logger.info(
+            #     f"Questions: {assignment.question_count}, Total points: {assignment.total_points}"
+            # )
+            # logger.info(f"Confidence: {assignment.extraction_confidence}")
 
-            return assignment
+            return json_data
         except Exception as e:
             logger.error(f"Error during extraction: {str(e)}")
-            raise Exception(f"Assignment extraction failed: {str(e)}")
+            raise Exception(f"Assignment extraction failed: {str(e)}") from Exception
 
     def extract_assignment_with_retry(self, text: str, max_retries: int = 3):
         last_error = None
@@ -154,7 +154,7 @@ class PDFService:
 
         # If no text was extracted, it's likely a scanned PDF
         if not self.extracted_data["questions"]:
-            self.__extract_text_with_ocr(pdf_bytes)
+            self.__extract_text_with_ocr(pdf_bytes, ocr_service)
 
         self.extracted_data["page_count"] = self.__get_page_count(pdf_bytes)
         self.extracted_data["title"] = Path(self.uploaded_file.name).stem
@@ -177,7 +177,7 @@ class PDFService:
 
                 self.extracted_data["questions"] = full_text
         except Exception as e:
-            raise ValueError(f"Something went wrong: {e}")
+            raise ValueError(f"Something went wrong: {e}") from Exception
 
     def __extract_text_with_ocr(self, pdf_bytes, ocr_service):
         """Extract text from a PDF that is scanned"""
@@ -194,7 +194,7 @@ class PDFService:
 
             self.extracted_data["questions"] = full_text
         except Exception as e:
-            raise ValueError(f"Something went wrong: {e}")
+            raise ValueError(f"Something went wrong: {e}") from Exception
 
 
 class OCRService:
@@ -215,6 +215,11 @@ class OCRService:
         return "\n".join(text)
 
     def extract_with_pytessaract(self, image):
+        """
+
+        :param image: PIL Image
+        :return:
+        """
         text = pytesseract.image_to_string(image, lang="eng")
         return text
 

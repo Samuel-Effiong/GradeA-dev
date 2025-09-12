@@ -1,13 +1,15 @@
+from PIL import Image
 from django.core.files.uploadedfile import UploadedFile
 from drf_spectacular.utils import extend_schema, extend_schema_view
-from rest_framework import permissions, status, viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from ai_processor.services import ai_processor, ocr_service, pdf_service
-from ai_processor.validators import AssignmentStructure
+
+# from ai_processor.validators import AssignmentStructure
 
 # from assignments.services import PDFService
 
@@ -145,18 +147,29 @@ class AssignmentViewSet(viewsets.ViewSet):
                 )
 
             if uploaded_file.content_type in image_formats:
-                pass
+                try:
+                    image = Image.open(uploaded_file)
+                    questions = ocr_service.extract_with_pytessaract(image)
+                    assignment_questions = ai_processor.extract_assignment_with_retry(
+                        questions, max_retries=3
+                    )
+                    results.append(assignment_questions)
+                except Exception as e:
+                    return Response(
+                        {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
+                    )
+
             elif uploaded_file.content_type == pdf_formats:
                 try:
                     pdf_service.set_uploaded_file(uploaded_file)
                     extracted_data = pdf_service.extract()
 
                     assignment_questions = ai_processor.extract_assignment_with_retry(
-                        extracted_data["questions"], 3
+                        extracted_data["questions"], max_retries=3
                     )
 
                     results.append(assignment_questions)
-                except ValueError as e:
+                except Exception as e:
                     return Response(
                         {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
                     )
