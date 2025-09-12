@@ -1,0 +1,25 @@
+# 🐍 Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# 📦 Virtual environment
+scanenv/
+
+# 📓 Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# 🔐 Environment variables / secrets
+.env
+
+# 🛠 VSCode settings
+.vscode/
+
+# 💾 OS stuff
+.DS_Store
+Thumbs.db

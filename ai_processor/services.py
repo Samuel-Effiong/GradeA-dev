@@ -1,0 +1,224 @@
+import json
+from pathlib import Path
+
+import fitz
+import numpy as np
+from django.core.files.uploadedfile import UploadedFile
+from environ import Env
+from fitz_new.mupdf import pdf_document
+from openai import OpenAI
+from paddleocr import PaddleOCR
+from pdf2image import convert_from_bytes
+from PIL import Image
+from pytesseract import pytesseract
+
+from ai_processor.validators import AssignmentStructure, logger
+
+env = Env()
+env.read_env(".env")
+
+OPENROUTER_API_KEY = env.str("OPENROUTER_API_KEY")
+
+
+with open("ai_processor/ASSIGNMENT_EXTRACTION_PROMPT.txt", "r") as file:
+    ASSIGNMENT_EXTRACTION_PROMPT = file.read()
+
+
+class AIProcessor:
+    def __init__(self):
+
+        self.client = OpenAI(
+            base_url="https://openrouter.ai/api/v1",
+            api_key=OPENROUTER_API_KEY,
+        )
+
+        # self.pdf_service = PDFService()
+        # self.ocr_service = OCRService()
+
+    #
+    # def extract_pdf_text(self, file: UploadedFile):
+    #     if file.content_type == "application/pdf":
+    #         self.pdf_service.uploaded_file = file
+    #         try:
+    #             extracted_data = self.pdf_service.extract()
+    #
+    #
+    #             return extracted_data
+    #
+    #         except Exception as e:
+    #             raise ValueError(f'Something went wrong: {e}')
+    #     else:
+    #         raise ValueError(f'Unsupported file type: {file.content_type}')
+
+    def extract_assignment(self, text):
+        system_prompt = ASSIGNMENT_EXTRACTION_PROMPT
+
+        user_prompt = f"""
+Please analyze the following extracted text from an educational assignment and return a JSON
+
+EXTRACTED TEXT:
+{text}
+
+IMPORTANT: Return only valid JSON matching the required structure.
+Do not include any explanatory text before or after the JSON
+"""
+        try:
+            response = self.client.chat.completions.create(
+                extra_headers={
+                    "HTTP-Referer": "",  # Optional. Site URL for rankings on openrouter.ai.
+                    "X-Title": "",  # Optional. Site title for rankings on openrouter.ai.
+                },
+                model="openai/gpt-oss-120b:free",
+                extra_body={
+                    "models": [
+                        "openrouter/sonoma-sky-alpha",
+                        "deepseek/deepseek-chat-v3.1",
+                        "google/gemma-3-27b-it",
+                    ],
+                },
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=0.1,
+                response_format={"type": "json_object"},
+            )
+
+            content = response.choices[0].message.content
+            print(f"Received response of length {len(content)}")
+
+            try:
+                json_data = json.loads(content)
+            except json.JSONDecodeError as e:
+                print("Error decoding JSON")
+                raise Exception(f"Invalid JSON: {e}")
+
+            # Validate structure with Pydantic
+            assignment = AssignmentStructure(**json_data)
+            logger.info(
+                f"Successfully extracted assignment: {assignment.assignment_name}"
+            )
+            logger.info(
+                f"Questions: {assignment.question_count}, Total points: {assignment.total_points}"
+            )
+            logger.info(f"Confidence: {assignment.extraction_confidence}")
+
+            return assignment
+        except Exception as e:
+            logger.error(f"Error during extraction: {str(e)}")
+            raise Exception(f"Assignment extraction failed: {str(e)}")
+
+    def extract_assignment_with_retry(self, text: str, max_retries: int = 3):
+        last_error = None
+
+        for attempt in range(max_retries):
+            try:
+                return self.extract_assignment(text)
+            except Exception as e:
+                last_error = e
+                logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
+
+                if attempt < max_retries - 1:
+                    logger.info("Retrying...")
+
+        raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
+
+
+class PDFService:
+    def __init__(self, uploaded_file: UploadedFile = None):
+        # self.ocr_service = OCRService()
+
+        self.uploaded_file = uploaded_file
+
+        self.extracted_data = {
+            "title": "",
+            "questions": "",
+            "page_count": 0,
+        }
+
+    def set_uploaded_file(self, uploaded_file: UploadedFile):
+        self.uploaded_file = uploaded_file
+
+    def extract(self) -> dict:
+        """Extract data from the uploaded pdf"""
+
+        if self.uploaded_file.content_type != "application/pdf":
+            raise ValueError(
+                f"Unsupported file type: {self.uploaded_file.content_type}"
+            )
+
+        pdf_bytes = self.uploaded_file.read()
+
+        # First, try to extract text directly from the PDF
+        self.__extract_text_based(pdf_bytes)
+
+        # If no text was extracted, it's likely a scanned PDF
+        if not self.extracted_data["questions"]:
+            self.__extract_text_with_ocr(pdf_bytes)
+
+        self.extracted_data["page_count"] = self.__get_page_count(pdf_bytes)
+        self.extracted_data["title"] = Path(self.uploaded_file.name).stem
+
+        return self.extracted_data
+
+    def __get_page_count(self, pdf_bytes):
+        """Helper to get the number of pages"""
+        with fitz.open(stream=pdf_bytes, filetype="pdf") as pdf:
+            return pdf.page_count
+
+    def __extract_text_based(self, pdf_bytes):
+        """Extract text from a PDF that is text-based or has a text layer"""
+
+        try:
+            with fitz.open(stream=pdf_bytes, filetype="pdf") as pdf:
+                full_text = ""
+                for page in pdf:
+                    full_text += page.get_text().strip()
+
+                self.extracted_data["questions"] = full_text
+        except Exception as e:
+            raise ValueError(f"Something went wrong: {e}")
+
+    def __extract_text_with_ocr(self, pdf_bytes, ocr_service):
+        """Extract text from a PDF that is scanned"""
+
+        try:
+            # Convert PDF pages to a list of PIL Image objects from the in-memory stream
+            images = convert_from_bytes(pdf_bytes, dpi=300)
+
+            full_text = ""
+
+            for image in images:
+                text = ocr_service.extract_with_pytessaract(image)
+                full_text += text
+
+            self.extracted_data["questions"] = full_text
+        except Exception as e:
+            raise ValueError(f"Something went wrong: {e}")
+
+
+class OCRService:
+    def __init__(self):
+        self.paddle_ocr_model = PaddleOCR(
+            use_doc_orientation_classify=False,
+            use_doc_unwarping=True,
+            use_textline_orientation=False,
+        )
+
+    def extract_with_paddle(self, image):
+        img_np = np.array(image.convert("RGB"))
+        result = self.paddle_ocr_model.predict(img_np)
+
+        text = ""
+        for res in result:
+            text = res.json["res"]["rec_texts"]
+        return "\n".join(text)
+
+    def extract_with_pytessaract(self, image):
+        text = pytesseract.image_to_string(image, lang="eng")
+        return text
+
+
+ocr_service = OCRService()
+pdf_service = PDFService()
+ai_processor = AIProcessor()
