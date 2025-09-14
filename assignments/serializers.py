@@ -46,9 +46,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Questions must be a list")
 
         if value is None:
-            return serializers.ValidationError(
-                "Question cannot be empty"
-            )  # or raise an error depending on your use case
+            return serializers.ValidationError("Question cannot be empty")
 
         for i, question in enumerate(value, 1):
             if not isinstance(question, dict):

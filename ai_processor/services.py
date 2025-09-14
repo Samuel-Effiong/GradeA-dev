@@ -17,7 +17,10 @@ from ai_processor.validators import logger
 env = Env()
 env.read_env(".env")
 
-OPENROUTER_API_KEY = env.str("OPENROUTER_API_KEY")
+OPENROUTER_API_KEY = env.str(
+    "OPENROUTER_API_KEY",
+    default="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",
+)
 
 
 with open("ai_processor/ASSIGNMENT_EXTRACTION_PROMPT.txt", "r") as file:
