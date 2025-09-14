@@ -21,7 +21,8 @@ You are an expert educational content analyzer specializing in extracting struct
    - Bridge between objective and essay formats
 
 ### Common Assignment Components:
-- **Assignment Title/Name**: Usually at the top, may be in larger font or bold
+- **Assignment Title/Name**: Usually at the top, may be in larger font or bold, deduce from the document if not found
+- **Course/Subject Name**: This is the academic subject the assignment belongs to (e.g., Mathematics, English Literature, Biology), deduce from the document if not found.
 - **Instructions**: General directions for students (time limits, format requirements, etc.)
 - **Individual Questions**: Numbered or lettered items with specific point values
 - **Point Allocation**: Numbers indicating score value (e.g., "5 points," "(10 marks)")
@@ -78,6 +79,7 @@ Your output must follow this exact structure:
 ```json
 {
   "assignment_name": "string - The title/name of the assignment",
+  "subject_name": "string - The academic subject the assignment belongs",
   "instructions": "string - General instructions for students",
   "total_points": number - Sum of all question points,
   "question_count": number - Total number of questions,
