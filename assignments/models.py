@@ -1,4 +1,3 @@
-from django.core.validators import FileExtensionValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -8,7 +7,7 @@ from users.models import CustomUser
 
 
 class AssignmentTypes(models.TextChoices):
-    QUESTIONNAIRES = "QUESTIONNAIRE", _("Questionnaire")
+    OBJECTIVE = "OBJECTIVE", _("Objective")
     ESSAY = "ESSAY", _("Essay")
     SHORT_ANSWER = "SHORT_ANSWER", _("Short Answer")
     HYBRID = "HYBRID", _("Hybrid")
@@ -16,11 +15,14 @@ class AssignmentTypes(models.TextChoices):
 
 class Assignment(models.Model):
     title = models.CharField(max_length=255, unique=True)
-    description = models.TextField(blank=True)
+    subject_name = models.CharField(max_length=255)
+    instructions = models.TextField()
+    total_points = models.IntegerField()
+    question_count = models.IntegerField()
     assignment_type = models.CharField(
         max_length=20,
         choices=AssignmentTypes.choices,
-        default=AssignmentTypes.QUESTIONNAIRES,
+        default=AssignmentTypes.OBJECTIVE,
     )
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(
@@ -30,14 +32,8 @@ class Assignment(models.Model):
         blank=True,
         related_name="assignments",
     )
-    file = models.FileField(
-        upload_to="assignments/original",
-        validators=[
-            FileExtensionValidator(allowed_extensions=["pdf", "png", "jpg", "jpeg"])
-        ],
-    )
 
-    extracted_data = models.JSONField(null=True, blank=True)
+    questions = models.JSONField(null=True, blank=True)
 
 
 class Rubric(models.Model):

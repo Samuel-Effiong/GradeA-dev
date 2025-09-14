@@ -154,7 +154,7 @@ class PDFService:
 
         # If no text was extracted, it's likely a scanned PDF
         if not self.extracted_data["questions"]:
-            self.__extract_text_with_ocr(pdf_bytes, ocr_service)
+            self.__extract_text_with_ocr(pdf_bytes)
 
         self.extracted_data["page_count"] = self.__get_page_count(pdf_bytes)
         self.extracted_data["title"] = Path(self.uploaded_file.name).stem
@@ -179,17 +179,17 @@ class PDFService:
         except Exception as e:
             raise ValueError(f"Something went wrong: {e}") from Exception
 
-    def __extract_text_with_ocr(self, pdf_bytes, ocr_service):
+    def __extract_text_with_ocr(self, pdf_bytes):
         """Extract text from a PDF that is scanned"""
 
         try:
             # Convert PDF pages to a list of PIL Image objects from the in-memory stream
-            images = convert_from_bytes(pdf_bytes, dpi=300)
+            images = convert_from_bytes(pdf_bytes, dpi=200)
 
             full_text = ""
 
             for image in images:
-                text = ocr_service.extract_with_pytessaract(image)
+                text = ocr_service.extract_with_paddle(image)
                 full_text += text
 
             self.extracted_data["questions"] = full_text
@@ -200,9 +200,9 @@ class PDFService:
 class OCRService:
     def __init__(self):
         self.paddle_ocr_model = PaddleOCR(
-            use_doc_orientation_classify=False,
+            use_doc_orientation_classify=True,
             use_doc_unwarping=True,
-            use_textline_orientation=False,
+            use_textline_orientation=True,
         )
 
     def extract_with_paddle(self, image):
@@ -220,7 +220,7 @@ class OCRService:
         :param image: PIL Image
         :return:
         """
-        text = pytesseract.image_to_string(image, lang="eng")
+        text = pytesseract.image_to_string(image)
         return text
 
 
