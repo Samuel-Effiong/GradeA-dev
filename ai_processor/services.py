@@ -5,22 +5,19 @@ import fitz
 import numpy as np
 from django.core.files.uploadedfile import UploadedFile
 from environ import Env
+from fitz_new.mupdf import pdf_document
 from openai import OpenAI
 from paddleocr import PaddleOCR
 from pdf2image import convert_from_bytes
-
-# from PIL import Image
+from PIL import Image
 from pytesseract import pytesseract
 
-from ai_processor.validators import logger
+from ai_processor.validators import AssignmentStructure, logger
 
 env = Env()
 env.read_env(".env")
 
-OPENROUTER_API_KEY = env.str(
-    "OPENROUTER_API_KEY",
-    default="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",
-)
+OPENROUTER_API_KEY = env.str("OPENROUTER_API_KEY")
 
 
 with open("ai_processor/ASSIGNMENT_EXTRACTION_PROMPT.txt", "r") as file:
@@ -94,22 +91,22 @@ Do not include any explanatory text before or after the JSON
                 json_data = json.loads(content)
             except json.JSONDecodeError as e:
                 print("Error decoding JSON")
-                raise Exception(f"Invalid JSON: {e}") from Exception
+                raise Exception(f"Invalid JSON: {e}")
 
             # Validate structure with Pydantic
-            # assignment = AssignmentStructure(**json_data)
-            # logger.info(
-            #     f"Successfully extracted assignment: {assignment.assignment_name}"
-            # )
-            # logger.info(
-            #     f"Questions: {assignment.question_count}, Total points: {assignment.total_points}"
-            # )
-            # logger.info(f"Confidence: {assignment.extraction_confidence}")
+            assignment = AssignmentStructure(**json_data)
+            logger.info(
+                f"Successfully extracted assignment: {assignment.assignment_name}"
+            )
+            logger.info(
+                f"Questions: {assignment.question_count}, Total points: {assignment.total_points}"
+            )
+            logger.info(f"Confidence: {assignment.extraction_confidence}")
 
-            return json_data
+            return assignment
         except Exception as e:
             logger.error(f"Error during extraction: {str(e)}")
-            raise Exception(f"Assignment extraction failed: {str(e)}") from Exception
+            raise Exception(f"Assignment extraction failed: {str(e)}")
 
     def extract_assignment_with_retry(self, text: str, max_retries: int = 3):
         last_error = None
@@ -180,32 +177,32 @@ class PDFService:
 
                 self.extracted_data["questions"] = full_text
         except Exception as e:
-            raise ValueError(f"Something went wrong: {e}") from Exception
+            raise ValueError(f"Something went wrong: {e}")
 
-    def __extract_text_with_ocr(self, pdf_bytes):
+    def __extract_text_with_ocr(self, pdf_bytes, ocr_service):
         """Extract text from a PDF that is scanned"""
 
         try:
             # Convert PDF pages to a list of PIL Image objects from the in-memory stream
-            images = convert_from_bytes(pdf_bytes, dpi=200)
+            images = convert_from_bytes(pdf_bytes, dpi=300)
 
             full_text = ""
 
             for image in images:
-                text = ocr_service.extract_with_paddle(image)
+                text = ocr_service.extract_with_pytessaract(image)
                 full_text += text
 
             self.extracted_data["questions"] = full_text
         except Exception as e:
-            raise ValueError(f"Something went wrong: {e}") from Exception
+            raise ValueError(f"Something went wrong: {e}")
 
 
 class OCRService:
     def __init__(self):
         self.paddle_ocr_model = PaddleOCR(
-            use_doc_orientation_classify=True,
+            use_doc_orientation_classify=False,
             use_doc_unwarping=True,
-            use_textline_orientation=True,
+            use_textline_orientation=False,
         )
 
     def extract_with_paddle(self, image):
@@ -218,12 +215,7 @@ class OCRService:
         return "\n".join(text)
 
     def extract_with_pytessaract(self, image):
-        """
-
-        :param image: PIL Image
-        :return:
-        """
-        text = pytesseract.image_to_string(image)
+        text = pytesseract.image_to_string(image, lang="eng")
         return text
 
 
