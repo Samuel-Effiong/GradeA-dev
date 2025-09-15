@@ -10,15 +10,15 @@ from drf_spectacular.utils import (
 from PIL import Image
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from ai_processor.services import ai_processor, ocr_service, pdf_service
 
-from .models import Assignment
-from .serializers import AssignmentSerializer
+from .models import Assignment, Rubric
+from .serializers import AssignmentSerializer, RubricSerializer
 
 # from ai_processor.validators import AssignmentStructure
 
@@ -212,86 +212,10 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
     queryset = Assignment.objects.all()
     serializer_class = AssignmentSerializer
-    parser_class = (MultiPartParser, FormParser)
     permission_classes = (AllowAny,)
     pagination_class = PageNumberPagination
 
-    http_method_names = ["get", "post", "delete", "patch"]
-
-    # def create(self, request):  # type: ignore
-    #     data = request.data     # type: ignore
-    #
-    #     required_fields = [
-    #         'assignment_name', 'subject_name', 'instructions', 'total_points',
-    #         'question_count', 'assignment_type', 'questions'
-    #     ]
-    #
-    #     for field in required_fields:
-    #         if field not in data:
-    #             return Response({"error": f"Missing required field: {field}"}, status=status.HTTP_400_BAD_REQUEST)
-    #
-    #     questions = data.get('questions', [])  # type: ignore
-    #     if not isinstance(questions, list):
-    #         return Response({"error": "Questions must be a list"}, status=status.HTTP_400_BAD_REQUEST)
-    #
-    #     for i, question in enumerate(questions, start=1): # type: ignore
-    #         if not all(key in question for key in ('question_text', 'question_type', 'points', 'options',)):
-    #             return Response(
-    #                 {"error": f"Question {i} is missing required fields"},
-    #                 status=status.HTTP_400_BAD_REQUEST
-    #             )
-    #
-    #     if not isinstance(question['options'], list):  # type: ignore
-    #         return Response(
-    #             {"error": f"Question {i} options must be a list"},
-    #             status=status.HTTP_400_BAD_REQUEST
-    #         )
-    #
-    #
-    #     # At this point the data is valid
-    #
-    #     assignment = Assignment.objects.create(
-    #         title=data['assignment_name'],
-    #         subject_name=data['subject_name'],
-    #         instructions=data['instructions'],
-    #         total_points=data['total_points'],
-    #         question_count=data['question_count'],
-    #         assignment_type=data['assignment_type'],
-    #         questions=data['questions'],
-    #     )
-    #
-    #     return Response({"message": "Assignment created successfully"}, status=status.HTTP_201_CREATED)
-
-    # def retrieve(self, request, pk=None):
-    #     try:
-    #         # Get the assignment by primary key
-    #         assignment = Assignment.objects.get(pk=pk)
-    #
-    #         response_data = {
-    #             "id": assignment.id,
-    #             "assignment_name": assignment.title,
-    #             "subject_name": assignment.subject_name,
-    #             "instructions": assignment.instructions,
-    #             "total_points": assignment.total_points,
-    #             "question_count": assignment.question_count,
-    #             "assignment_type": assignment.assignment_type,
-    #             "questions": assignment.extracted_data,
-    #         }
-    #
-    #         return Response(response_data, status=status.HTTP_200_OK)
-    #     except Assignment.DoesNotExist:
-    #         return Response({"message": "Assignment not found"}, status=status.HTTP_404_NOT_FOUND)
-    #     except Exception as e:
-    #         return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    #
-    #     try:
-    #         assignment = Assignment.objects.get(pk=pk)
-    #         assignment.delete()
-    #         return Response({"message": "Assignment deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
-    #     except Assignment.DoesNotExist:
-    #         return Response({"message": "Assignment not found"}, status=status.HTTP_404_NOT_FOUND)
-    #     except Exception as e:
-    #         return Response({"message": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR   )
+    http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
     @extend_schema(
         summary="Upload assignment files (images or PDFs)",
@@ -427,3 +351,428 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                 )
 
         return Response(results, status=status.HTTP_201_CREATED)
+
+    @extend_schema(
+        tags=["Rubrics"],
+        operation_id="upload_rubric",
+        summary="Upload rubric file (image or PDF)",
+        description="""
+        Upload one or more rubric files (PDF or images) for processing.
+        The endpoint accepts file and processes it to extract rubric data.
+        The extracted data will be associated with the specified assignment.
+        """,
+        request={
+            "multipart/form-data": {
+                "type": "object",
+                "properties": {
+                    "rubric": {
+                        "type": "string",
+                        "format": "binary",
+                        "description": "Rubric file (PDF, JPEG, PNG, GIF, or WebP)",
+                    }
+                },
+                "required": ["rubric"],
+            }
+        },
+        responses={
+            201: OpenApiResponse(
+                response=RubricSerializer,
+                description="Rubric files processed successfully",
+                examples=[
+                    OpenApiExample(
+                        name="Rubric Example",
+                        value={
+                            "assignment_id": 1,
+                            "criteria": [
+                                {
+                                    "id": 1,
+                                    "question": "Explain three main causes of climate change.",
+                                    "max_points": 15,
+                                    "model_answer": "The main causes are greenhouse gas emissions from burning fossil"
+                                    " fuels, deforestation, and industrial activities that release "
+                                    "carbon dioxide and methane.",
+                                    "scoring_levels": [
+                                        {
+                                            "level": "Excellent",
+                                            "points": 15,
+                                            "description": "Mentions at least 3 causes with detailed explanations "
+                                            "and examples.",
+                                        },
+                                        {
+                                            "level": "Good",
+                                            "points": 10,
+                                            "description": "Mentions at least 2 causes with moderate explanation.",
+                                        },
+                                        {
+                                            "level": "Fair",
+                                            "points": 5,
+                                            "description": "Mentions only 1 cause with limited detail.",
+                                        },
+                                        {
+                                            "level": "Poor",
+                                            "points": 0,
+                                            "description": "Fails to identify valid causes or gives irrelevant "
+                                            "answers.",
+                                        },
+                                    ],
+                                }
+                            ],
+                            "rubric_analysis": {
+                                "extraction_confidence": 0.0,
+                                "text_quality": "high/medium/low",
+                                "total_questions_found": 0,
+                                "total_possible_points": 0,
+                                "detected_metadata": {
+                                    "title": "",
+                                    "subject": "",
+                                    "grade_level": "",
+                                    "instructor": "",
+                                    "course": "",
+                                    "date": "",
+                                    "instructions": "",
+                                },
+                            },
+                            "rubric_quality_assessment": {
+                                "clarity_score": 0.0,
+                                "completeness_score": 0.0,
+                                "consistency_score": 0.0,
+                                "alignment_score": 0.0,
+                                "overall_quality": "excellent/good/fair/poor",
+                            },
+                            "identified_issues": [
+                                {
+                                    "issue_type": "",
+                                    "severity": "high/medium/low",
+                                    "description": "",
+                                    "suggestion": "",
+                                }
+                            ],
+                            "strengths": [],
+                            "improvement_recommendations": [],
+                            "processing_notes": [],
+                            "assumptions_made": [],
+                            "unclear_sections": [],
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                description="Bad Request",
+                examples=[
+                    OpenApiExample(
+                        name="No File",
+                        value={"error": "No file were uploaded"},
+                        response_only=True,
+                    )
+                ],
+            ),
+            404: OpenApiResponse(
+                description="Not Found",
+                examples=[
+                    OpenApiExample(
+                        name="Not Found",
+                        value={"detail": "Not found."},
+                        response_only=True,
+                    )
+                ],
+            ),
+            415: OpenApiResponse(
+                description="Unsupported Media Type",
+                examples=[
+                    OpenApiExample(
+                        name="Unsupported Media Type",
+                        value={
+                            "error": "File 'example.txt' has an invalid format. "
+                            "Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed."
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["POST"],
+        url_path=r"(?P<assignment_id>[-\w]+)/upload_rubric",
+        url_name="upload_rubric",
+    )
+    def upload_rubric(self, request, assignment_id=None):
+        if not Assignment.objects.filter(pk=assignment_id).exists():
+            raise NotFound("No Assignment found with this ID.")
+
+        files = request.FILES.getlist("rubric")
+
+        if not files:
+            return Response(
+                {"error": "No files were uploaded"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        image_formats = [
+            "image/jpeg",
+            "image/png",
+            "image/gif",
+            "image/webp",
+        ]
+
+        pdf_formats = "application/pdf"
+
+        rubric = None
+
+        for uploaded_file in files:
+            if not isinstance(uploaded_file, UploadedFile):
+                return Response(
+                    {"error": "Invalid file upload"}, status=status.HTTP_400_BAD_REQUEST
+                )
+
+            if uploaded_file.content_type in image_formats:
+                try:
+                    image = Image.open(uploaded_file)
+                    rubric = ocr_service.extract_with_pytessaract(image)
+
+                    rubric = ai_processor.extract_rubric_with_retry(
+                        rubric, max_retries=3
+                    )
+                except Exception as e:
+                    return Response(
+                        {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
+                    )
+            elif uploaded_file.content_type == pdf_formats:
+                try:
+                    pdf_service.set_uploaded_file(uploaded_file)
+                    extracted_data = pdf_service.extract()
+
+                    rubric = ai_processor.extract_rubric_with_retry(
+                        extracted_data["questions"], max_retries=3
+                    )
+                except Exception as e:
+                    return Response(
+                        {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
+                    )
+            else:
+                return Response(
+                    {
+                        "error": f"File `{uploaded_file.name}` has an invalid format. Only images "
+                        f"(JPEG, PNG, GIF, WebP) and PDFs are allowed."
+                    },
+                    status=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                )
+
+        if rubric is not None:
+            rubric["assignment_id"] = assignment_id
+        return Response(rubric, status=status.HTTP_201_CREATED)
+
+
+@extend_schema_view(
+    create=extend_schema(
+        tags=["Rubrics"],
+        summary="Create a new rubric",
+        description="""
+        Create a new rubric with the provided criteria.
+
+        A rubric consists of multiple criteria, each with its own scoring levels.
+        The sum of max_points across all criteria must match the assignment's total_points.
+        """,
+        request=RubricSerializer,
+        responses={
+            201: OpenApiResponse(
+                response=RubricSerializer, description="Rubric created successfully"
+            ),
+            400: OpenApiResponse(description="Invalid input data"),
+            500: OpenApiResponse(description="Internal server error"),
+        },
+        examples=[
+            OpenApiExample(
+                "Create Rubric Example",
+                value={
+                    "assignment": 1,
+                    "criteria": [
+                        {
+                            "question": "Code Quality",
+                            "max_points": 30,
+                            "model_answer": "The code should be well-structured, properly formatted, and follow"
+                            " best practices.",
+                            "scoring_levels": [
+                                {
+                                    "level": "Excellent",
+                                    "points": 30,
+                                    "description": "Code is exceptionally well-organized, follows all best practices,"
+                                    " and demonstrates advanced techniques.",
+                                },
+                                {
+                                    "level": "Good",
+                                    "points": 20,
+                                    "description": "Code is well-structured with minor issues that don't affect "
+                                    "functionality.",
+                                },
+                                {
+                                    "level": "Needs Improvement",
+                                    "points": 10,
+                                    "description": "Code is functional but has significant structural or style issues.",
+                                },
+                            ],
+                        },
+                        {
+                            "question": "Functionality",
+                            "max_points": 40,
+                            "model_answer": "The code should correctly implement all required functionality.",
+                            "scoring_levels": [
+                                {
+                                    "level": "Excellent",
+                                    "points": 40,
+                                    "description": "All functionality is implemented correctly and efficiently.",
+                                },
+                                {
+                                    "level": "Good",
+                                    "points": 30,
+                                    "description": "Most functionality is implemented with minor issues.",
+                                },
+                                {
+                                    "level": "Needs Improvement",
+                                    "points": 15,
+                                    "description": "Basic functionality is present but with significant issues.",
+                                },
+                            ],
+                        },
+                    ],
+                },
+                request_only=True,
+                status_codes=["201"],
+            )
+        ],
+    ),
+    list=extend_schema(
+        tags=["Rubrics"],
+        summary="List all rubrics",
+        description="Retrieve a paginated list of all rubrics in the system.",
+        parameters=[
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page",
+            ),
+        ],
+        responses={
+            200: RubricSerializer(many=True),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    ),
+    retrieve=extend_schema(
+        tags=["Rubrics"],
+        summary="Retrieve a rubric",
+        description="Retrieve detailed information about a specific rubric by its ID.",
+        responses={
+            200: RubricSerializer,
+            404: OpenApiResponse(description="Rubric not found"),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    ),
+    partial_update=extend_schema(
+        tags=["Rubrics"],
+        summary="Update a rubric",
+        description="Update one or more fields of an existing rubric.",
+        request=RubricSerializer(),
+        responses={
+            200: RubricSerializer,
+            400: OpenApiResponse(description="Invalid input"),
+            404: OpenApiResponse(description="Rubric not found"),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+        examples=[
+            OpenApiExample(
+                "Update Rubric Example",
+                value={
+                    "assignment": 1,
+                    "criteria": [
+                        {
+                            "id": 1,
+                            "question": "Updated question text",
+                            "max_points": 15,
+                            "model_answer": "Updated model answer",
+                            "scoring_levels": [
+                                {
+                                    "level": "Excellent",
+                                    "points": 15,
+                                    "description": "Updated description",
+                                }
+                            ],
+                        }
+                    ],
+                },
+                request_only=True,
+            )
+        ],
+    ),
+    destroy=extend_schema(
+        tags=["Rubrics"],
+        summary="Delete a rubric",
+        description="Delete a rubric by ID. This action cannot be undone.",
+        responses={
+            204: OpenApiResponse(description="Rubric deleted successfully"),
+            404: OpenApiResponse(description="Rubric not found"),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    ),
+)
+class RubricViewSet(viewsets.ModelViewSet):
+    """
+    A viewset for viewing and editing rubrics.
+    """
+
+    queryset = Rubric.objects.all()
+    serializer_class = RubricSerializer
+    permission_classes = (AllowAny,)
+    pagination_class = PageNumberPagination
+    http_method_names = ["get", "head", "post", "delete", "patch", "options"]
+
+    @extend_schema(
+        tags=["Rubrics"],
+        methods=["GET"],
+        summary="Retrieve rubric by assignment ID",
+        description="Retrieve a rubric by its associated assignment ID.",
+        parameters=[
+            OpenApiParameter(
+                name="assignment_id",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="ID of the assignment to retrieve rubric for",
+                required=True,
+            ),
+        ],
+        responses={
+            200: RubricSerializer,
+            404: OpenApiResponse(
+                description="Rubric not found for the given assignment"
+            ),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    )
+    @action(detail=False, methods=["get"])
+    def by_assignment(self, request):
+        """
+        Retrieve rubric by assignment ID.
+        """
+        assignment_id = request.query_params.get("assignment_id")
+        if not assignment_id:
+            return Response(
+                {"error": "assignment_id parameter is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            rubric = self.queryset.get(assignment_id=assignment_id)
+            serializer = self.get_serializer(rubric)
+            return Response(serializer.data)
+        except Rubric.DoesNotExist:
+            return Response(
+                {"error": "No rubric found for the given assignment"},
+                status=status.HTTP_404_NOT_FOUND,
+            )

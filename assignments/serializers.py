@@ -1,13 +1,7 @@
+from django.db import transaction
 from rest_framework import serializers
 
 from .models import Assignment, Rubric
-
-
-class RubricSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Rubric
-        fields = ["id", "criteria", "created_at", "updated_at"]
-        read_only_fields = ["created_at", "updated_at"]
 
 
 class AssignmentSerializer(serializers.ModelSerializer):
@@ -27,9 +21,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
             "created_by",
             "questions",
         ]
-        read_only_fields = [
-            "created_at",
-        ]
+        read_only_fields = ["created_at", "id"]
 
     def validate_total_points(self, value: int | float) -> int | float:
         if value <= 0:
@@ -80,3 +72,60 @@ class AssignmentSerializer(serializers.ModelSerializer):
             pass
             # validated_data['created_by'] = request.user
         return super().create(validated_data)
+
+
+class ScoringLevelSerializer(serializers.Serializer):
+    level = serializers.CharField()
+    points = serializers.FloatField()
+    description = serializers.CharField()
+
+
+class CriterionSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    question = serializers.CharField()
+    max_points = serializers.FloatField()
+    model_answer = serializers.CharField()
+    scoring_levels = serializers.ListField(
+        child=ScoringLevelSerializer(),
+        min_length=1,
+        required=True,
+    )
+
+
+class RubricSerializer(serializers.ModelSerializer):
+    assignment = serializers.PrimaryKeyRelatedField(queryset=Assignment.objects.all())
+    criteria = serializers.ListField(
+        child=CriterionSerializer(),
+        min_length=1,
+        required=True,
+    )
+
+    class Meta:
+        model = Rubric
+        fields = ["id", "assignment", "criteria", "created_at", "updated_at"]
+        read_only_fields = ["created_at", "updated_at", "id"]
+
+    def validate(self, data):
+        if "criteria" in data and "total_points" in data:
+            total_max_points = sum(
+                criteria.get("max_points", 0) for criteria in data["criteria"]
+            )
+            if abs(total_max_points - data["total_points"]) > 0.01:
+                raise serializers.ValidationError(
+                    f"Sum of max_points in criteria ({total_max_points}) "
+                    f"doesn't match total_points ({data['total_points']})"
+                )
+        return data
+
+    def create(self, validated_data):
+        # Extract nested data
+
+        try:
+            with transaction.atomic():
+                criteria = validated_data.pop("criteria")
+
+                rubric = Rubric.objects.create(**validated_data, criteria=criteria)
+
+                return rubric
+        except Exception as e:
+            raise serializers.ValidationError(f"An error occurred: {e}") from Exception
