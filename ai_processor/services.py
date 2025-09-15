@@ -26,6 +26,9 @@ OPENROUTER_API_KEY = env.str(
 with open("ai_processor/ASSIGNMENT_EXTRACTION_PROMPT.txt", "r") as file:
     ASSIGNMENT_EXTRACTION_PROMPT = file.read()
 
+with open("ai_processor/RUBRIC_EXTRACTION_PROMPT.txt", "r") as file:
+    RUBRIC_EXTRACTION_PROMPT = file.read()
+
 
 class AIProcessor:
     def __init__(self):
@@ -35,8 +38,42 @@ class AIProcessor:
             api_key=OPENROUTER_API_KEY,
         )
 
-        # self.pdf_service = PDFService()
-        # self.ocr_service = OCRService()
+    def __generate_text(self, system_prompt, user_prompt):
+        try:
+            response = self.client.chat.completions.create(
+                extra_headers={
+                    "HTTP-Referer": "",  # Optional. Site URL for rankings on openrouter.ai.
+                    "X-Title": "",  # Optional. Site title for rankings on openrouter.ai.
+                },
+                model="openai/gpt-oss-120b:free",
+                extra_body={
+                    "models": [
+                        "openrouter/sonoma-sky-alpha",
+                        "deepseek/deepseek-chat-v3.1",
+                        "google/gemma-3-27b-it",
+                    ],
+                },
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=0.1,
+                response_format={"type": "json_object"},
+            )
+
+            content = response.choices[0].message.content
+            print(f"Recieved response of lenght {len(content)}")
+
+            try:
+                json_data = json.loads(content)
+            except json.JSONDecodeError as e:
+                print("Error decoding JSON")
+                raise Exception(f"Error decoding JSON: {str(e)}") from Exception
+
+            return json_data
+        except Exception as e:
+            logger.error(f"Error during extraction: {str(e)}")
+            raise Exception(f"Assignment extraction failed: {str(e)}") from Exception
 
     #
     # def extract_pdf_text(self, file: UploadedFile):
@@ -65,51 +102,7 @@ EXTRACTED TEXT:
 IMPORTANT: Return only valid JSON matching the required structure.
 Do not include any explanatory text before or after the JSON
 """
-        try:
-            response = self.client.chat.completions.create(
-                extra_headers={
-                    "HTTP-Referer": "",  # Optional. Site URL for rankings on openrouter.ai.
-                    "X-Title": "",  # Optional. Site title for rankings on openrouter.ai.
-                },
-                model="openai/gpt-oss-120b:free",
-                extra_body={
-                    "models": [
-                        "openrouter/sonoma-sky-alpha",
-                        "deepseek/deepseek-chat-v3.1",
-                        "google/gemma-3-27b-it",
-                    ],
-                },
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                temperature=0.1,
-                response_format={"type": "json_object"},
-            )
-
-            content = response.choices[0].message.content
-            print(f"Received response of length {len(content)}")
-
-            try:
-                json_data = json.loads(content)
-            except json.JSONDecodeError as e:
-                print("Error decoding JSON")
-                raise Exception(f"Invalid JSON: {e}") from Exception
-
-            # Validate structure with Pydantic
-            # assignment = AssignmentStructure(**json_data)
-            # logger.info(
-            #     f"Successfully extracted assignment: {assignment.assignment_name}"
-            # )
-            # logger.info(
-            #     f"Questions: {assignment.question_count}, Total points: {assignment.total_points}"
-            # )
-            # logger.info(f"Confidence: {assignment.extraction_confidence}")
-
-            return json_data
-        except Exception as e:
-            logger.error(f"Error during extraction: {str(e)}")
-            raise Exception(f"Assignment extraction failed: {str(e)}") from Exception
+        return self.__generate_text(system_prompt, user_prompt)
 
     def extract_assignment_with_retry(self, text: str, max_retries: int = 3):
         last_error = None
@@ -117,6 +110,34 @@ Do not include any explanatory text before or after the JSON
         for attempt in range(max_retries):
             try:
                 return self.extract_assignment(text)
+            except Exception as e:
+                last_error = e
+                logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
+
+                if attempt < max_retries - 1:
+                    logger.info("Retrying...")
+
+        raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
+
+    def extract_rubric(self, text):
+        system_prompt = RUBRIC_EXTRACTION_PROMPT
+        user_prompt = f"""
+Please analyze the following extracted text from an educational rubric and return a JSON
+
+EXTRACTED TEXT:
+{text}
+
+IMPORTANT: Return only valid JSON matching the required structure.
+Do not include any explanatory text before or after the JSON
+"""
+        return self.__generate_text(system_prompt, user_prompt)
+
+    def extract_rubric_with_retry(self, text: str, max_retries: int = 3):
+        last_error = None
+
+        for attempt in range(max_retries):
+            try:
+                return self.extract_rubric(text)
             except Exception as e:
                 last_error = e
                 logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")

@@ -40,7 +40,7 @@ class Rubric(models.Model):
     assignment = models.OneToOneField(
         Assignment, on_delete=models.CASCADE, related_name="rubric"
     )
-    criteria = models.JSONField()  # Store rubric criteria as JSON
+    criteria = models.JSONField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
