@@ -9,11 +9,14 @@ from users.models import CustomUser
 class AssignmentTypes(models.TextChoices):
     OBJECTIVE = "OBJECTIVE", _("Objective")
     ESSAY = "ESSAY", _("Essay")
-    SHORT_ANSWER = "SHORT_ANSWER", _("Short Answer")
+    SHORT_ANSWER = "SHORT-ANSWER", _("Short Answer")
     HYBRID = "HYBRID", _("Hybrid")
 
 
 class Assignment(models.Model):
+    section = models.ForeignKey(
+        "classrooms.Section", on_delete=models.CASCADE, related_name="assignments"
+    )
     title = models.CharField(max_length=255, unique=True)
     subject_name = models.CharField(max_length=255)
     instructions = models.TextField()
@@ -46,3 +49,9 @@ class Rubric(models.Model):
 
     def __str__(self):
         return f"Rubric for {self.assignment.title}"
+
+    def has_criteria(self):
+        return True if self.criteria else False
+
+    def get_rubric_criteria_json(self):
+        return self.criteria

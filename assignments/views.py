@@ -10,12 +10,13 @@ from drf_spectacular.utils import (
 from PIL import Image
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotAcceptable, NotFound
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from ai_processor.services import ai_processor, ocr_service, pdf_service
+from students.serializers import StudentSubmissionSerializer
 
 from .models import Assignment, Rubric
 from .serializers import AssignmentSerializer, RubricSerializer
@@ -28,13 +29,13 @@ from .serializers import AssignmentSerializer, RubricSerializer
 # from assignments.services import PDFService
 
 RESPONSE_FORMAT_EXAMPLE = {
-    "assignment_name": "World History - Industrial Revolution Quiz",
+    "title": "World History - Industrial Revolution Quiz",
     "subject_name": "History",
     "instructions": "Answer all questions to the best of your ability. Write your answers in the spaces provided. "
     "For multiple choice questions, select the best answer. Use complete sentences for essay questions.",
     "total_points": 50,
     "question_count": 5,
-    "assignment_type": "hybrid",
+    "assignment_type": "HYBRID",
     "questions": [
         {
             "question_number": "1",
@@ -94,6 +95,7 @@ RESPONSE_FORMAT_EXAMPLE = {
 
 
 ASSIGNMENT_EXAMPLE = {
+    "section": "Sociology Class",
     "title": "World History - Industrial Revolution Quiz",
     "subject_name": "History",
     "instructions": "Answer all questions to the best of your ability.",
@@ -118,6 +120,7 @@ ASSIGNMENT_EXAMPLE = {
 
 @extend_schema_view(
     list=extend_schema(
+        tags=["04 Assignments"],
         summary="List all assignments",
         description="Retrieve a paginated list of all assignments in the system.",
         parameters=[
@@ -140,6 +143,7 @@ ASSIGNMENT_EXAMPLE = {
         },
     ),
     create=extend_schema(
+        tags=["04 Assignments"],
         summary="Create a new assignment",
         description="""Create a new assignment with the provided details.
         The assignment will be associated with the authenticated user as the creator.
@@ -164,6 +168,7 @@ ASSIGNMENT_EXAMPLE = {
         ],
     ),
     retrieve=extend_schema(
+        tags=["04 Assignments"],
         summary="Retrieve an assignment",
         description="Retrieve detailed information about a specific assignment by its ID.",
         responses={
@@ -173,6 +178,7 @@ ASSIGNMENT_EXAMPLE = {
         },
     ),
     partial_update=extend_schema(
+        tags=["04 Assignments"],
         summary="Partially update an assignment",
         description="Update one or more fields of an existing assignment.",
         request=AssignmentSerializer(partial=True),
@@ -185,6 +191,7 @@ ASSIGNMENT_EXAMPLE = {
         },
     ),
     destroy=extend_schema(
+        tags=["04 Assignments"],
         summary="Delete an assignment",
         description="Delete an assignment by ID. This action cannot be undone.",
         responses={
@@ -218,6 +225,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
     @extend_schema(
+        tags=["04 Assignments"],
         summary="Upload assignment files (images or PDFs)",
         description="This endpoint allows users to upload one or more files. "
         "The files can be either images (JPEG, PNG, etc.) or PDFs. "
@@ -353,11 +361,11 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         return Response(results, status=status.HTTP_201_CREATED)
 
     @extend_schema(
-        tags=["Rubrics"],
+        tags=["05 Rubrics"],
         operation_id="upload_rubric",
         summary="Upload rubric file (image or PDF)",
         description="""
-        Upload one or more rubric files (PDF or images) for processing.
+        Upload rubric file (PDF or images) for processing.
         The endpoint accepts file and processes it to extract rubric data.
         The extracted data will be associated with the specified assignment.
         """,
@@ -462,17 +470,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                 examples=[
                     OpenApiExample(
                         name="No File",
-                        value={"error": "No file were uploaded"},
-                        response_only=True,
-                    )
-                ],
-            ),
-            404: OpenApiResponse(
-                description="Not Found",
-                examples=[
-                    OpenApiExample(
-                        name="Not Found",
-                        value={"detail": "Not found."},
+                        value={"error": "Invalid file upload"},
                         response_only=True,
                     )
                 ],
@@ -509,6 +507,11 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                 {"error": "No files were uploaded"}, status=status.HTTP_400_BAD_REQUEST
             )
 
+        if len(files) > 1:
+            raise NotAcceptable(
+                "Only one file can be uploaded at a time. Please try again."
+            )
+
         image_formats = [
             "image/jpeg",
             "image/png",
@@ -536,7 +539,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                     )
                 except Exception as e:
                     return Response(
-                        {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
+                        {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
                     )
             elif uploaded_file.content_type == pdf_formats:
                 try:
@@ -548,7 +551,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                     )
                 except Exception as e:
                     return Response(
-                        {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
+                        {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
                     )
             else:
                 return Response(
@@ -560,13 +563,63 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                 )
 
         if rubric is not None:
-            rubric["assignment_id"] = assignment_id
+            rubric["assignment"] = assignment_id
         return Response(rubric, status=status.HTTP_201_CREATED)
+
+    @extend_schema(
+        tags=["04 Assignments"],
+        summary="Submit an assignment",
+        description="Students use this endpoint to submit their answers to an assignment. "
+        "The submission can be saved as a draft or finalized.",
+        request={
+            "multipart/form-data": {
+                "type": "object",
+                "properties": {
+                    "answers": {
+                        "type": "string",
+                        "format": "binary",
+                        "description": "Assignment to be submitted",
+                    },
+                },
+                "required": ["answers"],
+            }
+        },
+        responses={
+            201: StudentSubmissionSerializer,
+            400: OpenApiResponse(
+                description="Bad request - invalid data",
+                examples=[{"error": "Invalid submission data"}],
+            ),
+            403: OpenApiResponse(
+                description="Not authorized",
+                examples=[
+                    {"error": "You do not have permission to submit to this assignment"}
+                ],
+            ),
+            404: OpenApiResponse(
+                description="Assignment not found",
+                examples=[{"error": "Assignment not found"}],
+            ),
+            409: OpenApiResponse(
+                description="Conflict - already submitted",
+                examples=[{"error": "You have already submitted this assignment"}],
+            ),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["POST"],
+        url_path=r"(?P<assignment_id>[-\w]+)/submit_assignment",
+        url_name="submit_assignment",
+    )
+    def submit_assignment(self, request, assignment_id=None):
+        if not Assignment.objects.filter(pk=assignment_id).exists():
+            raise NotFound("No Assignment found with this ID.")
 
 
 @extend_schema_view(
     create=extend_schema(
-        tags=["Rubrics"],
+        tags=["05 Rubrics"],
         summary="Create a new rubric",
         description="""
         Create a new rubric with the provided criteria.
@@ -643,7 +696,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         ],
     ),
     list=extend_schema(
-        tags=["Rubrics"],
+        tags=["05 Rubrics"],
         summary="List all rubrics",
         description="Retrieve a paginated list of all rubrics in the system.",
         parameters=[
@@ -666,7 +719,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         },
     ),
     retrieve=extend_schema(
-        tags=["Rubrics"],
+        tags=["05 Rubrics"],
         summary="Retrieve a rubric",
         description="Retrieve detailed information about a specific rubric by its ID.",
         responses={
@@ -676,7 +729,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         },
     ),
     partial_update=extend_schema(
-        tags=["Rubrics"],
+        tags=["05 Rubrics"],
         summary="Update a rubric",
         description="Update one or more fields of an existing rubric.",
         request=RubricSerializer(),
@@ -712,7 +765,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         ],
     ),
     destroy=extend_schema(
-        tags=["Rubrics"],
+        tags=["05 Rubrics"],
         summary="Delete a rubric",
         description="Delete a rubric by ID. This action cannot be undone.",
         responses={
@@ -734,7 +787,7 @@ class RubricViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
     @extend_schema(
-        tags=["Rubrics"],
+        tags=["05 Rubrics"],
         methods=["GET"],
         summary="Retrieve rubric by assignment ID",
         description="Retrieve a rubric by its associated assignment ID.",

@@ -29,6 +29,12 @@ with open("ai_processor/ASSIGNMENT_EXTRACTION_PROMPT.txt", "r") as file:
 with open("ai_processor/RUBRIC_EXTRACTION_PROMPT.txt", "r") as file:
     RUBRIC_EXTRACTION_PROMPT = file.read()
 
+with open("ai_processor/ANSWERS_EXTRACTION_PROMPT.txt", "r") as file:
+    ANSWERS_EXTRACTION_PROMPT = file.read()
+
+with open("ai_processor/GRADING_ASSIGNMENT_PROMPT.txt", "r") as file:
+    GRADING_ASSIGNMENT_PROMPT = file.read()
+
 
 class AIProcessor:
     def __init__(self):
@@ -74,21 +80,6 @@ class AIProcessor:
         except Exception as e:
             logger.error(f"Error during extraction: {str(e)}")
             raise Exception(f"Assignment extraction failed: {str(e)}") from Exception
-
-    #
-    # def extract_pdf_text(self, file: UploadedFile):
-    #     if file.content_type == "application/pdf":
-    #         self.pdf_service.uploaded_file = file
-    #         try:
-    #             extracted_data = self.pdf_service.extract()
-    #
-    #
-    #             return extracted_data
-    #
-    #         except Exception as e:
-    #             raise ValueError(f'Something went wrong: {e}')
-    #     else:
-    #         raise ValueError(f'Unsupported file type: {file.content_type}')
 
     def extract_assignment(self, text):
         system_prompt = ASSIGNMENT_EXTRACTION_PROMPT
@@ -138,6 +129,73 @@ Do not include any explanatory text before or after the JSON
         for attempt in range(max_retries):
             try:
                 return self.extract_rubric(text)
+            except Exception as e:
+                last_error = e
+                logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
+
+                if attempt < max_retries - 1:
+                    logger.info("Retrying...")
+
+        raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
+
+    def extract_answer(self, text):
+        system_prompt = ANSWERS_EXTRACTION_PROMPT
+
+        user_prompt = f"""
+Please analyze the following extracted text from an educational assignment and answers and return a JSON
+
+EXTRACTED TEXT:
+{text}
+
+IMPORTANT: Return only valid JSON matching the required structure.
+Do not include any explanatory text before or after the JSON
+
+"""
+        return self.__generate_text(system_prompt, user_prompt)
+
+    def extract_answer_with_retry(self, text: str, max_retries: int = 3):
+        last_error = None
+
+        for attempt in range(max_retries):
+            try:
+                return self.extract_answer(text)
+            except Exception as e:
+                last_error = e
+                logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
+
+                if attempt < max_retries - 1:
+                    logger.info("Retrying...")
+        raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
+
+    def grade_student_submission(self, rubric_json, answer_json):
+        system_prompt = GRADING_ASSIGNMENT_PROMPT
+
+        user_prompt = f"""
+You are given the following rubric and student answers.
+Use the rubric to grade each student answer, assign points, and provide constructive feedback.
+Return the results strictly in the JSON grading format shown in the background instructions.
+
+### Rubric JSON
+{rubric_json}
+
+### Student Answers JSON
+{answer_json}
+
+Now, grade the student answers based on the rubric.
+Make sure to:
+1. Match each answer with its question in the rubric.
+2. Award points according to the closest scoring level.
+3. Provide detailed feedback for each answer.
+4. Calculate the total score and overall feedback.
+"""
+        return self.__generate_text(system_prompt, user_prompt)
+
+    def extract_grade_with_retry(self, rubric_json, answer_json, max_retries: int = 3):
+        last_error = None
+
+        for attempt in range(max_retries):
+            try:
+                return self.grade_student_submission(rubric_json, answer_json)
             except Exception as e:
                 last_error = e
                 logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")

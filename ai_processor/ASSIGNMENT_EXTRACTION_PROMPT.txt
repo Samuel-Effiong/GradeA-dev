@@ -78,12 +78,12 @@ Your output must follow this exact structure:
 
 ```json
 {
-  "assignment_name": "string - The title/name of the assignment",
+  "title": "string - The title/name of the assignment",
   "subject_name": "string - The academic subject the assignment belongs",
   "instructions": "string - General instructions for students",
   "total_points": number - Sum of all question points,
   "question_count": number - Total number of questions,
-  "assignment_type": "mixed|objective|essay|short_answer",
+  "assignment_type": "HYBRID|OBJECTIVE|ESSAY|SHORT-ANSWER",
   "questions": [
     {
       "question_number": "string - e.g., '1', '2a', 'Question 1'",
@@ -94,7 +94,7 @@ Your output must follow this exact structure:
       "additional_notes": "string - Any special requirements or notes"
     }
   ],
-  "extraction_confidence": "high|medium|low",
+  "extraction_confidence": "HIGH|MEDIUM|LOW",
   "potential_issues": ["array of strings - Any concerns about extraction quality"]
 }
 ```
@@ -129,7 +129,7 @@ Your output must follow this exact structure:
 ## Edge Cases and Special Handling
 
 ### Mixed Question Types:
-When an assignment contains multiple question types, set `assignment_type` to "mixed" and properly categorize each individual question.
+When an assignment contains multiple question types, set `assignment_type` to "HYBRID" and properly categorize each individual question.
 
 ### Incomplete Extractions:
 If text appears cut off or corrupted, note this in `potential_issues` and work with available information.
