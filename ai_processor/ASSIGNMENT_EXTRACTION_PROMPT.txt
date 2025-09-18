@@ -22,7 +22,6 @@ You are an expert educational content analyzer specializing in extracting struct
 
 ### Common Assignment Components:
 - **Assignment Title/Name**: Usually at the top, may be in larger font or bold, deduce from the document if not found
-- **Course/Subject Name**: This is the academic subject the assignment belongs to (e.g., Mathematics, English Literature, Biology), deduce from the document if not found.
 - **Instructions**: General directions for students (time limits, format requirements, etc.)
 - **Individual Questions**: Numbered or lettered items with specific point values
 - **Point Allocation**: Numbers indicating score value (e.g., "5 points," "(10 marks)")
