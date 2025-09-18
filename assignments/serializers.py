@@ -11,6 +11,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
         model = Assignment
         fields = [
             "id",
+            "section",
             "title",
             "subject_name",
             "instructions",
@@ -38,7 +39,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Questions must be a list")
 
         if value is None:
-            return serializers.ValidationError("Question cannot be empty")
+            raise serializers.ValidationError("Question cannot be empty")
 
         for i, question in enumerate(value, 1):
             if not isinstance(question, dict):
@@ -84,7 +85,7 @@ class CriterionSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     question = serializers.CharField()
     max_points = serializers.FloatField()
-    model_answer = serializers.CharField()
+    model_answer = serializers.CharField(allow_blank=True)
     scoring_levels = serializers.ListField(
         child=ScoringLevelSerializer(),
         min_length=1,
@@ -106,14 +107,14 @@ class RubricSerializer(serializers.ModelSerializer):
         read_only_fields = ["created_at", "updated_at", "id"]
 
     def validate(self, data):
-        if "criteria" in data and "total_points" in data:
+        if "criteria" in data and "max_points" in data:
             total_max_points = sum(
                 criteria.get("max_points", 0) for criteria in data["criteria"]
             )
-            if abs(total_max_points - data["total_points"]) > 0.01:
+            if abs(total_max_points - data["max_points"]) > 0.01:
                 raise serializers.ValidationError(
                     f"Sum of max_points in criteria ({total_max_points}) "
-                    f"doesn't match total_points ({data['total_points']})"
+                    f"doesn't match max_points ({data['max_points']})"
                 )
         return data
 
