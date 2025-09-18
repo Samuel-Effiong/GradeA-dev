@@ -33,4 +33,7 @@ urlpatterns = [
     path("api/v1/auth/", include("djoser.urls.jwt")),
     path("api/v1/", include(schema_urlpatterns)),
     path("", include("assignments.urls")),
+    path("", include("classrooms.urls")),
+    path("", include("users.urls")),
+    path("", include("students.urls")),
 ]

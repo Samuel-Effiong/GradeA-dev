@@ -1,3 +1,298 @@
 # from django.shortcuts import render
+from django.core.exceptions import BadRequest
+from django.core.files.uploadedfile import UploadedFile
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import (
+    OpenApiExample,
+    OpenApiParameter,
+    OpenApiResponse,
+    extend_schema,
+    extend_schema_view,
+)
+from PIL.Image import Image
+from rest_framework import viewsets
+from rest_framework.decorators import action
+from rest_framework.exceptions import NotAcceptable, NotFound
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework.status import (
+    HTTP_200_OK,
+    HTTP_201_CREATED,
+    HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+    HTTP_500_INTERNAL_SERVER_ERROR,
+)
+
+from ai_processor.services import ai_processor, ocr_service, pdf_service
+from assignments.models import Assignment
+from students.models import StudentSubmission
+from students.serializers import StudentSubmissionSerializer
 
 # Create your views here.
+
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=["07 Student Submissions"],
+        summary="List all student submissions",
+        description="Retrieve a paginated list of all student submissions in the system.",
+        parameters=[
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+            ),
+        ],
+        responses={
+            200: StudentSubmissionSerializer(many=True),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    ),
+    create=extend_schema(
+        tags=["07 Student Submissions"],
+        summary="Create a new student submission",
+        description="Create a new student submission with the provided details.",
+        request=StudentSubmissionSerializer,
+        responses={
+            201: OpenApiResponse(
+                response=StudentSubmissionSerializer,
+                description="Assignment successfully submitted",
+            ),
+            400: OpenApiResponse(
+                description="Invalid input. Missing required fields or invalid data format"
+            ),
+        },
+        examples=[],
+    ),
+    retrieve=extend_schema(
+        tags=["07 Student Submissions"],
+        summary="Retrieve a student submission",
+        description="Retrieve detailed information about a specific student submission by its ID.",
+        responses={
+            200: StudentSubmissionSerializer,
+            404: OpenApiResponse(description="Student submission not found"),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    ),
+    partial_update=extend_schema(
+        tags=["07 Student Submissions"],
+        summary="Partially update a student submission",
+        description="Update one or more fields of an existing student submission.",
+        request=StudentSubmissionSerializer(partial=True),
+        responses={
+            200: StudentSubmissionSerializer,
+            400: OpenApiResponse(description="Invalid input"),
+            404: OpenApiResponse(description="Student submission not found"),
+        },
+    ),
+    destroy=extend_schema(
+        tags=["07 Student Submissions"],
+        summary="Delete a student submission",
+        description="Delete a student submission by ID. This action cannot be undone.",
+        responses={
+            204: OpenApiResponse(description="Student submission deleted successfully"),
+            404: OpenApiResponse(description="Student submission not found"),
+        },
+    ),
+)
+class StudentSubmissionViewSet(viewsets.ModelViewSet):
+    queryset = StudentSubmission.objects.all()
+    serializer_class = StudentSubmissionSerializer
+    permission_classes = (AllowAny,)
+    pagination_class = PageNumberPagination
+    http_method_names = ["get", "head", "post", "delete", "patch", "options"]
+
+    @extend_schema(
+        tags=["07 Student Submissions"],
+        summary="Upload answers for a student submission",
+        description="Upload answers for a student submission.",
+        request={
+            "multipart/form-data": {
+                "type": "object",
+                "properties": {
+                    "answer": {
+                        "type": "string",
+                        "format": "binary",
+                        "description": "Answer file (PDF, JPEG, PNG, GIF, or WebP)",
+                    }
+                },
+                "required": ["answer"],
+            }
+        },
+        responses={
+            201: OpenApiResponse(
+                response=StudentSubmissionSerializer,
+                description="Answer processed successfully",
+                examples=[
+                    OpenApiExample(
+                        name="Answer Example",
+                        value={
+                            "assignment": 1,
+                            "answers": [
+                                {
+                                    "question_number": 1,
+                                    "question_text": "What color is the sky?",
+                                    "answer_text": "Purple",
+                                    "notes": "OCR error corrected: 'Purle' to 'Purple'.",
+                                },
+                                {
+                                    "question_number": 2,
+                                    "question_text": "What color is the ground?",
+                                    "answer_text": "Orange",
+                                    "notes": "",
+                                },
+                                {
+                                    "question_number": 3,
+                                    "question_text": "What color is the sun?",
+                                    "answer_text": "Black",
+                                    "notes": "",
+                                },
+                            ],
+                            "ai_confidence_score": 95,
+                            "general_feedback": "All questions answered. Minor OCR formatting issue "
+                            "between Q5 and Q6 resolved by context. Some answers are "
+                            "unconventional or incorrect based on common knowledge, "
+                            "but preserved as student's response.",
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                description="Invalid input. Missing required fields or invalid data format",
+                examples=[
+                    OpenApiExample(
+                        name="No File",
+                        value={"error": "Invalid file upload"},
+                        response_only=True,
+                    )
+                ],
+            ),
+            415: OpenApiResponse(
+                description="Unsupported Media Type",
+                examples=[
+                    OpenApiExample(
+                        name="Unsupported Media Type",
+                        value={
+                            "error": "File 'example.txt' has an invalid format. "
+                            "Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed."
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["POST"],
+        url_path=r"(?P<assignment_id>[-\w]+)/upload-answers",
+        url_name="upload-answers",
+    )
+    def upload_answers(self, request, assignment_id=None, *args, **kwargs):
+        if not Assignment.objects.filter(id=assignment_id).exists():
+            raise NotFound(detail="No Assignment with this ID is found")
+
+        files = request.FILES.getlist("answer")
+        if not files:
+            raise BadRequest()
+
+        if len(files) > 1:
+            raise NotAcceptable(detail="Only one file can be uploaded at a time")
+
+        image_formats = [
+            "image/jpeg",
+            "image/png",
+            "image/gif",
+            "image/webp",
+        ]
+
+        pdf_formats = "application/pdf"
+
+        extracted_text = ""
+
+        for uploaded_file in files:
+            if not isinstance(uploaded_file, UploadedFile):
+                raise BadRequest(
+                    "Invalid file upload. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed."
+                )
+
+            if uploaded_file.content_type in image_formats:
+                try:
+                    image = Image.open(uploaded_file)
+                    extracted_text = ocr_service.extract_with_pytessaract(image)
+                except Exception as e:
+                    return Response(
+                        {"error": str(e)}, status=HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+            elif uploaded_file.content_type == pdf_formats:
+                try:
+                    pdf_service.set_uploaded_file(uploaded_file)
+                    extracted_data = pdf_service.extract()
+                    extracted_text = extracted_data["questions"]
+
+                except Exception as e:
+                    return Response(
+                        {"error": str(e)}, status=HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+            else:
+                return Response(
+                    {
+                        "error": "Invalid file upload. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed."
+                    },
+                    status=HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                )
+
+        try:
+            answer = ai_processor.extract_answer_with_retry(
+                extracted_text, max_retries=3
+            )
+        except Exception as e:
+            return Response(
+                {"error": "We encountered an error: {}".format(str(e))},
+            )
+
+        if answer is not None:
+            answer["assignment"] = int(assignment_id)
+
+        return Response(answer, status=HTTP_201_CREATED)
+
+    @extend_schema(tags=["07 Student Submissions"])
+    @action(
+        detail=True,
+        methods=["GET"],
+    )
+    def grade(self, request, pk=None):
+        # Validate submission id
+        try:
+            submission = StudentSubmission.objects.get(pk=pk)
+        except StudentSubmission.DoesNotExist:
+            raise NotFound(
+                detail="No Student Submission with this ID is found"
+            ) from StudentSubmission.DoesNotExist
+
+        assignment = submission.assignment
+
+        if not hasattr(assignment, "rubric"):
+            raise NotFound(detail="No Rubric for this assignment")
+
+        rubric = assignment.rubric
+
+        if not rubric.has_criteria():
+            raise NotFound(detail="No Rubric criteria found for this assignment")
+
+        try:
+            rubric_json = rubric.get_rubric_criteria_json()
+            answer_json = submission.get_answer()
+
+            grading = ai_processor.extract_grade_with_retry(rubric_json, answer_json)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response(grading, status=HTTP_200_OK)

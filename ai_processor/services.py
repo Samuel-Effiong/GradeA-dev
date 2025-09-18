@@ -5,23 +5,35 @@ import fitz
 import numpy as np
 from django.core.files.uploadedfile import UploadedFile
 from environ import Env
-from fitz_new.mupdf import pdf_document
 from openai import OpenAI
 from paddleocr import PaddleOCR
 from pdf2image import convert_from_bytes
-from PIL import Image
+
+# from PIL import Image
 from pytesseract import pytesseract
 
-from ai_processor.validators import AssignmentStructure, logger
+from ai_processor.validators import logger
 
 env = Env()
 env.read_env(".env")
 
-OPENROUTER_API_KEY = env.str("OPENROUTER_API_KEY")
+OPENROUTER_API_KEY = env.str(
+    "OPENROUTER_API_KEY",
+    default="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",
+)
 
 
 with open("ai_processor/ASSIGNMENT_EXTRACTION_PROMPT.txt", "r") as file:
     ASSIGNMENT_EXTRACTION_PROMPT = file.read()
+
+with open("ai_processor/RUBRIC_EXTRACTION_PROMPT.txt", "r") as file:
+    RUBRIC_EXTRACTION_PROMPT = file.read()
+
+with open("ai_processor/ANSWERS_EXTRACTION_PROMPT.txt", "r") as file:
+    ANSWERS_EXTRACTION_PROMPT = file.read()
+
+with open("ai_processor/GRADING_ASSIGNMENT_PROMPT.txt", "r") as file:
+    GRADING_ASSIGNMENT_PROMPT = file.read()
 
 
 class AIProcessor:
@@ -32,36 +44,7 @@ class AIProcessor:
             api_key=OPENROUTER_API_KEY,
         )
 
-        # self.pdf_service = PDFService()
-        # self.ocr_service = OCRService()
-
-    #
-    # def extract_pdf_text(self, file: UploadedFile):
-    #     if file.content_type == "application/pdf":
-    #         self.pdf_service.uploaded_file = file
-    #         try:
-    #             extracted_data = self.pdf_service.extract()
-    #
-    #
-    #             return extracted_data
-    #
-    #         except Exception as e:
-    #             raise ValueError(f'Something went wrong: {e}')
-    #     else:
-    #         raise ValueError(f'Unsupported file type: {file.content_type}')
-
-    def extract_assignment(self, text):
-        system_prompt = ASSIGNMENT_EXTRACTION_PROMPT
-
-        user_prompt = f"""
-Please analyze the following extracted text from an educational assignment and return a JSON
-
-EXTRACTED TEXT:
-{text}
-
-IMPORTANT: Return only valid JSON matching the required structure.
-Do not include any explanatory text before or after the JSON
-"""
+    def __generate_text(self, system_prompt, user_prompt):
         try:
             response = self.client.chat.completions.create(
                 extra_headers={
@@ -85,28 +68,32 @@ Do not include any explanatory text before or after the JSON
             )
 
             content = response.choices[0].message.content
-            print(f"Received response of length {len(content)}")
+            print(f"Recieved response of lenght {len(content)}")
 
             try:
                 json_data = json.loads(content)
             except json.JSONDecodeError as e:
                 print("Error decoding JSON")
-                raise Exception(f"Invalid JSON: {e}")
+                raise Exception(f"Error decoding JSON: {str(e)}") from Exception
 
-            # Validate structure with Pydantic
-            assignment = AssignmentStructure(**json_data)
-            logger.info(
-                f"Successfully extracted assignment: {assignment.assignment_name}"
-            )
-            logger.info(
-                f"Questions: {assignment.question_count}, Total points: {assignment.total_points}"
-            )
-            logger.info(f"Confidence: {assignment.extraction_confidence}")
-
-            return assignment
+            return json_data
         except Exception as e:
             logger.error(f"Error during extraction: {str(e)}")
-            raise Exception(f"Assignment extraction failed: {str(e)}")
+            raise Exception(f"Assignment extraction failed: {str(e)}") from Exception
+
+    def extract_assignment(self, text):
+        system_prompt = ASSIGNMENT_EXTRACTION_PROMPT
+
+        user_prompt = f"""
+Please analyze the following extracted text from an educational assignment and return a JSON
+
+EXTRACTED TEXT:
+{text}
+
+IMPORTANT: Return only valid JSON matching the required structure.
+Do not include any explanatory text before or after the JSON
+"""
+        return self.__generate_text(system_prompt, user_prompt)
 
     def extract_assignment_with_retry(self, text: str, max_retries: int = 3):
         last_error = None
@@ -114,6 +101,101 @@ Do not include any explanatory text before or after the JSON
         for attempt in range(max_retries):
             try:
                 return self.extract_assignment(text)
+            except Exception as e:
+                last_error = e
+                logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
+
+                if attempt < max_retries - 1:
+                    logger.info("Retrying...")
+
+        raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
+
+    def extract_rubric(self, text):
+        system_prompt = RUBRIC_EXTRACTION_PROMPT
+        user_prompt = f"""
+Please analyze the following extracted text from an educational rubric and return a JSON
+
+EXTRACTED TEXT:
+{text}
+
+IMPORTANT: Return only valid JSON matching the required structure.
+Do not include any explanatory text before or after the JSON
+"""
+        return self.__generate_text(system_prompt, user_prompt)
+
+    def extract_rubric_with_retry(self, text: str, max_retries: int = 3):
+        last_error = None
+
+        for attempt in range(max_retries):
+            try:
+                return self.extract_rubric(text)
+            except Exception as e:
+                last_error = e
+                logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
+
+                if attempt < max_retries - 1:
+                    logger.info("Retrying...")
+
+        raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
+
+    def extract_answer(self, text):
+        system_prompt = ANSWERS_EXTRACTION_PROMPT
+
+        user_prompt = f"""
+Please analyze the following extracted text from an educational assignment and answers and return a JSON
+
+EXTRACTED TEXT:
+{text}
+
+IMPORTANT: Return only valid JSON matching the required structure.
+Do not include any explanatory text before or after the JSON
+
+"""
+        return self.__generate_text(system_prompt, user_prompt)
+
+    def extract_answer_with_retry(self, text: str, max_retries: int = 3):
+        last_error = None
+
+        for attempt in range(max_retries):
+            try:
+                return self.extract_answer(text)
+            except Exception as e:
+                last_error = e
+                logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
+
+                if attempt < max_retries - 1:
+                    logger.info("Retrying...")
+        raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
+
+    def grade_student_submission(self, rubric_json, answer_json):
+        system_prompt = GRADING_ASSIGNMENT_PROMPT
+
+        user_prompt = f"""
+You are given the following rubric and student answers.
+Use the rubric to grade each student answer, assign points, and provide constructive feedback.
+Return the results strictly in the JSON grading format shown in the background instructions.
+
+### Rubric JSON
+{rubric_json}
+
+### Student Answers JSON
+{answer_json}
+
+Now, grade the student answers based on the rubric.
+Make sure to:
+1. Match each answer with its question in the rubric.
+2. Award points according to the closest scoring level.
+3. Provide detailed feedback for each answer.
+4. Calculate the total score and overall feedback.
+"""
+        return self.__generate_text(system_prompt, user_prompt)
+
+    def extract_grade_with_retry(self, rubric_json, answer_json, max_retries: int = 3):
+        last_error = None
+
+        for attempt in range(max_retries):
+            try:
+                return self.grade_student_submission(rubric_json, answer_json)
             except Exception as e:
                 last_error = e
                 logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
@@ -177,32 +259,32 @@ class PDFService:
 
                 self.extracted_data["questions"] = full_text
         except Exception as e:
-            raise ValueError(f"Something went wrong: {e}")
+            raise ValueError(f"Something went wrong: {e}") from Exception
 
-    def __extract_text_with_ocr(self, pdf_bytes, ocr_service):
+    def __extract_text_with_ocr(self, pdf_bytes):
         """Extract text from a PDF that is scanned"""
 
         try:
             # Convert PDF pages to a list of PIL Image objects from the in-memory stream
-            images = convert_from_bytes(pdf_bytes, dpi=300)
+            images = convert_from_bytes(pdf_bytes, dpi=200)
 
             full_text = ""
 
             for image in images:
-                text = ocr_service.extract_with_pytessaract(image)
+                text = ocr_service.extract_with_paddle(image)
                 full_text += text
 
             self.extracted_data["questions"] = full_text
         except Exception as e:
-            raise ValueError(f"Something went wrong: {e}")
+            raise ValueError(f"Something went wrong: {e}") from Exception
 
 
 class OCRService:
     def __init__(self):
         self.paddle_ocr_model = PaddleOCR(
-            use_doc_orientation_classify=False,
+            use_doc_orientation_classify=True,
             use_doc_unwarping=True,
-            use_textline_orientation=False,
+            use_textline_orientation=True,
         )
 
     def extract_with_paddle(self, image):
@@ -215,7 +297,12 @@ class OCRService:
         return "\n".join(text)
 
     def extract_with_pytessaract(self, image):
-        text = pytesseract.image_to_string(image, lang="eng")
+        """
+
+        :param image: PIL Image
+        :return:
+        """
+        text = pytesseract.image_to_string(image)
         return text
 
 

@@ -10,11 +10,14 @@ from users.models import CustomUser
 class AssignmentTypes(models.TextChoices):
     QUESTIONNAIRES = "QUESTIONNAIRE", _("Questionnaire")
     ESSAY = "ESSAY", _("Essay")
-    SHORT_ANSWER = "SHORT_ANSWER", _("Short Answer")
+    SHORT_ANSWER = "SHORT-ANSWER", _("Short Answer")
     HYBRID = "HYBRID", _("Hybrid")
 
 
 class Assignment(models.Model):
+    section = models.ForeignKey(
+        "classrooms.Section", on_delete=models.CASCADE, related_name="assignments"
+    )
     title = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True)
     assignment_type = models.CharField(
@@ -44,9 +47,15 @@ class Rubric(models.Model):
     assignment = models.OneToOneField(
         Assignment, on_delete=models.CASCADE, related_name="rubric"
     )
-    criteria = models.JSONField()  # Store rubric criteria as JSON
+    criteria = models.JSONField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Rubric for {self.assignment.title}"
+
+    def has_criteria(self):
+        return True if self.criteria else False
+
+    def get_rubric_criteria_json(self):
+        return self.criteria
