@@ -19,11 +19,14 @@ class Assignment(models.Model):
         "classrooms.Section", on_delete=models.CASCADE, related_name="assignments"
     )
     title = models.CharField(max_length=255, unique=True)
-    description = models.TextField(blank=True)
+    subject_name = models.CharField(max_length=255)
+    instructions = models.TextField()
+    total_points = models.IntegerField()
+    question_count = models.IntegerField()
     assignment_type = models.CharField(
         max_length=20,
         choices=AssignmentTypes.choices,
-        default=AssignmentTypes.QUESTIONNAIRES,
+        default=AssignmentTypes.OBJECTIVE,
     )
     created_at = models.DateTimeField(auto_now_add=True)
     created_by = models.ForeignKey(
@@ -33,14 +36,8 @@ class Assignment(models.Model):
         blank=True,
         related_name="assignments",
     )
-    file = models.FileField(
-        upload_to="assignments/original",
-        validators=[
-            FileExtensionValidator(allowed_extensions=["pdf", "png", "jpg", "jpeg"])
-        ],
-    )
 
-    extracted_data = models.JSONField(null=True, blank=True)
+    questions = models.JSONField(null=True, blank=True)
 
 
 class Rubric(models.Model):
