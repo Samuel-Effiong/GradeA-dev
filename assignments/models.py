@@ -1,4 +1,3 @@
-from django.core.validators import FileExtensionValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -8,7 +7,7 @@ from users.models import CustomUser
 
 
 class AssignmentTypes(models.TextChoices):
-    QUESTIONNAIRES = "QUESTIONNAIRE", _("Questionnaire")
+    OBJECTIVE = "OBJECTIVE", _("Objective")
     ESSAY = "ESSAY", _("Essay")
     SHORT_ANSWER = "SHORT-ANSWER", _("Short Answer")
     HYBRID = "HYBRID", _("Hybrid")
