@@ -95,13 +95,13 @@ RESPONSE_FORMAT_EXAMPLE = {
 
 
 ASSIGNMENT_EXAMPLE = {
-    "section": "Sociology Class",
+    "section": 0,
     "title": "World History - Industrial Revolution Quiz",
-    "subject_name": "History",
     "instructions": "Answer all questions to the best of your ability.",
     "total_points": 50,
     "question_count": 5,
     "assignment_type": "HYBRID",
+    "created_by": 0,
     "questions": [
         {
             "question_text": "Which of the following was NOT a major cause of the Industrial Revolution?",
@@ -161,11 +161,11 @@ ASSIGNMENT_EXAMPLE = {
             # 401: OpenApiResponse(description="Authentication credentials were not provided"),
             # 403: OpenApiResponse(description="You do not have permission to perform this action")
         },
-        examples=[
-            OpenApiExample(
-                "Create Assignment Example", value=ASSIGNMENT_EXAMPLE, request_only=True
-            )
-        ],
+        # examples=[
+        #     OpenApiExample(
+        #         "Create Assignment Example", value=ASSIGNMENT_EXAMPLE, request_only=True
+        #     )
+        # ],
     ),
     retrieve=extend_schema(
         tags=["04 Assignments"],

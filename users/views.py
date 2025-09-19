@@ -1,6 +1,5 @@
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
-    OpenApiExample,
     OpenApiParameter,
     OpenApiResponse,
     extend_schema,
@@ -72,20 +71,6 @@ USER_EXAMPLE = {
                 description="Invalid input. Missing required fields or invalid data format"
             ),
         },
-        examples=[
-            OpenApiExample(
-                "Create User Example",
-                value={
-                    "email": "teacher@example.com",
-                    "password": "",
-                    "first_name": "John",
-                    "last_name": "Doe",
-                    "user_type": "TEACHER",
-                    "username": "john.doe",
-                },
-                request_only=True,
-            )
-        ],
     ),
     retrieve=extend_schema(
         tags=["Users"],

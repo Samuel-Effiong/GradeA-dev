@@ -72,8 +72,6 @@ class StudentSectionSerializer(serializers.ModelSerializer):
             "enrollment_status",
             "withdrawal_date",
             "final_grade",
-            "attendance_record",
-            "participation_score",
         ]
         read_only_fields = ["id", "created_at"]
 

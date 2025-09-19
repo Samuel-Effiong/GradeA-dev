@@ -13,7 +13,6 @@ class AssignmentSerializer(serializers.ModelSerializer):
             "id",
             "section",
             "title",
-            "subject_name",
             "instructions",
             "total_points",
             "question_count",
@@ -71,7 +70,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         if request and hasattr(request, "user"):
             pass
-            # validated_data['created_by'] = request.user
+            # TODO: validated_data['created_by'] = request.user
         return super().create(validated_data)
 
 
