@@ -10,7 +10,7 @@ from drf_spectacular.utils import (
     extend_schema_view,
 )
 from PIL.Image import Image
-from rest_framework import viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotAcceptable, NotFound
 from rest_framework.pagination import PageNumberPagination
@@ -296,3 +296,35 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
             return Response({"error": str(e)}, status=HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response(grading, status=HTTP_200_OK)
+
+    @action(
+        detail=True,
+        methods=["POST"],
+    )
+    def save_grade(self, request, pk=None):
+        try:
+            submission = StudentSubmission.objects.get(pk=pk)
+        except StudentSubmission.DoesNotExist:
+            raise NotFound(
+                detail="No Student Submission with this ID is found"
+            ) from StudentSubmission.DoesNotExist
+
+        data = request.data
+
+        total_score = data["total_score"]
+        evaluation_details = data["evaluation_details"]
+        summary_feedback = data["summary_and_overall_feedback"]
+        grader_evaluation = data["grader_evaluation"]
+
+        feedback = {
+            "total_score": total_score,
+            "evaluation_details": evaluation_details,
+            "summary_feedback": summary_feedback,
+            "grader_evaluation": grader_evaluation,
+        }
+
+        submission.score = total_score
+        submission.feedback = feedback
+
+        submission.save(update_fields=["score", "feedback"])
+        return Response(submission, status=status.HTTP_200_OK)
