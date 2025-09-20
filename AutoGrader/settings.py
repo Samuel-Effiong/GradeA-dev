@@ -10,7 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
-import logging
+# import logging
 import os
 from datetime import timedelta
 from pathlib import Path
@@ -224,7 +224,7 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
-    # "EXCEPTION_HANDLER": "utilities.exceptions.custom_exception_handler",
+    "EXCEPTION_HANDLER": "users.exceptions.custom_exception_handler",
 }
 
 SIMPLE_JWT = {
