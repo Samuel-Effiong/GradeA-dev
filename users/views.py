@@ -1,13 +1,16 @@
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
+    OpenApiExample,
     OpenApiParameter,
     OpenApiResponse,
     extend_schema,
     extend_schema_view,
 )
-from rest_framework import viewsets
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
 
 from users.models import CustomUser
 from users.serializers import CustomUserSerializer
@@ -133,3 +136,47 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     class Meta:
         model = CustomUser
         fields = ["id", "username", "email", "user_type"]
+
+    @extend_schema(
+        tags=["Users"],
+        summary="Get current authenticated user",
+        description="""
+        Retrieve the currently authenticated user's information.
+
+        This endpoint returns the complete user profile of the currently logged-in user.
+        The user must be authenticated to access this endpoint.
+
+        ## Response
+        - 200: Success - Returns the user's profile information
+        - 401: Unauthorized - If user is not authenticated
+        """,
+        responses={
+            200: CustomUserSerializer,
+            401: OpenApiResponse(
+                description="Unauthorized",
+                examples=[
+                    OpenApiExample(name="unauthorized", value={"error": "Unauthorized"})
+                ],
+            ),
+        },
+    )
+    @action(detail=False, methods=["get"])
+    def me(self, request):
+        """
+        Retrieve the currently authenticated user's information.
+
+        This endpoint returns the complete user profile of the currently logged-in user.
+        The user must be authenticated to access this endpoint.
+
+        ## Response
+        - 200: Success - Returns the user's profile information
+        - 401: Unauthorized - If user is not authenticated
+        """
+        if not request.user.is_authenticated:
+            return Response(
+                {"detail": "Authentication credentials were not provided."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        serializer = self.get_serializer(request.user)
+        return Response(serializer.data)
