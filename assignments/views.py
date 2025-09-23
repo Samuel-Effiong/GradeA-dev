@@ -325,7 +325,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             if uploaded_file.content_type in image_formats:
                 try:
                     image = Image.open(uploaded_file)
-                    questions = ocr_service.extract_with_pytessaract(image)
+                    questions = ocr_service.extract_with_paddle(image)
                     assignment_questions = ai_processor.extract_assignment_with_retry(
                         questions, max_retries=3
                     )
