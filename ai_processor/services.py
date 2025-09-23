@@ -232,7 +232,7 @@ class PDFService:
         pdf_bytes = self.uploaded_file.read()
 
         # First, try to extract text directly from the PDF
-        self.__extract_text_based(pdf_bytes)
+        # self.__extract_text_based(pdf_bytes)
 
         # If no text was extracted, it's likely a scanned PDF
         if not self.extracted_data["questions"]:
@@ -280,16 +280,22 @@ class PDFService:
 
 
 class OCRService:
+    _paddle_ocr_model: PaddleOCR = None
+
     def __init__(self):
-        self.paddle_ocr_model = PaddleOCR(
-            use_doc_orientation_classify=True,
-            use_doc_unwarping=True,
-            use_textline_orientation=True,
-        )
+        if OCRService._paddle_ocr_model is None:
+            from paddleocr import PaddleOCR
+
+            OCRService._paddle_ocr_model = PaddleOCR(
+                use_doc_orientation_classify=True,
+                use_doc_unwarping=True,
+                use_textline_orientation=True,
+            )
 
     def extract_with_paddle(self, image):
+        model = OCRService._paddle_ocr_model
         img_np = np.array(image.convert("RGB"))
-        result = self.paddle_ocr_model.predict(img_np)
+        result = model.predict(img_np)
 
         text = ""
         for res in result:
@@ -304,6 +310,37 @@ class OCRService:
         """
         text = pytesseract.image_to_string(image)
         return text
+
+
+_ocr_instance = None
+_pdf_instance = None
+_ai_processor_instance = None
+
+
+def get_ocr_service():
+    global _ocr_instance
+    if _ocr_instance is None:
+        _ocr_instance = OCRService()
+    return _ocr_instance
+
+
+def get_pdf_service(uploaded_file: UploadedFile = None):
+    """Get PDFService instance - can be created per request"""
+    if uploaded_file:
+        return PDFService(uploaded_file)
+
+    global _pdf_instance
+    if _pdf_instance is None:
+        _pdf_instance = PDFService()
+    return _pdf_instance
+
+
+def get_ai_processor():
+    """Get singleton AIProcessor instance"""
+    global _ai_processor_instance
+    if _ai_processor_instance is None:
+        _ai_processor_instance = AIProcessor()
+    return _ai_processor_instance
 
 
 ocr_service = OCRService()

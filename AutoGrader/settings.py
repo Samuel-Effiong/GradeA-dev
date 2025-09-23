@@ -111,6 +111,7 @@ INSTALLED_APPS = [
     "students",
     "grading",
     "ocr_processor",
+    "ai_processor",
 ]
 
 MIDDLEWARE = [
