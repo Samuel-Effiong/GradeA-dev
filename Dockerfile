@@ -12,7 +12,10 @@ EXPOSE 8000
 # 2. Set PORT variable that is used by Gunicorn. This should match "EXPOSE"
 #    command.
 ENV PYTHONUNBUFFERED=1 \
-    PORT=8000
+    PORT=8000 \
+    HOME=/tmp \
+    PADDLE_HOME=/tmp/.paddle \
+    XDG_CACHE_HOME=/tmp/.cache
 
 # Install system packages required by Wagtail and Django.
 RUN apt-get update --yes --quiet && apt-get install --yes --quiet --no-install-recommends \
@@ -31,6 +34,8 @@ RUN pip install "gunicorn==20.0.4"
 COPY requirements.txt /
 RUN pip install -r /requirements.txt
 
+RUN python -c "from paddleocr import PaddleOCR; PaddleOCR(use_angle=True)"
+
 # Use /app folder as a directory where the source code is stored.
 WORKDIR /app
 
@@ -41,6 +46,11 @@ RUN chown wagtail:wagtail /app
 
 # Copy the source code of the project into the container.
 COPY --chown=wagtail:wagtail . .
+
+# Pre-create PaddleX/PaddleOCR cache directories and give user access
+RUN mkdir -p /tmp/.paddle /tmp/.cache && \
+    chown -R wagtail:wagtail /tmp/.paddle /tmp/.cache
+
 
 # Use user "wagtail" to run the build commands below and the server itself.
 USER wagtail
