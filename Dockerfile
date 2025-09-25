@@ -51,7 +51,7 @@ COPY --chown=wagtail:wagtail . .
 RUN mkdir -p /tmp/.paddle /tmp/.cache && \
     chown -R wagtail:wagtail /tmp/.paddle /tmp/.cache
 
-RUN python -c "from paddleocr import PaddleOCR; PaddleOCR(use_angle=True)"
+RUN python -c "from paddleocr import PaddleOCR; PaddleOCR()"
 
 # Use user "wagtail" to run the build commands below and the server itself.
 USER wagtail
