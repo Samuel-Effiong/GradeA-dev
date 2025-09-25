@@ -25,7 +25,9 @@ RUN apt-get update --yes --quiet && apt-get install --yes --quiet --no-install-r
     libjpeg62-turbo-dev \
     zlib1g-dev \
     libwebp-dev \
- && rm -rf /var/lib/apt/lists/*
+    libgl1 \
+    libglib2.0-0 \
+ && rm -rf /var/lib/apt/lists/* && rm -rf /var/lib/apt/lists/*
 
 # Install the application server.
 RUN pip install "gunicorn==20.0.4"
@@ -33,8 +35,6 @@ RUN pip install "gunicorn==20.0.4"
 # Install the project requirements.
 COPY requirements.txt /
 RUN pip install -r /requirements.txt
-
-RUN python -c "from paddleocr import PaddleOCR; PaddleOCR(use_angle=True)"
 
 # Use /app folder as a directory where the source code is stored.
 WORKDIR /app
@@ -51,6 +51,7 @@ COPY --chown=wagtail:wagtail . .
 RUN mkdir -p /tmp/.paddle /tmp/.cache && \
     chown -R wagtail:wagtail /tmp/.paddle /tmp/.cache
 
+RUN python -c "from paddleocr import PaddleOCR; PaddleOCR(use_angle=True)"
 
 # Use user "wagtail" to run the build commands below and the server itself.
 USER wagtail
