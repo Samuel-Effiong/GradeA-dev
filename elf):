@@ -1,0 +1,11 @@
+* [32mdev[m
+  feature/creating_classroom[m
+  feature/finetuning_grading_output[m
+  feature/implementing-rubric[m
+  feature/pydantic-implementation-for-pdf-extractor[m
+  hotfix/fix_migration_error[m
+  hotfix/fix_server_crashes[m
+  hotfix/fixing_paddle_ocr_errors[m
+  main[m
+  release/v1.0.0[m
+  release/v1.0.1[m
