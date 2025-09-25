@@ -48,8 +48,8 @@ RUN chown wagtail:wagtail /app
 COPY --chown=wagtail:wagtail . .
 
 # Pre-create PaddleX/PaddleOCR cache directories and give user access
-RUN mkdir -p /tmp/.paddle /tmp/.cache && \
-    chown -R wagtail:wagtail /tmp/.paddle /tmp/.cache
+RUN mkdir -p /tmp/.paddle /tmp/.cache /tmp/.paddlex &&  \
+    chown -R wagtail:wagtail /tmp/.paddle /tmp/.cache /tmp/.paddle
 
 
 # Use user "wagtail" to run the build commands below and the server itself.
