@@ -27,6 +27,7 @@ RUN apt-get update --yes --quiet && apt-get install --yes --quiet --no-install-r
     libwebp-dev \
     libgl1 \
     libglib2.0-0 \
+    poppler-utils \
  && rm -rf /var/lib/apt/lists/* && rm -rf /var/lib/apt/lists/*
 
 # Install the application server.
