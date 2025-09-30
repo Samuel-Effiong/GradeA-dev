@@ -15,20 +15,23 @@ ENV PYTHONUNBUFFERED=1 \
     PORT=8000 \
     HOME=/tmp \
     PADDLE_HOME=/tmp/.paddle \
-    XDG_CACHE_HOME=/tmp/.cache
+    XDG_CACHE_HOME=/tmp/.cache \
+    PDX_CACHE_DIR=/tmp/.paddlex \
+    TMPDIR=/tmp
 
 # Install system packages required by Wagtail and Django.
-RUN apt-get update --yes --quiet && apt-get install --yes --quiet --no-install-recommends \
-    build-essential \
-    libpq-dev \
-    libmariadb-dev \
-    libjpeg62-turbo-dev \
-    zlib1g-dev \
-    libwebp-dev \
-    libgl1 \
-    libglib2.0-0 \
-    poppler-utils \
- && rm -rf /var/lib/apt/lists/* && rm -rf /var/lib/apt/lists/*
+RUN apt-get update --yes --quiet && \
+    apt-get install --yes --quiet --no-install-recommends \
+        build-essential \
+        libpq-dev \
+        libmariadb-dev \
+        libjpeg62-turbo-dev \
+        zlib1g-dev \
+        libwebp-dev \
+        libgl1 \
+        libglib2.0-0 \
+        poppler-utils \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install the application server.
 RUN pip install "gunicorn==20.0.4"
@@ -52,7 +55,7 @@ COPY --chown=wagtail:wagtail . .
 RUN mkdir -p /tmp/.paddle /tmp/.cache && \
     chown -R wagtail:wagtail /tmp/.paddle /tmp/.cache
 
-RUN python -c "from paddleocr import PaddleOCR; PaddleOCR()"
+RUN python -c "from paddleocr import PaddleOCR; ocr = PaddleOCR(use_angle_cls=True); print('PaddleOCR successfully')"
 
 # Use user "wagtail" to run the build commands below and the server itself.
 USER wagtail
@@ -68,4 +71,4 @@ USER wagtail
 #   PRACTICE. The database should be migrated manually or using the release
 #   phase facilities of your hosting platform. This is used only so the
 #   Wagtail instance can be started with a simple "docker run" command.
-CMD set -xe; gunicorn AutoGrader.wsgi:application
+CMD set -xe; gunicorn AutoGrader.wsgi:application --bind 0.0.0.0:0000 --timeout 300
