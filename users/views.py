@@ -1,3 +1,4 @@
+from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -8,6 +9,7 @@ from drf_spectacular.utils import (
 )
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -132,6 +134,17 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     permission_classes = (AllowAny,)
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
+
+    filterset_fields = {
+        "user_type": ["exact"],
+        "enrollments__section": ["exact", "isnull"],
+        "enrollments__section__classroom": ["exact"],
+        "enrollments__enrollment_status": ["exact", "in"],
+    }
+    search_fields = ["username", "first_name", "last_name", "email"]
+    ordering_fields = ["first_name", "last_name", "email", "username"]
+
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
     class Meta:
         model = CustomUser

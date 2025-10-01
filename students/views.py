@@ -373,104 +373,106 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
         - 404: Not Found - If no submission exists with the given ID
         """,
         request={
-            "type": "object",
-            "properties": {
-                "total_score": {
-                    "type": "number",
-                    "description": "Total points scored by the student",
-                },
-                "max_total_points": {
-                    "type": "number",
-                    "description": "Maximum possible points for the assignment",
-                },
-                "evaluation_details": {
-                    "type": "array",
-                    "items": {
+            "application/json": {
+                "type": "object",
+                "properties": {
+                    "total_score": {
+                        "type": "number",
+                        "description": "Total points scored by the student",
+                    },
+                    "max_total_points": {
+                        "type": "number",
+                        "description": "Maximum possible points for the assignment",
+                    },
+                    "evaluation_details": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "question_id": {
+                                    "type": "number",
+                                    "description": "ID of the question",
+                                },
+                                "question_text": {
+                                    "type": "string",
+                                    "description": "Text of the question",
+                                },
+                                "student_answer": {
+                                    "type": "string",
+                                    "description": "Student's answer to the question",
+                                },
+                                "model_answer": {
+                                    "type": "string",
+                                    "description": "Model answer to the question",
+                                },
+                                "score_received": {
+                                    "type": "number",
+                                    "description": "Points awarded to the student for this question",
+                                },
+                                "level_achieved": {
+                                    "type": "string",
+                                    "description": "Performance level achieved by the student",
+                                },
+                                "feedback": {
+                                    "type": "string",
+                                    "description": "Feedback for the student",
+                                },
+                            },
+                        },
+                    },
+                    "summary_and_overall_feedback": {
                         "type": "object",
                         "properties": {
-                            "question_id": {
+                            "overall_score_breakdown": {
+                                "type": "string",
+                                "description": "Summary of the total score",
+                            },
+                            "strengths": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "List of strengths observed across the submission",
+                            },
+                            "areas_for_improvement": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "List of areas where the student can improve",
+                            },
+                        },
+                    },
+                    "grader_evaluation": {
+                        "type": "object",
+                        "properties": {
+                            "grading_confidence_score": {
                                 "type": "number",
-                                "description": "ID of the question",
+                                "description": "Self-evaluated confidence in the accuracy of the grading",
                             },
-                            "question_text": {
-                                "type": "string",
-                                "description": "Text of the question",
+                            "grading_issues": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "List of issues encountered during grading",
                             },
-                            "student_answer": {
-                                "type": "string",
-                                "description": "Student's answer to the question",
-                            },
-                            "model_answer": {
-                                "type": "string",
-                                "description": "Model answer to the question",
-                            },
-                            "score_received": {
-                                "type": "number",
-                                "description": "Points awarded to the student for this question",
-                            },
-                            "level_achieved": {
-                                "type": "string",
-                                "description": "Performance level achieved by the student",
-                            },
-                            "feedback": {
-                                "type": "string",
-                                "description": "Feedback for the student",
+                            "recommendations_for_teacher": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Suggestions for the teacher",
                             },
                         },
+                        "required": [
+                            "grading_confidence_score",
+                            "grading_issues",
+                            "recommendations_for_teacher",
+                        ],
                     },
                 },
-                "summary_and_overall_feedback": {
-                    "type": "object",
-                    "properties": {
-                        "overall_score_breakdown": {
-                            "type": "string",
-                            "description": "Summary of the total score",
-                        },
-                        "strengths": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "List of strengths observed across the submission",
-                        },
-                        "areas_for_improvement": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "List of areas where the student can improve",
-                        },
-                    },
-                },
-                "grader_evaluation": {
-                    "type": "object",
-                    "properties": {
-                        "grading_confidence_score": {
-                            "type": "number",
-                            "description": "Self-evaluated confidence in the accuracy of the grading",
-                        },
-                        "grading_issues": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "List of issues encountered during grading",
-                        },
-                        "recommendations_for_teacher": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "Suggestions for the teacher",
-                        },
-                    },
-                    "required": [
-                        "grading_confidence_score",
-                        "grading_issues",
-                        "recommendations_for_teacher",
-                    ],
-                },
-            },
-            "required": [
-                "total_score",
-                "max_total_points",
-                "evaluation_details",
-                "summary_and_overall_feedback",
-                "grader_evaluation",
-            ],
-            "example": STUDENT_RESPONSE_EXAMPLE,
+                "required": [
+                    "total_score",
+                    "max_total_points",
+                    "evaluation_details",
+                    "summary_and_overall_feedback",
+                    "grader_evaluation",
+                ],
+                "example": STUDENT_RESPONSE_EXAMPLE,
+            }
         },
         responses={
             200: OpenApiResponse(
