@@ -1,5 +1,5 @@
 # Use an official Python runtime based on Debian 12 "bookworm" as a parent image.
-FROM python:3.12-slim-bookworm
+FROM python:3.12.11
 
 # Add user that will be used in the container.
 RUN useradd wagtail
@@ -38,7 +38,7 @@ RUN pip install "gunicorn==20.0.4"
 
 # Install the project requirements.
 COPY requirements.txt /
-RUN pip install -r /requirements.txt
+RUN --mount=type=cache,target=/root/.cache/pip pip install -r /requirements.txt
 
 # Use /app folder as a directory where the source code is stored.
 WORKDIR /app
@@ -55,7 +55,7 @@ COPY --chown=wagtail:wagtail . .
 RUN mkdir -p /tmp/.paddle /tmp/.cache && \
     chown -R wagtail:wagtail /tmp/.paddle /tmp/.cache
 
-RUN python -c "from paddleocr import PaddleOCR; ocr = PaddleOCR(use_angle_cls=True); print('PaddleOCR successfully')"
+RUN python -c "from paddleocr import PaddleOCR; ocr = PaddleOCR(use_angle_cls=True, lang='en'); print('PaddleOCR successfully')"
 
 # Use user "wagtail" to run the build commands below and the server itself.
 USER wagtail
@@ -71,4 +71,4 @@ USER wagtail
 #   PRACTICE. The database should be migrated manually or using the release
 #   phase facilities of your hosting platform. This is used only so the
 #   Wagtail instance can be started with a simple "docker run" command.
-CMD set -xe; gunicorn AutoGrader.wsgi:application --bind 0.0.0.0:0000 --timeout 300
+CMD set -xe; gunicorn AutoGrader.wsgi:application --bind 0.0.0.0:8000 --timeout 300

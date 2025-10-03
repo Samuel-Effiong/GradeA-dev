@@ -112,6 +112,7 @@ INSTALLED_APPS = [
     "grading",
     "ocr_processor",
     "ai_processor",
+    "django_q",
 ]
 
 MIDDLEWARE = [
@@ -304,3 +305,14 @@ DEFAULT_FROM_EMAIL = "AutoGrader <samueleffiong80@gmail.com>"
 # ANYMAIL = {
 #     "SENDINBLUE_API_KEY": env.str("SENDINBLUE_API_KEY"),
 # }
+
+
+Q_CLUSTER = {
+    "name": "Auto Grader",
+    "workers": 4,
+    "timeout": 300,
+    "retry": 360,
+    "queue_limit": 50,
+    "bulk": 10,
+    "redis": env.str("REDIS_URL"),
+}

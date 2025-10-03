@@ -1,0 +1,41 @@
+
+services:
+  # 1. Main Web Application Service (Handles HTTP requests)
+  web:
+    # Use the local Dockerfile to build this service
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: autograder_web
+    restart: always
+    ports:
+      # Expose the port where Gunicorn runs
+      - "8000:8000"
+    volumes:
+      # Mounts your local code into the container
+      - .:/app
+    environment:
+      # Railway injects DATABASE_URL, but you need a SECRET_KEY
+      - SECRET_KEY=your_insecure_development_secret # REPLACE THIS!
+      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,.railway.app
+      # Optional: Add Redis connection if using django-q2 with Redis
+      # - REDIS_URL=redis://redis_host:6379/0
+    # The command should now focus on migrations and starting Gunicorn
+    command: /bin/bash -c "python manage.py migrate --noinput && gunicorn AutoGrader.wsgi:application --bind 0.0.0.0:8000 --timeout 300"
+
+  # 2. Background Worker Service (Handles PaddleOCR/django-q2 tasks)
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: autograder_worker
+    restart: always
+    # This command starts the django-q2 worker cluster
+    command: python manage.py qcluster
+    volumes:
+      - .:/app
+    environment:
+      # Worker needs the same environment variables as the web service
+      - SECRET_KEY=your_insecure_development_secret # REPLACE THIS!
+    depends_on:
+      - web # Ensures the web service (which runs migrations) starts first
