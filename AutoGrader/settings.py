@@ -228,6 +228,7 @@ REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "users.exceptions.custom_exception_handler",
 }
 
+
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
@@ -273,8 +274,8 @@ DJOSER = {
 }
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "AutoGrader Backend",
-    "DESCRIPTION": "The API backend for AutoGrader",
+    "TITLE": "GradeA+ (Grade Automator plus ) Backend",
+    "DESCRIPTION": "The API backend for GradeA+",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "SCHEMA_PATH_PREFIX": r"/openapi/v1",
