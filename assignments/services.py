@@ -16,7 +16,9 @@ pdf_formats = "application/pdf"
 
 
 def process_files(files):
+    print("Files: ", files)
     results = []
+    print(results)
 
     for uploaded_file in files:
         # Check if it's an instance of UploadedFile
@@ -32,7 +34,6 @@ def process_files(files):
                     questions, max_retries=3
                 )
 
-                # task_id = async_task(ai_processor.extract_assignment_with_retry, questions, 3)
                 results.append(assignment_questions)
 
             except Exception as e:
@@ -47,7 +48,6 @@ def process_files(files):
                     extracted_data["questions"], max_retries=3
                 )
 
-                # task_id = async_task(ai_processor.extract_assignment_with_retry, extracted_data["questions"], 3)
                 results.append(assignment_questions)
 
             except Exception as e:
@@ -62,3 +62,9 @@ def process_files(files):
             )
 
     return results
+
+
+def hook_process_files(task):
+    result = task.result
+
+    print(result)

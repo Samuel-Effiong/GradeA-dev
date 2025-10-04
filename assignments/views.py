@@ -21,7 +21,8 @@ from students.serializers import StudentSubmissionSerializer
 
 from .models import Assignment, Rubric
 from .serializers import AssignmentSerializer, RubricSerializer
-from .services import process_files
+
+# from .services import hook_process_files, process_files
 
 # from ai_processor.validators import AssignmentStructure
 
@@ -307,17 +308,11 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                 {"error": "No files were uploaded"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        # results = []
-        # # uploaded_file_info = []
-        # image_formats = [
-        #     "image/jpeg",
-        #     "image/png",
-        #     "image/gif",
-        #     "image/webp",
-        # ]
-        # pdf_formats = "application/pdf"
-
-        task_id = async_task(process_files, files)
+        task_id = async_task(
+            "assignments.services.process_files",
+            files,
+            hook="assignments.services.hook_process_files",
+        )
 
         return Response(task_id, status=status.HTTP_201_CREATED)
 

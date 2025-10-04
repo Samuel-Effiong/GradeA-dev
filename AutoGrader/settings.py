@@ -113,6 +113,7 @@ INSTALLED_APPS = [
     "ocr_processor",
     "ai_processor",
     "django_q",
+    "tasks",
 ]
 
 MIDDLEWARE = [
@@ -308,14 +309,17 @@ DEFAULT_FROM_EMAIL = "AutoGrader <samueleffiong80@gmail.com>"
 
 
 Q_CLUSTER = {
-    "name": "Auto Grader",
+    "name": "GradeA+ (Grade Automator Plus)",
     "workers": 8,
     "recycle": 500,
+    "sync": True,
     "compress": True,
     "save_limit": 250,
     "queue_limit": 500,
-    "timeout": 200,
-    "retry": 260,
+    "timeout": 300,
+    "retry": 360,
     "bulk": 10,
-    "redis": env.str("REDIS_URL"),
+    "orm": "default",
+    # "redis": env.str("REDIS_URL",
+    # ),
 }
