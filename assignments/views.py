@@ -1,4 +1,5 @@
 from django.core.files.uploadedfile import UploadedFile
+from django_q.tasks import async_task
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -20,6 +21,7 @@ from students.serializers import StudentSubmissionSerializer
 
 from .models import Assignment, Rubric
 from .serializers import AssignmentSerializer, RubricSerializer
+from .services import process_files
 
 # from ai_processor.validators import AssignmentStructure
 
@@ -305,60 +307,19 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                 {"error": "No files were uploaded"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-        results = []
-        # uploaded_file_info = []
-        image_formats = [
-            "image/jpeg",
-            "image/png",
-            "image/gif",
-            "image/webp",
-        ]
-        pdf_formats = "application/pdf"
+        # results = []
+        # # uploaded_file_info = []
+        # image_formats = [
+        #     "image/jpeg",
+        #     "image/png",
+        #     "image/gif",
+        #     "image/webp",
+        # ]
+        # pdf_formats = "application/pdf"
 
-        for uploaded_file in files:
-            # Check if it's an instance of UploadedFile
-            if not isinstance(uploaded_file, UploadedFile):
-                return Response(
-                    {"error": "Invalid file upload"}, status=status.HTTP_400_BAD_REQUEST
-                )
+        task_id = async_task(process_files, files)
 
-            if uploaded_file.content_type in image_formats:
-                try:
-                    image = Image.open(uploaded_file)
-                    questions = ocr_service.extract_with_paddle(image)
-                    assignment_questions = ai_processor.extract_assignment_with_retry(
-                        questions, max_retries=3
-                    )
-                    results.append(assignment_questions)
-                except Exception as e:
-                    return Response(
-                        {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
-                    )
-
-            elif uploaded_file.content_type == pdf_formats:
-                try:
-                    pdf_service.set_uploaded_file(uploaded_file)
-                    extracted_data = pdf_service.extract()
-
-                    assignment_questions = ai_processor.extract_assignment_with_retry(
-                        extracted_data["questions"], max_retries=3
-                    )
-
-                    results.append(assignment_questions)
-                except Exception as e:
-                    return Response(
-                        {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
-                    )
-            else:
-                return Response(
-                    {
-                        "error": f"File `{uploaded_file.name}` has an invalid format. Only images "
-                        f"(JPEG, PNG, GIF, WebP) and PDFs are allowed."
-                    },
-                    status=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-                )
-
-        return Response(results, status=status.HTTP_201_CREATED)
+        return Response(task_id, status=status.HTTP_201_CREATED)
 
     @extend_schema(
         tags=["05 Rubrics"],

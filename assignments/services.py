@@ -1,62 +1,64 @@
-from pathlib import Path
-
-import fitz
 from django.core.files.uploadedfile import UploadedFile
-from docutils.transforms.universal import Validate
+from PIL.Image import Image
+
+from ai_processor.services import ai_processor, ocr_service, pdf_service
 
 # from assignments.models import Assignment
 
+image_formats = [
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+]
 
-class PDFService:
-    """
-    Service class for extracting structured data from assignment PDFs
-    """
+pdf_formats = "application/pdf"
 
-    def __init__(self, uploaded_file: UploadedFile) -> None:
-        self.uploaded_file = uploaded_file
-        self.extracted_data = {
-            "title": "",
-            "questions": [],
-            "page_count": 0,
-        }
 
-    def extract(self) -> dict:
-        """
-        Extract data from the uploaded pdf
-        """
+def process_files(files):
+    results = []
 
-        if self.uploaded_file.content_type != "application/pdf":
-            raise ValueError("Unsupported file format. Only PDF is supported.")
+    for uploaded_file in files:
+        # Check if it's an instance of UploadedFile
+        if not isinstance(uploaded_file, UploadedFile):
+            return ({"error": "Invalid file upload"},)
+
+        if uploaded_file.content_type in image_formats:
+            try:
+                image = Image.open(uploaded_file)
+                questions = ocr_service.extract_with_paddle(image)
+
+                assignment_questions = ai_processor.extract_assignment_with_retry(
+                    questions, max_retries=3
+                )
+
+                # task_id = async_task(ai_processor.extract_assignment_with_retry, questions, 3)
+                results.append(assignment_questions)
+
+            except Exception as e:
+                return {"error": str(e)}
+
+        elif uploaded_file.content_type == pdf_formats:
+            try:
+                pdf_service.set_uploaded_file(uploaded_file)
+                extracted_data = pdf_service.extract()
+
+                assignment_questions = ai_processor.extract_assignment_with_retry(
+                    extracted_data["questions"], max_retries=3
+                )
+
+                # task_id = async_task(ai_processor.extract_assignment_with_retry, extracted_data["questions"], 3)
+                results.append(assignment_questions)
+
+            except Exception as e:
+                return {"error": str(e)}
+
         else:
-            self.__process_pdf()
-        return self.extracted_data
+            return (
+                {
+                    "error": f"File `{uploaded_file.name}` has an invalid format. Only images "
+                    f"(JPEG, PNG, GIF, WebP) and PDFs are allowed."
+                },
+            )
 
-    def __process_pdf(self):
-        """
-        Process the PDF using fitz (PyMuPDF) to extract data from the UploadedFile object.
-        """
-        try:
-            pdf_bytes = self.uploaded_file.read()
-            pdf_document = fitz.open(stream=pdf_bytes, filetype="pdf")
-
-            self.extracted_data["page_count"] = pdf_document.page_count
-
-            full_text = ""
-
-            for page_number in range(pdf_document.page_count):
-                page = pdf_document.load_page(page_number)
-                full_text += page.get_text().strip()
-
-            # Use the filename for the title
-            self.extracted_data["title"] = Path(self.uploaded_file.name).stem
-            self.extracted_data["questions"] = full_text
-
-            pdf_document.close()
-        except Exception as e:
-            raise ValueError(f"Something went wrong: {str(e)}")
-
-
-class ImageService:
-    """
-    Service class for extracting structured data from assignment images
-    """
+    return results

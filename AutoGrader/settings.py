@@ -309,10 +309,13 @@ DEFAULT_FROM_EMAIL = "AutoGrader <samueleffiong80@gmail.com>"
 
 Q_CLUSTER = {
     "name": "Auto Grader",
-    "workers": 4,
-    "timeout": 300,
-    "retry": 360,
-    "queue_limit": 50,
+    "workers": 8,
+    "recycle": 500,
+    "compress": True,
+    "save_limit": 250,
+    "queue_limit": 500,
+    "timeout": 200,
+    "retry": 260,
     "bulk": 10,
     "redis": env.str("REDIS_URL"),
 }
