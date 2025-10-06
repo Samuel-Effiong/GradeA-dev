@@ -138,7 +138,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     filterset_fields = {
         "user_type": ["exact"],
         "enrollments__section": ["exact", "isnull"],
-        "enrollments__section__classroom": ["exact"],
+        "enrollments__section__academic_term": ["exact"],
         "enrollments__enrollment_status": ["exact", "in"],
     }
     search_fields = ["username", "first_name", "last_name", "email"]

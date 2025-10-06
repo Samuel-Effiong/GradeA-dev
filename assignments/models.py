@@ -7,10 +7,10 @@ from users.models import CustomUser
 
 
 class AssignmentTypes(models.TextChoices):
-    OBJECTIVE = "OBJECTIVE", _("Objective")
-    ESSAY = "ESSAY", _("Essay")
-    SHORT_ANSWER = "SHORT-ANSWER", _("Short Answer")
-    HYBRID = "HYBRID", _("Hybrid")
+    OBJECTIVE = "OBJECTIVE", _("OBJECTIVE")
+    ESSAY = "ESSAY", _("ESSAY")
+    SHORT_ANSWER = "SHORT_ANSWER", _("SHORT ANSWER")
+    HYBRID = "HYBRID", _("HYBRID")
 
 
 class Assignment(models.Model):

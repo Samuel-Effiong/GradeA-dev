@@ -16,9 +16,16 @@ class AcademicTerm(models.Model):
     """Represents an Academic period (semester, year, quarter)."""
 
     name = models.CharField(max_length=100)
-    type = models.CharField(max_length=20, choices=TermTypes.choices)
+    # type = models.CharField(max_length=20, choices=TermTypes.choices)
     start_date = models.DateField()
     end_date = models.DateField()
+    teacher = models.ForeignKey(
+        "users.CustomUser",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="academic_terms",
+    )
 
     class Meta:
         ordering = ("-start_date",)
@@ -78,8 +85,12 @@ class Section(models.Model):
     """Represents different groups/periods within a classroom"""
 
     name = models.CharField(max_length=100)
-    classroom = models.ForeignKey(
-        Classroom, on_delete=models.CASCADE, related_name="sections"
+    academic_term = models.ForeignKey(
+        AcademicTerm,
+        on_delete=models.CASCADE,
+        related_name="sections",
+        blank=True,
+        null=True,
     )
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
@@ -89,12 +100,13 @@ class Section(models.Model):
         ordering = ["name"]
         constraints = [
             UniqueConstraint(
-                fields=["name", "classroom"], name="unique_section_name_per_classroom"
+                fields=["name", "academic_term"],
+                name="unique_section_name_per_classroom",
             )
         ]
 
     def __str__(self):
-        return f"{self.classroom.name} - {self.name}"
+        return f"{self.academic_term.name} - {self.name}"
 
 
 class StudentSection(models.Model):
