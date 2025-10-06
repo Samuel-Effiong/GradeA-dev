@@ -107,7 +107,6 @@ pydocstyle==6.3.0
 pyflakes==3.4.0
 Pygments==2.19.2
 PyJWT==2.10.1
-pylance==0.36.0
 PyMuPDF==1.23.8
 PyMuPDFb==1.23.7
 pypdfium2==4.30.0

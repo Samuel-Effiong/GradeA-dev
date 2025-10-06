@@ -11,11 +11,13 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from .models import AcademicTerm, Classroom, ClassroomSettings, Section, StudentSection
-from .serializers import (
+from .models import (  # , Classroom, ClassroomSettings
+    AcademicTerm,
+    Section,
+    StudentSection,
+)
+from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
     AcademicTermSerializer,
-    ClassroomSerializer,
-    ClassroomSettingsSerializer,
     SectionSerializer,
     StudentSectionSerializer,
 )
@@ -112,186 +114,186 @@ class AcademicTermViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
 
-@extend_schema_view(
-    list=extend_schema(
-        tags=["02 Classroom"],
-        summary="List all classrooms",
-        description="Retrieve a paginated list of all classrooms in the system.",
-        parameters=[
-            OpenApiParameter(
-                name="page",
-                type=OpenApiTypes.INT,
-                location=OpenApiParameter.QUERY,
-                description="Page number for pagination",
-            ),
-            OpenApiParameter(
-                name="page_size",
-                type=OpenApiTypes.INT,
-                location=OpenApiParameter.QUERY,
-                description="Number of results per page",
-            ),
-        ],
-        responses={
-            200: ClassroomSerializer(many=True),
-            500: OpenApiResponse(description="Internal Server Error"),
-        },
-    ),
-    create=extend_schema(
-        tags=["02 Classroom"],
-        summary="Create a new classroom",
-        description="Create a new classroom with the provided details.",
-        request=ClassroomSerializer,
-        responses={
-            201: OpenApiResponse(
-                response=ClassroomSerializer,
-                description="Classroom created successfully",
-            ),
-            400: OpenApiResponse(
-                description="Invalid input. Missing required fields or invalid data format"
-            ),
-        },
-    ),
-    retrieve=extend_schema(
-        tags=["02 Classroom"],
-        summary="Retrieve a classroom",
-        description="Retrieve detailed information about a specific classroom by its ID.",
-        responses={
-            200: ClassroomSerializer,
-            404: OpenApiResponse(description="Classroom not found"),
-            500: OpenApiResponse(description="Internal Server Error"),
-        },
-    ),
-    partial_update=extend_schema(
-        tags=["02 Classroom"],
-        summary="Partially update a classroom",
-        description="Update one or more fields of an existing classroom.",
-        request=ClassroomSerializer(partial=True),
-        responses={
-            200: ClassroomSerializer,
-            400: OpenApiResponse(description="Invalid input"),
-            404: OpenApiResponse(description="Classroom not found"),
-        },
-    ),
-    destroy=extend_schema(
-        tags=["02 Classroom"],
-        summary="Delete a classroom",
-        description="Delete a classroom by ID. This action cannot be undone.",
-        responses={
-            204: OpenApiResponse(description="Classroom deleted successfully"),
-            404: OpenApiResponse(description="Classroom not found"),
-        },
-    ),
-)
-class ClassroomViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint for managing classrooms.
+# @extend_schema_view(
+#     list=extend_schema(
+#         tags=["02 Classroom"],
+#         summary="List all classrooms",
+#         description="Retrieve a paginated list of all classrooms in the system.",
+#         parameters=[
+#             OpenApiParameter(
+#                 name="page",
+#                 type=OpenApiTypes.INT,
+#                 location=OpenApiParameter.QUERY,
+#                 description="Page number for pagination",
+#             ),
+#             OpenApiParameter(
+#                 name="page_size",
+#                 type=OpenApiTypes.INT,
+#                 location=OpenApiParameter.QUERY,
+#                 description="Number of results per page",
+#             ),
+#         ],
+#         responses={
+#             200: ClassroomSerializer(many=True),
+#             500: OpenApiResponse(description="Internal Server Error"),
+#         },
+#     ),
+#     create=extend_schema(
+#         tags=["02 Classroom"],
+#         summary="Create a new classroom",
+#         description="Create a new classroom with the provided details.",
+#         request=ClassroomSerializer,
+#         responses={
+#             201: OpenApiResponse(
+#                 response=ClassroomSerializer,
+#                 description="Classroom created successfully",
+#             ),
+#             400: OpenApiResponse(
+#                 description="Invalid input. Missing required fields or invalid data format"
+#             ),
+#         },
+#     ),
+#     retrieve=extend_schema(
+#         tags=["02 Classroom"],
+#         summary="Retrieve a classroom",
+#         description="Retrieve detailed information about a specific classroom by its ID.",
+#         responses={
+#             200: ClassroomSerializer,
+#             404: OpenApiResponse(description="Classroom not found"),
+#             500: OpenApiResponse(description="Internal Server Error"),
+#         },
+#     ),
+#     partial_update=extend_schema(
+#         tags=["02 Classroom"],
+#         summary="Partially update a classroom",
+#         description="Update one or more fields of an existing classroom.",
+#         request=ClassroomSerializer(partial=True),
+#         responses={
+#             200: ClassroomSerializer,
+#             400: OpenApiResponse(description="Invalid input"),
+#             404: OpenApiResponse(description="Classroom not found"),
+#         },
+#     ),
+#     destroy=extend_schema(
+#         tags=["02 Classroom"],
+#         summary="Delete a classroom",
+#         description="Delete a classroom by ID. This action cannot be undone.",
+#         responses={
+#             204: OpenApiResponse(description="Classroom deleted successfully"),
+#             404: OpenApiResponse(description="Classroom not found"),
+#         },
+#     ),
+# )
+# class ClassroomViewSet(viewsets.ModelViewSet):
+#     """
+#     API endpoint for managing classrooms.
+#
+#     Provides CRUD operations for classrooms including:
+#     - List all classrooms
+#     - Create new classrooms
+#     - Retrieve specific classrooms
+#     - Update classrooms
+#     - Delete classrooms
+#
+#     Classrooms represent a teacher's class for a specific academic term.
+#     """
+#
+#     queryset = Classroom.objects.all()
+#     serializer_class = ClassroomSerializer
+#     permission_classes = (AllowAny,)
+#     pagination_class = PageNumberPagination
+#     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
+#
 
-    Provides CRUD operations for classrooms including:
-    - List all classrooms
-    - Create new classrooms
-    - Retrieve specific classrooms
-    - Update classrooms
-    - Delete classrooms
-
-    Classrooms represent a teacher's class for a specific academic term.
-    """
-
-    queryset = Classroom.objects.all()
-    serializer_class = ClassroomSerializer
-    permission_classes = (AllowAny,)
-    pagination_class = PageNumberPagination
-    http_method_names = ["get", "head", "post", "delete", "patch", "options"]
-
-
-@extend_schema_view(
-    list=extend_schema(
-        tags=["02 Classroom"],
-        summary="List all classroom settings",
-        description="Retrieve a paginated list of all classroom settings in the system.",
-        parameters=[
-            OpenApiParameter(
-                name="page",
-                type=OpenApiTypes.INT,
-                location=OpenApiParameter.QUERY,
-                description="Page number for pagination",
-            ),
-            OpenApiParameter(
-                name="page_size",
-                type=OpenApiTypes.INT,
-                location=OpenApiParameter.QUERY,
-                description="Number of results per page",
-            ),
-        ],
-        responses={
-            200: ClassroomSettingsSerializer(many=True),
-            500: OpenApiResponse(description="Internal Server Error"),
-        },
-    ),
-    create=extend_schema(
-        tags=["02 Classroom"],
-        summary="Create new classroom settings",
-        description="Create new classroom settings with the provided details.",
-        request=ClassroomSettingsSerializer,
-        responses={
-            201: OpenApiResponse(
-                response=ClassroomSettingsSerializer,
-                description="Classroom settings created successfully",
-            ),
-            400: OpenApiResponse(
-                description="Invalid input. Missing required fields or invalid data format"
-            ),
-        },
-    ),
-    retrieve=extend_schema(
-        tags=["02 Classroom"],
-        summary="Retrieve classroom settings",
-        description="Retrieve detailed information about specific classroom settings by its ID.",
-        responses={
-            200: ClassroomSettingsSerializer,
-            404: OpenApiResponse(description="Classroom settings not found"),
-            500: OpenApiResponse(description="Internal Server Error"),
-        },
-    ),
-    partial_update=extend_schema(
-        tags=["02 Classroom"],
-        summary="Partially update classroom settings",
-        description="Update one or more fields of existing classroom settings.",
-        request=ClassroomSettingsSerializer(partial=True),
-        responses={
-            200: ClassroomSettingsSerializer,
-            400: OpenApiResponse(description="Invalid input"),
-            404: OpenApiResponse(description="Classroom settings not found"),
-        },
-    ),
-    destroy=extend_schema(
-        tags=["02 Classroom"],
-        summary="Delete classroom settings",
-        description="Delete classroom settings by ID. This action cannot be undone.",
-        responses={
-            204: OpenApiResponse(description="Classroom settings deleted successfully"),
-            404: OpenApiResponse(description="Classroom settings not found"),
-        },
-    ),
-)
-class ClassroomSettingsViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint for managing classroom settings.
-
-    Provides CRUD operations for classroom settings including:
-    - List all classroom settings
-    - Create new classroom settings
-    - Retrieve specific classroom settings
-    - Update classroom settings
-    - Delete classroom settings
-
-    Classroom settings store configuration options for a classroom.
-    """
-
-    queryset = ClassroomSettings.objects.all()
-    serializer_class = ClassroomSettingsSerializer
-    permission_classes = (AllowAny,)
-    pagination_class = PageNumberPagination
-    http_method_names = ["get", "head", "post", "delete", "patch", "options"]
+# @extend_schema_view(
+#     list=extend_schema(
+#         tags=["02 Classroom"],
+#         summary="List all classroom settings",
+#         description="Retrieve a paginated list of all classroom settings in the system.",
+#         parameters=[
+#             OpenApiParameter(
+#                 name="page",
+#                 type=OpenApiTypes.INT,
+#                 location=OpenApiParameter.QUERY,
+#                 description="Page number for pagination",
+#             ),
+#             OpenApiParameter(
+#                 name="page_size",
+#                 type=OpenApiTypes.INT,
+#                 location=OpenApiParameter.QUERY,
+#                 description="Number of results per page",
+#             ),
+#         ],
+#         responses={
+#             200: ClassroomSettingsSerializer(many=True),
+#             500: OpenApiResponse(description="Internal Server Error"),
+#         },
+#     ),
+#     create=extend_schema(
+#         tags=["02 Classroom"],
+#         summary="Create new classroom settings",
+#         description="Create new classroom settings with the provided details.",
+#         request=ClassroomSettingsSerializer,
+#         responses={
+#             201: OpenApiResponse(
+#                 response=ClassroomSettingsSerializer,
+#                 description="Classroom settings created successfully",
+#             ),
+#             400: OpenApiResponse(
+#                 description="Invalid input. Missing required fields or invalid data format"
+#             ),
+#         },
+#     ),
+#     retrieve=extend_schema(
+#         tags=["02 Classroom"],
+#         summary="Retrieve classroom settings",
+#         description="Retrieve detailed information about specific classroom settings by its ID.",
+#         responses={
+#             200: ClassroomSettingsSerializer,
+#             404: OpenApiResponse(description="Classroom settings not found"),
+#             500: OpenApiResponse(description="Internal Server Error"),
+#         },
+#     ),
+#     partial_update=extend_schema(
+#         tags=["02 Classroom"],
+#         summary="Partially update classroom settings",
+#         description="Update one or more fields of existing classroom settings.",
+#         request=ClassroomSettingsSerializer(partial=True),
+#         responses={
+#             200: ClassroomSettingsSerializer,
+#             400: OpenApiResponse(description="Invalid input"),
+#             404: OpenApiResponse(description="Classroom settings not found"),
+#         },
+#     ),
+#     destroy=extend_schema(
+#         tags=["02 Classroom"],
+#         summary="Delete classroom settings",
+#         description="Delete classroom settings by ID. This action cannot be undone.",
+#         responses={
+#             204: OpenApiResponse(description="Classroom settings deleted successfully"),
+#             404: OpenApiResponse(description="Classroom settings not found"),
+#         },
+#     ),
+# )
+# class ClassroomSettingsViewSet(viewsets.ModelViewSet):
+#     """
+#     API endpoint for managing classroom settings.
+#
+#     Provides CRUD operations for classroom settings including:
+#     - List all classroom settings
+#     - Create new classroom settings
+#     - Retrieve specific classroom settings
+#     - Update classroom settings
+#     - Delete classroom settings
+#
+#     Classroom settings store configuration options for a classroom.
+#     """
+#
+#     queryset = ClassroomSettings.objects.all()
+#     serializer_class = ClassroomSettingsSerializer
+#     permission_classes = (AllowAny,)
+#     pagination_class = PageNumberPagination
+#     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
 
 @extend_schema_view(
