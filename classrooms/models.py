@@ -86,7 +86,11 @@ class Section(models.Model):
 
     name = models.CharField(max_length=100)
     academic_term = models.ForeignKey(
-        AcademicTerm, on_delete=models.CASCADE, related_name="sections"
+        AcademicTerm,
+        on_delete=models.CASCADE,
+        related_name="sections",
+        blank=True,
+        null=True,
     )
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
