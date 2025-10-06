@@ -1,9 +1,7 @@
 from rest_framework.routers import DefaultRouter
 
-from classrooms.views import (
+from classrooms.views import (  # ClassroomSettingsViewSet,; ClassroomViewSet,
     AcademicTermViewSet,
-    ClassroomSettingsViewSet,
-    ClassroomViewSet,
     SectionViewSet,
     StudentSectionViewSet,
 )
@@ -11,10 +9,10 @@ from classrooms.views import (
 router = DefaultRouter()
 
 router.register(r"academic-terms", AcademicTermViewSet, basename="academic-term")
-router.register(r"classrooms", ClassroomViewSet, basename="classroom")
-router.register(
-    r"classroom-settings", ClassroomSettingsViewSet, basename="classroom-setting"
-)
+# router.register(r"classrooms", ClassroomViewSet, basename="classroom")
+# router.register(
+#     r"classroom-settings", ClassroomSettingsViewSet, basename="classroom-setting"
+# )
 router.register(r"sections", SectionViewSet, basename="section")
 router.register(r"student-sections", StudentSectionViewSet, basename="student-section")
 

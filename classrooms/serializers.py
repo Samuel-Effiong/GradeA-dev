@@ -1,6 +1,10 @@
 from rest_framework import serializers
 
-from .models import AcademicTerm, Classroom, ClassroomSettings, Section, StudentSection
+from .models import (  # , Classroom, ClassroomSettings,
+    AcademicTerm,
+    Section,
+    StudentSection,
+)
 
 
 class AcademicTermSerializer(serializers.ModelSerializer):
@@ -8,7 +12,7 @@ class AcademicTermSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AcademicTerm
-        fields = ["id", "name", "type", "start_date", "end_date"]
+        fields = ["id", "name", "start_date", "end_date", "teacher"]
         read_only_fields = ["id"]
 
     def validate(self, data):
@@ -22,31 +26,31 @@ class AcademicTermSerializer(serializers.ModelSerializer):
         return data
 
 
-class ClassroomSerializer(serializers.ModelSerializer):
-    """Serializer for the Classroom model."""
+# class ClassroomSerializer(serializers.ModelSerializer):
+#     """Serializer for the Classroom model."""
+#
+#     class Meta:
+#         model = Classroom
+#         fields = [
+#             "id",
+#             "name",
+#             "teacher",
+#             "academic_term",
+#             "created_at",
+#             "updated_at",
+#             "is_active",
+#             "description",
+#         ]
+#         read_only_fields = ["id", "created_at", "updated_at"]
 
-    class Meta:
-        model = Classroom
-        fields = [
-            "id",
-            "name",
-            "teacher",
-            "academic_term",
-            "created_at",
-            "updated_at",
-            "is_active",
-            "description",
-        ]
-        read_only_fields = ["id", "created_at", "updated_at"]
 
-
-class ClassroomSettingsSerializer(serializers.ModelSerializer):
-    """Serializer for the ClassroomSettings model."""
-
-    class Meta:
-        model = ClassroomSettings
-        fields = ["id", "classroom", "allow_late_submission"]
-        read_only_fields = ["id"]
+# class ClassroomSettingsSerializer(serializers.ModelSerializer):
+#     """Serializer for the ClassroomSettings model."""
+#
+#     class Meta:
+#         model = ClassroomSettings
+#         fields = ["id", "classroom", "allow_late_submission"]
+#         read_only_fields = ["id"]
 
 
 class SectionSerializer(serializers.ModelSerializer):
@@ -54,7 +58,14 @@ class SectionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Section
-        fields = ["id", "name", "classroom", "is_active", "created_at"]
+        fields = [
+            "id",
+            "name",
+            "academic_term",
+            "is_active",
+            "created_at",
+            "description",
+        ]
         read_only_fields = ["id", "created_at"]
 
 
