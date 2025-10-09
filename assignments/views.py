@@ -17,7 +17,7 @@ from rest_framework.response import Response
 
 from ai_processor.models import ChatMessage, ChatSession, RoleType
 from ai_processor.services import ai_processor, ocr_service, pdf_service
-from classrooms.models import Section
+from classrooms.models import Course
 from students.serializers import StudentSubmissionSerializer
 
 from .models import Assignment, Rubric
@@ -97,7 +97,7 @@ RESPONSE_FORMAT_EXAMPLE = {
 
 
 ASSIGNMENT_EXAMPLE = {
-    "section": 0,
+    "course": 0,
     "title": "World History - Industrial Revolution Quiz",
     "instructions": "Answer all questions to the best of your ability.",
     "total_points": 50,
@@ -263,9 +263,9 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                             "type": "string",
                             "description": "The type of the assignment (e.g., 'PDF' or 'Image').",
                         },
-                        "section": {
+                        "course": {
                             "type": "string",
-                            "description": "The section or category of the assignment.",
+                            "description": "The course or category of the assignment.",
                         },
                         "questions": {
                             "type": "array",
@@ -623,10 +623,10 @@ class AssignmentViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=["POST"],
-        url_path=r"generate_assignment/(?P<section_id>[-\w]+)",
+        url_path=r"generate_assignment/(?P<course_id>[-\w]+)",
         url_name="generate_assignment",
     )
-    def generate_assignment_from_prompt(self, request, section_id):
+    def generate_assignment_from_prompt(self, request, course_id):
         """
         Generate a new assignment based on text prompts.
 
@@ -634,13 +634,13 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         and answers using AI processing.
         """
 
-        section = Section.objects.filter(id=section_id)
+        course = Course.objects.filter(id=course_id)
 
-        if not section.exists():
-            raise NotFound("No Section found with this ID.")
+        if not course.exists():
+            raise NotFound("No Cours found with this ID.")
 
-        # Get all the past history of the user chats for this particular section
-        chat_session, created = ChatSession.objects.get_or_create(section_id=section_id)
+        # Get all the past history of the user chats for this particular course
+        chat_session, created = ChatSession.objects.get_or_create(course_id=course_id)
         chat_history = (
             ChatMessage.objects.filter(session=chat_session)
             .order_by("timestamp")

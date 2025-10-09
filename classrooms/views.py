@@ -13,9 +13,9 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from .models import Section, Session, StudentSection  # , Classroom, ClassroomSettings
+from .models import Course, Session, StudentSection  # , Classroom, ClassroomSettings
 from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
-    SectionSerializer,
+    CourseSerializer,
     SessionSerializer,
     StudentSectionSerializer,
 )
@@ -23,9 +23,9 @@ from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
 
 @extend_schema_view(
     list=extend_schema(
-        tags=["03 Sections"],
-        summary="List all sections",
-        description="Retrieve a paginated list of all sections in the system.",
+        tags=["02 Course"],
+        summary="List all Course",
+        description="Retrieve a paginated list of all Course in the system.",
         parameters=[
             OpenApiParameter(
                 name="page",
@@ -41,19 +41,19 @@ from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
             ),
         ],
         responses={
-            200: SectionSerializer(many=True),
+            200: CourseSerializer(many=True),
             500: OpenApiResponse(description="Internal Server Error"),
         },
     ),
     create=extend_schema(
-        tags=["03 Sections"],
-        summary="Create a new section",
-        description="Create a new section with the provided details.",
-        request=SectionSerializer,
+        tags=["02 Course"],
+        summary="Create a new Course",
+        description="Create a new Course with the provided details.",
+        request=CourseSerializer,
         responses={
             201: OpenApiResponse(
-                response=SectionSerializer,
-                description="Section created successfully",
+                response=CourseSerializer,
+                description="Course created successfully",
             ),
             400: OpenApiResponse(
                 description="Invalid input. Missing required fields or invalid data format"
@@ -61,37 +61,37 @@ from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
         },
     ),
     retrieve=extend_schema(
-        tags=["03 Sections"],
-        summary="Retrieve a section",
-        description="Retrieve detailed information about a specific section by its ID.",
+        tags=["02 Course"],
+        summary="Retrieve a Course",
+        description="Retrieve detailed information about a specific Course by its ID.",
         responses={
-            200: SectionSerializer,
-            404: OpenApiResponse(description="Section not found"),
+            200: CourseSerializer,
+            404: OpenApiResponse(description="Course not found"),
             500: OpenApiResponse(description="Internal Server Error"),
         },
     ),
     partial_update=extend_schema(
-        tags=["03 Sections"],
-        summary="Partially update a section",
+        tags=["02 Course"],
+        summary="Partially update a Course",
         description="Update one or more fields of an existing section.",
-        request=SectionSerializer(partial=True),
+        request=CourseSerializer(partial=True),
         responses={
-            200: SectionSerializer,
+            200: CourseSerializer,
             400: OpenApiResponse(description="Invalid input"),
-            404: OpenApiResponse(description="Section not found"),
+            404: OpenApiResponse(description="Course not found"),
         },
     ),
     destroy=extend_schema(
-        tags=["03 Sections"],
-        summary="Delete a section",
-        description="Delete a section by ID. This action cannot be undone.",
+        tags=["02 Course"],
+        summary="Delete a Course",
+        description="Delete a Course by ID. This action cannot be undone.",
         responses={
-            204: OpenApiResponse(description="Section deleted successfully"),
-            404: OpenApiResponse(description="Section not found"),
+            204: OpenApiResponse(description="Course deleted successfully"),
+            404: OpenApiResponse(description="Course not found"),
         },
     ),
 )
-class SectionViewSet(viewsets.ModelViewSet):
+class CourseViewSet(viewsets.ModelViewSet):
     """
     API endpoint for managing sections.
 
@@ -105,8 +105,8 @@ class SectionViewSet(viewsets.ModelViewSet):
     Sections represent different groups or periods within a classroom.
     """
 
-    queryset = Section.objects.all()
-    serializer_class = SectionSerializer
+    queryset = Course.objects.all()
+    serializer_class = CourseSerializer
     permission_classes = (AllowAny,)
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
@@ -124,7 +124,7 @@ class SectionViewSet(viewsets.ModelViewSet):
         "created_at",
     )
 
-    @extend_schema(tags=["03 Sections"])
+    @extend_schema(tags=["02 Course"])
     @action(
         detail=False, methods=["post"], url_path="add_student", url_name="add_student"
     )
@@ -236,9 +236,54 @@ class SessionViewSet(viewsets.ModelViewSet):
         "created_at",
     )
 
-    @action(detail=False, methods=["get"])
-    def get_courses(self, session_id=None):
-        pass
+    @extend_schema(
+        tags=["01 Session"],
+        summary="Get courses for a session",
+        description="Retrieve a list of courses associated with a specific session.",
+        parameters=[
+            OpenApiParameter(
+                name="session_id",
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.PATH,
+                description="The ID of the session to retrieve courses for",
+                required=True,
+            ),
+        ],
+        responses={
+            200: CourseSerializer(many=True),
+            400: OpenApiResponse(description="Invalid session ID"),
+            404: OpenApiResponse(description="Session not found"),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path=r"(?P<session_id>[-\w]+)/courses",
+        url_name="session-courses",
+    )
+    def get_courses(self, request, session_id=None, **kwargs):
+        """
+        Retrieve a list of courses associated with a specific session.
+        """
+
+        try:
+            session = self.queryset.filter(id=session_id).first()
+            if not session:
+                return Response(
+                    {"detail": "Session not found."}, status=status.HTTP_404_NOT_FOUND
+                )
+
+            courses = session.courses.all()
+
+            serializer = CourseSerializer(courses, many=True)
+            return Response(serializer.data)
+
+        except Exception as e:
+            return Response(
+                {"detail": "Internal Server Error"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 @extend_schema_view(

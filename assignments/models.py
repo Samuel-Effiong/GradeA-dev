@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -14,8 +16,9 @@ class AssignmentTypes(models.TextChoices):
 
 
 class Assignment(models.Model):
-    section = models.ForeignKey(
-        "classrooms.Section", on_delete=models.CASCADE, related_name="assignments"
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    course = models.ForeignKey(
+        "classrooms.Course", on_delete=models.CASCADE, related_name="assignments"
     )
     title = models.CharField(max_length=255, unique=True)
     subject_name = models.CharField(max_length=255)
@@ -40,6 +43,7 @@ class Assignment(models.Model):
 
 
 class Rubric(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     assignment = models.OneToOneField(
         Assignment, on_delete=models.CASCADE, related_name="rubric"
     )

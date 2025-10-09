@@ -1,6 +1,11 @@
 from rest_framework import serializers
 
-from .models import Section, Session, StudentSection  # , Classroom, ClassroomSettings,
+from .models import (  # , Classroom, ClassroomSettings,
+    Course,
+    CourseCategory,
+    Session,
+    StudentSection,
+)
 
 # from rest_framework.validators import UniqueTogetherValidator
 
@@ -14,11 +19,8 @@ class SessionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Session
-        fields = [
-            "id",
-            "name",
-        ]
-        read_only_fields = ["id"]
+        fields = ["id", "name", "created_at"]
+        read_only_fields = ["id", "created_at"]
 
         # validators = [
         #     UniqueTogetherValidator(
@@ -29,20 +31,26 @@ class SessionSerializer(serializers.ModelSerializer):
         # ]
 
 
-class SectionSerializer(serializers.ModelSerializer):
+class CourseSerializer(serializers.ModelSerializer):
     """Serializer for the Section model."""
 
+    categories = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=CourseCategory.objects.all()
+    )
+
     class Meta:
-        model = Section
+        model = Course
         fields = [
             "id",
             "name",
             "session",
+            "teacher",
+            "categories",
             "is_active",
             "created_at",
             "description",
         ]
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "created_at", "teacher"]
 
 
 class StudentSectionSerializer(serializers.ModelSerializer):
@@ -53,7 +61,7 @@ class StudentSectionSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "student",
-            "section",
+            "course",
             "is_active",
             "created_at",
             "enrollment_status",

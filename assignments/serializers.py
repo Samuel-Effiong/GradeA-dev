@@ -11,7 +11,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
         model = Assignment
         fields = [
             "id",
-            "section",
+            "course",
             "title",
             "instructions",
             "total_points",

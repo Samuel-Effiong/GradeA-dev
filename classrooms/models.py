@@ -32,19 +32,32 @@ class Session(models.Model):
         ]
 
 
-class Section(models.Model):
+class Course(models.Model):
     """Represents different groups/periods within a classroom"""
 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100, db_index=True)
+    teacher = models.ForeignKey(
+        "users.CustomUser",
+        on_delete=models.CASCADE,
+        related_name="courses",
+        blank=True,
+        null=True,
+    )
     session = models.ForeignKey(
         Session,
         on_delete=models.CASCADE,
-        related_name="sections",
+        related_name="courses",
         blank=True,
         null=True,
     )
     description = models.TextField(blank=True, db_index=True)
     is_active = models.BooleanField(default=True, db_index=True)
+    categories = models.ManyToManyField(
+        "CourseCategory",
+        related_name="courses",
+        blank=True,
+    )
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
@@ -60,6 +73,14 @@ class Section(models.Model):
         return f"{self.session.name} - {self.name}"
 
 
+class CourseCategory(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=100, db_index=True)
+
+    def __str__(self):
+        return self.name
+
+
 class EnrollmentStatusType(models.TextChoices):
     ENROLLED = "ENROLLED", _("Enrolled")
     WITHDRAWN = "WITHDRAWN", _("Withdrawn")
@@ -69,11 +90,12 @@ class EnrollmentStatusType(models.TextChoices):
 class StudentSection(models.Model):
     """Manages student enrollment in sections"""
 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     student = models.ForeignKey(
         "users.CustomUser", on_delete=models.CASCADE, related_name="enrollments"
     )
-    section = models.ForeignKey(
-        Section, on_delete=models.CASCADE, related_name="enrollments"
+    course = models.ForeignKey(
+        Course, on_delete=models.CASCADE, related_name="enrollments"
     )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -98,7 +120,7 @@ class StudentSection(models.Model):
     class Meta:
         constraints = [
             UniqueConstraint(
-                fields=["student", "section"],
+                fields=["student", "course"],
                 name="unique_student_section_per_classroom",
             )
         ]
