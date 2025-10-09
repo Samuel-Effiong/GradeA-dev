@@ -1,4 +1,4 @@
-from django.core.exceptions import ValidationError
+# from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import UniqueConstraint
 from django.utils.translation import gettext_lazy as _
@@ -6,18 +6,13 @@ from django.utils.translation import gettext_lazy as _
 # Create your models here.
 
 
-class TermTypes(models.TextChoices):
-    SEMESTER = "SEMESTER", "Semester"
-    YEAR = "YEAR", "Academic Year"
-    QUARTER = "QUARTER", "Quarter"
-
-
-class AcademicTerm(models.Model):
+class Session(models.Model):
     """Represents an Academic period (semester, year, quarter)."""
 
+    id = models.UUIDField(primary_key=True, editable=False)
     name = models.CharField(max_length=100, db_index=True)
-    start_date = models.DateField(null=True, blank=True, db_index=True)
-    end_date = models.DateField(null=True, blank=True, db_index=True)
+    created_at = models.DateFieled(auto_now_add=True)
+
     teacher = models.ForeignKey(
         "users.CustomUser",
         null=True,
@@ -32,63 +27,13 @@ class AcademicTerm(models.Model):
             UniqueConstraint(fields=["name", "teacher"], name="unique_academic_term"),
         ]
 
-    def clean(self):
-        if self.start_date and self.end_date and self.start_date > self.end_date:
-            raise ValidationError(_("Start date must be before end date."))
-
-
-class Classroom(models.Model):
-    """Main classroom model that represents a teacher's class"""
-
-    name = models.CharField(max_length=255)
-    teacher = models.ForeignKey(
-        "users.CustomUser",
-        null=True,
-        blank=True,
-        on_delete=models.CASCADE,
-        related_name="classrooms",
-    )
-
-    academic_term = models.ForeignKey(
-        AcademicTerm, on_delete=models.CASCADE, related_name="classrooms"
-    )
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    is_active = models.BooleanField(default=True)
-    description = models.TextField(blank=True)
-
-    class Meta:
-        ordering = ("-created_at",)
-        constraints = [
-            UniqueConstraint(
-                fields=["teacher", "name", "academic_term"],
-                name="unique_classroom_name_per_teacher_per_term",
-            )
-        ]
-
-    def __str__(self):
-        return f"{self.name} ({self.academic_term})"
-
-
-class ClassroomSettings(models.Model):
-    """Stores classsroom-specific settings"""
-
-    classroom = models.OneToOneField(
-        Classroom, on_delete=models.CASCADE, related_name="settings"
-    )
-    allow_late_submission = models.BooleanField(default=False)
-
-    def __str__(self):
-        return f"Settings for {self.classroom.name}"
-
 
 class Section(models.Model):
     """Represents different groups/periods within a classroom"""
 
     name = models.CharField(max_length=100, db_index=True)
-    academic_term = models.ForeignKey(
-        AcademicTerm,
+    session = models.ForeignKey(
+        Session,
         on_delete=models.CASCADE,
         related_name="sections",
         blank=True,
@@ -102,13 +47,19 @@ class Section(models.Model):
         ordering = ["name"]
         constraints = [
             UniqueConstraint(
-                fields=["name", "academic_term"],
+                fields=["name", "session"],
                 name="unique_section_name_per_classroom",
             )
         ]
 
     def __str__(self):
         return f"{self.academic_term.name} - {self.name}"
+
+
+class EnrollmentStatusType(models.TextChoices):
+    ENROLLED = "ENROLLED", _("Enrolled")
+    WITHDRAWN = "WITHDRAWN", _("Withdrawn")
+    COMPLETED = "COMPLETED", _("Completed")
 
 
 class StudentSection(models.Model):
@@ -125,12 +76,8 @@ class StudentSection(models.Model):
 
     enrollment_status = models.CharField(
         max_length=20,
-        choices=[
-            ("ENROLLED", "Enrolled"),
-            ("WITHDRAWN", "Withdrawn"),
-            ("COMPLETED", "Completed"),
-        ],
-        default="ENROLLED",
+        choices=EnrollmentStatusType.choices,
+        default=EnrollmentStatusType.ENROLLED,
     )
     withdrawal_date = models.DateTimeField(null=True, blank=True)
 

@@ -1,56 +1,32 @@
 from rest_framework import serializers
 
-from .models import (  # , Classroom, ClassroomSettings,
-    AcademicTerm,
-    Section,
-    StudentSection,
-)
+from .models import Section, Session, StudentSection  # , Classroom, ClassroomSettings,
+
+# from rest_framework.validators import UniqueTogetherValidator
+
+# from users.models import CustomUser
 
 
-class AcademicTermSerializer(serializers.ModelSerializer):
+class SessionSerializer(serializers.ModelSerializer):
     """Serializer for the AcademicTerm model."""
 
+    # teacher = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
     class Meta:
-        model = AcademicTerm
-        fields = ["id", "name", "start_date", "end_date", "teacher"]
+        model = Session
+        fields = [
+            "id",
+            "name",
+        ]
         read_only_fields = ["id"]
 
-    def validate(self, data):
-        """Validate that start_date is before end_date."""
-        if (
-            data.get("start_date")
-            and data.get("end_date")
-            and data["start_date"] > data["end_date"]
-        ):
-            raise serializers.ValidationError("Start date must be before end date.")
-        return data
-
-
-# class ClassroomSerializer(serializers.ModelSerializer):
-#     """Serializer for the Classroom model."""
-#
-#     class Meta:
-#         model = Classroom
-#         fields = [
-#             "id",
-#             "name",
-#             "teacher",
-#             "academic_term",
-#             "created_at",
-#             "updated_at",
-#             "is_active",
-#             "description",
-#         ]
-#         read_only_fields = ["id", "created_at", "updated_at"]
-
-
-# class ClassroomSettingsSerializer(serializers.ModelSerializer):
-#     """Serializer for the ClassroomSettings model."""
-#
-#     class Meta:
-#         model = ClassroomSettings
-#         fields = ["id", "classroom", "allow_late_submission"]
-#         read_only_fields = ["id"]
+        # validators = [
+        #     UniqueTogetherValidator(
+        #         queryset=Session.objects.all(),
+        #         fields=['name', 'teacher'],
+        #         message="This Faculty already exists in this Tenant"
+        #     )
+        # ]
 
 
 class SectionSerializer(serializers.ModelSerializer):

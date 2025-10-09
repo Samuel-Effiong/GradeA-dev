@@ -1,14 +1,14 @@
 from rest_framework.routers import DefaultRouter
 
 from classrooms.views import (  # ClassroomSettingsViewSet,; ClassroomViewSet,
-    AcademicTermViewSet,
     SectionViewSet,
+    SessionViewSet,
     StudentSectionViewSet,
 )
 
 router = DefaultRouter()
 
-router.register(r"academic-terms", AcademicTermViewSet, basename="academic-term")
+router.register(r"academic-terms", SessionViewSet, basename="academic-term")
 # router.register(r"classrooms", ClassroomViewSet, basename="classroom")
 # router.register(
 #     r"classroom-settings", ClassroomSettingsViewSet, basename="classroom-setting"
