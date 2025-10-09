@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from classrooms.views import (  # ClassroomSettingsViewSet,; ClassroomViewSet,
     CourseViewSet,
     SessionViewSet,
-    StudentSectionViewSet,
+    StudentCourseViewSet,
 )
 
 router = DefaultRouter()
@@ -14,7 +14,7 @@ router.register(r"sessions", SessionViewSet, basename="session")
 #     r"classroom-settings", ClassroomSettingsViewSet, basename="classroom-setting"
 # )
 router.register(r"course", CourseViewSet, basename="course")
-router.register(r"student-sections", StudentSectionViewSet, basename="student-section")
+router.register(r"student-course", StudentCourseViewSet, basename="student-course")
 
 
 urlpatterns = router.urls

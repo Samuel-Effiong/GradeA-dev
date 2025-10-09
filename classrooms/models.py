@@ -87,7 +87,7 @@ class EnrollmentStatusType(models.TextChoices):
     COMPLETED = "COMPLETED", _("Completed")
 
 
-class StudentSection(models.Model):
+class StudentCourse(models.Model):
     """Manages student enrollment in sections"""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

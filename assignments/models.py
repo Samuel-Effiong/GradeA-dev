@@ -21,7 +21,6 @@ class Assignment(models.Model):
         "classrooms.Course", on_delete=models.CASCADE, related_name="assignments"
     )
     title = models.CharField(max_length=255, unique=True)
-    subject_name = models.CharField(max_length=255)
     instructions = models.TextField()
     total_points = models.IntegerField()
     question_count = models.IntegerField()
@@ -31,7 +30,8 @@ class Assignment(models.Model):
         default=AssignmentTypes.OBJECTIVE,
     )
     created_at = models.DateTimeField(auto_now_add=True)
-    created_by = models.ForeignKey(
+    due_date = models.DateTimeField()
+    teacher = models.ForeignKey(
         CustomUser,
         on_delete=models.SET_NULL,
         null=True,

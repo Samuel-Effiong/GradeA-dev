@@ -13,11 +13,11 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from .models import Course, Session, StudentSection  # , Classroom, ClassroomSettings
+from .models import Course, Session, StudentCourse  # , Classroom, ClassroomSettings
 from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
     CourseSerializer,
     SessionSerializer,
-    StudentSectionSerializer,
+    StudentCourseSerializer,
 )
 
 
@@ -281,16 +281,16 @@ class SessionViewSet(viewsets.ModelViewSet):
 
         except Exception as e:
             return Response(
-                {"detail": "Internal Server Error"},
+                {"detail": "Internal Server Error", "traceback": f"{e}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
 
 @extend_schema_view(
     list=extend_schema(
-        tags=["06 Student Sections"],
-        summary="List all student sections",
-        description="Retrieve a paginated list of all student sections in the system.",
+        tags=["06 Student Course"],
+        summary="List all student Course",
+        description="Retrieve a paginated list of all student Course in the system.",
         parameters=[
             OpenApiParameter(
                 name="page",
@@ -306,19 +306,19 @@ class SessionViewSet(viewsets.ModelViewSet):
             ),
         ],
         responses={
-            200: StudentSectionSerializer(many=True),
+            200: StudentCourseSerializer(many=True),
             500: OpenApiResponse(description="Internal Server Error"),
         },
     ),
     create=extend_schema(
-        tags=["06 Student Sections"],
-        summary="Create a new student section",
-        description="Create a new student section with the provided details.",
-        request=StudentSectionSerializer,
+        tags=["06 Student Course"],
+        summary="Create a new student Course",
+        description="Create a new student Course with the provided details.",
+        request=StudentCourseSerializer,
         responses={
             201: OpenApiResponse(
-                response=StudentSectionSerializer,
-                description="Student section created successfully",
+                response=StudentCourseSerializer,
+                description="Student Course created successfully",
             ),
             400: OpenApiResponse(
                 description="Invalid input. Missing required fields or invalid data format"
@@ -326,37 +326,37 @@ class SessionViewSet(viewsets.ModelViewSet):
         },
     ),
     retrieve=extend_schema(
-        tags=["06 Student Sections"],
-        summary="Retrieve a student section",
-        description="Retrieve detailed information about a specific student section by its ID.",
+        tags=["06 Student Course"],
+        summary="Retrieve a student Course",
+        description="Retrieve detailed information about a specific student Course by its ID.",
         responses={
-            200: StudentSectionSerializer,
-            404: OpenApiResponse(description="Student section not found"),
+            200: StudentCourseSerializer,
+            404: OpenApiResponse(description="Student Course not found"),
             500: OpenApiResponse(description="Internal Server Error"),
         },
     ),
     partial_update=extend_schema(
-        tags=["06 Student Sections"],
-        summary="Partially update a student section",
-        description="Update one or more fields of an existing student section.",
-        request=StudentSectionSerializer(partial=True),
+        tags=["06 Student Course"],
+        summary="Partially update a student Course",
+        description="Update one or more fields of an existing student Course.",
+        request=StudentCourseSerializer(partial=True),
         responses={
-            200: StudentSectionSerializer,
+            200: StudentCourseSerializer,
             400: OpenApiResponse(description="Invalid input"),
-            404: OpenApiResponse(description="Student section not found"),
+            404: OpenApiResponse(description="Student Course not found"),
         },
     ),
     destroy=extend_schema(
-        tags=["06 Student Sections"],
-        summary="Delete a student section",
-        description="Delete a student section by ID. This action cannot be undone.",
+        tags=["06 Student Course"],
+        summary="Delete a student Course",
+        description="Delete a student Course by ID. This action cannot be undone.",
         responses={
-            204: OpenApiResponse(description="Student section deleted successfully"),
-            404: OpenApiResponse(description="Student section not found"),
+            204: OpenApiResponse(description="Student Course deleted successfully"),
+            404: OpenApiResponse(description="Student Course not found"),
         },
     ),
 )
-class StudentSectionViewSet(viewsets.ModelViewSet):
+class StudentCourseViewSet(viewsets.ModelViewSet):
     """
     API endpoint for managing student sections.
 
@@ -370,8 +370,8 @@ class StudentSectionViewSet(viewsets.ModelViewSet):
     Student sections represent a student's enrollment in a specific section.
     """
 
-    queryset = StudentSection.objects.all()
-    serializer_class = StudentSectionSerializer
+    queryset = StudentCourse.objects.all()
+    serializer_class = StudentCourseSerializer
     permission_classes = (AllowAny,)
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]

@@ -1,10 +1,13 @@
 from rest_framework import serializers
 
+from students.serializers import StudentSerializer
+from users.models import CustomUser
+
 from .models import (  # , Classroom, ClassroomSettings,
     Course,
     CourseCategory,
     Session,
-    StudentSection,
+    StudentCourse,
 )
 
 # from rest_framework.validators import UniqueTogetherValidator
@@ -38,6 +41,9 @@ class CourseSerializer(serializers.ModelSerializer):
         many=True, queryset=CourseCategory.objects.all()
     )
 
+    student_count = serializers.SerializerMethodField(method_name="get_student_count")
+    students = serializers.SerializerMethodField(method_name="get_students")
+
     class Meta:
         model = Course
         fields = [
@@ -49,15 +55,30 @@ class CourseSerializer(serializers.ModelSerializer):
             "is_active",
             "created_at",
             "description",
+            "student_count",
+            "students",
         ]
         read_only_fields = ["id", "created_at", "teacher"]
 
+    def get_student_count(self, obj):
+        return StudentCourse.objects.filter(course=obj).count()
 
-class StudentSectionSerializer(serializers.ModelSerializer):
+    def get_students(self, obj):
+        # TODO: Add users, to ensure that it is by the teacher
+        enrolled_students = CustomUser.objects.filter(
+            enrollments__course=obj
+        ).distinct()
+
+        serializer = StudentSerializer(enrolled_students, many=True)
+
+        return serializer.data
+
+
+class StudentCourseSerializer(serializers.ModelSerializer):
     """Serializer for the StudentSection model."""
 
     class Meta:
-        model = StudentSection
+        model = StudentCourse
         fields = [
             "id",
             "student",
