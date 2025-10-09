@@ -5,20 +5,20 @@ from .models import Assignment, Rubric
 
 
 class AssignmentSerializer(serializers.ModelSerializer):
-    created_by = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = Assignment
         fields = [
             "id",
-            "section",
+            "course",
             "title",
             "instructions",
             "total_points",
             "question_count",
             "assignment_type",
             "created_at",
-            "created_by",
+            "due_date",
+            "teacher",
             "questions",
         ]
         read_only_fields = ["created_at", "id"]

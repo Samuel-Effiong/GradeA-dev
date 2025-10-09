@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name="Assignment",
+            name="ChatMessage",
             fields=[
                 (
                     "id",
@@ -24,30 +24,27 @@ class Migration(migrations.Migration):
                         serialize=False,
                     ),
                 ),
-                ("title", models.CharField(max_length=255, unique=True)),
-                ("subject_name", models.CharField(max_length=255)),
-                ("instructions", models.TextField()),
-                ("total_points", models.IntegerField()),
-                ("question_count", models.IntegerField()),
                 (
-                    "assignment_type",
+                    "role",
                     models.CharField(
                         choices=[
-                            ("OBJECTIVE", "OBJECTIVE"),
-                            ("ESSAY", "ESSAY"),
-                            ("SHORT_ANSWER", "SHORT ANSWER"),
-                            ("HYBRID", "HYBRID"),
+                            ("user", "User"),
+                            ("assistant", "Assistant"),
+                            ("system", "System"),
                         ],
-                        default="OBJECTIVE",
+                        default="user",
                         max_length=20,
                     ),
                 ),
-                ("created_at", models.DateTimeField(auto_now_add=True)),
-                ("questions", models.JSONField(blank=True, null=True)),
+                ("content", models.TextField()),
+                ("timestamp", models.DateTimeField(auto_now_add=True)),
             ],
+            options={
+                "ordering": ("timestamp",),
+            },
         ),
         migrations.CreateModel(
-            name="Rubric",
+            name="ChatSession",
             fields=[
                 (
                     "id",
@@ -58,7 +55,6 @@ class Migration(migrations.Migration):
                         serialize=False,
                     ),
                 ),
-                ("criteria", models.JSONField()),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
             ],

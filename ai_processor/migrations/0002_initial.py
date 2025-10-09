@@ -9,18 +9,27 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ("assignments", "0001_initial"),
+        ("ai_processor", "0001_initial"),
         ("classrooms", "0001_initial"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name="assignment",
+            model_name="chatsession",
             name="course",
             field=models.ForeignKey(
+                blank=True,
+                null=True,
                 on_delete=django.db.models.deletion.CASCADE,
-                related_name="assignments",
                 to="classrooms.course",
+            ),
+        ),
+        migrations.AddField(
+            model_name="chatmessage",
+            name="session",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                to="ai_processor.chatsession",
             ),
         ),
     ]
