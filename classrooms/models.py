@@ -15,10 +15,9 @@ class TermTypes(models.TextChoices):
 class AcademicTerm(models.Model):
     """Represents an Academic period (semester, year, quarter)."""
 
-    name = models.CharField(max_length=100)
-    # type = models.CharField(max_length=20, choices=TermTypes.choices)
-    start_date = models.DateField()
-    end_date = models.DateField()
+    name = models.CharField(max_length=100, db_index=True)
+    start_date = models.DateField(null=True, blank=True, db_index=True)
+    end_date = models.DateField(null=True, blank=True, db_index=True)
     teacher = models.ForeignKey(
         "users.CustomUser",
         null=True,
@@ -29,6 +28,9 @@ class AcademicTerm(models.Model):
 
     class Meta:
         ordering = ("-start_date",)
+        constraints = [
+            UniqueConstraint(fields=["name", "teacher"], name="unique_academic_term"),
+        ]
 
     def clean(self):
         if self.start_date and self.end_date and self.start_date > self.end_date:
@@ -84,7 +86,7 @@ class ClassroomSettings(models.Model):
 class Section(models.Model):
     """Represents different groups/periods within a classroom"""
 
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=100, db_index=True)
     academic_term = models.ForeignKey(
         AcademicTerm,
         on_delete=models.CASCADE,
@@ -92,9 +94,9 @@ class Section(models.Model):
         blank=True,
         null=True,
     )
-    description = models.TextField(blank=True)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    description = models.TextField(blank=True, db_index=True)
+    is_active = models.BooleanField(default=True, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
         ordering = ["name"]

@@ -1,3 +1,4 @@
+from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiParameter,
@@ -7,6 +8,7 @@ from drf_spectacular.utils import (
 )
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -112,6 +114,20 @@ class AcademicTermViewSet(viewsets.ModelViewSet):
     permission_classes = (AllowAny,)
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
+
+    filter_backends = (DjangoFilterBackend, SearchFilter, OrderingFilter)
+    ordering_fields = [
+        "name",
+        "start_date",
+        "end_date",
+    ]
+    search_fields = [
+        "name",
+    ]
+    ordering = (
+        "name",
+        "start_date",
+    )
 
 
 # @extend_schema_view(
@@ -385,6 +401,19 @@ class SectionViewSet(viewsets.ModelViewSet):
     permission_classes = (AllowAny,)
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
+
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+
+    filterset_fields = ["academic_term", "is_active"]
+    ordering_fields = ["name", "start_date"]
+    search_fields = [
+        "name",
+        "description",
+    ]
+    ordering = (
+        "name",
+        "created_at",
+    )
 
     @extend_schema(tags=["03 Sections"])
     @action(

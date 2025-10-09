@@ -44,7 +44,7 @@ class AIProcessor:
             api_key=OPENROUTER_API_KEY,
         )
 
-    def __generate_text(self, system_prompt, user_prompt):
+    def __generate_text(self, system_prompt=None, user_prompt=None, messages=None):
         try:
             response = self.client.chat.completions.create(
                 extra_headers={
@@ -59,7 +59,8 @@ class AIProcessor:
                         "google/gemma-3-27b-it",
                     ],
                 },
-                messages=[
+                messages=messages
+                or [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
@@ -205,6 +206,14 @@ Make sure to:
 
         raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
 
+    def generate_assignment_from_prompt(self, prompt, chat_history=None):
+        pass
+
+    def generate_assignment_from_prompt_with_retry(
+        self, prompt, chat_history=None, max_retries: int = 3
+    ):
+        pass
+
 
 class PDFService:
     def __init__(self, uploaded_file: UploadedFile = None):
@@ -223,6 +232,7 @@ class PDFService:
 
     def extract(self) -> dict:
         """Extract data from the uploaded pdf"""
+        self.clear_extracted_data()
 
         if self.uploaded_file.content_type != "application/pdf":
             raise ValueError(
@@ -247,6 +257,13 @@ class PDFService:
         """Helper to get the number of pages"""
         with fitz.open(stream=pdf_bytes, filetype="pdf") as pdf:
             return pdf.page_count
+
+    def clear_extracted_data(self):
+        self.extracted_data = {
+            "title": "",
+            "questions": "",
+            "page_count": 0,
+        }
 
     def __extract_text_based(self, pdf_bytes):
         """Extract text from a PDF that is text-based or has a text layer"""
@@ -315,32 +332,6 @@ class OCRService:
 _ocr_instance = None
 _pdf_instance = None
 _ai_processor_instance = None
-
-
-def get_ocr_service():
-    global _ocr_instance
-    if _ocr_instance is None:
-        _ocr_instance = OCRService()
-    return _ocr_instance
-
-
-def get_pdf_service(uploaded_file: UploadedFile = None):
-    """Get PDFService instance - can be created per request"""
-    if uploaded_file:
-        return PDFService(uploaded_file)
-
-    global _pdf_instance
-    if _pdf_instance is None:
-        _pdf_instance = PDFService()
-    return _pdf_instance
-
-
-def get_ai_processor():
-    """Get singleton AIProcessor instance"""
-    global _ai_processor_instance
-    if _ai_processor_instance is None:
-        _ai_processor_instance = AIProcessor()
-    return _ai_processor_instance
 
 
 ocr_service = OCRService()
