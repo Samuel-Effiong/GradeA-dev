@@ -15,7 +15,9 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
+from ai_processor.models import ChatMessage, ChatSession, RoleType
 from ai_processor.services import ai_processor, ocr_service, pdf_service
+from classrooms.models import Course
 from students.serializers import StudentSubmissionSerializer
 
 from .models import Assignment, Rubric
@@ -95,7 +97,7 @@ RESPONSE_FORMAT_EXAMPLE = {
 
 
 ASSIGNMENT_EXAMPLE = {
-    "section": 0,
+    "course": 0,
     "title": "World History - Industrial Revolution Quiz",
     "instructions": "Answer all questions to the best of your ability.",
     "total_points": 50,
@@ -261,9 +263,9 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                             "type": "string",
                             "description": "The type of the assignment (e.g., 'PDF' or 'Image').",
                         },
-                        "section": {
+                        "course": {
                             "type": "string",
-                            "description": "The section or category of the assignment.",
+                            "description": "The course or category of the assignment.",
                         },
                         "questions": {
                             "type": "array",
@@ -345,6 +347,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                     )
 
                     results.append(assignment_questions)
+
                 except Exception as e:
                     return Response(
                         {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
@@ -615,6 +618,70 @@ class AssignmentViewSet(viewsets.ModelViewSet):
     def submit_assignment(self, request, assignment_id=None):
         if not Assignment.objects.filter(pk=assignment_id).exists():
             raise NotFound("No Assignment found with this ID.")
+
+    @extend_schema(tags=["04 Assignments"])
+    @action(
+        detail=False,
+        methods=["POST"],
+        url_path=r"generate_assignment/(?P<course_id>[-\w]+)",
+        url_name="generate_assignment",
+    )
+    def generate_assignment_from_prompt(self, request, course_id):
+        """
+        Generate a new assignment based on text prompts.
+
+        This endpoint accepts a text prompt and generates an assignment with questions
+        and answers using AI processing.
+        """
+
+        course = Course.objects.filter(id=course_id)
+
+        if not course.exists():
+            raise NotFound("No Cours found with this ID.")
+
+        # Get all the past history of the user chats for this particular course
+        chat_session, created = ChatSession.objects.get_or_create(course_id=course_id)
+        chat_history = (
+            ChatMessage.objects.filter(session=chat_session)
+            .order_by("timestamp")
+            .values_list("role", "content")
+        )
+
+        messages = [
+            {"role": role, "content": content} for role, content in chat_history
+        ]
+
+        prompt = request.data.get("prompt")
+        if not prompt:
+            return Response(
+                {"error": "Prompt is required to generate an assignment."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+
+            generated_assignment = (
+                ai_processor.generate_assignment_from_prompt_with_retry(
+                    prompt, chat_history=messages, max_retries=3
+                )
+            )
+
+            # Store the new user message
+            ChatMessage.objects.create(
+                session=chat_session, role=RoleType.USER, content=prompt
+            )
+
+            # Store the AI's response in the chat history
+            ChatMessage.objects.create(
+                session=chat_session,
+                role=RoleType.ASSISTANT,
+                content=str(generated_assignment),
+            )
+            return Response(generated_assignment, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 @extend_schema_view(

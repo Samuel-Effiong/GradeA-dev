@@ -1,83 +1,88 @@
 from rest_framework import serializers
 
+from students.serializers import StudentSerializer
+from users.models import CustomUser
+
 from .models import (  # , Classroom, ClassroomSettings,
-    AcademicTerm,
-    Section,
-    StudentSection,
+    Course,
+    CourseCategory,
+    Session,
+    StudentCourse,
 )
 
+# from rest_framework.validators import UniqueTogetherValidator
 
-class AcademicTermSerializer(serializers.ModelSerializer):
+# from users.models import CustomUser
+
+
+class SessionSerializer(serializers.ModelSerializer):
     """Serializer for the AcademicTerm model."""
 
+    # teacher = serializers.HiddenField(default=serializers.CurrentUserDefault())
+
     class Meta:
-        model = AcademicTerm
-        fields = ["id", "name", "start_date", "end_date", "teacher"]
-        read_only_fields = ["id"]
+        model = Session
+        fields = ["id", "name", "created_at"]
+        read_only_fields = ["id", "created_at"]
 
-    def validate(self, data):
-        """Validate that start_date is before end_date."""
-        if (
-            data.get("start_date")
-            and data.get("end_date")
-            and data["start_date"] > data["end_date"]
-        ):
-            raise serializers.ValidationError("Start date must be before end date.")
-        return data
+        # validators = [
+        #     UniqueTogetherValidator(
+        #         queryset=Session.objects.all(),
+        #         fields=['name', 'teacher'],
+        #         message="This Faculty already exists in this Tenant"
+        #     )
+        # ]
 
 
-# class ClassroomSerializer(serializers.ModelSerializer):
-#     """Serializer for the Classroom model."""
-#
-#     class Meta:
-#         model = Classroom
-#         fields = [
-#             "id",
-#             "name",
-#             "teacher",
-#             "academic_term",
-#             "created_at",
-#             "updated_at",
-#             "is_active",
-#             "description",
-#         ]
-#         read_only_fields = ["id", "created_at", "updated_at"]
-
-
-# class ClassroomSettingsSerializer(serializers.ModelSerializer):
-#     """Serializer for the ClassroomSettings model."""
-#
-#     class Meta:
-#         model = ClassroomSettings
-#         fields = ["id", "classroom", "allow_late_submission"]
-#         read_only_fields = ["id"]
-
-
-class SectionSerializer(serializers.ModelSerializer):
+class CourseSerializer(serializers.ModelSerializer):
     """Serializer for the Section model."""
 
+    categories = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=CourseCategory.objects.all()
+    )
+
+    student_count = serializers.SerializerMethodField(method_name="get_student_count")
+    students = serializers.SerializerMethodField(method_name="get_students")
+
     class Meta:
-        model = Section
+        model = Course
         fields = [
             "id",
             "name",
-            "academic_term",
+            "session",
+            "teacher",
+            "categories",
             "is_active",
             "created_at",
             "description",
+            "student_count",
+            "students",
         ]
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "created_at", "teacher"]
+
+    def get_student_count(self, obj):
+        return StudentCourse.objects.filter(course=obj).count()
+
+    def get_students(self, obj):
+        # TODO: Add users, to ensure that it is by the teacher
+        enrolled_students = CustomUser.objects.filter(
+            enrollments__course=obj
+        ).distinct()
+
+        serializer = StudentSerializer(enrolled_students, many=True)
+
+        return serializer.data
 
 
-class StudentSectionSerializer(serializers.ModelSerializer):
+class StudentCourseSerializer(serializers.ModelSerializer):
     """Serializer for the StudentSection model."""
 
     class Meta:
-        model = StudentSection
+        model = StudentCourse
         fields = [
             "id",
             "student",
-            "section",
+            "course",
             "is_active",
             "created_at",
             "enrollment_status",
