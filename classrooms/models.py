@@ -1,4 +1,6 @@
 # from django.core.exceptions import ValidationError
+import uuid
+
 from django.db import models
 from django.db.models import UniqueConstraint
 from django.utils.translation import gettext_lazy as _
@@ -9,22 +11,24 @@ from django.utils.translation import gettext_lazy as _
 class Session(models.Model):
     """Represents an Academic period (semester, year, quarter)."""
 
-    id = models.UUIDField(primary_key=True, editable=False)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100, db_index=True)
-    created_at = models.DateFieled(auto_now_add=True)
+    created_at = models.DateField(auto_now_add=True)
 
     teacher = models.ForeignKey(
         "users.CustomUser",
         null=True,
         blank=True,
         on_delete=models.CASCADE,
-        related_name="academic_terms",
+        related_name="sessions",
     )
 
     class Meta:
-        ordering = ("-start_date",)
+        ordering = ("-created_at",)
         constraints = [
-            UniqueConstraint(fields=["name", "teacher"], name="unique_academic_term"),
+            UniqueConstraint(
+                fields=["name", "teacher"], name="unique_session_name_per_teacher"
+            ),
         ]
 
 
@@ -48,12 +52,12 @@ class Section(models.Model):
         constraints = [
             UniqueConstraint(
                 fields=["name", "session"],
-                name="unique_section_name_per_classroom",
+                name="unique_section_name_per_session",
             )
         ]
 
     def __str__(self):
-        return f"{self.academic_term.name} - {self.name}"
+        return f"{self.session.name} - {self.name}"
 
 
 class EnrollmentStatusType(models.TextChoices):

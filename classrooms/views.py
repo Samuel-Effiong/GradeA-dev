@@ -23,115 +23,6 @@ from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
 
 @extend_schema_view(
     list=extend_schema(
-        tags=["01 Academic Term"],
-        summary="List all academic terms",
-        description="Retrieve a paginated list of all academic terms in the system.",
-        parameters=[
-            OpenApiParameter(
-                name="page",
-                type=OpenApiTypes.INT,
-                location=OpenApiParameter.QUERY,
-                description="Page number for pagination",
-            ),
-            OpenApiParameter(
-                name="page_size",
-                type=OpenApiTypes.INT,
-                location=OpenApiParameter.QUERY,
-                description="Number of results per page",
-            ),
-        ],
-        responses={
-            200: SessionSerializer(many=True),
-            500: OpenApiResponse(description="Internal Server Error"),
-        },
-    ),
-    create=extend_schema(
-        tags=["01 Academic Term"],
-        summary="Create a new academic term",
-        description="Create a new academic term with the provided details.",
-        request=SessionSerializer,
-        responses={
-            201: OpenApiResponse(
-                response=SessionSerializer,
-                description="Academic term created successfully",
-            ),
-            400: OpenApiResponse(
-                description="Invalid input. Missing required fields or invalid data format"
-            ),
-        },
-    ),
-    retrieve=extend_schema(
-        tags=["01 Academic Term"],
-        summary="Retrieve an academic term",
-        description="Retrieve detailed information about a specific academic term by its ID.",
-        responses={
-            200: SessionSerializer,
-            404: OpenApiResponse(description="Academic term not found"),
-            500: OpenApiResponse(description="Internal Server Error"),
-        },
-    ),
-    partial_update=extend_schema(
-        tags=["01 Academic Term"],
-        summary="Partially update an academic term",
-        description="Update one or more fields of an existing academic term.",
-        request=SessionSerializer(partial=True),
-        responses={
-            200: SessionSerializer,
-            400: OpenApiResponse(description="Invalid input"),
-            404: OpenApiResponse(description="Academic term not found"),
-        },
-    ),
-    destroy=extend_schema(
-        tags=["01 Academic Term"],
-        summary="Delete an academic term",
-        description="Delete an academic term by ID. This action cannot be undone.",
-        responses={
-            204: OpenApiResponse(description="Academic term deleted successfully"),
-            404: OpenApiResponse(description="Academic term not found"),
-        },
-    ),
-)
-class SessionViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint for managing academic terms.
-
-    Provides CRUD operations for academic terms including:
-    - List all academic terms
-    - Create new academic terms
-    - Retrieve specific academic terms
-    - Update academic terms
-    - Delete academic terms
-
-    Academic terms represent a period of time such as a semester, year, or quarter.
-    """
-
-    queryset = Session.objects.all()
-    serializer_class = SessionSerializer
-    permission_classes = (AllowAny,)
-    pagination_class = PageNumberPagination
-    http_method_names = ["get", "head", "post", "delete", "patch", "options"]
-
-    filter_backends = (DjangoFilterBackend, SearchFilter, OrderingFilter)
-    ordering_fields = [
-        "name",
-        "start_date",
-        "end_date",
-    ]
-    search_fields = [
-        "name",
-    ]
-    ordering = (
-        "name",
-        "start_date",
-    )
-
-    @action(detail=False, methods=["get"])
-    def get_courses(self, session_id=None):
-        pass
-
-
-@extend_schema_view(
-    list=extend_schema(
         tags=["03 Sections"],
         summary="List all sections",
         description="Retrieve a paginated list of all sections in the system.",
@@ -222,7 +113,7 @@ class SectionViewSet(viewsets.ModelViewSet):
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
-    filterset_fields = ["academic_term", "is_active"]
+    filterset_fields = ["session", "is_active"]
     ordering_fields = ["name", "start_date"]
     search_fields = [
         "name",
@@ -240,6 +131,114 @@ class SectionViewSet(viewsets.ModelViewSet):
     def add_student(self, request):
         """Onboard students to a section."""
         return Response({}, status=status.HTTP_200_OK)
+
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=["01 Session"],
+        summary="List all Session",
+        description="Retrieve a paginated list of all Session in the system.",
+        parameters=[
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page",
+            ),
+        ],
+        responses={
+            200: SessionSerializer(many=True),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    ),
+    create=extend_schema(
+        tags=["01 Session"],
+        summary="Create a new Session",
+        description="Create a new Session with the provided details.",
+        request=SessionSerializer,
+        responses={
+            201: OpenApiResponse(
+                response=SessionSerializer,
+                description="Session created successfully",
+            ),
+            400: OpenApiResponse(
+                description="Invalid input. Missing required fields or invalid data format"
+            ),
+        },
+    ),
+    retrieve=extend_schema(
+        tags=["01 Session"],
+        summary="Retrieve an Session",
+        description="Retrieve detailed information about a specific Session by its ID.",
+        responses={
+            200: SessionSerializer,
+            404: OpenApiResponse(description="Session not found"),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    ),
+    partial_update=extend_schema(
+        tags=["01 Session"],
+        summary="Partially update an Session",
+        description="Update one or more fields of an existing Session.",
+        request=SessionSerializer(partial=True),
+        responses={
+            200: SessionSerializer,
+            400: OpenApiResponse(description="Invalid input"),
+            404: OpenApiResponse(description="Session not found"),
+        },
+    ),
+    destroy=extend_schema(
+        tags=["01 Session"],
+        summary="Delete an Session",
+        description="Delete an Session by ID. This action cannot be undone.",
+        responses={
+            204: OpenApiResponse(description="Session deleted successfully"),
+            404: OpenApiResponse(description="Session not found"),
+        },
+    ),
+)
+class SessionViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for managing academic terms.
+
+    Provides CRUD operations for academic terms including:
+    - List all academic terms
+    - Create new academic terms
+    - Retrieve specific academic terms
+    - Update academic terms
+    - Delete academic terms
+
+    Academic terms represent a period of time such as a semester, year, or quarter.
+    """
+
+    queryset = Session.objects.all()
+    serializer_class = SessionSerializer
+    permission_classes = (AllowAny,)
+    pagination_class = PageNumberPagination
+    http_method_names = ["get", "head", "post", "delete", "patch", "options"]
+
+    filter_backends = (DjangoFilterBackend, SearchFilter, OrderingFilter)
+    ordering_fields = [
+        "name",
+        "created_at",
+    ]
+    search_fields = [
+        "name",
+    ]
+    ordering = (
+        "name",
+        "created_at",
+    )
+
+    @action(detail=False, methods=["get"])
+    def get_courses(self, session_id=None):
+        pass
 
 
 @extend_schema_view(

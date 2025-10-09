@@ -37,7 +37,7 @@ class SectionSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "name",
-            "academic_term",
+            "session",
             "is_active",
             "created_at",
             "description",

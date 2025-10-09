@@ -8,7 +8,7 @@ from classrooms.views import (  # ClassroomSettingsViewSet,; ClassroomViewSet,
 
 router = DefaultRouter()
 
-router.register(r"academic-terms", SessionViewSet, basename="academic-term")
+router.register(r"sessions", SessionViewSet, basename="session")
 # router.register(r"classrooms", ClassroomViewSet, basename="classroom")
 # router.register(
 #     r"classroom-settings", ClassroomSettingsViewSet, basename="classroom-setting"
