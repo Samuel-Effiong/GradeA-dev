@@ -331,7 +331,7 @@ class SessionViewSet(viewsets.ModelViewSet):
         description="Retrieve detailed information about a specific student Course by its ID.",
         responses={
             200: StudentCourseSerializer,
-            404: OpenApiResponse(description="Student Course not found"),
+            404: OpenApiResponse(description="Student Course not found "),
             500: OpenApiResponse(description="Internal Server Error"),
         },
     ),
