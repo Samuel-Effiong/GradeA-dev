@@ -10,7 +10,7 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .models import Course, Session, StudentCourse  # , Classroom, ClassroomSettings
@@ -107,7 +107,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
-    permission_classes = (AllowAny,)
+    permission_classes = (IsAuthenticated,)
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
@@ -124,7 +124,11 @@ class CourseViewSet(viewsets.ModelViewSet):
         "created_at",
     )
 
-    @extend_schema(tags=["02 Course"])
+    @extend_schema(
+        tags=["02 Course"],
+        summary="Add student to a particular course",
+        description="Add student to a particular course.",
+    )
     @action(
         detail=False, methods=["post"], url_path="add_student", url_name="add_student"
     )
@@ -219,7 +223,7 @@ class SessionViewSet(viewsets.ModelViewSet):
 
     queryset = Session.objects.all()
     serializer_class = SessionSerializer
-    permission_classes = (AllowAny,)
+    permission_classes = (IsAuthenticated,)
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
@@ -372,6 +376,6 @@ class StudentCourseViewSet(viewsets.ModelViewSet):
 
     queryset = StudentCourse.objects.all()
     serializer_class = StudentCourseSerializer
-    permission_classes = (AllowAny,)
+    permission_classes = (IsAuthenticated,)
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
