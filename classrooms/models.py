@@ -68,9 +68,9 @@ class Course(models.Model):
         ordering = ["name"]
         constraints = [
             UniqueConstraint(
-                fields=["name", "session"],
+                fields=["name", "teacher", "session"],
                 name="unique_section_name_per_session",
-            )
+            ),
         ]
 
     def __str__(self):

@@ -124,6 +124,10 @@ class CourseViewSet(viewsets.ModelViewSet):
         "created_at",
     )
 
+    def get_queryset(self):
+        user = self.request.user
+        return Course.objects.filter(teacher=user)
+
     @extend_schema(
         tags=["02 Course"],
         summary="Add student to a particular course",
@@ -221,7 +225,6 @@ class SessionViewSet(viewsets.ModelViewSet):
     Academic terms represent a period of time such as a semester, year, or quarter.
     """
 
-    queryset = Session.objects.all()
     serializer_class = SessionSerializer
     permission_classes = (IsAuthenticated,)
     pagination_class = PageNumberPagination
@@ -239,6 +242,10 @@ class SessionViewSet(viewsets.ModelViewSet):
         "name",
         "created_at",
     )
+
+    def get_queryset(self):
+        user = self.request.user
+        return Session.objects.filter(teacher=user)
 
     @extend_schema(
         tags=["01 Session"],

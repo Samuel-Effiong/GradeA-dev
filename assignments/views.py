@@ -226,6 +226,10 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
+    def get_queryset(self):
+        user = self.request.user
+        return Assignment.objects.filter(course__teacher=user)
+
     @extend_schema(
         tags=["04 Assignments"],
         summary="Upload assignment files (images or PDFs)",
@@ -852,6 +856,10 @@ class RubricViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated,)
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
+
+    def get_queryset(self):
+        user = self.request.user
+        return Rubric.objects.filter(assignment__course__teacher=user)
 
     @extend_schema(
         tags=["05 Rubrics"],

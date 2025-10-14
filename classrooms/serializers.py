@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
 
 from students.serializers import StudentSerializer
 from users.models import CustomUser
@@ -18,20 +19,20 @@ from .models import (  # , Classroom, ClassroomSettings,
 class SessionSerializer(serializers.ModelSerializer):
     """Serializer for the AcademicTerm model."""
 
-    # teacher = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    teacher = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
     class Meta:
         model = Session
-        fields = ["id", "name", "created_at"]
-        read_only_fields = ["id", "created_at"]
+        fields = ["id", "name", "created_at", "teacher"]
+        read_only_fields = ["id", "created_at", "teacher"]
 
-        # validators = [
-        #     UniqueTogetherValidator(
-        #         queryset=Session.objects.all(),
-        #         fields=['name', 'teacher'],
-        #         message="This Faculty already exists in this Tenant"
-        #     )
-        # ]
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Session.objects.all(),
+                fields=["name", "teacher"],
+                message="This Teacher already has this session",
+            )
+        ]
 
 
 class CourseSerializer(serializers.ModelSerializer):
@@ -40,6 +41,7 @@ class CourseSerializer(serializers.ModelSerializer):
     categories = serializers.PrimaryKeyRelatedField(
         many=True, queryset=CourseCategory.objects.all()
     )
+    teacher = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
     student_count = serializers.SerializerMethodField(method_name="get_student_count")
     students = serializers.SerializerMethodField(method_name="get_students")
