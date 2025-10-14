@@ -11,13 +11,13 @@ class CustomUserSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             "email": {"required": True},
             "password": {"write_only": True},
+            "user_type": {"required": False},
         }
 
     def create(self, validated_data):
         try:
             with transaction.atomic():
                 user = CustomUser.objects.create_user(**validated_data)
-
                 return user
 
         except Exception as e:
