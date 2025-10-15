@@ -126,7 +126,11 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        return Course.objects.filter(teacher=user)
+
+        if user.is_authenticated:
+            return Course.objects.filter(teacher=user)
+        else:
+            return Course.objects.none()
 
     @extend_schema(
         tags=["02 Course"],
@@ -245,7 +249,11 @@ class SessionViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        return Session.objects.filter(teacher=user)
+
+        if user.is_authenticated:
+            return Session.objects.filter(teacher=user)
+        else:
+            return Session.objects.none()
 
     @extend_schema(
         tags=["01 Session"],

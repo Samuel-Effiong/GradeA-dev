@@ -23,6 +23,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from users.models import CustomUser, PasswordChangeOTP, PasswordResetOTP
 from users.serializers import (
+    ChangePasswordSerializer,
     CustomUserSerializer,
     OTPSerializer,
     ResetPasswordSerializer,
@@ -459,3 +460,53 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             {"detail": "An OTP code has been sent to your email"},
             status=status.HTTP_200_OK,
         )
+
+    @extend_schema(
+        tags=["Users"],
+        summary="Change password using an OTP",
+        description="""
+        Changes the authenticated user's password after a valid OTP has been provided.
+        """,
+        request=ChangePasswordSerializer,
+        responses={
+            200: {"description": "Password changed successfully"},
+            400: {"description": "Invalid OTP or expired OTP"},
+        },
+    )
+    @action(detail=False, methods=["post", "options"], url_path="change_password")
+    def change_password(self, request, **kwargs):
+        serializer = ChangePasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = request.user
+        otp = serializer.validated_data.get("otp")
+        current_password = serializer.validated_data.get("current_password")
+        new_password = serializer.validated_data.get("new_password")
+
+        if not user.check_password(current_password):
+            return Response(
+                {"detail": "Incorrect current password"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            otp_obj = PasswordChangeOTP.objects.get(user=user, code=otp)
+        except PasswordChangeOTP.DoesNotExist:
+            return Response(
+                {"detail": "Invalid OTP or expired OTP"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not otp_obj.is_valid():
+            otp_obj.delete()
+            return Response(
+                {"detail": "Invalid OTP or expired OTP"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user.set_password(new_password)
+        user.save()
+
+        otp_obj.delete()
+
+        return Response({"detail": "Password changed successfully"})
