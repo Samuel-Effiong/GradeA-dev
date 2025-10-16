@@ -15,6 +15,7 @@ from rest_framework.response import Response
 
 from .models import Course, Session, StudentCourse  # , Classroom, ClassroomSettings
 from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
+    AddStudentToCourseSerializer,
     CourseSerializer,
     SessionSerializer,
     StudentCourseSerializer,
@@ -136,12 +137,15 @@ class CourseViewSet(viewsets.ModelViewSet):
         tags=["02 Course"],
         summary="Add student to a particular course",
         description="Add student to a particular course.",
+        request=AddStudentToCourseSerializer,
     )
     @action(
-        detail=False, methods=["post"], url_path="add_student", url_name="add_student"
+        detail=True, methods=["post"], url_path="add_student", url_name="add_student"
     )
-    def add_student(self, request):
+    def add_student(self, request, pk=None, *args, **kwargs):
         """Onboard students to a section."""
+        # course = self.get_object()
+
         return Response({}, status=status.HTTP_200_OK)
 
 

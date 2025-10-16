@@ -106,3 +106,9 @@ class StudentCourseSerializer(serializers.ModelSerializer):
                 "Participation score must be between 0 and 100."
             )
         return value
+
+
+class AddStudentToCourseSerializer(serializers.Serializer):
+    """Serializer for adding students to a course."""
+
+    email = serializers.EmailField(required=True)
