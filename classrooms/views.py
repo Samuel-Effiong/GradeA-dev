@@ -143,6 +143,12 @@ class CourseViewSet(viewsets.ModelViewSet):
         detail=True, methods=["post"], url_path="add_student", url_name="add_student"
     )
     def add_student(self, request, pk=None, *args, **kwargs):
+        serializer = AddStudentToCourseSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # email = serializer.validated_data["email"]
+
         """Onboard students to a section."""
         # course = self.get_object()
 
