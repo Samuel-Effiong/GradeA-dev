@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .container {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px;
+        }
+        .content {
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            border-radius: 4px;
+        }
+        .course-details {
+            background-color: #f9f9f9;
+            border-left: 4px solid #4CAF50;
+            padding: 15px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>New Course Enrollment</h1>
+        </div>
+
+        <div class="content">
+            <p>Dear {{ student.get_full_name }},</p>
+
+            <p>You have been enrolled in a new course by {{ teacher.get_full_name }}.</p>
+
+            <div class="course-details">
+                <h3>Course Details:</h3>
+                <ul>
+                    <li><strong>Course Name:</strong> {{ course.name }}</li>
+                    <li><strong>Teacher:</strong> {{ teacher.get_full_name }}</li>
+                    {% if course.description %}
+                        <li>
+                            <strong>Description:</strong> {{ course.description }}
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+
+            <p>You can access this course immediately using your existing account credentials.</p>
+
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{{ login_url }}" class="button">Access Course</a>
+            </div>
+
+            <p>If you have any questions, please contact your teacher at {{ teacher.email }}.</p>
+
+            <p>Best regards,<br>
+            GradeA+ Team</p>
+        </div>
+
+        <div style="font-size: 12px; color: #666; margin-top: 30px; text-align: center;">
+            <p>This is an automated message. Please do not reply to this email.</p>
+        </div>
+    </div>
+</body>
+</html>

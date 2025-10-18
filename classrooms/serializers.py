@@ -1,8 +1,9 @@
+from django.core.validators import MinLengthValidator
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
 from students.serializers import StudentSerializer
-from users.models import CustomUser
+from users.models import CustomUser, UserTypes
 
 from .models import (  # , Classroom, ClassroomSettings,
     Course,
@@ -112,3 +113,46 @@ class AddStudentToCourseSerializer(serializers.Serializer):
     """Serializer for adding students to a course."""
 
     email = serializers.EmailField(required=True)
+
+    def validate_email(self, value):
+        """
+        Validate that the email:
+        1. Is not associated with a teacher account
+        2. Is a valid email format (handled by EmailField)
+        """
+        teacher_exists = CustomUser.objects.filter(
+            email=value,
+            user_type=UserTypes.TEACHER,
+        ).exists()
+
+        if teacher_exists:
+            raise serializers.ValidationError(
+                "This email belongs to a teacher account and cannot be added as a student."
+            )
+
+        return value
+
+
+class StudentRegistrationCompletionSerializer(serializers.Serializer):
+    """Serializer for completing student registration."""
+
+    first_name = serializers.CharField(
+        max_length=150,
+        validators=[MinLengthValidator(2)],
+    )
+    last_name = serializers.CharField(
+        max_length=150,
+        validators=[MinLengthValidator(2)],
+    )
+    password = serializers.CharField(
+        write_only=True,
+        min_length=8,
+        validators=[MinLengthValidator(8)],
+    )
+    token = serializers.CharField(write_only=True)
+
+
+class ExpiredTokenSerializer(serializers.Serializer):
+    """Serializer for handling expired tokens."""
+
+    token = serializers.CharField(required=True)

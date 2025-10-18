@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h2>Student Registration Update</h2>
+
+    <p>Dear {{ teacher.get_full_name }},</p>
+
+    <p>This is to inform you that we've renewed the registration link for <strong>{{ student_email }}</strong> for your course <strong>{{ course.name }}</strong>.</p>
+
+    <p>Registration Details:</p>
+    <ul>
+        <li>Student Email: {{ student_email }}</li>
+        <li>Course: {{ course.name }}</li>
+        <li>New Expiry Date: {{ expiry_date|date:"F j, Y" }}</li>
+    </ul>
+
+    <p>The student has been sent a new registration link and has 7 days to complete their registration.</p>
+
+    <p>No action is required from you at this time. You will be notified when the student completes their registration.</p>
+
+    <p>Best regards</p>
+    <p>GradeA+</p>
+</body>
+</html>

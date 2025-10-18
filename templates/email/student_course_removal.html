@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .container {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #ff4444;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px;
+        }
+        .content {
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .course-details {
+            background-color: #f9f9f9;
+            border-left: 4px solid #ff4444;
+            padding: 15px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Course Removal Notice</h1>
+        </div>
+
+        <div class="content">
+            <p>Dear {{ student.first_name }},</p>
+
+            <p>This email is to inform you that you have been removed from the following course:</p>
+
+            <div class="course-details">
+                <h3>Course Details:</h3>
+                <ul>
+                    <li><strong>Course Name:</strong> {{ course.name }}</li>
+                    <li><strong>Teacher:</strong> {{ teacher.get_full_name }}</li>
+                </ul>
+            </div>
+
+            <p>If you have any questions about this removal, please contact your teacher at {{ teacher.email }}.</p>
+
+            <p>Best regards,</p>
+            <p>GradeA+ Team</p>
+        </div>
+    </div>
+</body>
+</html>
