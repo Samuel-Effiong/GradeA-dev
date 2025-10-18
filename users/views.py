@@ -164,6 +164,17 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         model = CustomUser
         fields = ["id", "username", "email", "user_type"]
 
+    def get_permissions(self):
+        """
+        Allow unauthenticated access only for POST endpoints (public actions).
+        All other requests require authentication.
+        """
+        if self.request.method.lower() == "post":
+            permission_classes = [AllowAny]
+        else:
+            permission_classes = [IsAuthenticated]
+        return [permission() for permission in permission_classes]
+
     @extend_schema(
         tags=["Users"],
         summary="Get current authenticated user",

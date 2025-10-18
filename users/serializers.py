@@ -7,6 +7,10 @@ from users.services import send_user_activation_email
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(
+        required=True, write_only=True, validators=[validate_password]
+    )
+
     class Meta:
         model = CustomUser
         fields = [
