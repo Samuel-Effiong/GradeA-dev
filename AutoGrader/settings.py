@@ -301,8 +301,8 @@ SPECTACULAR_SETTINGS = {
 }
 
 EMAIL_BACKEND = "anymail.backends.sendinblue.EmailBackend"
-DEFAULT_FROM_EMAIL = "AutoGrader <samueleffiong80@gmail.com>"
-SUPPORT_EMAIL = "autograder@gmail.com"
+DEFAULT_FROM_EMAIL = "GradeA+ <samueleffiong80@gmail.com>"
+SUPPORT_EMAIL = "GradeA+@gmail.com"
 
 ANYMAIL = {
     "SENDINBLUE_API_KEY": env.str("SENDINBLUE_API_KEY"),

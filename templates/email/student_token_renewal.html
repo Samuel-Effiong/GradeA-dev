@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h2>Course Registration Renewal</h2>
+
+    <p>Dear Student,</p>
+
+    <p>We noticed that you haven't completed your registration for <strong>{{ course.name }}</strong> with {{ teacher.get_full_name }}. Your previous registration link has expired, but don't worry - we've generated a new one for you!</p>
+
+    <p>Please click the button below to complete your registration. This new link will expire in 7 days.</p>
+
+    <a href="{{ registration_link }}" class="button">Complete Registration</a>
+
+    <p>If the button doesn't work, copy and paste this link into your browser:</p>
+    <p>{{ registration_link }}</p>
+
+    <p>Course Details:</p>
+    <ul>
+        <li>Course: {{ course.name }}</li>
+        <li>Teacher: {{ teacher.get_full_name }}</li>
+    </ul>
+
+    <p>If you did not request to join this course, please ignore this email.</p>
+
+    <p>Best regards,<br>
+    GradeA+ Team</p>
+</body>
+</html>

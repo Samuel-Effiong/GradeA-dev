@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Action Required: Activate Your [Course Name] Account</title>
+    <style type="text/css">
+        /* Standard Email Reset and Compatibility */
+        body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
+        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        a { text-decoration: none; color: #007bff; }
+        body { margin: 0; padding: 0; background-color: #f6f6f6; font-family: Arial, sans-serif; }
+        @media screen and (max-width: 600px) {
+            .content-table { width: 100% !important; }
+            .content-padding { padding: 20px 15px !important; }
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f6f6f6;">
+
+    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse;">
+        <tr>
+            <td align="center" style="padding: 40px 0 40px 0;">
+
+                <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);" class="content-table">
+
+                    <tr>
+                        <td align="center" style="padding: 30px 20px 10px 20px; background-color: #f0ad4e; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+                            <h1 style="margin: 0; font-size: 24px; color: #333333;">ACTION REQUIRED: Complete Your Course Setup</h1>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 30px 30px 30px 30px; color: #333333; font-size: 16px; line-height: 1.6;" class="content-padding">
+
+                            <p style="margin: 0 0 20px 0;">Hello,</p>
+
+                            <p style="margin: 0 0 20px 0;">
+                                You have been successfully added to the {{ course.name }} course by {{ teacher.get_full_name }}.
+                                Your account is provisioned, but you need to take one final step to activate your access and set up
+                                your student profile.
+                            </p>
+
+                            <p style="margin: 0 0 10px 0; font-weight: bold; font-size: 18px; color: #004d99;">Your Required Next Step:</p>
+                            <p style="margin: 0 0 20px 0;">
+                                As this is your first course invitation, please click the button below to <em><b>create your password</b></em>
+                                and <em><b>enter your full name and details</b></em> on the platform.
+                            </p>
+
+                            <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse; width: 100%;">
+                                <tr>
+                                    <td align="center" style="padding: 20px 0;">
+                                        <table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
+                                            <tr>
+                                                <td align="center" style="border-radius: 6px; background-color: #007bff; padding: 15px 30px;">
+                                                    <a href="{{ registration_link }}" target="_blank" style="font-size: 18px; font-weight: bold; text-decoration: none; color: #ffffff; display: inline-block;">
+                                                        Activate My Account Now
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding: 20px; font-size: 14px; color: #666666;">
+                                                    <p style="margin: 0 auto; width: 300px; font-size: 14px; color: #666666;">
+                                                        <b>Note:</b> This link is valid for <b>7 days</b> only.
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>
+                                                    <p>
+                                                        If the button doesn't work, you can copy and paste this link into your browser:
+                                                        <br>
+                                                        <a href="{{ registration_link }}" target="_blank">{{ registration_link }}</a>
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 20px 30px 30px 30px; background-color: #f6f6f6; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; font-size: 14px; color: #666666;">
+                            <p style="margin: 0;">Thank you,</p>
+                            <p style="margin: 5px 0 0 0; font-weight: bold; color: #333333;">{{ teacher.get_full_name }}</p>
+                            <p style="margin: 0;">{{ course.name }}</p>
+                            <p style="margin: 5px 0 0 0;"><a href="mailto:{{ teacher.email }}" style="color: #004d99;">{{ teacher.email }}</a></p>
+                            <p style="margin-top: 15px; font-size: 12px; color: #999999;">*If you have already activated your account, please disregard this message.*</p>
+                        </td>
+                    </tr>
+
+                </table>
+                </td>
+        </tr>
+    </table>
+    </body>
+</html>
