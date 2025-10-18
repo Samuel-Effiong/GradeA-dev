@@ -22,6 +22,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             "email": {"required": True},
             "password": {"write_only": True},
             "is_active": {"read_only": True},
+            "user_type": {"read_only": False},
         }
 
     def create(self, validated_data):
@@ -60,7 +61,7 @@ class OTPSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
     otp_type = serializers.CharField(required=True)
 
-    def validate_type(self, value):
+    def validate_otp_type(self, value):
         if value not in ("VERIFY_EMAIL", "RESET_PASSWORD"):
             raise serializers.ValidationError("Invalid OTP type")
         return value
@@ -77,3 +78,18 @@ class ResetPasswordSerializer(serializers.Serializer):
     new_password = serializers.CharField(
         required=True, write_only=True, validators=[validate_password]
     )
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    otp = serializers.CharField(required=True)
+    current_password = serializers.CharField(required=True, write_only=True)
+    new_password = serializers.CharField(
+        required=True, write_only=True, validators=[validate_password]
+    )
+
+    def validate(self, data):
+        if data["current_password"] == data["new_password"]:
+            raise serializers.ValidationError(
+                "New password cannot be the same as the old one"
+            )
+        return data

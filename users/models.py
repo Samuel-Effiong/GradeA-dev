@@ -99,6 +99,19 @@ class CustomUser(AbstractUser):
             return True
         return False
 
+    def renew_activation_token(self):
+        """Renew the activation token and extend expiration."""
+        self.activation_token = secrets.token_urlsafe(16)
+
+        if self.user_type == UserTypes.STUDENT:
+            self.activation_expires = timezone.now() + timezone.timedelta(days=7)
+        else:
+            raise ValueError(
+                "Activation token renewal is only for students. Use OTP (VERIFY_EMAIL) endpoint for teachers."
+            )
+        self.save()
+        return self.activation_token
+
 
 class PasswordResetOTP(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)

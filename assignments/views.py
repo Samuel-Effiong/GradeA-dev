@@ -228,7 +228,11 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        return Assignment.objects.filter(course__teacher=user)
+
+        if user.is_authenticated:
+            return Assignment.objects.filter(course__teacher=user)
+        else:
+            return Assignment.objects.none
 
     @extend_schema(
         tags=["04 Assignments"],
@@ -859,7 +863,11 @@ class RubricViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        return Rubric.objects.filter(assignment__course__teacher=user)
+
+        if user.is_authenticated:
+            return Rubric.objects.filter(assignment__course__teacher=user)
+        else:
+            return Rubric.objects.none()
 
     @extend_schema(
         tags=["05 Rubrics"],
