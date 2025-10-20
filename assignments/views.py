@@ -16,6 +16,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from ai_processor.models import ChatMessage, ChatSession, RoleType
+from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor, ocr_service, pdf_service
 from classrooms.models import Course
 from students.serializers import StudentSubmissionSerializer
@@ -619,14 +620,31 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         if not Assignment.objects.filter(pk=assignment_id).exists():
             raise NotFound("No Assignment found with this ID.")
 
-    @extend_schema(tags=["04 Assignments"])
+    @extend_schema(
+        tags=["04 Assignments"],
+        summary="Generate an assignment based on user prompts",
+        description="""Create a new assignment based on user prompts.""",
+        request=AssignmentGeneratorSerializer,
+        responses={
+            201: AssignmentSerializer,
+            400: OpenApiResponse(
+                description="Bad request - invalid data",
+            ),
+            403: OpenApiResponse(
+                description="Not authorized",
+                examples=[
+                    {"error": "You do not have permission to submit to this assignment"}
+                ],
+            ),
+        },
+    )
     @action(
         detail=False,
         methods=["POST"],
         url_path=r"generate_assignment/(?P<course_id>[-\w]+)",
         url_name="generate_assignment",
     )
-    def generate_assignment_from_prompt(self, request, course_id):
+    def generate_assignment_from_prompt(self, request, course_id, *args, **kwargs):
         """
         Generate a new assignment based on text prompts.
 
@@ -637,7 +655,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         course = Course.objects.filter(id=course_id)
 
         if not course.exists():
-            raise NotFound("No Cours found with this ID.")
+            raise NotFound("No Course found with this ID.")
 
         # Get all the past history of the user chats for this particular course
         chat_session, created = ChatSession.objects.get_or_create(course_id=course_id)

@@ -35,6 +35,9 @@ with open("ai_processor/ANSWERS_EXTRACTION_PROMPT.txt", "r") as file:
 with open("ai_processor/GRADING_ASSIGNMENT_PROMPT.txt", "r") as file:
     GRADING_ASSIGNMENT_PROMPT = file.read()
 
+with open("ai_processor/ASSIGNMENT_GENERATION_PROMPT.txt", "r") as file:
+    GENERATE_ASSIGNMENT_PROMPT = file.read()
+
 
 class AIProcessor:
     def __init__(self):
@@ -207,12 +210,66 @@ Make sure to:
         raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
 
     def generate_assignment_from_prompt(self, prompt, chat_history=None):
-        pass
+        """Generate an assignment based on the given prompt and chat history."""
+        system_prompt = "You are an expert educational content creator."
+
+        messages = [{"role": "system", "content": system_prompt}]
+
+        if chat_history:
+            messages.extend(chat_history)
+        messages.append({"role": "user", "content": prompt})
+
+        try:
+            response = self.client.chat.completions.create(
+                extra_headers={
+                    "HTTP-Referer": "",  # Optional. Site URL for rankings on openrouter.ai.
+                    "X-Title": "",  # Optional. Site title for rankings on openrouter.ai.
+                },
+                model="openai/gpt-oss-120b:free",
+                extra_body={
+                    "models": [
+                        "openrouter/sonoma-sky-alpha",
+                        "deepseek/deepseek-chat-v3.1",
+                        "google/gemma-3-27b-it",
+                    ],
+                },
+                messages=messages,
+                temperature=0.7,
+                response_format={"type": "json_object"},
+            )
+
+            content = response.choices[0].message.content
+            print(f"Recieved response of lenght {len(content)}")
+
+            try:
+                return json.loads(content)
+            except json.JSONDecodeError as e:
+                print("Error decoding JSON")
+                raise Exception(f"Error decoding JSON: {str(e)}") from Exception
+        except Exception as e:
+            logger.error(f"Error during assignment generation: {str(e)}")
+            raise Exception(f"Assignment generation failed: {str(e)}") from Exception
 
     def generate_assignment_from_prompt_with_retry(
         self, prompt, chat_history=None, max_retries: int = 3
     ):
-        pass
+        """
+        Retry wrapper for generate_assignment_from_prompt
+        """
+
+        last_error = None
+
+        for attempt in range(max_retries):
+            try:
+                return self.generate_assignment_from_prompt(prompt, chat_history)
+            except Exception as e:
+                last_error = e
+                logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
+
+                if attempt < max_retries - 1:
+                    logger.info("Retrying...")
+
+        raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
 
 
 class PDFService:
