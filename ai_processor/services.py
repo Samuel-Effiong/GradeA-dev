@@ -54,12 +54,11 @@ class AIProcessor:
                     "HTTP-Referer": "",  # Optional. Site URL for rankings on openrouter.ai.
                     "X-Title": "",  # Optional. Site title for rankings on openrouter.ai.
                 },
-                model="openai/gpt-oss-120b:free",
+                model="deepseek/deepseek-chat-v3.1:free",
                 extra_body={
                     "models": [
-                        "openrouter/sonoma-sky-alpha",
-                        "deepseek/deepseek-chat-v3.1",
-                        "google/gemma-3-27b-it",
+                        "google/gemma-3-27b-it:free",
+                        "deepseek/deepseek-chat-v3-0324:free" "",
                     ],
                 },
                 messages=messages
@@ -211,8 +210,7 @@ Make sure to:
 
     def generate_assignment_from_prompt(self, prompt, chat_history=None):
         """Generate an assignment based on the given prompt and chat history."""
-        system_prompt = "You are an expert educational content creator."
-
+        system_prompt = GENERATE_ASSIGNMENT_PROMPT
         messages = [{"role": "system", "content": system_prompt}]
 
         if chat_history:
