@@ -58,7 +58,8 @@ class AIProcessor:
                 extra_body={
                     "models": [
                         "google/gemma-3-27b-it:free",
-                        "deepseek/deepseek-chat-v3-0324:free" "",
+                        "deepseek/deepseek-chat-v3-0324:free",
+                        "openai/gpt-oss-20b:free",
                     ],
                 },
                 messages=messages
@@ -223,12 +224,12 @@ Make sure to:
                     "HTTP-Referer": "",  # Optional. Site URL for rankings on openrouter.ai.
                     "X-Title": "",  # Optional. Site title for rankings on openrouter.ai.
                 },
-                model="openai/gpt-oss-120b:free",
+                model="deepseek/deepseek-chat-v3.1:free",
                 extra_body={
                     "models": [
-                        "openrouter/sonoma-sky-alpha",
-                        "deepseek/deepseek-chat-v3.1",
-                        "google/gemma-3-27b-it",
+                        "google/gemma-3-27b-it:free",
+                        "deepseek/deepseek-chat-v3-0324:free",
+                        "openai/gpt-oss-20b:free",
                     ],
                 },
                 messages=messages,
