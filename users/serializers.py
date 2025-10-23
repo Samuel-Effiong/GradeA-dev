@@ -1,3 +1,4 @@
+from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
 from rest_framework import serializers
 
@@ -5,12 +6,16 @@ from users.models import CustomUser
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(
+        write_only=True, required=True, validators=[validate_password]
+    )
+
     class Meta:
         model = CustomUser
         fields = ["id", "email", "first_name", "last_name", "user_type", "password"]
+        read_only_fields = ["id", "user_type"]
         extra_kwargs = {
             "email": {"required": True},
-            "password": {"write_only": True},
             "user_type": {"required": False},
         }
 

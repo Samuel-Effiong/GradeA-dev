@@ -1,8 +1,20 @@
+"""Views for user management and API endpoints.
+
+This module contains the Django REST Framework viewset for managing users
+(CustomUserViewSet) and OpenAPI schema extensions for documenting the
+users endpoints.
+
+It exposes endpoints to list, create, retrieve, update, delete users,
+and a convenience `me` action to fetch the currently authenticated user's
+profile.
+"""
+
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiExample,
     OpenApiParameter,
+    OpenApiRequest,
     OpenApiResponse,
     extend_schema,
     extend_schema_view,
@@ -11,8 +23,14 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView as BaseTokenObtainPairView,
+)
+from rest_framework_simplejwt.views import TokenRefreshView as BaseTokenRefreshView
 
 from users.models import CustomUser
 from users.serializers import CustomUserSerializer
@@ -131,7 +149,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
 
     queryset = CustomUser.objects.all()
     serializer_class = CustomUserSerializer
-    permission_classes = (AllowAny,)
+    permission_classes = (IsAuthenticated,)
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
@@ -147,6 +165,13 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
     class Meta:
+        """Meta configuration describing model and exposed fields for the viewset.
+
+        Although DRF's ModelViewSet does not require an inner Meta normally,
+        this inner class documents which model and fields are intended to be
+        surfaced by this viewset for clarity and tooling.
+        """
+
         model = CustomUser
         fields = ["id", "username", "email", "user_type"]
 
@@ -193,3 +218,231 @@ class CustomUserViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
+
+    @extend_schema(
+        tags=["Authentication"],
+        summary="Log out the current user",
+        description="""
+        "This endpoint logs out the currently authenticated user by **blacklisting their refresh token**. "
+        "Once the refresh token is blacklisted, it can no longer be used to obtain new access tokens.\n\n"
+        "**Note:** The access token will naturally expire and does not need to be explicitly invalidated."
+        """,
+        request=OpenApiRequest(
+            request={
+                "type": "object",
+                "properties": {
+                    "refresh": {
+                        "type": "string",
+                        "description": "The refresh token to be blacklisted.",
+                        "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    },
+                },
+                "required": ["refresh"],
+            }
+        ),
+        responses={
+            205: OpenApiResponse(
+                response={"type": "null"},
+                description="Successfully logged out. Refresh token has been blacklisted.",
+            ),
+            400: OpenApiResponse(
+                response={
+                    "type": "object",
+                    "properties": {
+                        "detail": {
+                            "type": "string",
+                            "example": "Refresh token is required.",
+                        }
+                    },
+                },
+                description="Bad request. Missing or invalid refresh token.",
+            ),
+            401: OpenApiResponse(
+                response={
+                    "type": "object",
+                    "properties": {
+                        "detail": {
+                            "type": "string",
+                            "example": "Authentication credentials were not provided.",
+                        }
+                    },
+                },
+                description="User is not authenticated.",
+            ),
+        },
+        examples=[
+            OpenApiExample(
+                "Valid logout request",
+                value={"refresh": "eyJ0eXAiOiJKV1QiLCJh..."},
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Missing refresh token",
+                value={"detail": "Refresh token is required."},
+                response_only=True,
+                status_codes=["400"],
+            ),
+        ],
+    )
+    @action(detail=False, methods=["post"], url_path="auth/logout")
+    def logout(self, request):
+        """
+        Log out the currently authenticated user.
+
+        This endpoint logs out the user by invalidating their authentication token.
+        The user must be authenticated to access this endpoint.
+
+        ## Response
+        - 204: No Content - Successfully logged out
+        - 401: Unauthorized - If user is not authenticated
+        """
+        try:
+            refresh_token = request.data["refresh"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+        except KeyError:
+            return Response(
+                {"detail": "Refresh token is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except TokenError:
+            return Response(
+                {"detail": "Invalid or expired token."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(status=status.HTTP_205_RESET_CONTENT)
+
+    @extend_schema(
+        tags=["Authentication"],
+        summary="Register a new Teacher user",
+        description="""
+        Register a new user with TEACHER role.
+
+        Required fields:
+        - email: User's email address (must be unique)
+        - password: User's password
+        - first_name: User's first name
+        - last_name: User's last name
+
+        Note: The user_type will be automatically set to TEACHER.
+        """,
+        request=CustomUserSerializer,
+        responses={
+            201: OpenApiResponse(
+                response=CustomUserSerializer,
+                description="Teacher user created successfully",
+            ),
+            400: OpenApiResponse(description="Invalid input data"),
+            500: OpenApiResponse(description="Internal server error"),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["post"],
+        permission_classes=[AllowAny],
+        url_path="auth/register",
+    )
+    def register(self, request, *args, **kwargs):
+        """
+        Register a new Teacher user
+
+        This endpoint allows registration of new users with TEACHER role only.
+        """
+        request.data.pop("user_type", None)
+        serializer = CustomUserSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        serializer.save()
+
+        return Response(serializer.data)
+
+    @extend_schema(
+        tags=["Authentication"],
+        summary="Register a new Student user",
+        description="""
+        Register a new user with STUDENT role.
+
+        Required fields:
+        - email: User's email address (must be unique)
+        - password: User's password
+        - first_name: User's first name
+        """,
+    )
+    @action(
+        detail=False,
+        methods=["post"],
+        permission_classes=[AllowAny],
+        url_path="auth/register/student",
+    )
+    def register_student(self, request, *args, **kwargs):
+        pass
+
+
+@extend_schema(
+    tags=["Authentication"],
+    summary="Obtain JWT token pair",
+    description="""
+    Authenticate a user and return a JWT token pair.
+
+    Returns:
+    - access: Access token for API authentication
+    - refresh: Refresh token to obtain new access tokens
+    """,
+    responses={
+        200: OpenApiResponse(
+            response={
+                "type": "object",
+                "properties": {
+                    "access": {"type": "string"},
+                    "refresh": {"type": "string"},
+                },
+            },
+            description="Successfully authenticated",
+        ),
+        401: OpenApiResponse(description="Invalid credentials"),
+    },
+)
+class TokenObtainPairView(BaseTokenObtainPairView):
+    """
+    Custom view for obtaining JWT token pairs
+    """
+
+    pass
+
+
+@extend_schema(
+    tags=["Authentication"],
+    summary="Refresh JWT token pair",
+    description="""
+
+    """,
+    request=OpenApiRequest(
+        request={
+            "type": "object",
+            "properties": {
+                "refresh": {
+                    "type": "string",
+                    "description": "The refresh token to be blacklisted.",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                },
+            },
+            "required": ["refresh"],
+        }
+    ),
+    responses={
+        200: OpenApiResponse(
+            response={
+                "type": "object",
+                "properties": {
+                    "access": {"type": "string"},
+                    "refresh": {"type": "string"},
+                },
+            },
+            description="Successfully authenticated",
+        ),
+        401: OpenApiResponse(description="Invalid credentials"),
+    },
+)
+class TokenRefreshView(BaseTokenRefreshView):
+    pass
