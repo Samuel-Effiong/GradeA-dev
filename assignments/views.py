@@ -12,7 +12,7 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotAcceptable, NotFound
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from ai_processor.models import ChatMessage, ChatSession, RoleType
@@ -222,10 +222,18 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
     queryset = Assignment.objects.all()
     serializer_class = AssignmentSerializer
-    permission_classes = (AllowAny,)
+    permission_classes = (IsAuthenticated,)
     pagination_class = PageNumberPagination
 
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_authenticated:
+            return Assignment.objects.filter(course__teacher=user)
+        else:
+            return Assignment.objects.none
 
     @extend_schema(
         tags=["04 Assignments"],
@@ -867,9 +875,17 @@ class RubricViewSet(viewsets.ModelViewSet):
 
     queryset = Rubric.objects.all()
     serializer_class = RubricSerializer
-    permission_classes = (AllowAny,)
+    permission_classes = (IsAuthenticated,)
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_authenticated:
+            return Rubric.objects.filter(assignment__course__teacher=user)
+        else:
+            return Rubric.objects.none()
 
     @extend_schema(
         tags=["05 Rubrics"],

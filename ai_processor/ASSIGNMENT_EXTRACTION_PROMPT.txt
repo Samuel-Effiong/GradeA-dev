@@ -78,7 +78,6 @@ Your output must follow this exact structure:
 ```json
 {
   "title": "string - The title/name of the assignment",
-  "subject_name": "string - The academic subject the assignment belongs",
   "instructions": "string - General instructions for students",
   "total_points": number - Sum of all question points,
   "question_count": number - Total number of questions,

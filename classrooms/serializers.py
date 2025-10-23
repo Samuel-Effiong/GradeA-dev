@@ -1,7 +1,9 @@
+from django.core.validators import MinLengthValidator
 from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
 
 from students.serializers import StudentSerializer
-from users.models import CustomUser
+from users.models import CustomUser, UserTypes
 
 from .models import (  # , Classroom, ClassroomSettings,
     Course,
@@ -18,20 +20,20 @@ from .models import (  # , Classroom, ClassroomSettings,
 class SessionSerializer(serializers.ModelSerializer):
     """Serializer for the AcademicTerm model."""
 
-    # teacher = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    teacher = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
     class Meta:
         model = Session
-        fields = ["id", "name", "created_at"]
-        read_only_fields = ["id", "created_at"]
+        fields = ["id", "name", "created_at", "teacher"]
+        read_only_fields = ["id", "created_at", "teacher"]
 
-        # validators = [
-        #     UniqueTogetherValidator(
-        #         queryset=Session.objects.all(),
-        #         fields=['name', 'teacher'],
-        #         message="This Faculty already exists in this Tenant"
-        #     )
-        # ]
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Session.objects.all(),
+                fields=["name", "teacher"],
+                message="This Teacher already has this session",
+            )
+        ]
 
 
 class CourseSerializer(serializers.ModelSerializer):
@@ -40,6 +42,7 @@ class CourseSerializer(serializers.ModelSerializer):
     categories = serializers.PrimaryKeyRelatedField(
         many=True, queryset=CourseCategory.objects.all()
     )
+    teacher = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
     student_count = serializers.SerializerMethodField(method_name="get_student_count")
     students = serializers.SerializerMethodField(method_name="get_students")
@@ -60,7 +63,7 @@ class CourseSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "created_at", "teacher"]
 
-    def get_student_count(self, obj):
+    def get_student_count(self, obj) -> int:
         return StudentCourse.objects.filter(course=obj).count()
 
     def get_students(self, obj):
@@ -104,3 +107,52 @@ class StudentCourseSerializer(serializers.ModelSerializer):
                 "Participation score must be between 0 and 100."
             )
         return value
+
+
+class AddStudentToCourseSerializer(serializers.Serializer):
+    """Serializer for adding students to a course."""
+
+    email = serializers.EmailField(required=True)
+
+    def validate_email(self, value):
+        """
+        Validate that the email:
+        1. Is not associated with a teacher account
+        2. Is a valid email format (handled by EmailField)
+        """
+        teacher_exists = CustomUser.objects.filter(
+            email=value,
+            user_type=UserTypes.TEACHER,
+        ).exists()
+
+        if teacher_exists:
+            raise serializers.ValidationError(
+                "This email belongs to a teacher account and cannot be added as a student."
+            )
+
+        return value
+
+
+class StudentRegistrationCompletionSerializer(serializers.Serializer):
+    """Serializer for completing student registration."""
+
+    first_name = serializers.CharField(
+        max_length=150,
+        validators=[MinLengthValidator(2)],
+    )
+    last_name = serializers.CharField(
+        max_length=150,
+        validators=[MinLengthValidator(2)],
+    )
+    password = serializers.CharField(
+        write_only=True,
+        min_length=8,
+        validators=[MinLengthValidator(8)],
+    )
+    token = serializers.CharField(write_only=True)
+
+
+class ExpiredTokenSerializer(serializers.Serializer):
+    """Serializer for handling expired tokens."""
+
+    token = serializers.CharField(required=True)

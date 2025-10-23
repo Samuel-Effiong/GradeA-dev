@@ -14,7 +14,7 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotAcceptable, NotFound
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.status import (
     HTTP_200_OK,
@@ -160,7 +160,7 @@ STUDENT_RESPONSE_EXAMPLE = {
 class StudentSubmissionViewSet(viewsets.ModelViewSet):
     queryset = StudentSubmission.objects.all()
     serializer_class = StudentSubmissionSerializer
-    permission_classes = (AllowAny,)
+    permission_classes = (IsAuthenticated,)
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 

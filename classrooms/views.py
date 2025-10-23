@@ -1,3 +1,10 @@
+import secrets
+
+from django.conf import settings
+from django.core.mail import send_mail
+from django.db import transaction
+from django.template.loader import render_to_string
+from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
@@ -10,14 +17,24 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Course, Session, StudentCourse  # , Classroom, ClassroomSettings
+from users.models import CustomUser, UserTypes
+
+from .models import (  # , Classroom, ClassroomSettings
+    Course,
+    EnrollmentStatusType,
+    Session,
+    StudentCourse,
+)
 from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
+    AddStudentToCourseSerializer,
     CourseSerializer,
+    ExpiredTokenSerializer,
     SessionSerializer,
     StudentCourseSerializer,
+    StudentRegistrationCompletionSerializer,
 )
 
 
@@ -107,7 +124,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
-    permission_classes = (AllowAny,)
+    permission_classes = (IsAuthenticated,)
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
@@ -124,13 +141,421 @@ class CourseViewSet(viewsets.ModelViewSet):
         "created_at",
     )
 
-    @extend_schema(tags=["02 Course"])
-    @action(
-        detail=False, methods=["post"], url_path="add_student", url_name="add_student"
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_authenticated:
+            return Course.objects.filter(teacher=user)
+        else:
+            return Course.objects.none()
+
+    @extend_schema(
+        tags=["02 Course"],
+        summary="Add student to a particular course",
+        description="Add student to a particular course.",
+        request=AddStudentToCourseSerializer,
     )
-    def add_student(self, request):
+    @action(
+        detail=True, methods=["post"], url_path="add_student", url_name="add_student"
+    )
+    def add_student(self, request, pk=None, *args, **kwargs):
+        serializer = AddStudentToCourseSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        email = serializer.validated_data["email"]
+
         """Onboard students to a section."""
-        return Response({}, status=status.HTTP_200_OK)
+        course = self.get_object()
+
+        try:
+            with transaction.atomic():
+                student = CustomUser.objects.filter(email=email).first()
+
+                if student:
+                    # Existing student flow
+                    if StudentCourse.objects.filter(
+                        student=student, course=course
+                    ).exists():
+                        return Response(
+                            {"detail": "Student is already enrolled in this course."},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+
+                    StudentCourse.objects.create(
+                        student=student,
+                        course=course,
+                        enrollment_status=EnrollmentStatusType.ENROLLED,
+                    )
+
+                    # Notify student about enrollment
+                    context = {
+                        "course": course,
+                        "teacher": course.teacher,
+                        "student": student,
+                        "login_url": f"https://{settings.FRONTEND_DOMAIN}",
+                    }
+
+                    html_content = render_to_string(
+                        "email/existing_student_course_enrollment.html", context=context
+                    )
+
+                    send_mail(
+                        subject=f"New Course Enrollment: {course.name}",
+                        message="",
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[student.email],
+                        html_message=html_content,
+                        fail_silently=False,
+                    )
+                else:
+                    # New student flow
+                    activation_token = secrets.token_urlsafe(16)
+
+                    # Create inactive user account
+                    student = CustomUser.objects.create(
+                        email=email,
+                        user_type=UserTypes.STUDENT,
+                        is_active=False,
+                        activation_token=activation_token,
+                        activation_expires=timezone.now() + timezone.timedelta(days=7),
+                    )
+
+                    # Create pending enrollment
+                    StudentCourse.objects.create(
+                        student=student,
+                        course=course,
+                        enrollment_status=EnrollmentStatusType.ENROLLED,
+                        is_active=False,  # Inactive until registration is complete
+                    )
+
+                    # Generate registration link
+                    frontend_domain = settings.FRONTEND_DOMAIN
+                    registration_link = (
+                        f"https://{frontend_domain}/register/student/{activation_token}"
+                    )
+
+                    context = {
+                        "course": course,
+                        "teacher": course.teacher,
+                        "registration_link": registration_link,
+                    }
+
+                    html_content = render_to_string(
+                        "email/student_course_registration.html", context=context
+                    )
+
+                    send_mail(
+                        subject="Complete Your Registration for the Course",
+                        message="",
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[student.email],
+                        html_message=html_content,
+                        fail_silently=False,
+                    )
+
+                return Response(
+                    {
+                        "detail": "Student added to course successfully.",
+                        "is_new_student": student.is_active is False,
+                    },
+                    status=status.HTTP_200_OK,
+                )
+        except Exception as e:
+            return Response(
+                {"detail": f"Failed to process student: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @extend_schema(
+        tags=["02 Course"],
+        summary="Remove student from course",
+        description="Remove a student from a course.",
+        parameters=[
+            OpenApiParameter(
+                name="student_id",
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.PATH,
+                description="UUID of the student to be removed from the course",
+                required=True,
+            ),
+        ],
+        request=None,
+        responses={
+            200: OpenApiResponse(
+                description="Student removed from course successfully"
+            ),
+            400: OpenApiResponse(
+                description="Invalid student ID or student not enrolled in course"
+            ),
+            404: OpenApiResponse(description="Student not found"),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    )
+    @action(
+        detail=True,
+        methods=["POST"],
+        url_path=r"remove-student/(?P<student_id>[-\w]+)",
+        url_name="remove-student",
+    )
+    def remove_student(self, request, pk=None, student_id=None, *args, **kwargs):
+        """Remove a student from a course"""
+        try:
+            with transaction.atomic():
+                course = self.get_object()
+
+                if request.user != course.teacher:
+                    return Response(
+                        {
+                            "detail": "You do not have permission to remove students from this course. "
+                            "Only course teacher can"
+                        },
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+
+                # Find the enrollment
+                enrollment = StudentCourse.objects.filter(
+                    course=course, student_id=student_id, is_active=True
+                ).first()
+
+                if not enrollment:
+                    return Response(
+                        {"detail": "Student is not enrolled in this course."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                # Deactivate enrollment instead
+                enrollment.is_active = False
+                enrollment.enrollment_status = EnrollmentStatusType.WITHDRAWN
+                enrollment.save()
+
+                # Send notification to student
+                student = enrollment.student
+                context = {
+                    "course": course,
+                    "teacher": course.teacher,
+                    "student": student,
+                }
+
+                html_content = render_to_string(
+                    "email/student_course_removal.html", context=context
+                )
+
+                send_mail(
+                    subject=f"Removed from Course: {course.name}",
+                    message="",
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[student.email],
+                    html_message=html_content,
+                    fail_silently=False,
+                )
+
+                return Response(
+                    {"detail": "Student removed from course successfully."},
+                    status=status.HTTP_200_OK,
+                )
+        except Exception as e:
+            return Response(
+                {"detail": f"Failed to remove student: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @extend_schema(
+        tags=["02 Course"],
+        summary="Complete student registration",
+        description="Complete the registration process for a student using activation token",
+        request=StudentRegistrationCompletionSerializer,
+        responses={
+            200: OpenApiResponse(
+                description="Student registration completed successfully"
+            ),
+            400: OpenApiResponse(description="Invalid or expired token"),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["POST"],
+        permission_classes=[AllowAny],
+        url_path=r"register/student",
+        url_name="complete-student-registration",
+    )
+    def complete_student_registration(self, request, *args, **kwargs):
+        """Handle student registration completion after clicking email link."""
+
+        try:
+
+            with transaction.atomic():
+                # Validate and update user data
+                serializer = StudentRegistrationCompletionSerializer(data=request.data)
+
+                if not serializer.is_valid():
+                    return Response(
+                        serializer.errors, status=status.HTTP_400_BAD_REQUEST
+                    )
+
+                token = serializer.validated_data["token"]
+
+                # Find user by activation token
+                user = CustomUser.objects.filter(
+                    activation_token=token, is_active=False
+                ).first()
+
+                if not user:
+                    return Response(
+                        {"detail": "Invalid or expired activation token."},
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
+
+                if user.activation_expires < timezone.now():
+                    # if True:  # Simulate expired token for testing
+                    # Generate renewal URL
+                    renewal_url = request.build_absolute_uri(
+                        "/course/student/renew-student-token/"
+                    )
+
+                    return Response(
+                        {
+                            "detail": "Activation token has expired",
+                            "renewal_url": renewal_url,
+                            "expired_token": token,
+                            "message": "Please request a new activation link",
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                user.first_name = serializer.validated_data["first_name"]
+                user.last_name = serializer.validated_data["last_name"]
+                user.set_password(serializer.validated_data["password"])
+                user.is_active = True
+                user.activation_token = None
+                user.activation_expires = None
+                user.email_verified_at = timezone.now()
+                user.save()
+
+                # Activate all pending enrollments
+                StudentCourse.objects.filter(student=user, is_active=False).update(
+                    is_active=True, enrollment_status=EnrollmentStatusType.ENROLLED
+                )
+
+                return Response(
+                    {"detail": "Student registration completed successfully."},
+                    status=status.HTTP_200_OK,
+                )
+        except Exception as e:
+            return Response(
+                {"detail": f"Internal Server Error: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @extend_schema(
+        tags=["02 Course"],
+        summary="Renew expired activation token for student",
+        description="Renew the activation token for a student whose token has expired",
+        request=ExpiredTokenSerializer,
+        responses={
+            200: OpenApiResponse(description="Activation token renewed successfully"),
+            400: OpenApiResponse(description="Invalid or expired token"),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["POST"],
+        permission_classes=[AllowAny],
+        url_path=r"renew-student-token",
+        url_name="renew-activation-token",
+    )
+    def handle_expired_token(self, request, token=None, *args, **kwargs):
+        """Handle expired activation token scenario."""
+
+        serializer = ExpiredTokenSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            # Find user by expired token
+            user = CustomUser.objects.filter(
+                activation_token=serializer.validated_data["token"],
+                is_active=False,
+            ).first()
+
+            if not user:
+                return Response(
+                    {"detail": "Invalid token or user not found."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            enrollment = StudentCourse.objects.filter(
+                student=user, is_active=False
+            ).first()
+
+            if not enrollment:
+                return Response(
+                    {"detail": "No pending enrollment found for this user."},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            new_token = user.renew_activation_token()
+
+            # Generate new registration link
+            registration_link = (
+                f"https://{settings.FRONTEND_DOMAIN}/register/student/{new_token}"
+            )
+            expiry_date = timezone.now() + timezone.timedelta(days=7)
+
+            student_context = {
+                "course": enrollment.course,
+                "teacher": enrollment.course.teacher,
+                "registration_link": registration_link,
+            }
+
+            student_html = render_to_string(
+                "email/student_token_renewal.html", context=student_context
+            )
+
+            # Notify student
+            send_mail(
+                subject="Course Registration Link Renewed",
+                message="",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                html_message=student_html,
+                fail_silently=False,
+            )
+
+            teacher_context = {
+                "teacher": enrollment.course.teacher,
+                "student_email": user.email,
+                "course": enrollment.course,
+                "expiry_date": expiry_date,
+            }
+
+            teacher_html = render_to_string(
+                "email/teacher_token_renewal_notification.html", context=teacher_context
+            )
+
+            # Notify teacher
+            send_mail(
+                subject=f"Registration Link Renewed - {user.email}",
+                message="",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[enrollment.course.teacher.email],
+                html_message=teacher_html,
+                fail_silently=False,
+            )
+
+            return Response(
+                {
+                    "detail": "A new activation link has been sent to the student's email. Expires in 7 days"
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except Exception as e:
+            return Response(
+                {"detail": f"Failed to renew token: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 @extend_schema_view(
@@ -217,9 +642,8 @@ class SessionViewSet(viewsets.ModelViewSet):
     Academic terms represent a period of time such as a semester, year, or quarter.
     """
 
-    queryset = Session.objects.all()
     serializer_class = SessionSerializer
-    permission_classes = (AllowAny,)
+    permission_classes = (IsAuthenticated,)
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
@@ -235,6 +659,14 @@ class SessionViewSet(viewsets.ModelViewSet):
         "name",
         "created_at",
     )
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_authenticated:
+            return Session.objects.filter(teacher=user)
+        else:
+            return Session.objects.none()
 
     @extend_schema(
         tags=["01 Session"],
@@ -331,7 +763,7 @@ class SessionViewSet(viewsets.ModelViewSet):
         description="Retrieve detailed information about a specific student Course by its ID.",
         responses={
             200: StudentCourseSerializer,
-            404: OpenApiResponse(description="Student Course not found"),
+            404: OpenApiResponse(description="Student Course not found "),
             500: OpenApiResponse(description="Internal Server Error"),
         },
     ),
@@ -372,6 +804,6 @@ class StudentCourseViewSet(viewsets.ModelViewSet):
 
     queryset = StudentCourse.objects.all()
     serializer_class = StudentCourseSerializer
-    permission_classes = (AllowAny,)
+    permission_classes = (IsAuthenticated,)
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]

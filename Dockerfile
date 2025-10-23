@@ -31,6 +31,9 @@ RUN apt-get update --yes --quiet && \
         libgl1 \
         libglib2.0-0 \
         poppler-utils \
+        tesseract-ocr \
+        libtesseract-dev \
+        libleptonica-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install the application server.
@@ -55,10 +58,11 @@ COPY --chown=wagtail:wagtail . .
 RUN mkdir -p /tmp/.paddle /tmp/.cache && \
     chown -R wagtail:wagtail /tmp/.paddle /tmp/.cache
 
-RUN python -c "from paddleocr import PaddleOCR; ocr = PaddleOCR(use_angle_cls=True); print('PaddleOCR successfully')"
-
 # Use user "wagtail" to run the build commands below and the server itself.
 USER wagtail
+
+# Run the PaddleOCR initialization and model download as the wagtail user
+RUN python -c "from paddleocr import PaddleOCR; ocr = PaddleOCR(use_angle_cls=True); print('PaddleOCR successfully')"
 
 # Collect static files.
 

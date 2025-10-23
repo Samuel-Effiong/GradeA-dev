@@ -6,6 +6,10 @@ from django.db.models import UniqueConstraint
 from django.utils.translation import gettext_lazy as _
 
 # Create your models here.
+# class School(models.Model):
+#     id = UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+#     email = models.EmailField(unique=True, verbose_name=_("Email address"))
+#     name = models.CharField(max_length=255, unique=True)
 
 
 class Session(models.Model):
@@ -64,9 +68,9 @@ class Course(models.Model):
         ordering = ["name"]
         constraints = [
             UniqueConstraint(
-                fields=["name", "session"],
+                fields=["name", "teacher", "session"],
                 name="unique_section_name_per_session",
-            )
+            ),
         ]
 
     def __str__(self):
