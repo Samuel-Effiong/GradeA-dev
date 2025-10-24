@@ -1,4 +1,6 @@
 from django.core.files.uploadedfile import UploadedFile
+from django_filters import OrderingFilter
+from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -11,6 +13,7 @@ from PIL import Image
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotAcceptable, NotFound
+from rest_framework.filters import SearchFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -20,6 +23,7 @@ from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor, ocr_service, pdf_service
 from classrooms.models import Course
 from students.serializers import StudentSubmissionSerializer
+from users.models import UserTypes
 
 from .models import Assignment, Rubric
 from .serializers import AssignmentSerializer, RubricSerializer
@@ -224,16 +228,23 @@ class AssignmentViewSet(viewsets.ModelViewSet):
     serializer_class = AssignmentSerializer
     permission_classes = (IsAuthenticated,)
     pagination_class = PageNumberPagination
-
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
+
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+
+    filterset_fields = ["course", "assignment_type"]
+    search_fields = ["title", "instructions"]
+    ordering_fields = ["title", "created_at", "due_date"]
 
     def get_queryset(self):
         user = self.request.user
 
-        if user.is_authenticated:
-            return Assignment.objects.filter(course__teacher=user)
+        if user.user_type == UserTypes.TEACHER:
+            return Assignment.objects.filter(teacher=user)
+        elif user.user_type == UserTypes.STUDENT:
+            return Assignment.objects.filter(course__enrollments__student=user)
         else:
-            return Assignment.objects.none
+            return Assignment.objects.none()
 
     @extend_schema(
         tags=["04 Assignments"],
@@ -304,8 +315,8 @@ class AssignmentViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=["POST"],
-        url_path="upload_assignment",
-        url_name="upload_assignment",
+        url_path="upload",
+        url_name="upload",
     )
     def upload_assignment(self, request):
         # Access files using request.FILES
@@ -621,8 +632,8 @@ class AssignmentViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=["POST"],
-        url_path=r"(?P<assignment_id>[-\w]+)/submit_assignment",
-        url_name="submit_assignment",
+        url_path=r"(?P<assignment_id>[-\w]+)/submit",
+        url_name="submit",
     )
     def submit_assignment(self, request, assignment_id=None):
         if not Assignment.objects.filter(pk=assignment_id).exists():
@@ -641,7 +652,12 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             403: OpenApiResponse(
                 description="Not authorized",
                 examples=[
-                    {"error": "You do not have permission to submit to this assignment"}
+                    OpenApiExample(
+                        name="Not authorized",
+                        value={
+                            "detail": "You do not have permission to submit to this assignment"
+                        },
+                    )
                 ],
             ),
         },
@@ -649,8 +665,8 @@ class AssignmentViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=["POST"],
-        url_path=r"generate_assignment/(?P<course_id>[-\w]+)",
-        url_name="generate_assignment",
+        url_path=r"generate/(?P<course_id>[-\w]+)",
+        url_name="generate",
     )
     def generate_assignment_from_prompt(self, request, course_id, *args, **kwargs):
         """

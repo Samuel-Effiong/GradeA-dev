@@ -34,7 +34,6 @@ from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
     ExpiredTokenSerializer,
     SessionSerializer,
     StudentCourseSerializer,
-    StudentRegistrationCompletionSerializer,
 )
 
 
@@ -130,8 +129,8 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
-    filterset_fields = ["session", "is_active"]
-    ordering_fields = ["name", "start_date"]
+    filterset_fields = ["session", "is_active", "categories"]
+    ordering_fields = ["name", "created_at"]
     search_fields = [
         "name",
         "description",
@@ -144,8 +143,10 @@ class CourseViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        if user.is_authenticated:
+        if user.user_type == UserTypes.TEACHER:
             return Course.objects.filter(teacher=user)
+        elif user.user_type == UserTypes.STUDENT:
+            return Course.objects.filter(enrollments__student=user)
         else:
             return Course.objects.none()
 
@@ -155,10 +156,8 @@ class CourseViewSet(viewsets.ModelViewSet):
         description="Add student to a particular course.",
         request=AddStudentToCourseSerializer,
     )
-    @action(
-        detail=True, methods=["post"], url_path="add_student", url_name="add_student"
-    )
-    def add_student(self, request, pk=None, *args, **kwargs):
+    @action(detail=True, methods=["post"], url_path="students", url_name="students")
+    def students(self, request, pk=None, *args, **kwargs):
         serializer = AddStudentToCourseSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -294,8 +293,8 @@ class CourseViewSet(viewsets.ModelViewSet):
     )
     @action(
         detail=True,
-        methods=["POST"],
-        url_path=r"remove-student/(?P<student_id>[-\w]+)",
+        methods=["delete"],
+        url_path=r"student/(?P<student_id>[-\w]+)",
         url_name="remove-student",
     )
     def remove_student(self, request, pk=None, student_id=None, *args, **kwargs):
@@ -357,94 +356,6 @@ class CourseViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response(
                 {"detail": f"Failed to remove student: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-    @extend_schema(
-        tags=["02 Course"],
-        summary="Complete student registration",
-        description="Complete the registration process for a student using activation token",
-        request=StudentRegistrationCompletionSerializer,
-        responses={
-            200: OpenApiResponse(
-                description="Student registration completed successfully"
-            ),
-            400: OpenApiResponse(description="Invalid or expired token"),
-            500: OpenApiResponse(description="Internal Server Error"),
-        },
-    )
-    @action(
-        detail=False,
-        methods=["POST"],
-        permission_classes=[AllowAny],
-        url_path=r"register/student",
-        url_name="complete-student-registration",
-    )
-    def complete_student_registration(self, request, *args, **kwargs):
-        """Handle student registration completion after clicking email link."""
-
-        try:
-
-            with transaction.atomic():
-                # Validate and update user data
-                serializer = StudentRegistrationCompletionSerializer(data=request.data)
-
-                if not serializer.is_valid():
-                    return Response(
-                        serializer.errors, status=status.HTTP_400_BAD_REQUEST
-                    )
-
-                token = serializer.validated_data["token"]
-
-                # Find user by activation token
-                user = CustomUser.objects.filter(
-                    activation_token=token, is_active=False
-                ).first()
-
-                if not user:
-                    return Response(
-                        {"detail": "Invalid or expired activation token."},
-                        status=status.HTTP_404_NOT_FOUND,
-                    )
-
-                if user.activation_expires < timezone.now():
-                    # if True:  # Simulate expired token for testing
-                    # Generate renewal URL
-                    renewal_url = request.build_absolute_uri(
-                        "/course/student/renew-student-token/"
-                    )
-
-                    return Response(
-                        {
-                            "detail": "Activation token has expired",
-                            "renewal_url": renewal_url,
-                            "expired_token": token,
-                            "message": "Please request a new activation link",
-                        },
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-
-                user.first_name = serializer.validated_data["first_name"]
-                user.last_name = serializer.validated_data["last_name"]
-                user.set_password(serializer.validated_data["password"])
-                user.is_active = True
-                user.activation_token = None
-                user.activation_expires = None
-                user.email_verified_at = timezone.now()
-                user.save()
-
-                # Activate all pending enrollments
-                StudentCourse.objects.filter(student=user, is_active=False).update(
-                    is_active=True, enrollment_status=EnrollmentStatusType.ENROLLED
-                )
-
-                return Response(
-                    {"detail": "Student registration completed successfully."},
-                    status=status.HTTP_200_OK,
-                )
-        except Exception as e:
-            return Response(
-                {"detail": f"Internal Server Error: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -663,59 +574,62 @@ class SessionViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        if user.is_authenticated:
+        if user.user_type == UserTypes.TEACHER:
             return Session.objects.filter(teacher=user)
+        elif user.user_type == UserTypes.STUDENT:
+            return Session.objects.filter(courses__enrollment__student=user)
         else:
             return Session.objects.none()
 
-    @extend_schema(
-        tags=["01 Session"],
-        summary="Get courses for a session",
-        description="Retrieve a list of courses associated with a specific session.",
-        parameters=[
-            OpenApiParameter(
-                name="session_id",
-                type=OpenApiTypes.UUID,
-                location=OpenApiParameter.PATH,
-                description="The ID of the session to retrieve courses for",
-                required=True,
-            ),
-        ],
-        responses={
-            200: CourseSerializer(many=True),
-            400: OpenApiResponse(description="Invalid session ID"),
-            404: OpenApiResponse(description="Session not found"),
-            500: OpenApiResponse(description="Internal Server Error"),
-        },
-    )
-    @action(
-        detail=False,
-        methods=["get"],
-        url_path=r"(?P<session_id>[-\w]+)/courses",
-        url_name="session-courses",
-    )
-    def get_courses(self, request, session_id=None, **kwargs):
-        """
-        Retrieve a list of courses associated with a specific session.
-        """
-
-        try:
-            session = self.queryset.filter(id=session_id).first()
-            if not session:
-                return Response(
-                    {"detail": "Session not found."}, status=status.HTTP_404_NOT_FOUND
-                )
-
-            courses = session.courses.all()
-
-            serializer = CourseSerializer(courses, many=True)
-            return Response(serializer.data)
-
-        except Exception as e:
-            return Response(
-                {"detail": "Internal Server Error", "traceback": f"{e}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+    # @extend_schema(
+    #     tags=["01 Session"],
+    #     summary="Get courses for a session",
+    #     description="Retrieve a list of courses associated with a specific session.",
+    #     parameters=[
+    #         OpenApiParameter(
+    #             name="session_id",
+    #             type=OpenApiTypes.UUID,
+    #             location=OpenApiParameter.PATH,
+    #             description="The ID of the session to retrieve courses for",
+    #             required=True,
+    #         ),
+    #     ],
+    #     responses={
+    #         200: CourseSerializer(many=True),
+    #         400: OpenApiResponse(description="Invalid session ID"),
+    #         404: OpenApiResponse(description="Session not found"),
+    #         500: OpenApiResponse(description="Internal Server Error"),
+    #     },
+    # )
+    # @action(
+    #     detail=False,
+    #     methods=["get"],
+    #     url_path=r"(?P<session_id>[-\w]+)/courses",
+    #     url_name="session-courses",
+    # )
+    # def get_courses(self, request, session_id=None, **kwargs):
+    #     """
+    #     Retrieve a list of courses associated with a specific session.
+    #     """
+    #
+    #     try:
+    #         session = self.queryset.filter(id=session_id).first()
+    #         if not session:
+    #             return Response(
+    #                 {"detail": "Session not found."}, status=status.HTTP_404_NOT_FOUND
+    #             )
+    #
+    #         courses = session.courses.all()
+    #
+    #         serializer = CourseSerializer(courses, many=True)
+    #         return Response(serializer.data)
+    #
+    #     except Exception as e:
+    #         return Response(
+    #             {"detail": "Internal Server Error", "traceback": f"{e}"},
+    #             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    #         )
+    #
 
 
 @extend_schema_view(
@@ -807,3 +721,13 @@ class StudentCourseViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated,)
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.user_type == UserTypes.TEACHER:
+            return StudentCourse.objects.filter(course__teacher=user)
+        elif user.user_type == UserTypes.STUDENT:
+            return StudentCourse.objects.filter(student=user)
+        else:
+            return StudentCourse.objects.none()

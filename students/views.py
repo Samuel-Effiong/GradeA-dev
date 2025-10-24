@@ -1,6 +1,7 @@
 # from django.shortcuts import render
 from django.core.exceptions import BadRequest
 from django.core.files.uploadedfile import UploadedFile
+from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -13,6 +14,7 @@ from PIL.Image import Image
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotAcceptable, NotFound
+from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -25,6 +27,7 @@ from rest_framework.status import (
 
 from ai_processor.services import ai_processor, ocr_service, pdf_service
 from assignments.models import Assignment
+from classrooms.permissions import IsTeacher
 from students.models import StudentSubmission
 from students.serializers import StudentSubmissionSerializer
 
@@ -164,6 +167,15 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+
+    filterset_fields = [
+        "assignment",
+    ]
+    search_fields = ["student__first_name", "student__last_name"]
+    ordering_fields = ["student__first_name", "student__last_name"]
+    ordering = ["student__first_name"]
+
     @extend_schema(
         tags=["07 Student Submissions"],
         summary="Upload answers for a student submission",
@@ -248,7 +260,7 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=["POST"],
-        url_path=r"(?P<assignment_id>[-\w]+)/upload-answers",
+        url_path=r"(?P<assignment_id>[-\w]+)/upload",
         url_name="upload-answers",
     )
     def upload_answers(self, request, assignment_id=None, *args, **kwargs):
@@ -321,8 +333,7 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
 
     @extend_schema(tags=["07 Student Submissions"])
     @action(
-        detail=True,
-        methods=["GET"],
+        detail=True, methods=["GET"], permission_classes=[IsAuthenticated, IsTeacher]
     )
     def grade(self, request, pk=None):
         # Validate submission id

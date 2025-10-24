@@ -9,7 +9,11 @@ and a convenience `me` action to fetch the currently authenticated user's
 profile.
 """
 
+from django.core.mail import send_mail
+from django.db import transaction
+from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
+from djoser.conf import settings
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -32,6 +36,8 @@ from rest_framework_simplejwt.views import (
 )
 from rest_framework_simplejwt.views import TokenRefreshView as BaseTokenRefreshView
 
+from classrooms.models import EnrollmentStatusType, StudentCourse
+from classrooms.serializers import StudentRegistrationCompletionSerializer
 from users.models import CustomUser, PasswordChangeOTP, PasswordResetOTP
 from users.serializers import (
     ChangePasswordSerializer,
@@ -689,6 +695,14 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         - password: User's password
         - first_name: User's first name
         """,
+        request=StudentRegistrationCompletionSerializer,
+        responses={
+            200: OpenApiResponse(
+                description="Student registration completed successfully",
+            ),
+            400: OpenApiResponse(description="Invalid or expired token"),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
     )
     @action(
         detail=False,
@@ -697,7 +711,64 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         url_path="auth/register/student",
     )
     def register_student(self, request, *args, **kwargs):
-        pass
+        try:
+            with transaction.atomic():
+                serializer = StudentRegistrationCompletionSerializer(data=request.data)
+
+                if not serializer.is_valid():
+                    return Response(
+                        serializer.errors, status=status.HTTP_400_BAD_REQUEST
+                    )
+
+                token = serializer.validated_data["token"]
+
+                # Find user by activation token
+                user = CustomUser.objects.filter(
+                    activation_token=token, is_active=False
+                ).first()
+
+                if not user:
+                    return Response(
+                        {"detail": "Invalid or expired activation token."},
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
+
+                if user.activation_expires < timezone.now():
+                    renewal_url = request.build_absolute_uri(
+                        "/course/student/renew-student-token/"
+                    )
+
+                    return Response(
+                        {
+                            "detail": "Activation token has expired.",
+                            "renewal_url": renewal_url,
+                            "expired_token": token,
+                            "message": "Please request a new activation link",
+                        }
+                    )
+
+                user.first_name = serializer.validated_data["first_name"]
+                user.last_name = serializer.validated_data["last_name"]
+                user.set_password(serializer.validated_data["password"])
+                user.is_active = True
+                user.activation_token = None
+                user.activation_expire = None
+                user.email_verified_at = timezone.now()
+                user.save()
+
+                StudentCourse.objects.filter(student=user, is_active=False).update(
+                    is_active=True, enrolled_at=EnrollmentStatusType.ENROLLED
+                )
+
+                return Response(
+                    {"detail": "Student registration completed successfully"},
+                    status=status.HTTP_200_OK,
+                )
+        except Exception as e:
+            return Response(
+                {"detail": f"Internal Server Error: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 @extend_schema(

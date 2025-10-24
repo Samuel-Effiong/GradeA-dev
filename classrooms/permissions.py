@@ -8,9 +8,7 @@ class IsTeacher(permissions.BasePermission):
 
     def has_permission(self, request, view):
         user = request.user
-        if user.user_type == UserTypes.TEACHER:
-            return True
-        return False
+        return user.user_type == UserTypes.TEACHER
 
     def has_object_permission(self, request, view, obj):
         return self.has_permission(request, view)
@@ -21,9 +19,7 @@ class IsStudent(permissions.BasePermission):
 
     def has_permission(self, request, view):
         user = request.user
-        if user.user_type == UserTypes.STUDENT:
-            return True
-        return False
+        return user.user_type == UserTypes.STUDENT
 
     def has_object_permission(self, request, view, obj):
         return self.has_permission(request, view)
