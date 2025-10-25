@@ -27,9 +27,10 @@ from rest_framework.status import (
 
 from ai_processor.services import ai_processor, ocr_service, pdf_service
 from assignments.models import Assignment
-from classrooms.permissions import IsTeacher
+from classrooms.permissions import IsStudent, IsTeacher
 from students.models import StudentSubmission
 from students.serializers import StudentSubmissionSerializer
+from users.models import UserTypes
 
 # Create your views here.
 
@@ -175,6 +176,24 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
     search_fields = ["student__first_name", "student__last_name"]
     ordering_fields = ["student__first_name", "student__last_name"]
     ordering = ["student__first_name"]
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.user_type == UserTypes.STUDENT:
+            return StudentSubmission.objects.filter(student=user)
+        elif user.user_type == UserTypes.TEACHER:
+            return StudentSubmission.objects.filter(assignment__teacher=user)
+        else:
+            return StudentSubmission.objects.none()
+
+    def get_permissions(self):
+        if self.action == "create":
+            permission_classes = [IsAuthenticated, IsStudent]
+        else:
+            permission_classes = [IsAuthenticated]
+
+        return [permission() for permission in permission_classes]
 
     @extend_schema(
         tags=["07 Student Submissions"],
@@ -333,7 +352,10 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
 
     @extend_schema(tags=["07 Student Submissions"])
     @action(
-        detail=True, methods=["GET"], permission_classes=[IsAuthenticated, IsTeacher]
+        detail=True,
+        methods=["GET"],
+        permission_classes=[IsAuthenticated, IsTeacher],
+        url_path="grade",
     )
     def grade(self, request, pk=None):
         # Validate submission id

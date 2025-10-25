@@ -39,6 +39,7 @@ from rest_framework_simplejwt.views import TokenRefreshView as BaseTokenRefreshV
 from classrooms.models import EnrollmentStatusType, StudentCourse
 from classrooms.serializers import StudentRegistrationCompletionSerializer
 from users.models import CustomUser, PasswordChangeOTP, PasswordResetOTP
+from users.permissions import IsSuperUser
 from users.serializers import (
     ChangePasswordSerializer,
     CustomUserSerializer,
@@ -193,10 +194,11 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         Allow unauthenticated access only for POST endpoints (public actions).
         All other requests require authentication.
         """
-        if self.request.method.lower() == "post":
-            permission_classes = [AllowAny]
+        if self.action == "list":
+            permission_classes = [IsAuthenticated, IsSuperUser]
         else:
             permission_classes = [IsAuthenticated]
+
         return [permission() for permission in permission_classes]
 
     @extend_schema(
@@ -320,7 +322,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         )
 
     @extend_schema(
-        tags=["Users"],
+        tags=["Authentication"],
         summary="Send verification email",
         description="""Send a verification email to the specified email address.""",
         request=OTPSerializer,
@@ -340,7 +342,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=["post", "options"],
-        url_path="otp",
+        url_path="auth/otp",
         url_name="otp",
         permission_classes=[AllowAny],
     )
@@ -402,7 +404,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         )
 
     @extend_schema(
-        tags=["Users"],
+        tags=["Authentication"],
         summary="Reset the password using an OTP",
         description="""
         Resets a user's password after a valid OTP has been provided via the `forgot-password` endpoint.
@@ -417,7 +419,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=["post", "options"],
-        url_path="reset-password",
+        url_path="auth/reset-password",
         url_name="reset-password",
         permission_classes=[AllowAny],
     )
@@ -497,7 +499,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         )
 
     @extend_schema(
-        tags=["Users"],
+        tags=["Authentication"],
         summary="Change password using an OTP",
         description="""
         Changes the authenticated user's password after a valid OTP has been provided.
@@ -508,7 +510,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             400: {"description": "Invalid OTP or expired OTP"},
         },
     )
-    @action(detail=False, methods=["post", "options"], url_path="change_password")
+    @action(detail=False, methods=["post", "options"], url_path="auth/change-password")
     def change_password(self, request, **kwargs):
         serializer = ChangePasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

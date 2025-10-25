@@ -22,6 +22,7 @@ from ai_processor.models import ChatMessage, ChatSession, RoleType
 from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor, ocr_service, pdf_service
 from classrooms.models import Course
+from classrooms.permissions import IsTeacher
 from students.serializers import StudentSubmissionSerializer
 from users.models import UserTypes
 
@@ -236,6 +237,18 @@ class AssignmentViewSet(viewsets.ModelViewSet):
     search_fields = ["title", "instructions"]
     ordering_fields = ["title", "created_at", "due_date"]
 
+    def get_permissions(self):
+        if (
+            self.action == "create"
+            or self.action == "destroy"
+            or self.action == "partial_update"
+        ):
+            permission_classes = [IsAuthenticated, IsTeacher]
+        else:
+            permission_classes = [IsAuthenticated]
+
+        return [permission() for permission in permission_classes]
+
     def get_queryset(self):
         user = self.request.user
 
@@ -317,6 +330,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         methods=["POST"],
         url_path="upload",
         url_name="upload",
+        permission_classes=[IsAuthenticated, IsTeacher],
     )
     def upload_assignment(self, request):
         # Access files using request.FILES
@@ -518,6 +532,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         methods=["POST"],
         url_path=r"(?P<assignment_id>[-\w]+)/upload_rubric",
         url_name="upload_rubric",
+        permission_classes=[IsAuthenticated, IsTeacher],
     )
     def upload_rubric(self, request, assignment_id=None):
         if not Assignment.objects.filter(pk=assignment_id).exists():
