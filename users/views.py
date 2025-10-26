@@ -9,11 +9,11 @@ and a convenience `me` action to fetch the currently authenticated user's
 profile.
 """
 
+from django.conf import settings
 from django.core.mail import send_mail
 from django.db import transaction
 from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
-from djoser.conf import settings
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -194,12 +194,30 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         Allow unauthenticated access only for POST endpoints (public actions).
         All other requests require authentication.
         """
-        if self.action == "list":
+        if self.action in [
+            "create",
+            "register",
+            "register_student",
+            "verify",
+            "otp",
+            "reset_password",
+        ]:
+            permission_classes = [AllowAny]
+        elif self.action == "list":
             permission_classes = [IsAuthenticated, IsSuperUser]
         else:
             permission_classes = [IsAuthenticated]
 
         return [permission() for permission in permission_classes]
+
+    @extend_schema(exclude=True)
+    def create(self, request, *args, **kwargs):
+        if not request.user.is_superuser:
+            return Response(
+                {"detail": "You do not have permission to create users."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return super().create(request, *args, **kwargs)
 
     @extend_schema(
         tags=["Users"],
@@ -246,7 +264,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @extend_schema(
-        tags=["Users"],
+        tags=["Authentication"],
         summary="Verify email and activate account",
         description="""Verify the email address of a user.""",
         request=VerifyCustomUserSerializer,
@@ -276,7 +294,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=["post"],
-        url_path="verify",
+        url_path="auth/verify",
         url_name="verify",
         permission_classes=[AllowAny],
     )
@@ -457,7 +475,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         )
 
     @extend_schema(
-        tags=["Users"],
+        tags=["Authentication"],
         summary="Request a password change OTP",
         description="""
             Sends a one-time password (OTP) to the authenticated user's email address.
@@ -470,10 +488,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             403: {"description": "User's email is not verified"},
         },
     )
-    @action(
-        detail=False,
-        methods=["post"],
-    )
+    @action(detail=False, methods=["post"], url_path="auth/request-change-password")
     def request_change_password(self, request, *args, **kwargs):
         user = request.user
 
@@ -759,7 +774,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
                 user.save()
 
                 StudentCourse.objects.filter(student=user, is_active=False).update(
-                    is_active=True, enrolled_at=EnrollmentStatusType.ENROLLED
+                    is_active=True, enrollment_status=EnrollmentStatusType.ENROLLED
                 )
 
                 return Response(

@@ -14,11 +14,12 @@ class CustomUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
         fields = ["id", "email", "first_name", "last_name", "user_type", "password"]
+        # read_only_fields = ['id', 'user_type']
         extra_kwargs = {
             "email": {"required": True},
             "password": {"write_only": True},
             "is_active": {"read_only": True},
-            "user_type": {"read_only": False},
+            "user_type": {"read_only": True},
         }
 
     def create(self, validated_data):

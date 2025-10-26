@@ -21,8 +21,9 @@ from ai_processor.models import ChatMessage, ChatSession, RoleType
 from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor, ocr_service, pdf_service
 from classrooms.models import Course
-from classrooms.permissions import IsTeacher
-from students.serializers import StudentSubmissionSerializer
+from classrooms.permissions import IsTeacher, IsTeacherOrReadOnly
+
+# from students.serializers import StudentSubmissionSerializer
 from users.models import UserTypes
 
 from .models import Assignment, Rubric
@@ -226,7 +227,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
     queryset = Assignment.objects.all()
     serializer_class = AssignmentSerializer
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
@@ -236,17 +237,17 @@ class AssignmentViewSet(viewsets.ModelViewSet):
     search_fields = ["title", "instructions"]
     ordering_fields = ["title", "created_at", "due_date"]
 
-    def get_permissions(self):
-        if (
-            self.action == "create"
-            or self.action == "destroy"
-            or self.action == "partial_update"
-        ):
-            permission_classes = [IsAuthenticated, IsTeacher]
-        else:
-            permission_classes = [IsAuthenticated]
-
-        return [permission() for permission in permission_classes]
+    # def get_permissions(self):
+    #     if (
+    #         self.action == "create"
+    #         or self.action == "destroy"
+    #         or self.action == "partial_update"
+    #     ):
+    #         permission_classes = [IsAuthenticated, IsTeacher]
+    #     else:
+    #         permission_classes = [IsAuthenticated]
+    #
+    #     return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         user = self.request.user
@@ -605,56 +606,6 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
     @extend_schema(
         tags=["04 Assignments"],
-        summary="Submit an assignment",
-        description="Students use this endpoint to submit their answers to an assignment. "
-        "The submission can be saved as a draft or finalized.",
-        request={
-            "multipart/form-data": {
-                "type": "object",
-                "properties": {
-                    "answers": {
-                        "type": "string",
-                        "format": "binary",
-                        "description": "Assignment to be submitted",
-                    },
-                },
-                "required": ["answers"],
-            }
-        },
-        responses={
-            201: StudentSubmissionSerializer,
-            400: OpenApiResponse(
-                description="Bad request - invalid data",
-                examples=[{"error": "Invalid submission data"}],
-            ),
-            403: OpenApiResponse(
-                description="Not authorized",
-                examples=[
-                    {"error": "You do not have permission to submit to this assignment"}
-                ],
-            ),
-            404: OpenApiResponse(
-                description="Assignment not found",
-                examples=[{"error": "Assignment not found"}],
-            ),
-            409: OpenApiResponse(
-                description="Conflict - already submitted",
-                examples=[{"error": "You have already submitted this assignment"}],
-            ),
-        },
-    )
-    @action(
-        detail=False,
-        methods=["POST"],
-        url_path=r"(?P<assignment_id>[-\w]+)/submit",
-        url_name="submit",
-    )
-    def submit_assignment(self, request, assignment_id=None):
-        if not Assignment.objects.filter(pk=assignment_id).exists():
-            raise NotFound("No Assignment found with this ID.")
-
-    @extend_schema(
-        tags=["04 Assignments"],
         summary="Generate an assignment based on user prompts",
         description="""Create a new assignment based on user prompts.""",
         request=AssignmentGeneratorSerializer,
@@ -905,7 +856,7 @@ class RubricViewSet(viewsets.ModelViewSet):
 
     queryset = Rubric.objects.all()
     serializer_class = RubricSerializer
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 

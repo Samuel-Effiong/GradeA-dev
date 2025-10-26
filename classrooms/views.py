@@ -1,6 +1,7 @@
 import secrets
 
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from django.core.mail import send_mail
 from django.db import transaction
 from django.template.loader import render_to_string
@@ -28,6 +29,7 @@ from .models import (  # , Classroom, ClassroomSettings
     Session,
     StudentCourse,
 )
+from .permissions import IsTeacherOrReadOnly
 from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
     AddStudentToCourseSerializer,
     CourseSerializer,
@@ -123,7 +125,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
@@ -553,8 +555,9 @@ class SessionViewSet(viewsets.ModelViewSet):
     Academic terms represent a period of time such as a semester, year, or quarter.
     """
 
+    queryset = Session.objects.all()
     serializer_class = SessionSerializer
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
@@ -574,10 +577,16 @@ class SessionViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
+        if isinstance(user, AnonymousUser):
+            return Session.objects.none()
+
         if user.user_type == UserTypes.TEACHER:
             return Session.objects.filter(teacher=user)
         elif user.user_type == UserTypes.STUDENT:
-            return Session.objects.filter(courses__enrollment__student=user)
+            return Session.objects.filter(
+                courses__enrollments__student=user,
+                courses__enrollments__enrollment_status=EnrollmentStatusType.ENROLLED,
+            )
         else:
             return Session.objects.none()
 
@@ -718,7 +727,7 @@ class StudentCourseViewSet(viewsets.ModelViewSet):
 
     queryset = StudentCourse.objects.all()
     serializer_class = StudentCourseSerializer
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
