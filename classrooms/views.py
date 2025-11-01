@@ -1,5 +1,3 @@
-import secrets
-
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.mail import send_mail
@@ -22,6 +20,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from users.models import CustomUser, UserTypes
+from users.services import otp_manager
 
 from .models import (  # , Classroom, ClassroomSettings
     Course,
@@ -211,7 +210,7 @@ class CourseViewSet(viewsets.ModelViewSet):
                     )
                 else:
                     # New student flow
-                    activation_token = secrets.token_urlsafe(16)
+                    activation_token = otp_manager.generate_otp()
 
                     # Create inactive user account
                     student = CustomUser.objects.create(

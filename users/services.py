@@ -1,5 +1,4 @@
 import hashlib
-import secrets
 import string
 from datetime import timedelta
 
@@ -11,7 +10,7 @@ from django.utils.crypto import get_random_string
 
 
 def send_user_activation_email(user):
-    token = secrets.token_urlsafe(16)
+    token = otp_manager.generate_otp()
     user.activation_token = token
     user.activation_expires = timezone.now() + timedelta(minutes=15)
     user.save()
@@ -19,7 +18,9 @@ def send_user_activation_email(user):
     protocol = "https://"
     frontend_domain = settings.FRONTEND_DOMAIN
 
-    activation_url = f"{protocol}{frontend_domain}/verify/{token}"
+    activation_url = (
+        f"{protocol}{frontend_domain}/verify-email?email={user.email}&token={token}"
+    )
 
     context = {
         "first_name": user.first_name,
@@ -57,3 +58,6 @@ class OTPManager:
         md5_hash = hashlib.sha256(identifier.encode("utf-8")).hexdigest()
 
         return md5_hash
+
+
+otp_manager = OTPManager()
