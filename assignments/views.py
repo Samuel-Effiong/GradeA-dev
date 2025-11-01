@@ -1,4 +1,5 @@
 from django.core.files.uploadedfile import UploadedFile
+from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -11,14 +12,19 @@ from PIL import Image
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotAcceptable, NotFound
+from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from ai_processor.models import ChatMessage, ChatSession, RoleType
+from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor, ocr_service, pdf_service
 from classrooms.models import Course
-from students.serializers import StudentSubmissionSerializer
+from classrooms.permissions import IsTeacher, IsTeacherOrReadOnly
+
+# from students.serializers import StudentSubmissionSerializer
+from users.models import UserTypes
 
 from .models import Assignment, Rubric
 from .serializers import AssignmentSerializer, RubricSerializer
@@ -32,7 +38,6 @@ from .serializers import AssignmentSerializer, RubricSerializer
 
 RESPONSE_FORMAT_EXAMPLE = {
     "title": "World History - Industrial Revolution Quiz",
-    "subject_name": "History",
     "instructions": "Answer all questions to the best of your ability. Write your answers in the spaces provided. "
     "For multiple choice questions, select the best answer. Use complete sentences for essay questions.",
     "total_points": 50,
@@ -221,18 +226,37 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
     queryset = Assignment.objects.all()
     serializer_class = AssignmentSerializer
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
     pagination_class = PageNumberPagination
-
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
+
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+
+    filterset_fields = ["course", "assignment_type"]
+    search_fields = ["title", "instructions"]
+    ordering_fields = ["title", "created_at", "due_date"]
+
+    # def get_permissions(self):
+    #     if (
+    #         self.action == "create"
+    #         or self.action == "destroy"
+    #         or self.action == "partial_update"
+    #     ):
+    #         permission_classes = [IsAuthenticated, IsTeacher]
+    #     else:
+    #         permission_classes = [IsAuthenticated]
+    #
+    #     return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         user = self.request.user
 
-        if user.is_authenticated:
+        if user.user_type == UserTypes.TEACHER:
             return Assignment.objects.filter(course__teacher=user)
+        elif user.user_type == UserTypes.STUDENT:
+            return Assignment.objects.filter(course__enrollments__student=user)
         else:
-            return Assignment.objects.none
+            return Assignment.objects.none()
 
     @extend_schema(
         tags=["04 Assignments"],
@@ -303,8 +327,9 @@ class AssignmentViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=["POST"],
-        url_path="upload_assignment",
-        url_name="upload_assignment",
+        url_path="upload",
+        url_name="upload",
+        permission_classes=[IsAuthenticated, IsTeacher],
     )
     def upload_assignment(self, request):
         # Access files using request.FILES
@@ -358,7 +383,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
                 except Exception as e:
                     return Response(
-                        {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
+                        {"error": str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE
                     )
             else:
                 return Response(
@@ -506,6 +531,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         methods=["POST"],
         url_path=r"(?P<assignment_id>[-\w]+)/upload_rubric",
         url_name="upload_rubric",
+        permission_classes=[IsAuthenticated, IsTeacher],
     )
     def upload_rubric(self, request, assignment_id=None):
         if not Assignment.objects.filter(pk=assignment_id).exists():
@@ -579,62 +605,34 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
     @extend_schema(
         tags=["04 Assignments"],
-        summary="Submit an assignment",
-        description="Students use this endpoint to submit their answers to an assignment. "
-        "The submission can be saved as a draft or finalized.",
-        request={
-            "multipart/form-data": {
-                "type": "object",
-                "properties": {
-                    "answers": {
-                        "type": "string",
-                        "format": "binary",
-                        "description": "Assignment to be submitted",
-                    },
-                },
-                "required": ["answers"],
-            }
-        },
+        summary="Generate an assignment based on user prompts",
+        description="""Create a new assignment based on user prompts.""",
+        request=AssignmentGeneratorSerializer,
         responses={
-            201: StudentSubmissionSerializer,
+            201: AssignmentSerializer,
             400: OpenApiResponse(
                 description="Bad request - invalid data",
-                examples=[{"error": "Invalid submission data"}],
             ),
             403: OpenApiResponse(
                 description="Not authorized",
                 examples=[
-                    {"error": "You do not have permission to submit to this assignment"}
+                    OpenApiExample(
+                        name="Not authorized",
+                        value={
+                            "detail": "You do not have permission to submit to this assignment"
+                        },
+                    )
                 ],
-            ),
-            404: OpenApiResponse(
-                description="Assignment not found",
-                examples=[{"error": "Assignment not found"}],
-            ),
-            409: OpenApiResponse(
-                description="Conflict - already submitted",
-                examples=[{"error": "You have already submitted this assignment"}],
             ),
         },
     )
     @action(
         detail=False,
         methods=["POST"],
-        url_path=r"(?P<assignment_id>[-\w]+)/submit_assignment",
-        url_name="submit_assignment",
+        url_path=r"generate/(?P<course_id>[-\w]+)",
+        url_name="generate",
     )
-    def submit_assignment(self, request, assignment_id=None):
-        if not Assignment.objects.filter(pk=assignment_id).exists():
-            raise NotFound("No Assignment found with this ID.")
-
-    @extend_schema(tags=["04 Assignments"])
-    @action(
-        detail=False,
-        methods=["POST"],
-        url_path=r"generate_assignment/(?P<course_id>[-\w]+)",
-        url_name="generate_assignment",
-    )
-    def generate_assignment_from_prompt(self, request, course_id):
+    def generate_assignment_from_prompt(self, request, course_id, *args, **kwargs):
         """
         Generate a new assignment based on text prompts.
 
@@ -645,7 +643,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         course = Course.objects.filter(id=course_id)
 
         if not course.exists():
-            raise NotFound("No Cours found with this ID.")
+            raise NotFound("No Course found with this ID.")
 
         # Get all the past history of the user chats for this particular course
         chat_session, created = ChatSession.objects.get_or_create(course_id=course_id)
@@ -857,7 +855,7 @@ class RubricViewSet(viewsets.ModelViewSet):
 
     queryset = Rubric.objects.all()
     serializer_class = RubricSerializer
-    permission_classes = (IsAuthenticated,)
+    permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 

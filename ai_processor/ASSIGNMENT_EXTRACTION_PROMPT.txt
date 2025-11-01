@@ -86,14 +86,16 @@ Your output must follow this exact structure:
     {
       "question_number": "string - e.g., '1', '2a', 'Question 1'",
       "question_text": "string - The complete question",
-      "question_type": "objective|essay|short_answer",
+      "question_type": "OBJECTIVE|ESSAY|SHORT-ANSWER",
       "points": number - Point value for this question,
+      "blooms_level": "Remember|Understand|Apply|Analyze|Evaluate|Create",  # If not found, detect the bloom level of the question,
       "options": ["array of strings - for objective questions only"],
       "additional_notes": "string - Any special requirements or notes"
     }
   ],
   "extraction_confidence": "HIGH|MEDIUM|LOW",
   "potential_issues": ["array of strings - Any concerns about extraction quality"]
+  "self_assessment": "Comprehensive overall assessment of the assignment quality and any major issues noted"
 }
 ```
 
