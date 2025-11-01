@@ -38,7 +38,6 @@ from .serializers import AssignmentSerializer, RubricSerializer
 
 RESPONSE_FORMAT_EXAMPLE = {
     "title": "World History - Industrial Revolution Quiz",
-    "subject_name": "History",
     "instructions": "Answer all questions to the best of your ability. Write your answers in the spaces provided. "
     "For multiple choice questions, select the best answer. Use complete sentences for essay questions.",
     "total_points": 50,
@@ -253,7 +252,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         user = self.request.user
 
         if user.user_type == UserTypes.TEACHER:
-            return Assignment.objects.filter(teacher=user)
+            return Assignment.objects.filter(course__teacher=user)
         elif user.user_type == UserTypes.STUDENT:
             return Assignment.objects.filter(course__enrollments__student=user)
         else:
@@ -384,7 +383,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
                 except Exception as e:
                     return Response(
-                        {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
+                        {"error": str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE
                     )
             else:
                 return Response(

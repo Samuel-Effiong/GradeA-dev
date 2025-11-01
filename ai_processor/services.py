@@ -19,8 +19,15 @@ env.read_env(".env")
 
 OPENROUTER_API_KEY: str = env.str(
     "OPENROUTER_API_KEY",
-    default="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",
 )
+#
+# DEEPSEEK_API_KEY: str = env.str(
+#     "DEEPSEEK_API_KEY",
+# )
+#
+# HF_TOKEN_API_KEY: str = env.str(
+#     "HF_TOKEN_API_KEY",
+# )
 
 
 with open("ai_processor/ASSIGNMENT_EXTRACTION_PROMPT.txt", "r") as file:
@@ -46,6 +53,15 @@ class AIProcessor:
             base_url="https://openrouter.ai/api/v1",
             api_key=OPENROUTER_API_KEY,
         )
+        # self.client = OpenAI(
+        #     base_url="https://api.deepseek.com",
+        #     api_key=DEEPSEEK_API_KEY
+        # )
+        #
+        # self.client = OpenAI(
+        #     base_url="https://router.huggingface.co/v1",
+        #     api_key=HF_TOKEN_API_KEY
+        # )
 
     def __generate_text(self, system_prompt=None, user_prompt=None, messages=None):
         try:
@@ -57,9 +73,9 @@ class AIProcessor:
                 model="deepseek/deepseek-chat-v3.1:free",
                 extra_body={
                     "models": [
+                        "openai/gpt-oss-20b:free",
                         "google/gemma-3-27b-it:free",
                         "deepseek/deepseek-chat-v3-0324:free",
-                        "openai/gpt-oss-20b:free",
                     ],
                 },
                 messages=messages
@@ -72,18 +88,52 @@ class AIProcessor:
             )
 
             content = response.choices[0].message.content
-            print(f"Recieved response of lenght {len(content)}")
+            print(f"Received response of length {len(content)}")
 
-            try:
-                json_data = json.loads(content)
-            except json.JSONDecodeError as e:
-                print("Error decoding JSON")
-                raise Exception(f"Error decoding JSON: {str(e)}") from Exception
+            return content
 
-            return json_data
         except Exception as e:
-            logger.error(f"Error during extraction: {str(e)}")
-            raise Exception(f"Assignment extraction failed: {str(e)}") from Exception
+            logger.error(f"Error during AI model: {str(e)}")
+            raise Exception(f"Error during AI model: {str(e)}") from Exception
+
+    #
+    # def __generate_text(self, system_prompt=None, user_prompt=None, messages=None):
+    #     try:
+    #         response = self.client.chat.completions.create(
+    #             extra_headers={
+    #                 "HTTP-Referer": "",  # Optional. Site URL for rankings on openrouter.ai.
+    #                 "X-Title": "",  # Optional. Site title for rankings on openrouter.ai.
+    #             },
+    #             model="deepseek/deepseek-chat-v3.1:free",
+    #             extra_body={
+    #                 "models": [
+    #                     "google/gemma-3-27b-it:free",
+    #                     "deepseek/deepseek-chat-v3-0324:free",
+    #                     "openai/gpt-oss-20b:free",
+    #                 ],
+    #             },
+    #             messages=messages
+    #             or [
+    #                 {"role": "system", "content": system_prompt},
+    #                 {"role": "user", "content": user_prompt},
+    #             ],
+    #             temperature=0.1,
+    #             response_format={"type": "json_object"},
+    #         )
+    #
+    #         content = response.choices[0].message.content
+    #         print(f"Recieved response of lenght {len(content)}")
+    #
+    #         try:
+    #             json_data = json.loads(content)
+    #         except json.JSONDecodeError as e:
+    #             print("Error decoding JSON")
+    #             raise Exception(f"Error decoding JSON: {str(e)}") from Exception
+    #
+    #         return json_data
+    #     except Exception as e:
+    #         logger.error(f"Error during extraction: {str(e)}")
+    #         raise Exception(f"Assignment extract failed: {str(e)}") from Exception
 
     def extract_assignment(self, text):
         system_prompt = ASSIGNMENT_EXTRACTION_PROMPT
@@ -97,7 +147,17 @@ EXTRACTED TEXT:
 IMPORTANT: Return only valid JSON matching the required structure.
 Do not include any explanatory text before or after the JSON
 """
-        return self.__generate_text(system_prompt, user_prompt)
+        content = self.__generate_text(system_prompt, user_prompt)
+
+        try:
+            json_data = json.loads(content)
+        except json.JSONDecodeError as e:
+            logger.error(f"Error decoding JSON: {str(e)}")
+            raise Exception(f"Error decoding JSON: {str(e)}") from Exception
+
+        return json_data
+
+        # return self.__generate_text(system_prompt, user_prompt)
 
     def extract_assignment_with_retry(self, text: str, max_retries: int = 3):
         last_error = None
@@ -125,7 +185,16 @@ EXTRACTED TEXT:
 IMPORTANT: Return only valid JSON matching the required structure.
 Do not include any explanatory text before or after the JSON
 """
-        return self.__generate_text(system_prompt, user_prompt)
+        # return self.__generate_text(system_prompt, user_prompt)
+
+        content = self.__generate_text(system_prompt, user_prompt)
+
+        try:
+            json_data = json.loads(content)
+        except json.JSONDecodeError as e:
+            logger.error(f"Error decoding JSON: {str(e)}")
+            raise Exception(f"Error decoding JSON: {str(e)}") from Exception
+        return json_data
 
     def extract_rubric_with_retry(self, text: str, max_retries: int = 3):
         last_error = None
@@ -155,7 +224,17 @@ IMPORTANT: Return only valid JSON matching the required structure.
 Do not include any explanatory text before or after the JSON
 
 """
-        return self.__generate_text(system_prompt, user_prompt)
+        # return self.__generate_text(system_prompt, user_prompt)
+
+        content = self.__generate_text(system_prompt, user_prompt)
+
+        try:
+            json_data = json.loads(content)
+        except json.JSONDecodeError as e:
+            logger.error(f"Error decoding JSON: {str(e)}")
+            raise Exception(f"Error decoding JSON: {str(e)}") from Exception
+
+        return json_data
 
     def extract_answer_with_retry(self, text: str, max_retries: int = 3):
         last_error = None
@@ -192,7 +271,16 @@ Make sure to:
 3. Provide detailed feedback for each answer.
 4. Calculate the total score and overall feedback.
 """
-        return self.__generate_text(system_prompt, user_prompt)
+        # return self.__generate_text(system_prompt, user_prompt)
+
+        content = self.__generate_text(system_prompt, user_prompt)
+
+        try:
+            json_data = json.loads(content)
+        except json.JSONDecodeError as e:
+            logger.error(f"Error decoding JSON: {str(e)}")
+            raise Exception(f"Error decoding JSON: {str(e)}") from Exception
+        return json_data
 
     def extract_grade_with_retry(self, rubric_json, answer_json, max_retries: int = 3):
         last_error = None
@@ -214,40 +302,60 @@ Make sure to:
         system_prompt = GENERATE_ASSIGNMENT_PROMPT
         messages = [{"role": "system", "content": system_prompt}]
 
-        if chat_history:
-            messages.extend(chat_history)
-        messages.append({"role": "user", "content": prompt})
+        user_prompt = f"""
+Now, respond to the following teacher's instruction using the rules above
+
+>>> USER PROMPT START
+{prompt}
+>>> USER PROMPT END
+
+        """
+
+        # if chat_history:
+        #     messages.extend(chat_history)
+        messages.append({"role": "user", "content": user_prompt})
+        # messages.append({"role": "user", "content": json_structure})
+
+        content = self.__generate_text(messages=messages)
 
         try:
-            response = self.client.chat.completions.create(
-                extra_headers={
-                    "HTTP-Referer": "",  # Optional. Site URL for rankings on openrouter.ai.
-                    "X-Title": "",  # Optional. Site title for rankings on openrouter.ai.
-                },
-                model="deepseek/deepseek-chat-v3.1:free",
-                extra_body={
-                    "models": [
-                        "google/gemma-3-27b-it:free",
-                        "deepseek/deepseek-chat-v3-0324:free",
-                        "openai/gpt-oss-20b:free",
-                    ],
-                },
-                messages=messages,
-                temperature=0.7,
-                response_format={"type": "json_object"},
-            )
+            json_data = json.loads(content)
+        except json.JSONDecodeError as e:
+            logger.error(f"Error decoding JSON: {str(e)}")
+            raise Exception(f"Error decoding JSON: {str(e)}") from Exception
 
-            content = response.choices[0].message.content
-            print(f"Recieved response of lenght {len(content)}")
+        return json_data
 
-            try:
-                return json.loads(content)
-            except json.JSONDecodeError as e:
-                print("Error decoding JSON")
-                raise Exception(f"Error decoding JSON: {str(e)}") from Exception
-        except Exception as e:
-            logger.error(f"Error during assignment generation: {str(e)}")
-            raise Exception(f"Assignment generation failed: {str(e)}") from Exception
+        # try:
+        #     response = self.client.chat.completions.create(
+        #         extra_headers={
+        #             "HTTP-Referer": "",  # Optional. Site URL for rankings on openrouter.ai.
+        #             "X-Title": "",  # Optional. Site title for rankings on openrouter.ai.
+        #         },
+        #         model="deepseek/deepseek-chat-v3.1:free",
+        #         extra_body={
+        #             "models": [
+        #                 "google/gemma-3-27b-it:free",
+        #                 "deepseek/deepseek-chat-v3-0324:free",
+        #                 "openai/gpt-oss-20b:free"
+        #             ],
+        #         },
+        #         messages=messages,
+        #         temperature=0.7,
+        #         response_format={"type": "json_object"},
+        #     )
+        #
+        #     content = response.choices[0].message.content
+        #     print(f"Recieved response of lenght {len(content)}")
+        #
+        #     try:
+        #         return json.loads(content)
+        #     except json.JSONDecodeError as e:
+        #         print("Error decoding JSON")
+        #         raise Exception(f"Error decoding JSON: {str(e)}") from Exception
+        # except Exception as e:
+        #     logger.error(f"Error during assignment generation: {str(e)}")
+        #     raise Exception(f"Assignment generation failed: {str(e)}") from Exception
 
     def generate_assignment_from_prompt_with_retry(
         self, prompt, chat_history=None, max_retries: int = 3
@@ -344,7 +452,7 @@ class PDFService:
             full_text = ""
 
             for image in images:
-                text = ocr_service.extract_with_paddle(image)
+                text = ocr_service.extract_with_pytessaract(image)
                 full_text += text
 
             self.extracted_data["questions"] = full_text

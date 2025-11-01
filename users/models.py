@@ -4,8 +4,13 @@ import uuid
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.db.models import UniqueConstraint
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+
+from users.services import OTPManager
+
+otp_manager = OTPManager()
 
 
 # Create your models here.
@@ -120,11 +125,18 @@ class PasswordResetOTP(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        constraints = [
+            UniqueConstraint(
+                fields=["user", "code"], name="password_reset_unique_user_code_per_user"
+            )
+        ]
+
     def is_valid(self):
         return (timezone.now() - self.created_at) < timezone.timedelta(minutes=15)
 
     def generate_code(self):
-        self.code = secrets.token_urlsafe(16)
+        self.code = otp_manager.generate_otp()
         self.save()
 
         return self.code
@@ -135,8 +147,18 @@ class PasswordResetOTP(models.Model):
 
 class PasswordChangeOTP(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
-    code = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    code = models.CharField(
+        max_length=100, unique=True, null=True, blank=True, db_index=True
+    )
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            UniqueConstraint(
+                fields=["user", "code"],
+                name="password_change_unique_user_code_per_user",
+            )
+        ]
 
     def is_valid(self):
         # A simple check for a 5-minute validity period
@@ -144,6 +166,7 @@ class PasswordChangeOTP(models.Model):
 
     def generate_code(self):
         # Generate a 6-digit numeric OTP
-        self.code = secrets.token_urlsafe(16)
+        self.code = otp_manager.generate_otp()
         self.save()
+
         return self.code
