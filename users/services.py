@@ -19,7 +19,8 @@ def send_user_activation_email(user):
     protocol = "https://"
     frontend_domain = settings.FRONTEND_DOMAIN
 
-    activation_url = f"{protocol}{frontend_domain}/verify/{token}"
+
+    activation_url = f"{protocol}{frontend_domain}/verify-email?email={user.email}&token={token}"
 
     context = {
         "first_name": user.first_name,

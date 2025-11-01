@@ -62,7 +62,7 @@ RUN mkdir -p /tmp/.paddle /tmp/.cache && \
 USER wagtail
 
 # Run the PaddleOCR initialization and model download as the wagtail user
-RUN python -c "from paddleocr import PaddleOCR; ocr = PaddleOCR(use_angle_cls=True); print('PaddleOCR successfully')"
+# RUN python -c "from paddleocr import PaddleOCR; ocr = PaddleOCR(use_angle_cls=True); print('PaddleOCR successfully')"
 
 # Collect static files.
 
