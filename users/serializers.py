@@ -8,25 +8,18 @@ from users.services import send_user_activation_email
 
 class CustomUserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
-        required=True, write_only=True, validators=[validate_password]
+        write_only=True, required=True, validators=[validate_password]
     )
 
     class Meta:
         model = CustomUser
-        fields = [
-            "id",
-            "email",
-            "first_name",
-            "last_name",
-            "user_type",
-            "password",
-            "is_active",
-        ]
+        fields = ["id", "email", "first_name", "last_name", "user_type", "password"]
+        # read_only_fields = ['id', 'user_type']
         extra_kwargs = {
             "email": {"required": True},
             "password": {"write_only": True},
             "is_active": {"read_only": True},
-            "user_type": {"read_only": False},
+            "user_type": {"read_only": True},
         }
 
     def create(self, validated_data):

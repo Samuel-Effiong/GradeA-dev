@@ -63,6 +63,8 @@ class CourseSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id", "created_at", "teacher"]
 
+        extra_kwargs = {"is_active": {"required": False}}
+
     def get_student_count(self, obj) -> int:
         return StudentCourse.objects.filter(course=obj).count()
 

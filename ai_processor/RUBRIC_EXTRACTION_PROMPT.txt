@@ -21,11 +21,11 @@ You must analyze the text and create a JSON structure following this exact forma
 {
   "criteria": [
     {
-      "id": 1,
-      "question": "",
-      "max_points": 0,
+      "question_number": 1,
+      "question_text": "",
+      "points": 0,
       "model_answer": "",
-      "scoring_levels": [
+      "rubric": [  # The scoring level
         {
           "level": "",
           "points": 0,
@@ -214,12 +214,12 @@ Good (12 pts): Adequate definition with minor gaps
 Fair (8 pts): Basic definition lacking detail
 Poor (0 pts): Incorrect or missing definition"
 
-Expected Output:
+Expected Output:gi
 {
-  "id": 1,
-  "question": "Define democracy",
-  "max_points": 15,
-  "scoring_levels": [
+  "question_number": 1,
+  "question_text": "Define democracy",
+  "points": 15,
+  "rubric": [  # The scoring_level
     {"level": "Excellent", "points": 15, "description": "Provides complete definition with examples"},
     {"level": "Good", "points": 12, "description": "Adequate definition with minor gaps"},
     {"level": "Fair", "points": 8, "description": "Basic definition lacking detail"},
@@ -279,7 +279,7 @@ Expected Processing: Extract as single question about content knowledge with thr
 - Infer point values from context
 - Standardize inconsistent terminology
 - Fill gaps in performance level descriptions
-- Assign sequential IDs to questions
+- Assign sequential question_number to questions
 - Interpret ambiguous text
 
 #### 5.3 Recommendation Generation
@@ -293,8 +293,8 @@ Expected Processing: Extract as single question about content knowledge with thr
 Before finalizing your JSON output, verify:
 
 #### 6.1 Structural Integrity
-- [ ] All questions have sequential IDs starting from 1
-- [ ] Max_points equals highest scoring level points for each question
+- [ ] All questions have sequential question_number starting from 1
+- [ ] Points equals highest scoring level points for each question
 - [ ] All scoring levels have level name, points, and description
 - [ ] Points follow logical descending order within each question
 

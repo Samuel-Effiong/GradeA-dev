@@ -11,7 +11,7 @@ from users.models import CustomUser
 class AssignmentTypes(models.TextChoices):
     OBJECTIVE = "OBJECTIVE", _("OBJECTIVE")
     ESSAY = "ESSAY", _("ESSAY")
-    SHORT_ANSWER = "SHORT_ANSWER", _("SHORT ANSWER")
+    SHORT_ANSWER = "SHORT-ANSWER", _("SHORT ANSWER")
     HYBRID = "HYBRID", _("HYBRID")
 
 

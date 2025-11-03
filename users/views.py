@@ -1,4 +1,13 @@
-# import secrets
+"""Views for user management and API endpoints.
+
+This module contains the Django REST Framework viewset for managing users
+(CustomUserViewSet) and OpenAPI schema extensions for documenting the
+users endpoints.
+
+It exposes endpoints to list, create, retrieve, update, delete users,
+and a convenience `me` action to fetch the currently authenticated user's
+profile.
+"""
 
 from django.conf import settings
 from django.core.mail import send_mail
@@ -9,6 +18,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiExample,
     OpenApiParameter,
+    OpenApiRequest,
     OpenApiResponse,
     extend_schema,
     extend_schema_view,
@@ -19,9 +29,17 @@ from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView as BaseTokenObtainPairView,
+)
+from rest_framework_simplejwt.views import TokenRefreshView as BaseTokenRefreshView
 
+from classrooms.models import EnrollmentStatusType, StudentCourse
+from classrooms.serializers import StudentRegistrationCompletionSerializer
 from users.models import CustomUser, PasswordChangeOTP, PasswordResetOTP
+from users.permissions import IsSuperUser
 from users.serializers import (
     ChangePasswordSerializer,
     CustomUserSerializer,
@@ -161,6 +179,13 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
     class Meta:
+        """Meta configuration describing model and exposed fields for the viewset.
+
+        Although DRF's ModelViewSet does not require an inner Meta normally,
+        this inner class documents which model and fields are intended to be
+        surfaced by this viewset for clarity and tooling.
+        """
+
         model = CustomUser
         fields = ["id", "username", "email", "user_type"]
 
@@ -169,11 +194,30 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         Allow unauthenticated access only for POST endpoints (public actions).
         All other requests require authentication.
         """
-        if self.request.method.lower() == "post":
+        if self.action in [
+            "create",
+            "register",
+            "register_student",
+            "verify",
+            "otp",
+            "reset_password",
+        ]:
             permission_classes = [AllowAny]
+        elif self.action == "list":
+            permission_classes = [IsAuthenticated, IsSuperUser]
         else:
             permission_classes = [IsAuthenticated]
+
         return [permission() for permission in permission_classes]
+
+    @extend_schema(exclude=True)
+    def create(self, request, *args, **kwargs):
+        if not request.user.is_superuser:
+            return Response(
+                {"detail": "You do not have permission to create users."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return super().create(request, *args, **kwargs)
 
     @extend_schema(
         tags=["Users"],
@@ -220,7 +264,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @extend_schema(
-        tags=["Users"],
+        tags=["Authentication"],
         summary="Verify email and activate account",
         description="""Verify the email address of a user.""",
         request=VerifyCustomUserSerializer,
@@ -250,7 +294,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=["post"],
-        url_path="verify",
+        url_path="auth/verify",
         url_name="verify",
         permission_classes=[AllowAny],
     )
@@ -296,7 +340,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         )
 
     @extend_schema(
-        tags=["Users"],
+        tags=["Authentication"],
         summary="Send verification email",
         description="""Send a verification email to the specified email address.""",
         request=OTPSerializer,
@@ -316,7 +360,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=["post", "options"],
-        url_path="otp",
+        url_path="auth/otp",
         url_name="otp",
         permission_classes=[AllowAny],
     )
@@ -378,7 +422,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         )
 
     @extend_schema(
-        tags=["Users"],
+        tags=["Authentication"],
         summary="Reset the password using an OTP",
         description="""
         Resets a user's password after a valid OTP has been provided via the `forgot-password` endpoint.
@@ -393,7 +437,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=["post", "options"],
-        url_path="reset-password",
+        url_path="auth/reset-password",
         url_name="reset-password",
         permission_classes=[AllowAny],
     )
@@ -431,7 +475,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         )
 
     @extend_schema(
-        tags=["Users"],
+        tags=["Authentication"],
         summary="Request a password change OTP",
         description="""
             Sends a one-time password (OTP) to the authenticated user's email address.
@@ -444,10 +488,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             403: {"description": "User's email is not verified"},
         },
     )
-    @action(
-        detail=False,
-        methods=["post"],
-    )
+    @action(detail=False, methods=["post"], url_path="auth/request-change-password")
     def request_change_password(self, request, *args, **kwargs):
         user = request.user
 
@@ -473,7 +514,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         )
 
     @extend_schema(
-        tags=["Users"],
+        tags=["Authentication"],
         summary="Change password using an OTP",
         description="""
         Changes the authenticated user's password after a valid OTP has been provided.
@@ -484,7 +525,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             400: {"description": "Invalid OTP or expired OTP"},
         },
     )
-    @action(detail=False, methods=["post", "options"], url_path="change_password")
+    @action(detail=False, methods=["post", "options"], url_path="auth/change-password")
     def change_password(self, request, **kwargs):
         serializer = ChangePasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -521,3 +562,296 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         otp_obj.delete()
 
         return Response({"detail": "Password changed successfully"})
+
+    @extend_schema(
+        tags=["Authentication"],
+        summary="Log out the current user",
+        description="""
+        "This endpoint logs out the currently authenticated user by **blacklisting their refresh token**. "
+        "Once the refresh token is blacklisted, it can no longer be used to obtain new access tokens.\n\n"
+        "**Note:** The access token will naturally expire and does not need to be explicitly invalidated."
+        """,
+        request=OpenApiRequest(
+            request={
+                "type": "object",
+                "properties": {
+                    "refresh": {
+                        "type": "string",
+                        "description": "The refresh token to be blacklisted.",
+                        "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                    },
+                },
+                "required": ["refresh"],
+            }
+        ),
+        responses={
+            205: OpenApiResponse(
+                response={"type": "null"},
+                description="Successfully logged out. Refresh token has been blacklisted.",
+            ),
+            400: OpenApiResponse(
+                response={
+                    "type": "object",
+                    "properties": {
+                        "detail": {
+                            "type": "string",
+                            "example": "Refresh token is required.",
+                        }
+                    },
+                },
+                description="Bad request. Missing or invalid refresh token.",
+            ),
+            401: OpenApiResponse(
+                response={
+                    "type": "object",
+                    "properties": {
+                        "detail": {
+                            "type": "string",
+                            "example": "Authentication credentials were not provided.",
+                        }
+                    },
+                },
+                description="User is not authenticated.",
+            ),
+        },
+        examples=[
+            OpenApiExample(
+                "Valid logout request",
+                value={"refresh": "eyJ0eXAiOiJKV1QiLCJh..."},
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Missing refresh token",
+                value={"detail": "Refresh token is required."},
+                response_only=True,
+                status_codes=["400"],
+            ),
+        ],
+    )
+    @action(detail=False, methods=["post"], url_path="auth/logout")
+    def logout(self, request):
+        """
+        Log out the currently authenticated user.
+
+        This endpoint logs out the user by invalidating their authentication token.
+        The user must be authenticated to access this endpoint.
+
+        ## Response
+        - 204: No Content - Successfully logged out
+        - 401: Unauthorized - If user is not authenticated
+        """
+        try:
+            refresh_token = request.data["refresh"]
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+        except KeyError:
+            return Response(
+                {"detail": "Refresh token is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except TokenError:
+            return Response(
+                {"detail": "Invalid or expired token."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(status=status.HTTP_205_RESET_CONTENT)
+
+    @extend_schema(
+        tags=["Authentication"],
+        summary="Register a new Teacher user",
+        description="""
+        Register a new user with TEACHER role.
+
+        Required fields:
+        - email: User's email address (must be unique)
+        - password: User's password
+        - first_name: User's first name
+        - last_name: User's last name
+
+        Note: The user_type will be automatically set to TEACHER.
+        """,
+        request=CustomUserSerializer,
+        responses={
+            201: OpenApiResponse(
+                response=CustomUserSerializer,
+                description="Teacher user created successfully",
+            ),
+            400: OpenApiResponse(description="Invalid input data"),
+            500: OpenApiResponse(description="Internal server error"),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["post"],
+        permission_classes=[AllowAny],
+        url_path="auth/register",
+    )
+    def register(self, request, *args, **kwargs):
+        """
+        Register a new Teacher user
+
+        This endpoint allows registration of new users with TEACHER role only.
+        """
+        request.data.pop("user_type", None)
+        serializer = CustomUserSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        serializer.save()
+
+        return Response(serializer.data)
+
+    @extend_schema(
+        tags=["Authentication"],
+        summary="Register a new Student user",
+        description="""
+        Register a new user with STUDENT role.
+
+        Required fields:
+        - email: User's email address (must be unique)
+        - password: User's password
+        - first_name: User's first name
+        """,
+        request=StudentRegistrationCompletionSerializer,
+        responses={
+            200: OpenApiResponse(
+                description="Student registration completed successfully",
+            ),
+            400: OpenApiResponse(description="Invalid or expired token"),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["post"],
+        permission_classes=[AllowAny],
+        url_path="auth/register/student",
+    )
+    def register_student(self, request, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                serializer = StudentRegistrationCompletionSerializer(data=request.data)
+
+                if not serializer.is_valid():
+                    return Response(
+                        serializer.errors, status=status.HTTP_400_BAD_REQUEST
+                    )
+
+                token = serializer.validated_data["token"]
+
+                # Find user by activation token
+                user = CustomUser.objects.filter(
+                    activation_token=token, is_active=False
+                ).first()
+
+                if not user:
+                    return Response(
+                        {"detail": "Invalid or expired activation token."},
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
+
+                if user.activation_expires < timezone.now():
+                    renewal_url = request.build_absolute_uri(
+                        "/course/student/renew-student-token/"
+                    )
+
+                    return Response(
+                        {
+                            "detail": "Activation token has expired.",
+                            "renewal_url": renewal_url,
+                            "expired_token": token,
+                            "message": "Please request a new activation link",
+                        }
+                    )
+
+                user.first_name = serializer.validated_data["first_name"]
+                user.last_name = serializer.validated_data["last_name"]
+                user.set_password(serializer.validated_data["password"])
+                user.is_active = True
+                user.activation_token = None
+                user.activation_expire = None
+                user.email_verified_at = timezone.now()
+                user.save()
+
+                StudentCourse.objects.filter(student=user, is_active=False).update(
+                    is_active=True, enrollment_status=EnrollmentStatusType.ENROLLED
+                )
+
+                return Response(
+                    {"detail": "Student registration completed successfully"},
+                    status=status.HTTP_200_OK,
+                )
+        except Exception as e:
+            return Response(
+                {"detail": f"Internal Server Error: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+@extend_schema(
+    tags=["Authentication"],
+    summary="Obtain JWT token pair",
+    description="""
+    Authenticate a user and return a JWT token pair.
+
+    Returns:
+    - access: Access token for API authentication
+    - refresh: Refresh token to obtain new access tokens
+    """,
+    responses={
+        200: OpenApiResponse(
+            response={
+                "type": "object",
+                "properties": {
+                    "access": {"type": "string"},
+                    "refresh": {"type": "string"},
+                },
+            },
+            description="Successfully authenticated",
+        ),
+        401: OpenApiResponse(description="Invalid credentials"),
+    },
+)
+class TokenObtainPairView(BaseTokenObtainPairView):
+    """
+    Custom view for obtaining JWT token pairs
+    """
+
+    pass
+
+
+@extend_schema(
+    tags=["Authentication"],
+    summary="Refresh JWT token pair",
+    description="""
+
+    """,
+    request=OpenApiRequest(
+        request={
+            "type": "object",
+            "properties": {
+                "refresh": {
+                    "type": "string",
+                    "description": "The refresh token to be blacklisted.",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                },
+            },
+            "required": ["refresh"],
+        }
+    ),
+    responses={
+        200: OpenApiResponse(
+            response={
+                "type": "object",
+                "properties": {
+                    "access": {"type": "string"},
+                    "refresh": {"type": "string"},
+                },
+            },
+            description="Successfully authenticated",
+        ),
+        401: OpenApiResponse(description="Invalid credentials"),
+    },
+)
+class TokenRefreshView(BaseTokenRefreshView):
+    pass

@@ -1,16 +1,16 @@
-import secrets
+import hashlib
+import string
 from datetime import timedelta
 
 from django.conf import settings
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils import timezone
+from django.utils.crypto import get_random_string
 
-from users.models import CustomUser
 
-
-def send_user_activation_email(user: CustomUser):
-    token = secrets.token_urlsafe(16)
+def send_user_activation_email(user):
+    token = otp_manager.generate_otp()
     user.activation_token = token
     user.activation_expires = timezone.now() + timedelta(minutes=15)
     user.save()
@@ -18,7 +18,9 @@ def send_user_activation_email(user: CustomUser):
     protocol = "https://"
     frontend_domain = settings.FRONTEND_DOMAIN
 
-    activation_url = f"{protocol}{frontend_domain}/verify/{token}"
+    activation_url = (
+        f"{protocol}{frontend_domain}/verify-email?email={user.email}&token={token}"
+    )
 
     context = {
         "first_name": user.first_name,
@@ -40,3 +42,22 @@ def send_user_activation_email(user: CustomUser):
         html_message=html_content,
         fail_silently=False,
     )
+
+
+class OTPManager:
+    def __init__(self, length=6):
+        self.otp_length = length
+        # self.max_attempts = max_attempts
+
+    def generate_otp(self):
+        otp = get_random_string(self.otp_length, allowed_chars=string.digits)
+        return otp
+
+    @staticmethod
+    def get_cache_key(identifier):
+        md5_hash = hashlib.sha256(identifier.encode("utf-8")).hexdigest()
+
+        return md5_hash
+
+
+otp_manager = OTPManager()
