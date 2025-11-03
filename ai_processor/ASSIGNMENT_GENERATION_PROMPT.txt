@@ -848,6 +848,7 @@ Provide letter-only answers for objective model answers
         "question_number": 1,
         "question_text": "The actual question text",
         "question_type": "OBJECTIVE|ESSAY|SHORT-ANSWER",
+        "question_image": "string, should be left empty, will be provided by the teacher",
         "points": Point value for this question,
         "blooms_level": "Remember|Understand|Apply|Analyze|Evaluate|Create",
         "options": ["array of strings - for objective questions only, empty for others"],
