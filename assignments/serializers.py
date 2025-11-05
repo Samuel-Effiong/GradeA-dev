@@ -17,6 +17,7 @@ class QuestionSerializer(serializers.Serializer):
     question_number = serializers.IntegerField(required=True)
     question_text = serializers.CharField(required=True)
     question_type = serializers.CharField(required=True)
+    question_image = serializers.CharField(required=True, allow_blank=True)
     points = serializers.FloatField(required=True)
     blooms_level = serializers.CharField(required=False, allow_blank=True)
     options = serializers.ListField(
@@ -24,7 +25,7 @@ class QuestionSerializer(serializers.Serializer):
         required=True,
         allow_empty=True,
     )
-    rubric = AssignmentRubricSerializer(many=True, required=False, default=[])
+    rubric = AssignmentRubricSerializer(many=True, required=True)
     model_answer = serializers.CharField(required=False, allow_blank=True)
 
     def validate_question_type(self, value):
@@ -83,6 +84,17 @@ class AssignmentSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     "Question count does not match the number of questions provided."
                 )
+
+        assignment_type = data.get("assignment_type")
+        if assignment_type and assignment_type != "HYBRID":
+            # Only OBJECTIVE, ESSAY, SHORT-ANSWER require uniform question types
+            for i, question in enumerate(questions):
+                q_type = question.get("question_type")
+                if q_type != assignment_type:
+                    raise serializers.ValidationError(
+                        f"assignment_type `{assignment_type}` requires all questions to have question_type "
+                        f"`{assignment_type}`. Question {i} has question_type `{q_type}`."
+                    )
         return data
 
     def create(self, validated_data):
@@ -106,7 +118,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
                         "question_text": question.get("question_text"),
                         "points": question.get("points"),
                         "model_answer": question.get("model_answer", ""),
-                        "scoring_levels": question.get("scoring_levels", []),
+                        "rubric": question.get("rubric", []),
                     }
                     criteria.append(criterion)
 
@@ -129,11 +141,11 @@ class ScoringLevelSerializer(serializers.Serializer):
 
 
 class CriterionSerializer(serializers.Serializer):
-    id = serializers.IntegerField()
-    question = serializers.CharField()
-    max_points = serializers.FloatField()
+    question_number = serializers.IntegerField()
+    question_text = serializers.CharField()
+    points = serializers.FloatField()
     model_answer = serializers.CharField(allow_blank=True)
-    scoring_levels = serializers.ListField(
+    rubric = serializers.ListField(
         child=ScoringLevelSerializer(),
         min_length=1,
         required=True,
@@ -154,14 +166,14 @@ class RubricSerializer(serializers.ModelSerializer):
         read_only_fields = ["created_at", "updated_at", "id"]
 
     def validate(self, data):
-        if "criteria" in data and "max_points" in data:
+        if "criteria" in data and "points" in data:
             total_max_points = sum(
-                criteria.get("max_points", 0) for criteria in data["criteria"]
+                criteria.get("points", 0) for criteria in data["criteria"]
             )
-            if abs(total_max_points - data["max_points"]) > 0.01:
+            if abs(total_max_points - data["points"]) > 0.01:
                 raise serializers.ValidationError(
-                    f"Sum of max_points in criteria ({total_max_points}) "
-                    f"doesn't match max_points ({data['max_points']})"
+                    f"Sum of points in criteria ({total_max_points}) "
+                    f"doesn't match points ({data['points']})"
                 )
         return data
 

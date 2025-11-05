@@ -435,7 +435,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                                     "model_answer": "The main causes are greenhouse gas emissions from burning fossil"
                                     " fuels, deforestation, and industrial activities that release "
                                     "carbon dioxide and methane.",
-                                    "scoring_levels": [
+                                    "rubric": [
                                         {
                                             "level": "Excellent",
                                             "points": 15,
@@ -719,7 +719,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                             "max_points": 30,
                             "model_answer": "The code should be well-structured, properly formatted, and follow"
                             " best practices.",
-                            "scoring_levels": [
+                            "rubric": [
                                 {
                                     "level": "Excellent",
                                     "points": 30,
@@ -743,7 +743,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                             "question": "Functionality",
                             "max_points": 40,
                             "model_answer": "The code should correctly implement all required functionality.",
-                            "scoring_levels": [
+                            "rubric": [
                                 {
                                     "level": "Excellent",
                                     "points": 40,
@@ -823,7 +823,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                             "question": "Updated question text",
                             "max_points": 15,
                             "model_answer": "Updated model answer",
-                            "scoring_levels": [
+                            "rubric": [
                                 {
                                     "level": "Excellent",
                                     "points": 15,
@@ -875,7 +875,7 @@ class RubricViewSet(viewsets.ModelViewSet):
         parameters=[
             OpenApiParameter(
                 name="assignment_id",
-                type=OpenApiTypes.INT,
+                type=OpenApiTypes.UUID,
                 location=OpenApiParameter.QUERY,
                 description="ID of the assignment to retrieve rubric for",
                 required=True,

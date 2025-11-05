@@ -452,7 +452,7 @@ class PDFService:
             full_text = ""
 
             for image in images:
-                text = ocr_service.extract_with_pytessaract(image)
+                text = ocr_service.extract_with_paddle(image)
                 full_text += text
 
             self.extracted_data["questions"] = full_text

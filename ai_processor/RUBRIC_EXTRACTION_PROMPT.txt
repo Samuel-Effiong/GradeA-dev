@@ -25,7 +25,7 @@ You must analyze the text and create a JSON structure following this exact forma
       "question_text": "",
       "points": 0,
       "model_answer": "",
-      "scoring_levels": [
+      "rubric": [  # The scoring level
         {
           "level": "",
           "points": 0,
@@ -214,12 +214,12 @@ Good (12 pts): Adequate definition with minor gaps
 Fair (8 pts): Basic definition lacking detail
 Poor (0 pts): Incorrect or missing definition"
 
-Expected Output:
+Expected Output:gi
 {
   "question_number": 1,
   "question_text": "Define democracy",
   "points": 15,
-  "scoring_levels": [
+  "rubric": [  # The scoring_level
     {"level": "Excellent", "points": 15, "description": "Provides complete definition with examples"},
     {"level": "Good", "points": 12, "description": "Adequate definition with minor gaps"},
     {"level": "Fair", "points": 8, "description": "Basic definition lacking detail"},

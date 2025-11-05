@@ -1,4 +1,3 @@
-import secrets
 import uuid
 
 from django.contrib.auth.base_user import BaseUserManager
@@ -106,7 +105,7 @@ class CustomUser(AbstractUser):
 
     def renew_activation_token(self):
         """Renew the activation token and extend expiration."""
-        self.activation_token = secrets.token_urlsafe(16)
+        self.activation_token = otp_manager.generate_otp()
 
         if self.user_type == UserTypes.STUDENT:
             self.activation_expires = timezone.now() + timezone.timedelta(days=7)
