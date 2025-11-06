@@ -60,6 +60,25 @@ USER_EXAMPLE = {
 }
 
 
+class BaseUserViewSet(viewsets.ModelViewSet):
+    queryset = CustomUser.objects.all()
+    serializer_class = CustomUserSerializer
+    permission_classes = (IsAuthenticated,)
+    pagination_class = PageNumberPagination
+    http_method_names = ["get", "head", "post", "delete", "patch", "options"]
+
+    filterset_fields = {
+        "user_type": ["exact"],
+        "enrollments__course": ["exact", "isnull"],
+        "enrollments__course__session": ["exact"],
+        "enrollments__enrollment_status": ["exact", "in"],
+    }
+    search_fields = ["username", "first_name", "last_name", "email"]
+    ordering_fields = ["first_name", "last_name", "email", "username"]
+
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+
+
 @extend_schema_view(
     list=extend_schema(
         tags=["Users"],
@@ -263,6 +282,14 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
 
+
+class AuthViewSet(viewsets.ViewSet):
+    """
+    Handles user authentication actions
+    """
+
+    http_method_names = ["post", "options"]
+
     @extend_schema(
         tags=["Authentication"],
         summary="Verify email and activate account",
@@ -294,7 +321,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=["post"],
-        url_path="auth/verify",
+        url_path="verify",
         url_name="verify",
         permission_classes=[AllowAny],
     )
@@ -360,7 +387,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=["post", "options"],
-        url_path="auth/otp",
+        url_path="otp",
         url_name="otp",
         permission_classes=[AllowAny],
     )
@@ -437,7 +464,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=["post", "options"],
-        url_path="auth/reset-password",
+        url_path="reset-password",
         url_name="reset-password",
         permission_classes=[AllowAny],
     )
@@ -488,7 +515,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             403: {"description": "User's email is not verified"},
         },
     )
-    @action(detail=False, methods=["post"], url_path="auth/request-change-password")
+    @action(detail=False, methods=["post"], url_path="request-change-password")
     def request_change_password(self, request, *args, **kwargs):
         user = request.user
 
@@ -525,7 +552,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             400: {"description": "Invalid OTP or expired OTP"},
         },
     )
-    @action(detail=False, methods=["post", "options"], url_path="auth/change-password")
+    @action(detail=False, methods=["post", "options"], url_path="change-password")
     def change_password(self, request, **kwargs):
         serializer = ChangePasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -628,7 +655,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             ),
         ],
     )
-    @action(detail=False, methods=["post"], url_path="auth/logout")
+    @action(detail=False, methods=["post"], url_path="logout")
     def logout(self, request):
         """
         Log out the currently authenticated user.
@@ -685,7 +712,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         detail=False,
         methods=["post"],
         permission_classes=[AllowAny],
-        url_path="auth/register",
+        url_path="register",
     )
     def register(self, request, *args, **kwargs):
         """
@@ -725,7 +752,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         detail=False,
         methods=["post"],
         permission_classes=[AllowAny],
-        url_path="auth/register/student",
+        url_path="register/student",
     )
     def register_student(self, request, *args, **kwargs):
         try:
