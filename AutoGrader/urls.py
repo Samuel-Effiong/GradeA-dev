@@ -30,14 +30,22 @@ schema_urlpatterns = [
     ),
 ]
 
-urlpatterns = [
-    path("admin/", admin.site.urls),
-    # path("api/v1/auth/", include("djoser.urls.jwt")),
-    path("users/auth/login", TokenObtainPairView.as_view(), name="login"),
-    path("users/auth/refresh", TokenRefreshView.as_view(), name="verify"),
-    path("api/v1/", include(schema_urlpatterns)),
+core_urlpatterns = [
     path("", include("assignments.urls")),
     path("", include("classrooms.urls")),
     path("", include("users.urls")),
     path("", include("students.urls")),
+    path("auth/login/", TokenObtainPairView.as_view(), name="login"),
+    path("auth/refresh/", TokenRefreshView.as_view(), name="verify"),
+]
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    # path("api/v1/auth/", include("djoser.urls.jwt")),
+    path("api/v1/", include(schema_urlpatterns)),
+    # path("", include("assignments.urls")),
+    # path("", include("classrooms.urls")),
+    # path("", include("users.urls")),
+    # path("", include("students.urls")),
+    path("api/v1/", include(core_urlpatterns)),
 ]
