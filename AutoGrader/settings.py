@@ -68,7 +68,13 @@ SECRET_KEY = env.str("SECRET_KEY")
 FRONTEND_DOMAIN = env.str("FRONTEND_DOMAIN")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+ENVIRONMENT = env.str("ENVIRONMENT")
+
+if ENVIRONMENT == "prod":
+    DEBUG = False
+elif ENVIRONMENT == "dev":
+    DEBUG = False
+
 APPEND_SLASH = False
 
 ALLOWED_HOSTS = ["*"]
