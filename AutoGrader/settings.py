@@ -69,6 +69,7 @@ FRONTEND_DOMAIN = env.str("FRONTEND_DOMAIN")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+APPEND_SLASH = False
 
 ALLOWED_HOSTS = ["*"]
 
@@ -227,6 +228,7 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "EXCEPTION_HANDLER": "users.exceptions.custom_exception_handler",
+    "DEFAULT_ROUTER_TRAILING_SLASH": False,
 }
 
 
