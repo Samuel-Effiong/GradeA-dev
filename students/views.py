@@ -1,5 +1,4 @@
 # from django.shortcuts import render
-from django.core.exceptions import BadRequest
 from django.core.files.uploadedfile import UploadedFile
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
@@ -13,7 +12,7 @@ from drf_spectacular.utils import (
 from PIL.Image import Image
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotAcceptable, NotFound
+from rest_framework.exceptions import NotAcceptable, NotFound, ParseError
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
@@ -21,7 +20,6 @@ from rest_framework.response import Response
 from rest_framework.status import (
     HTTP_200_OK,
     HTTP_201_CREATED,
-    HTTP_415_UNSUPPORTED_MEDIA_TYPE,
     HTTP_500_INTERNAL_SERVER_ERROR,
 )
 
@@ -288,7 +286,7 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
 
         files = request.FILES.getlist("answer")
         if not files:
-            raise BadRequest()
+            raise ParseError("No files uploaded. Please try again.")
 
         if len(files) > 1:
             raise NotAcceptable(detail="Only one file can be uploaded at a time")
@@ -306,7 +304,7 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
 
         for uploaded_file in files:
             if not isinstance(uploaded_file, UploadedFile):
-                raise BadRequest(
+                raise ParseError(
                     "Invalid file upload. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed."
                 )
 
@@ -329,11 +327,8 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
                         {"error": str(e)}, status=HTTP_500_INTERNAL_SERVER_ERROR
                     )
             else:
-                return Response(
-                    {
-                        "error": "Invalid file upload. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed."
-                    },
-                    status=HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                raise ParseError(
+                    "Invalid file upload. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed."
                 )
 
         try:
@@ -341,8 +336,10 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
                 extracted_text, max_retries=3
             )
         except Exception as e:
+
             return Response(
                 {"error": "We encountered an error: {}".format(str(e))},
+                status=HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
         if answer is not None:
