@@ -1,4 +1,3 @@
-# from django.core.exceptions import ValidationError
 import uuid
 
 from django.db import models
