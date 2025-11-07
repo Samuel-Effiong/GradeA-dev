@@ -21,6 +21,13 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 from users.views import TokenObtainPairView, TokenRefreshView
 
+from .handlers import json_400, json_403, json_404, json_500
+
+handler400 = json_400
+handler403 = json_403
+handler404 = json_404
+handler500 = json_500
+
 schema_urlpatterns = [
     path("", SpectacularAPIView.as_view(), name="schema"),
     path(
