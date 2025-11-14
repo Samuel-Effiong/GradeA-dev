@@ -6,7 +6,7 @@ from classrooms.views import (  # ClassroomSettingsViewSet,; ClassroomViewSet,
     StudentCourseViewSet,
 )
 
-router = DefaultRouter()
+router = DefaultRouter(trailing_slash=False)
 
 router.register(r"sessions", SessionViewSet, basename="session")
 

@@ -25,6 +25,7 @@ from drf_spectacular.utils import (
 )
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -58,6 +59,25 @@ USER_EXAMPLE = {
     "user_type": "TEACHER",
     "username": "john.doe",
 }
+
+
+class BaseUserViewSet(viewsets.ModelViewSet):
+    queryset = CustomUser.objects.all()
+    serializer_class = CustomUserSerializer
+    permission_classes = (IsAuthenticated,)
+    pagination_class = PageNumberPagination
+    http_method_names = ["get", "head", "post", "delete", "patch", "options"]
+
+    filterset_fields = {
+        "user_type": ["exact"],
+        "enrollments__course": ["exact", "isnull"],
+        "enrollments__course__session": ["exact"],
+        "enrollments__enrollment_status": ["exact", "in"],
+    }
+    search_fields = ["username", "first_name", "last_name", "email"]
+    ordering_fields = ["first_name", "last_name", "email", "username"]
+
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
 
 @extend_schema_view(
@@ -263,6 +283,14 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
 
+
+class AuthViewSet(viewsets.ViewSet):
+    """
+    Handles user authentication actions
+    """
+
+    http_method_names = ["post", "options"]
+
     @extend_schema(
         tags=["Authentication"],
         summary="Verify email and activate account",
@@ -294,7 +322,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=["post"],
-        url_path="auth/verify",
+        url_path="verify",
         url_name="verify",
         permission_classes=[AllowAny],
     )
@@ -303,25 +331,16 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         token = request.data.get("token").strip()
 
         if not email or not token:
-            return Response(
-                {"detail": "Email and Token are required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ParseError("Email and Token are required.")
 
         user = CustomUser.objects.filter(email=email, activation_token=token)
         if not user.exists():
-            return Response(
-                {"detail": "Invalid email or token."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            raise ParseError("Invalid email or token.")
 
         user = user.first()
 
         if user.activation_expires and timezone.now() > user.activation_expires:
-            return Response(
-                {"detail": "Activation link has expired."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ParseError("Activation link has expired.")
 
         user.email_verified_at = timezone.now()
         user.activation_token = None
@@ -360,7 +379,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=["post", "options"],
-        url_path="auth/otp",
+        url_path="otp",
         url_name="otp",
         permission_classes=[AllowAny],
     )
@@ -369,11 +388,8 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         result = serializer.is_valid(raise_exception=False)
 
         if not result:
-            return Response(
-                {
-                    "detail": "Invalid OTP type, valid values are `VERIFY_EMAIL` and `RESET_PASSWORD`"
-                },
-                status=status.HTTP_400_BAD_REQUEST,
+            raise ParseError(
+                "Invalid OTP type. Valid values are `VERIFY_EMAIL` and `RESET_PASSWORD`"
             )
 
         email = serializer.validated_data.get("email")
@@ -392,18 +408,13 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         if otp_type == "VERIFY_EMAIL":
 
             if user.email_verified_at and user.is_active:
-                return Response(
-                    {"detail": "Email already verified."},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
+                raise ParseError("Email already verified. Please login.")
 
             send_user_activation_email(user)
 
         elif otp_type == "RESET_PASSWORD":
             if not user.email_verified_at:
-                return Response(
-                    {"detail": "Email not verified."}, status=status.HTTP_403_FORBIDDEN
-                )
+                raise ParseError("Email not verified.")
 
             otp_obj, created = PasswordResetOTP.objects.get_or_create(user=user)
             otp_code = otp_obj.generate_code()
@@ -437,7 +448,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=["post", "options"],
-        url_path="auth/reset-password",
+        url_path="reset-password",
         url_name="reset-password",
         permission_classes=[AllowAny],
     )
@@ -453,17 +464,11 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             user = CustomUser.objects.get(email=email)
             otp_obj = PasswordResetOTP.objects.get(user=user, code=otp)
         except (CustomUser.DoesNotExist, PasswordResetOTP.DoesNotExist):
-            return Response(
-                {"detail": "Invalid email, OTP code, or new password."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ParseError("Invalid email, OTP code, or new password.") from Exception
 
         if not otp_obj.is_valid():
             otp_obj.delete()
-            return Response(
-                {"detail": "Invalid Email or OTP code has expired."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ParseError("Invalid email, OTP code, or new password.")
 
         user.set_password(new_password)
         user.save()
@@ -488,13 +493,13 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             403: {"description": "User's email is not verified"},
         },
     )
-    @action(detail=False, methods=["post"], url_path="auth/request-change-password")
+    @action(detail=False, methods=["post"], url_path="request-change-password")
     def request_change_password(self, request, *args, **kwargs):
         user = request.user
 
         # Ensure the user's email is verified before allowing password changes
         if not user.email_verified_at and not user.is_active:
-            return Response({"detail": "Your email address is not verified"})
+            raise ParseError("Your email address is not verified")
 
         with transaction.atomic():
             otp_obj, created = PasswordChangeOTP.objects.get_or_create(user=user)
@@ -525,7 +530,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             400: {"description": "Invalid OTP or expired OTP"},
         },
     )
-    @action(detail=False, methods=["post", "options"], url_path="auth/change-password")
+    @action(detail=False, methods=["post", "options"], url_path="change-password")
     def change_password(self, request, **kwargs):
         serializer = ChangePasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -536,25 +541,18 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         new_password = serializer.validated_data.get("new_password")
 
         if not user.check_password(current_password):
-            return Response(
-                {"detail": "Incorrect current password"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ParseError("Incorrect current password. Please try again.")
 
         try:
             otp_obj = PasswordChangeOTP.objects.get(user=user, code=otp)
         except PasswordChangeOTP.DoesNotExist:
-            return Response(
-                {"detail": "Invalid OTP or expired OTP"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ParseError(
+                "Invalid OTP or expired OTP. Please try again."
+            ) from Exception
 
         if not otp_obj.is_valid():
             otp_obj.delete()
-            return Response(
-                {"detail": "Invalid OTP or expired OTP"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ParseError("Invalid OTP or expired OTP. Please try again.")
 
         user.set_password(new_password)
         user.save()
@@ -628,7 +626,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             ),
         ],
     )
-    @action(detail=False, methods=["post"], url_path="auth/logout")
+    @action(detail=False, methods=["post"], url_path="logout")
     def logout(self, request):
         """
         Log out the currently authenticated user.
@@ -645,15 +643,9 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             token = RefreshToken(refresh_token)
             token.blacklist()
         except KeyError:
-            return Response(
-                {"detail": "Refresh token is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ParseError("Refresh token is required.") from KeyError
         except TokenError:
-            return Response(
-                {"detail": "Invalid or expired token."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ParseError("Invalid or expired token") from TokenError
 
         return Response(status=status.HTTP_205_RESET_CONTENT)
 
@@ -685,7 +677,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         detail=False,
         methods=["post"],
         permission_classes=[AllowAny],
-        url_path="auth/register",
+        url_path="register",
     )
     def register(self, request, *args, **kwargs):
         """
@@ -725,7 +717,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         detail=False,
         methods=["post"],
         permission_classes=[AllowAny],
-        url_path="auth/register/student",
+        url_path="register/student",
     )
     def register_student(self, request, *args, **kwargs):
         try:
@@ -733,9 +725,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
                 serializer = StudentRegistrationCompletionSerializer(data=request.data)
 
                 if not serializer.is_valid():
-                    return Response(
-                        serializer.errors, status=status.HTTP_400_BAD_REQUEST
-                    )
+                    raise ValidationError(serializer.errors)
 
                 token = serializer.validated_data["token"]
 
@@ -745,10 +735,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
                 ).first()
 
                 if not user:
-                    return Response(
-                        {"detail": "Invalid or expired activation token."},
-                        status=status.HTTP_404_NOT_FOUND,
-                    )
+                    raise ParseError("Invalid or expired activation token")
 
                 if user.activation_expires < timezone.now():
                     renewal_url = request.build_absolute_uri(

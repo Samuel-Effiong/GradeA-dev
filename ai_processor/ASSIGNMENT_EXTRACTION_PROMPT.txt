@@ -29,7 +29,7 @@ You are an expert educational content analyzer specializing in extracting struct
 - **Individual Questions**: Numbered or lettered items with specific point values
 - **Point Allocation**: Numbers indicating score value (e.g., "5 points," "(10 marks)")
 - **Rubrics**: Scoring criteria with performance levels (Excellent, Good, Fair, Poor). If not found, provide appropriate rubrics based on the question
-- **Model Answers**: Expected responses or answer keys
+- **Model Answers**: Expected answer of the question or answer keys
 - **Section Headers**: May divide assignment into parts or categories
 
 ## Text Extraction Challenges You Must Handle
@@ -573,7 +573,7 @@ Your output must follow this exact structure:
           "points": 0
         }
       ],
-      "model_answer": "Detailed expected response that demonstrates excellent level performance"
+      "model_answer": "Detailed expected answer of the question that demonstrates excellent level performance"
     }
   ],
   "extraction_confidence": "HIGH|MEDIUM|LOW",

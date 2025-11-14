@@ -11,7 +11,7 @@ from drf_spectacular.utils import (
 from PIL import Image
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotAcceptable, NotFound
+from rest_framework.exceptions import NotAcceptable, NotFound, ParseError
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
@@ -336,9 +336,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         files = request.FILES.getlist("assignments")
 
         if not files:
-            return Response(
-                {"error": "No files were uploaded"}, status=status.HTTP_400_BAD_REQUEST
-            )
+            raise ParseError("No files were uploaded.")
 
         results = []
         # uploaded_file_info = []
@@ -353,9 +351,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         for uploaded_file in files:
             # Check if it's an instance of UploadedFile
             if not isinstance(uploaded_file, UploadedFile):
-                return Response(
-                    {"error": "Invalid file upload"}, status=status.HTTP_400_BAD_REQUEST
-                )
+                raise ParseError("Invalid file upload.")
 
             if uploaded_file.content_type in image_formats:
                 try:
@@ -366,9 +362,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                     )
                     results.append(assignment_questions)
                 except Exception as e:
-                    return Response(
-                        {"error": str(e)}, status=status.HTTP_400_BAD_REQUEST
-                    )
+                    raise ParseError(str(e)) from Exception
 
             elif uploaded_file.content_type == pdf_formats:
                 try:
@@ -386,12 +380,9 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                         {"error": str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE
                     )
             else:
-                return Response(
-                    {
-                        "error": f"File `{uploaded_file.name}` has an invalid format. Only images "
-                        f"(JPEG, PNG, GIF, WebP) and PDFs are allowed."
-                    },
-                    status=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                raise ParseError(
+                    f"File `{uploaded_file.name}` has an invalid format. Only images "
+                    f"(JPEG, PNG, GIF, WebP) and PDFs are allowed."
                 )
 
         return Response(results, status=status.HTTP_201_CREATED)
@@ -540,9 +531,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         files = request.FILES.getlist("rubric")
 
         if not files:
-            return Response(
-                {"error": "No files were uploaded"}, status=status.HTTP_400_BAD_REQUEST
-            )
+            raise ParseError("No files were uploaded.")
 
         if len(files) > 1:
             raise NotAcceptable(
@@ -562,9 +551,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
         for uploaded_file in files:
             if not isinstance(uploaded_file, UploadedFile):
-                return Response(
-                    {"error": "Invalid file upload"}, status=status.HTTP_400_BAD_REQUEST
-                )
+                raise ParseError("Invalid file upload.")
 
             if uploaded_file.content_type in image_formats:
                 try:
@@ -591,12 +578,9 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                         {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
                     )
             else:
-                return Response(
-                    {
-                        "error": f"File `{uploaded_file.name}` has an invalid format. Only images "
-                        f"(JPEG, PNG, GIF, WebP) and PDFs are allowed."
-                    },
-                    status=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+                raise ParseError(
+                    f"File `{uploaded_file.name}` has an invalid format. Only images "
+                    f"(JPEG, PNG, GIF, WebP) and PDFs are allowed."
                 )
 
         if rubric is not None:
@@ -659,10 +643,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
         prompt = request.data.get("prompt")
         if not prompt:
-            return Response(
-                {"error": "Prompt is required to generate an assignment."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ParseError("Prompt is required to generate an assignment.")
 
         try:
 
@@ -896,17 +877,11 @@ class RubricViewSet(viewsets.ModelViewSet):
         """
         assignment_id = request.query_params.get("assignment_id")
         if not assignment_id:
-            return Response(
-                {"error": "assignment_id parameter is required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ParseError("Assignment ID is required.")
 
         try:
             rubric = self.queryset.get(assignment_id=assignment_id)
             serializer = self.get_serializer(rubric)
             return Response(serializer.data)
         except Rubric.DoesNotExist:
-            return Response(
-                {"error": "No rubric found for the given assignment"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            raise ParseError("No rubric found for the given assignment.") from Exception

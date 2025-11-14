@@ -3,6 +3,7 @@ from pathlib import Path
 
 import fitz
 import numpy as np
+from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
 from environ import Env
 from openai import OpenAI
@@ -12,6 +13,7 @@ from pdf2image import convert_from_bytes
 # from PIL import Image
 from pytesseract import pytesseract
 
+from ai_processor.tools import perform_search
 from ai_processor.validators import logger
 
 env = Env()
@@ -20,6 +22,8 @@ env.read_env(".env")
 OPENROUTER_API_KEY: str = env.str(
     "OPENROUTER_API_KEY",
 )
+
+PERSONAL_OPENROUTER = env.str("PERSONAL_OPENROUTER")
 #
 # DEEPSEEK_API_KEY: str = env.str(
 #     "DEEPSEEK_API_KEY",
@@ -46,6 +50,35 @@ with open("ai_processor/ASSIGNMENT_GENERATION_PROMPT.txt", "r") as file:
     GENERATE_ASSIGNMENT_PROMPT = file.read()
 
 
+tool_schema = [
+    {
+        "type": "function",
+        "function": {
+            "name": "fetch_url_content",
+            "description": "Fetch the text content from a list of public URLs to get up-to-date or specific "
+            "information for the user's request",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "urls": {
+                        "type": "array",
+                        "description": "A list of public URLs to fetch content from (e.g., ['https://example.com', "
+                        "'https://another.com'])",
+                        "items": {
+                            "type": "string",
+                            "format": "uri",
+                            "description": "A single valid public url to fetch content from",
+                        },
+                        "minItems": 1,
+                    }
+                },
+                "required": ["urls"],
+            },
+        },
+    }
+]
+
+
 class AIProcessor:
     def __init__(self):
 
@@ -53,6 +86,12 @@ class AIProcessor:
             base_url="https://openrouter.ai/api/v1",
             api_key=OPENROUTER_API_KEY,
         )
+
+        # self.client = OpenAI(
+        #     base_url="https://openrouter.ai/api/v1",
+        #     api_key=PERSONAL_OPENROUTER,
+        # )
+
         # self.client = OpenAI(
         #     base_url="https://api.deepseek.com",
         #     api_key=DEEPSEEK_API_KEY
@@ -63,21 +102,45 @@ class AIProcessor:
         #     api_key=HF_TOKEN_API_KEY
         # )
 
-    def __generate_text(self, system_prompt=None, user_prompt=None, messages=None):
-        try:
+    def __ai_model(
+        self, system_prompt=None, user_prompt=None, messages=None, tool_schemas=None
+    ):
+
+        if tool_schemas:
             response = self.client.chat.completions.create(
                 extra_headers={
-                    "HTTP-Referer": "",  # Optional. Site URL for rankings on openrouter.ai.
-                    "X-Title": "",  # Optional. Site title for rankings on openrouter.ai.
+                    "HTTP-Referer": settings.FRONTEND_DOMAIN,
+                    "X-Title": "GradeA+",
                 },
-                model="deepseek/deepseek-chat-v3.1:free",
-                extra_body={
-                    "models": [
-                        "openai/gpt-oss-20b:free",
-                        "google/gemma-3-27b-it:free",
-                        "deepseek/deepseek-chat-v3-0324:free",
-                    ],
+                model="openai/gpt-5-nano",
+                # extra_body={
+                #     "models": [
+                #         "x-ai/grok-4-fast",
+                #         "openai/gpt-5-nano"
+                #     ],
+                # },
+                messages=messages
+                or [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                tools=tool_schemas,
+                temperature=0.1,
+                response_format={"type": "json_object"},
+            )
+        else:
+            response = self.client.chat.completions.create(
+                extra_headers={
+                    "HTTP-Referer": settings.FRONTEND_DOMAIN,
+                    "X-Title": "GradeA+",
                 },
+                model="openai/gpt-5-nano",
+                # extra_body={
+                #     "models": [
+                #         "x-ai/grok-4-fast",
+                #         "openai/gpt-5-nano"
+                #     ],
+                # },
                 messages=messages
                 or [
                     {"role": "system", "content": system_prompt},
@@ -86,8 +149,90 @@ class AIProcessor:
                 temperature=0.1,
                 response_format={"type": "json_object"},
             )
+        return response
 
-            content = response.choices[0].message.content
+    def extract_assignment_from_text(self):
+        pass
+
+    def __generate_text(self, system_prompt=None, user_prompt=None, messages=None):
+        try:
+            messages.append(
+                {
+                    "role": "system",
+                    "content": "Look for any valid URL(s) within the user prompt and extract all that you can find, "
+                    "use the tool (fetch_url_content) provided to you to extract the contents in the url, "
+                    "to gain an uptodate understanding. If there are no urls DO NOT USE the tool",
+                }
+            )
+            response = self.client.chat.completions.create(
+                extra_headers={
+                    "HTTP-Referer": "",  # Optional. Site URL for rankings on openrouter.ai.
+                    "X-Title": "GradeA+",  # Optional. Site title for rankings on openrouter.ai.
+                },
+                model="openai/gpt-5-nano",
+                messages=messages
+                or [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                    {
+                        "role": "system",
+                        "content": "if there are urls within the user prompt, use the tool (fetch_url_content) provided"
+                        " to you to extract the contents in the url, to gain an uptodate understanding. "
+                        "If there are no urls DO NOT USE the tools continue processing the prompt",
+                    },
+                ],
+                tools=tool_schema,
+                temperature=0.1,
+                response_format={"type": "json_object"},
+            )
+
+            message = response.choices[0].message
+
+            tool_calls = message.tool_calls
+
+            if tool_calls:
+                tool = message.tool_calls[0]
+                tool_name = tool.function.name
+                args = json.loads(tool.function.arguments)
+
+                if tool_name == "fetch_url_content":
+                    print("Model requested a web search...")
+                    query = args["urls"]
+
+                    search_result = perform_search(query)
+
+                    tool_result = {
+                        "role": "tool",
+                        "tool_call_id": tool.id,
+                        "content": json.dumps(search_result),
+                    }
+                    messages.pop()
+                    messages.append(tool_result)
+
+                    # Send the search result back to the model for final reasoning
+                    follow_up = self.client.chat.completions.create(
+                        extra_headers={
+                            "HTTP-Referer": "",  # Optional. Site URL for rankings on openrouter.ai.
+                            "X-Title": "GradeA+",  # Optional. Site title for rankings on openrouter.ai.
+                        },
+                        model="openai/gpt-5-nano",  # deepseek/deepseek-chat-v3.1:free", # openai/gpt-oss-20b:free",
+                        # x-ai/grok-4-fast",
+                        # extra_body={
+                        #     "models": [
+                        #         "x-ai/grok-4-fast",
+                        #         "openai/gpt-5-nano"
+                        #     ],
+                        #     # "plugins": [{"id": "web"}],
+                        # },
+                        messages=messages,
+                        response_format={"type": "json_object"},
+                    )
+
+                    print("Final answer")
+                    content = follow_up.choices[0].message.content
+            else:
+                content = message.content
+
             print(f"Received response of length {len(content)}")
 
             return content
@@ -95,45 +240,6 @@ class AIProcessor:
         except Exception as e:
             logger.error(f"Error during AI model: {str(e)}")
             raise Exception(f"Error during AI model: {str(e)}") from Exception
-
-    #
-    # def __generate_text(self, system_prompt=None, user_prompt=None, messages=None):
-    #     try:
-    #         response = self.client.chat.completions.create(
-    #             extra_headers={
-    #                 "HTTP-Referer": "",  # Optional. Site URL for rankings on openrouter.ai.
-    #                 "X-Title": "",  # Optional. Site title for rankings on openrouter.ai.
-    #             },
-    #             model="deepseek/deepseek-chat-v3.1:free",
-    #             extra_body={
-    #                 "models": [
-    #                     "google/gemma-3-27b-it:free",
-    #                     "deepseek/deepseek-chat-v3-0324:free",
-    #                     "openai/gpt-oss-20b:free",
-    #                 ],
-    #             },
-    #             messages=messages
-    #             or [
-    #                 {"role": "system", "content": system_prompt},
-    #                 {"role": "user", "content": user_prompt},
-    #             ],
-    #             temperature=0.1,
-    #             response_format={"type": "json_object"},
-    #         )
-    #
-    #         content = response.choices[0].message.content
-    #         print(f"Recieved response of lenght {len(content)}")
-    #
-    #         try:
-    #             json_data = json.loads(content)
-    #         except json.JSONDecodeError as e:
-    #             print("Error decoding JSON")
-    #             raise Exception(f"Error decoding JSON: {str(e)}") from Exception
-    #
-    #         return json_data
-    #     except Exception as e:
-    #         logger.error(f"Error during extraction: {str(e)}")
-    #         raise Exception(f"Assignment extract failed: {str(e)}") from Exception
 
     def extract_assignment(self, text):
         system_prompt = ASSIGNMENT_EXTRACTION_PROMPT
@@ -147,7 +253,14 @@ EXTRACTED TEXT:
 IMPORTANT: Return only valid JSON matching the required structure.
 Do not include any explanatory text before or after the JSON
 """
-        content = self.__generate_text(system_prompt, user_prompt)
+        # content = self.__generate_text(system_prompt, user_prompt)
+
+        try:
+            response = self.__ai_model(system_prompt, user_prompt)
+            content = response.choices[0].message.content
+
+        except Exception as e:
+            raise Exception(f"Error during AI model: {str(e)}") from Exception
 
         try:
             json_data = json.loads(content)
@@ -316,7 +429,48 @@ Now, respond to the following teacher's instruction using the rules above
         messages.append({"role": "user", "content": user_prompt})
         # messages.append({"role": "user", "content": json_structure})
 
-        content = self.__generate_text(messages=messages)
+        additional_instruction = {
+            "role": "system",
+            "content": "Look for any valid URL(s) within the user prompt and extract all that you can find, "
+            "use the tool (fetch_url_content) provided to you to extract the contents in the url, "
+            "to gain an uptodate understanding. If there are no urls DO NOT USE the tool",
+        }
+
+        messages.append(additional_instruction)
+
+        response = self.__ai_model(messages=messages, tool_schemas=tool_schema)
+        message = response.choices[0].message
+        tool_calls = message.tool_calls
+
+        if tool_calls:
+            tool = message.tool_calls[0]
+            tool_name = tool.function.name
+            args = json.loads(tool.function.arguments)
+
+            if tool_name == "fetch_url_content":
+                print("Model requested a web search...")
+                args = args["urls"]
+
+                search_result = perform_search(args)
+                tool_result = {
+                    "role": "tool",
+                    "tool_call_id": tool.id,
+                    "content": json.dumps(search_result),
+                }
+                messages.pop()
+                messages.append(message)  # add reasoning to response
+                messages.append(tool_result)
+
+                response_2 = self.__ai_model(
+                    messages=messages, tool_schemas=tool_schema
+                )
+                content = response_2.choices[0].message.content
+        else:
+            content = message.content
+
+        # content = self.__generate_text(messages=messages)
+
+        print(f"Received response of length {len(content)}")
 
         try:
             json_data = json.loads(content)
@@ -325,37 +479,6 @@ Now, respond to the following teacher's instruction using the rules above
             raise Exception(f"Error decoding JSON: {str(e)}") from Exception
 
         return json_data
-
-        # try:
-        #     response = self.client.chat.completions.create(
-        #         extra_headers={
-        #             "HTTP-Referer": "",  # Optional. Site URL for rankings on openrouter.ai.
-        #             "X-Title": "",  # Optional. Site title for rankings on openrouter.ai.
-        #         },
-        #         model="deepseek/deepseek-chat-v3.1:free",
-        #         extra_body={
-        #             "models": [
-        #                 "google/gemma-3-27b-it:free",
-        #                 "deepseek/deepseek-chat-v3-0324:free",
-        #                 "openai/gpt-oss-20b:free"
-        #             ],
-        #         },
-        #         messages=messages,
-        #         temperature=0.7,
-        #         response_format={"type": "json_object"},
-        #     )
-        #
-        #     content = response.choices[0].message.content
-        #     print(f"Recieved response of lenght {len(content)}")
-        #
-        #     try:
-        #         return json.loads(content)
-        #     except json.JSONDecodeError as e:
-        #         print("Error decoding JSON")
-        #         raise Exception(f"Error decoding JSON: {str(e)}") from Exception
-        # except Exception as e:
-        #     logger.error(f"Error during assignment generation: {str(e)}")
-        #     raise Exception(f"Assignment generation failed: {str(e)}") from Exception
 
     def generate_assignment_from_prompt_with_retry(
         self, prompt, chat_history=None, max_retries: int = 3

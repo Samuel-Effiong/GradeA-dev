@@ -14,6 +14,7 @@ from drf_spectacular.utils import (
 )
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ParseError, PermissionDenied, ValidationError
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -161,7 +162,7 @@ class CourseViewSet(viewsets.ModelViewSet):
     def students(self, request, pk=None, *args, **kwargs):
         serializer = AddStudentToCourseSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            raise ValidationError(serializer.errors)
 
         email = serializer.validated_data["email"]
 
@@ -177,10 +178,7 @@ class CourseViewSet(viewsets.ModelViewSet):
                     if StudentCourse.objects.filter(
                         student=student, course=course
                     ).exists():
-                        return Response(
-                            {"detail": "Student is already enrolled in this course."},
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
+                        raise ParseError("Student is already enrolled in this course.")
 
                     StudentCourse.objects.create(
                         student=student,
@@ -305,12 +303,9 @@ class CourseViewSet(viewsets.ModelViewSet):
                 course = self.get_object()
 
                 if request.user != course.teacher:
-                    return Response(
-                        {
-                            "detail": "You do not have permission to remove students from this course. "
-                            "Only course teacher can"
-                        },
-                        status=status.HTTP_403_FORBIDDEN,
+                    raise PermissionDenied(
+                        "You do not have permission to remove students from this course. "
+                        "Only course teacher can"
                     )
 
                 # Find the enrollment
@@ -319,10 +314,7 @@ class CourseViewSet(viewsets.ModelViewSet):
                 ).first()
 
                 if not enrollment:
-                    return Response(
-                        {"detail": "Student is not enrolled in this course."},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
+                    raise ParseError("Student is not enrolled in this course.")
 
                 # Deactivate enrollment instead
                 enrollment.is_active = False
@@ -392,20 +384,14 @@ class CourseViewSet(viewsets.ModelViewSet):
             ).first()
 
             if not user:
-                return Response(
-                    {"detail": "Invalid token or user not found."},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
+                raise ParseError("Invalid token or user not found.")
 
             enrollment = StudentCourse.objects.filter(
                 student=user, is_active=False
             ).first()
 
             if not enrollment:
-                return Response(
-                    {"detail": "No pending enrollment found for this user."},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
+                raise ParseError("No pending enrollment found for this user.")
 
             new_token = user.renew_activation_token()
 
