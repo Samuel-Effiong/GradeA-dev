@@ -1,5 +1,5 @@
 import json
-from pathlib import Path
+from io import BytesIO
 
 import fitz
 import numpy as np
@@ -13,7 +13,7 @@ from pdf2image import convert_from_bytes
 # from PIL import Image
 from pytesseract import pytesseract
 
-from ai_processor.tools import perform_search
+from ai_processor.tools import encode_image, perform_search
 from ai_processor.validators import logger
 
 env = Env()
@@ -34,7 +34,7 @@ PERSONAL_OPENROUTER = env.str("PERSONAL_OPENROUTER")
 # )
 
 
-with open("ai_processor/ASSIGNMENT_EXTRACTION_PROMPT.txt", "r") as file:
+with open("ai_processor/ASSIGNMENT_EXTRACTION_PROMPT_2.txt", "r") as file:
     ASSIGNMENT_EXTRACTION_PROMPT = file.read()
 
 with open("ai_processor/RUBRIC_EXTRACTION_PROMPT.txt", "r") as file:
@@ -151,19 +151,12 @@ class AIProcessor:
             )
         return response
 
-    def extract_assignment_from_text(self):
-        pass
+    def get_ai_model_function(self):
+        return self.__ai_model
 
+    # TODO: Delete function soon
     def __generate_text(self, system_prompt=None, user_prompt=None, messages=None):
         try:
-            messages.append(
-                {
-                    "role": "system",
-                    "content": "Look for any valid URL(s) within the user prompt and extract all that you can find, "
-                    "use the tool (fetch_url_content) provided to you to extract the contents in the url, "
-                    "to gain an uptodate understanding. If there are no urls DO NOT USE the tool",
-                }
-            )
             response = self.client.chat.completions.create(
                 extra_headers={
                     "HTTP-Referer": "",  # Optional. Site URL for rankings on openrouter.ai.
@@ -241,6 +234,15 @@ class AIProcessor:
             logger.error(f"Error during AI model: {str(e)}")
             raise Exception(f"Error during AI model: {str(e)}") from Exception
 
+    def create_file(self, uploaded_file):
+        # file_bytes = uploaded_file.read()
+        # uploaded_file.seek(0)
+        encoded_file = encode_image(uploaded_file)
+        file_tuple = (uploaded_file.name, encoded_file, uploaded_file.content_type)
+
+        result = self.client.files.upload(file=file_tuple, purpose="user_data")
+        return result["id"]
+
     def extract_assignment(self, text):
         system_prompt = ASSIGNMENT_EXTRACTION_PROMPT
 
@@ -272,12 +274,29 @@ Do not include any explanatory text before or after the JSON
 
         # return self.__generate_text(system_prompt, user_prompt)
 
-    def extract_assignment_with_retry(self, text: str, max_retries: int = 3):
+    def extract_assignment_image(self, content):
+        system_prompt = ASSIGNMENT_EXTRACTION_PROMPT
+
+        try:
+            response = self.__ai_model(system_prompt, user_prompt=content)
+            content = response.choices[0].message.content
+        except Exception as e:
+            raise Exception(f"Error during AI model: {str(e)}") from Exception
+
+        try:
+            json_data = json.loads(content)
+        except json.JSONDecodeError as e:
+            logger.error(f"Error decoding JSON: {str(e)}")
+            raise Exception(f"Error decoding JSON: {str(e)}") from Exception
+
+        return json_data
+
+    def extract_assignment_with_retry(self, content: str | list, max_retries: int = 3):
         last_error = None
 
         for attempt in range(max_retries):
             try:
-                return self.extract_assignment(text)
+                return self.extract_assignment_image(content)
             except Exception as e:
                 last_error = e
                 logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
@@ -300,7 +319,9 @@ Do not include any explanatory text before or after the JSON
 """
         # return self.__generate_text(system_prompt, user_prompt)
 
-        content = self.__generate_text(system_prompt, user_prompt)
+        # content = self.__generate_text(system_prompt, user_prompt)
+
+        content = self.__ai_model(system_prompt, user_prompt)
 
         try:
             json_data = json.loads(content)
@@ -339,7 +360,8 @@ Do not include any explanatory text before or after the JSON
 """
         # return self.__generate_text(system_prompt, user_prompt)
 
-        content = self.__generate_text(system_prompt, user_prompt)
+        # content = self.__generate_text(system_prompt, user_prompt)
+        content = self.__ai_model(system_prompt, user_prompt)
 
         try:
             json_data = json.loads(content)
@@ -386,7 +408,8 @@ Make sure to:
 """
         # return self.__generate_text(system_prompt, user_prompt)
 
-        content = self.__generate_text(system_prompt, user_prompt)
+        # content = self.__generate_text(system_prompt, user_prompt)
+        content = self.__ai_model(system_prompt, user_prompt)
 
         try:
             json_data = json.loads(content)
@@ -517,7 +540,7 @@ class PDFService:
     def set_uploaded_file(self, uploaded_file: UploadedFile):
         self.uploaded_file = uploaded_file
 
-    def extract(self) -> dict:
+    def extract(self):
         """Extract data from the uploaded pdf"""
         self.clear_extracted_data()
 
@@ -528,17 +551,30 @@ class PDFService:
 
         pdf_bytes = self.uploaded_file.read()
 
+        images = convert_from_bytes(pdf_bytes)
+
+        images_byte = []
+
+        for image in images:
+            buffered = BytesIO()
+            image.save(buffered, format="PNG")
+            image_byte = buffered.getvalue()
+            encoded_image_byte = encode_image(image_byte=image_byte)
+            images_byte.append(encoded_image_byte)
+
+        return images_byte
+
         # First, try to extract text directly from the PDF
         # self.__extract_text_based(pdf_bytes)
 
         # If no text was extracted, it's likely a scanned PDF
-        if not self.extracted_data["questions"]:
-            self.__extract_text_with_ocr(pdf_bytes)
-
-        self.extracted_data["page_count"] = self.__get_page_count(pdf_bytes)
-        self.extracted_data["title"] = Path(self.uploaded_file.name).stem
-
-        return self.extracted_data
+        # if not self.extracted_data["questions"]:
+        #     self.__extract_text_with_ocr(pdf_bytes)
+        #
+        # self.extracted_data["page_count"] = self.__get_page_count(pdf_bytes)
+        # self.extracted_data["title"] = Path(self.uploaded_file.name).stem
+        #
+        # return self.extracted_data
 
     def __get_page_count(self, pdf_bytes):
         """Helper to get the number of pages"""
@@ -574,7 +610,10 @@ class PDFService:
 
             full_text = ""
 
+            image_byte = []
+
             for image in images:
+                image_byte.append(image.tobytes())
                 text = ocr_service.extract_with_paddle(image)
                 full_text += text
 

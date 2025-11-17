@@ -1,3 +1,4 @@
+import base64
 from typing import List
 
 import requests
@@ -21,3 +22,11 @@ def perform_search(urls: List[str]):
         except Exception as e:
             results[url] = f"Error fetching {url}: {e}"
     return results
+
+
+def encode_image(uploaded_file=None, image_byte=None):
+    if uploaded_file is not None:
+        byte = uploaded_file.read()
+    elif image_byte is not None:
+        byte = image_byte
+    return base64.b64encode(byte).decode()
