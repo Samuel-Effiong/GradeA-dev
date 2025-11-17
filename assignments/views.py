@@ -20,6 +20,7 @@ from rest_framework.response import Response
 from ai_processor.models import ChatMessage, ChatSession, RoleType
 from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor, ocr_service, pdf_service
+from ai_processor.tools import encode_image
 from classrooms.models import Course
 from classrooms.permissions import IsTeacher, IsTeacherOrReadOnly
 
@@ -353,12 +354,34 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             if not isinstance(uploaded_file, UploadedFile):
                 raise ParseError("Invalid file upload.")
 
+            text = """
+            Analyze the image of an educational assignment and return a JSON
+
+            IMPORTANT: Return only valid JSON matching the required structure.
+            Do not include any explanatory text before or after the JSON
+            """
+
             if uploaded_file.content_type in image_formats:
                 try:
-                    image = Image.open(uploaded_file)
-                    questions = ocr_service.extract_with_paddle(image)
+                    # file_bytes = uploaded_file.read()
+                    # file_tuple = (uploaded_file.name, file_bytes, uploaded_file.content_type)
+
+                    base64_encoded_file = encode_image(uploaded_file)
+
+                    # file_id = ai_processor.create_file(uploaded_file)
+                    # image = Image.open(uploaded_file)
+                    # questions = ocr_service.extract_with_paddle(image)
+
+                    content = [
+                        {"type": "text", "text": text},
+                        {
+                            "type": "image_url",
+                            "image_url": f"data:{uploaded_file.content_type};base64,{base64_encoded_file}",
+                        },
+                    ]
+
                     assignment_questions = ai_processor.extract_assignment_with_retry(
-                        questions, max_retries=3
+                        content, max_retries=3
                     )
                     results.append(assignment_questions)
                 except Exception as e:
@@ -367,10 +390,20 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             elif uploaded_file.content_type == pdf_formats:
                 try:
                     pdf_service.set_uploaded_file(uploaded_file)
-                    extracted_data = pdf_service.extract()
+                    images_base64_encoded = pdf_service.extract()
+
+                    content = [{"type": "text", "text": text}]
+
+                    for image in images_base64_encoded:
+                        content.append(
+                            {
+                                "type": "image_url",
+                                "image_url": f"data:image/PNG;base64,{image}",
+                            }
+                        )
 
                     assignment_questions = ai_processor.extract_assignment_with_retry(
-                        extracted_data["questions"], max_retries=3
+                        content, max_retries=3
                     )
 
                     results.append(assignment_questions)
