@@ -31,7 +31,7 @@ handler500 = json_500
 schema_urlpatterns = [
     path("", SpectacularAPIView.as_view(), name="schema"),
     path(
-        "swagger-ui/",
+        "swagger-ui",
         SpectacularSwaggerView.as_view(url_name="schema"),
         name="swagger-ui",
     ),
@@ -43,7 +43,7 @@ core_urlpatterns = [
     path("", include("users.urls")),
     path("", include("students.urls")),
     path("auth/login", TokenObtainPairView.as_view(), name="login"),
-    path("auth/refresh", TokenRefreshView.as_view(), name="verify"),
+    path("auth/refresh", TokenRefreshView.as_view(), name="refresh"),
 ]
 
 urlpatterns = [
