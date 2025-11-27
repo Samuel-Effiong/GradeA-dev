@@ -722,7 +722,7 @@ class AuthViewSet(viewsets.ViewSet):
 
                 if user.activation_expires < timezone.now():
                     renewal_url = request.build_absolute_uri(
-                        "/course/student/renew-student-token/"
+                        "/course/student/renew-student-token"
                     )
 
                     return Response(

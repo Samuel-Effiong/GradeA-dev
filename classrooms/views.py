@@ -229,9 +229,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 
                     # Generate registration link
                     frontend_domain = settings.FRONTEND_DOMAIN
-                    registration_link = (
-                        f"https://{frontend_domain}/register/student/{activation_token}"
-                    )
+                    registration_link = f"https://{frontend_domain}/register/student/{activation_token}?email={email}"
 
                     context = {
                         "course": course,
