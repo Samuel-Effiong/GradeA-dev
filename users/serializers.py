@@ -77,6 +77,7 @@ class OTPSerializer(serializers.Serializer):
 class VerifyCustomUserSerializer(serializers.Serializer):
     token = serializers.CharField(required=True)
     email = serializers.EmailField(required=True)
+    user = CustomUserSerializer(read_only=True)
 
 
 class ResetPasswordSerializer(serializers.Serializer):
