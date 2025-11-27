@@ -1,6 +1,7 @@
 from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from users.models import CustomUser
 from users.services import send_user_activation_email
@@ -52,6 +53,15 @@ class CustomUserSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 str(e), code="User update error"
             ) from Exception
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        user_data = CustomUserSerializer(self.user).data
+
+        data.update({"user": user_data})
+        return data
 
 
 class OTPSerializer(serializers.Serializer):
