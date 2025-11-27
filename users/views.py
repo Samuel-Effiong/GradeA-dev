@@ -43,6 +43,7 @@ from users.models import CustomUser, PasswordChangeOTP, PasswordResetOTP
 from users.permissions import IsSuperUser
 from users.serializers import (
     ChangePasswordSerializer,
+    CustomTokenObtainPairSerializer,
     CustomUserSerializer,
     OTPSerializer,
     ResetPasswordSerializer,
@@ -804,7 +805,7 @@ class TokenObtainPairView(BaseTokenObtainPairView):
     Custom view for obtaining JWT token pairs
     """
 
-    pass
+    serializer_class = CustomTokenObtainPairSerializer
 
 
 @extend_schema(
