@@ -107,13 +107,12 @@ class StudentCourse(models.Model):
     course = models.ForeignKey(
         Course, on_delete=models.CASCADE, related_name="enrollments"
     )
-    # is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     enrollment_status = models.CharField(
         max_length=20,
         choices=EnrollmentStatusType.choices,
-        default=EnrollmentStatusType.ENROLLED,
+        default=EnrollmentStatusType.PENDING,
     )
     withdrawal_date = models.DateTimeField(null=True, blank=True)
 
