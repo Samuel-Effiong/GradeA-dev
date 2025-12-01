@@ -46,7 +46,7 @@ with open("ai_processor/ANSWERS_EXTRACTION_PROMPT.txt", "r") as file:
 with open("ai_processor/GRADING_ASSIGNMENT_PROMPT.txt", "r") as file:
     GRADING_ASSIGNMENT_PROMPT = file.read()
 
-with open("ai_processor/ASSIGNMENT_GENERATION_PROMPT.txt", "r") as file:
+with open("ai_processor/ASSIGNMENT_GENERATION_PROMPT_2.txt", "r") as file:
     GENERATE_ASSIGNMENT_PROMPT = file.read()
 
 
