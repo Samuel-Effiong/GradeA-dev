@@ -34,7 +34,7 @@ OPENROUTER_API_KEY: str = env.str(
 # )
 
 
-with open("ai_processor/ASSIGNMENT_EXTRACTION_PROMPT_2.txt", "r") as file:
+with open("ai_processor/ASSIGNMENT_EXTRACTION_PROMPT_3_HTML.txt", "r") as file:
     ASSIGNMENT_EXTRACTION_PROMPT = file.read()
 
 with open("ai_processor/RUBRIC_EXTRACTION_PROMPT.txt", "r") as file:
