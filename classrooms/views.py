@@ -223,8 +223,7 @@ class CourseViewSet(viewsets.ModelViewSet):
                     StudentCourse.objects.create(
                         student=student,
                         course=course,
-                        enrollment_status=EnrollmentStatusType.ENROLLED,
-                        is_active=False,  # Inactive until registration is complete
+                        enrollment_status=EnrollmentStatusType.PENDING,
                     )
 
                     # Generate registration link
@@ -308,16 +307,17 @@ class CourseViewSet(viewsets.ModelViewSet):
 
                 # Find the enrollment
                 enrollment = StudentCourse.objects.filter(
-                    course=course, student_id=student_id, is_active=True
+                    course=course, student_id=student_id
                 ).first()
 
                 if not enrollment:
                     raise ParseError("Student is not enrolled in this course.")
 
                 # Deactivate enrollment instead
-                enrollment.is_active = False
-                enrollment.enrollment_status = EnrollmentStatusType.WITHDRAWN
-                enrollment.save()
+                enrollment.withdrawn()
+                # enrollment.enrollment_status = EnrollmentStatusType.WITHDRAWN
+                #
+                # enrollment.save()
 
                 # Send notification to student
                 student = enrollment.student
@@ -712,7 +712,7 @@ class StudentCourseViewSet(viewsets.ModelViewSet):
     serializer_class = StudentCourseSerializer
     permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
     pagination_class = PageNumberPagination
-    http_method_names = ["get", "head", "post", "delete", "patch", "options"]
+    http_method_names = ["get", "head", "delete", "patch", "options"]
 
     def get_queryset(self):
         user = self.request.user

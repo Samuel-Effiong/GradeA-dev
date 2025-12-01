@@ -2,6 +2,7 @@ import uuid
 
 from django.db import models
 from django.db.models import UniqueConstraint
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 # Create your models here.
@@ -88,6 +89,12 @@ class EnrollmentStatusType(models.TextChoices):
     ENROLLED = "ENROLLED", _("Enrolled")
     WITHDRAWN = "WITHDRAWN", _("Withdrawn")
     COMPLETED = "COMPLETED", _("Completed")
+    PENDING = "PENDING", _("Pending")
+
+
+class StudentCourseQuerySet(models.QuerySet):
+    def active(self):
+        return self.exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
 
 
 class StudentCourse(models.Model):
@@ -100,7 +107,7 @@ class StudentCourse(models.Model):
     course = models.ForeignKey(
         Course, on_delete=models.CASCADE, related_name="enrollments"
     )
-    is_active = models.BooleanField(default=True)
+    # is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     enrollment_status = models.CharField(
@@ -120,6 +127,9 @@ class StudentCourse(models.Model):
     #     default=0.00
     # )
 
+    objects = StudentCourseQuerySet.as_manager()
+    all_objects = models.Manager()
+
     class Meta:
         constraints = [
             UniqueConstraint(
@@ -127,3 +137,14 @@ class StudentCourse(models.Model):
                 name="unique_student_section_per_classroom",
             )
         ]
+
+    def withdrawn(self, when=None):
+        when = when or timezone.now()
+        self.enrollment_status = EnrollmentStatusType.WITHDRAWN
+        self.withdrawal_date = when
+        self.save(update_fields=["enrollment_status", "withdrawal_date"])
+
+    def reactivate(self):
+        self.enrollment_status = EnrollmentStatusType.ENROLLED
+        self.withdrawal_date = None
+        self.save(update_fields=["enrollment_status", "withdrawal_date"])
