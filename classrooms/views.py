@@ -453,6 +453,26 @@ class CourseViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+    @extend_schema(
+        tags=["02 Course"],
+        summary="List courses a student is enrolled in",
+        # description="",
+        responses=CourseSerializer(many=True),
+    )
+    @action(detail=False, methods=["get"], url_name="my-courses", url_path="my-courses")
+    def my_courses(self, request, *args, **kwargs):
+        """List courses the authenticated student is enrolled in, exclude withdrawn"""
+        user = request.user
+
+        if user.user_type != UserTypes.STUDENT:
+            raise ParseError("Only students can access their enrolled courses.")
+
+        student_courses = StudentCourse.objects.filter(student=user)
+        courses = [sc.course for sc in student_courses]
+
+        serializer = CourseSerializer(courses, many=True)
+        return Response(serializer.data)
+
 
 @extend_schema_view(
     list=extend_schema(
