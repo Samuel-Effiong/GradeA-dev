@@ -743,9 +743,9 @@ class AuthViewSet(viewsets.ViewSet):
                 user.email_verified_at = timezone.now()
                 user.save()
 
-                StudentCourse.objects.filter(student=user, is_active=False).update(
-                    is_active=True, enrollment_status=EnrollmentStatusType.ENROLLED
-                )
+                StudentCourse.objects.filter(
+                    student=user, enrollment_status=EnrollmentStatusType.PENDING
+                ).update(enrollment_status=EnrollmentStatusType.ENROLLED)
 
                 return Response(
                     {"detail": "Student registration completed successfully"},
