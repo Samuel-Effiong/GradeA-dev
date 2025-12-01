@@ -1,5 +1,6 @@
 from django.db import transaction
 from rest_framework import serializers
+from rest_framework.exceptions import ParseError
 
 from .models import Assignment, Rubric
 
@@ -189,3 +190,12 @@ class RubricSerializer(serializers.ModelSerializer):
                 return rubric
         except Exception as e:
             raise serializers.ValidationError(f"An error occurred: {e}") from Exception
+
+
+class AssignmentTextSerializer(serializers.Serializer):
+    content = serializers.CharField(required=True)
+
+    def validate_content(self, value):
+        if not value.strip():
+            raise ParseError("Assignment content cannot be empty")
+        return value.strip()

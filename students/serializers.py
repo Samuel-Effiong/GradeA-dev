@@ -6,10 +6,32 @@ from .models import StudentSubmission
 
 
 class StudentSerializer(serializers.ModelSerializer):
+    enrollment_status = serializers.SerializerMethodField(
+        method_name="get_enrollment_status"
+    )
 
     class Meta:
         model = CustomUser
-        fields = ["id", "first_name", "last_name", "email"]
+        fields = [
+            "id",
+            "first_name",
+            "last_name",
+            "email",
+            "is_active",
+            "enrollment_status",
+        ]
+
+    def get_enrollment_status(self, obj):
+        """Returns the enrollment status for this student in the course provided via serializer context.
+        If no course is provided or student is not enrolled in that course, returns None.
+        """
+        course = self.context.get("course")
+
+        if not course:
+            return None
+
+        enrollment = obj.enrollments.filter(course=course).first()
+        return enrollment.enrollment_status if enrollment else None
 
 
 class StudentSubmissionSerializer(serializers.ModelSerializer):

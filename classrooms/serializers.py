@@ -5,16 +5,7 @@ from rest_framework.validators import UniqueTogetherValidator
 from students.serializers import StudentSerializer
 from users.models import CustomUser, UserTypes
 
-from .models import (  # , Classroom, ClassroomSettings,
-    Course,
-    CourseCategory,
-    Session,
-    StudentCourse,
-)
-
-# from rest_framework.validators import UniqueTogetherValidator
-
-# from users.models import CustomUser
+from .models import Course, CourseCategory, Session, StudentCourse
 
 
 class SessionSerializer(serializers.ModelSerializer):
@@ -66,15 +57,27 @@ class CourseSerializer(serializers.ModelSerializer):
         extra_kwargs = {"is_active": {"required": False}}
 
     def get_student_count(self, obj) -> int:
-        return StudentCourse.objects.filter(course=obj).count()
+        return (
+            StudentCourse.objects.filter(course=obj)
+            .exclude(enrollment_status__iexact="withdrawn")
+            .distinct()
+            .count()
+        )
 
     def get_students(self, obj):
         # TODO: Add users, to ensure that it is by the teacher
-        enrolled_students = CustomUser.objects.filter(
-            enrollments__course=obj
-        ).distinct()
+        enrolled_students = (
+            CustomUser.objects.filter(enrollments__course=obj)
+            .exclude(
+                enrollments__course=obj,
+                enrollments__enrollment_status__iexact="withdrawn",
+            )
+            .distinct()
+        )
 
-        serializer = StudentSerializer(enrolled_students, many=True)
+        serializer = StudentSerializer(
+            enrolled_students, many=True, context={"course": obj}
+        )
 
         return serializer.data
 
@@ -88,7 +91,6 @@ class StudentCourseSerializer(serializers.ModelSerializer):
             "id",
             "student",
             "course",
-            "is_active",
             "created_at",
             "enrollment_status",
             "withdrawal_date",

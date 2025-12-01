@@ -297,28 +297,7 @@ class AuthViewSet(viewsets.ViewSet):
         summary="Verify email and activate account",
         description="""Verify the email address of a user.""",
         request=VerifyCustomUserSerializer,
-        responses={
-            202: OpenApiResponse(
-                response=OpenApiTypes.OBJECT,
-                description="User successfully verified",
-                examples=[
-                    OpenApiExample(
-                        "Successful Activation",
-                        value={"access": "string", "refresh": "string"},
-                    )
-                ],
-            ),
-            400: OpenApiResponse(
-                response=OpenApiTypes.OBJECT,
-                description="User account activation failed.",
-                examples=[
-                    OpenApiExample(
-                        "Unsuccessful Activation",
-                        value={"Detail": "User account activation failed"},
-                    )
-                ],
-            ),
-        },
+        responses=VerifyCustomUserSerializer,
     )
     @action(
         detail=False,
@@ -349,12 +328,15 @@ class AuthViewSet(viewsets.ViewSet):
         user.is_active = True
         user.save()
 
+        user_data = CustomUserSerializer(user).data
+
         refresh = RefreshToken.for_user(user)
 
         return Response(
             {
                 "refresh": str(refresh),
                 "access": str(refresh.access_token),
+                "user": user_data,
             },
             status=status.HTTP_202_ACCEPTED,
         )
@@ -740,7 +722,7 @@ class AuthViewSet(viewsets.ViewSet):
 
                 if user.activation_expires < timezone.now():
                     renewal_url = request.build_absolute_uri(
-                        "/course/student/renew-student-token/"
+                        "/course/student/renew-student-token"
                     )
 
                     return Response(
@@ -761,9 +743,9 @@ class AuthViewSet(viewsets.ViewSet):
                 user.email_verified_at = timezone.now()
                 user.save()
 
-                StudentCourse.objects.filter(student=user, is_active=False).update(
-                    is_active=True, enrollment_status=EnrollmentStatusType.ENROLLED
-                )
+                StudentCourse.objects.filter(
+                    student=user, enrollment_status=EnrollmentStatusType.PENDING
+                ).update(enrollment_status=EnrollmentStatusType.ENROLLED)
 
                 return Response(
                     {"detail": "Student registration completed successfully"},

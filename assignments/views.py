@@ -28,7 +28,11 @@ from classrooms.permissions import IsTeacher, IsTeacherOrReadOnly
 from users.models import UserTypes
 
 from .models import Assignment, Rubric
-from .serializers import AssignmentSerializer, RubricSerializer
+from .serializers import (
+    AssignmentSerializer,
+    AssignmentTextSerializer,
+    RubricSerializer,
+)
 
 # from ai_processor.validators import AssignmentStructure
 
@@ -153,11 +157,10 @@ ASSIGNMENT_EXAMPLE = {
     create=extend_schema(
         tags=["04 Assignments"],
         summary="Create a new assignment",
-        description="""Create a new assignment with the provided details.
-        The assignment will be associated with the authenticated user as the creator.
-        Questions and their details should be provided in the 'questions' field as a list of question objects.
+        description="""Create a new assignment by providing the assignment details in text format.
+        The system will analyze the text and extract structured assignment data.
         """,
-        request=AssignmentSerializer,
+        request=AssignmentTextSerializer,
         responses={
             201: OpenApiResponse(
                 response=AssignmentSerializer,
@@ -258,6 +261,35 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             return Assignment.objects.filter(course__enrollments__student=user)
         else:
             return Assignment.objects.none()
+
+    def get_serializer_class(self):
+        if self.request.method in ["POST", "PUT", "PATCH"]:
+            return AssignmentTextSerializer
+        return super().get_serializer_class()
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        content = serializer.validated_data.get("content")
+
+        text = f"""
+        Analyze the text of an educational assignment and return a valid JSON
+
+        ### Assignment Details
+        {content}
+
+        ### End of Assignment Details
+
+        IMPORTANT: Return only valid JSON matching the required structure.
+        Do not include any explanatory text before or after the JSON
+        """
+
+        content = [{"type": "text", "text": text}]
+
+        assignment_questions = ai_processor.extract_assignment_with_retry(
+            content, max_retries=3
+        )
+        return Response(assignment_questions, status=status.HTTP_201_CREATED)
 
     @extend_schema(
         tags=["04 Assignments"],
