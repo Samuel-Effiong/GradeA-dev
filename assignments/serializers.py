@@ -2,6 +2,8 @@ from django.db import transaction
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 
+from classrooms.models import Course
+
 from .models import Assignment, Rubric
 
 
@@ -61,7 +63,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
             "question_count",
             "assignment_type",
             "created_at",
-            "due_date",
+            # "due_date",
             "teacher",
             "questions",
         ]
@@ -194,6 +196,9 @@ class RubricSerializer(serializers.ModelSerializer):
 
 class AssignmentTextSerializer(serializers.Serializer):
     content = serializers.CharField(required=True)
+    course = serializers.PrimaryKeyRelatedField(
+        queryset=Course.objects.all(), required=True
+    )
 
     def validate_content(self, value):
         if not value.strip():

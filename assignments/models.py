@@ -30,7 +30,7 @@ class Assignment(models.Model):
         default=AssignmentTypes.OBJECTIVE,
     )
     created_at = models.DateTimeField(auto_now_add=True)
-    due_date = models.DateTimeField()
+    due_date = models.DateTimeField(null=True, blank=True)
     teacher = models.ForeignKey(
         CustomUser,
         on_delete=models.SET_NULL,
@@ -40,6 +40,7 @@ class Assignment(models.Model):
     )
 
     questions = models.JSONField(null=True, blank=True)
+    # raw_content = models.TextField()
 
     class Meta:
         ordering = ["title"]

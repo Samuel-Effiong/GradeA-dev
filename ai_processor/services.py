@@ -37,13 +37,18 @@ OPENROUTER_API_KEY: str = env.str(
 with open("ai_processor/ASSIGNMENT_EXTRACTION_PROMPT_3_HTML.txt", "r") as file:
     ASSIGNMENT_EXTRACTION_PROMPT = file.read()
 
+with open(
+    "ai_processor/ASSIGNMENT_EXTRACTION_PROMPT_FROM_UPLOADS_HTML.txt", "r"
+) as file:
+    ASSIGNMENT_EXTRACTION_PROMPT_FROM_UPLOADS = file.read()
+
 with open("ai_processor/RUBRIC_EXTRACTION_PROMPT.txt", "r") as file:
     RUBRIC_EXTRACTION_PROMPT = file.read()
 
-with open("ai_processor/ANSWERS_EXTRACTION_PROMPT.txt", "r") as file:
+with open("ai_processor/ANSWERS_EXTRACTION_PROMPT_HTML.txt", "r") as file:
     ANSWERS_EXTRACTION_PROMPT = file.read()
 
-with open("ai_processor/GRADING_ASSIGNMENT_PROMPT.txt", "r") as file:
+with open("ai_processor/GRADING_ASSIGNMENT_PROMPT_2.txt", "r") as file:
     GRADING_ASSIGNMENT_PROMPT = file.read()
 
 with open("ai_processor/ASSIGNMENT_GENERATION_PROMPT_2.txt", "r") as file:
@@ -274,8 +279,11 @@ Do not include any explanatory text before or after the JSON
 
         # return self.__generate_text(system_prompt, user_prompt)
 
-    def extract_assignment_image(self, content):
-        system_prompt = ASSIGNMENT_EXTRACTION_PROMPT
+    def extract_assignment_image(self, content, upload=False):
+        if upload:
+            system_prompt = ASSIGNMENT_EXTRACTION_PROMPT_FROM_UPLOADS
+        else:
+            system_prompt = ASSIGNMENT_EXTRACTION_PROMPT
 
         try:
             response = self.__ai_model(system_prompt, user_prompt=content)
@@ -291,12 +299,14 @@ Do not include any explanatory text before or after the JSON
 
         return json_data
 
-    def extract_assignment_with_retry(self, content: str | list, max_retries: int = 3):
+    def extract_assignment_with_retry(
+        self, content: str | list, max_retries: int = 3, upload=False
+    ):
         last_error = None
 
         for attempt in range(max_retries):
             try:
-                return self.extract_assignment_image(content)
+                return self.extract_assignment_image(content, upload=upload)
             except Exception as e:
                 last_error = e
                 logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
@@ -371,12 +381,32 @@ Do not include any explanatory text before or after the JSON
 
         return json_data
 
-    def extract_answer_with_retry(self, text: str, max_retries: int = 3):
+    def extract_answer_image(self, content):
+        system_prompt = ANSWERS_EXTRACTION_PROMPT
+
+        # return self.__generate_text(system_prompt, user_prompt)
+
+        # content = self.__generate_text(system_prompt, user_prompt)
+        try:
+            response = self.__ai_model(system_prompt, user_prompt=content)
+            content = response.choices[0].message.content
+        except Exception as e:
+            raise Exception(f"Error during AI model: {str(e)}") from Exception
+
+        try:
+            json_data = json.loads(content)
+        except json.JSONDecodeError as e:
+            logger.error(f"Error decoding JSON: {str(e)}")
+            raise Exception(f"Error decoding JSON: {str(e)}") from Exception
+
+        return json_data
+
+    def extract_answer_with_retry(self, content, max_retries: int = 3):
         last_error = None
 
         for attempt in range(max_retries):
             try:
-                return self.extract_answer(text)
+                return self.extract_answer_image(content)
             except Exception as e:
                 last_error = e
                 logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
@@ -410,9 +440,10 @@ Make sure to:
 
         # content = self.__generate_text(system_prompt, user_prompt)
         content = self.__ai_model(system_prompt, user_prompt)
+        grade = content.choices[0].message.content
 
         try:
-            json_data = json.loads(content)
+            json_data = json.loads(grade)
         except json.JSONDecodeError as e:
             logger.error(f"Error decoding JSON: {str(e)}")
             raise Exception(f"Error decoding JSON: {str(e)}") from Exception
