@@ -11,4 +11,6 @@ class DashboardView(TemplateView):
         # Implementation for stats endpoint
         # active_course = Course.objects.filter(is_active=True).count()
 
+        print("Love God with the whole of your heart")
+
         pass
