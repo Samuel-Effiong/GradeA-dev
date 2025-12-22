@@ -306,6 +306,11 @@ SPECTACULAR_SETTINGS = {
         }
     },
     "SECURITY": [{"BearerAuth": []}],
+    "SWAGGER_UI_SETTINGS": {
+        "defaultModelsExpandDepth": -1,
+        "defaultModelExpandDepth": -1,
+        # "docExpansion": "none",
+    },
 }
 
 EMAIL_BACKEND = "anymail.backends.sendinblue.EmailBackend"

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline TinyMCE Editor</title>
+    <!-- Include TinyMCE script (download from https://www.tiny.cloud/get-tiny/ and place tinymce.min.js in the same directory) -->
+    <script src="./tinymce/tinymce.min.js"></script>
+    <script>
+        // Initialize TinyMCE
+        tinymce.init({
+            selector: '#editor',
+            height: 500,
+            menubar: true,
+            plugins: [
+                'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+                'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+                'insertdatetime', 'media', 'table', 'help', 'wordcount'
+            ],
+            toolbar: 'undo redo | blocks | ' +
+                'bold italic forecolor | alignleft aligncenter ' +
+                'alignright alignjustify | bullist numlist outdent indent | ' +
+                'removeformat | help',
+            content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }',
+            // For offline use, ensure all plugins and themes are downloaded and paths are correct if needed
+        });
+
+        // Function to save content as HTML file
+        function saveAsHtml() {
+            const content = tinymce.get('editor').getContent();
+            console.log(content);
+            const blob = new Blob([content], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'document.html';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</head>
+<body>
+    <h1>Type your Assignment</h1>
+    <textarea id="editor"></textarea>
+    <button onclick="saveAsHtml()">Save as HTML</button>
+</body>
+</html>

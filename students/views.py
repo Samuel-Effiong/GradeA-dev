@@ -9,7 +9,8 @@ from drf_spectacular.utils import (
     extend_schema,
     extend_schema_view,
 )
-from PIL.Image import Image
+
+# from PIL.Image import Image
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotAcceptable, NotFound, ParseError
@@ -23,7 +24,8 @@ from rest_framework.status import (
     HTTP_500_INTERNAL_SERVER_ERROR,
 )
 
-from ai_processor.services import ai_processor, ocr_service, pdf_service
+from ai_processor.services import ai_processor, pdf_service
+from ai_processor.tools import encode_image
 from assignments.models import Assignment
 from classrooms.permissions import IsStudent, IsTeacher
 from students.models import StudentSubmission
@@ -186,7 +188,9 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
             return StudentSubmission.objects.none()
 
     def get_permissions(self):
-        if self.action == "create":
+        if self.action in [
+            "create",
+        ]:  # "upload_answers"]:
             permission_classes = [IsAuthenticated, IsStudent]
         else:
             permission_classes = [IsAuthenticated]
@@ -279,6 +283,7 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
         methods=["POST"],
         url_path=r"(?P<assignment_id>[-\w]+)/upload",
         url_name="upload-answers",
+        permission_classes=[IsAuthenticated],
     )
     def upload_answers(self, request, assignment_id=None, *args, **kwargs):
         if not Assignment.objects.filter(id=assignment_id).exists():
@@ -308,10 +313,34 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
                     "Invalid file upload. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed."
                 )
 
+            text = """
+            Analyze the image of an educational assignment and return a JSON
+
+            IMPORTANT: Return only valid JSON matching the required structure.
+            Do not include any explanatory text before or after the JSON
+            """
+
             if uploaded_file.content_type in image_formats:
                 try:
-                    image = Image.open(uploaded_file)
-                    extracted_text = ocr_service.extract_with_pytessaract(image)
+                    base64_encoded_file = encode_image(uploaded_file)
+
+                    content = [
+                        {"type": "text", "text": text},
+                        {
+                            "type": "image_url",
+                            "image_url": f"data:{uploaded_file.content_type};base64,{base64_encoded_file}",
+                        },
+                    ]
+
+                    student_submission = ai_processor.extract_answer_with_retry(
+                        content, max_retries=3
+                    )
+
+                    if student_submission is not None:
+                        student_submission["assignment"] = assignment_id
+
+                    return Response(student_submission, status=HTTP_201_CREATED)
+
                 except Exception as e:
                     return Response(
                         {"error": str(e)}, status=HTTP_500_INTERNAL_SERVER_ERROR
@@ -319,8 +348,26 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
             elif uploaded_file.content_type == pdf_formats:
                 try:
                     pdf_service.set_uploaded_file(uploaded_file)
-                    extracted_data = pdf_service.extract()
-                    extracted_text = extracted_data["questions"]
+                    images_base64_encoded = pdf_service.extract()
+
+                    content = [{"type": "text", "text": text}]
+
+                    for image in images_base64_encoded:
+                        content.append(
+                            {
+                                "type": "image_url",
+                                "image_url": f"data:image/PNG;base64,{image}",
+                            }
+                        )
+
+                    student_submission = ai_processor.extract_answer_with_retry(
+                        content, max_retries=3
+                    )
+
+                    if student_submission is not None:
+                        student_submission["assignment"] = assignment_id
+
+                    return Response(student_submission, status=HTTP_201_CREATED)
 
                 except Exception as e:
                     return Response(
@@ -374,10 +421,12 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
             raise NotFound(detail="No Rubric criteria found for this assignment")
 
         try:
-            rubric_json = rubric.get_rubric_criteria_json()
+            # rubric_json = rubric.get_rubric_criteria_json()
             answer_json = submission.get_answer()
 
-            grading = ai_processor.extract_grade_with_retry(rubric_json, answer_json)
+            grading = ai_processor.extract_grade_with_retry(
+                assignment.questions, answer_json
+            )
 
         except Exception as e:
             return Response({"error": str(e)}, status=HTTP_500_INTERNAL_SERVER_ERROR)

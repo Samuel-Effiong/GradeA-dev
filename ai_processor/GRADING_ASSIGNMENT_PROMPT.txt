@@ -31,7 +31,7 @@ Your output **must** be a single JSON object with the following structure. Every
     * `recommendations_for_teacher`: (array of strings) Suggestions for the teacher. Examples: "Consider providing more detailed instructions for this question," "The rubric may need more specific descriptors for 'Good' vs. 'Excellent'," "Review this submission manually due to low confidence score."
 
 #### 4. Step-by-Step Execution and Reasoning
-1.  **Retrieve and Align Data:** Begin by carefully matching each `student_answer` from the student's data with its corresponding `criteria` object from the rubric data using the `question_id`.
+1.  **Retrieve and Align Data:** Begin by carefully matching each `student_answer` from the student's data with its corresponding `questions` object from the rubric data using the `question_id`.
 2.  **Criterion-by-Criterion Analysis:** For each matched question:
     * **Understand the Model:** Analyze the `model_answer` and `scoring_levels` in the rubric. This is your "source of truth." You must understand what a perfect answer looks like, what a "Good" answer looks like, and what a "Poor" answer looks like.
     * **Evaluate Student's Answer:** Systematically compare the `student_answer` against the descriptors for each `scoring_level`. This is a sophisticated comparison, not just a keyword search. You must evaluate for:

@@ -1,4 +1,6 @@
 from django.core.files.uploadedfile import UploadedFile
+from django.http import Http404
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
@@ -11,7 +13,12 @@ from drf_spectacular.utils import (
 from PIL import Image
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotAcceptable, NotFound, ParseError
+from rest_framework.exceptions import (
+    NotAcceptable,
+    NotFound,
+    ParseError,
+    ValidationError,
+)
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
@@ -190,9 +197,9 @@ ASSIGNMENT_EXAMPLE = {
     ),
     partial_update=extend_schema(
         tags=["04 Assignments"],
-        summary="Partially update an assignment",
-        description="Update one or more fields of an existing assignment.",
-        request=AssignmentSerializer(partial=True),
+        summary="Update an assignment",
+        description="Update an existing assignment.",
+        request=AssignmentTextSerializer,
         responses={
             200: AssignmentSerializer,
             400: OpenApiResponse(description="Invalid input"),
@@ -271,6 +278,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         content = serializer.validated_data.get("content")
+        course = serializer.validated_data.get("course")
 
         text = f"""
         Analyze the text of an educational assignment and return a valid JSON
@@ -289,7 +297,48 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         assignment_questions = ai_processor.extract_assignment_with_retry(
             content, max_retries=3
         )
-        return Response(assignment_questions, status=status.HTTP_201_CREATED)
+
+        assignment_questions["course"] = course.id
+        serializer = AssignmentSerializer(data=assignment_questions)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def partial_update(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        content = serializer.validated_data.get("content")
+
+        text = f"""
+        Analyze the text of an educational assignment and return a valid JSON
+
+        ### Assignment Details
+        {content}
+
+        ### End of Assignment Details
+
+        IMPORTANT: Return only valid JSON matching the required structure.
+        Do not include any explanatory text before or after the JSON
+        """
+
+        content = [{"type": "text", "text": text}]
+        assignment_questions = ai_processor.extract_assignment_with_retry(
+            content, max_retries=3
+        )
+
+        instance = self.get_object()
+
+        # assignment_questions['course'] = instance.course.id
+
+        # create assignment object
+        assignment_serializer = AssignmentSerializer(
+            instance=instance, data=assignment_questions, partial=True
+        )
+        assignment_serializer.is_valid(raise_exception=True)
+        assignment_serializer.save()
+
+        return Response(assignment_questions, status=status.HTTP_200_OK)
 
     @extend_schema(
         tags=["04 Assignments"],
@@ -301,11 +350,16 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             "multipart/form-data": {
                 "type": "object",
                 "properties": {
+                    "course": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "The UUID of the course this assignment belongs",
+                    },
                     "assignments": {
                         "type": "array",
                         "items": {"type": "string", "format": "binary"},
                         "description": "A list of files to upload. You can select one or multiple files to upload.",
-                    }
+                    },
                 },
             }
         },
@@ -365,6 +419,22 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         permission_classes=[IsAuthenticated, IsTeacher],
     )
     def upload_assignment(self, request):
+        course = request.data.get("course")
+        if not course:
+            raise ParseError("Course ID is required.")
+
+        # Validate course exists and user has access to it
+        try:
+            course = get_object_or_404(Course, id=course, teacher=request.user)
+        except (ValueError, ValidationError):
+            raise ParseError(
+                "Invalid Course ID format. Must be with a valid UUID"
+            ) from Exception
+        except Http404:
+            raise NotFound(
+                "Course not found or you don't have access to it."
+            ) from Http404
+
         # Access files using request.FILES
         files = request.FILES.getlist("assignments")
 
@@ -372,7 +442,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             raise ParseError("No files were uploaded.")
 
         results = []
-        # uploaded_file_info = []
+
         image_formats = [
             "image/jpeg",
             "image/png",
@@ -380,51 +450,36 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             "image/webp",
         ]
         pdf_formats = "application/pdf"
+        prompt_text = """
+        Analyze the image of an educational assignment and return a JSON
+
+        IMPORTANT: Return only valid JSON matching the required structure.
+        Do not include any explanatory text before or after the JSON
+        """
 
         for uploaded_file in files:
             # Check if it's an instance of UploadedFile
             if not isinstance(uploaded_file, UploadedFile):
                 raise ParseError("Invalid file upload.")
 
-            text = """
-            Analyze the image of an educational assignment and return a JSON
+            content_type = uploaded_file.content_type
+            content = [{"type": "text", "text": prompt_text}]
 
-            IMPORTANT: Return only valid JSON matching the required structure.
-            Do not include any explanatory text before or after the JSON
-            """
-
-            if uploaded_file.content_type in image_formats:
-                try:
-                    # file_bytes = uploaded_file.read()
-                    # file_tuple = (uploaded_file.name, file_bytes, uploaded_file.content_type)
+            try:
+                if content_type in image_formats:
 
                     base64_encoded_file = encode_image(uploaded_file)
 
-                    # file_id = ai_processor.create_file(uploaded_file)
-                    # image = Image.open(uploaded_file)
-                    # questions = ocr_service.extract_with_paddle(image)
-
-                    content = [
-                        {"type": "text", "text": text},
+                    content.append(
                         {
                             "type": "image_url",
                             "image_url": f"data:{uploaded_file.content_type};base64,{base64_encoded_file}",
-                        },
-                    ]
-
-                    assignment_questions = ai_processor.extract_assignment_with_retry(
-                        content, max_retries=3
+                        }
                     )
-                    results.append(assignment_questions)
-                except Exception as e:
-                    raise ParseError(str(e)) from Exception
 
-            elif uploaded_file.content_type == pdf_formats:
-                try:
+                elif uploaded_file.content_type == pdf_formats:
                     pdf_service.set_uploaded_file(uploaded_file)
                     images_base64_encoded = pdf_service.extract()
-
-                    content = [{"type": "text", "text": text}]
 
                     for image in images_base64_encoded:
                         content.append(
@@ -433,24 +488,27 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                                 "image_url": f"data:image/PNG;base64,{image}",
                             }
                         )
-
-                    assignment_questions = ai_processor.extract_assignment_with_retry(
-                        content, max_retries=3
+                else:
+                    raise ParseError(
+                        f"File `{uploaded_file.name}` has an invalid format. Only images "
+                        f"(JPEG, PNG, GIF, WebP) and PDFs are allowed."
                     )
 
-                    results.append(assignment_questions)
-
-                except Exception as e:
-                    return Response(
-                        {"error": str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE
-                    )
-            else:
-                raise ParseError(
-                    f"File `{uploaded_file.name}` has an invalid format. Only images "
-                    f"(JPEG, PNG, GIF, WebP) and PDFs are allowed."
+                assignment_questions = ai_processor.extract_assignment_with_retry(
+                    content, max_retries=3, upload=True
                 )
 
-        return Response(results, status=status.HTTP_201_CREATED)
+                assignment_questions["course"] = course.id
+
+                results.append(assignment_questions)
+            except Exception as e:
+                raise ParseError(str(e)) from Exception
+
+        serializer = AssignmentSerializer(data=results, many=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @extend_schema(
         tags=["05 Rubrics"],
