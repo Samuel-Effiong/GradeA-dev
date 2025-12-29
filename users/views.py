@@ -38,9 +38,9 @@ from rest_framework_simplejwt.views import (
 from rest_framework_simplejwt.views import TokenRefreshView as BaseTokenRefreshView
 
 from classrooms.models import EnrollmentStatusType, StudentCourse
+from classrooms.permissions import IsSuperAdmin
 from classrooms.serializers import StudentRegistrationCompletionSerializer
-from users.models import CustomUser, PasswordChangeOTP, PasswordResetOTP
-from users.permissions import IsSuperUser
+from users.models import CustomUser, PasswordChangeOTP, PasswordResetOTP, UserTypes
 from users.serializers import (
     ChangePasswordSerializer,
     CustomTokenObtainPairSerializer,
@@ -98,13 +98,6 @@ class BaseUserViewSet(viewsets.ModelViewSet):
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
                 description="Number of results per page",
-            ),
-            OpenApiParameter(
-                name="user_type",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.QUERY,
-                description="Filter users by type (TEACHER or STUDENT)",
-                enum=["TEACHER", "STUDENT"],
             ),
         ],
         responses={
@@ -190,6 +183,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
 
     filterset_fields = {
         "user_type": ["exact"],
+        "school__name": ["exact"],
         "enrollments__course": ["exact", "isnull"],
         "enrollments__course__session": ["exact"],
         "enrollments__enrollment_status": ["exact", "in"],
@@ -215,25 +209,19 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         Allow unauthenticated access only for POST endpoints (public actions).
         All other requests require authentication.
         """
-        if self.action in [
-            "create",
-            "register",
-            "register_student",
-            "verify",
-            "otp",
-            "reset_password",
-        ]:
-            permission_classes = [AllowAny]
-        elif self.action == "list":
-            permission_classes = [IsAuthenticated, IsSuperUser]
+        if self.action in ["list", "create"]:
+            permission_classes = [IsAuthenticated, IsSuperAdmin]
         else:
             permission_classes = [IsAuthenticated]
 
         return [permission() for permission in permission_classes]
 
-    @extend_schema(exclude=True)
+    # @extend_schema(exclude=True)
     def create(self, request, *args, **kwargs):
-        if not request.user.is_superuser:
+        if (
+            not request.user.is_superuser
+            and request.user.user_type != UserTypes.SUPER_ADMIN
+        ):
             return Response(
                 {"detail": "You do not have permission to create users."},
                 status=status.HTTP_403_FORBIDDEN,

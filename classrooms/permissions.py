@@ -48,3 +48,31 @@ class IsStudent(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         return self.has_permission(request, view)
+
+
+class IsSuperAdmin(permissions.BasePermission):
+    message = "You must be a superadmin to access this endpoint."
+    """
+    Allows access only to superadmins
+    """
+
+    def has_permission(self, request, view):
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and request.user.user_type == UserTypes.SUPER_ADMIN
+        )
+
+
+class IsSchoolAdmin(permissions.BasePermission):
+    message = "You must be a school admin to access this endpoint."
+    """
+    Allows access only to school admins
+    """
+
+    def has_permission(self, request, view):
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and request.user.user_type == UserTypes.SCHOOL_ADMIN
+        )

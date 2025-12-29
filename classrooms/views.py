@@ -21,22 +21,124 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from users.models import CustomUser, UserTypes
+from users.serializers import CustomUserSerializer
 from users.services import otp_manager
 
 from .models import (  # , Classroom, ClassroomSettings
     Course,
     EnrollmentStatusType,
+    School,
     Session,
     StudentCourse,
 )
-from .permissions import IsTeacherOrReadOnly
+from .permissions import IsSuperAdmin, IsTeacherOrReadOnly
 from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
     AddStudentToCourseSerializer,
     CourseSerializer,
     ExpiredTokenSerializer,
+    SchoolSerializer,
     SessionSerializer,
     StudentCourseSerializer,
 )
+
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=["School"],
+        summary="List all Schools",
+        description="Retrieve a paginated list of all Schools in the system.",
+        parameters=[
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            )
+        ],
+        responses={200: SchoolSerializer(many=True)},
+    ),
+    create=extend_schema(
+        tags=["School"],
+        summary="Create a new School",
+        description="Create a new School with the provided details.",
+        request=SchoolSerializer,
+        responses={
+            201: OpenApiResponse(
+                response=SchoolSerializer,
+                description="School created successfully",
+            ),
+        },
+    ),
+    retrieve=extend_schema(
+        tags=["School"],
+        summary="Retrieve a School",
+        description="Retrieve detailed information about a specific School by its ID.",
+        responses={
+            200: SchoolSerializer,
+            404: OpenApiResponse(description="School not found"),
+        },
+    ),
+    partial_update=extend_schema(
+        tags=["School"],
+        summary="Update an existing School",
+        description="Update an existing School with the provided details.",
+        request=SchoolSerializer,
+        responses={
+            200: OpenApiResponse(
+                response=SchoolSerializer,
+                description="School updated successfully",
+            )
+        },
+    ),
+    destroy=extend_schema(
+        tags=["School"],
+        summary="Delete a School",
+        description="Delete a School by ID. This action cannot be undone.",
+        responses={
+            204: OpenApiResponse(description="School deleted successfully"),
+            403: OpenApiResponse(
+                description="You do not have permission to delete this School"
+            ),
+            404: OpenApiResponse(description="School not found"),
+        },
+    ),
+)
+class SchoolViewSet(viewsets.ModelViewSet):
+    queryset = School.objects.all()
+    serializer_class = SchoolSerializer
+    permission_classes = (IsSuperAdmin,)
+    pagination_class = PageNumberPagination
+    http_method_names = ["get", "head", "post", "delete", "patch", "options"]
+
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    ordering_fields = ["name", "created_at"]
+    search_fields = ["name"]
+
+    @extend_schema(
+        tags=["School"],
+        summary="Create the School admin of a school",
+        description="""
+
+        """,
+        request=CustomUserSerializer,
+        responses={
+            201: OpenApiResponse(
+                response=CustomUserSerializer,
+                description="School admin created successfully",
+            ),
+            400: OpenApiResponse(
+                description="Invalid input. Missing required fields or invalid data format"
+            ),
+        },
+    )
+    @action(detail=False, methods=["post"], url_path="admin", url_name="admin")
+    def admin(self, request, *args, **kwargs):
+        """Make a User the admin of a school"""
+        serializer = CustomUserSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @extend_schema_view(
@@ -159,7 +261,7 @@ class CourseViewSet(viewsets.ModelViewSet):
         request=AddStudentToCourseSerializer,
     )
     @action(detail=True, methods=["post"], url_path="students", url_name="students")
-    def students(self, request, pk=None, *args, **kwargs):
+    def students(self, request, *args, **kwargs):
         serializer = AddStudentToCourseSerializer(data=request.data)
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)

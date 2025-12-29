@@ -188,9 +188,7 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
             return StudentSubmission.objects.none()
 
     def get_permissions(self):
-        if self.action in [
-            "create",
-        ]:  # "upload_answers"]:
+        if self.action in ["create", "upload_answers"]:
             permission_classes = [IsAuthenticated, IsStudent]
         else:
             permission_classes = [IsAuthenticated]

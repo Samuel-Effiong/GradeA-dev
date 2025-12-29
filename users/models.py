@@ -48,6 +48,8 @@ class CustomUserManager(BaseUserManager):
 class UserTypes(models.TextChoices):
     STUDENT = "STUDENT", "Student"
     TEACHER = "TEACHER", "Teacher"
+    SCHOOL_ADMIN = "SCHOOL_ADMIN", "School Admin"
+    SUPER_ADMIN = "SUPER_ADMIN", "Super Admin"
 
 
 # Create your models here.
@@ -56,6 +58,13 @@ class CustomUser(AbstractUser):
     REQUIRED_FIELDS = ["first_name", "last_name"]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    school = models.ForeignKey(
+        "classrooms.School",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="users",
+    )
 
     email = models.EmailField(unique=True)
     user_type = models.CharField(

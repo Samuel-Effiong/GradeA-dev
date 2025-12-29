@@ -398,7 +398,6 @@ Do not include any explanatory text before or after the JSON
         except json.JSONDecodeError as e:
             logger.error(f"Error decoding JSON: {str(e)}")
             raise Exception(f"Error decoding JSON: {str(e)}") from Exception
-
         return json_data
 
     def extract_answer_with_retry(self, content, max_retries: int = 3):

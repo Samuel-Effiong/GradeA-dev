@@ -5,7 +5,7 @@ from rest_framework.validators import UniqueTogetherValidator
 from students.serializers import StudentSerializer
 from users.models import CustomUser, UserTypes
 
-from .models import Course, CourseCategory, Session, StudentCourse
+from .models import Course, CourseCategory, School, Session, StudentCourse
 
 
 class SessionSerializer(serializers.ModelSerializer):
@@ -160,3 +160,14 @@ class ExpiredTokenSerializer(serializers.Serializer):
     """Serializer for handling expired tokens."""
 
     token = serializers.CharField(required=True)
+
+
+class SchoolSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = School
+        fields = ["id", "name", "address", "phone", "website", "created_at"]
+
+    def validate_name(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("School name cannot be empty.")
+        return value
