@@ -112,6 +112,20 @@ class CustomUser(AbstractUser):
             return True
         return False
 
+
+class UserActivity(models.Model):
+    user = models.ForeignKey(
+        CustomUser, on_delete=models.CASCADE, related_name="activities"
+    )
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name_plural = "User Activities"
+        ordering = ["-timestamp"]
+
+    def __str__(self):
+        return f"{self.user.email} active at {self.timestamp}"
+
     def renew_activation_token(self):
         """Renew the activation token and extend expiration."""
         self.activation_token = otp_manager.generate_otp()
@@ -178,3 +192,11 @@ class PasswordChangeOTP(models.Model):
         self.save()
 
         return self.code
+
+
+class ConcurrentUserSnapshot(models.Model):
+    timestamp = models.DateTimeField(auto_now_add=True)
+    concurrent_users = models.PositiveIntegerField()
+
+    class Meta:
+        ordering = ["-timestamp"]

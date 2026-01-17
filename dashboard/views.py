@@ -1,19 +1,26 @@
-from django.db.models import Avg, Case, Count, Q, Value, When
-from drf_spectacular.utils import extend_schema, extend_schema_view
-from rest_framework import request, viewsets
+from django.db.models import Avg, Case, Count, FloatField, Q, Value, When
+from django.db.models.functions import Cast, ExtractHour
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_headers
+from drf_spectacular.utils import extend_schema
+from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from assignments.models import Assignment
 from classrooms.models import Course, School, StudentCourse
-from classrooms.permissions import IsTeacher
+from classrooms.permissions import IsSchoolAdmin, IsSuperAdmin
 from students.models import StudentSubmission
-from users.models import CustomUser, UserTypes
+from users.models import CustomUser, UserActivity, UserTypes
 
 
 class SuperAdminDashboardView(viewsets.ViewSet):
+    permission_classes = [IsSuperAdmin]
 
     @extend_schema(tags=["Super Admin"])
+    @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:summary"))
+    @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/summary")
     def summary(self, request, *args, **kwargs):
         # Implementation for summary endpoint
@@ -29,6 +36,81 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         total_assignments = Assignment.objects.all()
         total_submissions = StudentSubmission.objects.all()
 
+        # 1. Average course size (students per course)
+        avg_course_size = (
+            Course.objects.annotate(
+                student_count=Count("enrollments", distinct=True)
+            ).aggregate(Avg("student_count"))["student_count__avg"]
+            or 0
+        )
+
+        # 2. Total assignment graded (submissions with a score)
+        # Assuming score is not null means it's graded
+        total_assignments_graded = StudentSubmission.objects.filter(
+            score__isnull=False
+        ).count()
+
+        # 3. Average assignment per course
+        avg_assignments_per_course = (
+            Course.objects.annotate(
+                assignment_count=Count("assignments", distinct=True)
+            ).aggregate(Avg("assignment_count"))["assignment_count__avg"]
+            or 0
+        )
+
+        # 4. Average course per teacher
+        avg_courses_per_teacher = (
+            CustomUser.objects.filter(user_type=UserTypes.TEACHER)
+            .annotate(course_count=Count("courses", distinct=True))
+            .aggregate(Avg("course_count"))["course_count__avg"]
+            or 0
+        )
+
+        # 5. Average AI grading confidence level
+        avg_grading_confidence = (
+            StudentSubmission.objects.filter(
+                feedback__grading_evaluation__grading_confidence_score__isnull=False
+            )
+            .annotate(
+                conf_score=Cast(
+                    "feedback__grading_evaluation__grading_confidence_score",
+                    output_field=FloatField(),
+                )
+            )
+            .aggregate(Avg("conf_score"))["conf_score__avg"]
+            or 0
+        )
+
+        # 6. Average AI extraction confidence level
+        avg_extraction_confidence = (
+            Assignment.objects.filter(extraction_confidence__isnull=False).aggregate(
+                Avg("extraction_confidence")
+            )["extraction_confidence__avg"]
+            or 0
+        )
+
+        # 7. Peak Concurrent Users (PCU)
+        # We find the window with the most unique users.
+        # This is an approximation as it finds the timestamp with the highest 'concurrency'
+        # within a theoretical 5-min window around each activity point.
+        pcu_data = (
+            UserActivity.objects.values("timestamp")
+            .annotate(user_count=Count("user", distinct=True))
+            .order_by("-user_count")
+            .first()
+        )
+        pcu = pcu_data["user_count"] if pcu_data else 0
+
+        # 8. Peak Time of Day
+        peak_hour_data = (
+            UserActivity.objects.annotate(hour=ExtractHour("timestamp"))
+            .values("hour")
+            .annotate(activity_count=Count("id"))
+            .order_by("-activity_count")
+            .first()
+        )
+        peak_time_of_day = f"{peak_hour_data['hour']}:00" if peak_hour_data else "N/A"
+
         return Response(
             {
                 "total_schools": total_schools.count(),
@@ -37,10 +119,20 @@ class SuperAdminDashboardView(viewsets.ViewSet):
                 "active_courses": active_courses.count(),
                 "total_assignments": total_assignments.count(),
                 "total_submissions": total_submissions.count(),
+                "avg_course_size": round(avg_course_size, 2),
+                "total_assignments_graded": total_assignments_graded,
+                "avg_assignments_per_course": round(avg_assignments_per_course, 2),
+                "avg_courses_per_teacher": round(avg_courses_per_teacher, 2),
+                "avg_grading_confidence": round(avg_grading_confidence, 2),
+                "avg_extraction_confidence": round(avg_extraction_confidence, 2),
+                "peak_concurrent_users": pcu,
+                "peak_time_of_day": peak_time_of_day,
             }
         )
 
     @extend_schema(tags=["Super Admin"])
+    @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:schools"))
+    @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/schools")
     def schools(self, request, *args, **kwargs):
 
@@ -88,6 +180,8 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         return Response(result)
 
     @extend_schema(tags=["Super Admin"])
+    @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:teachers"))
+    @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/teachers")
     def teachers(self, request, *args, **kwargs):
         """
@@ -148,6 +242,8 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         return Response(performance_data)
 
     @extend_schema(tags=["Super Admin"])
+    @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:students"))
+    @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/students")
     def students(self, request, *args, **kwargs):
         stats = StudentCourse.objects.active().aggregate(
@@ -196,17 +292,13 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         )
 
 
-@extend_schema_view(
-    list=extend_schema(tags=["School Admin"]),
-    retrieve=extend_schema(tags=["School Admin"]),
-    courses=extend_schema(tags=["School Admin"]),
-    performance=extend_schema(tags=["School Admin"]),
-)
 class SchoolAdminDashboardView(viewsets.ViewSet):
-    permission_classes = [IsTeacher]
+    permission_classes = [IsSchoolAdmin]
     http_method_names = ["get", "head", "options"]
 
     @extend_schema(tags=["School Admin"])
+    @method_decorator(cache_page(60 * 3, key_prefix="schooladmin:dashboard:summary"))
+    @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/summary")
     def summary(self, request, *args, **kwargs):
         user = request.user
@@ -259,7 +351,11 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
             }
         )
 
-    def teachers(self, *args, **kwargs):
+    @extend_schema(tags=["School Admin"])
+    @method_decorator(cache_page(60 * 3, key_prefix="schooladmin:dashboard:teachers"))
+    @method_decorator(vary_on_headers("Authorization"))
+    @action(detail=False, methods=["get"], url_path="dashboard/teachers")
+    def teachers(self, request, *args, **kwargs):
         """
         Returns performance metrics for all teachers in the admin's school:
         - Number of courses per teacher
@@ -330,7 +426,11 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
 
         return Response(performance_data)
 
-    def students(self, *args, **kwargs):
+    @extend_schema(tags=["School Admin"])
+    @method_decorator(cache_page(60 * 3, key_prefix="schooladmin:dashboard:students"))
+    @method_decorator(vary_on_headers("Authorization"))
+    @action(detail=False, methods=["get"], url_path="dashboard/students")
+    def students(self, request, *args, **kwargs):
         user = request.user
         school = user.school
 

@@ -120,6 +120,9 @@ INSTALLED_APPS = [
     "grading",
     "ocr_processor",
     "ai_processor",
+    "dashboard",
+    "django_celery_results",
+    "django_celery_beat",
 ]
 
 MIDDLEWARE = [
@@ -131,6 +134,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "users.middleware.UserActivityMiddleware",
 ]
 
 ROOT_URLCONF = "AutoGrader.urls"
@@ -190,6 +194,30 @@ USE_I18N = True
 
 USE_TZ = True
 
+
+# Celery Configuration Options
+CELERY_BROKER_URL = (
+    env.str("REDIS_URL") if ENVIRONMENT == "dev" else env.str("REDIS_PROD_URL")
+)
+CELERY_RESULT_BACKEND = (
+    env.str("REDIS_URL") if ENVIRONMENT == "dev" else env.str("REDIS_PROD_URL")
+)
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+
+# Celery Beat Schedule
+CELERY_BEAT_SCHEDULE = {
+    "sample-periodic-task": {
+        "task": "users.tasks.sample_periodic_task",
+        "schedule": 3600.0,  # every hour
+    },
+    "record-concurrent-users-every-minute": {
+        "task": "dashboard.tasks.record_concurrent_users",
+        "schedule": 60.0,
+    },
+}
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
@@ -338,4 +366,16 @@ SUPPORT_EMAIL = "GradeA+@gmail.com"
 
 ANYMAIL = {
     "SENDINBLUE_API_KEY": env.str("SENDINBLUE_API_KEY"),
+}
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": (
+            env.str("REDIS_URL") if ENVIRONMENT == "dev" else env.str("REDIS_PROD_URL")
+        ),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+    }
 }

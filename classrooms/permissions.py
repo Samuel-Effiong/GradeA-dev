@@ -61,6 +61,7 @@ class IsSuperAdmin(permissions.BasePermission):
             request.user
             and request.user.is_authenticated
             and request.user.user_type == UserTypes.SUPER_ADMIN
+            and request.user.is_superuser
         )
 
 

@@ -3,10 +3,15 @@ import string
 from datetime import timedelta
 
 from django.conf import settings
+from django.core.cache import cache
 from django.core.mail import send_mail
+from django.db.models import Avg
+from django.db.models.functions import ExtractHour
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.crypto import get_random_string
+
+from users.models import ConcurrentUserSnapshot
 
 
 def send_user_activation_email(user):
@@ -58,6 +63,41 @@ class OTPManager:
         md5_hash = hashlib.sha256(identifier.encode("utf-8")).hexdigest()
 
         return md5_hash
+
+
+def get_current_concurrent_users():
+    client = cache.client.get_client()
+    keys = client.keys("active_user:*")
+    return len(keys)
+
+
+def get_peak_concurrent_users(start=None, end=None):
+    qs = ConcurrentUserSnapshot.objects.all()
+
+    if start:
+        qs = qs.filter(timestamp__gte=start)
+    if end:
+        qs = qs.filter(timestamp__lte=end)
+
+    return qs.order_by("-concurrent_users").first()
+
+
+def get_peak_time_of_day(start=None, end=None):
+    qs = ConcurrentUserSnapshot.objects.all()
+
+    if start:
+        qs = qs.filter(timestamp__gte=start)
+    if end:
+        qs = qs.filter(timestamp__lte=end)
+
+    hourly = (
+        qs.annotate(hour=ExtractHour("timestamp"))
+        .values("hour")
+        .annotate(avg_users=Avg("concurrent_users"))
+        .order_by("-avg_users")
+    )
+
+    return hourly.first()
 
 
 otp_manager = OTPManager()

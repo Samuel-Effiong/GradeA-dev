@@ -40,6 +40,8 @@ class Assignment(models.Model):
     )
 
     questions = models.JSONField(null=True, blank=True)
+    extraction_confidence = models.IntegerField(null=True, blank=True, default=0)
+    potential_issues = models.TextField(null=True, blank=True)
     # raw_content = models.TextField()
 
     class Meta:
