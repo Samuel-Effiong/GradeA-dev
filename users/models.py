@@ -107,6 +107,19 @@ class CustomUser(AbstractUser):
             return True
         return False
 
+    def renew_activation_token(self):
+        """Renew the activation token and extend expiration."""
+        self.activation_token = otp_manager.generate_otp()
+
+        if self.user_type == UserTypes.STUDENT:
+            self.activation_expires = timezone.now() + timezone.timedelta(days=7)
+        else:
+            raise ValueError(
+                "Activation token renewal is only for students. Use OTP (VERIFY_EMAIL) endpoint for teachers."
+            )
+        self.save()
+        return self.activation_token
+
     def is_teacher(self):
         if self.user_type == UserTypes.TEACHER:
             return True
@@ -125,19 +138,6 @@ class UserActivity(models.Model):
 
     def __str__(self):
         return f"{self.user.email} active at {self.timestamp}"
-
-    def renew_activation_token(self):
-        """Renew the activation token and extend expiration."""
-        self.activation_token = otp_manager.generate_otp()
-
-        if self.user_type == UserTypes.STUDENT:
-            self.activation_expires = timezone.now() + timezone.timedelta(days=7)
-        else:
-            raise ValueError(
-                "Activation token renewal is only for students. Use OTP (VERIFY_EMAIL) endpoint for teachers."
-            )
-        self.save()
-        return self.activation_token
 
 
 class PasswordResetOTP(models.Model):
@@ -195,7 +195,7 @@ class PasswordChangeOTP(models.Model):
 
 
 class ConcurrentUserSnapshot(models.Model):
-    timestamp = models.DateTimeField(auto_now_add=True)
+    timestamp = models.DateTimeField(default=timezone.now)
     concurrent_users = models.PositiveIntegerField()
 
     class Meta:

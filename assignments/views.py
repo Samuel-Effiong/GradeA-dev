@@ -1,6 +1,7 @@
 from django.core.files.uploadedfile import UploadedFile
 from django.http import Http404
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
@@ -25,6 +26,7 @@ from ai_processor.models import ChatMessage, ChatSession, RoleType
 from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor, pdf_service
 from ai_processor.tools import encode_image
+from assignments.tasks import grade_all_submissions
 from classrooms.models import Course
 from classrooms.permissions import IsTeacher, IsTeacherOrReadOnly
 
@@ -301,11 +303,24 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
         content = [{"type": "text", "text": text}]
 
+        extraction_started_at = timezone.now()
+
         assignment_questions = ai_processor.extract_assignment_with_retry(
             content, max_retries=3
         )
 
+        extraction_completed_at = timezone.now()
+
         assignment_questions["course"] = course.id
+        assignment_questions["ai_generated"] = True
+        assignment_questions["ai_raw_payload"] = assignment_questions.copy()
+        del assignment_questions["ai_raw_payload"]["course"]
+
+        assignment_questions["ai_generated_at"] = timezone.now()
+        assignment_questions["extraction_started_at"] = extraction_started_at
+        assignment_questions["extraction_completed_at"] = extraction_completed_at
+        assignment_questions["had_error"] = False
+
         serializer = AssignmentSerializer(data=assignment_questions)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -345,7 +360,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         assignment_serializer.is_valid(raise_exception=True)
         assignment_serializer.save()
 
-        return Response(assignment_questions, status=status.HTTP_200_OK)
+        return Response(assignment_serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(
         tags=["04 Assignments"],
@@ -474,6 +489,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
             try:
                 if content_type in image_formats:
+                    extraction_started_at = timezone.now()
 
                     base64_encoded_file = encode_image(uploaded_file)
 
@@ -505,7 +521,19 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                     content, max_retries=3, upload=True
                 )
 
+                extraction_completed_at = timezone.now()
+
                 assignment_questions["course"] = course.id
+                assignment_questions["ai_generated"] = True
+                assignment_questions["ai_raw_payload"] = assignment_questions.copy()
+                del assignment_questions["ai_raw_payload"]["course"]
+
+                assignment_questions["ai_generated_at"] = timezone.now()
+                assignment_questions["extraction_started_at"] = extraction_started_at
+                assignment_questions["extraction_completed_at"] = (
+                    extraction_completed_at
+                )
+                assignment_questions["had_error"] = False
 
                 results.append(assignment_questions)
             except Exception as e:
@@ -799,6 +827,28 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    @extend_schema(tags=["04 Assignments"])
+    @action(detail=True, methods=["GET"], url_path=r"grade-all", url_name="grade-all")
+    def grade_all_submission(self, request, pk=None):
+        assignment_object = self.get_object()
+
+        submissions = assignment_object.submissions
+
+        if not submissions.exists():
+            return Response(
+                {"message": "No submissions to grade"}, status=status.HTTP_200_OK
+            )
+
+        grade_all_submissions.delay(str(assignment_object.id))
+
+        return Response(
+            {
+                "message": "AI grading started",
+                "submission_count": submissions.count(),
+            },
+            status=status.HTTP_202_ACCEPTED,
+        )
 
 
 @extend_schema_view(

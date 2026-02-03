@@ -127,6 +127,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "users.middleware.UserActivityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -134,7 +135,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "users.middleware.UserActivityMiddleware",
 ]
 
 ROOT_URLCONF = "AutoGrader.urls"
@@ -209,10 +209,6 @@ CELERY_TIMEZONE = TIME_ZONE
 
 # Celery Beat Schedule
 CELERY_BEAT_SCHEDULE = {
-    "sample-periodic-task": {
-        "task": "users.tasks.sample_periodic_task",
-        "schedule": 3600.0,  # every hour
-    },
     "record-concurrent-users-every-minute": {
         "task": "dashboard.tasks.record_concurrent_users",
         "schedule": 60.0,

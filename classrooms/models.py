@@ -120,6 +120,7 @@ class StudentCourse(models.Model):
         max_length=20,
         choices=EnrollmentStatusType.choices,
         default=EnrollmentStatusType.PENDING,
+        db_index=True,
     )
     withdrawal_date = models.DateTimeField(null=True, blank=True)
 
@@ -145,6 +146,8 @@ class StudentCourse(models.Model):
         ]
 
     def withdrawn(self, when=None):
+        if self.enrollment_status == EnrollmentStatusType.WITHDRAWN:
+            return
         when = when or timezone.now()
         self.enrollment_status = EnrollmentStatusType.WITHDRAWN
         self.withdrawal_date = when

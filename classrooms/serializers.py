@@ -171,3 +171,22 @@ class SchoolSerializer(serializers.ModelSerializer):
         if not value.strip():
             raise serializers.ValidationError("School name cannot be empty.")
         return value
+
+
+class CourseCategorySerializer(serializers.ModelSerializer):
+    """Serializer for CourseCategory"""
+
+    class Meta:
+        model = CourseCategory
+        fields = [
+            "id",
+            "name",
+        ]
+        read_only_fields = [
+            "id",
+        ]
+
+    def validate_name(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("Category name cannot be empty.")
+        return value

@@ -5,13 +5,11 @@ from datetime import timedelta
 from django.conf import settings
 from django.core.cache import cache
 from django.core.mail import send_mail
-from django.db.models import Avg
+from django.db.models import Avg, Max
 from django.db.models.functions import ExtractHour
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.crypto import get_random_string
-
-from users.models import ConcurrentUserSnapshot
 
 
 def send_user_activation_email(user):
@@ -65,39 +63,94 @@ class OTPManager:
         return md5_hash
 
 
+def cleanup_expired_users():
+    """
+    Synchronize the "online_users_set" index with individual heatbeat keys
+    """
+
+    # Get all memebers from the Index set
+    all_members = cache.smembers("online_users_set")
+
+    if not all_members:
+        return 0
+
+    expired_members = []
+
+    for member in all_members:
+        member_str = member.decode() if isinstance(member, bytes) else member
+
+        hearbeat_key = f"active_user:{member_str}"
+
+        # If the heartbeat key is gone, the user's TTL has expired
+        if not cache.has_key(hearbeat_key):
+            expired_members.append(member_str)
+
+        # Batch remove the expired users from the set
+        if expired_members:
+            cache.srem("online_users_set", *expired_members)
+
+        return len(expired_members)
+
+
 def get_current_concurrent_users():
-    client = cache.client.get_client()
-    keys = client.keys("active_user:*")
-    return len(keys)
+
+    keys = cache.keys("active_user*")
+    all_active_data = cache.get_many(keys)
+
+    return len(all_active_data)
+
+
+def base_queryset(start=None, end=None):
+    from users.models import ConcurrentUserSnapshot
+
+    qs = ConcurrentUserSnapshot.objects.all()
+    if start:
+        qs = qs.filter(timestamp__gte=start)
+    if end:
+        qs = qs.filter(timestamp__lte=end)
+    return qs
 
 
 def get_peak_concurrent_users(start=None, end=None):
-    qs = ConcurrentUserSnapshot.objects.all()
-
-    if start:
-        qs = qs.filter(timestamp__gte=start)
-    if end:
-        qs = qs.filter(timestamp__lte=end)
-
-    return qs.order_by("-concurrent_users").first()
+    return (
+        base_queryset(start, end).aggregate(Max("concurrent_users"))[
+            "concurrent_users__max"
+        ]
+        or 0
+    )
 
 
 def get_peak_time_of_day(start=None, end=None):
-    qs = ConcurrentUserSnapshot.objects.all()
-
-    if start:
-        qs = qs.filter(timestamp__gte=start)
-    if end:
-        qs = qs.filter(timestamp__lte=end)
-
-    hourly = (
-        qs.annotate(hour=ExtractHour("timestamp"))
+    qs = (
+        base_queryset(start, end)
+        .annotate(hour=ExtractHour("timestamp"))
         .values("hour")
         .annotate(avg_users=Avg("concurrent_users"))
         .order_by("-avg_users")
     )
+    top = qs.first()
 
-    return hourly.first()
+    if top is None:
+        return {"hour": None, "label": "No data available", "avg_users": 0}
+
+    return {
+        "hour": top["hour"],
+        "label": f"{top['hour']:02d}:00 - {top['hour'] + 1:02d}:00",
+        "average_users": round(top["avg_users"], 2),
+    }
+
+
+def get_time_range(range_key: str):
+    now = timezone.now()
+
+    if range_key == "daily":
+        return now - timedelta(days=1), now
+    if range_key == "weekly":
+        return now - timedelta(days=7), now
+    if range_key == "monthly":
+        return now - timedelta(days=30), now
+
+    raise ValueError("Invalid range")
 
 
 otp_manager = OTPManager()

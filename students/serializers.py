@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import serializers
 
 from users.models import CustomUser
@@ -62,3 +63,25 @@ class StudentSubmissionSerializer(serializers.ModelSerializer):
 
     def get_student_name(self, obj) -> str:
         return f"{obj.student.first_name} {obj.student.last_name}"
+
+    def update(self, instance, validated_data):
+        # request = self.context.get("request")
+        # user = request.user if request else None
+
+        # ONly track regardes AFTER AI has graded
+        if instance.ai_graded_at:
+            score_changed = (
+                "score" in validated_data
+                and validated_data["score"] != instance.ai_score
+            )
+
+            feedback_changed = (
+                "feedback" in validated_data
+                and validated_data["feedback"] != instance.ai_feedback
+            )
+
+            if score_changed or feedback_changed:
+                instance.was_regraded = True
+                instance.regraded_at = timezone.now()
+
+        return super().update(instance, validated_data)

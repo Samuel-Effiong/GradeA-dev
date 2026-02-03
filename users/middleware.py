@@ -12,13 +12,18 @@ class UserActivityMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+
+        response = self.get_response(request)
+
         user = getattr(request, "user", None)
 
         if user and user.is_authenticated:
             # Log activity.
             # Note: For high traffic, this should be throttled (e.g. once per 1-5 mins)
             # or moved to a background task/cache.
-            UserActivity.objects.create(user=user)
+            object = UserActivity.objects.create(user=user)
+            print(object)
+
             now = int(time.time())
 
             cache.set(
@@ -27,5 +32,6 @@ class UserActivityMiddleware:
                 timeout=ACTIVE_WINDOW_SECONDS,
             )
 
-        response = self.get_response(request)
+            cache.sadd("online_users_set", f"{user.user_type}:{user.id}")
+
         return response

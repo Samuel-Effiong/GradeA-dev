@@ -1,22 +1,418 @@
-from django.db.models import Avg, Case, Count, FloatField, Q, Value, When
-from django.db.models.functions import Cast, ExtractHour
+from datetime import timedelta
+
+from django.db.models import (
+    Avg,
+    Case,
+    Count,
+    DurationField,
+    ExpressionWrapper,
+    F,
+    FloatField,
+    Q,
+    Value,
+    Variance,
+    When,
+)
+from django.db.models.functions import Cast
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import viewsets
 from rest_framework.decorators import action
+from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 
+from ai_processor.services import AI_CONFIDENCE_THRESHOLD
 from assignments.models import Assignment
-from classrooms.models import Course, School, StudentCourse
-from classrooms.permissions import IsSchoolAdmin, IsSuperAdmin
+from classrooms.models import Course, School, Session, StudentCourse
+from classrooms.permissions import IsSchoolAdmin, IsStudent, IsSuperAdmin, IsTeacher
+from dashboard.serializers import (
+    ConcurrencySerializer,
+    CourseAnalyticsSerializer,
+    StudentAssignmentListSerializer,
+)
+
+# from dashboard.services import analyze_question_difficulty
 from students.models import StudentSubmission
-from users.models import CustomUser, UserActivity, UserTypes
+from users.models import CustomUser, UserTypes
+from users.services import (
+    get_peak_concurrent_users,
+    get_peak_time_of_day,
+    get_time_range,
+)
 
 
 class SuperAdminDashboardView(viewsets.ViewSet):
     permission_classes = [IsSuperAdmin]
+
+    @extend_schema(tags=["Super Admin"])
+    @method_decorator(cache_page(60 * 30, key_prefix="superadmin:dashboard:adoption"))
+    @method_decorator(vary_on_headers("Authorization"))
+    @action(detail=False, methods=["get"], url_path="dashboard/adoption")
+    def platform_adoption(self, request, *args, **kwargs):
+        now = timezone.now()
+
+        day_ago = now - timedelta(days=1)
+        week_ago = now - timedelta(days=7)
+        month_ago = now - timedelta(days=30)
+
+        totals = CustomUser.objects.values("user_type").annotate(count=Count("id"))
+        role_totals = {t["user_type"]: t["count"] for t in totals}
+
+        new_signups = CustomUser.objects.aggregate(
+            daily=Count("id", filter=Q(date_joined__gte=day_ago)),
+            weekly=Count("id", filter=Q(date_joined__gte=week_ago)),
+            monthly=Count("id", filter=Q(date_joined__gte=month_ago)),
+        )
+
+        # new_signups = {
+        #     "daily": CustomUser.objects.filter(date_joined__gte=day_ago).count(),
+        #     "weekly": CustomUser.objects.filter(date_joined__gte=week_ago).count(),
+        #     "monthly": CustomUser.objects.filter(date_joined__gte=month_ago).count(),
+        # }
+
+        teacher_queryset = CustomUser.objects.filter(
+            user_type=UserTypes.TEACHER, is_active=True
+        )
+        total_teachers = teacher_queryset.count()
+
+        # total_students = CustomUser.objects.filter(
+        #     user_type=UserTypes.STUDENT, is_active=True
+        # )
+        # total_school_admin = CustomUser.objects.filter(
+        #     user_type=UserTypes.SCHOOL_ADMIN, is_active=True
+        # )
+
+        # Activated teachers are those who have more than one assignment
+        activated_teachers = Assignment.objects.values("teacher").distinct().count()
+        activated_teacher_percent = round(
+            (activated_teachers / max(total_teachers, 1)) * 100, 2
+        )
+
+        active_teachers_30d = teacher_queryset.filter(last_login__gte=month_ago).count()
+
+        avg_courses_per_teacher = (
+            Course.objects.values("teacher")
+            .annotate(course_count=Count("id"))
+            .aggregate(avg=Avg("course_count"))
+            .get("avg")
+            or 0
+        )
+
+        avg_course_size = (
+            Course.objects.annotate(
+                student_count=Count("enrollments", distinct=True)
+            ).aggregate(Avg("student_count"))["student_count__avg"]
+            or 0
+        )
+
+        data = {
+            "total_signups": {
+                "teachers": role_totals.get(UserTypes.TEACHER, 0),
+                "students": role_totals.get(UserTypes.STUDENT, 0),
+                "school_admins": role_totals.get(UserTypes.SCHOOL_ADMIN, 0),
+            },
+            "new_signups": new_signups,
+            "activated_percent": activated_teacher_percent,
+            "active_last_30_days": active_teachers_30d,
+            "average_course_per_teacher": round(avg_courses_per_teacher, 2),
+            "average_course_size": round(avg_course_size, 2),
+        }
+
+        return Response(data)
+
+    @extend_schema(tags=["Super Admin"])
+    # @method_decorator(cache_page(60 * 30, key_prefix="superadmin:dashboard:usage"))
+    # @method_decorator(vary_on_headers("Authorization"))
+    @action(detail=False, methods=["get"], url_path="dashboard/usage")
+    def platform_usage(self, request, *args, **kwargs):
+        # BASE QUERYSETS
+        assignments = Assignment.objects.all()
+        submissions = StudentSubmission.objects.all()
+
+        # TOTAL ASSIGNMENTS
+        total_assignments_created = assignments.count()
+
+        # TOTAL ASSIGNMENTS GRADED
+        total_assignments_graded = (
+            assignments.filter(submissions__graded_at__isnull=False).distinct().count()
+        )
+
+        # AVERAGE ASSIGNMENT PER COURSE
+        # avg_assignments_per_course = (
+        #     assignments
+        #     .values('course_id')
+        #     .annotate(count=Count('id'))
+        #     .aggregate(avg=Avg('count'))
+        #     .get('avg') or 0
+        # )
+
+        avg_assignments_per_course = (
+            Course.objects.annotate(assignment_count=Count("assignments"))
+            .aggregate(avg=Avg("assignment_count"))
+            .get("avg")
+            or 0
+        )
+
+        # ASSIGNMENTS PER ACTIVE TEACHER
+        # avg_assignments_per_teacher = (
+        #     assignments
+        #     .values('teacher_id')
+        #     .annotate(count=Count('id'))
+        #     .aggregate(avg=Avg("count"))
+        #     .get('avg') or 0
+        # )
+
+        avg_assignments_per_teacher = (
+            CustomUser.objects.filter(user_type=UserTypes.TEACHER)
+            .annotate(assignment_count=Count("assignments"))
+            .aggregate(avg=Avg("assignment_count"))
+            .get("avg")
+            or 0
+        )
+
+        #  % OF ASSIGNMENTS FULLY GRADED
+        fully_graded_assignments = (
+            assignments.annotate(
+                total_submissions=Count("submissions"),
+                graded_submissions=Count(
+                    "submissions", filter=Q(submissions__graded_at__isnull=False)
+                ),
+            )
+            .filter(total_submissions__gt=0, total_submissions=F("graded_submissions"))
+            .count()
+        )
+        percent_fully_graded = round(
+            (fully_graded_assignments / max(total_assignments_created, 1)) * 100, 2
+        )
+
+        # GRADING TURNAROUND TIME (P50 / P95)
+        turnaround_qs = (
+            submissions.filter(graded_at__isnull=False)
+            .annotate(
+                turnaround=ExpressionWrapper(
+                    F("graded_at") - F("submission_date"), output_field=DurationField()
+                )
+            )
+            .values_list("turnaround", flat=True)
+        )
+
+        turnaround_values = sorted(turnaround_qs)
+
+        def percentile(data, p):
+            if not data:
+                return None
+
+            k = int(len(data) * p)
+            k = min(k, len(data) - 1)
+            return data[k]
+
+        p50 = percentile(turnaround_values, 0.50)
+        p95 = percentile(turnaround_values, 0.95)
+
+        # RESPONSE
+        data = {
+            "total_assignments_created": total_assignments_created,
+            "total_assignments_graded": total_assignments_graded,
+            "avg_assignments_per_course": round(avg_assignments_per_course, 2),
+            "avg_assignments_per_active_teacher": round(avg_assignments_per_teacher, 2),
+            "assignment_percent_fully_graded": percent_fully_graded,
+            "grading_turnaround_time_p50": p50,
+            "grading_turnaround_time_p95": p95,
+        }
+
+        return Response(data)
+
+    @extend_schema(tags=["Super Admin"])
+    @method_decorator(
+        cache_page(60 * 30, key_prefix="superadmin:dashboard:performance")
+    )
+    @method_decorator(vary_on_headers("Authorization"))
+    @action(detail=False, methods=["get"], url_path="dashboard/ai_performance")
+    def platform_ai_performance(self, request, *args, **kwargs):
+        assignments = Assignment.objects.all()
+        submissions = StudentSubmission.objects.all()
+
+        # EXTRACTION CONFIDENCE
+        extraction_stats = assignments.aggregate(
+            avg_extraction_confidence=Avg("extraction_confidence"),
+            low_extraction_count=Count(
+                "id", filter=Q(extraction_confidence__lt=AI_CONFIDENCE_THRESHOLD)
+            ),
+            total_assignments=Count("id"),
+            extraction_variance=Variance("extraction_confidence"),
+        )
+
+        # GRADING CONFIDENCE
+        grading_stats = submissions.aggregate(
+            avg_grading_confidence=Avg("grading_confidence"),
+            low_grading_count=Count(
+                "id", filter=Q(grading_confidence__lt=AI_CONFIDENCE_THRESHOLD)
+            ),
+            total_submissions=Count("id"),
+            grading_variance=Variance("grading_confidence"),
+        )
+
+        low_extraction_rate = (
+            extraction_stats["low_extraction_count"]
+            / max(extraction_stats["total_assignments"], 1)
+        ) * 100
+        low_grading_rate = (
+            grading_stats["low_grading_count"]
+            / max(grading_stats["total_submissions"], 1)
+        ) * 100
+
+        ai_assignments = Assignment.objects.filter(ai_generated=True)
+        total_ai_assignments = ai_assignments.count()
+
+        if total_ai_assignments > 0:
+            overriden_count = ai_assignments.filter(was_overridden=True).count()
+            manual_override_rate = round(
+                (overriden_count / total_ai_assignments) * 100, 2
+            )
+        else:
+            manual_override_rate = 0
+
+        total_ai_graded = StudentSubmission.objects.filter(
+            ai_graded_at__isnull=False
+        ).count()
+        regraded = StudentSubmission.objects.filter(was_regraded=True).count()
+
+        if total_ai_graded == 0:
+            regrade_rate = 0
+        else:
+            regrade_rate = round((regraded / total_ai_graded) * 100, 2)
+
+        avg_assignment_processing_time = (
+            Assignment.objects.filter(extraction_completed_at__isnull=False)
+            .annotate(
+                processing_time=ExpressionWrapper(
+                    F("extraction_completed_at") - F("extraction_started_at"),
+                    output_field=DurationField(),
+                )
+            )
+            .aggregate(avg_processing_time=Avg("processing_time"))[
+                "avg_processing_time"
+            ]
+        )
+
+        avg_grading_time = (
+            StudentSubmission.objects.filter(ai_graded_at__isnull=False)
+            .annotate(
+                grading_time=ExpressionWrapper(
+                    F("ai_graded_at") - F("submission_date"),
+                    output_field=DurationField(),
+                )
+            )
+            .aggregate(avg_time=Avg("grading_time"))["avg_time"]
+        )
+
+        # RESPONSE
+        data = {
+            "confidence": {
+                "average_extraction": round(
+                    extraction_stats["avg_extraction_confidence"] or 0, 2
+                ),
+                "average_grading": round(
+                    grading_stats["avg_grading_confidence"] or 0, 2
+                ),
+                "low_confidence_extraction_rate": round(low_extraction_rate, 2),
+                "low_confidence_grading_rate": round(low_grading_rate, 2),
+                "confidence_variance_extraction": extraction_stats[
+                    "extraction_variance"
+                ],
+                "confidence_variance_grading": grading_stats["grading_variance"],
+            },
+            "risk_indicators": {
+                "manual_override_rate": manual_override_rate,
+                "regrade_rate": regrade_rate,
+                "avg_assignment_processing_time": avg_assignment_processing_time,
+                "avg_grading_processing_time": avg_grading_time,
+                "queue_backlog": None,
+                "error_rate": None,
+            },
+        }
+
+        return Response(data)
+
+    @extend_schema(tags=["Super Admin"])
+    # @method_decorator(cache_page(60 * 30, key_prefix="superadmin:dashboard:scaling_signals"))
+    # @method_decorator(vary_on_headers("Authorization"))
+    @action(detail=False, methods=["get"], url_path="dashboard/scaling_signals")
+    def scaling_signals(self, request, *args, **kwargs):
+        """
+        Institutional & Scaling Signals for Founder/Super Admin.
+        Tracks how the platform is moving from individual use to institutional adoption.
+        """
+
+        schools_query = School.objects.annotate(
+            active_teacher_count=Count(
+                "users",
+                filter=Q(users__user_type=UserTypes.TEACHER, users__is_active=True),
+                distinct=True,
+            )
+        )
+        total_schools = schools_query.count()
+        schools_with_multiple_teachers = schools_query.filter(
+            active_teacher_count__gt=1
+        ).count()
+
+        # Average Teacher per School
+        avg_teachers_per_school = (
+            schools_query.aggregate(avg=Avg("active_teacher_count"))["avg"] or 0
+        )
+
+        total_school_admins = CustomUser.objects.filter(
+            user_type=UserTypes.SCHOOL_ADMIN, school__isnull=False, is_active=True
+        ).count()
+
+        total_teachers = CustomUser.objects.filter(
+            user_type=UserTypes.TEACHER, school__isnull=False, is_active=True
+        ).count()
+
+        if total_school_admins == 0:
+            admin_to_teacher_ratio = "N/A"
+        else:
+            admin_to_teacher_ratio = round(total_teachers / total_school_admins, 2)
+
+        avg_assignments_per_school = (
+            School.objects.annotate(
+                assignment_count=Count("users__assignments", distinct=True)
+            ).aggregate(Avg("assignment_count"))["assignment_count__avg"]
+            or 0
+        )
+
+        ai_confidence_by_school = School.objects.annotate(
+            avg_grading_confidence=Avg(
+                "users__assignments__submissions__grading_confidence"
+            ),
+            avg_extraction_confidence=Avg("users__assignments__extraction_confidence"),
+        ).aggregate(
+            total_avg_grading=Avg("avg_grading_confidence"),
+            total_avg_extraction=Avg("avg_extraction_confidence"),
+        )
+
+        data = {
+            "total_schools": total_schools,
+            "schools_with_multiple_teachers": schools_with_multiple_teachers,
+            "multi_teacher_adoption_rate": round(
+                (schools_with_multiple_teachers / max(total_schools, 1)) * 100, 2
+            ),
+            "avg_teachers_per_school": round(avg_teachers_per_school, 2),
+            "admin_to_teacher_ratio": admin_to_teacher_ratio,
+            "avg_assignments_per_school": round(avg_assignments_per_school, 2),
+            "avg_grading_confidence_per_school": round(
+                ai_confidence_by_school["total_avg_grading"] or 0, 2
+            ),
+            "avg_extraction_confidence_per_school": round(
+                ai_confidence_by_school["total_avg_extraction"] or 0, 2
+            ),
+        }
+
+        return Response(data)
 
     @extend_schema(tags=["Super Admin"])
     @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:summary"))
@@ -31,6 +427,9 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         )
         total_students = CustomUser.objects.filter(
             user_type=UserTypes.STUDENT, is_active=True
+        )
+        total_school_admin = CustomUser.objects.filter(
+            user_type=UserTypes.SCHOOL_ADMIN, is_active=True
         )
         active_courses = Course.objects.filter(is_active=True)
         total_assignments = Assignment.objects.all()
@@ -89,33 +488,12 @@ class SuperAdminDashboardView(viewsets.ViewSet):
             or 0
         )
 
-        # 7. Peak Concurrent Users (PCU)
-        # We find the window with the most unique users.
-        # This is an approximation as it finds the timestamp with the highest 'concurrency'
-        # within a theoretical 5-min window around each activity point.
-        pcu_data = (
-            UserActivity.objects.values("timestamp")
-            .annotate(user_count=Count("user", distinct=True))
-            .order_by("-user_count")
-            .first()
-        )
-        pcu = pcu_data["user_count"] if pcu_data else 0
-
-        # 8. Peak Time of Day
-        peak_hour_data = (
-            UserActivity.objects.annotate(hour=ExtractHour("timestamp"))
-            .values("hour")
-            .annotate(activity_count=Count("id"))
-            .order_by("-activity_count")
-            .first()
-        )
-        peak_time_of_day = f"{peak_hour_data['hour']}:00" if peak_hour_data else "N/A"
-
         return Response(
             {
                 "total_schools": total_schools.count(),
-                "active_teachers": total_teachers.count(),
-                "total_students": total_students.count(),
+                "teachers_signup": total_teachers.count(),
+                "students_signup": total_students.count(),
+                "school_admin_signup": total_school_admin.count(),
                 "active_courses": active_courses.count(),
                 "total_assignments": total_assignments.count(),
                 "total_submissions": total_submissions.count(),
@@ -125,8 +503,6 @@ class SuperAdminDashboardView(viewsets.ViewSet):
                 "avg_courses_per_teacher": round(avg_courses_per_teacher, 2),
                 "avg_grading_confidence": round(avg_grading_confidence, 2),
                 "avg_extraction_confidence": round(avg_extraction_confidence, 2),
-                "peak_concurrent_users": pcu,
-                "peak_time_of_day": peak_time_of_day,
             }
         )
 
@@ -290,6 +666,45 @@ class SuperAdminDashboardView(viewsets.ViewSet):
                 "total_active_enrollments": stats["total_enrollments"],
             }
         )
+
+    @extend_schema(
+        tags=["Super Admin"],
+        summary="Get peak concurrent users and Peak time of day statistics",
+        description="Retrieve peak concurrent user and peak activity times within a specified range",
+        parameters=[
+            OpenApiParameter(
+                name="range",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="The time range for the statistics",
+                required=False,
+                enum=["daily", "weekly", "monthly"],
+                default="daily",
+            )
+        ],
+        responses={200: ConcurrencySerializer},
+    )
+    @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:concurrency"))
+    @method_decorator(vary_on_headers("Authorization"))
+    @action(detail=False, methods=["get"], url_path="dashboard/concurrency")
+    def concurrency(self, request, *args, **kwargs):
+        range_key: str = request.query_params.get("range", "daily")
+
+        start, end = get_time_range(range_key)
+        pcu = get_peak_concurrent_users(start, end)
+        peak_time = get_peak_time_of_day(start, end)
+
+        payload = {
+            "range": range_key,
+            "start": start,
+            "end": end,
+            "peak_concurrent_users": pcu,
+            "peak_time_of_day": peak_time,
+        }
+
+        serializer = ConcurrencySerializer(data=payload)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data)
 
 
 class SchoolAdminDashboardView(viewsets.ViewSet):
@@ -488,3 +903,443 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 "total_active_enrollments": stats["total_enrollments"],
             }
         )
+
+
+class TeacherAdminDashboardView(viewsets.ViewSet):
+    permission_classes = [IsTeacher]
+    http_method_names = ["get", "options", "head"]
+
+    @extend_schema(tags=["Teacher Admin"])
+    @method_decorator(cache_page(60 * 3, key_prefix="teacheradmin:dashboard:overview"))
+    @method_decorator(vary_on_headers("Authorization"))
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path=r"dashboard/overview/(?P<session_id>[-\w]+)",
+    )
+    def overview(self, request, session_id, *args, **kwargs):
+        teacher = request.user
+        session = get_object_or_404(Session, id=session_id, teacher=teacher)
+
+        assignments = Assignment.objects.filter(
+            teacher=teacher, course__session=session
+        )
+        total_assigned = assignments.count()
+
+        graded_submissions = StudentSubmission.objects.filter(
+            assignment__in=assignments,
+            score__isnull=False,
+            graded_at__isnull=False,
+        )
+        graded_assignments = graded_submissions.values("assignment").distinct().count()
+        percent_graded = (
+            round((graded_assignments / total_assigned) * 100, 2)
+            if total_assigned > 0
+            else 0
+        )
+
+        turnaround = graded_submissions.annotate(
+            turnaround_time=ExpressionWrapper(
+                F("graded_at") - F("submission_date"),
+                output_field=DurationField(),
+            )
+        ).aggregate(avg_turnaround=Avg("turnaround_time"))["avg_turnaround"]
+
+        data = {
+            "total_assignments_assigned": total_assigned,
+            "total_assignments_graded": graded_assignments,
+            "percentage_graded": percent_graded,
+            "average_grading_turnaround": turnaround,
+        }
+
+        return Response(data)
+
+    @extend_schema(tags=["Teacher Admin"])
+    @method_decorator(cache_page(60 * 3, key_prefix="teacheradmin:dashboard:courses"))
+    @method_decorator(vary_on_headers("Authorization"))
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path=r"dashboard/courses/(?P<course_id>[-\w]+)",
+    )
+    def courses(self, request, course_id, *args, **kwargs):
+        course = get_object_or_404(Course, id=course_id, teacher=request.user)
+        assignments = Assignment.objects.filter(course=course)
+        total_assigned = assignments.count()
+        submissions = StudentSubmission.objects.filter(assignment__course=course)
+        total_submitted = submissions.values("assignment").distinct().count()
+        graded_submissions = submissions.filter(score__isnull=False)
+
+        total_graded = graded_submissions.values("assignment").distinct().count()
+
+        # Average grade by Assignment Type
+        avg_grade_by_type = graded_submissions.values(
+            "assignment__assignment_type"
+        ).annotate(avg_score=Avg("score"))
+
+        # Lowest Mastery Assignment
+        lowest_assignment = (
+            graded_submissions.values("assignment__id", "assignment__title")
+            .annotate(avg_score=Avg("score"))
+            .order_by("-avg_score")
+            .first()
+        )
+
+        # Course Performance trend
+        trend_data = graded_submissions.order_by("graded_at").values_list(
+            "graded_at", "score"
+        )
+
+        trend = "stable"
+        if trend_data.count() >= 2:
+            first = trend_data.first()[1]
+            last = trend_data.last()[1]
+
+            if last > first:
+                trend = "improving"
+            elif last < first:
+                trend = "declining"
+
+        avg_extraction_confidence = (
+            assignments.aggregate(avg=Avg("extraction_confidence"))["avg"] or 0
+        )
+
+        low_extraction_count = assignments.filter(
+            extraction_confidence__lt=AI_CONFIDENCE_THRESHOLD
+        ).count()
+
+        # Grading Confidence
+        grading_qs = submissions.filter(grading_confidence__isnull=False)
+        avg_grading_confidence = (
+            grading_qs.aggregate(avg=Avg("grading_confidence"))["avg"] or 0
+        )
+        low_grading_count = grading_qs.filter(
+            grading_confidence__lt=AI_CONFIDENCE_THRESHOLD
+        ).count()
+
+        total_confidence_records = assignments.count() + grading_qs.count()
+
+        low_confidence_rate = (
+            (low_extraction_count + low_grading_count) / total_confidence_records * 100
+            if total_confidence_records > 0
+            else 0
+        )
+
+        data = {
+            "workflow": {
+                "total_assignments_assigned": total_assigned,
+                "total_assignments_submitted": total_submitted,
+                "total_assignments_graded": total_graded,
+            },
+            "performance": {
+                "average_assignment_grade_by_type": avg_grade_by_type,
+                "lowest_mastery_assignment": lowest_assignment,
+                "course_performance_trend": trend,
+            },
+            "ai_trust": {
+                "average_ai_extraction_confidence": round(avg_extraction_confidence, 2),
+                "average_ai_grading_confidence": round(avg_grading_confidence, 2),
+                "low_confidence_rate": round(low_confidence_rate, 2),
+            },
+        }
+
+        return Response(data)
+
+    @extend_schema(tags=["Teacher Admin"])
+    @method_decorator(
+        cache_page(60 * 3, key_prefix="teacheradmin:dashboard:assignments")
+    )
+    @method_decorator(vary_on_headers("Authorization"))
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path=r"dashboard/assignments/(?P<assignment_id>[-\w]+)",
+    )
+    def assignments(self, request, assignment_id, *args, **kwargs):
+        assignment = get_object_or_404(
+            Assignment, id=assignment_id, course__teacher=self.request.user
+        )
+        submissions = StudentSubmission.objects.filter(assignment=assignment)
+        total_submissions = submissions.count()
+        average_grade = (
+            submissions.filter(score__isnull=False).aggregate(avg=Avg("score"))["avg"]
+            or 0
+        )
+
+        avg_grading_confidence = (
+            submissions.aggregate(avg=Avg("grading_confidence"))["avg"] or 0
+        )
+
+        assignment_metrics = {
+            "assignment": assignment.id,
+            "title": assignment.title,
+            "due_date": assignment.due_date,
+            "assignment_type": assignment.assignment_type,
+            "total_submissions": total_submissions,
+            "unit": None,
+            "average_grade": round(float(average_grade), 2),
+            "ai_extraction_confidence": assignment.extraction_confidence,
+            "ai_grading_confidence": round(float(avg_grading_confidence), 2),
+        }
+
+        # hardest, easiest = analyze_question_difficulty(submissions)
+
+        assignment_metrics.update(
+            {
+                # "hardest_questions": hardest,
+                # "easiest_questions": easiest,
+                "custom_ai_prompt": {
+                    "enabled": False,
+                    "scope": "assignment",
+                    "prompt": assignment.custom_ai_prompt,
+                }
+            }
+        )
+
+        return Response(assignment_metrics)
+
+    @extend_schema(tags=["Teacher Admin"])
+    @method_decorator(cache_page(60 * 3, key_prefix="teacheradmin:dashboard:students"))
+    @method_decorator(vary_on_headers("Authorization"))
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path=r"dashboard/students/(?P<course_id>[-\w]+)",
+    )
+    def students(self, request, course_id, *args, **kwargs):
+        teacher = request.user
+        course = get_object_or_404(Course, id=course_id, teacher=teacher)
+
+        assignments = Assignment.objects.filter(course=course)
+        total_assigned = assignments.count()
+
+        enrollments = StudentCourse.objects.filter(course=course).select_related(
+            "student"
+        )
+
+        data = []
+        for enrollment in enrollments:
+            student = enrollment.student
+            submissions = StudentSubmission.objects.filter(
+                student=student, assignment__course=course
+            ).select_related("assignment")
+            submitted_count = submissions.count()
+            graded = submissions.filter(score__isnull=False)
+            avg_grade = graded.aggregate(avg=Avg("score"))["avg"] or 0
+
+            best = graded.order_by("-score").first()
+            worst = graded.order_by("score").first()
+
+            recent = graded.order_by("-graded_at")[:3]
+            scores = [s.score for s in recent if s.score is not None]
+
+            if len(scores) < 2:
+                trend = "INSUFFICIENT_DATA"
+            elif scores[0] > scores[-1]:
+                trend = "IMPROVING"
+            elif scores[0] < scores[-1]:
+                trend = "DECLINING"
+            else:
+                trend = "STABLE"
+
+            risk_flags = 0
+            if avg_grade is not None and avg_grade < 50:
+                risk_flags += 1
+            if total_assigned > 0 and (submitted_count / total_assigned) < 0.7:
+                risk_flags += 1
+            if trend == "DECLINING":
+                risk_flags += 1
+
+            at_risk = risk_flags >= 2
+            assignment_history = [
+                {
+                    "assignment_id": s.assignment.id,
+                    "assignment_title": s.assignment.title,
+                    "submitted": True,
+                    "score": s.score,
+                    "graded_at": s.graded_at,
+                }
+                for s in submissions
+            ]
+            data.append(
+                {
+                    "student_id": student.id,
+                    "student_name": student.get_full_name(),
+                    "assignment_submitted": submitted_count,
+                    "assignment_assigned": total_assigned,
+                    "average_grade": (
+                        round(avg_grade, 2) if avg_grade is not None else None
+                    ),
+                    "best_assignment": (
+                        {
+                            "id": best.assignment.id,
+                            "title": best.assignment.title,
+                            "score": best.score,
+                        }
+                        if best
+                        else None
+                    ),
+                    "worst_assignment": (
+                        {
+                            "id": worst.assignment.id,
+                            "title": worst.assignment.title,
+                            "score": worst.score,
+                        }
+                        if worst
+                        else None
+                    ),
+                    "grade_trend": trend,
+                    "assignment_history": assignment_history,
+                    "ai_student_summary": "Available in Power Tier",
+                    "at_risk": at_risk,
+                }
+            )
+        return Response(data)
+
+
+class StudentAdminDashboardView(viewsets.ViewSet):
+    permission_classes = [IsStudent]
+    http_method_names = ["get", "options", "head"]
+
+    @extend_schema(tags=["Student Admin"])
+    @method_decorator(cache_page(60 * 5, key_prefix="studentadmin:dashboard:summary"))
+    @method_decorator(vary_on_headers("Authorization"))
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path=r"dashboard/summary/(?P<course_id>[-\w]+)",
+    )
+    def summary(self, request, course_id, *args, **kwargs):
+        student = request.user
+
+        # 1. Validate course
+        course = get_object_or_404(
+            Course.objects.select_related("session"), id=course_id, is_active=True
+        )
+
+        # 2. Validate enrollment
+        get_object_or_404(
+            StudentCourse.objects.active(), student=student, course=course
+        )
+
+        # 3. Assignments in this course
+        assignments = Assignment.objects.filter(course=course)
+        total_assigned = assignments.count()
+
+        # 4. Student submissions for this course
+        submissions = StudentSubmission.objects.filter(
+            student=student, assignment__course=course
+        )
+        submitted_count = submissions.count()
+
+        # 5. Completion rate
+        completion_rate = (
+            (submitted_count / total_assigned) * 100 if total_assigned > 0 else 0
+        )
+
+        # 6. Missing / Overdue assignments
+        submitted_assignment_ids = submissions.values_list("assignment_id", flat=True)
+        missing_assignments = assignments.exclude(id__in=submitted_assignment_ids)
+
+        overdue_count = missing_assignments.filter(due_date__lt=timezone.now()).count()
+
+        # 7. Average grade (course)
+        average_grade = submissions.aggregate(avg=Avg("score"))["avg"] or 0
+
+        recent_scores = list(
+            submissions.order_by("-submission_date").values_list("score", flat=True)[:5]
+        )
+
+        trend = "stable"
+        if len(recent_scores) >= 3:
+            first_half = recent_scores[: len(recent_scores) // 2]
+            second_half = recent_scores[len(recent_scores) // 2 :]
+
+            if sum(second_half) > sum(first_half):
+                trend = "improving"
+            elif sum(second_half) < sum(first_half):
+                trend = "declining"
+
+        # 9. Best & Worst assignments
+        best_assignments = submissions.order_by("-score")[:3]
+        worst_assignments = submissions.order_by("-score")[:3]
+
+        data = {
+            "course": course.id,
+            "assignment_submitted": submitted_count,
+            "assignment_assigned": total_assigned,
+            "completion_rate": completion_rate,
+            "missing_or_overdue": overdue_count,
+            "average_grade": round(float(average_grade), 2),
+            "grade_trend": trend,
+            "best_assignments": best_assignments,
+            "worst_assignments": worst_assignments,
+        }
+        serializer = CourseAnalyticsSerializer(data)
+        return Response(serializer.data)
+
+    @extend_schema(tags=["Student Admin"])
+    @method_decorator(
+        cache_page(60 * 5, key_prefix="studentadmin:dashboard:assignments")
+    )
+    @method_decorator(vary_on_headers("Authorization"))
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path=r"dashboard/assignments/(?P<course_id>[-\w]+)",
+    )
+    def assignments(self, request, course_id, *args, **kwargs):
+        student = request.user
+
+        # Filter assignments for student's course
+        assignments = Assignment.objects.filter(course__id=course_id)
+        submissions = StudentSubmission.objects.filter(
+            student=student, assignment__in=assignments
+        ).select_related("assignment")
+
+        submissions_map = {s.assignment_id: s for s in submissions}
+
+        data = []
+        for a in assignments:
+            s = submissions_map.get(a.id)
+            if s:
+                submission_status = (
+                    "late"
+                    if a.due_date and s.submission_date > a.due_date
+                    else "submitted"
+                )
+                score = s.score
+                submission_date = a.submissions.first().submission_date
+                feedback = s.feedback
+                data.append(
+                    {
+                        "assignment_id": a,
+                        "title": a.title,
+                        "due_date": a.due_date,
+                        "submission_date": submission_date,
+                        "score": score,
+                        "feedback": feedback,
+                        "submission_status": submission_status,
+                    }
+                )
+
+        serializer = StudentAssignmentListSerializer(data, many=True)
+        return Response(serializer.data)
+
+    @extend_schema(tags=["Student Admin"])
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path=r"dashboard/strength/(?P<course_id>[-\w]+)",
+    )
+    def strengths(self, request, *args, **kwargs):
+        pass
+
+    @extend_schema(tags=["Student Admin"])
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path=r"dashboard/ai_summary/(?P<course_id>[-\w]+)",
+    )
+    def ai_summary(self, request, *args, **kwargs):
+        pass

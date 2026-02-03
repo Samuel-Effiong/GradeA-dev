@@ -33,6 +33,7 @@ OPENROUTER_API_KEY: str = env.str(
 #     "HF_TOKEN_API_KEY",
 # )
 
+AI_CONFIDENCE_THRESHOLD = 60
 
 with open("ai_processor/ASSIGNMENT_EXTRACTION_PROMPT_3_HTML.txt", "r") as file:
     ASSIGNMENT_EXTRACTION_PROMPT = file.read()

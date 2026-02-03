@@ -613,7 +613,7 @@ class AuthViewSet(viewsets.ViewSet):
         ],
     )
     @action(detail=False, methods=["post"], url_path="logout")
-    def logout(self, request):
+    def logout(self, request, *args, **kwargs):
         """
         Log out the currently authenticated user.
 

@@ -861,7 +861,7 @@ Your output must follow this exact structure with **HTML content in specified fi
       "model_answer": "HTML string - Expected response with all formatting, math notation, and structure preserved"
     }
   ],
-  "extraction_confidence": "HIGH|MEDIUM|LOW",
+  "extraction_confidence": "a values between 0 - 100 that best shows how confident you are in extracting the required structure from the text",
   "potential_issues": ["array of strings - Any concerns about extraction quality or HTML parsing"],
   "self_assessment": "string - Comprehensive assessment including MANDATORY notification of any generated rubrics, HTML preservation quality, and mathematical notation integrity"
 }
@@ -1146,7 +1146,7 @@ Your output must follow this exact structure with **HTML content in specified fi
       "model_answer": "<p><em>Photosynthesis</em> is the process by which plants convert light energy, CO<sub>2</sub>, and water into glucose and oxygen. It is essential to life on Earth because it produces oxygen for respiration and forms the base of most food chains by converting solar energy into chemical energy stored in organic compounds.</p>"
     }
   ],
-  "extraction_confidence": "84",
+  "extraction_confidence": 84,
   "potential_issues": [],
   "self_assessment": "HTML document was well-formed with clear structure using headings, lists, and a table. All HTML formatting was preserved including emphasis tags, mathematical notation, and subscripts. Mathematical notation using LaTeX inline format was successfully extracted and preserved. The rubric for question 2 was extracted from an HTML table with all formatting maintained. Question 1's options were extracted as plain text since they contained no formatting. Model answers were generated based on question context and include appropriate HTML formatting. Confidence is HIGH due to clear structure and complete information. All rubrics were successfully extracted from the uploaded document. No rubric generation was necessary."
 }
