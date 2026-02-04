@@ -435,6 +435,7 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
         try:
             # rubric_json = rubric.get_rubric_criteria_json()
             answer_json = submission.get_answer()
+            submission.ai_graded_at = timezone.now()
 
             grading = ai_processor.extract_grade_with_retry(
                 assignment.questions, answer_json
@@ -448,7 +449,7 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
             submission.grading_confidence = grading_confidence
 
             submission.ai_score = grading_score
-            submission.ai_graded_at = timezone.now()
+            submission.ai_grading_completed_at = timezone.now()
 
             submission.save()
 

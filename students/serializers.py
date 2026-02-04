@@ -22,7 +22,7 @@ class StudentSerializer(serializers.ModelSerializer):
             "enrollment_status",
         ]
 
-    def get_enrollment_status(self, obj):
+    def get_enrollment_status(self, obj) -> str | None:
         """Returns the enrollment status for this student in the course provided via serializer context.
         If no course is provided or a student is not enrolled in that course, returns None.
         """

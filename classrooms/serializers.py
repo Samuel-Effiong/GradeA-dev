@@ -1,11 +1,12 @@
 from django.core.validators import MinLengthValidator
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
 from students.serializers import StudentSerializer
 from users.models import CustomUser, UserTypes
 
-from .models import Course, CourseCategory, School, Session, StudentCourse
+from .models import Course, CourseCategory, School, Session, StudentCourse, Topic
 
 
 class SessionSerializer(serializers.ModelSerializer):
@@ -30,9 +31,6 @@ class SessionSerializer(serializers.ModelSerializer):
 class CourseSerializer(serializers.ModelSerializer):
     """Serializer for the Section model."""
 
-    categories = serializers.PrimaryKeyRelatedField(
-        many=True, queryset=CourseCategory.objects.all()
-    )
     teacher = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
     student_count = serializers.SerializerMethodField(method_name="get_student_count")
@@ -45,7 +43,6 @@ class CourseSerializer(serializers.ModelSerializer):
             "name",
             "session",
             "teacher",
-            "categories",
             "is_active",
             "created_at",
             "description",
@@ -64,6 +61,7 @@ class CourseSerializer(serializers.ModelSerializer):
             .count()
         )
 
+    @extend_schema_field(StudentSerializer(many=True))
     def get_students(self, obj):
         # TODO: Add users, to ensure that it is by the teacher
         enrolled_students = (
@@ -190,3 +188,26 @@ class CourseCategorySerializer(serializers.ModelSerializer):
         if not value or not value.strip():
             raise serializers.ValidationError("Category name cannot be empty.")
         return value
+
+
+class TopicSerializer(serializers.ModelSerializer):
+    """Serializer for Topic"""
+
+    class Meta:
+        model = Topic
+        fields = [
+            "id",
+            "name",
+            "course",
+        ]
+        read_only_fields = [
+            "id",
+        ]
+
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Topic.objects.all(),
+                fields=["name", "course"],
+                message="This Course already has this topic",
+            )
+        ]

@@ -34,6 +34,7 @@ from .models import (  # , Classroom, ClassroomSettings
     School,
     Session,
     StudentCourse,
+    Topic,
 )
 from .permissions import IsSuperAdmin, IsTeacherOrReadOnly
 from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
@@ -44,6 +45,7 @@ from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
     SchoolSerializer,
     SessionSerializer,
     StudentCourseSerializer,
+    TopicSerializer,
 )
 
 
@@ -248,7 +250,10 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
-    filterset_fields = ["session", "is_active", "categories"]
+    filterset_fields = [
+        "session",
+        "is_active",
+    ]
     ordering_fields = ["name", "created_at"]
     search_fields = [
         "name",
@@ -1045,3 +1050,96 @@ class CourseCategoryViewSet(viewsets.ModelViewSet):
 
         serializer = CourseSerializer(courses, many=True, context={"request": request})
         return Response(serializer.data)
+
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=["Topic"],
+        summary="List all Topic",
+        parameters=[
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page",
+            ),
+        ],
+    ),
+    retrieve=extend_schema(
+        tags=["Topic"],
+        summary="Retrieve a Topic",
+        responses={
+            200: TopicSerializer,
+            404: OpenApiResponse(description="Topic not found"),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    ),
+    create=extend_schema(
+        tags=["Topic"],
+        summary="Create a new Topic",
+        description="Create a new Topic withe the required details",
+        request=TopicSerializer,
+        responses={
+            201: TopicSerializer,
+            400: OpenApiResponse(description="Invalid data provided"),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    ),
+    partial_update=extend_schema(
+        tags=["Topic"],
+        summary="Partially update a Topic",
+        request=TopicSerializer,
+        responses={
+            200: TopicSerializer,
+            400: OpenApiResponse(description="Invalid data provided"),
+            404: OpenApiResponse(description="Topic not found"),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    ),
+    destroy=extend_schema(
+        tags=["Topic"],
+        summary="Delete a Topic",
+        description="Delete a Topic by ID. This action cannot be undone.",
+        responses={
+            204: OpenApiResponse(description="Topic deleted successfully"),
+            404: OpenApiResponse(description="Topic not found"),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    ),
+)
+class TopicViewSet(viewsets.ModelViewSet):
+    queryset = Topic.objects.all()
+    serializer_class = TopicSerializer
+    permission_class = (IsAuthenticated, IsTeacherOrReadOnly)
+    pagination_class = PageNumberPagination
+    http_method_names = ["get", "head", "post", "delete", "patch", "option"]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ("name", "course__name")
+    search_fields = ("name", "course__name")
+    ordering_fields = ("name",)
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.user_types == UserTypes.TEACHER:
+            return Topic.objects.filter(course__teacher=user)
+        elif user.user_type == UserTypes.STUDENT:
+            return Topic.objects.filter(course__enrollments__student=user)
+        else:
+            return Topic.objects.none()
+
+    @method_decorator(cache_page(60 * 30, key_prefix="topics:list"))
+    @method_decorator(vary_on_headers("Authorization"))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @method_decorator(cache_page(60 * 30, key_prefix="topics:detail"))
+    @method_decorator(vary_on_headers("Authorization"))
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)

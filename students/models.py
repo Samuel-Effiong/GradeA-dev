@@ -56,6 +56,11 @@ class StudentSubmission(models.Model):
         blank=True,
         help_text=_("The time student submission was graded by AI"),
     )
+    ai_grading_completed_at = models.DateField(
+        null=True,
+        blank=True,
+        help_text=_("The time the ai finished grading the student submission"),
+    )
 
     was_regraded = models.BooleanField(
         default=False,

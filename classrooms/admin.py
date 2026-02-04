@@ -26,7 +26,6 @@ class CourseAdmin(admin.ModelAdmin):
     search_fields = ("name", "description", "teacher__email")
     readonly_fields = ("id", "created_at")
     raw_id_fields = ("teacher", "session")
-    filter_horizontal = ("categories",)
 
 
 @admin.register(CourseCategory)
@@ -56,3 +55,11 @@ class StudentCourseAdmin(admin.ModelAdmin):
     readonly_fields = ["id", "created_at"]
     raw_id_fields = ["student", "course"]
     date_hierarchy = "created_at"
+
+
+class TopicAdmin(admin.ModelAdmin):
+    list_display = ("name", "course")
+    list_filter = ("course",)
+    search_fields = ("name", "course__name")
+    readonly_fields = ("id",)
+    raw_id_fields = ("course",)

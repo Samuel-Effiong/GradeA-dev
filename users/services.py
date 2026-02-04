@@ -131,7 +131,7 @@ def get_peak_time_of_day(start=None, end=None):
     top = qs.first()
 
     if top is None:
-        return {"hour": None, "label": "No data available", "avg_users": 0}
+        return {"hour": None, "label": "No data available", "average_users": 0}
 
     return {
         "hour": top["hour"],

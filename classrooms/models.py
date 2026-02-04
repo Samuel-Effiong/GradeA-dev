@@ -64,11 +64,7 @@ class Course(models.Model):
     )
     description = models.TextField(blank=True, db_index=True)
     is_active = models.BooleanField(default=True, db_index=True)
-    categories = models.ManyToManyField(
-        "CourseCategory",
-        related_name="courses",
-        blank=True,
-    )
+
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
@@ -82,6 +78,31 @@ class Course(models.Model):
 
     def __str__(self):
         return f"{self.session.name} - {self.name}"
+
+
+class Topic(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=100, db_index=True)
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name="topics",
+        blank=True,
+        null=True,
+    )
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["name"]
+        constraints = [
+            UniqueConstraint(
+                fields=["name", "course"],
+                name="unique_topic_name_per_course",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.course.name} - {self.name}"
 
 
 class CourseCategory(models.Model):
