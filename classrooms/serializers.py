@@ -29,7 +29,9 @@ class SessionSerializer(serializers.ModelSerializer):
 
 
 class CourseSerializer(serializers.ModelSerializer):
-    """Serializer for the Section model."""
+    """Serializer for the Section model.
+    I ask for open eyes and hears to every person using this software
+    """
 
     teacher = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
