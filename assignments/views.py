@@ -1,6 +1,10 @@
 from django.core.files.uploadedfile import UploadedFile
 from django.http import Http404
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_headers
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
@@ -10,15 +14,9 @@ from drf_spectacular.utils import (
     extend_schema,
     extend_schema_view,
 )
-from PIL import Image
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import (
-    NotAcceptable,
-    NotFound,
-    ParseError,
-    ValidationError,
-)
+from rest_framework.exceptions import NotFound, ParseError, ValidationError
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
@@ -26,8 +24,9 @@ from rest_framework.response import Response
 
 from ai_processor.models import ChatMessage, ChatSession, RoleType
 from ai_processor.serializers import AssignmentGeneratorSerializer
-from ai_processor.services import ai_processor, ocr_service, pdf_service
+from ai_processor.services import ai_processor, pdf_service
 from ai_processor.tools import encode_image
+from assignments.tasks import grade_all_submissions
 from classrooms.models import Course
 from classrooms.permissions import IsTeacher, IsTeacherOrReadOnly
 
@@ -274,6 +273,16 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             return AssignmentTextSerializer
         return super().get_serializer_class()
 
+    @method_decorator(cache_page(60 * 5, key_prefix="assignments:list"))
+    @method_decorator(vary_on_headers("Authorization"))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @method_decorator(cache_page(60 * 5, key_prefix="assignments:detail"))
+    @method_decorator(vary_on_headers("Authorization"))
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -294,11 +303,24 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
         content = [{"type": "text", "text": text}]
 
+        extraction_started_at = timezone.now()
+
         assignment_questions = ai_processor.extract_assignment_with_retry(
             content, max_retries=3
         )
 
+        extraction_completed_at = timezone.now()
+
         assignment_questions["course"] = course.id
+        assignment_questions["ai_generated"] = True
+        assignment_questions["ai_raw_payload"] = assignment_questions.copy()
+        del assignment_questions["ai_raw_payload"]["course"]
+
+        assignment_questions["ai_generated_at"] = timezone.now()
+        assignment_questions["extraction_started_at"] = extraction_started_at
+        assignment_questions["extraction_completed_at"] = extraction_completed_at
+        assignment_questions["had_error"] = False
+
         serializer = AssignmentSerializer(data=assignment_questions)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -338,7 +360,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         assignment_serializer.is_valid(raise_exception=True)
         assignment_serializer.save()
 
-        return Response(assignment_questions, status=status.HTTP_200_OK)
+        return Response(assignment_serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(
         tags=["04 Assignments"],
@@ -467,6 +489,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
             try:
                 if content_type in image_formats:
+                    extraction_started_at = timezone.now()
 
                     base64_encoded_file = encode_image(uploaded_file)
 
@@ -498,7 +521,19 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                     content, max_retries=3, upload=True
                 )
 
+                extraction_completed_at = timezone.now()
+
                 assignment_questions["course"] = course.id
+                assignment_questions["ai_generated"] = True
+                assignment_questions["ai_raw_payload"] = assignment_questions.copy()
+                del assignment_questions["ai_raw_payload"]["course"]
+
+                assignment_questions["ai_generated_at"] = timezone.now()
+                assignment_questions["extraction_started_at"] = extraction_started_at
+                assignment_questions["extraction_completed_at"] = (
+                    extraction_completed_at
+                )
+                assignment_questions["had_error"] = False
 
                 results.append(assignment_questions)
             except Exception as e:
@@ -510,205 +545,205 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    @extend_schema(
-        tags=["05 Rubrics"],
-        operation_id="upload_rubric",
-        summary="Upload rubric file (image or PDF)",
-        description="""
-        Upload rubric file (PDF or images) for processing.
-        The endpoint accepts file and processes it to extract rubric data.
-        The extracted data will be associated with the specified assignment.
-        """,
-        request={
-            "multipart/form-data": {
-                "type": "object",
-                "properties": {
-                    "rubric": {
-                        "type": "string",
-                        "format": "binary",
-                        "description": "Rubric file (PDF, JPEG, PNG, GIF, or WebP)",
-                    }
-                },
-                "required": ["rubric"],
-            }
-        },
-        responses={
-            201: OpenApiResponse(
-                response=RubricSerializer,
-                description="Rubric files processed successfully",
-                examples=[
-                    OpenApiExample(
-                        name="Rubric Example",
-                        value={
-                            "assignment_id": 1,
-                            "criteria": [
-                                {
-                                    "id": 1,
-                                    "question": "Explain three main causes of climate change.",
-                                    "max_points": 15,
-                                    "model_answer": "The main causes are greenhouse gas emissions from burning fossil"
-                                    " fuels, deforestation, and industrial activities that release "
-                                    "carbon dioxide and methane.",
-                                    "rubric": [
-                                        {
-                                            "level": "Excellent",
-                                            "points": 15,
-                                            "description": "Mentions at least 3 causes with detailed explanations "
-                                            "and examples.",
-                                        },
-                                        {
-                                            "level": "Good",
-                                            "points": 10,
-                                            "description": "Mentions at least 2 causes with moderate explanation.",
-                                        },
-                                        {
-                                            "level": "Fair",
-                                            "points": 5,
-                                            "description": "Mentions only 1 cause with limited detail.",
-                                        },
-                                        {
-                                            "level": "Poor",
-                                            "points": 0,
-                                            "description": "Fails to identify valid causes or gives irrelevant "
-                                            "answers.",
-                                        },
-                                    ],
-                                }
-                            ],
-                            "rubric_analysis": {
-                                "extraction_confidence": 0.0,
-                                "text_quality": "high/medium/low",
-                                "total_questions_found": 0,
-                                "total_possible_points": 0,
-                                "detected_metadata": {
-                                    "title": "",
-                                    "subject": "",
-                                    "grade_level": "",
-                                    "instructor": "",
-                                    "course": "",
-                                    "date": "",
-                                    "instructions": "",
-                                },
-                            },
-                            "rubric_quality_assessment": {
-                                "clarity_score": 0.0,
-                                "completeness_score": 0.0,
-                                "consistency_score": 0.0,
-                                "alignment_score": 0.0,
-                                "overall_quality": "excellent/good/fair/poor",
-                            },
-                            "identified_issues": [
-                                {
-                                    "issue_type": "",
-                                    "severity": "high/medium/low",
-                                    "description": "",
-                                    "suggestion": "",
-                                }
-                            ],
-                            "strengths": [],
-                            "improvement_recommendations": [],
-                            "processing_notes": [],
-                            "assumptions_made": [],
-                            "unclear_sections": [],
-                        },
-                        response_only=True,
-                    )
-                ],
-            ),
-            400: OpenApiResponse(
-                description="Bad Request",
-                examples=[
-                    OpenApiExample(
-                        name="No File",
-                        value={"error": "Invalid file upload"},
-                        response_only=True,
-                    )
-                ],
-            ),
-            415: OpenApiResponse(
-                description="Unsupported Media Type",
-                examples=[
-                    OpenApiExample(
-                        name="Unsupported Media Type",
-                        value={
-                            "error": "File 'example.txt' has an invalid format. "
-                            "Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed."
-                        },
-                        response_only=True,
-                    )
-                ],
-            ),
-        },
-    )
-    @action(
-        detail=False,
-        methods=["POST"],
-        url_path=r"(?P<assignment_id>[-\w]+)/upload_rubric",
-        url_name="upload_rubric",
-        permission_classes=[IsAuthenticated, IsTeacher],
-    )
-    def upload_rubric(self, request, assignment_id=None):
-        if not Assignment.objects.filter(pk=assignment_id).exists():
-            raise NotFound("No Assignment found with this ID.")
-
-        files = request.FILES.getlist("rubric")
-
-        if not files:
-            raise ParseError("No files were uploaded.")
-
-        if len(files) > 1:
-            raise NotAcceptable(
-                "Only one file can be uploaded at a time. Please try again."
-            )
-
-        image_formats = [
-            "image/jpeg",
-            "image/png",
-            "image/gif",
-            "image/webp",
-        ]
-
-        pdf_formats = "application/pdf"
-
-        rubric = None
-
-        for uploaded_file in files:
-            if not isinstance(uploaded_file, UploadedFile):
-                raise ParseError("Invalid file upload.")
-
-            if uploaded_file.content_type in image_formats:
-                try:
-                    image = Image.open(uploaded_file)
-                    rubric = ocr_service.extract_with_pytessaract(image)
-
-                    rubric = ai_processor.extract_rubric_with_retry(
-                        rubric, max_retries=3
-                    )
-                except Exception as e:
-                    return Response(
-                        {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                    )
-            elif uploaded_file.content_type == pdf_formats:
-                try:
-                    pdf_service.set_uploaded_file(uploaded_file)
-                    extracted_data = pdf_service.extract()
-
-                    rubric = ai_processor.extract_rubric_with_retry(
-                        extracted_data["questions"], max_retries=3
-                    )
-                except Exception as e:
-                    return Response(
-                        {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                    )
-            else:
-                raise ParseError(
-                    f"File `{uploaded_file.name}` has an invalid format. Only images "
-                    f"(JPEG, PNG, GIF, WebP) and PDFs are allowed."
-                )
-
-        if rubric is not None:
-            rubric["assignment"] = assignment_id
-        return Response(rubric, status=status.HTTP_201_CREATED)
+    # @extend_schema(
+    #     tags=["05 Rubrics"],
+    #     operation_id="upload_rubric",
+    #     summary="Upload rubric file (image or PDF)",
+    #     description="""
+    #     Upload rubric file (PDF or images) for processing.
+    #     The endpoint accepts file and processes it to extract rubric data.
+    #     The extracted data will be associated with the specified assignment.
+    #     """,
+    #     request={
+    #         "multipart/form-data": {
+    #             "type": "object",
+    #             "properties": {
+    #                 "rubric": {
+    #                     "type": "string",
+    #                     "format": "binary",
+    #                     "description": "Rubric file (PDF, JPEG, PNG, GIF, or WebP)",
+    #                 }
+    #             },
+    #             "required": ["rubric"],
+    #         }
+    #     },
+    #     responses={
+    #         201: OpenApiResponse(
+    #             response=RubricSerializer,
+    #             description="Rubric files processed successfully",
+    #             examples=[
+    #                 OpenApiExample(
+    #                     name="Rubric Example",
+    #                     value={
+    #                         "assignment_id": 1,
+    #                         "criteria": [
+    #                             {
+    #                                 "id": 1,
+    #                                 "question": "Explain three main causes of climate change.",
+    #                                 "max_points": 15,
+    #                                 "model_answer": "The main causes are greenhouse gas emissions from burning fossil"
+    #                                 " fuels, deforestation, and industrial activities that release "
+    #                                 "carbon dioxide and methane.",
+    #                                 "rubric": [
+    #                                     {
+    #                                         "level": "Excellent",
+    #                                         "points": 15,
+    #                                         "description": "Mentions at least 3 causes with detailed explanations "
+    #                                         "and examples.",
+    #                                     },
+    #                                     {
+    #                                         "level": "Good",
+    #                                         "points": 10,
+    #                                         "description": "Mentions at least 2 causes with moderate explanation.",
+    #                                     },
+    #                                     {
+    #                                         "level": "Fair",
+    #                                         "points": 5,
+    #                                         "description": "Mentions only 1 cause with limited detail.",
+    #                                     },
+    #                                     {
+    #                                         "level": "Poor",
+    #                                         "points": 0,
+    #                                         "description": "Fails to identify valid causes or gives irrelevant "
+    #                                         "answers.",
+    #                                     },
+    #                                 ],
+    #                             }
+    #                         ],
+    #                         "rubric_analysis": {
+    #                             "extraction_confidence": 0.0,
+    #                             "text_quality": "high/medium/low",
+    #                             "total_questions_found": 0,
+    #                             "total_possible_points": 0,
+    #                             "detected_metadata": {
+    #                                 "title": "",
+    #                                 "subject": "",
+    #                                 "grade_level": "",
+    #                                 "instructor": "",
+    #                                 "course": "",
+    #                                 "date": "",
+    #                                 "instructions": "",
+    #                             },
+    #                         },
+    #                         "rubric_quality_assessment": {
+    #                             "clarity_score": 0.0,
+    #                             "completeness_score": 0.0,
+    #                             "consistency_score": 0.0,
+    #                             "alignment_score": 0.0,
+    #                             "overall_quality": "excellent/good/fair/poor",
+    #                         },
+    #                         "identified_issues": [
+    #                             {
+    #                                 "issue_type": "",
+    #                                 "severity": "high/medium/low",
+    #                                 "description": "",
+    #                                 "suggestion": "",
+    #                             }
+    #                         ],
+    #                         "strengths": [],
+    #                         "improvement_recommendations": [],
+    #                         "processing_notes": [],
+    #                         "assumptions_made": [],
+    #                         "unclear_sections": [],
+    #                     },
+    #                     response_only=True,
+    #                 )
+    #             ],
+    #         ),
+    #         400: OpenApiResponse(
+    #             description="Bad Request",
+    #             examples=[
+    #                 OpenApiExample(
+    #                     name="No File",
+    #                     value={"error": "Invalid file upload"},
+    #                     response_only=True,
+    #                 )
+    #             ],
+    #         ),
+    #         415: OpenApiResponse(
+    #             description="Unsupported Media Type",
+    #             examples=[
+    #                 OpenApiExample(
+    #                     name="Unsupported Media Type",
+    #                     value={
+    #                         "error": "File 'example.txt' has an invalid format. "
+    #                         "Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed."
+    #                     },
+    #                     response_only=True,
+    #                 )
+    #             ],
+    #         ),
+    #     },
+    # )
+    # @action(
+    #     detail=False,
+    #     methods=["POST"],
+    #     url_path=r"(?P<assignment_id>[-\w]+)/upload_rubric",
+    #     url_name="upload_rubric",
+    #     permission_classes=[IsAuthenticated, IsTeacher],
+    # )
+    # def upload_rubric(self, request, assignment_id=None):
+    #     if not Assignment.objects.filter(pk=assignment_id).exists():
+    #         raise NotFound("No Assignment found with this ID.")
+    #
+    #     files = request.FILES.getlist("rubric")
+    #
+    #     if not files:
+    #         raise ParseError("No files were uploaded.")
+    #
+    #     if len(files) > 1:
+    #         raise NotAcceptable(
+    #             "Only one file can be uploaded at a time. Please try again."
+    #         )
+    #
+    #     image_formats = [
+    #         "image/jpeg",
+    #         "image/png",
+    #         "image/gif",
+    #         "image/webp",
+    #     ]
+    #
+    #     pdf_formats = "application/pdf"
+    #
+    #     rubric = None
+    #
+    #     for uploaded_file in files:
+    #         if not isinstance(uploaded_file, UploadedFile):
+    #             raise ParseError("Invalid file upload.")
+    #
+    #         if uploaded_file.content_type in image_formats:
+    #             try:
+    #                 image = Image.open(uploaded_file)
+    #                 rubric = ocr_service.extract_with_pytessaract(image)
+    #
+    #                 rubric = ai_processor.extract_rubric_with_retry(
+    #                     rubric, max_retries=3
+    #                 )
+    #             except Exception as e:
+    #                 return Response(
+    #                     {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+    #                 )
+    #         elif uploaded_file.content_type == pdf_formats:
+    #             try:
+    #                 pdf_service.set_uploaded_file(uploaded_file)
+    #                 extracted_data = pdf_service.extract()
+    #
+    #                 rubric = ai_processor.extract_rubric_with_retry(
+    #                     extracted_data["questions"], max_retries=3
+    #                 )
+    #             except Exception as e:
+    #                 return Response(
+    #                     {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+    #                 )
+    #         else:
+    #             raise ParseError(
+    #                 f"File `{uploaded_file.name}` has an invalid format. Only images "
+    #                 f"(JPEG, PNG, GIF, WebP) and PDFs are allowed."
+    #             )
+    #
+    #     if rubric is not None:
+    #         rubric["assignment"] = assignment_id
+    #     return Response(rubric, status=status.HTTP_201_CREATED)
 
     @extend_schema(
         tags=["04 Assignments"],
@@ -792,6 +827,28 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    @extend_schema(tags=["04 Assignments"])
+    @action(detail=True, methods=["GET"], url_path=r"grade-all", url_name="grade-all")
+    def grade_all_submission(self, request, pk=None):
+        assignment_object = self.get_object()
+
+        submissions = assignment_object.submissions
+
+        if not submissions.exists():
+            return Response(
+                {"message": "No submissions to grade"}, status=status.HTTP_200_OK
+            )
+
+        grade_all_submissions.delay(str(assignment_object.id))
+
+        return Response(
+            {
+                "message": "AI grading started",
+                "submission_count": submissions.count(),
+            },
+            status=status.HTTP_202_ACCEPTED,
+        )
 
 
 @extend_schema_view(

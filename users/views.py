@@ -13,6 +13,9 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.db import transaction
 from django.utils import timezone
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_headers
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
@@ -38,9 +41,9 @@ from rest_framework_simplejwt.views import (
 from rest_framework_simplejwt.views import TokenRefreshView as BaseTokenRefreshView
 
 from classrooms.models import EnrollmentStatusType, StudentCourse
+from classrooms.permissions import IsSuperAdmin
 from classrooms.serializers import StudentRegistrationCompletionSerializer
-from users.models import CustomUser, PasswordChangeOTP, PasswordResetOTP
-from users.permissions import IsSuperUser
+from users.models import CustomUser, PasswordChangeOTP, PasswordResetOTP, UserTypes
 from users.serializers import (
     ChangePasswordSerializer,
     CustomTokenObtainPairSerializer,
@@ -98,13 +101,6 @@ class BaseUserViewSet(viewsets.ModelViewSet):
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
                 description="Number of results per page",
-            ),
-            OpenApiParameter(
-                name="user_type",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.QUERY,
-                description="Filter users by type (TEACHER or STUDENT)",
-                enum=["TEACHER", "STUDENT"],
             ),
         ],
         responses={
@@ -190,6 +186,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
 
     filterset_fields = {
         "user_type": ["exact"],
+        "school__name": ["exact"],
         "enrollments__course": ["exact", "isnull"],
         "enrollments__course__session": ["exact"],
         "enrollments__enrollment_status": ["exact", "in"],
@@ -215,30 +212,34 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         Allow unauthenticated access only for POST endpoints (public actions).
         All other requests require authentication.
         """
-        if self.action in [
-            "create",
-            "register",
-            "register_student",
-            "verify",
-            "otp",
-            "reset_password",
-        ]:
-            permission_classes = [AllowAny]
-        elif self.action == "list":
-            permission_classes = [IsAuthenticated, IsSuperUser]
+        if self.action in ["list", "create"]:
+            permission_classes = [IsAuthenticated, IsSuperAdmin]
         else:
             permission_classes = [IsAuthenticated]
 
         return [permission() for permission in permission_classes]
 
-    @extend_schema(exclude=True)
+    # @extend_schema(exclude=True)
     def create(self, request, *args, **kwargs):
-        if not request.user.is_superuser:
+        if (
+            not request.user.is_superuser
+            and request.user.user_type != UserTypes.SUPER_ADMIN
+        ):
             return Response(
                 {"detail": "You do not have permission to create users."},
                 status=status.HTTP_403_FORBIDDEN,
             )
         return super().create(request, *args, **kwargs)
+
+    @method_decorator(cache_page(60 * 5, key_prefix="users:list"))
+    @method_decorator(vary_on_headers("Authorization"))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @method_decorator(cache_page(60 * 5, key_prefix="users:detail"))
+    @method_decorator(vary_on_headers("Authorization"))
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
     @extend_schema(
         tags=["Users"],
@@ -263,6 +264,8 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             ),
         },
     )
+    @method_decorator(cache_page(60 * 60, key_prefix="users:detail:me"))
+    @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"])
     def me(self, request):
         """
@@ -610,7 +613,7 @@ class AuthViewSet(viewsets.ViewSet):
         ],
     )
     @action(detail=False, methods=["post"], url_path="logout")
-    def logout(self, request):
+    def logout(self, request, *args, **kwargs):
         """
         Log out the currently authenticated user.
 

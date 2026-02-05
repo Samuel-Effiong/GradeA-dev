@@ -33,6 +33,45 @@ class StudentSubmission(models.Model):
     feedback = models.JSONField(
         null=True, blank=True, help_text=_("Feedback provided for each question")
     )
+    graded_at = models.DateTimeField(
+        null=True, blank=True, help_text=_("The time student submission was graded")
+    )
+    grading_confidence = models.IntegerField(null=False, blank=True, default=0)
+
+    ai_score = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        default=0.00,
+        null=True,
+        blank=True,
+        help_text=_("AI score awarded to the submission"),
+    )
+
+    ai_feedback = models.JSONField(
+        null=True, blank=True, help_text=_("AI feedback provided for each question")
+    )
+
+    ai_graded_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=_("The time student submission was graded by AI"),
+    )
+    ai_grading_completed_at = models.DateField(
+        null=True,
+        blank=True,
+        help_text=_("The time the ai finished grading the student submission"),
+    )
+
+    was_regraded = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text=_("Whether the AI grade was modified by a human"),
+    )
+    regraded_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=_("The time the AI grade was modified by a human"),
+    )
 
     class Meta:
         constraints = [

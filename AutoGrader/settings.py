@@ -73,7 +73,7 @@ ENVIRONMENT = env.str("ENVIRONMENT")
 if ENVIRONMENT == "prod":
     DEBUG = False
 elif ENVIRONMENT == "dev":
-    DEBUG = False
+    DEBUG = True
 
 APPEND_SLASH = False
 
@@ -120,10 +120,14 @@ INSTALLED_APPS = [
     "grading",
     "ocr_processor",
     "ai_processor",
+    "dashboard",
+    "django_celery_results",
+    "django_celery_beat",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "users.middleware.UserActivityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -191,6 +195,26 @@ USE_I18N = True
 USE_TZ = True
 
 
+# Celery Configuration Options
+CELERY_BROKER_URL = (
+    env.str("REDIS_URL") if ENVIRONMENT == "dev" else env.str("REDIS_PROD_URL")
+)
+CELERY_RESULT_BACKEND = (
+    env.str("REDIS_URL") if ENVIRONMENT == "dev" else env.str("REDIS_PROD_URL")
+)
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+
+# Celery Beat Schedule
+CELERY_BEAT_SCHEDULE = {
+    "record-concurrent-users-every-minute": {
+        "task": "dashboard.tasks.record_concurrent_users",
+        "schedule": 60.0,
+    },
+}
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
@@ -200,19 +224,38 @@ STATIC_ROOT = os.path.join(BASE_DIR, "static")
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 MEDIA_URL = "/media/"
 
+#
+# STORAGES = {
+#     "default": {
+#         "BACKEND": "django.core.files.storage.FileSystemStorage",
+#     },
+#     # ManifestStaticFilesStorage is recommended in production, to prevent
+#     # outdated JavaScript / CSS assets being served from cache
+#     # (e.g. after a Wagtail upgrade).
+#     # See https://docs.djangoproject.com/en/5.1/ref/contrib/staticfiles/#manifeststaticfilesstorage
+#     "staticfiles": {
+#         "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",
+#     },
+# }
 
-STORAGES = {
-    "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
-    },
-    # ManifestStaticFilesStorage is recommended in production, to prevent
-    # outdated JavaScript / CSS assets being served from cache
-    # (e.g. after a Wagtail upgrade).
-    # See https://docs.djangoproject.com/en/5.1/ref/contrib/staticfiles/#manifeststaticfilesstorage
-    "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",
-    },
-}
+if ENVIRONMENT == "prod":
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",
+        },
+    }
+else:
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -319,4 +362,16 @@ SUPPORT_EMAIL = "GradeA+@gmail.com"
 
 ANYMAIL = {
     "SENDINBLUE_API_KEY": env.str("SENDINBLUE_API_KEY"),
+}
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": (
+            env.str("REDIS_URL") if ENVIRONMENT == "dev" else env.str("REDIS_PROD_URL")
+        ),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+    }
 }

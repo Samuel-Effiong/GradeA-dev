@@ -1,4 +1,7 @@
+import json
+
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 
@@ -63,11 +66,29 @@ class AssignmentSerializer(serializers.ModelSerializer):
             "question_count",
             "assignment_type",
             "created_at",
-            # "due_date",
+            "due_date",
             "teacher",
             "questions",
+            "potential_issues",
+            "self_assessment",
+            "extraction_confidence",
+            "ai_generated",
+            "ai_raw_payload",
+            "ai_generated_at",
+            "extraction_started_at",
+            "extraction_completed_at",
+            "had_error",
         ]
         read_only_fields = ["created_at", "id"]
+
+        extra_kwargs = {
+            "ai_generated": {"write_only": True},
+            "ai_raw_payload": {"write_only": True},
+            "ai_generated_at": {"write_only": True},
+            "extraction_started_at": {"write_only": True},
+            "extraction_completed_at": {"write_only": True},
+            "had_error": {"write_only": True},
+        }
 
     def validate_total_points(self, value: int | float) -> int | float:
         if value <= 0:
@@ -135,6 +156,34 @@ class AssignmentSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 f"Failed to create assignment and rubric: {e}"
             ) from Exception
+
+    def normalize(self, obj):
+        return json.loads(json.dumps(obj, sort_keys=True))
+
+    def update(self, instance, validated_data):
+        if instance.ai_generated and instance.ai_raw_payload:
+            ai_snapshot = self.normalize(
+                {
+                    "title": instance.ai_raw_payload.get("title"),
+                    "instructions": instance.ai_raw_payload.get("instructions"),
+                    "questions": instance.ai_raw_payload.get("questions"),
+                }
+            )
+
+            teacher_version = self.normalize(
+                {
+                    "title": validated_data.get("title", instance.title),
+                    "instructions": validated_data.get(
+                        "instructions", instance.instructions
+                    ),
+                    "questions": validated_data.get("questions", instance.questions),
+                }
+            )
+
+            if ai_snapshot != teacher_version:
+                instance.was_overridden = True
+                instance.overridden_at = timezone.now()
+        return super().update(instance, validated_data)
 
 
 class ScoringLevelSerializer(serializers.Serializer):

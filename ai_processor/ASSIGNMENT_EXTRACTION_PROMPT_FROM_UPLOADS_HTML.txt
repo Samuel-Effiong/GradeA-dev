@@ -926,7 +926,7 @@ Your task is to process **Base64-encoded images** of assignment documents and ex
       "model_answer": "<p><em>Photosynthesis</em> is the process by which green plants and some other organisms convert light energy into chemical energy. The general equation is: $$6CO_2 + 6H_2O + \\text{light energy} \\rightarrow C_6H_{12}O_6 + 6O_2$$ It is crucial to life because it produces oxygen for respiration and forms the base of most food chains by converting solar energy into organic compounds.</p>"
     }
   ],
-  "extraction_confidence": "HIGH",
+  "extraction_confidence": 90,
   "potential_issues": [],
   "self_assessment": "Document was clearly typed with excellent visual quality. All questions were easily identifiable with explicit numbering. Mathematical notation was professionally typeset and successfully converted to LaTeX format. HTML formatting was applied to preserve bold, italic, and structural elements. Question 2 did not have a rubric in the original document, so a 4-level rubric was generated based on the question's cognitive level (Understand), point value (10), and expected response format. All other information was directly extracted. Confidence is HIGH due to clear structure and complete information. RUBRIC GENERATION NOTICE: A rubric was automatically generated for Question 2 as the uploaded document did not contain explicit grading criteria. The generated rubric follows educational best practices and is based on the question's cognitive level, point value, and expected response format. Teachers should review and customize this rubric as needed."
 }
@@ -949,7 +949,7 @@ Your task is to process **Base64-encoded images** of assignment documents and ex
 - `question_image`: Always leave as empty string `""`
 - `blooms_level`: "Remember" | "Understand" | "Apply" | "Analyze" | "Evaluate" | "Create"
 - `rubric[].level`: "excellent" | "good" | "fair" | "poor"
-- `extraction_confidence`: "HIGH" | "MEDIUM" | "LOW"
+- `extraction_confidence`: "a values between 0 - 100 that best shows how confident you are in extracting the required structure from the text"
 - `potential_issues[]`: Array of issue descriptions
 - `self_assessment`: Comprehensive text assessment
 
@@ -1071,7 +1071,7 @@ Answer Key: 1. A
       "model_answer": "A) $x = 5$"
     }
   ],
-  "extraction_confidence": "HIGH",
+  "extraction_confidence": 80,
   "potential_issues": [],
   "self_assessment": "Clear, well-structured document with explicit question numbering and answer key. Mathematical notation successfully converted to LaTeX in both question text and all options. No rubric needed for objective question. All information directly extracted. Confidence is HIGH."
 }
@@ -1127,7 +1127,7 @@ Define photosynthesis and explain its importance. (10 points)
       "model_answer": "<p><em>Photosynthesis</em> is the process by which plants convert light energy, CO<sub>2</sub>, and water into glucose and oxygen. The equation is: $$6CO_2 + 6H_2O + \\text{light} \\rightarrow C_6H_{12}O_6 + 6O_2$$ It is essential because it produces oxygen for respiration and forms the foundation of food chains.</p>"
     }
   ],
-  "extraction_confidence": "MEDIUM",
+  "extraction_confidence": 60,
   "potential_issues": ["No rubric provided in original document - generated automatically"],
   "self_assessment": "Simple, clear document with one short answer question. Mathematical equation for photosynthesis was successfully converted to LaTeX. Chemical formulas properly formatted with subscripts. RUBRIC GENERATION NOTICE: A rubric was automatically generated for Question 1 as the uploaded document did not contain explicit grading criteria. The generated rubric follows educational best practices and is based on the question's cognitive level (Understand), point value (10), and expected response format. Teachers should review and customize this rubric as needed. Confidence is MEDIUM due to rubric generation requirement."
 }
@@ -1240,7 +1240,7 @@ D) cos(2x)
       "model_answer": "B) $2x \\cos(x^2)$"
     }
   ],
-  "extraction_confidence": "HIGH",
+  "extraction_confidence": 100
   "potential_issues": [],
   "self_assessment": "Well-structured calculus quiz with clear numbering and mixed question types. All mathematical notation successfully converted to LaTeX including derivatives, integrals, trigonometric functions, and complex expressions. Options for multiple choice question properly formatted with LaTeX. RUBRIC GENERATION NOTICE: Rubrics were automatically generated for Questions 1 and 2 as the uploaded document did not contain explicit grading criteria for these short answer questions. Generated rubrics follow educational best practices and are based on each question's cognitive level (Apply), point values, and expected response format. Teachers should review and customize these rubrics as needed. Question 3 is objective and correctly has no rubric. Confidence is HIGH due to clear structure and successful mathematical notation extraction."
 }

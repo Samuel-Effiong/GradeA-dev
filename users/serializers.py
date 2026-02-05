@@ -3,6 +3,7 @@ from django.db import transaction
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
+from classrooms.models import School
 from users.models import CustomUser
 from users.services import send_user_activation_email
 
@@ -11,11 +12,15 @@ class CustomUserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         write_only=True, required=True, validators=[validate_password]
     )
+    school = serializers.PrimaryKeyRelatedField(
+        queryset=School.objects.all(), required=False
+    )
 
     class Meta:
         model = CustomUser
         fields = [
             "id",
+            "school",
             "email",
             "first_name",
             "last_name",
@@ -28,7 +33,6 @@ class CustomUserSerializer(serializers.ModelSerializer):
             "email": {"required": True},
             "password": {"write_only": True},
             "is_active": {"read_only": True},
-            "user_type": {"read_only": True},
         }
 
     def create(self, validated_data):

@@ -2,7 +2,10 @@ from pathlib import Path
 
 import fitz
 from django.core.files.uploadedfile import UploadedFile
-from docutils.transforms.universal import Validate
+
+# from docutils.transforms.universal import Validate
+
+# from ai_processor.services import ai_processor
 
 # from assignments.models import Assignment
 
@@ -53,10 +56,4 @@ class PDFService:
 
             pdf_document.close()
         except Exception as e:
-            raise ValueError(f"Something went wrong: {str(e)}")
-
-
-class ImageService:
-    """
-    Service class for extracting structured data from assignment images
-    """
+            raise ValueError(f"Something went wrong: {str(e)}") from e

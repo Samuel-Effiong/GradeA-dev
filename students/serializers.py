@@ -1,3 +1,4 @@
+from django.utils import timezone
 from rest_framework import serializers
 
 from users.models import CustomUser
@@ -21,9 +22,9 @@ class StudentSerializer(serializers.ModelSerializer):
             "enrollment_status",
         ]
 
-    def get_enrollment_status(self, obj):
+    def get_enrollment_status(self, obj) -> str | None:
         """Returns the enrollment status for this student in the course provided via serializer context.
-        If no course is provided or student is not enrolled in that course, returns None.
+        If no course is provided or a student is not enrolled in that course, returns None.
         """
         course = self.context.get("course")
 
@@ -62,3 +63,25 @@ class StudentSubmissionSerializer(serializers.ModelSerializer):
 
     def get_student_name(self, obj) -> str:
         return f"{obj.student.first_name} {obj.student.last_name}"
+
+    def update(self, instance, validated_data):
+        # request = self.context.get("request")
+        # user = request.user if request else None
+
+        # ONly track regardes AFTER AI has graded
+        if instance.ai_graded_at:
+            score_changed = (
+                "score" in validated_data
+                and validated_data["score"] != instance.ai_score
+            )
+
+            feedback_changed = (
+                "feedback" in validated_data
+                and validated_data["feedback"] != instance.ai_feedback
+            )
+
+            if score_changed or feedback_changed:
+                instance.was_regraded = True
+                instance.regraded_at = timezone.now()
+
+        return super().update(instance, validated_data)

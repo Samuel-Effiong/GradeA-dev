@@ -1,5 +1,6 @@
 import uuid
 
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -40,7 +41,30 @@ class Assignment(models.Model):
     )
 
     questions = models.JSONField(null=True, blank=True)
-    # raw_content = models.TextField()
+    ai_raw_payload = models.JSONField(null=True, blank=True)
+
+    extraction_confidence = models.IntegerField(null=True, blank=True, default=0)
+    potential_issues = ArrayField(
+        models.CharField(max_length=1000), null=True, blank=True
+    )
+    self_assessment = models.TextField(null=True, blank=True)
+
+    custom_ai_prompt = models.TextField(null=True, blank=True)
+
+    ai_generated = models.BooleanField(default=True)
+    ai_raw_payload = models.JSONField(null=True, blank=True)
+    ai_generated_at = models.DateTimeField(null=True, blank=True)
+    was_overridden = models.BooleanField(default=False)
+
+    extraction_started_at = models.DateTimeField(null=True, blank=True)
+    extraction_completed_at = models.DateTimeField(null=True, blank=True)
+    had_error = models.BooleanField(default=False)
+
+    grading_status = models.CharField(
+        max_length=20,
+        choices=[("NOT_STARTED", "NOT STARTED"), ("COMPLETED", "COMPLETED")],
+        default="NOT_STARTED",
+    )
 
     class Meta:
         ordering = ["title"]
