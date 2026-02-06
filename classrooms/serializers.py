@@ -38,6 +38,11 @@ class CourseSerializer(serializers.ModelSerializer):
     student_count = serializers.SerializerMethodField(method_name="get_student_count")
     students = serializers.SerializerMethodField(method_name="get_students")
 
+    # Deprecated field added for frontend compatibility
+    categories = serializers.ListField(
+        child=serializers.CharField(), required=False, default=list
+    )
+
     class Meta:
         model = Course
         fields = [
@@ -50,10 +55,21 @@ class CourseSerializer(serializers.ModelSerializer):
             "description",
             "student_count",
             "students",
+            "categories",
         ]
         read_only_fields = ["id", "created_at", "teacher"]
 
         extra_kwargs = {"is_active": {"required": False}}
+
+    def create(self, validated_data):
+        """Pop categories before creating the course."""
+        validated_data.pop("categories", None)
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        """Pop categories before updating the course."""
+        validated_data.pop("categories", None)
+        return super().update(instance, validated_data)
 
     def get_student_count(self, obj) -> int:
         return (
