@@ -33,6 +33,7 @@ OPENROUTER_API_KEY: str = env.str(
 #     "HF_TOKEN_API_KEY",
 # )
 
+AI_CONFIDENCE_THRESHOLD = 60
 
 with open("ai_processor/ASSIGNMENT_EXTRACTION_PROMPT_3_HTML.txt", "r") as file:
     ASSIGNMENT_EXTRACTION_PROMPT = file.read()
@@ -398,7 +399,6 @@ Do not include any explanatory text before or after the JSON
         except json.JSONDecodeError as e:
             logger.error(f"Error decoding JSON: {str(e)}")
             raise Exception(f"Error decoding JSON: {str(e)}") from Exception
-
         return json_data
 
     def extract_answer_with_retry(self, content, max_retries: int = 3):

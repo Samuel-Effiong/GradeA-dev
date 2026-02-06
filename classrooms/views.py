@@ -4,6 +4,9 @@ from django.core.mail import send_mail
 from django.db import transaction
 from django.template.loader import render_to_string
 from django.utils import timezone
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_headers
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
@@ -21,22 +24,138 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from users.models import CustomUser, UserTypes
+from users.serializers import CustomUserSerializer
 from users.services import otp_manager
 
 from .models import (  # , Classroom, ClassroomSettings
     Course,
+    CourseCategory,
     EnrollmentStatusType,
+    School,
     Session,
     StudentCourse,
+    Topic,
 )
-from .permissions import IsTeacherOrReadOnly
+from .permissions import IsSuperAdmin, IsTeacherOrReadOnly
 from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
     AddStudentToCourseSerializer,
+    CourseCategorySerializer,
     CourseSerializer,
     ExpiredTokenSerializer,
+    SchoolSerializer,
     SessionSerializer,
     StudentCourseSerializer,
+    TopicSerializer,
 )
+
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=["School"],
+        summary="List all Schools",
+        description="Retrieve a paginated list of all Schools in the system.",
+        parameters=[
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            )
+        ],
+        responses={200: SchoolSerializer(many=True)},
+    ),
+    create=extend_schema(
+        tags=["School"],
+        summary="Create a new School",
+        description="Create a new School with the provided details.",
+        request=SchoolSerializer,
+        responses={
+            201: OpenApiResponse(
+                response=SchoolSerializer,
+                description="School created successfully",
+            ),
+        },
+    ),
+    retrieve=extend_schema(
+        tags=["School"],
+        summary="Retrieve a School",
+        description="Retrieve detailed information about a specific School by its ID.",
+        responses={
+            200: SchoolSerializer,
+            404: OpenApiResponse(description="School not found"),
+        },
+    ),
+    partial_update=extend_schema(
+        tags=["School"],
+        summary="Update an existing School",
+        description="Update an existing School with the provided details.",
+        request=SchoolSerializer,
+        responses={
+            200: OpenApiResponse(
+                response=SchoolSerializer,
+                description="School updated successfully",
+            )
+        },
+    ),
+    destroy=extend_schema(
+        tags=["School"],
+        summary="Delete a School",
+        description="Delete a School by ID. This action cannot be undone.",
+        responses={
+            204: OpenApiResponse(description="School deleted successfully"),
+            403: OpenApiResponse(
+                description="You do not have permission to delete this School"
+            ),
+            404: OpenApiResponse(description="School not found"),
+        },
+    ),
+)
+class SchoolViewSet(viewsets.ModelViewSet):
+    queryset = School.objects.all()
+    serializer_class = SchoolSerializer
+    permission_classes = (IsSuperAdmin,)
+    pagination_class = PageNumberPagination
+    http_method_names = ["get", "head", "post", "delete", "patch", "options"]
+
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    ordering_fields = ["name", "created_at"]
+    search_fields = ["name"]
+
+    @method_decorator(cache_page(60 * 30, key_prefix="schools:list"))
+    @method_decorator(vary_on_headers("Authorization"))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @method_decorator(cache_page(60 * 30, key_prefix="schools:retrieve"))
+    @method_decorator(vary_on_headers("Authorization"))
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+    @extend_schema(
+        tags=["School"],
+        summary="Create the School admin of a school",
+        description="""
+
+        """,
+        request=CustomUserSerializer,
+        responses={
+            201: OpenApiResponse(
+                response=CustomUserSerializer,
+                description="School admin created successfully",
+            ),
+            400: OpenApiResponse(
+                description="Invalid input. Missing required fields or invalid data format"
+            ),
+        },
+    )
+    @action(detail=False, methods=["post"], url_path="admin", url_name="admin")
+    def admin(self, request, *args, **kwargs):
+        """Make a User the admin of a school"""
+        serializer = CustomUserSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @extend_schema_view(
@@ -131,7 +250,10 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
-    filterset_fields = ["session", "is_active", "categories"]
+    filterset_fields = [
+        "session",
+        "is_active",
+    ]
     ordering_fields = ["name", "created_at"]
     search_fields = [
         "name",
@@ -141,6 +263,16 @@ class CourseViewSet(viewsets.ModelViewSet):
         "name",
         "created_at",
     )
+
+    @method_decorator(cache_page(60 * 30, key_prefix="courses:list"))
+    @method_decorator(vary_on_headers("Authorization"))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @method_decorator(cache_page(60 * 30, key_prefix="courses:detail"))
+    @method_decorator(vary_on_headers("Authorization"))
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
     def get_queryset(self):
         user = self.request.user
@@ -159,7 +291,7 @@ class CourseViewSet(viewsets.ModelViewSet):
         request=AddStudentToCourseSerializer,
     )
     @action(detail=True, methods=["post"], url_path="students", url_name="students")
-    def students(self, request, pk=None, *args, **kwargs):
+    def students(self, request, *args, **kwargs):
         serializer = AddStudentToCourseSerializer(data=request.data)
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)
@@ -459,6 +591,8 @@ class CourseViewSet(viewsets.ModelViewSet):
         # description="",
         responses=CourseSerializer(many=True),
     )
+    @method_decorator(cache_page(60 * 5, key_prefix="courses:my_list"))
+    @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_name="my-courses", url_path="my-courses")
     def my_courses(self, request, *args, **kwargs):
         """List courses the authenticated student is enrolled in, exclude withdrawn"""
@@ -576,6 +710,16 @@ class SessionViewSet(viewsets.ModelViewSet):
         "name",
         "created_at",
     )
+
+    @method_decorator(cache_page(60 * 60, key_prefix="sessions:list"))
+    @method_decorator(vary_on_headers("Authorization"))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @method_decorator(cache_page(60 * 60, key_prefix="sessions:detail"))
+    @method_decorator(vary_on_headers("Authorization"))
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
     def get_queryset(self):
         user = self.request.user
@@ -734,6 +878,16 @@ class StudentCourseViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "delete", "patch", "options"]
 
+    @method_decorator(cache_page(60 * 5, key_prefix="studentcourses:list"))
+    @method_decorator(vary_on_headers("Authorization"))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @method_decorator(cache_page(60 * 5, key_prefix="studentcourses:detail"))
+    @method_decorator(vary_on_headers("Authorization"))
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
     def get_queryset(self):
         user = self.request.user
 
@@ -743,3 +897,249 @@ class StudentCourseViewSet(viewsets.ModelViewSet):
             return StudentCourse.objects.filter(student=user)
         else:
             return StudentCourse.objects.none()
+
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=["Course Categories"],
+        summary="List all course categories",
+        description="Retrieve a paginated list of all course categories in the system.",
+        parameters=[
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page",
+            ),
+        ],
+        responses={
+            200: CourseCategorySerializer(many=True),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    ),
+    create=extend_schema(
+        tags=["Course Categories"],
+        summary="Create a new course category",
+        description="Create a new course category with the provided details.",
+        request=CourseCategorySerializer,
+        responses={
+            201: OpenApiResponse(
+                response=CourseCategorySerializer,
+                description="Course category created successfully",
+            ),
+            400: OpenApiResponse(
+                description="Invalid input. Missing required fields or invalid data format"
+            ),
+        },
+    ),
+    retrieve=extend_schema(
+        tags=["Course Categories"],
+        summary="Retrieve a course category",
+        description="Retrieve detailed information about a specific course category by its ID.",
+        responses={
+            200: CourseCategorySerializer,
+            404: OpenApiResponse(description="Course category not found"),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    ),
+    partial_update=extend_schema(
+        tags=["Course Categories"],
+        summary="Partially update a course category",
+        description="Update one or more fields of an existing course category.",
+        request=CourseCategorySerializer(partial=True),
+        responses={
+            200: CourseCategorySerializer,
+            400: OpenApiResponse(description="Invalid input data"),
+            401: OpenApiResponse(
+                description="Authentication credentials were not provided"
+            ),
+            403: OpenApiResponse(
+                description="User does not have permission to perform this action"
+            ),
+            404: OpenApiResponse(description="Category not found"),
+        },
+    ),
+    destroy=extend_schema(
+        tags=["Course Categories"],
+        summary="Delete a course category",
+        description="Delete a course category by ID. This action cannot be undone.",
+        responses={
+            204: OpenApiResponse(description="Course category deleted successfully"),
+            404: OpenApiResponse(description="Course category not found"),
+        },
+    ),
+)
+class CourseCategoryViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows course categories to be viewed or edited.
+    """
+
+    queryset = CourseCategory.objects.all()
+    serializer_class = CourseCategorySerializer
+    permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
+    pagination_class = PageNumberPagination
+    http_method_names = ["get", "head", "post", "delete", "patch", "options"]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = {
+        "name": ["exact", "icontains"],
+    }
+    search_fields = ["name"]
+    ordering_fields = ["name"]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        # Filter by search query if provided
+        search_query = self.request.query_params.get("search", None)
+        if search_query:
+            queryset = queryset.filter(name__icontains=search_query)
+        return queryset
+
+    @method_decorator(cache_page(60 * 60, key_prefix="coursecategories:list"))
+    @method_decorator(vary_on_headers("Authorization"))
+    def list(self, request, *args, **kwargs):
+        """
+        List all course categories with optional search and pagination.
+        """
+        return super().list(request, *args, **kwargs)
+
+    @method_decorator(cache_page(60 * 60, key_prefix="coursecategories:detail"))
+    @method_decorator(vary_on_headers("Authorization"))
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Retrieve a specific course category by ID.
+        """
+        return super().retrieve(request, *args, **kwargs)
+
+    @extend_schema(
+        tags=["Course Categories"],
+        summary="Get courses in a category",
+        description="List all courses associated with a specific category.",
+        parameters=[
+            OpenApiParameter(
+                name="id",
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.PATH,
+                description="ID of the course category",
+                required=True,
+            ),
+        ],
+        responses={
+            200: CourseSerializer(many=True),
+            404: OpenApiResponse(description="Category not found"),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    )
+    @action(detail=True, methods=["get"], url_path="courses")
+    def category_courses(self, request, pk=None):
+        """
+        List all courses associated with a specific category.
+        """
+        category = self.get_object()
+        courses = category.courses.filter(is_active=True)
+        page = self.paginate_queryset(courses)
+        if page is not None:
+            serializer = CourseSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = CourseSerializer(courses, many=True, context={"request": request})
+        return Response(serializer.data)
+
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=["Topic"],
+        summary="List all Topic",
+        parameters=[
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page",
+            ),
+        ],
+    ),
+    retrieve=extend_schema(
+        tags=["Topic"],
+        summary="Retrieve a Topic",
+        responses={
+            200: TopicSerializer,
+            404: OpenApiResponse(description="Topic not found"),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    ),
+    create=extend_schema(
+        tags=["Topic"],
+        summary="Create a new Topic",
+        description="Create a new Topic withe the required details",
+        request=TopicSerializer,
+        responses={
+            201: TopicSerializer,
+            400: OpenApiResponse(description="Invalid data provided"),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    ),
+    partial_update=extend_schema(
+        tags=["Topic"],
+        summary="Partially update a Topic",
+        request=TopicSerializer,
+        responses={
+            200: TopicSerializer,
+            400: OpenApiResponse(description="Invalid data provided"),
+            404: OpenApiResponse(description="Topic not found"),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    ),
+    destroy=extend_schema(
+        tags=["Topic"],
+        summary="Delete a Topic",
+        description="Delete a Topic by ID. This action cannot be undone.",
+        responses={
+            204: OpenApiResponse(description="Topic deleted successfully"),
+            404: OpenApiResponse(description="Topic not found"),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    ),
+)
+class TopicViewSet(viewsets.ModelViewSet):
+    queryset = Topic.objects.all()
+    serializer_class = TopicSerializer
+    permission_class = (IsAuthenticated, IsTeacherOrReadOnly)
+    pagination_class = PageNumberPagination
+    http_method_names = ["get", "head", "post", "delete", "patch", "option"]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ("name", "course__name")
+    search_fields = ("name", "course__name")
+    ordering_fields = ("name",)
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.user_types == UserTypes.TEACHER:
+            return Topic.objects.filter(course__teacher=user)
+        elif user.user_type == UserTypes.STUDENT:
+            return Topic.objects.filter(course__enrollments__student=user)
+        else:
+            return Topic.objects.none()
+
+    @method_decorator(cache_page(60 * 30, key_prefix="topics:list"))
+    @method_decorator(vary_on_headers("Authorization"))
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @method_decorator(cache_page(60 * 30, key_prefix="topics:detail"))
+    @method_decorator(vary_on_headers("Authorization"))
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)

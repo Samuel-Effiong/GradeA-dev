@@ -48,6 +48,8 @@ class CustomUserManager(BaseUserManager):
 class UserTypes(models.TextChoices):
     STUDENT = "STUDENT", "Student"
     TEACHER = "TEACHER", "Teacher"
+    SCHOOL_ADMIN = "SCHOOL_ADMIN", "School Admin"
+    SUPER_ADMIN = "SUPER_ADMIN", "Super Admin"
 
 
 # Create your models here.
@@ -56,6 +58,13 @@ class CustomUser(AbstractUser):
     REQUIRED_FIELDS = ["first_name", "last_name"]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    school = models.ForeignKey(
+        "classrooms.School",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="users",
+    )
 
     email = models.EmailField(unique=True)
     user_type = models.CharField(
@@ -98,11 +107,6 @@ class CustomUser(AbstractUser):
             return True
         return False
 
-    def is_teacher(self):
-        if self.user_type == UserTypes.TEACHER:
-            return True
-        return False
-
     def renew_activation_token(self):
         """Renew the activation token and extend expiration."""
         self.activation_token = otp_manager.generate_otp()
@@ -115,6 +119,25 @@ class CustomUser(AbstractUser):
             )
         self.save()
         return self.activation_token
+
+    def is_teacher(self):
+        if self.user_type == UserTypes.TEACHER:
+            return True
+        return False
+
+
+class UserActivity(models.Model):
+    user = models.ForeignKey(
+        CustomUser, on_delete=models.CASCADE, related_name="activities"
+    )
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        verbose_name_plural = "User Activities"
+        ordering = ["-timestamp"]
+
+    def __str__(self):
+        return f"{self.user.email} active at {self.timestamp}"
 
 
 class PasswordResetOTP(models.Model):
@@ -169,3 +192,11 @@ class PasswordChangeOTP(models.Model):
         self.save()
 
         return self.code
+
+
+class ConcurrentUserSnapshot(models.Model):
+    timestamp = models.DateTimeField(default=timezone.now)
+    concurrent_users = models.PositiveIntegerField()
+
+    class Meta:
+        ordering = ["-timestamp"]

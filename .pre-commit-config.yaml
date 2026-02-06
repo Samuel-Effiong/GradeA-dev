@@ -51,7 +51,7 @@ repos:
         args:
           - --max-line-length=120                  # Matches Black's line length
           - --select=B,C,E,F,W,T4,B9                          # Enable common checks
-          - --ignore=W503,E800      # Align with Black formatting
+          - --ignore=W503,E800,E203      # Align with Black formatting
         exclude: ^migrations/
     # Sort imports automatically with isort
 -   repo: https://github.com/pre-commit/mirrors-isort

@@ -4,3 +4,6 @@ from django.apps import AppConfig
 class ClassroomConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "classrooms"
+
+    def ready(self):
+        import classrooms.signals  # noqa: F401
