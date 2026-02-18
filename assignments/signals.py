@@ -8,6 +8,6 @@ from assignments.models import Assignment
 @receiver([post_save, post_delete], sender=Assignment)
 def clear_assignment_cache(sender, instance, **kwargs):
     if hasattr(cache, "delete_pattern"):
-        cache.delete_pattern("assignments*")
-        cache.delete_pattern("superadmin*")
-        cache.delete_pattern("schooladmin*")
+        cache.delete_pattern("*assignments*")
+        cache.delete_pattern("*superadmin*")
+        cache.delete_pattern("*schooladmin*")

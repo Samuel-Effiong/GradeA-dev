@@ -161,7 +161,7 @@ WSGI_APPLICATION = "AutoGrader.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {"default": dj_database_url.config(default=env.str("DATABASE_URI"))}
+DATABASES = {"default": dj_database_url.config(default=env.str("DATABASE_URI_LOCAL"))}
 
 
 # Password validation
@@ -213,6 +213,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "dashboard.tasks.record_concurrent_users",
         "schedule": 60.0,
     },
+    # "send-email-task": {
+    #     "task": "AutoGrader.tasks.send_email_task",
+    #     "schedule": 60.0,
+    # }
 }
 
 # Static files (CSS, JavaScript, Images)

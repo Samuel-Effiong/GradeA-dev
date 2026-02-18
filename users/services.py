@@ -4,12 +4,13 @@ from datetime import timedelta
 
 from django.conf import settings
 from django.core.cache import cache
-from django.core.mail import send_mail
 from django.db.models import Avg, Max
 from django.db.models.functions import ExtractHour
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.crypto import get_random_string
+
+from AutoGrader.tasks import send_email_task
 
 
 def send_user_activation_email(user):
@@ -37,13 +38,12 @@ def send_user_activation_email(user):
 
     html_content = render_to_string("email/token_activation.html", context=context)
 
-    return send_mail(
+    return send_email_task.delay(
         subject="Activate your account",
         message="",
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[user.email],
         html_message=html_content,
-        fail_silently=False,
     )
 
 

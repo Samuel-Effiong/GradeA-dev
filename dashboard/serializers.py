@@ -84,6 +84,13 @@ class AssignmentGradeByTypeSerializer(serializers.Serializer):
     avg_score = serializers.FloatField(read_only=True)
 
 
+class AssignmentGradeByTopicSerializer(serializers.Serializer):
+    """Serializer for average grade per assignment topic"""
+
+    assignment__topic__name = serializers.CharField(read_only=True)
+    avg_score = serializers.FloatField(read_only=True)
+
+
 class LowestMasteryAssignmentSerializer(serializers.Serializer):
     """Serializer for the assignment with the lowest student mastery"""
 
@@ -96,6 +103,9 @@ class PerformanceStatsSerializer(serializers.Serializer):
     """Serializer for course performance metrics"""
 
     average_assignment_grade_by_type = AssignmentGradeByTypeSerializer(
+        many=True, read_only=True
+    )
+    average_assignment_grade_by_topic = AssignmentGradeByTopicSerializer(
         many=True, read_only=True
     )
     lowest_mastery_assignment = LowestMasteryAssignmentSerializer(
