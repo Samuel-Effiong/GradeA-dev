@@ -5,9 +5,9 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 
-from classrooms.models import Course
+from classrooms.models import Course, Topic
 
-from .models import Assignment, Rubric
+from .models import Assignment  # Rubric
 
 
 class AssignmentRubricSerializer(serializers.Serializer):
@@ -60,6 +60,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "course",
+            "topic",
             "title",
             "instructions",
             "total_points",
@@ -69,6 +70,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
             "due_date",
             "teacher",
             "questions",
+            "raw_input",
             "potential_issues",
             "self_assessment",
             "extraction_confidence",
@@ -77,17 +79,16 @@ class AssignmentSerializer(serializers.ModelSerializer):
             "ai_generated_at",
             "extraction_started_at",
             "extraction_completed_at",
-            "had_error",
         ]
-        read_only_fields = ["created_at", "id"]
+        read_only_fields = ["created_at", "id", "raw_input"]
 
         extra_kwargs = {
+            "title": {"required": False},
             "ai_generated": {"write_only": True},
             "ai_raw_payload": {"write_only": True},
             "ai_generated_at": {"write_only": True},
             "extraction_started_at": {"write_only": True},
             "extraction_completed_at": {"write_only": True},
-            "had_error": {"write_only": True},
         }
 
     def validate_total_points(self, value: int | float) -> int | float:
@@ -101,6 +102,17 @@ class AssignmentSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, data):
+
+        topic = data.get("topic")
+        course = data.get("course")
+
+        if topic and topic.course != course:
+            raise serializers.ValidationError(
+                "Topic must belong to the same course as the assignment"
+            )
+
+        # del data['course']
+
         questions = data.get("questions", [])
 
         if questions and "question_count" in data:
@@ -146,10 +158,10 @@ class AssignmentSerializer(serializers.ModelSerializer):
                     }
                     criteria.append(criterion)
 
-                Rubric.objects.create(
-                    assignment=assignment,
-                    criteria=criteria,
-                )
+                # Rubric.objects.create(
+                #     assignment=assignment,
+                #     criteria=criteria,
+                # )
 
                 return assignment
         except Exception as e:
@@ -186,6 +198,30 @@ class AssignmentSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 
+class AssignmentListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Assignment
+        fields = [
+            "id",
+            "course",
+            "topic",
+            "title",
+            "instructions",
+            "total_points",
+            "question_count",
+            "assignment_type",
+            "created_at",
+            "due_date",
+            "extraction_confidence",
+        ]
+
+
+class AssignmentDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Assignment
+        fields = ["id", "course", "topic", "raw_input"]
+
+
 class ScoringLevelSerializer(serializers.Serializer):
     level = serializers.CharField()
     points = serializers.FloatField()
@@ -204,43 +240,43 @@ class CriterionSerializer(serializers.Serializer):
     )
 
 
-class RubricSerializer(serializers.ModelSerializer):
-    assignment = serializers.PrimaryKeyRelatedField(queryset=Assignment.objects.all())
-    criteria = serializers.ListField(
-        child=CriterionSerializer(),
-        min_length=1,
-        required=True,
-    )
+# class RubricSerializer(serializers.ModelSerializer):
+#     assignment = serializers.PrimaryKeyRelatedField(queryset=Assignment.objects.all())
+#     criteria = serializers.ListField(
+#         child=CriterionSerializer(),
+#         min_length=1,
+#         required=True,
+#     )
 
-    class Meta:
-        model = Rubric
-        fields = ["id", "assignment", "criteria", "created_at", "updated_at"]
-        read_only_fields = ["created_at", "updated_at", "id"]
+#     class Meta:
+#         model = Rubric
+#         fields = ["id", "assignment", "criteria", "created_at", "updated_at"]
+#         read_only_fields = ["created_at", "updated_at", "id"]
 
-    def validate(self, data):
-        if "criteria" in data and "points" in data:
-            total_max_points = sum(
-                criteria.get("points", 0) for criteria in data["criteria"]
-            )
-            if abs(total_max_points - data["points"]) > 0.01:
-                raise serializers.ValidationError(
-                    f"Sum of points in criteria ({total_max_points}) "
-                    f"doesn't match points ({data['points']})"
-                )
-        return data
+#     def validate(self, data):
+#         if "criteria" in data and "points" in data:
+#             total_max_points = sum(
+#                 criteria.get("points", 0) for criteria in data["criteria"]
+#             )
+#             if abs(total_max_points - data["points"]) > 0.01:
+#                 raise serializers.ValidationError(
+#                     f"Sum of points in criteria ({total_max_points}) "
+#                     f"doesn't match points ({data['points']})"
+#                 )
+#         return data
 
-    def create(self, validated_data):
-        # Extract nested data
+#     def create(self, validated_data):
+#         # Extract nested data
 
-        try:
-            with transaction.atomic():
-                criteria = validated_data.pop("criteria")
+#         try:
+#             with transaction.atomic():
+#                 criteria = validated_data.pop("criteria")
 
-                rubric = Rubric.objects.create(**validated_data, criteria=criteria)
+#                 rubric = Rubric.objects.create(**validated_data, criteria=criteria)
 
-                return rubric
-        except Exception as e:
-            raise serializers.ValidationError(f"An error occurred: {e}") from Exception
+#                 return rubric
+#         except Exception as e:
+#             raise serializers.ValidationError(f"An error occurred: {e}") from Exception
 
 
 class AssignmentTextSerializer(serializers.Serializer):
@@ -248,8 +284,32 @@ class AssignmentTextSerializer(serializers.Serializer):
     course = serializers.PrimaryKeyRelatedField(
         queryset=Course.objects.all(), required=True
     )
+    topic = serializers.PrimaryKeyRelatedField(
+        queryset=Topic.objects.all(), required=False, allow_null=True
+    )
 
     def validate_content(self, value):
         if not value.strip():
             raise ParseError("Assignment content cannot be empty")
         return value.strip()
+
+    def validate(self, data):
+        topic = data.get("topic")
+        course = data.get("course")
+
+        if topic and topic.course != course:
+            raise serializers.ValidationError(
+                "Topic must belong to the selected course."
+            )
+        return data
+
+
+class StatusMessageSerializer(serializers.Serializer):
+    """
+    A generic serializer for simple API feedback.
+    Example: {'status': 'success', 'message': 'Operation completed'}
+    Example: {'status': 'error', 'message': 'Invalid credentials'}
+    """
+
+    status = serializers.BooleanField(default=True)
+    message = serializers.CharField(max_length=255)

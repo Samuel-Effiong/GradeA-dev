@@ -3,7 +3,7 @@ from django.test import TestCase
 from rest_framework.request import Request
 from rest_framework.test import APIRequestFactory
 
-from classrooms.models import Course, Session
+from classrooms.models import Course, Session, Topic
 from classrooms.serializers import CourseSerializer
 
 User = get_user_model()
@@ -26,32 +26,15 @@ class CourseSerializerTest(TestCase):
         request.user = self.user
         self.context = {"request": Request(request)}
 
-    def test_course_serializer_output_contains_categories(self):
-        """Verify that categories is present in serialized data even if empty."""
+    def test_course_serializer_contains_topics(self):
+        """Verify that topics are correctly serialized within CourseSerializer."""
+        # Create topics for the course
+        Topic.objects.create(name="Algebra", course=self.course)
+        Topic.objects.create(name="Geometry", course=self.course)
+
         serializer = CourseSerializer(instance=self.course, context=self.context)
-        self.assertIn("categories", serializer.data)
-        self.assertEqual(serializer.data["categories"], [])
-
-    def test_course_serializer_accepts_categories_on_create(self):
-        """Verify that providing categories during creation doesn't cause errors."""
-        data = {
-            "name": "Physics 101",
-            "session": str(self.session.id),
-            "categories": ["Science", "Physics"],
-        }
-        serializer = CourseSerializer(data=data, context=self.context)
-        self.assertTrue(serializer.is_valid(), serializer.errors)
-        course = serializer.save()
-        self.assertEqual(course.name, "Physics 101")
-        # Ensure it's not saved to model (since it doesn't exist)
-        self.assertFalse(hasattr(course, "categories"))
-
-    def test_course_serializer_accepts_categories_on_update(self):
-        """Verify that providing categories during update doesn't cause errors."""
-        data = {"name": "Advanced Math", "categories": ["Advanced"]}
-        serializer = CourseSerializer(
-            instance=self.course, data=data, partial=True, context=self.context
-        )
-        self.assertTrue(serializer.is_valid(), serializer.errors)
-        course = serializer.save()
-        self.assertEqual(course.name, "Advanced Math")
+        self.assertIn("topics", serializer.data)
+        self.assertEqual(len(serializer.data["topics"]), 2)
+        topic_names = [t["name"] for t in serializer.data["topics"]]
+        self.assertIn("Algebra", topic_names)
+        self.assertIn("Geometry", topic_names)

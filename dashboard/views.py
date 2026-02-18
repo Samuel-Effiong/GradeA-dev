@@ -1144,6 +1144,10 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             "assignment__assignment_type"
         ).annotate(avg_score=Avg("score"))
 
+        avg_grade_by_topic = graded_submissions.values(
+            "assignment__topic__name"
+        ).annotate(avg_score=Avg("score"))
+
         # Lowest Mastery Assignment
         lowest_assignment = (
             graded_submissions.values("assignment__id", "assignment__title")
@@ -1200,6 +1204,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             },
             "performance": {
                 "average_assignment_grade_by_type": avg_grade_by_type,
+                "average_assignment_grade_by_topic": avg_grade_by_topic,
                 "lowest_mastery_assignment": lowest_assignment,
                 "course_performance_trend": trend,
             },
@@ -1269,7 +1274,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             "due_date": assignment.due_date,
             "assignment_type": assignment.assignment_type,
             "total_submissions": total_submissions,
-            "unit": None,
+            "unit": assignment.topic,
             "average_grade": round(float(average_grade), 2),
             "ai_extraction_confidence": assignment.extraction_confidence,
             "ai_grading_confidence": round(float(avg_grading_confidence), 2),

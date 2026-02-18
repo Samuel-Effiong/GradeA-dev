@@ -9,8 +9,10 @@ and a convenience `me` action to fetch the currently authenticated user's
 profile.
 """
 
+from celery.result import AsyncResult
 from django.conf import settings
-from django.core.mail import send_mail
+
+# from django.core.mail import send_mail
 from django.db import transaction
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -27,7 +29,7 @@ from drf_spectacular.utils import (
     extend_schema_view,
 )
 from rest_framework import status, viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.pagination import PageNumberPagination
@@ -40,6 +42,7 @@ from rest_framework_simplejwt.views import (
 )
 from rest_framework_simplejwt.views import TokenRefreshView as BaseTokenRefreshView
 
+from AutoGrader.tasks import send_email_task
 from classrooms.models import EnrollmentStatusType, StudentCourse
 from classrooms.permissions import IsSuperAdmin
 from classrooms.serializers import StudentRegistrationCompletionSerializer
@@ -405,12 +408,11 @@ class AuthViewSet(viewsets.ViewSet):
             otp_obj, created = PasswordResetOTP.objects.get_or_create(user=user)
             otp_code = otp_obj.generate_code()
 
-            send_mail(
+            send_email_task.delay(
                 subject="Your Password Reset OTP",
                 message=f"Your Password Reset OTP is: {otp_code}",
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[user.email],
-                fail_silently=False,
             )
 
         return Response(
@@ -491,7 +493,7 @@ class AuthViewSet(viewsets.ViewSet):
             otp_obj, created = PasswordChangeOTP.objects.get_or_create(user=user)
             otp = otp_obj.generate_code()
 
-        send_mail(
+        send_email_task.delay(
             subject="Your Password Change OTP",
             message=f"Your OTP for password change is: {otp}",
             from_email=settings.DEFAULT_FROM_EMAIL,
@@ -828,3 +830,32 @@ class TokenObtainPairView(BaseTokenObtainPairView):
 )
 class TokenRefreshView(BaseTokenRefreshView):
     pass
+
+
+@api_view(["GET"])
+def task_status(request, task_id):
+
+    task = AsyncResult(task_id)
+
+    data = {
+        "task_id": task_id,
+        "status": task.state,
+        "meta": (
+            task.info
+            if isinstance(task.info, dict)
+            else {"result": task.info} if task.info else None
+        ),
+    }
+
+    data["meta"] = str(data["meta"])
+
+    if task.successful():
+        data["status"] = "completed"
+
+    elif task.failed():
+        data["status"] = "failed"
+
+    else:
+        data["status"] = "processing"
+
+    return Response(data, status=status.HTTP_200_OK)

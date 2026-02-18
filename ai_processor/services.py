@@ -35,7 +35,7 @@ OPENROUTER_API_KEY: str = env.str(
 
 AI_CONFIDENCE_THRESHOLD = 60
 
-with open("ai_processor/ASSIGNMENT_EXTRACTION_PROMPT_3_HTML.txt", "r") as file:
+with open("ai_processor/ASSIGNMENT_EXTRACTION_PROMPT_4_PROSE.txt", "r") as file:
     ASSIGNMENT_EXTRACTION_PROMPT = file.read()
 
 with open(
@@ -46,7 +46,7 @@ with open(
 with open("ai_processor/RUBRIC_EXTRACTION_PROMPT.txt", "r") as file:
     RUBRIC_EXTRACTION_PROMPT = file.read()
 
-with open("ai_processor/ANSWERS_EXTRACTION_PROMPT_HTML.txt", "r") as file:
+with open("ai_processor/ANSWERS_EXTRACTION_PROMPT_HTML_3.txt", "r") as file:
     ANSWERS_EXTRACTION_PROMPT = file.read()
 
 with open("ai_processor/GRADING_ASSIGNMENT_PROMPT_2.txt", "r") as file:
@@ -54,6 +54,9 @@ with open("ai_processor/GRADING_ASSIGNMENT_PROMPT_2.txt", "r") as file:
 
 with open("ai_processor/ASSIGNMENT_GENERATION_PROMPT_2.txt", "r") as file:
     GENERATE_ASSIGNMENT_PROMPT = file.read()
+
+with open("ai_processor/GRADE_FORMATTER.txt", "r") as file:
+    GRADE_FORMATTER = file.read()
 
 
 tool_schema = [
@@ -109,7 +112,12 @@ class AIProcessor:
         # )
 
     def __ai_model(
-        self, system_prompt=None, user_prompt=None, messages=None, tool_schemas=None
+        self,
+        system_prompt=None,
+        user_prompt=None,
+        messages=None,
+        tool_schemas=None,
+        respond_format=True,
     ):
 
         if tool_schemas:
@@ -153,7 +161,7 @@ class AIProcessor:
                     {"role": "user", "content": user_prompt},
                 ],
                 temperature=0.1,
-                response_format={"type": "json_object"},
+                response_format={"type": "json_object"} if respond_format else None,
             )
         return response
 
@@ -382,15 +390,23 @@ Do not include any explanatory text before or after the JSON
 
         return json_data
 
-    def extract_answer_image(self, content):
+    def extract_answer_image(self, content, assignment):
         system_prompt = ANSWERS_EXTRACTION_PROMPT
 
         # return self.__generate_text(system_prompt, user_prompt)
 
         # content = self.__generate_text(system_prompt, user_prompt)
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": assignment},
+            {"role": "user", "content": content},
+        ]
+
         try:
-            response = self.__ai_model(system_prompt, user_prompt=content)
+            # response = self.__ai_model(system_prompt, user_prompt=content)
+            response = self.__ai_model(messages=messages)
             content = response.choices[0].message.content
+
         except Exception as e:
             raise Exception(f"Error during AI model: {str(e)}") from Exception
 
@@ -401,12 +417,12 @@ Do not include any explanatory text before or after the JSON
             raise Exception(f"Error decoding JSON: {str(e)}") from Exception
         return json_data
 
-    def extract_answer_with_retry(self, content, max_retries: int = 3):
+    def extract_answer_with_retry(self, content, assignment, max_retries: int = 3):
         last_error = None
 
         for attempt in range(max_retries):
             try:
-                return self.extract_answer_image(content)
+                return self.extract_answer_image(content, assignment)
             except Exception as e:
                 last_error = e
                 logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
@@ -555,6 +571,21 @@ Now, respond to the following teacher's instruction using the rules above
 
         raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
 
+    def formatted_grade(self, user_prompt):
+        system_prompt = GRADE_FORMATTER
+
+        try:
+            response = self.__ai_model(system_prompt, user_prompt)
+            content = response.choices[0].message.content
+
+        except Exception as e:
+            raise Exception(f"Error during AI model: {str(e)}") from Exception
+
+        if content:
+            return content
+        else:
+            raise ValueError("content cannot be empty")
+
 
 class PDFService:
     def __init__(self, uploaded_file: UploadedFile = None):
@@ -645,8 +676,8 @@ class PDFService:
 
             for image in images:
                 image_byte.append(image.tobytes())
-                text = ocr_service.extract_with_paddle(image)
-                full_text += text
+                # text = ocr_service.extract_with_paddle(image)
+                # full_text += text
 
             self.extracted_data["questions"] = full_text
         except Exception as e:
@@ -691,6 +722,6 @@ _pdf_instance = None
 _ai_processor_instance = None
 
 
-ocr_service = OCRService()
+# ocr_service = OCRService()
 pdf_service = PDFService()
 ai_processor = AIProcessor()

@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
-from django.core.mail import send_mail
+
+# from django.core.mail import send_mail
 from django.db import transaction
 from django.template.loader import render_to_string
 from django.utils import timezone
@@ -10,6 +11,7 @@ from django.views.decorators.vary import vary_on_headers
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
+    OpenApiExample,
     OpenApiParameter,
     OpenApiResponse,
     extend_schema,
@@ -23,6 +25,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
+from AutoGrader.tasks import send_email_task
 from users.models import CustomUser, UserTypes
 from users.serializers import CustomUserSerializer
 from users.services import otp_manager
@@ -307,6 +310,7 @@ class CourseViewSet(viewsets.ModelViewSet):
 
                 if student:
                     # Existing student flow
+
                     if StudentCourse.objects.filter(
                         student=student, course=course
                     ).exists():
@@ -330,13 +334,12 @@ class CourseViewSet(viewsets.ModelViewSet):
                         "email/existing_student_course_enrollment.html", context=context
                     )
 
-                    send_mail(
+                    send_email_task.delay(
                         subject=f"New Course Enrollment: {course.name}",
                         message="",
                         from_email=settings.DEFAULT_FROM_EMAIL,
                         recipient_list=[student.email],
                         html_message=html_content,
-                        fail_silently=False,
                     )
                 else:
                     # New student flow
@@ -372,13 +375,12 @@ class CourseViewSet(viewsets.ModelViewSet):
                         "email/student_course_registration.html", context=context
                     )
 
-                    send_mail(
+                    send_email_task.delay(
                         subject="Complete Your Registration for the Course",
                         message="",
                         from_email=settings.DEFAULT_FROM_EMAIL,
                         recipient_list=[student.email],
                         html_message=html_content,
-                        fail_silently=False,
                     )
 
                 return Response(
@@ -446,7 +448,7 @@ class CourseViewSet(viewsets.ModelViewSet):
                     raise ParseError("Student is not enrolled in this course.")
 
                 # Deactivate enrollment instead
-                enrollment.withdrawn()
+                # enrollment.withdrawn()
                 # enrollment.enrollment_status = EnrollmentStatusType.WITHDRAWN
                 #
                 # enrollment.save()
@@ -459,17 +461,19 @@ class CourseViewSet(viewsets.ModelViewSet):
                     "student": student,
                 }
 
+                enrollment.delete()
+                student.delete()
+
                 html_content = render_to_string(
                     "email/student_course_removal.html", context=context
                 )
 
-                send_mail(
+                send_email_task.delay(
                     subject=f"Removed from Course: {course.name}",
                     message="",
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[student.email],
                     html_message=html_content,
-                    fail_silently=False,
                 )
 
                 return Response(
@@ -542,13 +546,12 @@ class CourseViewSet(viewsets.ModelViewSet):
             )
 
             # Notify student
-            send_mail(
+            send_email_task.delay(
                 subject="Course Registration Link Renewed",
                 message="",
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[user.email],
                 html_message=student_html,
-                fail_silently=False,
             )
 
             teacher_context = {
@@ -563,13 +566,12 @@ class CourseViewSet(viewsets.ModelViewSet):
             )
 
             # Notify teacher
-            send_mail(
+            send_email_task.delay(
                 subject=f"Registration Link Renewed - {user.email}",
                 message="",
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[enrollment.course.teacher.email],
                 html_message=teacher_html,
-                fail_silently=False,
             )
 
             return Response(
@@ -606,6 +608,58 @@ class CourseViewSet(viewsets.ModelViewSet):
 
         serializer = CourseSerializer(courses, many=True)
         return Response(serializer.data)
+
+    @extend_schema(
+        tags=["02 Course"],
+        summary="Create topics for a course",
+        description="Create multiple topics for a specific course. Accepts a list of topic names or topic objects.",
+        request=TopicSerializer(many=True),
+        examples=[
+            OpenApiExample(
+                "List of Objects",
+                summary="Create topics using objects",
+                description="Send a list of topic objects with the 'name' field.",
+                value={"name": "Introduction to Algebra"},
+                request_only=True,
+            ),
+            OpenApiExample(
+                "List of Strings",
+                summary="Create topics using strings",
+                description="Send a simple list of topic names as strings.",
+                value="Introduction to Algebra",
+                request_only=True,
+            ),
+        ],
+        responses={
+            201: TopicSerializer(many=True),
+            400: OpenApiResponse(description="Invalid input"),
+        },
+    )
+    @action(detail=True, methods=["post"], url_path="topics", url_name="create-topics")
+    def create_topics(self, request, pk=None):
+        """Create topics for a specific course."""
+        course = self.get_object()
+
+        # Check if request data is a list
+        if not isinstance(request.data, list):
+            return Response(
+                {"detail": "Expected a list of topics."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        topics_data = []
+        for item in request.data:
+            if isinstance(item, str):
+                topics_data.append({"name": item, "course": course.id})
+            elif isinstance(item, dict):
+                item["course"] = course.id
+                topics_data.append(item)
+
+        serializer = TopicSerializer(data=topics_data, many=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 @extend_schema_view(
@@ -1127,7 +1181,7 @@ class TopicViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        if user.user_types == UserTypes.TEACHER:
+        if user.user_type == UserTypes.TEACHER:
             return Topic.objects.filter(course__teacher=user)
         elif user.user_type == UserTypes.STUDENT:
             return Topic.objects.filter(course__enrollments__student=user)

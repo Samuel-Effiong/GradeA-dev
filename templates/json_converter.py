@@ -6,7 +6,11 @@ text = """
 """
 
 # Create JSON structure
-data = {"content": text}
+data = {
+    "course": "",
+    "topic": "",
+    "content": text,
+}
 
 # Save to file
 with open("output.json", "w", encoding="utf-8") as f:
