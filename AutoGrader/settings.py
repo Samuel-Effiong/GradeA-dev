@@ -161,7 +161,12 @@ WSGI_APPLICATION = "AutoGrader.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {"default": dj_database_url.config(default=env.str("DATABASE_URI_LOCAL"))}
+if ENVIRONMENT == "dev":
+    DATABASES = {
+        "default": dj_database_url.config(default=env.str("DATABASE_URI_LOCAL"))
+    }
+else:
+    DATABASES = {"default": dj_database_url.config(default=env.str("DATABASE_URI"))}
 
 
 # Password validation
