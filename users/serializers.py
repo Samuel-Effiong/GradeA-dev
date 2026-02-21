@@ -113,3 +113,13 @@ class ChangePasswordSerializer(serializers.Serializer):
                 "New password cannot be the same as the old one"
             )
         return data
+
+
+class TaskStatusSerializer(serializers.Serializer):
+    """
+    Serializer for reflecting the status of a Celery task.
+    """
+
+    task_id = serializers.CharField()
+    status = serializers.CharField()
+    meta = serializers.CharField(allow_null=True)

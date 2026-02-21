@@ -29,6 +29,7 @@ codespell==2.4.1
 colorlog==6.9.0
 cron_descriptor==2.0.6
 cryptography==45.0.7
+cssselect==1.4.0
 defusedxml==0.7.1
 detect-secrets==1.5.0
 distlib==0.4.0
@@ -42,6 +43,7 @@ django-cors-headers==4.8.0
 django-environ==0.12.0
 django-extensions==4.1
 django-filter==25.1
+django-js-asset==3.1.2
 django-picklefield==3.3
 django-q2==1.8.0
 django-redis==6.0.0
@@ -72,6 +74,7 @@ flower==2.0.1
 fpdf==1.7.2
 fsspec==2025.9.0
 future==1.0.0
+greenlet==3.3.1
 gunicorn==20.0.4
 h11==0.16.0
 hf-xet==1.1.9
@@ -117,10 +120,12 @@ pathspec==0.12.1
 pdf2image==1.17.0
 pillow==12.0.0
 platformdirs==4.4.0
+playwright==1.58.0
 pre_commit==4.3.0
 prettytable==3.16.0
 prometheus_client==0.24.1
 prompt_toolkit==3.0.52
+prosemirror==0.6.0
 protobuf==6.32.0
 psutil==7.0.0
 psycopg2-binary==2.9.10
@@ -133,6 +138,7 @@ pycryptodome==3.23.0
 pydantic==2.9.2
 pydantic_core==2.23.4
 pydocstyle==6.3.0
+pyee==13.0.1
 pyflakes==3.4.0
 Pygments==2.19.2
 PyJWT==2.10.1
