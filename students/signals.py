@@ -8,6 +8,8 @@ from students.models import StudentSubmission
 @receiver([post_save, post_delete], sender=StudentSubmission)
 def clear_student_submission_cache(sender, instance, **kwargs):
     if hasattr(cache, "delete_pattern"):
-        cache.delete_pattern("*studentsubmissions*")
         cache.delete_pattern("*superadmin*")
         cache.delete_pattern("*schooladmin*")
+        cache.delete_pattern("*course*")
+        cache.delete_pattern("*assignments*")
+        cache.delete_pattern("*studentsubmissions*")
