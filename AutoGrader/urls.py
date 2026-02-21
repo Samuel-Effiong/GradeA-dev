@@ -19,7 +19,7 @@ from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
-from users.views import TokenObtainPairView, TokenRefreshView
+from users.views import TokenObtainPairView, TokenRefreshView, task_status
 
 from .handlers import json_400, json_403, json_404, json_500
 
@@ -45,6 +45,7 @@ core_urlpatterns = [
     path("", include("dashboard.urls")),
     path("auth/login", TokenObtainPairView.as_view(), name="login"),
     path("auth/refresh", TokenRefreshView.as_view(), name="refresh"),
+    path("tasks/<str:task_id>/status/", task_status, name="task_status"),
 ]
 
 urlpatterns = [

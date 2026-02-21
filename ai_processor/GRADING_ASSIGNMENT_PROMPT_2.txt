@@ -95,7 +95,6 @@ You **MUST** return a valid JSON object with this **exact structure**:
       "level_achieved": "string - excellent | good | fair | poor | not_attempted",
 
       "evaluation_rationale": "string - detailed explanation of scoring decision",
-      "rubric_alignment": "string - which rubric descriptor(s) the answer matched",
       "strengths": ["array of strings - what the student did well"],
       "weaknesses": ["array of strings - what was missing or incorrect"],
       "improvement_suggestions": ["array of strings - specific, actionable advice"],
@@ -122,27 +121,7 @@ You **MUST** return a valid JSON object with this **exact structure**:
     }
   },
 
-  "grader_meta_analysis": {
-    "grading_confidence": "number - 0.0 to 1.0 scale",
-
-    "grading_challenges": [
-      {
-        "question_number": "number",
-        "issue": "string - description of challenge",
-        "impact": "string - how it affected grading",
-        "resolution": "string - how you handled it"
-      }
-    ],
-
-    "flags_for_teacher_review": [
-      {
-        "question_number": "number",
-        "flag_type": "string - UNCLEAR_ANSWER | AMBIGUOUS_RUBRIC | BORDERLINE_SCORE | EXTRACTION_ERROR | PLAGIARISM_CONCERN | OTHER",
-        "description": "string - detailed explanation",
-        "recommendation": "string - what teacher should do"
-      }
-    ],
-  },
+  "grading_confidence": "number - 0 to 100 scale",
 
   "recommendations": {
     "for_student": ["array of strings - high-level study/improvement suggestions"],
@@ -154,7 +133,7 @@ You **MUST** return a valid JSON object with this **exact structure**:
 
 ---
 
-## 🔍 DETAILED GRADING METHODOLOGY
+## DETAILED GRADING METHODOLOGY
 
 ### STEP 1: DATA ALIGNMENT AND VALIDATION
 
@@ -385,11 +364,11 @@ Level Achieved: fair
 
 
 **CRITICAL RULES FOR CALCULATION:**
-- ✅ **ALWAYS sum individual scores manually** in the verification section
-- ✅ **ALWAYS ensure `total_score` matches `manual_sum` exactly**
-- ✅ **NEVER estimate** or approximate the total
-- ✅ **DOUBLE-CHECK** your arithmetic before finalizing output
-- ✅ If `verification_status` is "FAIL", **STOP and recalculate** until it passes
+- **ALWAYS sum individual scores manually** in the verification section
+- **ALWAYS ensure `total_score` matches `manual_sum` exactly**
+- **NEVER estimate** or approximate the total
+- **DOUBLE-CHECK** your arithmetic before finalizing output
+- If `verification_status` is "FAIL", **STOP and recalculate** until it passes
 
 ---
 
@@ -561,7 +540,6 @@ Look across all questions for:
   "score_awarded": 0,
   "level_achieved": "not_attempted",
   "evaluation_rationale": "Student did not provide an answer to this question.",
-  "rubric_alignment": "No attempt made - automatic zero points",
   "strengths": [],
   "weaknesses": ["Question not attempted"],
   "improvement_suggestions": ["Ensure all questions are answered, even if unsure. Partial credit may be available."],
@@ -691,7 +669,6 @@ Before finalizing your output, verify:
 
 ### Evaluation Quality
 - [ ] Every question has detailed `evaluation_rationale`
-- [ ] Every question has `rubric_alignment` explanation
 - [ ] Every question has both `strengths` and `weaknesses` (or explanation why not)
 - [ ] Every question has specific `improvement_suggestions`
 - [ ] Every question has complete `feedback_for_student` paragraph
@@ -795,7 +772,7 @@ Here's a abbreviated example showing the expected output structure:
       "score_awarded": 2,
       "level_achieved": "correct",
       "evaluation_rationale": "Student provided correct answer matching model answer exactly.",
-      "rubric_alignment": "Objective question - correct answer receives full points",
+
       "strengths": ["Correct identification of water's chemical formula"],
       "weaknesses": [],
       "improvement_suggestions": [],
@@ -811,7 +788,7 @@ Here's a abbreviated example showing the expected output structure:
       "score_awarded": 4,
       "level_achieved": "fair",
       "evaluation_rationale": "Student provided basic definition mentioning sunlight and food production, and noted importance for oxygen. However, the response lacks key components required for higher levels: did not specify inputs (CO₂, water) or outputs (glucose, oxygen specifically), used overly simple language ('make food' vs. proper biological terminology), and provided minimal explanation of importance (mentioned oxygen but not food chains/energy foundation). According to rubric, 'fair' level (4 points) is for 'basic definition with some omissions; limited explanation of importance,' which accurately describes this response.",
-      "rubric_alignment": "Matches 'fair' level descriptor: 'Basic definition with some omissions; limited explanation of importance'",
+
       "strengths": [
         "Identified sunlight as energy source",
         "Recognized importance for oxygen production",

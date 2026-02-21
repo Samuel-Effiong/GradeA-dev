@@ -1267,7 +1267,7 @@ Before submitting your JSON output, verify:
 - [ ] **Model answers** extracted/generated with HTML and LaTeX
 - [ ] **question_image** field left empty for all questions
 - [ ] **assignment_type** determined correctly (OBJECTIVE, ESSAY, SHORT-ANSWER, HYBRID)
-- [ ] **extraction_confidence** assessed honestly
+- [ ] **extraction_confidence** assessed honestly and must be included as an integer between 0 and 100
 - [ ] **potential_issues** documented
 - [ ] **self_assessment includes MANDATORY rubric generation notice** if applicable
 - [ ] **Valid JSON** structure (no syntax errors)

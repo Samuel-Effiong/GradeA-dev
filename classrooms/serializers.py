@@ -28,6 +28,39 @@ class SessionSerializer(serializers.ModelSerializer):
         ]
 
 
+class TopicSerializer(serializers.ModelSerializer):
+    """Serializer for Topic"""
+
+    class Meta:
+        model = Topic
+        fields = [
+            "id",
+            "name",
+            "course",
+        ]
+        read_only_fields = [
+            "id",
+        ]
+
+        extra_kwargs = {
+            "course": {"write_only": True},
+        }
+
+        def validate_name(self, value):
+            """Validate that name is not empty."""
+            if not value.strip():
+                raise serializers.ValidationError("Name cannot be empty.")
+            return value
+
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Topic.objects.all(),
+                fields=["name", "course"],
+                message="This Course already has this topic",
+            )
+        ]
+
+
 class CourseSerializer(serializers.ModelSerializer):
     """Serializer for the Section model.
     I ask for open eyes and hears to every person using this software
@@ -38,9 +71,12 @@ class CourseSerializer(serializers.ModelSerializer):
     student_count = serializers.SerializerMethodField(method_name="get_student_count")
     students = serializers.SerializerMethodField(method_name="get_students")
 
-    # Deprecated field added for frontend compatibility
-    categories = serializers.ListField(
-        child=serializers.CharField(), required=False, default=list
+    topics = TopicSerializer(many=True, read_only=True)
+    topic_names = serializers.ListField(
+        child=serializers.CharField(max_length=100),
+        write_only=True,
+        required=False,
+        allow_empty=True,
     )
 
     class Meta:
@@ -55,21 +91,39 @@ class CourseSerializer(serializers.ModelSerializer):
             "description",
             "student_count",
             "students",
-            "categories",
+            "topics",
+            "topic_names",
         ]
         read_only_fields = ["id", "created_at", "teacher"]
 
         extra_kwargs = {"is_active": {"required": False}}
 
     def create(self, validated_data):
-        """Pop categories before creating the course."""
-        validated_data.pop("categories", None)
-        return super().create(validated_data)
+        """Create course and associated topics from topic_names."""
+        topic_names = validated_data.pop("topic_names", [])
+        course = super().create(validated_data)
+
+        # Create topics from the list of names
+        for topic_name in topic_names:
+            Topic.objects.get_or_create(name=topic_name.strip(), course=course)
+
+        return course
 
     def update(self, instance, validated_data):
-        """Pop categories before updating the course."""
-        validated_data.pop("categories", None)
-        return super().update(instance, validated_data)
+        """Update course and replace topics if topic_names is provided."""
+        topic_names = validated_data.pop("topic_names", None)
+        course = super().update(instance, validated_data)
+
+        # If topic_names is provided, replace existing topics
+        if topic_names is not None:
+            # Delete existing topics
+            instance.topics.all().delete()
+
+            # Create new topics from the list of names
+            for topic_name in topic_names:
+                Topic.objects.get_or_create(name=topic_name.strip(), course=course)
+
+        return course
 
     def get_student_count(self, obj) -> int:
         return (
@@ -206,26 +260,3 @@ class CourseCategorySerializer(serializers.ModelSerializer):
         if not value or not value.strip():
             raise serializers.ValidationError("Category name cannot be empty.")
         return value
-
-
-class TopicSerializer(serializers.ModelSerializer):
-    """Serializer for Topic"""
-
-    class Meta:
-        model = Topic
-        fields = [
-            "id",
-            "name",
-            "course",
-        ]
-        read_only_fields = [
-            "id",
-        ]
-
-        validators = [
-            UniqueTogetherValidator(
-                queryset=Topic.objects.all(),
-                fields=["name", "course"],
-                message="This Course already has this topic",
-            )
-        ]

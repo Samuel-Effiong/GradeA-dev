@@ -37,6 +37,7 @@ class StudentSubmission(models.Model):
         null=True, blank=True, help_text=_("The time student submission was graded")
     )
     grading_confidence = models.IntegerField(null=False, blank=True, default=0)
+    extraction_confidence = models.IntegerField(null=False, blank=True, default=0)
 
     ai_score = models.DecimalField(
         max_digits=6,
@@ -72,6 +73,8 @@ class StudentSubmission(models.Model):
         blank=True,
         help_text=_("The time the AI grade was modified by a human"),
     )
+
+    formatted_grade = models.TextField(null=True, blank=True)
 
     class Meta:
         constraints = [

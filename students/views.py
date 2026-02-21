@@ -1,5 +1,6 @@
 # from django.shortcuts import render
 from django.core.files.uploadedfile import UploadedFile
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
@@ -33,7 +34,10 @@ from ai_processor.tools import encode_image
 from assignments.models import Assignment
 from classrooms.permissions import IsStudent, IsTeacher
 from students.models import StudentSubmission
-from students.serializers import StudentSubmissionSerializer
+from students.serializers import (
+    StudentSubmissionListSerializer,
+    StudentSubmissionSerializer,
+)
 from users.models import UserTypes
 
 # Create your views here.
@@ -114,7 +118,7 @@ STUDENT_RESPONSE_EXAMPLE = {
             ),
         ],
         responses={
-            200: StudentSubmissionSerializer(many=True),
+            200: StudentSubmissionListSerializer(many=True),
             500: OpenApiResponse(description="Internal Server Error"),
         },
     ),
@@ -191,6 +195,10 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
+    @extend_schema(exclude=True)
+    def create(self, request, *args, **kwargs):
+        raise NotImplementedError("Student can only upload answers to answers")
+
     def get_queryset(self):
         user = self.request.user
 
@@ -200,6 +208,11 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
             return StudentSubmission.objects.filter(assignment__course__teacher=user)
         else:
             return StudentSubmission.objects.none()
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return StudentSubmissionListSerializer
+        return StudentSubmissionSerializer
 
     def get_permissions(self):
         if self.action in ["create", "upload_answers"]:
@@ -230,40 +243,6 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
             201: OpenApiResponse(
                 response=StudentSubmissionSerializer,
                 description="Answer processed successfully",
-                examples=[
-                    OpenApiExample(
-                        name="Answer Example",
-                        value={
-                            "assignment": 1,
-                            "answers": [
-                                {
-                                    "question_number": 1,
-                                    "question_text": "What color is the sky?",
-                                    "answer_text": "Purple",
-                                    "notes": "OCR error corrected: 'Purle' to 'Purple'.",
-                                },
-                                {
-                                    "question_number": 2,
-                                    "question_text": "What color is the ground?",
-                                    "answer_text": "Orange",
-                                    "notes": "",
-                                },
-                                {
-                                    "question_number": 3,
-                                    "question_text": "What color is the sun?",
-                                    "answer_text": "Black",
-                                    "notes": "",
-                                },
-                            ],
-                            "ai_confidence_score": 95,
-                            "general_feedback": "All questions answered. Minor OCR formatting issue "
-                            "between Q5 and Q6 resolved by context. Some answers are "
-                            "unconventional or incorrect based on common knowledge, "
-                            "but preserved as student's response.",
-                        },
-                        response_only=True,
-                    )
-                ],
             ),
             400: OpenApiResponse(
                 description="Invalid input. Missing required fields or invalid data format",
@@ -298,8 +277,11 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
         permission_classes=[IsAuthenticated],
     )
     def upload_answers(self, request, assignment_id=None, *args, **kwargs):
-        if not Assignment.objects.filter(id=assignment_id).exists():
-            raise NotFound(detail="No Assignment with this ID is found")
+        assignment = get_object_or_404(Assignment, id=assignment_id)
+
+        assignment_json = assignment.questions
+        # if not Assignment.objects.filter(id=assignment_id).exists():
+        #     raise NotFound(detail="No Assignment with this ID is found")
 
         files = request.FILES.getlist("answer")
         if not files:
@@ -319,6 +301,11 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
 
         extracted_text = ""
 
+        assignment_text = f"""
+        This is the Assignment to use as context in properly extracting the student submissions
+        {assignment_json}
+        """
+
         for uploaded_file in files:
             if not isinstance(uploaded_file, UploadedFile):
                 raise ParseError(
@@ -334,18 +321,19 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
 
             if uploaded_file.content_type in image_formats:
                 try:
-                    base64_encoded_file = encode_image(uploaded_file)
 
+                    base64_encoded_file = encode_image(uploaded_file)
                     content = [
                         {"type": "text", "text": text},
                         {
                             "type": "image_url",
                             "image_url": f"data:{uploaded_file.content_type};base64,{base64_encoded_file}",
+                            "detail": "high",
                         },
                     ]
 
                     student_submission = ai_processor.extract_answer_with_retry(
-                        content, max_retries=3
+                        content, assignment_text, max_retries=3
                     )
 
                     if student_submission is not None:
@@ -373,13 +361,21 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
                         )
 
                     student_submission = ai_processor.extract_answer_with_retry(
-                        content, max_retries=3
+                        content, assignment_text, max_retries=3
                     )
 
                     if student_submission is not None:
                         student_submission["assignment"] = assignment_id
+                        student_submission["student"] = request.user.id
 
-                    return Response(student_submission, status=HTTP_201_CREATED)
+                        serializer = StudentSubmissionSerializer(
+                            data=student_submission
+                        )
+                        serializer.is_valid(raise_exception=True)
+
+                        serializer.save()
+
+                        return Response(serializer.data, status=HTTP_201_CREATED)
 
                 except Exception as e:
                     return Response(
@@ -392,8 +388,9 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
 
         try:
             answer = ai_processor.extract_answer_with_retry(
-                extracted_text, max_retries=3
+                extracted_text, assignment_text, max_retries=3
             )
+
         except Exception as e:
 
             return Response(
@@ -441,12 +438,27 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
                 assignment.questions, answer_json
             )
 
+            user_prompt = f"""
+            Student Name: {submission.student.get_full_name()}
+            Course: {assignment.course}
+
+
+            Grading Result:
+
+            {grading}
+
+            Return a formatted response
+            """
+
+            formatted_grade = ai_processor.formatted_grade(user_prompt)
+
             grading_score = grading["grading_summary"]["total_score"]
-            grading_confidence = grading["grader_meta_analysis"]["grading_confidence"]
+            grading_confidence = grading["grading_confidence"]
 
             submission.score = grading_score
             submission.feedback = grading
             submission.grading_confidence = grading_confidence
+            submission.formatted_grade = formatted_grade
 
             submission.ai_score = grading_score
             submission.ai_grading_completed_at = timezone.now()
@@ -457,3 +469,50 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
             return Response({"error": str(e)}, status=HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response(grading, status=HTTP_200_OK)
+
+    @extend_schema(tags=["07 Student Submissions"])
+    @action(
+        detail=True,
+        methods=["GET"],
+        permission_classes=[IsAuthenticated, IsTeacher],
+        url_path="format_grade",
+    )
+    def formatted_grade_response(self, request, pk=None):
+        try:
+            submission = StudentSubmission.objects.get(pk=pk)
+        except StudentSubmission.DoesNotExist:
+            raise NotFound(
+                detail="No Student Submission with this ID is found"
+            ) from StudentSubmission.DoesNotExist
+
+        assignment = submission.assignment
+
+        formatted_grade = submission.formatted_grade
+
+        if formatted_grade:
+            return Response(formatted_grade)
+        else:
+
+            grading = submission.feedback
+
+            if grading:
+                user_prompt = f"""
+                Student Name: {submission.student.get_full_name()}
+                Course: {assignment.course}
+
+
+                Grading Result:
+
+                {grading}
+
+                Return a formatted response
+                """
+
+                formatted_grade = ai_processor.formatted_grade(user_prompt)
+
+                submission.formatted_grade = formatted_grade
+
+                return Response(formatted_grade)
+
+            else:
+                return Response("Submission has not be graded yet")

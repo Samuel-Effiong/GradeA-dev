@@ -1,4 +1,7 @@
+import json
+
 from django.core.files.uploadedfile import UploadedFile
+from django.db import transaction
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -24,116 +27,33 @@ from rest_framework.response import Response
 
 from ai_processor.models import ChatMessage, ChatSession, RoleType
 from ai_processor.serializers import AssignmentGeneratorSerializer
-from ai_processor.services import ai_processor, pdf_service
-from ai_processor.tools import encode_image
-from assignments.tasks import grade_all_submissions
-from classrooms.models import Course
+from ai_processor.services import ai_processor  # pdf_service
+
+# from ai_processor.tools import encode_image
+from classrooms.models import Course, Topic
 from classrooms.permissions import IsTeacher, IsTeacherOrReadOnly
+from classrooms.serializers import TopicSerializer
 
 # from students.serializers import StudentSubmissionSerializer
 from users.models import UserTypes
 
-from .models import Assignment, Rubric
-from .serializers import (
+from .models import Assignment  # Rubric
+from .serializers import (  # RubricSerializer,
+    AssignmentCreateResponseSerializer,
+    AssignmentDetailSerializer,
+    AssignmentGradeAllSubmissions,
+    AssignmentListSerializer,
     AssignmentSerializer,
     AssignmentTextSerializer,
-    RubricSerializer,
+    GeneratedAssignmentSerializer,
+    StatusMessageSerializer,
 )
+from .services import AssignmentProcessingService
+from .tasks import extract_assignment_background_task, grade_all_submissions
 
 # from ai_processor.validators import AssignmentStructure
 
 # from assignments.services import PDFService
-
-
-# from assignments.services import PDFService
-
-RESPONSE_FORMAT_EXAMPLE = {
-    "title": "World History - Industrial Revolution Quiz",
-    "instructions": "Answer all questions to the best of your ability. Write your answers in the spaces provided. "
-    "For multiple choice questions, select the best answer. Use complete sentences for essay questions.",
-    "total_points": 50,
-    "question_count": 5,
-    "assignment_type": "HYBRID",
-    "questions": [
-        {
-            "question_number": "1",
-            "question_text": "Which of the following was NOT a major cause of the Industrial Revolution?",
-            "question_type": "objective",
-            "points": 5,
-            "options": [
-                "Agricultural Revolution",
-                "Invention of the steam engine",
-                "Discovery of electricity",
-                "Expansion of colonial trade",
-            ],
-            "additional_notes": "Only one correct answer",
-        },
-        {
-            "question_number": "2",
-            "question_text": "Explain how the invention of the spinning jenny impacted textile production during"
-            " the Industrial Revolution.",
-            "question_type": "short_answer",
-            "points": 10,
-            "options": [],
-            "additional_notes": "Response should be 3-5 sentences",
-        },
-        {
-            "question_number": "3",
-            "question_text": "Match the following inventions with their inventors:",
-            "question_type": "objective",
-            "points": 12,
-            "options": ["Steam Engine", "Spinning Jenny", "Power Loom", "Cotton Gin"],
-            "additional_notes": "Match each invention with: James Watt, James Hargreaves, Edmund Cartwright, "
-            "Eli Whitney (respectively)",
-        },
-        {
-            "question_number": "4",
-            "question_text": "List three social consequences of urbanization during the Industrial Revolution.",
-            "question_type": "short_answer",
-            "points": 8,
-            "options": [],
-            "additional_notes": "Bullet points are acceptable",
-        },
-        {
-            "question_number": "5",
-            "question_text": "Analyze how the Industrial Revolution changed the nature of work and its impact "
-            "on society. Discuss at least three significant changes and their long-term effects.",
-            "question_type": "essay",
-            "points": 15,
-            "options": [],
-            "additional_notes": "Response should be 2-3 paragraphs, double-spaced",
-        },
-    ],
-    "extraction_confidence": "high",
-    "potential_issues": [
-        "Question 3 requires manual verification of correct answer matching",
-        "Point distribution might need adjustment based on question complexity",
-    ],
-}
-
-
-ASSIGNMENT_EXAMPLE = {
-    "course": 0,
-    "title": "World History - Industrial Revolution Quiz",
-    "instructions": "Answer all questions to the best of your ability.",
-    "total_points": 50,
-    "question_count": 5,
-    "assignment_type": "HYBRID",
-    "created_by": 0,
-    "questions": [
-        {
-            "question_text": "Which of the following was NOT a major cause of the Industrial Revolution?",
-            "question_type": "objective",
-            "points": 5,
-            "options": [
-                "Agricultural Revolution",
-                "Invention of the steam engine",
-                "Discovery of electricity",
-                "Expansion of colonial trade",
-            ],
-        }
-    ],
-}
 
 
 @extend_schema_view(
@@ -156,40 +76,35 @@ ASSIGNMENT_EXAMPLE = {
             ),
         ],
         responses={
-            200: AssignmentSerializer(many=True),
+            200: AssignmentListSerializer(many=True),
             500: OpenApiResponse(description="Internal Server Error"),
         },
     ),
     create=extend_schema(
         tags=["04 Assignments"],
-        summary="Create a new assignment",
+        summary="Create a new assignment synchronously",
         description="""Create a new assignment by providing the assignment details in text format.
         The system will analyze the text and extract structured assignment data.
+
+        `content`: This will contain the json content from TipTap
         """,
         request=AssignmentTextSerializer,
         responses={
-            201: OpenApiResponse(
-                response=AssignmentSerializer,
+            202: OpenApiResponse(
+                response=AssignmentListSerializer,
                 description="Assignment created successfully",
             ),
             400: OpenApiResponse(
                 description="Invalid input. Missing required fields or invalid data format"
             ),
-            # 401: OpenApiResponse(description="Authentication credentials were not provided"),
-            # 403: OpenApiResponse(description="You do not have permission to perform this action")
         },
-        # examples=[
-        #     OpenApiExample(
-        #         "Create Assignment Example", value=ASSIGNMENT_EXAMPLE, request_only=True
-        #     )
-        # ],
     ),
     retrieve=extend_schema(
         tags=["04 Assignments"],
         summary="Retrieve an assignment",
         description="Retrieve detailed information about a specific assignment by its ID.",
         responses={
-            200: AssignmentSerializer,
+            200: AssignmentDetailSerializer,
             404: OpenApiResponse(description="Assignment not found"),
             500: OpenApiResponse(description="Internal Server Error"),
         },
@@ -200,7 +115,7 @@ ASSIGNMENT_EXAMPLE = {
         description="Update an existing assignment.",
         request=AssignmentTextSerializer,
         responses={
-            200: AssignmentSerializer,
+            200: StatusMessageSerializer,
             400: OpenApiResponse(description="Invalid input"),
             # 401: OpenApiResponse(description="Authentication credentials were not provided"),
             # 403: OpenApiResponse(description="You do not have permission to perform this action"),
@@ -269,16 +184,20 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             return Assignment.objects.none()
 
     def get_serializer_class(self):
+        if self.action == "list":
+            return AssignmentListSerializer
+        if self.action == "retrieve":
+            return AssignmentDetailSerializer
         if self.request.method in ["POST", "PUT", "PATCH"]:
             return AssignmentTextSerializer
         return super().get_serializer_class()
 
-    @method_decorator(cache_page(60 * 5, key_prefix="assignments:list"))
+    @method_decorator(cache_page(60 * 3, key_prefix="assignments:list"))
     @method_decorator(vary_on_headers("Authorization"))
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
-    @method_decorator(cache_page(60 * 5, key_prefix="assignments:detail"))
+    @method_decorator(cache_page(60 * 3, key_prefix="assignments:detail"))
     @method_decorator(vary_on_headers("Authorization"))
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
@@ -288,6 +207,165 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         content = serializer.validated_data.get("content")
         course = serializer.validated_data.get("course")
+        topic = serializer.validated_data.get("topic")
+        title = serializer.validated_data.get("title")
+
+        raw_input = content
+
+        assignment = Assignment.objects.create(
+            topic=topic,
+            course=course,
+            raw_input=raw_input,
+            title=title,
+        )
+
+        text = f"""
+        Analyze the text of an educational assignment and return a valid JSON
+
+        ### Assignment Details
+        {content}
+
+        ### End of Assignment Details
+
+        IMPORTANT: Return only valid JSON matching the required structure.
+        Do not include any explanatory text before or after the JSON
+        """
+
+        content = [{"type": "text", "text": text}]
+
+        # serializer = extract_assignment(str(assignment.id), content)
+
+        serializer = AssignmentProcessingService.extract_assignment(assignment, content)
+
+        return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
+
+        # extraction_started_at = timezone.now()
+
+        # assignment_questions = ai_processor.extract_assignment_with_retry(
+        #     content, max_retries=3
+        # )
+
+        # extraction_completed_at = timezone.now()
+
+        # assignment_questions["course"] = str(course.id)
+
+        # if topic:
+        #     assignment_questions["topic"] = str(topic.id)
+
+        # assignment_questions["raw_input"] = raw_input
+        # assignment_questions["ai_generated"] = True
+
+        # ai_raw_payload = {
+        #     "title": assignment_questions["title"],
+        #     "instructions": assignment_questions["instructions"],
+        #     "questions": assignment_questions["questions"],
+        # }
+
+        # assignment_questions["ai_raw_payload"] = ai_raw_payload
+
+        # assignment_questions["ai_generated_at"] = timezone.now()
+        # assignment_questions["extraction_started_at"] = extraction_started_at
+        # assignment_questions["extraction_completed_at"] = extraction_completed_at
+
+        # serializer = AssignmentSerializer(data=assignment_questions)
+        # serializer.is_valid(raise_exception=True)
+        # serializer.save()
+
+        # message = {"status": True, "message": "Assignment successfully saved"}
+        # status_serializer = StatusMessageSerializer(message)
+
+        # return Response(status_serializer.data, status=status.HTTP_201_CREATED)
+
+    @extend_schema(
+        tags=["04 Assignments"],
+        summary="Create an assignment asynchronously",
+        description="Create an assignment asynchronously using background task.",
+        responses={
+            202: OpenApiResponse(
+                response=AssignmentCreateResponseSerializer,
+                description="Assignment creation and extraction task successfully started",
+            ),
+            400: OpenApiResponse(
+                description="Invalid input. Missing required fields or invalid data format"
+            ),
+            500: OpenApiResponse(description="Internal server error"),
+        },
+    )
+    @action(
+        detail=False, methods=["post"], url_path="create-async", url_name="create-async"
+    )
+    def create_async(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        content = serializer.validated_data.get("content")
+        course = serializer.validated_data.get("course")
+        topic = serializer.validated_data.get("topic")
+        title = serializer.validated_data.get("title")
+
+        assignment = Assignment.objects.create(
+            topic=topic,
+            course=course,
+            raw_input=content,
+            title=title,
+        )
+
+        text = f"""
+        Analyze the text of an educational assignment and return a valid JSON
+
+        ### Assignment Details
+        {content}
+
+        ### End of Assignment Details
+
+        IMPORTANT: Return only valid JSON matching the required structure.
+        Do not include any explanatory text before or after the JSON
+        """
+
+        content = [{"type": "text", "text": text}]
+
+        task = extract_assignment_background_task.delay(str(assignment.id), content)
+
+        data = {
+            "assignment_id": assignment.id,
+            "task_id": task.id,
+            "message": "Assignment extraction started",
+        }
+
+        serializer = AssignmentCreateResponseSerializer(data)
+
+        return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
+
+    def normalize(self, data):
+        return json.loads(json.dumps(data, sort_keys=True))
+
+    def detect_ai_assignment_override(self, assignment, updated_data):
+        if not assignment.ai_generated:
+            return
+
+        ai_snapshot = self.normalize(assignment.ai_raw_payload)
+
+        teacher_version = self.normalizer(
+            {
+                "title": updated_data.get("title"),
+                "instructions": updated_data.get("instructions"),
+                "questions": updated_data["questions"],
+            }
+        )
+
+        if ai_snapshot != teacher_version:
+            assignment.was_overridden = True
+            assignment.overridden_at = timezone.now()
+
+    def partial_update(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        content = serializer.validated_data.get("content")
+        topic = serializer.validated_data.get("topic")
+
+        raw_input = content
+
+        instance = self.get_object()
 
         text = f"""
         Analyze the text of an educational assignment and return a valid JSON
@@ -311,47 +389,14 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
         extraction_completed_at = timezone.now()
 
-        assignment_questions["course"] = course.id
-        assignment_questions["ai_generated"] = True
-        assignment_questions["ai_raw_payload"] = assignment_questions.copy()
-        del assignment_questions["ai_raw_payload"]["course"]
+        assignment_questions["course"] = instance.course.id
+        assignment_questions["raw_input"] = raw_input
 
-        assignment_questions["ai_generated_at"] = timezone.now()
         assignment_questions["extraction_started_at"] = extraction_started_at
         assignment_questions["extraction_completed_at"] = extraction_completed_at
-        assignment_questions["had_error"] = False
 
-        serializer = AssignmentSerializer(data=assignment_questions)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    def partial_update(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        content = serializer.validated_data.get("content")
-
-        text = f"""
-        Analyze the text of an educational assignment and return a valid JSON
-
-        ### Assignment Details
-        {content}
-
-        ### End of Assignment Details
-
-        IMPORTANT: Return only valid JSON matching the required structure.
-        Do not include any explanatory text before or after the JSON
-        """
-
-        content = [{"type": "text", "text": text}]
-        assignment_questions = ai_processor.extract_assignment_with_retry(
-            content, max_retries=3
-        )
-
-        instance = self.get_object()
-
-        # assignment_questions['course'] = instance.course.id
+        if topic:
+            assignment_questions["topic"] = topic.id
 
         # create assignment object
         assignment_serializer = AssignmentSerializer(
@@ -360,7 +405,54 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         assignment_serializer.is_valid(raise_exception=True)
         assignment_serializer.save()
 
-        return Response(assignment_serializer.data, status=status.HTTP_200_OK)
+        message = {"status": True, "message": "Assignment successfully updated"}
+        status_serializer = StatusMessageSerializer(message)
+
+        return Response(status_serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        tags=["04 Assignments"],
+        summary="Associate an assignment with a topic",
+        description="Associate an existing assignment with a specific topic.",
+        request=None,
+        parameters=[
+            OpenApiParameter(
+                name="topic_id",
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.QUERY,
+                description="The UUID of the topic to associate with the assignment",
+                required=True,
+            ),
+        ],
+        responses={
+            200: TopicSerializer,
+            400: OpenApiResponse(description="Invalid input"),
+            404: OpenApiResponse(description="Assignment or Topic not found"),
+        },
+    )
+    @action(
+        detail=True,
+        methods=["PATCH"],
+        url_path="associate-topic",
+        url_name="associate-topic",
+    )
+    def associate_topic(self, request, pk=None):
+        assignment = self.get_object()
+        topic_id = request.query_params.get("topic_id")
+
+        if not topic_id:
+            raise ParseError("Topic ID is required.")
+
+        topic = get_object_or_404(Topic, id=topic_id)
+
+        if topic.course != assignment.course:
+            raise ParseError("Topic must belong to the same course as the assignment.")
+
+        assignment.topic = topic
+        assignment.save()
+
+        serializer = TopicSerializer(topic)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(
         tags=["04 Assignments"],
@@ -377,6 +469,12 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                         "format": "uuid",
                         "description": "The UUID of the course this assignment belongs",
                     },
+                    "topic": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": True,
+                        "description": "(Optional) The UUID of the topic this assignment belongs",
+                    },
                     "assignments": {
                         "type": "array",
                         "items": {"type": "string", "format": "binary"},
@@ -386,41 +484,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             }
         },
         responses={
-            201: {
-                "description": "Files uploaded and processed successfully. Returns a list of structured assignment",
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "title": {
-                            "type": "string",
-                            "description": "The title of the assignment.",
-                        },
-                        "description": {
-                            "type": "string",
-                            "description": "A brief description of the assignment.",
-                        },
-                        "assignment_type": {
-                            "type": "string",
-                            "description": "The type of the assignment (e.g., 'PDF' or 'Image').",
-                        },
-                        "course": {
-                            "type": "string",
-                            "description": "The course or category of the assignment.",
-                        },
-                        "questions": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "description": "A list of questions extracted from the assignment.",
-                        },
-                        "page_count": {
-                            "type": "integer",
-                            "description": "The number of pages in the assignment.",
-                        },
-                    },
-                    "example": RESPONSE_FORMAT_EXAMPLE,  # Use the defined example for clarity
-                },
-            },
+            201: AssignmentDetailSerializer,
             400: {
                 "description": "Bad Request. No files were uploaded or invalid file data.",
                 "example": {"error": "No files were uploaded."},
@@ -441,13 +505,13 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         permission_classes=[IsAuthenticated, IsTeacher],
     )
     def upload_assignment(self, request):
-        course = request.data.get("course")
-        if not course:
+        course_id = request.data.get("course")
+        if not course_id:
             raise ParseError("Course ID is required.")
 
         # Validate course exists and user has access to it
         try:
-            course = get_object_or_404(Course, id=course, teacher=request.user)
+            course = get_object_or_404(Course, id=course_id, teacher=request.user)
         except (ValueError, ValidationError):
             raise ParseError(
                 "Invalid Course ID format. Must be with a valid UUID"
@@ -457,6 +521,13 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                 "Course not found or you don't have access to it."
             ) from Http404
 
+        topic_id = request.data.get("topic").strip()
+
+        if topic_id:
+            topic = get_object_or_404(Topic, id=topic_id)
+        else:
+            topic = None
+
         # Access files using request.FILES
         files = request.FILES.getlist("assignments")
 
@@ -465,13 +536,6 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
         results = []
 
-        image_formats = [
-            "image/jpeg",
-            "image/png",
-            "image/gif",
-            "image/webp",
-        ]
-        pdf_formats = "application/pdf"
         prompt_text = """
         Analyze the image of an educational assignment and return a JSON
 
@@ -479,43 +543,19 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         Do not include any explanatory text before or after the JSON
         """
 
+        # Processing Loop
         for uploaded_file in files:
             # Check if it's an instance of UploadedFile
             if not isinstance(uploaded_file, UploadedFile):
                 raise ParseError("Invalid file upload.")
 
-            content_type = uploaded_file.content_type
-            content = [{"type": "text", "text": prompt_text}]
+            content = AssignmentProcessingService.prepare_ai_content(
+                uploaded_file, prompt_text
+            )
 
             try:
-                if content_type in image_formats:
-                    extraction_started_at = timezone.now()
 
-                    base64_encoded_file = encode_image(uploaded_file)
-
-                    content.append(
-                        {
-                            "type": "image_url",
-                            "image_url": f"data:{uploaded_file.content_type};base64,{base64_encoded_file}",
-                        }
-                    )
-
-                elif uploaded_file.content_type == pdf_formats:
-                    pdf_service.set_uploaded_file(uploaded_file)
-                    images_base64_encoded = pdf_service.extract()
-
-                    for image in images_base64_encoded:
-                        content.append(
-                            {
-                                "type": "image_url",
-                                "image_url": f"data:image/PNG;base64,{image}",
-                            }
-                        )
-                else:
-                    raise ParseError(
-                        f"File `{uploaded_file.name}` has an invalid format. Only images "
-                        f"(JPEG, PNG, GIF, WebP) and PDFs are allowed."
-                    )
+                extraction_started_at = timezone.now()
 
                 assignment_questions = ai_processor.extract_assignment_with_retry(
                     content, max_retries=3, upload=True
@@ -524,226 +564,48 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                 extraction_completed_at = timezone.now()
 
                 assignment_questions["course"] = course.id
-                assignment_questions["ai_generated"] = True
-                assignment_questions["ai_raw_payload"] = assignment_questions.copy()
-                del assignment_questions["ai_raw_payload"]["course"]
+                assignment_questions["topic"] = topic.id if topic_id else None
+                assignment_questions["ai_generated"] = False
 
-                assignment_questions["ai_generated_at"] = timezone.now()
+                ai_raw_payload = {
+                    "title": assignment_questions["title"],
+                    "instructions": assignment_questions["instructions"],
+                    "questions": assignment_questions["questions"],
+                }
+                assignment_questions["ai_raw_payload"] = ai_raw_payload
+
+                # assignment_questions["ai_generated_at"] = timezone.now()
                 assignment_questions["extraction_started_at"] = extraction_started_at
                 assignment_questions["extraction_completed_at"] = (
                     extraction_completed_at
                 )
-                assignment_questions["had_error"] = False
+
+                # convert questions to html
+                assignment_html = (
+                    AssignmentProcessingService.format_assignment_standard_html(
+                        assignment_questions
+                    )
+                )
+                raw_input = AssignmentProcessingService.html_to_prosemirror_json(
+                    assignment_html
+                )
+
+                raw_input_str = json.dumps(raw_input)
+                assignment_questions["raw_input"] = raw_input_str
 
                 results.append(assignment_questions)
             except Exception as e:
                 raise ParseError(str(e)) from Exception
 
-        serializer = AssignmentSerializer(data=results, many=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+        with transaction.atomic():
+            serializer = AssignmentSerializer(data=results, many=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+            assignment_questions["course"] = course
+            serializer = AssignmentDetailSerializer(assignment_questions)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    # @extend_schema(
-    #     tags=["05 Rubrics"],
-    #     operation_id="upload_rubric",
-    #     summary="Upload rubric file (image or PDF)",
-    #     description="""
-    #     Upload rubric file (PDF or images) for processing.
-    #     The endpoint accepts file and processes it to extract rubric data.
-    #     The extracted data will be associated with the specified assignment.
-    #     """,
-    #     request={
-    #         "multipart/form-data": {
-    #             "type": "object",
-    #             "properties": {
-    #                 "rubric": {
-    #                     "type": "string",
-    #                     "format": "binary",
-    #                     "description": "Rubric file (PDF, JPEG, PNG, GIF, or WebP)",
-    #                 }
-    #             },
-    #             "required": ["rubric"],
-    #         }
-    #     },
-    #     responses={
-    #         201: OpenApiResponse(
-    #             response=RubricSerializer,
-    #             description="Rubric files processed successfully",
-    #             examples=[
-    #                 OpenApiExample(
-    #                     name="Rubric Example",
-    #                     value={
-    #                         "assignment_id": 1,
-    #                         "criteria": [
-    #                             {
-    #                                 "id": 1,
-    #                                 "question": "Explain three main causes of climate change.",
-    #                                 "max_points": 15,
-    #                                 "model_answer": "The main causes are greenhouse gas emissions from burning fossil"
-    #                                 " fuels, deforestation, and industrial activities that release "
-    #                                 "carbon dioxide and methane.",
-    #                                 "rubric": [
-    #                                     {
-    #                                         "level": "Excellent",
-    #                                         "points": 15,
-    #                                         "description": "Mentions at least 3 causes with detailed explanations "
-    #                                         "and examples.",
-    #                                     },
-    #                                     {
-    #                                         "level": "Good",
-    #                                         "points": 10,
-    #                                         "description": "Mentions at least 2 causes with moderate explanation.",
-    #                                     },
-    #                                     {
-    #                                         "level": "Fair",
-    #                                         "points": 5,
-    #                                         "description": "Mentions only 1 cause with limited detail.",
-    #                                     },
-    #                                     {
-    #                                         "level": "Poor",
-    #                                         "points": 0,
-    #                                         "description": "Fails to identify valid causes or gives irrelevant "
-    #                                         "answers.",
-    #                                     },
-    #                                 ],
-    #                             }
-    #                         ],
-    #                         "rubric_analysis": {
-    #                             "extraction_confidence": 0.0,
-    #                             "text_quality": "high/medium/low",
-    #                             "total_questions_found": 0,
-    #                             "total_possible_points": 0,
-    #                             "detected_metadata": {
-    #                                 "title": "",
-    #                                 "subject": "",
-    #                                 "grade_level": "",
-    #                                 "instructor": "",
-    #                                 "course": "",
-    #                                 "date": "",
-    #                                 "instructions": "",
-    #                             },
-    #                         },
-    #                         "rubric_quality_assessment": {
-    #                             "clarity_score": 0.0,
-    #                             "completeness_score": 0.0,
-    #                             "consistency_score": 0.0,
-    #                             "alignment_score": 0.0,
-    #                             "overall_quality": "excellent/good/fair/poor",
-    #                         },
-    #                         "identified_issues": [
-    #                             {
-    #                                 "issue_type": "",
-    #                                 "severity": "high/medium/low",
-    #                                 "description": "",
-    #                                 "suggestion": "",
-    #                             }
-    #                         ],
-    #                         "strengths": [],
-    #                         "improvement_recommendations": [],
-    #                         "processing_notes": [],
-    #                         "assumptions_made": [],
-    #                         "unclear_sections": [],
-    #                     },
-    #                     response_only=True,
-    #                 )
-    #             ],
-    #         ),
-    #         400: OpenApiResponse(
-    #             description="Bad Request",
-    #             examples=[
-    #                 OpenApiExample(
-    #                     name="No File",
-    #                     value={"error": "Invalid file upload"},
-    #                     response_only=True,
-    #                 )
-    #             ],
-    #         ),
-    #         415: OpenApiResponse(
-    #             description="Unsupported Media Type",
-    #             examples=[
-    #                 OpenApiExample(
-    #                     name="Unsupported Media Type",
-    #                     value={
-    #                         "error": "File 'example.txt' has an invalid format. "
-    #                         "Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed."
-    #                     },
-    #                     response_only=True,
-    #                 )
-    #             ],
-    #         ),
-    #     },
-    # )
-    # @action(
-    #     detail=False,
-    #     methods=["POST"],
-    #     url_path=r"(?P<assignment_id>[-\w]+)/upload_rubric",
-    #     url_name="upload_rubric",
-    #     permission_classes=[IsAuthenticated, IsTeacher],
-    # )
-    # def upload_rubric(self, request, assignment_id=None):
-    #     if not Assignment.objects.filter(pk=assignment_id).exists():
-    #         raise NotFound("No Assignment found with this ID.")
-    #
-    #     files = request.FILES.getlist("rubric")
-    #
-    #     if not files:
-    #         raise ParseError("No files were uploaded.")
-    #
-    #     if len(files) > 1:
-    #         raise NotAcceptable(
-    #             "Only one file can be uploaded at a time. Please try again."
-    #         )
-    #
-    #     image_formats = [
-    #         "image/jpeg",
-    #         "image/png",
-    #         "image/gif",
-    #         "image/webp",
-    #     ]
-    #
-    #     pdf_formats = "application/pdf"
-    #
-    #     rubric = None
-    #
-    #     for uploaded_file in files:
-    #         if not isinstance(uploaded_file, UploadedFile):
-    #             raise ParseError("Invalid file upload.")
-    #
-    #         if uploaded_file.content_type in image_formats:
-    #             try:
-    #                 image = Image.open(uploaded_file)
-    #                 rubric = ocr_service.extract_with_pytessaract(image)
-    #
-    #                 rubric = ai_processor.extract_rubric_with_retry(
-    #                     rubric, max_retries=3
-    #                 )
-    #             except Exception as e:
-    #                 return Response(
-    #                     {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-    #                 )
-    #         elif uploaded_file.content_type == pdf_formats:
-    #             try:
-    #                 pdf_service.set_uploaded_file(uploaded_file)
-    #                 extracted_data = pdf_service.extract()
-    #
-    #                 rubric = ai_processor.extract_rubric_with_retry(
-    #                     extracted_data["questions"], max_retries=3
-    #                 )
-    #             except Exception as e:
-    #                 return Response(
-    #                     {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-    #                 )
-    #         else:
-    #             raise ParseError(
-    #                 f"File `{uploaded_file.name}` has an invalid format. Only images "
-    #                 f"(JPEG, PNG, GIF, WebP) and PDFs are allowed."
-    #             )
-    #
-    #     if rubric is not None:
-    #         rubric["assignment"] = assignment_id
-    #     return Response(rubric, status=status.HTTP_201_CREATED)
 
     @extend_schema(
         tags=["04 Assignments"],
@@ -751,7 +613,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         description="""Create a new assignment based on user prompts.""",
         request=AssignmentGeneratorSerializer,
         responses={
-            201: AssignmentSerializer,
+            201: GeneratedAssignmentSerializer,
             400: OpenApiResponse(
                 description="Bad request - invalid data",
             ),
@@ -822,7 +684,23 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                 role=RoleType.ASSISTANT,
                 content=str(generated_assignment),
             )
-            return Response(generated_assignment, status=status.HTTP_201_CREATED)
+
+            assignment_standard = (
+                AssignmentProcessingService.format_assignment_standard_html(
+                    generated_assignment
+                )
+            )
+            assignment_prosemirror_json = (
+                AssignmentProcessingService.html_to_prosemirror_json(
+                    assignment_standard
+                )
+            )
+
+            data = {"content": assignment_prosemirror_json}
+
+            serializer = GeneratedAssignmentSerializer(data)
+
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -835,233 +713,26 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
         submissions = assignment_object.submissions
 
+        task_id = None
+
         if not submissions.exists():
             return Response(
                 {"message": "No submissions to grade"}, status=status.HTTP_200_OK
             )
 
-        grade_all_submissions.delay(str(assignment_object.id))
+        task = grade_all_submissions.delay(str(assignment_object.id))
+        task_id = task.id
 
-        return Response(
+        data = (
             {
+                "assignment_id": assignment_object.id,
+                "task_id": task_id,
                 "message": "AI grading started",
                 "submission_count": submissions.count(),
+                "status": "Processing" if task_id else "completed",
             },
-            status=status.HTTP_202_ACCEPTED,
         )
 
+        serializer = AssignmentGradeAllSubmissions(data)
 
-@extend_schema_view(
-    create=extend_schema(
-        tags=["05 Rubrics"],
-        summary="Create a new rubric",
-        description="""
-        Create a new rubric with the provided criteria.
-
-        A rubric consists of multiple criteria, each with its own scoring levels.
-        The sum of max_points across all criteria must match the assignment's total_points.
-        """,
-        request=RubricSerializer,
-        responses={
-            201: OpenApiResponse(
-                response=RubricSerializer, description="Rubric created successfully"
-            ),
-            400: OpenApiResponse(description="Invalid input data"),
-            500: OpenApiResponse(description="Internal server error"),
-        },
-        examples=[
-            OpenApiExample(
-                "Create Rubric Example",
-                value={
-                    "assignment": 1,
-                    "criteria": [
-                        {
-                            "question": "Code Quality",
-                            "max_points": 30,
-                            "model_answer": "The code should be well-structured, properly formatted, and follow"
-                            " best practices.",
-                            "rubric": [
-                                {
-                                    "level": "Excellent",
-                                    "points": 30,
-                                    "description": "Code is exceptionally well-organized, follows all best practices,"
-                                    " and demonstrates advanced techniques.",
-                                },
-                                {
-                                    "level": "Good",
-                                    "points": 20,
-                                    "description": "Code is well-structured with minor issues that don't affect "
-                                    "functionality.",
-                                },
-                                {
-                                    "level": "Needs Improvement",
-                                    "points": 10,
-                                    "description": "Code is functional but has significant structural or style issues.",
-                                },
-                            ],
-                        },
-                        {
-                            "question": "Functionality",
-                            "max_points": 40,
-                            "model_answer": "The code should correctly implement all required functionality.",
-                            "rubric": [
-                                {
-                                    "level": "Excellent",
-                                    "points": 40,
-                                    "description": "All functionality is implemented correctly and efficiently.",
-                                },
-                                {
-                                    "level": "Good",
-                                    "points": 30,
-                                    "description": "Most functionality is implemented with minor issues.",
-                                },
-                                {
-                                    "level": "Needs Improvement",
-                                    "points": 15,
-                                    "description": "Basic functionality is present but with significant issues.",
-                                },
-                            ],
-                        },
-                    ],
-                },
-                request_only=True,
-                status_codes=["201"],
-            )
-        ],
-    ),
-    list=extend_schema(
-        tags=["05 Rubrics"],
-        summary="List all rubrics",
-        description="Retrieve a paginated list of all rubrics in the system.",
-        parameters=[
-            OpenApiParameter(
-                name="page",
-                type=OpenApiTypes.INT,
-                location=OpenApiParameter.QUERY,
-                description="Page number for pagination",
-            ),
-            OpenApiParameter(
-                name="page_size",
-                type=OpenApiTypes.INT,
-                location=OpenApiParameter.QUERY,
-                description="Number of results per page",
-            ),
-        ],
-        responses={
-            200: RubricSerializer(many=True),
-            500: OpenApiResponse(description="Internal Server Error"),
-        },
-    ),
-    retrieve=extend_schema(
-        tags=["05 Rubrics"],
-        summary="Retrieve a rubric",
-        description="Retrieve detailed information about a specific rubric by its ID.",
-        responses={
-            200: RubricSerializer,
-            404: OpenApiResponse(description="Rubric not found"),
-            500: OpenApiResponse(description="Internal Server Error"),
-        },
-    ),
-    partial_update=extend_schema(
-        tags=["05 Rubrics"],
-        summary="Update a rubric",
-        description="Update one or more fields of an existing rubric.",
-        request=RubricSerializer(),
-        responses={
-            200: RubricSerializer,
-            400: OpenApiResponse(description="Invalid input"),
-            404: OpenApiResponse(description="Rubric not found"),
-            500: OpenApiResponse(description="Internal Server Error"),
-        },
-        examples=[
-            OpenApiExample(
-                "Update Rubric Example",
-                value={
-                    "assignment": 1,
-                    "criteria": [
-                        {
-                            "id": 1,
-                            "question": "Updated question text",
-                            "max_points": 15,
-                            "model_answer": "Updated model answer",
-                            "rubric": [
-                                {
-                                    "level": "Excellent",
-                                    "points": 15,
-                                    "description": "Updated description",
-                                }
-                            ],
-                        }
-                    ],
-                },
-                request_only=True,
-            )
-        ],
-    ),
-    destroy=extend_schema(
-        tags=["05 Rubrics"],
-        summary="Delete a rubric",
-        description="Delete a rubric by ID. This action cannot be undone.",
-        responses={
-            204: OpenApiResponse(description="Rubric deleted successfully"),
-            404: OpenApiResponse(description="Rubric not found"),
-            500: OpenApiResponse(description="Internal Server Error"),
-        },
-    ),
-)
-class RubricViewSet(viewsets.ModelViewSet):
-    """
-    A viewset for viewing and editing rubrics.
-    """
-
-    queryset = Rubric.objects.all()
-    serializer_class = RubricSerializer
-    permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
-    pagination_class = PageNumberPagination
-    http_method_names = ["get", "head", "post", "delete", "patch", "options"]
-
-    def get_queryset(self):
-        user = self.request.user
-
-        if user.is_authenticated:
-            return Rubric.objects.filter(assignment__course__teacher=user)
-        else:
-            return Rubric.objects.none()
-
-    @extend_schema(
-        tags=["05 Rubrics"],
-        methods=["GET"],
-        summary="Retrieve rubric by assignment ID",
-        description="Retrieve a rubric by its associated assignment ID.",
-        parameters=[
-            OpenApiParameter(
-                name="assignment_id",
-                type=OpenApiTypes.UUID,
-                location=OpenApiParameter.QUERY,
-                description="ID of the assignment to retrieve rubric for",
-                required=True,
-            ),
-        ],
-        responses={
-            200: RubricSerializer,
-            404: OpenApiResponse(
-                description="Rubric not found for the given assignment"
-            ),
-            500: OpenApiResponse(description="Internal Server Error"),
-        },
-    )
-    @action(detail=False, methods=["get"])
-    def by_assignment(self, request):
-        """
-        Retrieve rubric by assignment ID.
-        """
-        assignment_id = request.query_params.get("assignment_id")
-        if not assignment_id:
-            raise ParseError("Assignment ID is required.")
-
-        try:
-            rubric = self.queryset.get(assignment_id=assignment_id)
-            serializer = self.get_serializer(rubric)
-            return Response(serializer.data)
-        except Rubric.DoesNotExist:
-            raise ParseError("No rubric found for the given assignment.") from Exception
+        return Response(serializer.data, status=status.HTTP_202_ACCEPTED)

@@ -51,6 +51,8 @@ class StudentSubmissionSerializer(serializers.ModelSerializer):
             "score",
             "feedback",
             "submission_date",
+            "graded_at",
+            "grading_confidence",
         ]
 
         read_only_fields = [
@@ -59,6 +61,8 @@ class StudentSubmissionSerializer(serializers.ModelSerializer):
             "submission_date",
             "student_name",
             "assignment_title",
+            "grade_at",
+            "grading_confidence",
         ]
 
     def get_student_name(self, obj) -> str:
@@ -85,3 +89,30 @@ class StudentSubmissionSerializer(serializers.ModelSerializer):
                 instance.regraded_at = timezone.now()
 
         return super().update(instance, validated_data)
+
+
+class StudentSubmissionListSerializer(serializers.ModelSerializer):
+    student_name = serializers.SerializerMethodField()
+    assignment_title = serializers.CharField(source="assignment.title", read_only=True)
+
+    class Meta:
+        model = StudentSubmission
+        fields = [
+            "id",
+            "student",
+            "student_name",
+            "assignment",
+            "assignment_title",
+            "submission_date",
+            "score",
+        ]
+
+        read_only_fields = [
+            "submission_date",
+            "student_name",
+            "assignment_title",
+            "score",
+        ]
+
+    def get_student_name(self, obj) -> str:
+        return f"{obj.student.first_name} {obj.student.last_name}"

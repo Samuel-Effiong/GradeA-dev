@@ -17,32 +17,36 @@ class AssignmentTypes(models.TextChoices):
 
 
 class Assignment(models.Model):
+
+    # REQUIRED FIELD NEEDED TO CREATE MODEL
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     course = models.ForeignKey(
         "classrooms.Course", on_delete=models.CASCADE, related_name="assignments"
     )
-    title = models.CharField(max_length=255, unique=True)
-    instructions = models.TextField()
-    total_points = models.IntegerField()
-    question_count = models.IntegerField()
+
+    topic = models.ForeignKey(
+        "classrooms.Topic",
+        on_delete=models.CASCADE,
+        related_name="assignments",
+        null=True,
+        blank=True,
+    )
+
+    title = models.CharField(max_length=255, null=True, blank=True, db_index=True)
+    raw_input = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    # AI GENERATED FIELDS
+    instructions = models.TextField(null=True, blank=True)
+    total_points = models.IntegerField(null=True, blank=True)
+    question_count = models.IntegerField(null=True, blank=True)
     assignment_type = models.CharField(
         max_length=20,
         choices=AssignmentTypes.choices,
         default=AssignmentTypes.OBJECTIVE,
     )
-    created_at = models.DateTimeField(auto_now_add=True)
-    due_date = models.DateTimeField(null=True, blank=True)
-    teacher = models.ForeignKey(
-        CustomUser,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="assignments",
-    )
-
     questions = models.JSONField(null=True, blank=True)
-    ai_raw_payload = models.JSONField(null=True, blank=True)
-
+    due_date = models.DateTimeField(null=True, blank=True)
     extraction_confidence = models.IntegerField(null=True, blank=True, default=0)
     potential_issues = ArrayField(
         models.CharField(max_length=1000), null=True, blank=True
@@ -51,39 +55,58 @@ class Assignment(models.Model):
 
     custom_ai_prompt = models.TextField(null=True, blank=True)
 
+    # ASSESSMENT FIELDS
+
     ai_generated = models.BooleanField(default=True)
     ai_raw_payload = models.JSONField(null=True, blank=True)
     ai_generated_at = models.DateTimeField(null=True, blank=True)
+
     was_overridden = models.BooleanField(default=False)
+    overridden_at = models.DateTimeField(null=True, blank=True)
 
     extraction_started_at = models.DateTimeField(null=True, blank=True)
     extraction_completed_at = models.DateTimeField(null=True, blank=True)
-    had_error = models.BooleanField(default=False)
 
-    grading_status = models.CharField(
-        max_length=20,
-        choices=[("NOT_STARTED", "NOT STARTED"), ("COMPLETED", "COMPLETED")],
-        default="NOT_STARTED",
+    # grading_status = models.CharField(
+    #     max_length=20,
+    #     choices=[("NOT_STARTED", "NOT STARTED"), ("COMPLETED", "COMPLETED")],
+    #     default="NOT_STARTED",
+    # )
+
+    # IN REVIEW FOR REMOVAL
+    teacher = models.ForeignKey(
+        CustomUser,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assignments",
     )
 
     class Meta:
         ordering = ["title"]
 
+        constraints = [
+            models.UniqueConstraint(
+                fields=["course", "title"],
+                name="unique_assignment_per_course",
+            )
+        ]
 
-class Rubric(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    assignment = models.OneToOneField(
-        Assignment, on_delete=models.CASCADE, related_name="rubric"
-    )
-    criteria = models.JSONField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
-        return f"Rubric for {self.assignment.title}"
+# class Rubric(models.Model):
+#     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+#     assignment = models.OneToOneField(
+#         Assignment, on_delete=models.CASCADE, related_name="rubric"
+#     )
+#     criteria = models.JSONField()
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     updated_at = models.DateTimeField(auto_now=True)
 
-    def has_criteria(self):
-        return True if self.criteria else False
+#     def __str__(self):
+#         return f"Rubric for {self.assignment.title}"
 
-    def get_rubric_criteria_json(self):
-        return self.criteria
+#     def has_criteria(self):
+#         return True if self.criteria else False
+
+#     def get_rubric_criteria_json(self):
+#         return self.criteria

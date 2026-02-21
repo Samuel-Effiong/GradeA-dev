@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Assignment, Rubric
+from .models import Assignment  # Rubric
 
 
 @admin.register(Assignment)
@@ -21,9 +21,9 @@ class AssignmentAdmin(admin.ModelAdmin):
     date_hierarchy = "created_at"
 
 
-@admin.register(Rubric)
-class RubricAdmin(admin.ModelAdmin):
-    list_display = ("assignment", "created_at", "updated_at")
-    search_fields = ("assignment__title",)
-    readonly_fields = ("id", "created_at", "updated_at")
-    raw_id_fields = ("assignment",)
+# @admin.register(Rubric)
+# class RubricAdmin(admin.ModelAdmin):
+#     list_display = ("assignment", "created_at", "updated_at")
+#     search_fields = ("assignment__title",)
+#     readonly_fields = ("id", "created_at", "updated_at")
+#     raw_id_fields = ("assignment",)
