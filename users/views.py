@@ -53,6 +53,7 @@ from users.serializers import (
     CustomUserSerializer,
     OTPSerializer,
     ResetPasswordSerializer,
+    TaskStatusSerializer,
     VerifyCustomUserSerializer,
 )
 from users.services import send_user_activation_email
@@ -832,6 +833,15 @@ class TokenRefreshView(BaseTokenRefreshView):
     pass
 
 
+@extend_schema(
+    tags=["Tasks"],
+    summary="Get status of a background task",
+    description="Retrieve the current status and metadata for a Celery background task by its ID.",
+    responses={
+        200: TaskStatusSerializer,
+        404: OpenApiResponse(description="Task not found"),
+    },
+)
 @api_view(["GET"])
 def task_status(request, task_id):
 
