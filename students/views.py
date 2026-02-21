@@ -34,7 +34,10 @@ from ai_processor.tools import encode_image
 from assignments.models import Assignment
 from classrooms.permissions import IsStudent, IsTeacher
 from students.models import StudentSubmission
-from students.serializers import StudentSubmissionSerializer
+from students.serializers import (
+    StudentSubmissionListSerializer,
+    StudentSubmissionSerializer,
+)
 from users.models import UserTypes
 
 # Create your views here.
@@ -115,7 +118,7 @@ STUDENT_RESPONSE_EXAMPLE = {
             ),
         ],
         responses={
-            200: StudentSubmissionSerializer(many=True),
+            200: StudentSubmissionListSerializer(many=True),
             500: OpenApiResponse(description="Internal Server Error"),
         },
     ),
@@ -205,6 +208,11 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
             return StudentSubmission.objects.filter(assignment__course__teacher=user)
         else:
             return StudentSubmission.objects.none()
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return StudentSubmissionListSerializer
+        return StudentSubmissionSerializer
 
     def get_permissions(self):
         if self.action in ["create", "upload_answers"]:

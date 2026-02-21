@@ -80,7 +80,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
             "extraction_started_at",
             "extraction_completed_at",
         ]
-        read_only_fields = ["created_at", "id", "raw_input"]
+        read_only_fields = ["created_at", "id"]
 
         extra_kwargs = {
             "title": {"required": False},
@@ -89,6 +89,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
             "ai_generated_at": {"write_only": True},
             "extraction_started_at": {"write_only": True},
             "extraction_completed_at": {"write_only": True},
+            "raw_input": {"required": False},
         }
 
     def validate_total_points(self, value: int | float) -> int | float:
@@ -222,6 +223,10 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
         fields = ["id", "course", "topic", "raw_input"]
 
 
+class GeneratedAssignmentSerializer(serializers.Serializer):
+    content = serializers.CharField()
+
+
 class ScoringLevelSerializer(serializers.Serializer):
     level = serializers.CharField()
     points = serializers.FloatField()
@@ -280,15 +285,18 @@ class CriterionSerializer(serializers.Serializer):
 
 
 class AssignmentTextSerializer(serializers.Serializer):
-    content = serializers.CharField(required=True)
+    title = serializers.CharField(required=False, allow_null=True)
     course = serializers.PrimaryKeyRelatedField(
         queryset=Course.objects.all(), required=True
     )
     topic = serializers.PrimaryKeyRelatedField(
         queryset=Topic.objects.all(), required=False, allow_null=True
     )
+    raw_input = serializers.CharField(
+        required=True, allow_blank=False, allow_null=False
+    )
 
-    def validate_content(self, value):
+    def validate_raw_input(self, value):
         if not value.strip():
             raise ParseError("Assignment content cannot be empty")
         return value.strip()
@@ -313,3 +321,26 @@ class StatusMessageSerializer(serializers.Serializer):
 
     status = serializers.BooleanField(default=True)
     message = serializers.CharField(max_length=255)
+
+
+class AssignmentCreateResponseSerializer(serializers.Serializer):
+    """
+    Serializer for the response returned after starting assignment extraction.
+    """
+
+    assignment_id = serializers.UUIDField()
+    task_id = serializers.CharField(max_length=255)
+    message = serializers.CharField(max_length=255)
+
+
+class AssignmentGradeAllSubmissions(serializers.Serializer):
+    """
+    Serializer for the response return after starting the grading of
+    all submissions for an assignment
+    """
+
+    assignment_id = serializers.UUIDField()
+    task_id = serializers.CharField(max_length=255)
+    message = serializers.CharField(max_length=255)
+    submission_count = serializers.IntegerField()
+    status = serializers.CharField(max_length=255)

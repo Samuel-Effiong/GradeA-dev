@@ -2,7 +2,9 @@ import json
 
 # The text you want to convert
 text = """
+{
 
+}
 """
 
 # Create JSON structure
