@@ -124,12 +124,12 @@ class SchoolViewSet(viewsets.ModelViewSet):
     ordering_fields = ["name", "created_at"]
     search_fields = ["name"]
 
-    @method_decorator(cache_page(60 * 30, key_prefix="schools:list"))
+    @method_decorator(cache_page(60 * 3, key_prefix="schools:list"))
     @method_decorator(vary_on_headers("Authorization"))
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
-    @method_decorator(cache_page(60 * 30, key_prefix="schools:retrieve"))
+    @method_decorator(cache_page(60 * 3, key_prefix="schools:retrieve"))
     @method_decorator(vary_on_headers("Authorization"))
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
@@ -267,12 +267,12 @@ class CourseViewSet(viewsets.ModelViewSet):
         "created_at",
     )
 
-    @method_decorator(cache_page(60 * 30, key_prefix="courses:list"))
+    @method_decorator(cache_page(60 * 3, key_prefix="courses:list"))
     @method_decorator(vary_on_headers("Authorization"))
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
-    @method_decorator(cache_page(60 * 30, key_prefix="courses:detail"))
+    @method_decorator(cache_page(60 * 3, key_prefix="courses:detail"))
     @method_decorator(vary_on_headers("Authorization"))
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
@@ -765,12 +765,12 @@ class SessionViewSet(viewsets.ModelViewSet):
         "created_at",
     )
 
-    @method_decorator(cache_page(60 * 60, key_prefix="sessions:list"))
+    @method_decorator(cache_page(60 * 3, key_prefix="sessions:list"))
     @method_decorator(vary_on_headers("Authorization"))
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
-    @method_decorator(cache_page(60 * 60, key_prefix="sessions:detail"))
+    @method_decorator(cache_page(60 * 3, key_prefix="sessions:detail"))
     @method_decorator(vary_on_headers("Authorization"))
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
@@ -932,12 +932,12 @@ class StudentCourseViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "delete", "patch", "options"]
 
-    @method_decorator(cache_page(60 * 5, key_prefix="studentcourses:list"))
+    @method_decorator(cache_page(60 * 3, key_prefix="studentcourses:list"))
     @method_decorator(vary_on_headers("Authorization"))
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
-    @method_decorator(cache_page(60 * 5, key_prefix="studentcourses:detail"))
+    @method_decorator(cache_page(60 * 3, key_prefix="studentcourses:detail"))
     @method_decorator(vary_on_headers("Authorization"))
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
@@ -1055,7 +1055,7 @@ class CourseCategoryViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(name__icontains=search_query)
         return queryset
 
-    @method_decorator(cache_page(60 * 60, key_prefix="coursecategories:list"))
+    @method_decorator(cache_page(60 * 3, key_prefix="coursecategories:list"))
     @method_decorator(vary_on_headers("Authorization"))
     def list(self, request, *args, **kwargs):
         """
@@ -1063,7 +1063,7 @@ class CourseCategoryViewSet(viewsets.ModelViewSet):
         """
         return super().list(request, *args, **kwargs)
 
-    @method_decorator(cache_page(60 * 60, key_prefix="coursecategories:detail"))
+    @method_decorator(cache_page(60 * 3, key_prefix="coursecategories:detail"))
     @method_decorator(vary_on_headers("Authorization"))
     def retrieve(self, request, *args, **kwargs):
         """
@@ -1188,12 +1188,12 @@ class TopicViewSet(viewsets.ModelViewSet):
         else:
             return Topic.objects.none()
 
-    @method_decorator(cache_page(60 * 30, key_prefix="topics:list"))
+    @method_decorator(cache_page(60 * 3, key_prefix="topics:list"))
     @method_decorator(vary_on_headers("Authorization"))
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
-    @method_decorator(cache_page(60 * 30, key_prefix="topics:detail"))
+    @method_decorator(cache_page(60 * 3, key_prefix="topics:detail"))
     @method_decorator(vary_on_headers("Authorization"))
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)

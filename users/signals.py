@@ -9,5 +9,8 @@ from users.models import CustomUser
 def clear_user_cache(sender, instance, **kwargs):
     if hasattr(cache, "delete_pattern"):
         cache.delete_pattern("*users*")
+        cache.delete_pattern("*schooladmin*")
+        cache.delete_pattern("*superadmin*")
+        cache.delete_pattern("*schools*")
         cache.delete_pattern("*course*")
         cache.delete_pattern("*studentcourse*")
