@@ -494,13 +494,15 @@ class AssignmentProcessingService:
         assignment_questions = ai_processor.extract_assignment_with_retry(
             content, max_retries=3
         )
+
+        if assignment.title:
+            assignment_questions["title"] = assignment.title
+
         extraction_completed_at = timezone.now()
 
         assignment_questions["ai_generated"] = True
         ai_raw_payload = {
-            "title": (
-                assignment.title if assignment.title else assignment_questions["title"]
-            ),
+            "title": (assignment_questions["title"]),
             "instructions": assignment_questions["instructions"],
             "questions": assignment_questions["questions"],
         }

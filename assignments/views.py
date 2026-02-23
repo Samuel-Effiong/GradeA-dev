@@ -205,12 +205,10 @@ class AssignmentViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        content = serializer.validated_data.get("content")
+        raw_input = serializer.validated_data.get("raw_input")
         course = serializer.validated_data.get("course")
         topic = serializer.validated_data.get("topic")
         title = serializer.validated_data.get("title")
-
-        raw_input = content
 
         assignment = Assignment.objects.create(
             topic=topic,
@@ -223,7 +221,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         Analyze the text of an educational assignment and return a valid JSON
 
         ### Assignment Details
-        {content}
+        {raw_input}
 
         ### End of Assignment Details
 
@@ -298,7 +296,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        content = serializer.validated_data.get("content")
+        raw_input = serializer.validated_data.get("raw_input")
         course = serializer.validated_data.get("course")
         topic = serializer.validated_data.get("topic")
         title = serializer.validated_data.get("title")
@@ -306,7 +304,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         assignment = Assignment.objects.create(
             topic=topic,
             course=course,
-            raw_input=content,
+            raw_input=raw_input,
             title=title,
         )
 
@@ -314,7 +312,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         Analyze the text of an educational assignment and return a valid JSON
 
         ### Assignment Details
-        {content}
+        {raw_input}
 
         ### End of Assignment Details
 
