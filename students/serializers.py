@@ -116,3 +116,15 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
 
     def get_student_name(self, obj) -> str:
         return f"{obj.student.first_name} {obj.student.last_name}"
+
+
+class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudentSubmission
+        fields = ["id", "assignment", "submission_date", "raw_input"]
+
+        read_only_fields = [
+            "assignment",
+            "submission_date",
+            "raw_input",
+        ]

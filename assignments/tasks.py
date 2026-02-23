@@ -70,6 +70,7 @@ def grade_all_submissions(self, assignment_id):
             submission.feedback = grading_result
             submission.grading_confidence = grading_confidence
             submission.formatted_grade = formatted_grade
+            submission.graded_at = timezone.now()
 
             print(f"grading_confidence: {grading_confidence}")
 

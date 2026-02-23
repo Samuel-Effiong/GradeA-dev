@@ -32,13 +32,17 @@ from rest_framework.status import (
 from ai_processor.services import ai_processor, pdf_service
 from ai_processor.tools import encode_image
 from assignments.models import Assignment
+from assignments.services import AssignmentProcessingService
 from classrooms.permissions import IsStudent, IsTeacher
 from students.models import StudentSubmission
-from students.serializers import (
+from users.models import UserTypes
+
+from .serializers import (
+    StudentSubmissionDetailSerializer,
     StudentSubmissionListSerializer,
     StudentSubmissionSerializer,
 )
-from users.models import UserTypes
+from .services import student_submission_to_html
 
 # Create your views here.
 
@@ -193,7 +197,14 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
     @method_decorator(cache_page(60 * 5, key_prefix="studentsubmissions:detail"))
     @method_decorator(vary_on_headers("Authorization"))
     def retrieve(self, request, *args, **kwargs):
-        return super().retrieve(request, *args, **kwargs)
+        submissions = self.get_object()
+
+        submission_html = student_submission_to_html(submissions)
+        submission_json = AssignmentProcessingService.html_to_prosemirror_json(
+            submission_html
+        )
+
+        return Response(submission_json)
 
     @extend_schema(exclude=True)
     def create(self, request, *args, **kwargs):
@@ -299,7 +310,7 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
 
         pdf_formats = "application/pdf"
 
-        extracted_text = ""
+        # extracted_text = ""
 
         assignment_text = f"""
         This is the Assignment to use as context in properly extracting the student submissions
@@ -373,7 +384,19 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
                         )
                         serializer.is_valid(raise_exception=True)
 
-                        serializer.save()
+                        submission = serializer.save()
+
+                        answer_html = student_submission_to_html(submission)
+                        raw_input = (
+                            AssignmentProcessingService.html_to_prosemirror_json(
+                                answer_html
+                            )
+                        )
+
+                        submission.raw_input = raw_input
+                        submission.save()
+
+                        serializer = StudentSubmissionDetailSerializer(submission)
 
                         return Response(serializer.data, status=HTTP_201_CREATED)
 
@@ -385,23 +408,6 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
                 raise ParseError(
                     "Invalid file upload. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed."
                 )
-
-        try:
-            answer = ai_processor.extract_answer_with_retry(
-                extracted_text, assignment_text, max_retries=3
-            )
-
-        except Exception as e:
-
-            return Response(
-                {"error": "We encountered an error: {}".format(str(e))},
-                status=HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-        if answer is not None:
-            answer["assignment"] = int(assignment_id)
-
-        return Response(answer, status=HTTP_201_CREATED)
 
     @extend_schema(tags=["07 Student Submissions"])
     @action(
@@ -459,6 +465,7 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
             submission.feedback = grading
             submission.grading_confidence = grading_confidence
             submission.formatted_grade = formatted_grade
+            submission.graded_at = timezone.now()
 
             submission.ai_score = grading_score
             submission.ai_grading_completed_at = timezone.now()
