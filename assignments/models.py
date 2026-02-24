@@ -37,7 +37,7 @@ class Assignment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     # AI GENERATED FIELDS
-    instructions = models.TextField(null=True, blank=True)
+    instructions = models.TextField(null=True, blank=True, default="")
     total_points = models.IntegerField(null=True, blank=True)
     question_count = models.IntegerField(null=True, blank=True)
     assignment_type = models.CharField(

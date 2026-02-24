@@ -73,6 +73,8 @@ ENVIRONMENT = env.str("ENVIRONMENT")
 if ENVIRONMENT == "prod":
     DEBUG = False
 elif ENVIRONMENT == "dev":
+    DEBUG = False
+elif ENVIRONMENT == "local":
     DEBUG = True
 
 APPEND_SLASH = False
@@ -161,10 +163,12 @@ WSGI_APPLICATION = "AutoGrader.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-if ENVIRONMENT == "dev":
+if ENVIRONMENT == "local":
     DATABASES = {
         "default": dj_database_url.config(default=env.str("DATABASE_URI_LOCAL"))
     }
+elif ENVIRONMENT == "dev":
+    DATABASES = {"default": dj_database_url.config(default=env.str("DATABASE_URI_DEV"))}
 else:
     DATABASES = {"default": dj_database_url.config(default=env.str("DATABASE_URI"))}
 
@@ -202,10 +206,14 @@ USE_TZ = True
 
 # Celery Configuration Options
 CELERY_BROKER_URL = (
-    env.str("REDIS_URL") if ENVIRONMENT == "dev" else env.str("REDIS_PROD_URL")
+    env.str("REDIS_URL")
+    if ENVIRONMENT == "local"
+    else env.str("REDIS_DEV_URL") if ENVIRONMENT == "dev" else env.str("REDIS_PROD_URL")
 )
 CELERY_RESULT_BACKEND = (
-    env.str("REDIS_URL") if ENVIRONMENT == "dev" else env.str("REDIS_PROD_URL")
+    env.str("REDIS_URL")
+    if ENVIRONMENT == "local"
+    else env.str("REDIS_DEV_URL") if ENVIRONMENT == "dev" else env.str("REDIS_PROD_URL")
 )
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
@@ -335,7 +343,8 @@ DJOSER = {
 }
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "GradeA+ (Grade Automator plus ) Backend",
+    "TITLE": f"GradeA+ Backend - {'Local' if ENVIRONMENT == 'local' else 'Dev' if ENVIRONMENT == 'dev' else 'Prod'}"
+    " Environment",
     "DESCRIPTION": "The API backend for GradeA+",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
@@ -377,7 +386,13 @@ CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": (
-            env.str("REDIS_URL") if ENVIRONMENT == "dev" else env.str("REDIS_PROD_URL")
+            env.str("REDIS_URL")
+            if ENVIRONMENT == "local"
+            else (
+                env.str("REDIS_DEV_URL")
+                if ENVIRONMENT == "dev"
+                else env.str("REDIS_PROD_URL")
+            )
         ),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
