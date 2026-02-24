@@ -128,3 +128,24 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
             "submission_date",
             "raw_input",
         ]
+
+
+class StudentSubmissionGradeUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudentSubmission
+        fields = [
+            "id",
+            "score",
+            "feedback",
+        ]
+
+    def update(self, instance, validated_data):
+        instance.score = validated_data.get("score", instance.score)
+        instance.feedback = validated_data.get("feedback", instance.feedback)
+
+        # Track that it was manually regraded
+        instance.was_regraded = True
+        instance.regraded_at = timezone.now()
+
+        instance.save()
+        return instance

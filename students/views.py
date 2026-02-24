@@ -39,6 +39,7 @@ from users.models import UserTypes
 
 from .serializers import (
     StudentSubmissionDetailSerializer,
+    StudentSubmissionGradeUpdateSerializer,
     StudentSubmissionListSerializer,
     StudentSubmissionSerializer,
 )
@@ -448,7 +449,6 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
             Student Name: {submission.student.get_full_name()}
             Course: {assignment.course}
 
-
             Grading Result:
 
             {grading}
@@ -523,3 +523,48 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
 
             else:
                 return Response("Submission has not be graded yet")
+
+    @extend_schema(
+        tags=["07 Student Submissions"],
+        summary="Update the grade for a student submission",
+        description="Allows a teacher to manually update the score and feedback for a student submission.",
+        request=StudentSubmissionGradeUpdateSerializer,
+        responses={
+            200: StudentSubmissionSerializer,
+            400: OpenApiResponse(description="Invalid input"),
+            404: OpenApiResponse(description="Student submission not found"),
+        },
+    )
+    @action(
+        detail=True,
+        methods=["PATCH"],
+        permission_classes=[IsAuthenticated, IsTeacher],
+        url_path="update-grade",
+        url_name="update-grade",
+    )
+    def update_grade(self, request, pk=None):
+        submission = self.get_object()
+        serializer = StudentSubmissionGradeUpdateSerializer(
+            submission, data=request.data, partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        # Update the formatted grade since the score/feedback changed
+        assignment = submission.assignment
+        user_prompt = f"""
+        Student Name: {submission.student.get_full_name()}
+        Course: {assignment.course}
+
+
+        Grading Result:
+
+        {submission.feedback}
+
+        Return a formatted response
+        """
+        submission.formatted_grade = ai_processor.formatted_grade(user_prompt)
+        submission.save()
+
+        response_serializer = StudentSubmissionSerializer(submission)
+        return Response(response_serializer.data, status=HTTP_200_OK)

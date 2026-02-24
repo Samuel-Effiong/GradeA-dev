@@ -296,7 +296,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        content = serializer.validated_data.get("content")
+        raw_input = serializer.validated_data.get("raw_input")
         course = serializer.validated_data.get("course")
         topic = serializer.validated_data.get("topic")
         title = serializer.validated_data.get("title")
@@ -304,7 +304,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         assignment = Assignment.objects.create(
             topic=topic,
             course=course,
-            raw_input=content,
+            raw_input=raw_input,
             title=title,
         )
 
@@ -312,7 +312,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         Analyze the text of an educational assignment and return a valid JSON
 
         ### Assignment Details
-        {content}
+        {raw_input}
 
         ### End of Assignment Details
 
@@ -704,12 +704,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    @extend_schema(
-        tags=["04 Assignments"],
-        summary="Grade all submissions for an assignment",
-        description="""Grade all submissions for an assignment.""",
-        responses={202: AssignmentGradeAllSubmissions},
-    )
+    @extend_schema(tags=["04 Assignments"])
     @action(detail=True, methods=["GET"], url_path=r"grade-all", url_name="grade-all")
     def grade_all_submission(self, request, pk=None):
         assignment_object = self.get_object()
@@ -726,13 +721,15 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         task = grade_all_submissions.delay(str(assignment_object.id))
         task_id = task.id
 
-        data = {
-            "assignment": assignment_object.id,
-            "task_id": task_id,
-            "message": "AI grading started",
-            "submission_count": submissions.count(),
-            "status": "Processing" if task_id else "completed",
-        }
+        data = (
+            {
+                "assignment_id": assignment_object.id,
+                "task_id": task_id,
+                "message": "AI grading started",
+                "submission_count": submissions.count(),
+                "status": "Processing" if task_id else "completed",
+            },
+        )
 
         serializer = AssignmentGradeAllSubmissions(data)
 
