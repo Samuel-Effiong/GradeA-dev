@@ -2,19 +2,22 @@ import json
 from io import BytesIO
 
 import fitz
-import numpy as np
+
+# import numpy as np
 from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
 from environ import Env
 from openai import OpenAI
-from paddleocr import PaddleOCR
-from pdf2image import convert_from_bytes
 
-# from PIL import Image
-from pytesseract import pytesseract
+# from paddleocr import PaddleOCR
+from pdf2image import convert_from_bytes
 
 from ai_processor.tools import encode_image, perform_search
 from ai_processor.validators import logger
+
+# from PIL import Image
+# from pytesseract import pytesseract
+
 
 env = Env()
 env.read_env(".env")
@@ -684,37 +687,37 @@ class PDFService:
             raise ValueError(f"Something went wrong: {e}") from Exception
 
 
-class OCRService:
-    _paddle_ocr_model: PaddleOCR = None
+# class OCRService:
+#     _paddle_ocr_model: PaddleOCR = None
 
-    def __init__(self):
-        if OCRService._paddle_ocr_model is None:
-            from paddleocr import PaddleOCR
+#     def __init__(self):
+#         if OCRService._paddle_ocr_model is None:
+#             from paddleocr import PaddleOCR
 
-            OCRService._paddle_ocr_model = PaddleOCR(
-                use_doc_orientation_classify=True,
-                use_doc_unwarping=True,
-                use_textline_orientation=True,
-            )
+#             OCRService._paddle_ocr_model = PaddleOCR(
+#                 use_doc_orientation_classify=True,
+#                 use_doc_unwarping=True,
+#                 use_textline_orientation=True,
+#             )
 
-    def extract_with_paddle(self, image):
-        model = OCRService._paddle_ocr_model
-        img_np = np.array(image.convert("RGB"))
-        result = model.predict(img_np)
+#     def extract_with_paddle(self, image):
+#         model = OCRService._paddle_ocr_model
+#         img_np = np.array(image.convert("RGB"))
+#         result = model.predict(img_np)
 
-        text = ""
-        for res in result:
-            text = res.json["res"]["rec_texts"]
-        return "\n".join(text)
+#         text = ""
+#         for res in result:
+#             text = res.json["res"]["rec_texts"]
+#         return "\n".join(text)
 
-    def extract_with_pytessaract(self, image):
-        """
+#     def extract_with_pytessaract(self, image):
+#         """
 
-        :param image: PIL Image
-        :return:
-        """
-        text = pytesseract.image_to_string(image)
-        return text
+#         :param image: PIL Image
+#         :return:
+#         """
+#         text = pytesseract.image_to_string(image)
+#         return text
 
 
 _ocr_instance = None
