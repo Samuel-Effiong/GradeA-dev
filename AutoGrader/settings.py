@@ -343,7 +343,8 @@ DJOSER = {
 }
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "GradeA+ (Grade Automator plus ) Backend",
+    "TITLE": f"GradeA+ Backend - {'Local' if ENVIRONMENT == 'local' else 'Dev' if ENVIRONMENT == 'dev' else 'Prod'}"
+    " Environment",
     "DESCRIPTION": "The API backend for GradeA+",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
@@ -387,7 +388,11 @@ CACHES = {
         "LOCATION": (
             env.str("REDIS_URL")
             if ENVIRONMENT == "local"
-            else env.str("REDIS_PROD_URL")
+            else (
+                env.str("REDIS_DEV_URL")
+                if ENVIRONMENT == "dev"
+                else env.str("REDIS_PROD_URL")
+            )
         ),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
