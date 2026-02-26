@@ -1,7 +1,11 @@
-# from datetime import datetime
 from html import escape
 
-# from django.utils import timezone
+from django.utils import timezone
+
+from ai_processor.services import ai_processor
+from assignments.services import AssignmentProcessingService
+
+from .serializers import StudentSubmissionSerializer
 
 
 def student_submission_to_html(submission) -> str:
@@ -79,3 +83,77 @@ def student_submission_to_html(submission) -> str:
         {questions_html}
     </article>
     """
+
+
+def grade_engine(submission):
+    from assignments.tasks import formatted_grade_async
+
+    answer_json = submission.get_answer()
+    submission.ai_graded_at = timezone.now()
+
+    grading = ai_processor.extract_grade_with_retry(
+        submission.assignment.questions, answer_json
+    )
+
+    submission.ai_grading_completed_at = timezone.now()
+
+    user_prompt = f"""
+    Student Name: {submission.student.get_full_name()}
+    Course: {submission.assignment.course}
+
+
+    Grading Result:
+
+    {grading}
+
+    Return a formatted response
+    """
+
+    formatted_grade_async.delay(str(submission.id), user_prompt)
+
+    grading_score = grading["grading_summary"]["total_score"]
+    grading_confidence = grading["grading_confidence"]
+
+    print(f"grading_score: {grading_score}")
+
+    submission.score = grading_score
+    submission.feedback = grading
+    submission.grading_confidence = grading_confidence
+    submission.graded_at = timezone.now()
+
+    submission.ai_score = grading_score
+
+    submission.save()
+
+    return submission
+
+
+def upload_answers_engine(assignment, content, user):
+    assignment_context = f"""
+    This is the Assignment Context to use in properly extracting the student submissions
+    {assignment.questions}
+    """
+
+    student_submission = ai_processor.extract_answer_with_retry(
+        content, assignment_context, max_retries=3
+    )
+
+    if student_submission is not None:
+        student_submission.update(
+            {
+                "assignment": assignment.id,
+                "student": user.id,
+            }
+        )
+
+        serializer = StudentSubmissionSerializer(data=student_submission)
+        serializer.is_valid(raise_exception=True)
+        submission = serializer.save()
+
+        answer_html = student_submission_to_html(submission)
+        submission.raw_input = AssignmentProcessingService.html_to_prosemirror_json(
+            answer_html
+        )
+        submission.save()
+
+    return submission

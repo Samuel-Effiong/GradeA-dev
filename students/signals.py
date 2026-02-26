@@ -12,4 +12,4 @@ def clear_student_submission_cache(sender, instance, **kwargs):
         cache.delete_pattern("*schooladmin*")
         cache.delete_pattern("*course*")
         cache.delete_pattern("*assignments*")
-        cache.delete_pattern("*studentsubmissions*")
+        cache.delete_pattern("*studentsubmission*")

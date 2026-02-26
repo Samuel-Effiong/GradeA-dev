@@ -3,7 +3,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from assignments.models import Assignment
-from classrooms.models import Course
+from classrooms.models import Course, Session
 from students.models import StudentSubmission
 from users.models import CustomUser, UserTypes
 
@@ -24,7 +24,10 @@ class StudentSubmissionGradeUpdateTest(APITestCase):
             first_name="Student",
             last_name="One",
         )
-        self.course = Course.objects.create(name="Test Course", teacher=self.teacher)
+        self.session = Session.objects.create(name="Test Session", teacher=self.teacher)
+        self.course = Course.objects.create(
+            name="Test Course", teacher=self.teacher, session=self.session
+        )
         self.assignment = Assignment.objects.create(
             title="Test Assignment",
             course=self.course,
@@ -34,7 +37,7 @@ class StudentSubmissionGradeUpdateTest(APITestCase):
             assignment=self.assignment, student=self.student, answers={"q1": "2"}
         )
         self.url = reverse(
-            "studentsubmission-update-grade", kwargs={"pk": self.submission.pk}
+            "student-submission-update-grade", kwargs={"pk": self.submission.pk}
         )
 
     def test_teacher_can_update_grade(self):

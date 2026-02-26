@@ -339,7 +339,7 @@ class AssignmentGradeAllSubmissions(serializers.Serializer):
     all submissions for an assignment
     """
 
-    assignment = serializers.UUIDField()
+    assignment_id = serializers.UUIDField()
     task_id = serializers.CharField(max_length=255)
     message = serializers.CharField(max_length=255)
     submission_count = serializers.IntegerField()

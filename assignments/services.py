@@ -500,7 +500,7 @@ class AssignmentProcessingService:
 
         extraction_completed_at = timezone.now()
 
-        assignment_questions["ai_generated"] = True
+        assignment_questions["ai_generated"] = False
         ai_raw_payload = {
             "title": (assignment_questions["title"]),
             "instructions": assignment_questions["instructions"],

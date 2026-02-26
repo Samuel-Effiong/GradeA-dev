@@ -33,6 +33,7 @@ from ai_processor.services import ai_processor  # pdf_service
 from classrooms.models import Course, Topic
 from classrooms.permissions import IsTeacher, IsTeacherOrReadOnly
 from classrooms.serializers import TopicSerializer
+from students.models import StudentSubmission
 
 # from students.serializers import StudentSubmissionSerializer
 from users.models import UserTypes
@@ -46,7 +47,6 @@ from .serializers import (  # RubricSerializer,
     AssignmentSerializer,
     AssignmentTextSerializer,
     GeneratedAssignmentSerializer,
-    StatusMessageSerializer,
 )
 from .services import AssignmentProcessingService
 from .tasks import extract_assignment_background_task, grade_all_submissions
@@ -115,7 +115,7 @@ from .tasks import extract_assignment_background_task, grade_all_submissions
         description="Update an existing assignment.",
         request=AssignmentTextSerializer,
         responses={
-            200: StatusMessageSerializer,
+            200: AssignmentListSerializer,
             400: OpenApiResponse(description="Invalid input"),
             # 401: OpenApiResponse(description="Authentication credentials were not provided"),
             # 403: OpenApiResponse(description="You do not have permission to perform this action"),
@@ -237,43 +237,6 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
 
-        # extraction_started_at = timezone.now()
-
-        # assignment_questions = ai_processor.extract_assignment_with_retry(
-        #     content, max_retries=3
-        # )
-
-        # extraction_completed_at = timezone.now()
-
-        # assignment_questions["course"] = str(course.id)
-
-        # if topic:
-        #     assignment_questions["topic"] = str(topic.id)
-
-        # assignment_questions["raw_input"] = raw_input
-        # assignment_questions["ai_generated"] = True
-
-        # ai_raw_payload = {
-        #     "title": assignment_questions["title"],
-        #     "instructions": assignment_questions["instructions"],
-        #     "questions": assignment_questions["questions"],
-        # }
-
-        # assignment_questions["ai_raw_payload"] = ai_raw_payload
-
-        # assignment_questions["ai_generated_at"] = timezone.now()
-        # assignment_questions["extraction_started_at"] = extraction_started_at
-        # assignment_questions["extraction_completed_at"] = extraction_completed_at
-
-        # serializer = AssignmentSerializer(data=assignment_questions)
-        # serializer.is_valid(raise_exception=True)
-        # serializer.save()
-
-        # message = {"status": True, "message": "Assignment successfully saved"}
-        # status_serializer = StatusMessageSerializer(message)
-
-        # return Response(status_serializer.data, status=status.HTTP_201_CREATED)
-
     @extend_schema(
         tags=["04 Assignments"],
         summary="Create an assignment asynchronously",
@@ -358,18 +321,25 @@ class AssignmentViewSet(viewsets.ModelViewSet):
     def partial_update(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        content = serializer.validated_data.get("content")
+        title = serializer.validated_data.get("title")
+        course = serializer.validated_data.get("course")
         topic = serializer.validated_data.get("topic")
-
-        raw_input = content
+        raw_input = serializer.validated_data.get("raw_input")
 
         instance = self.get_object()
+
+        instance.title = title
+        instance.course = course
+        instance.topic = topic
+        instance.raw_input = raw_input
+
+        instance.save(update_fields=["title", "course", "topic", "raw_input"])
 
         text = f"""
         Analyze the text of an educational assignment and return a valid JSON
 
         ### Assignment Details
-        {content}
+        {raw_input}
 
         ### End of Assignment Details
 
@@ -379,34 +349,9 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
         content = [{"type": "text", "text": text}]
 
-        extraction_started_at = timezone.now()
+        serializer = AssignmentProcessingService.extract_assignment(instance, content)
 
-        assignment_questions = ai_processor.extract_assignment_with_retry(
-            content, max_retries=3
-        )
-
-        extraction_completed_at = timezone.now()
-
-        assignment_questions["course"] = instance.course.id
-        assignment_questions["raw_input"] = raw_input
-
-        assignment_questions["extraction_started_at"] = extraction_started_at
-        assignment_questions["extraction_completed_at"] = extraction_completed_at
-
-        if topic:
-            assignment_questions["topic"] = topic.id
-
-        # create assignment object
-        assignment_serializer = AssignmentSerializer(
-            instance=instance, data=assignment_questions, partial=True
-        )
-        assignment_serializer.is_valid(raise_exception=True)
-        assignment_serializer.save()
-
-        message = {"status": True, "message": "Assignment successfully updated"}
-        status_serializer = StatusMessageSerializer(message)
-
-        return Response(status_serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(
         tags=["04 Assignments"],
@@ -704,12 +649,33 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    @extend_schema(tags=["04 Assignments"])
+    @extend_schema(
+        tags=["04 Assignments"],
+        summary="Grade all submissions for an assignment",
+        description="""Grade all submissions for an assignment.""",
+        responses={
+            200: AssignmentGradeAllSubmissions,
+            400: OpenApiResponse(
+                description="Bad request - invalid data",
+            ),
+            403: OpenApiResponse(
+                description="Not authorized",
+                examples=[
+                    OpenApiExample(
+                        name="Not authorized",
+                        value={
+                            "detail": "You do not have permission to submit to this assignment"
+                        },
+                    )
+                ],
+            ),
+        },
+    )
     @action(detail=True, methods=["GET"], url_path=r"grade-all", url_name="grade-all")
     def grade_all_submission(self, request, pk=None):
-        assignment_object = self.get_object()
+        assignment = self.get_object()
 
-        submissions = assignment_object.submissions
+        submissions = assignment.submissions.all()
 
         task_id = None
 
@@ -718,19 +684,20 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                 {"message": "No submissions to grade"}, status=status.HTTP_200_OK
             )
 
-        task = grade_all_submissions.delay(str(assignment_object.id))
+        print("Assignment ID: ", Assignment.objects.filter(id=assignment.id))
+        print("Submission:", StudentSubmission.objects.filter(assignment=assignment))
+        task = grade_all_submissions.delay(str(assignment.id))
         task_id = task.id
 
-        data = (
-            {
-                "assignment_id": assignment_object.id,
-                "task_id": task_id,
-                "message": "AI grading started",
-                "submission_count": submissions.count(),
-                "status": "Processing" if task_id else "completed",
-            },
-        )
+        data = {
+            "assignment_id": assignment.id,
+            "task_id": task_id,
+            "message": "AI grading started",
+            "submission_count": submissions.count(),
+            "status": "Processing" if task_id else "completed",
+        }
 
-        serializer = AssignmentGradeAllSubmissions(data)
+        serializer = AssignmentGradeAllSubmissions(data=data)
+        serializer.is_valid(raise_exception=True)
 
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
