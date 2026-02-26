@@ -91,7 +91,6 @@ You **MUST** return a valid JSON object with this **exact structure**:
       "student_answer": "string - from student submission (preserve HTML/LaTeX)",
       "model_answer": "string - from rubric (preserve HTML/LaTeX)",
 
-      "score_awarded": "number - points given to student for this question",
       "level_achieved": "string - excellent | good | fair | poor | not_attempted",
 
       "evaluation_rationale": "string - detailed explanation of scoring decision",
@@ -475,25 +474,25 @@ Look across all questions for:
 
 ### STEP 6: META-ANALYSIS AND CONFIDENCE ASSESSMENT
 
-#### A. Grading Confidence Score (0.0 - 1.0)
+#### A. Grading Confidence Score (0 - 100)
 
 **Assess your confidence based on:**
 
-**HIGH Confidence (0.85 - 1.0):**
+**HIGH Confidence (85 - 100):**
 - Student answers are clear and complete
 - Rubric descriptors are specific and unambiguous
 - Answers clearly match specific rubric levels
 - No extraction errors or legibility issues
 - No borderline scoring decisions
 
-**MEDIUM Confidence (0.60 - 0.84):**
+**MEDIUM Confidence (60 - 84):**
 - Some ambiguity in student answers
 - Some rubric descriptors could be more specific
 - One or two borderline scoring decisions
 - Minor extraction issues noted
 - Most evaluations straightforward
 
-**LOW Confidence (0.0 - 0.59):**
+**LOW Confidence (0 - 59):**
 - Student answers unclear, incomplete, or illegible
 - Rubric descriptors vague or conflicting
 - Multiple borderline cases requiring judgment calls
@@ -502,13 +501,13 @@ Look across all questions for:
 
 **Document your confidence reasoning:**
 ```json
-"confidence_explanation": "High confidence (0.92) due to clear student responses, well-defined rubric criteria, and straightforward score mapping. Only Question 3 was borderline between Good and Fair, but rubric descriptors provided clear guidance."
+"confidence_explanation": "High confidence (92) due to clear student responses, well-defined rubric criteria, and straightforward score mapping. Only Question 3 was borderline between Good and Fair, but rubric descriptors provided clear guidance."
 ```
 
 #### B. Flag Issues for Teacher Review
 
 **Flag when:**
-- Confidence score below 0.70
+- Confidence score below 70
 - Borderline scores (within 10% of rubric level boundary)
 - Unclear or illegible student responses
 - Ambiguous rubric descriptors
@@ -537,7 +536,6 @@ Look across all questions for:
 {
   "question_number": 3,
   "student_answer": "",
-  "score_awarded": 0,
   "level_achieved": "not_attempted",
   "evaluation_rationale": "Student did not provide an answer to this question.",
   "strengths": [],
@@ -555,7 +553,6 @@ If `notes` field in student answer indicates extraction issues:
 {
   "question_number": 4,
   "student_answer": "[illegible handwriting - extraction uncertain]",
-  "score_awarded": 0,
   "level_achieved": "poor",
   "evaluation_rationale": "Unable to evaluate due to illegibility. The extracted text is unclear and does not allow for meaningful assessment against rubric criteria.",
   "feedback_for_student": "Unfortunately, your handwriting for this question was difficult to read, and the answer could not be properly evaluated. Please ensure your work is legible in future submissions. If you believe this was an error, please see your teacher for a manual review.",
@@ -577,7 +574,6 @@ Student provides essay when objective answer expected, or vice versa:
   "question_type": "OBJECTIVE",
   "student_answer": "I think the answer is B because the mitochondria is the powerhouse of the cell and...",
   "model_answer": "B) The mitochondria",
-  "score_awarded": 2,
   "level_achieved": "correct",
   "evaluation_rationale": "Student provided extended explanation instead of simple letter answer, but the core answer (B/mitochondria) is correct. Full credit awarded despite format mismatch.",
   "feedback_for_student": "Correct answer (B)! Full credit awarded. Note: For multiple choice questions, you only need to provide the letter - the extended explanation wasn't necessary but shows good understanding."
@@ -593,7 +589,6 @@ For math problems, recognize equivalent forms:
   "model_answer": "$x = 5$",
   "student_answer": "$5 = x$",
   "evaluation_rationale": "Student answer is mathematically equivalent to model answer. Both expressions correctly state that x equals 5.",
-  "score_awarded": 2
 }
 ```
 
@@ -611,7 +606,6 @@ For questions requiring "show your work":
   "student_answer": "$$2x + 5 = 15$$ $$2x = 10$$ $$x = 7$$",
   "model_answer": "$$2x + 5 = 15$$ $$2x = 10$$ $$x = 5$$",
   "evaluation_rationale": "Student correctly performed first two steps (subtracting 5 from both sides) but made arithmetic error in final division. Process understanding demonstrated but calculation accuracy needs improvement. Awarded 'fair' level per rubric for partially correct approach.",
-  "score_awarded": 4,
   "level_achieved": "fair",
   "strengths": ["Correct setup and algebraic manipulation in steps 1-2", "Proper use of mathematical notation"],
   "weaknesses": ["Arithmetic error in final step: 10 ÷ 2 = 5, not 7"],
@@ -625,7 +619,6 @@ Sometimes students exceed expectations:
 
 ```json
 {
-  "score_awarded": 10,
   "level_achieved": "excellent",
   "evaluation_rationale": "Student not only met all 'excellent' level criteria but also provided additional insights connecting the concept to real-world applications not mentioned in the model answer. However, score cannot exceed maximum points per rubric.",
   "feedback_for_student": "Outstanding work! You earned full points (10/10) and actually exceeded expectations by connecting photosynthesis to climate change and carbon cycles - concepts we'll explore in the next unit. This demonstrates exceptional understanding. Excellent job!"
@@ -644,7 +637,6 @@ If answer seems copied or AI-generated:
     "description": "Student's essay answer contains sophisticated vocabulary and sentence structures significantly beyond their demonstrated level in other questions. The response is highly polished and uses terminology not covered in class materials. Possible use of external sources or AI assistance.",
     "recommendation": "Teacher should review for academic integrity. Consider discussing with student and checking against plagiarism detection tools. May warrant grade adjustment or resubmission pending investigation."
   },
-  "score_awarded": 20,
   "evaluation_rationale": "Answer technically meets all 'excellent' rubric criteria (comprehensive analysis, 3+ examples, sophisticated understanding), but flagged for potential academic integrity concern due to stylistic inconsistencies with student's other work. Score reflects rubric alignment, but manual review recommended before finalizing grade."
 }
 ```
@@ -656,7 +648,6 @@ If answer seems copied or AI-generated:
 Before finalizing your output, verify:
 
 ### Scoring Accuracy
-- [ ] Each question has a `score_awarded` value
 - [ ] Each score matches a valid rubric level point value
 - [ ] `individual_scores` array contains all questions
 - [ ] `manual_sum` is calculated step-by-step and shown
@@ -769,7 +760,6 @@ Here's a abbreviated example showing the expected output structure:
       "max_points": 2,
       "student_answer": "A) H<sub>2</sub>O",
       "model_answer": "A) H<sub>2</sub>O",
-      "score_awarded": 2,
       "level_achieved": "correct",
       "evaluation_rationale": "Student provided correct answer matching model answer exactly.",
 
@@ -785,7 +775,6 @@ Here's a abbreviated example showing the expected output structure:
       "max_points": 10,
       "student_answer": "<p>Photosynthesis is when plants make food using sunlight. It's important for oxygen.</p>",
       "model_answer": "<p><em>Photosynthesis</em> is the process by which plants convert light energy, CO<sub>2</sub>, and water into glucose and oxygen. It is essential because it produces oxygen for respiration and forms the foundation of food chains.</p>",
-      "score_awarded": 4,
       "level_achieved": "fair",
       "evaluation_rationale": "Student provided basic definition mentioning sunlight and food production, and noted importance for oxygen. However, the response lacks key components required for higher levels: did not specify inputs (CO₂, water) or outputs (glucose, oxygen specifically), used overly simple language ('make food' vs. proper biological terminology), and provided minimal explanation of importance (mentioned oxygen but not food chains/energy foundation). According to rubric, 'fair' level (4 points) is for 'basic definition with some omissions; limited explanation of importance,' which accurately describes this response.",
 
@@ -812,11 +801,6 @@ Here's a abbreviated example showing the expected output structure:
     }
   ],
 
-  "score_calculation_verification": {
-    "manual_sum": 37,
-    "verification_status": "PASS",
-    "calculation_notes": "Step-by-step calculation: 0 + 2 = 2, 2 + 4 = 6, 6 + 10 = 16, 16 + 0 = 16, 16 + 21 = 37. Total score of 37 points verified correct."
-  },
 
   "overall_performance_analysis": {
     "score_breakdown": "Student scored 37 out of 50 points (74.00%)",
@@ -838,7 +822,7 @@ Here's a abbreviated example showing the expected output structure:
   },
 
   "grader_meta_analysis": {
-    "grading_confidence": 0.88,
+    "grading_confidence": 88,
     "grading_challenges": [
       {
         "question_number": 2,

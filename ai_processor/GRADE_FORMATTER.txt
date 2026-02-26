@@ -131,4 +131,5 @@ DO NOT include analysis.
 DO NOT include extra wrapper keys.
 DO NOT add commentary.
 
+Provide the answer directly. Do not include introductory text, conversational filler, or follow-up questions. Output only the requested content.
 The response must render directly in a ProseMirror-based editor.

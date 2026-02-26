@@ -91,9 +91,23 @@ class StudentSubmissionSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
 
+class StudentSubmissionUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudentSubmission
+        fields = [
+            "id",
+            "raw_input",
+        ]
+
+        read_only_fields = [
+            "id",
+        ]
+
+
 class StudentSubmissionListSerializer(serializers.ModelSerializer):
     student_name = serializers.SerializerMethodField()
     assignment_title = serializers.CharField(source="assignment.title", read_only=True)
+    course = serializers.CharField(source="assignment.course.id", read_only=True)
 
     class Meta:
         model = StudentSubmission
@@ -103,6 +117,7 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
             "student_name",
             "assignment",
             "assignment_title",
+            "course",
             "submission_date",
             "score",
         ]
@@ -111,8 +126,62 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
             "submission_date",
             "student_name",
             "assignment_title",
+            "course",
             "score",
         ]
 
     def get_student_name(self, obj) -> str:
         return f"{obj.student.first_name} {obj.student.last_name}"
+
+
+class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudentSubmission
+        fields = ["id", "assignment", "submission_date", "raw_input"]
+
+        read_only_fields = [
+            "assignment",
+            "submission_date",
+            "raw_input",
+        ]
+
+
+class StudentSubmissionGradeUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudentSubmission
+        fields = [
+            "id",
+            "score",
+        ]
+
+
+class StudentSubmissionTeacherFeedbackSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StudentSubmission
+        fields = [
+            "id",
+            "formatted_grade",
+        ]
+
+
+class StudentSubmissionGradeAsyncSerializer(serializers.Serializer):
+    """Serializer for async grade engine task ID"""
+
+    submission_id = serializers.UUIDField(read_only=True)
+    task_id = serializers.CharField(read_only=True)
+    message = serializers.CharField(read_only=True)
+
+
+class StudentSubmissionUploadAsyncSerializer(serializers.Serializer):
+    """Serializer for async upload answers task ID"""
+
+    task_id = serializers.CharField(read_only=True)
+    message = serializers.CharField(read_only=True)
+
+
+class StudentSubmissionFormattedGradeAsyncSerializer(serializers.Serializer):
+    """Serializer for async formatted grade task ID"""
+
+    submission_id = serializers.UUIDField(read_only=True)
+    task_id = serializers.CharField(read_only=True)
+    message = serializers.CharField(read_only=True)

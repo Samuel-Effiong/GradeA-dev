@@ -838,7 +838,27 @@ class TokenRefreshView(BaseTokenRefreshView):
     summary="Get status of a background task",
     description="Retrieve the current status and metadata for a Celery background task by its ID.",
     responses={
-        200: TaskStatusSerializer,
+        200: OpenApiResponse(
+            response=TaskStatusSerializer,
+            examples=[
+                OpenApiExample(
+                    "Task Completed Example",
+                    value={
+                        "task_id": "9f7e4a19-b299-41b4-9829-b5490e93c523",
+                        "status": "completed",
+                        "meta": "{'status': 'Completed', 'assignment_id': '055eb99a-d9af-4671-ac94-38133376e942'}",
+                    },
+                ),
+                OpenApiExample(
+                    "Task Processing Example",
+                    value={
+                        "task_id": "9f7e4a19-b299-41b4-9829-b5490e93c523",
+                        "status": "processing",
+                        "meta": "{'current': 0, 'total': 10, 'percent': 0, 'step': 'Initializing'}",
+                    },
+                ),
+            ],
+        ),
         404: OpenApiResponse(description="Task not found"),
     },
 )
