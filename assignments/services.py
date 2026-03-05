@@ -484,7 +484,7 @@ class AssignmentProcessingService:
         return "\n".join(html_output)
 
     @classmethod
-    def extract_assignment(cls, assignment, content):
+    def extract_assignment(cls, user, assignment, content):
 
         print("Extracting assignment content")
 
@@ -492,7 +492,7 @@ class AssignmentProcessingService:
 
         extraction_started_at = timezone.now()
         assignment_questions = ai_processor.extract_assignment_with_retry(
-            content, max_retries=3
+            user, content, max_retries=3
         )
 
         if assignment.title:

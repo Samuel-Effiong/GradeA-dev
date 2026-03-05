@@ -123,6 +123,7 @@ INSTALLED_APPS = [
     "ocr_processor",
     "ai_processor",
     "dashboard",
+    "billing",
     "django_celery_results",
     "django_celery_beat",
 ]

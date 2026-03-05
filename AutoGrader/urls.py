@@ -42,6 +42,7 @@ core_urlpatterns = [
     path("", include("classrooms.urls")),
     path("", include("users.urls")),
     path("", include("students.urls")),
+    path("", include("billing.urls")),
     path("", include("dashboard.urls")),
     path("auth/login", TokenObtainPairView.as_view(), name="login"),
     path("auth/refresh", TokenRefreshView.as_view(), name="refresh"),

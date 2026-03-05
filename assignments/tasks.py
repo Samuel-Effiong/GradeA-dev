@@ -5,16 +5,19 @@ from django.utils import timezone
 
 from ai_processor.services import ai_processor
 from students.models import StudentSubmission
+from users.models import CustomUser
 
 from .models import Assignment
 from .serializers import AssignmentSerializer
 
 
 @shared_task(bind=True)
-def grade_all_submissions(self, assignment_id):
+def grade_all_submissions(self, user_id, assignment_id):
 
     submissions = StudentSubmission.objects.filter(assignment_id=assignment_id)
     submissions_count = submissions.count()
+
+    user = CustomUser.objects.get(id=user_id)
 
     self.update_state(
         state="PROGRESS",
@@ -44,7 +47,7 @@ def grade_all_submissions(self, assignment_id):
             print("About to start grading")
 
             grading_result = ai_processor.extract_grade_with_retry(
-                assignment.questions, answer_json
+                user, assignment.questions, answer_json
             )
 
             user_prompt = f"""
@@ -59,7 +62,7 @@ def grade_all_submissions(self, assignment_id):
             Return a formatted response
             """
 
-            formatted_grade = ai_processor.formatted_grade(user_prompt)
+            formatted_grade = ai_processor.formatted_grade(user, user_prompt)
 
             grading_score = grading_result["grading_summary"]["total_score"]
             grading_confidence = grading_result["grading_confidence"]
@@ -102,7 +105,7 @@ def grade_all_submissions(self, assignment_id):
 
 
 @shared_task(bind=True)
-def extract_assignment_background_task(self, assignment_id, content):
+def extract_assignment_background_task(self, user, assignment_id, content):
     try:
         self.update_state(
             state="PROGRESS", meta={"step": "Extracting assignment content"}
@@ -114,7 +117,7 @@ def extract_assignment_background_task(self, assignment_id, content):
 
         extraction_started_at = timezone.now()
         assignment_questions = ai_processor.extract_assignment_with_retry(
-            content, max_retries=3
+            user, content, max_retries=3
         )
         extraction_completed_at = timezone.now()
 

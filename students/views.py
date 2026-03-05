@@ -333,7 +333,7 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
                     ]
 
                     student_submission = ai_processor.extract_answer_with_retry(
-                        content, assignment_text, max_retries=3
+                        request.user, content, assignment_text, max_retries=3
                     )
 
                     if student_submission is not None:
@@ -361,7 +361,7 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
                         )
 
                     student_submission = ai_processor.extract_answer_with_retry(
-                        content, assignment_text, max_retries=3
+                        request.user, content, assignment_text, max_retries=3
                     )
 
                     if student_submission is not None:
@@ -388,7 +388,7 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
 
         try:
             answer = ai_processor.extract_answer_with_retry(
-                extracted_text, assignment_text, max_retries=3
+                request.user, extracted_text, assignment_text, max_retries=3
             )
 
         except Exception as e:
@@ -435,7 +435,7 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
             submission.ai_graded_at = timezone.now()
 
             grading = ai_processor.extract_grade_with_retry(
-                assignment.questions, answer_json
+                request.user, assignment.questions, answer_json
             )
 
             user_prompt = f"""
@@ -450,7 +450,7 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
             Return a formatted response
             """
 
-            formatted_grade = ai_processor.formatted_grade(user_prompt)
+            formatted_grade = ai_processor.formatted_grade(request.user, user_prompt)
 
             grading_score = grading["grading_summary"]["total_score"]
             grading_confidence = grading["grading_confidence"]
@@ -508,7 +508,9 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
                 Return a formatted response
                 """
 
-                formatted_grade = ai_processor.formatted_grade(user_prompt)
+                formatted_grade = ai_processor.formatted_grade(
+                    request.user, user_prompt
+                )
 
                 submission.formatted_grade = formatted_grade
 

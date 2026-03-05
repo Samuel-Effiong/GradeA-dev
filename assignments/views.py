@@ -58,7 +58,7 @@ from .tasks import extract_assignment_background_task, grade_all_submissions
 
 @extend_schema_view(
     list=extend_schema(
-        tags=["04 Assignments"],
+        tags=["Assignments"],
         summary="List all assignments",
         description="Retrieve a paginated list of all assignments in the system.",
         parameters=[
@@ -81,7 +81,7 @@ from .tasks import extract_assignment_background_task, grade_all_submissions
         },
     ),
     create=extend_schema(
-        tags=["04 Assignments"],
+        tags=["Assignments"],
         summary="Create a new assignment synchronously",
         description="""Create a new assignment by providing the assignment details in text format.
         The system will analyze the text and extract structured assignment data.
@@ -100,7 +100,7 @@ from .tasks import extract_assignment_background_task, grade_all_submissions
         },
     ),
     retrieve=extend_schema(
-        tags=["04 Assignments"],
+        tags=["Assignments"],
         summary="Retrieve an assignment",
         description="Retrieve detailed information about a specific assignment by its ID.",
         responses={
@@ -110,7 +110,7 @@ from .tasks import extract_assignment_background_task, grade_all_submissions
         },
     ),
     partial_update=extend_schema(
-        tags=["04 Assignments"],
+        tags=["Assignments"],
         summary="Update an assignment",
         description="Update an existing assignment.",
         request=AssignmentTextSerializer,
@@ -123,7 +123,7 @@ from .tasks import extract_assignment_background_task, grade_all_submissions
         },
     ),
     destroy=extend_schema(
-        tags=["04 Assignments"],
+        tags=["Assignments"],
         summary="Delete an assignment",
         description="Delete an assignment by ID. This action cannot be undone.",
         responses={
@@ -202,6 +202,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
+    @transaction.atomic
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -233,7 +234,9 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
         # serializer = extract_assignment(str(assignment.id), content)
 
-        serializer = AssignmentProcessingService.extract_assignment(assignment, content)
+        serializer = AssignmentProcessingService.extract_assignment(
+            request.user, assignment, content
+        )
 
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
 
@@ -275,7 +278,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         # return Response(status_serializer.data, status=status.HTTP_201_CREATED)
 
     @extend_schema(
-        tags=["04 Assignments"],
+        tags=["Assignments"],
         summary="Create an assignment asynchronously",
         description="Create an assignment asynchronously using background task.",
         responses={
@@ -382,7 +385,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         extraction_started_at = timezone.now()
 
         assignment_questions = ai_processor.extract_assignment_with_retry(
-            content, max_retries=3
+            request.user, content, max_retries=3
         )
 
         extraction_completed_at = timezone.now()
@@ -409,7 +412,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         return Response(status_serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(
-        tags=["04 Assignments"],
+        tags=["Assignments"],
         summary="Associate an assignment with a topic",
         description="Associate an existing assignment with a specific topic.",
         request=None,
@@ -453,7 +456,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(
-        tags=["04 Assignments"],
+        tags=["Assignments"],
         summary="Upload assignment files (images or PDFs)",
         description="This endpoint allows users to upload one or more files. "
         "The files can be either images (JPEG, PNG, etc.) or PDFs. "
@@ -502,7 +505,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         url_name="upload",
         permission_classes=[IsAuthenticated, IsTeacher],
     )
-    def upload_assignment(self, request):
+    def upload_assignment(self, request, *args, **kwargs):
         course_id = request.data.get("course")
         if not course_id:
             raise ParseError("Course ID is required.")
@@ -556,7 +559,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                 extraction_started_at = timezone.now()
 
                 assignment_questions = ai_processor.extract_assignment_with_retry(
-                    content, max_retries=3, upload=True
+                    request.user, content, max_retries=3, upload=True
                 )
 
                 extraction_completed_at = timezone.now()
@@ -606,7 +609,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @extend_schema(
-        tags=["04 Assignments"],
+        tags=["Assignments"],
         summary="Generate an assignment based on user prompts",
         description="""Create a new assignment based on user prompts.""",
         request=AssignmentGeneratorSerializer,
@@ -667,7 +670,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
             generated_assignment = (
                 ai_processor.generate_assignment_from_prompt_with_retry(
-                    prompt, chat_history=messages, max_retries=3
+                    request.user, prompt, chat_history=messages, max_retries=3
                 )
             )
 
@@ -704,7 +707,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    @extend_schema(tags=["04 Assignments"])
+    @extend_schema(tags=["Assignments"])
     @action(detail=True, methods=["GET"], url_path=r"grade-all", url_name="grade-all")
     def grade_all_submission(self, request, pk=None):
         assignment_object = self.get_object()
