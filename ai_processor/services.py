@@ -1,3 +1,4 @@
+import base64
 import json
 import math
 import uuid
@@ -695,7 +696,7 @@ Now, respond to the following teacher's instruction using the rules above
                 if prompt["type"] == "text":
                     total_prompt += prompt["text"]
                 elif prompt["type"] == "image_url":
-                    image_bytes.append(prompt["image_url"])
+                    image_bytes.append(prompt.pop("bytes"))
             # total_prompt += user_prompt
 
         if system_prompt:
@@ -889,6 +890,7 @@ class OCRService:
         """
 
         try:
+            image_bytes = base64.b64decode(image_bytes)
             with Image.open(BytesIO(image_bytes)) as img:
                 return img.size
         except Exception as e:

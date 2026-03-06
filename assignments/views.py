@@ -232,50 +232,11 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
         content = [{"type": "text", "text": text}]
 
-        # serializer = extract_assignment(str(assignment.id), content)
-
         serializer = AssignmentProcessingService.extract_assignment(
             request.user, assignment, content
         )
 
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
-
-        # extraction_started_at = timezone.now()
-
-        # assignment_questions = ai_processor.extract_assignment_with_retry(
-        #     content, max_retries=3
-        # )
-
-        # extraction_completed_at = timezone.now()
-
-        # assignment_questions["course"] = str(course.id)
-
-        # if topic:
-        #     assignment_questions["topic"] = str(topic.id)
-
-        # assignment_questions["raw_input"] = raw_input
-        # assignment_questions["ai_generated"] = True
-
-        # ai_raw_payload = {
-        #     "title": assignment_questions["title"],
-        #     "instructions": assignment_questions["instructions"],
-        #     "questions": assignment_questions["questions"],
-        # }
-
-        # assignment_questions["ai_raw_payload"] = ai_raw_payload
-
-        # assignment_questions["ai_generated_at"] = timezone.now()
-        # assignment_questions["extraction_started_at"] = extraction_started_at
-        # assignment_questions["extraction_completed_at"] = extraction_completed_at
-
-        # serializer = AssignmentSerializer(data=assignment_questions)
-        # serializer.is_valid(raise_exception=True)
-        # serializer.save()
-
-        # message = {"status": True, "message": "Assignment successfully saved"}
-        # status_serializer = StatusMessageSerializer(message)
-
-        # return Response(status_serializer.data, status=status.HTTP_201_CREATED)
 
     @extend_schema(
         tags=["Assignments"],
@@ -359,57 +320,63 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             assignment.overridden_at = timezone.now()
 
     def partial_update(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data, partial=True)
+        instance = self.get_object()
+        serializer = self.get_serializer(
+            instance=instance, data=request.data, partial=True
+        )
         serializer.is_valid(raise_exception=True)
-        content = serializer.validated_data.get("content")
+        raw_input = serializer.validated_data.get("raw_input")
         topic = serializer.validated_data.get("topic")
 
-        raw_input = content
+        if raw_input:
 
-        instance = self.get_object()
+            text = f"""
+            Analyze the text of an educational assignment and return a valid JSON
 
-        text = f"""
-        Analyze the text of an educational assignment and return a valid JSON
+            ### Assignment Details
+            {raw_input}
 
-        ### Assignment Details
-        {content}
+            ### End of Assignment Details
 
-        ### End of Assignment Details
+            IMPORTANT: Return only valid JSON matching the required structure.
+            Do not include any explanatory text before or after the JSON
+            """
 
-        IMPORTANT: Return only valid JSON matching the required structure.
-        Do not include any explanatory text before or after the JSON
-        """
+            content = [{"type": "text", "text": text}]
 
-        content = [{"type": "text", "text": text}]
+            extraction_started_at = timezone.now()
 
-        extraction_started_at = timezone.now()
+            assignment_questions = ai_processor.extract_assignment_with_retry(
+                request.user, content, max_retries=3
+            )
 
-        assignment_questions = ai_processor.extract_assignment_with_retry(
-            request.user, content, max_retries=3
-        )
+            extraction_completed_at = timezone.now()
 
-        extraction_completed_at = timezone.now()
+            assignment_questions["course"] = instance.course.id
+            assignment_questions["raw_input"] = raw_input
 
-        assignment_questions["course"] = instance.course.id
-        assignment_questions["raw_input"] = raw_input
+            assignment_questions["extraction_started_at"] = extraction_started_at
+            assignment_questions["extraction_completed_at"] = extraction_completed_at
 
-        assignment_questions["extraction_started_at"] = extraction_started_at
-        assignment_questions["extraction_completed_at"] = extraction_completed_at
+            if topic:
+                assignment_questions["topic"] = topic.id
 
-        if topic:
-            assignment_questions["topic"] = topic.id
+            # create assignment object
+            assignment_serializer = AssignmentSerializer(
+                instance=instance, data=assignment_questions, partial=True
+            )
+            assignment_serializer.is_valid(raise_exception=True)
+            instance = assignment_serializer.save()
 
-        # create assignment object
-        assignment_serializer = AssignmentSerializer(
-            instance=instance, data=assignment_questions, partial=True
-        )
-        assignment_serializer.is_valid(raise_exception=True)
-        assignment_serializer.save()
+        else:
+            instance.title = serializer.validated_data.get("title", instance.title)
+            instance.course = serializer.validated_data.get("course", instance.course)
+            instance.topic = serializer.validated_data.get("topic", instance.topic)
 
-        message = {"status": True, "message": "Assignment successfully updated"}
-        status_serializer = StatusMessageSerializer(message)
+            instance.save()
 
-        return Response(status_serializer.data, status=status.HTTP_200_OK)
+        serializer = AssignmentListSerializer(instance)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(
         tags=["Assignments"],

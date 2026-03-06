@@ -16,6 +16,7 @@ class PlanType(models.TextChoices):
     STANDARD = "STANDARD", _("Standard")
     PRO = "PRO", _("Pro")
     POWER = "POWER", _("Power")
+    BETA = "BETA", _("Beta")
 
 
 class SubscriptionPlan(models.Model):

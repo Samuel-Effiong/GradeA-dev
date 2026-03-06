@@ -2,16 +2,14 @@ import json
 
 # The text you want to convert
 text = """
-{
 
-}
 """
 
 # Create JSON structure
 data = {
     "course": "",
     "topic": "",
-    "content": text,
+    "raw_input": text,
 }
 
 # Save to file
