@@ -16,11 +16,12 @@ from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from classrooms.permissions import IsSuperAdmin, IsTeacher
+from classrooms.permissions import IsNotStudent, IsSuperAdmin, IsTeacher
 from users.models import UserTypes
 
 from .models import (
     CreditBucket,
+    CreditBucketType,
     CreditLedger,
     CreditUsageLog,
     CreditWallet,
@@ -28,11 +29,13 @@ from .models import (
     UserSubscription,
 )
 from .serializers import (  # SubscriptionSerializer,
+    CarryOverHistorySerializer,
     CreditBucketSerializer,
     CreditLedgerSerializer,
     CreditUsageLogSerializer,
     CreditWalletSerializer,
     CreditWalletSummarySerializer,
+    OverageStatusSerializer,
     SubscriptionPlanSerializer,
     UsageSummarySerializer,
     UserSubscriptionSerializer,
@@ -85,7 +88,7 @@ class SubscriptionPlanViewSet(viewsets.ModelViewSet):
 
     queryset = SubscriptionPlan.objects.all()
     serializer_class = SubscriptionPlanSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsNotStudent]
     http_method_names = ["get", "head", "post", "patch", "delete", "options"]
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -97,7 +100,7 @@ class SubscriptionPlanViewSet(viewsets.ModelViewSet):
         if self.action in ["list", "retrieve"]:
             permission_classes = [IsAuthenticated]
         else:
-            permission_classes = [IsAuthenticated]
+            permission_classes = [IsAuthenticated, IsNotStudent]
         return [permission() for permission in permission_classes]
 
 
@@ -144,7 +147,7 @@ class UserSubscriptionViewSet(viewsets.ModelViewSet):
 
     queryset = UserSubscription.objects.all()
     serializer_class = UserSubscriptionSerializer
-    permission_classes = [IsAuthenticated, IsTeacher]
+    permission_classes = [IsAuthenticated, IsNotStudent]
     http_method_names = ["get", "head", "post", "patch", "delete", "options"]
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -218,7 +221,7 @@ class CreditWalletViewSet(viewsets.ModelViewSet):
 
     queryset = CreditWallet.objects.all()
     serializer_class = CreditWalletSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsNotStudent]
     http_method_names = ["get", "head", "post", "patch", "delete", "options"]
 
     filter_backends = [DjangoFilterBackend, OrderingFilter]
@@ -274,7 +277,7 @@ class CreditBucketViewSet(viewsets.ModelViewSet):
 
     queryset = CreditBucket.objects.all()
     serializer_class = CreditBucketSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsNotStudent]
     http_method_names = ["get", "head", "post", "patch", "delete", "options"]
 
     filter_backends = [DjangoFilterBackend, OrderingFilter]
@@ -335,7 +338,7 @@ class CreditLedgerViewSet(viewsets.ModelViewSet):
 
     queryset = CreditLedger.objects.all()
     serializer_class = CreditLedgerSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsNotStudent]
     http_method_names = ["get", "head", "post", "patch", "delete", "options"]
 
     filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
@@ -373,7 +376,7 @@ class CreditUsageLogViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = CreditUsageLog.objects.all()
     serializer_class = CreditUsageLogSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsNotStudent]
     http_method_names = ["get", "head", "post", "patch", "delete", "options"]
 
     filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
@@ -398,7 +401,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
 
     queryset = UserSubscription.objects.all()
     serializer_class = UserSubscriptionSerializer
-    permission_classes = [IsAuthenticated, IsTeacher]
+    permission_classes = [IsAuthenticated, IsNotStudent]
     http_method_names = ["get", "head", "post", "patch", "delete", "options"]
 
     def get_queryset(self):
@@ -702,8 +705,8 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
 
     @extend_schema(
         tags=["Subscription"],
-        summary="Get wallet summary",
-        description="Get wallet summary for the user.",
+        summary="Get credit wallet summary",
+        description="Get credit wallet summary for the user.",
         responses={
             200: OpenApiResponse(response=CreditWalletSummarySerializer),
             404: OpenApiResponse(
@@ -717,7 +720,12 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
             ),
         },
     )
-    @action(detail=False, methods=["GET"])
+    @action(
+        detail=False,
+        methods=["GET"],
+        url_name="credit-wallet",
+        url_path="credits/wallet",
+    )
     def wallet(self, request, *args, **kwargs):
         wallet = request.user.credit_wallet
 
@@ -731,7 +739,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
 
     @extend_schema(
         tags=["Subscription"],
-        summary="Get subscription summary",
+        summary="Get subscription credit summary",
         description="Get subscription summary for the user.",
         responses={
             200: OpenApiResponse(response=UsageSummarySerializer),
@@ -749,7 +757,12 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
             ),
         },
     )
-    @action(detail=False, methods=["GET"])
+    @action(
+        detail=False,
+        methods=["GET"],
+        url_name="credit-summary",
+        url_path="credits/summary",
+    )
     def summary(self, request, *args, **kwargs):
         user = request.user
         wallet = user.credit_wallet
@@ -794,4 +807,102 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
         }
 
         serializer = UsageSummarySerializer(data)
+        return Response(serializer.data)
+
+    @extend_schema(
+        tags=["Subscription"],
+        summary="Get credit ledger",
+        description="Get credit ledger for the user.",
+        responses={
+            200: OpenApiResponse(response=CreditLedgerSerializer),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["GET"],
+        url_name="credit-ledger",
+        url_path="credits/ledger",
+    )
+    def credit_ledger(self, request, *args, **kwargs):
+        queryset = CreditLedger.objects.filter(user=request.user).order_by(
+            "-created_at"
+        )
+
+        serializer = CreditLedgerSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @extend_schema(
+        tags=["Subscription"],
+        summary="Get credit usage logs",
+        description="Get credit usage logs for the user.",
+        responses={
+            200: OpenApiResponse(response=CreditUsageLogSerializer),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["GET"],
+        url_name="credit-usage-logs",
+        url_path="credits/usage-logs",
+    )
+    def credit_usage_logs(self, request, *args, **kwargs):
+        user = request.user
+        wallet = user.credit_wallet
+        logs = wallet.credit_usage_logs.all()
+        serializer = CreditUsageLogSerializer(logs, many=True)
+        return Response(serializer.data)
+
+    @extend_schema(
+        tags=["Subscription"],
+        summary="Credit bucket usage",
+        description="Get credit bucket usage for the user.",
+        responses={
+            200: OpenApiResponse(response=CreditBucketSerializer),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["GET"],
+        url_name="credit-buckets",
+        url_path="credits/buckets",
+    )
+    def credit_bucket(self, request, *args, **kwargs):
+        queryset = CreditBucket.objects.filter(wallet__user=request.user).order_by(
+            "expires_at", "-created_at"
+        )
+        serializer = CreditBucketSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(
+        detail=False,
+        methods=["GET"],
+        url_name="credit-overage-status",
+        url_path="credits/overage",
+    )
+    def credit_overage_status(self, request, *args, **kwargs):
+        wallet = request.user.credit_wallet
+        serializer = OverageStatusSerializer(wallet)
+
+        return Response(serializer.data)
+
+    @extend_schema(
+        tags=["Subscription"],
+        summary="Get credit carry-over history",
+        description="Get credit carry-over history for the user.",
+        responses={
+            200: OpenApiResponse(response=CarryOverHistorySerializer),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["GET"],
+        url_name="credit-carry-over-history",
+        url_path="credits/carry-over",
+    )
+    def carry_over_history(self, request, *args, **kwargs):
+        queryset = CreditBucket.objects.filter(
+            wallet__user=request.user, bucket_type=CreditBucketType.CARRY_OVER
+        ).order_by("-created_at")
+
+        serializer = CarryOverHistorySerializer(queryset, many=True)
         return Response(serializer.data)

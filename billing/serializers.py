@@ -1,3 +1,4 @@
+from django.db.models import F, Sum
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -5,6 +6,7 @@ from users.models import CustomUser
 
 from .models import (
     CreditBucket,
+    CreditBucketType,
     CreditLedger,
     CreditUsageLog,
     CreditWallet,
@@ -93,6 +95,7 @@ class CreditBucketSerializer(serializers.ModelSerializer):
     """
 
     remaining_credits = serializers.IntegerField(read_only=True)
+    is_expired = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = CreditBucket
@@ -104,6 +107,7 @@ class CreditBucketSerializer(serializers.ModelSerializer):
             "used_credits",
             "remaining_credits",
             "expires_at",
+            "is_expired",
             "created_at",
             "updated_at",
         ]
@@ -168,12 +172,14 @@ class CreditUsageLogSerializer(serializers.ModelSerializer):
     Serializer for the CreditUsageLog model.
     """
 
+    bucket_type = serializers.CharField(source="bucket.bucket_type", read_only=True)
+
     class Meta:
         model = CreditUsageLog
         fields = [
             "id",
             "wallet",
-            "bucket",
+            "bucket_type",
             "amount",
             "feature",
             "task_type",
@@ -195,7 +201,8 @@ class CreditWalletSummarySerializer(serializers.ModelSerializer):
 
     # total_remaining_credits = serializers.SerializerMethodField(read_only=True)
     active_buckets_count = serializers.SerializerMethodField(read_only=True)
-    total_credits = serializers.IntegerField(source="display_balance")
+    display_total_remaining_credits = serializers.IntegerField(source="display_balance")
+    total_remaining_credits = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = CreditWallet
@@ -203,9 +210,9 @@ class CreditWalletSummarySerializer(serializers.ModelSerializer):
             "id",
             "user",
             "overage_blocks_used",
-            # "total_remaining_credits",
             "active_buckets_count",
-            "total_credits",
+            "total_remaining_credits",
+            "display_total_remaining_credits",
         ]
         read_only_fields = [
             "id",
@@ -229,3 +236,69 @@ class UsageSummarySerializer(serializers.Serializer):
     total_consumed = serializers.IntegerField()
     consumed_by_feature = serializers.DictField()
     consumed_by_bucket_type = serializers.DictField()
+
+
+class OverageStatusSerializer(serializers.ModelSerializer):
+    max_blocks = serializers.IntegerField(
+        source="user.subscriptions.filter(is_active=True).first.plan.max_overage_blocks",
+        read_only=True,
+    )
+    block_size = serializers.IntegerField(
+        source="user.subscriptions.filter(is_active=True).first.plan.overage_block_size",
+        read_only=True,
+    )
+    block_remaining = serializers.SerializerMethodField()
+    current_overage_balance = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CreditWallet
+        fields = [
+            "overage_blocks_used",
+            "max_blocks",
+            "block_size",
+            "block_remaining",
+            "current_overage_balance",
+        ]
+
+    def get_block_remaining(self, obj):
+        plan = obj.user.subscriptions.filter(is_active=True).first().plan
+        return max(0, plan.max_overage_blocks - obj.overage_blocks_used)
+
+    def get_current_overage_balance(self, obj):
+        return (
+            obj.buckets.filter(bucket_type=CreditBucketType.OVERAGE).aggregate(
+                total=Sum(F("total_credits") - F("used_credits"))
+            )["total"]
+            or 0
+        )
+
+
+class CarryOverHistorySerializer(serializers.ModelSerializer):
+    days_until_expiry = serializers.SerializerMethodField()
+    status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CreditBucket
+        fields = [
+            "id",
+            "total_credits",
+            "used_credits",
+            "remaining_credits",
+            "created_at",
+            "expires_at",
+            "days_until_expiry",
+            "status",
+        ]
+
+    def get_days_until_expiry(self, obj):
+        if not obj.expires_at:
+            return None
+        delta = obj.expires_at - timezone.now()
+        return max(0, delta.days)
+
+    def get_status(self, obj):
+        if obj.is_expired:
+            return "expired"
+        if obj.remaining_credits == 0:
+            return "exhausted"
+        return "active"

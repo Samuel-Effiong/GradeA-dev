@@ -568,10 +568,9 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             serializer = AssignmentSerializer(data=results, many=True)
             serializer.is_valid(raise_exception=True)
-            serializer.save()
+            instance = serializer.save()
 
-            assignment_questions["course"] = course
-            serializer = AssignmentDetailSerializer(assignment_questions)
+            serializer = AssignmentDetailSerializer(instance[0])
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 

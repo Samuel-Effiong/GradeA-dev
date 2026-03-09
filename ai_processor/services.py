@@ -22,6 +22,8 @@ from ai_processor.tools import encode_image, perform_search
 from ai_processor.validators import logger
 from billing.errors import InsufficientCreditsError
 
+# from billing.services import SubscriptionService
+
 # from PIL import Image
 # from pytesseract import pytesseract
 
@@ -429,7 +431,7 @@ Do not include any explanatory text before or after the JSON
 
         return json_data
 
-    def extract_answer_image(self, user, content, assignment):
+    def extract_answer_image(self, user, content, assignment, assignment_model=None):
         system_prompt = ANSWERS_EXTRACTION_PROMPT
 
         # return self.__generate_text(system_prompt, user_prompt)
@@ -450,6 +452,7 @@ Do not include any explanatory text before or after the JSON
                 feature="Answer Extraction",
                 task_type="extract_answer",
                 messages=messages,
+                assignment=assignment_model,
             )
 
             content = response.choices[0].message.content
@@ -465,13 +468,15 @@ Do not include any explanatory text before or after the JSON
         return json_data
 
     def extract_answer_with_retry(
-        self, user, content, assignment, max_retries: int = 3
+        self, user, content, assignment, assignment_model=None, max_retries: int = 3
     ):
         last_error = None
 
         for attempt in range(max_retries):
             try:
-                return self.extract_answer_image(user, content, assignment)
+                return self.extract_answer_image(
+                    user, content, assignment, assignment_model=assignment_model
+                )
             except Exception as e:
                 last_error = e
                 logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
@@ -480,7 +485,10 @@ Do not include any explanatory text before or after the JSON
                     logger.info("Retrying...")
         raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
 
-    def grade_student_submission(self, user, rubric_json, answer_json):
+    @transaction.atomic
+    def grade_student_submission(
+        self, user, rubric_json, answer_json, assignment_model=None
+    ):
         system_prompt = GRADING_ASSIGNMENT_PROMPT
 
         user_prompt = f"""
@@ -506,12 +514,16 @@ Make sure to:
         # content = self.__generate_text(system_prompt, user_prompt)
         # content = self.__ai_model(system_prompt, user_prompt)
 
+        user_prompts = [{"type": "text", "text": user_prompt}]
+        system_prompts = [{"type": "text", "text": system_prompt}]
+
         response = self.execute_graded_task(
             user=user,
             feature="Grading Assignment",
             task_type="grade_assignment",
-            system_prompt=system_prompt,
-            user_prompt=user_prompt,
+            system_prompt=system_prompts,
+            user_prompt=user_prompts,
+            assignment=assignment_model,
         )
 
         grade = response.choices[0].message.content
@@ -524,13 +536,20 @@ Make sure to:
         return json_data
 
     def extract_grade_with_retry(
-        self, user, rubric_json, answer_json, max_retries: int = 3
+        self,
+        user,
+        rubric_json,
+        answer_json,
+        assignment_model=None,
+        max_retries: int = 3,
     ):
         last_error = None
 
         for attempt in range(max_retries):
             try:
-                return self.grade_student_submission(user, rubric_json, answer_json)
+                return self.grade_student_submission(
+                    user, rubric_json, answer_json, assignment_model=assignment_model
+                )
             except Exception as e:
                 last_error = e
                 logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
@@ -649,18 +668,22 @@ Now, respond to the following teacher's instruction using the rules above
 
         raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
 
-    def formatted_grade(self, user, user_prompt):
+    def formatted_grade(self, user, user_prompt, assignment_model=None):
         system_prompt = GRADE_FORMATTER
 
         try:
             # response = self.__ai_model(system_prompt, user_prompt)
 
+            user_prompts = [{"type": "text", "text": user_prompt}]
+            system_prompts = [{"type": "text", "text": system_prompt}]
+
             response = self.execute_graded_task(
                 user=user,
                 feature="Formatted Grade",
                 task_type="formatted_grade",
-                system_prompt=system_prompt,
-                user_prompt=user_prompt,
+                system_prompt=system_prompts,
+                user_prompt=user_prompts,
+                assignment=assignment_model,
             )
 
             content = response.choices[0].message.content
@@ -683,7 +706,11 @@ Now, respond to the following teacher's instruction using the rules above
         messages=None,
         tool_schemas=None,
         respond_format=True,
+        assignment=None,
     ):
+        # I need the assignment to for students who are submitting
+        # their assignment to know who the teacher that created
+        # the assignment is and charge the teacher
 
         # Subscription check
 
@@ -700,15 +727,39 @@ Now, respond to the following teacher's instruction using the rules above
             # total_prompt += user_prompt
 
         if system_prompt:
-            total_prompt += system_prompt
+            for prompt in system_prompt:
+                if prompt["type"] == "text":
+                    total_prompt += prompt["text"]
+                elif prompt["type"] == "image_url":
+                    image_bytes.append(prompt.pop("bytes"))
 
         if messages:
             for message in messages:
-                total_prompt += message["content"]
+                content = message["content"]
+                if isinstance(content, str):
+                    total_prompt += content
+                else:
+                    for item in content:
+                        if item["type"] == "text":
+                            total_prompt += item["text"]
+                        elif item["type"] == "image_url":
+                            image_bytes.append(item.pop("bytes"))
+                        elif item["type"] == "pdf_url":
+                            pdf_bytes.append(item.pop("bytes"))
 
         estimated_cost = self.estimate_total_token(total_prompt, image_bytes, pdf_bytes)
 
-        wallet = user.credit_wallet
+        if user.user_type == "STUDENT":
+            # Get the TEACHER wallet
+
+            if assignment:
+                teacher = assignment.course.teacher
+                wallet = teacher.credit_wallet
+            else:
+                raise ValueError("Assignment is required for students")
+        elif user.user_type == "TEACHER":
+            wallet = user.credit_wallet
+
         balance = wallet.total_remaining_credits()
 
         if balance < estimated_cost:
@@ -720,6 +771,7 @@ Now, respond to the following teacher's instruction using the rules above
         if wallet.total_remaining_credits() <= 0:
             raise InsufficientCreditsError("Refill your wallet to continue")
 
+        task_id = str(uuid.uuid4())
         response = self.__ai_model(
             system_prompt, user_prompt, messages, tool_schemas, respond_format
         )
@@ -729,7 +781,7 @@ Now, respond to the following teacher's instruction using the rules above
                 amount=response.usage.total_tokens,
                 feature=feature,
                 task_type=task_type,
-                task_id=str(uuid.uuid4()),
+                task_id=task_id,
             )
 
         return response

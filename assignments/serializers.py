@@ -220,7 +220,7 @@ class AssignmentListSerializer(serializers.ModelSerializer):
 class AssignmentDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Assignment
-        fields = ["id", "course", "topic", "raw_input"]
+        fields = ["id", "title", "course", "topic", "raw_input"]
 
 
 class GeneratedAssignmentSerializer(serializers.Serializer):

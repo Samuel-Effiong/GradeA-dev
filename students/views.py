@@ -1,5 +1,6 @@
 # from django.shortcuts import render
 from django.core.files.uploadedfile import UploadedFile
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -328,12 +329,16 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
                         {
                             "type": "image_url",
                             "image_url": f"data:{uploaded_file.content_type};base64,{base64_encoded_file}",
-                            "detail": "high",
+                            "bytes": base64_encoded_file,
                         },
                     ]
 
                     student_submission = ai_processor.extract_answer_with_retry(
-                        request.user, content, assignment_text, max_retries=3
+                        request.user,
+                        content,
+                        assignment_text,
+                        assignment_model=assignment,
+                        max_retries=3,
                     )
 
                     if student_submission is not None:
@@ -357,11 +362,16 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
                             {
                                 "type": "image_url",
                                 "image_url": f"data:image/PNG;base64,{image}",
+                                "bytes": image,
                             }
                         )
 
                     student_submission = ai_processor.extract_answer_with_retry(
-                        request.user, content, assignment_text, max_retries=3
+                        request.user,
+                        content,
+                        assignment_text,
+                        assignment_model=assignment,
+                        max_retries=3,
                     )
 
                     if student_submission is not None:
@@ -388,7 +398,11 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
 
         try:
             answer = ai_processor.extract_answer_with_retry(
-                request.user, extracted_text, assignment_text, max_retries=3
+                request.user,
+                extracted_text,
+                assignment_text,
+                assignment_model=assignment,
+                max_retries=3,
             )
 
         except Exception as e:
@@ -403,70 +417,88 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
 
         return Response(answer, status=HTTP_201_CREATED)
 
-    @extend_schema(tags=["07 Student Submissions"])
+    @extend_schema(
+        tags=["07 Student Submissions"],
+        summary="Grade a student submission",
+        description="Grade a student submission using AI. No request body is required.",
+        request=None,
+        responses={
+            200: OpenApiResponse(description="Submission graded successfully"),
+            404: OpenApiResponse(description="Student submission not found"),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    )
     @action(
         detail=True,
-        methods=["GET"],
+        methods=["POST"],
         permission_classes=[IsAuthenticated, IsTeacher],
         url_path="grade",
     )
     def grade(self, request, pk=None):
-        # Validate submission id
-        try:
-            submission = StudentSubmission.objects.get(pk=pk)
-        except StudentSubmission.DoesNotExist:
-            raise NotFound(
-                detail="No Student Submission with this ID is found"
-            ) from StudentSubmission.DoesNotExist
+        with transaction.atomic():
+            # Validate submission id
+            try:
+                submission = StudentSubmission.objects.get(pk=pk)
+            except StudentSubmission.DoesNotExist:
+                raise NotFound(
+                    detail="No Student Submission with this ID is found"
+                ) from StudentSubmission.DoesNotExist
 
-        assignment = submission.assignment
+            assignment = submission.assignment
 
-        # if not hasattr(assignment, "rubric"):
-        #     raise NotFound(detail="No Rubric for this assignment")
+            # if not hasattr(assignment, "rubric"):
+            #     raise NotFound(detail="No Rubric for this assignment")
 
-        # rubric = assignment.rubric
+            # rubric = assignment.rubric
 
-        # if not rubric.has_criteria():
-        #     raise NotFound(detail="No Rubric criteria found for this assignment")
+            # if not rubric.has_criteria():
+            #     raise NotFound(detail="No Rubric criteria found for this assignment")
 
-        try:
-            # rubric_json = rubric.get_rubric_criteria_json()
-            answer_json = submission.get_answer()
-            submission.ai_graded_at = timezone.now()
+            try:
+                # rubric_json = rubric.get_rubric_criteria_json()
+                answer_json = submission.get_answer()
+                submission.ai_graded_at = timezone.now()
 
-            grading = ai_processor.extract_grade_with_retry(
-                request.user, assignment.questions, answer_json
-            )
+                grading = ai_processor.extract_grade_with_retry(
+                    request.user,
+                    assignment.questions,
+                    answer_json,
+                    assignment_model=assignment,
+                )
 
-            user_prompt = f"""
-            Student Name: {submission.student.get_full_name()}
-            Course: {assignment.course}
+                user_prompt = f"""
+                Student Name: {submission.student.get_full_name()}
+                Course: {assignment.course}
 
 
-            Grading Result:
+                Grading Result:
 
-            {grading}
+                {grading}
 
-            Return a formatted response
-            """
+                Return a formatted response
+                """
 
-            formatted_grade = ai_processor.formatted_grade(request.user, user_prompt)
+                formatted_grade = ai_processor.formatted_grade(
+                    request.user, user_prompt, assignment_model=assignment
+                )
 
-            grading_score = grading["grading_summary"]["total_score"]
-            grading_confidence = grading["grading_confidence"]
+                grading_score = grading["grading_summary"]["total_score"]
+                grading_confidence = grading["grading_confidence"]
 
-            submission.score = grading_score
-            submission.feedback = grading
-            submission.grading_confidence = grading_confidence
-            submission.formatted_grade = formatted_grade
+                submission.score = grading_score
+                submission.feedback = grading
+                submission.grading_confidence = grading_confidence
+                submission.formatted_grade = formatted_grade
 
-            submission.ai_score = grading_score
-            submission.ai_grading_completed_at = timezone.now()
+                submission.ai_score = grading_score
+                submission.ai_grading_completed_at = timezone.now()
 
-            submission.save()
+                submission.save()
 
-        except Exception as e:
-            return Response({"error": str(e)}, status=HTTP_500_INTERNAL_SERVER_ERROR)
+            except Exception as e:
+                return Response(
+                    {"error": str(e)}, status=HTTP_500_INTERNAL_SERVER_ERROR
+                )
 
         return Response(grading, status=HTTP_200_OK)
 

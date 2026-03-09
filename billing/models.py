@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from .errors import InsufficientCreditsError
+from .services import SubscriptionService
 
 # Create your models here.
 
@@ -248,10 +249,16 @@ class CreditWallet(models.Model):
         remaining = amount
         total_available = self.total_remaining_credits()
 
-        if total_available < amount:
-            raise InsufficientCreditsError(
-                f"Not enough credits: requested {amount}, available {total_available}"
-            )
+        while total_available < amount:
+
+            success = SubscriptionService.purchase_overage_block(wallet=self)
+
+            if not success:
+                available_credits = self.total_remaining_credits()
+                raise InsufficientCreditsError(
+                    f"Insufficient credits and overage limit reached. "
+                    f"Requested: {amount}, Available: {available_credits}"
+                )
 
         # Define FIFO consumption order
         fifo_order = [
@@ -385,6 +392,11 @@ class CreditBucket(models.Model):
     )
     updated_at = models.DateTimeField(
         auto_now=True, help_text="Date and time when the credit bucket was last updated"
+    )
+
+    is_processed = models.BooleanField(
+        default=False,
+        help_text="True if the bucket has been handled by the expiry cleanup task",
     )
 
     class Meta:
@@ -531,6 +543,10 @@ class CreditUsageLog(models.Model):
     created_at = models.DateTimeField(
         auto_now_add=True,
         help_text="Date and time when the credit usage log was created",
+    )
+
+    is_refunded = models.BooleanField(
+        default=False, help_text="Whether the credit was refunded"
     )
 
     class Meta:
