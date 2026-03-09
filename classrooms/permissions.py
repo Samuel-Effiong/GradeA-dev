@@ -50,6 +50,20 @@ class IsStudent(permissions.BasePermission):
         return self.has_permission(request, view)
 
 
+class IsNotStudent(permissions.BasePermission):
+    message = "You must not be a student to access this endpoint."
+
+    def has_permission(self, request, view):
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and request.user.user_type != UserTypes.STUDENT
+        )
+
+    def has_object_permission(self, request, view, obj):
+        return self.has_permission(request, view)
+
+
 class IsSuperAdmin(permissions.BasePermission):
     message = "You must be a superadmin to access this endpoint."
     """

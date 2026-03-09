@@ -86,6 +86,7 @@ class AssignmentProcessingService:
                 {
                     "type": "image_url",
                     "image_url": f"data:{uploaded_file.content_type};base64,{base64_data}",
+                    "bytes": base64_data,
                 }
             )
         elif uploaded_file.content_type == cls.PDF_FORMAT:
@@ -97,6 +98,7 @@ class AssignmentProcessingService:
                     {
                         "type": "image_url",
                         "image_url": f"data:image/PNG;base64,{image}",
+                        "bytes": image,
                     }
                 )
         else:
@@ -484,7 +486,7 @@ class AssignmentProcessingService:
         return "\n".join(html_output)
 
     @classmethod
-    def extract_assignment(cls, assignment, content):
+    def extract_assignment(cls, user, assignment, content):
 
         print("Extracting assignment content")
 
@@ -492,7 +494,7 @@ class AssignmentProcessingService:
 
         extraction_started_at = timezone.now()
         assignment_questions = ai_processor.extract_assignment_with_retry(
-            content, max_retries=3
+            user, content, max_retries=3
         )
 
         if assignment.title:
@@ -506,8 +508,6 @@ class AssignmentProcessingService:
             "instructions": assignment_questions["instructions"],
             "questions": assignment_questions["questions"],
         }
-
-        print("Saving assignment content")
 
         assignment_questions["ai_raw_payload"] = ai_raw_payload
         assignment_questions["extraction_started_at"] = extraction_started_at

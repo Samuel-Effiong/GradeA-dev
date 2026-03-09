@@ -220,7 +220,7 @@ class AssignmentListSerializer(serializers.ModelSerializer):
 class AssignmentDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Assignment
-        fields = ["id", "course", "topic", "raw_input"]
+        fields = ["id", "title", "course", "topic", "raw_input"]
 
 
 class GeneratedAssignmentSerializer(serializers.Serializer):
@@ -302,8 +302,12 @@ class AssignmentTextSerializer(serializers.Serializer):
         return value.strip()
 
     def validate(self, data):
-        topic = data.get("topic")
-        course = data.get("course")
+        if self.partial:
+            topic = data.get("topic", self.instance.topic)
+            course = data.get("course", self.instance.course)
+        else:
+            topic = data.get("topic")
+            course = data.get("course")
 
         if topic and topic.course != course:
             raise serializers.ValidationError(

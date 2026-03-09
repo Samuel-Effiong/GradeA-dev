@@ -16,6 +16,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import dj_database_url
+from celery.schedules import crontab
 from environ import Env
 
 env = Env()
@@ -123,6 +124,7 @@ INSTALLED_APPS = [
     "ocr_processor",
     "ai_processor",
     "dashboard",
+    "billing",
     "django_celery_results",
     "django_celery_beat",
 ]
@@ -225,6 +227,15 @@ CELERY_BEAT_SCHEDULE = {
     "record-concurrent-users-every-minute": {
         "task": "dashboard.tasks.record_concurrent_users",
         "schedule": 60.0,
+    },
+    "run-subscription-renewal-status": {
+        "task": "billing.tasks.process_subscription_renewals",
+        "schedule": 60 * 60,
+    },
+    "reconcile-expired-buckets-midnight": {
+        "task": "billing.tasks.cleanup_expired_credit_buckets",
+        "schedule": crontab(minute=0, hour=0),
+        "description": "Formally close expired credit buckets and log losses to the ledger",
     },
     # "send-email-task": {
     #     "task": "AutoGrader.tasks.send_email_task",
