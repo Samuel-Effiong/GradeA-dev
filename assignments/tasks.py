@@ -13,7 +13,7 @@ from .serializers import AssignmentSerializer
 
 @shared_task(bind=True)
 def grade_all_submissions(self, user_id, assignment_id):
-
+    """love God"""
     submissions = StudentSubmission.objects.filter(assignment_id=assignment_id)
     submissions_count = submissions.count()
 
