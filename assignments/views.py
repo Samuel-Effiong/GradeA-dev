@@ -33,6 +33,7 @@ from ai_processor.services import ai_processor  # pdf_service
 from classrooms.models import Course, Topic
 from classrooms.permissions import IsTeacher, IsTeacherOrReadOnly
 from classrooms.serializers import TopicSerializer
+from students.models import StudentSubmission
 
 # from students.serializers import StudentSubmissionSerializer
 from users.models import UserTypes
@@ -46,7 +47,6 @@ from .serializers import (  # RubricSerializer,
     AssignmentSerializer,
     AssignmentTextSerializer,
     GeneratedAssignmentSerializer,
-    StatusMessageSerializer,
 )
 from .services import AssignmentProcessingService
 from .tasks import extract_assignment_background_task, grade_all_submissions
@@ -115,7 +115,7 @@ from .tasks import extract_assignment_background_task, grade_all_submissions
         description="Update an existing assignment.",
         request=AssignmentTextSerializer,
         responses={
-            200: StatusMessageSerializer,
+            200: AssignmentListSerializer,
             400: OpenApiResponse(description="Invalid input"),
             # 401: OpenApiResponse(description="Authentication credentials were not provided"),
             # 403: OpenApiResponse(description="You do not have permission to perform this action"),
@@ -676,9 +676,9 @@ class AssignmentViewSet(viewsets.ModelViewSet):
     @extend_schema(tags=["Assignments"])
     @action(detail=True, methods=["GET"], url_path=r"grade-all", url_name="grade-all")
     def grade_all_submission(self, request, pk=None):
-        assignment_object = self.get_object()
+        assignment = self.get_object()
 
-        submissions = assignment_object.submissions
+        submissions = assignment.submissions.all()
 
         task_id = None
 
@@ -687,19 +687,20 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                 {"message": "No submissions to grade"}, status=status.HTTP_200_OK
             )
 
-        task = grade_all_submissions.delay(str(assignment_object.id))
+        print("Assignment ID: ", Assignment.objects.filter(id=assignment.id))
+        print("Submission:", StudentSubmission.objects.filter(assignment=assignment))
+        task = grade_all_submissions.delay(str(assignment.id))
         task_id = task.id
 
-        data = (
-            {
-                "assignment_id": assignment_object.id,
-                "task_id": task_id,
-                "message": "AI grading started",
-                "submission_count": submissions.count(),
-                "status": "Processing" if task_id else "completed",
-            },
-        )
+        data = {
+            "assignment_id": assignment.id,
+            "task_id": task_id,
+            "message": "AI grading started",
+            "submission_count": submissions.count(),
+            "status": "Processing" if task_id else "completed",
+        }
 
-        serializer = AssignmentGradeAllSubmissions(data)
+        serializer = AssignmentGradeAllSubmissions(data=data)
+        serializer.is_valid(raise_exception=True)
 
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)

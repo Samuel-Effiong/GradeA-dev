@@ -21,6 +21,12 @@ class StudentSubmission(models.Model):
         )
     )
 
+    raw_input = models.TextField(
+        null=True,
+        blank=True,
+        help_text=_("Raw student input, as submitted in the form"),
+    )
+
     score = models.DecimalField(
         max_digits=6,
         decimal_places=2,
