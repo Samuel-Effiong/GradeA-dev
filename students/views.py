@@ -436,7 +436,7 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
             ]
 
             student_submission = ai_processor.extract_answer_with_retry(
-                content, assignment_context, max_retries=3
+                request.user, content, assignment_context, assignment_model=assignment, max_retries=3
             )
 
             if student_submission is not None:
@@ -653,7 +653,9 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
 
         Return a formatted response
         """
-        submission.formatted_grade = ai_processor.formatted_grade(user_prompt)
+        submission.formatted_grade = ai_processor.formatted_grade(
+            request.user, user_prompt, assignment_model=assignment
+        )
         submission.save(update_fields=["score", "feedback", "formatted_grade"])
 
         response_serializer = StudentSubmissionDetailSerializer(submission)
