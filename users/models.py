@@ -94,6 +94,10 @@ class CustomUser(AbstractUser):
     )
     email_verified_at = models.DateTimeField(blank=True, null=True)
 
+    last_active_at = models.DateTimeField(
+        auto_now=True, null=True, blank=True, default=timezone.now()
+    )
+
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
 

@@ -21,6 +21,7 @@ from PIL import Image
 from ai_processor.tools import encode_image, perform_search
 from ai_processor.validators import logger
 from billing.errors import InsufficientCreditsError
+from billing.services import AnalyticsService
 
 # from billing.services import SubscriptionService
 
@@ -753,11 +754,12 @@ Now, respond to the following teacher's instruction using the rules above
             # Get the TEACHER wallet
 
             if assignment:
-                teacher = assignment.course.teacher
-                wallet = teacher.credit_wallet
+                target_teacher = assignment.course.teacher
+                wallet = target_teacher.credit_wallet
             else:
                 raise ValueError("Assignment is required for students")
         elif user.user_type == "TEACHER":
+            target_teacher = user
             wallet = user.credit_wallet
 
         balance = wallet.total_remaining_credits()
@@ -777,12 +779,22 @@ Now, respond to the following teacher's instruction using the rules above
         )
 
         with transaction.atomic():
+            actual_cost = response.usage.total_tokens
             wallet.consume_credits(
-                amount=response.usage.total_tokens,
+                amount=actual_cost,
                 feature=feature,
                 task_type=task_type,
                 task_id=task_id,
             )
+
+            # Update the Beta Analytics Profile for the Teacher
+            # This records: raw total, feature mix, and first AI action
+            AnalyticsService.record_consumption(
+                user=target_teacher, amount=actual_cost, feature=feature
+            )
+
+            # Mark the teacher as 'Active' today for the "Active in last 7 days" KPI
+            AnalyticsService.track_activity(user=target_teacher)
 
         return response
 
