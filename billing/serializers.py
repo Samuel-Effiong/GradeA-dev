@@ -302,3 +302,79 @@ class CarryOverHistorySerializer(serializers.ModelSerializer):
         if obj.remaining_credits == 0:
             return "exhausted"
         return "active"
+
+
+class BetaSummarySerializer(serializers.Serializer):
+    total_beta_users = serializers.IntegerField()
+    active_last_7_days_percent = serializers.FloatField()
+    avg_credits_used = serializers.FloatField()
+    percent_users_at_cap = serializers.FloatField()
+    avg_days_to_action = serializers.FloatField()
+
+
+class BetaCohortStatsSerializer(serializers.Serializer):
+    standard_allocation = serializers.IntegerField()
+    total_users_analyzed = serializers.IntegerField()
+    average_credits_used = serializers.FloatField()
+    median_credits_used = serializers.FloatField()
+    p90_credits_used = serializers.FloatField()
+    average_days_to_reach_cap = serializers.IntegerField()
+    percent_unused_credits = serializers.FloatField()
+
+
+class BetaFeatureMixSerializer(serializers.Serializer):
+    grading_percent = serializers.FloatField()
+    creation_percent = serializers.FloatField()
+    other_percent = serializers.FloatField()
+    average_feedback_depth_token = serializers.IntegerField()
+    total_analytics_views = serializers.IntegerField()
+    views_per_user = serializers.FloatField()
+    primary_driver = serializers.CharField()
+    engagement_quality = serializers.CharField()
+
+
+class DailyTimeSeriesSerializer(serializers.Serializer):
+    date = serializers.DateField()
+    credits = serializers.IntegerField()
+
+
+class PeakUsageHourSerializer(serializers.Serializer):
+    hour_24h = serializers.IntegerField()
+    total_credits = serializers.IntegerField()
+
+
+class WeeklyGrowthSerializer(serializers.Serializer):
+    week_start = serializers.DateField()
+    total_credits = serializers.IntegerField()
+
+
+class InfrastructureInsightSerializer(serializers.Serializer):
+    peak_hour = serializers.IntegerField(allow_null=True)
+    current_week_velocity = serializers.IntegerField()
+
+
+class BetaUsageTrendSerializer(serializers.Serializer):
+    daily_time_series = DailyTimeSeriesSerializer(many=True)
+    peak_usage_hours = PeakUsageHourSerializer(many=True)
+    weekly_growth = WeeklyGrowthSerializer(many=True)
+    infrastructure_insight = InfrastructureInsightSerializer()
+
+
+class ConversionLeadMetricsSerializer(serializers.Serializer):
+    usage_percentage = serializers.FloatField()
+    login_days = serializers.IntegerField()
+    last_active = serializers.DateField(allow_null=True)
+    primary_use_case = serializers.CharField()
+
+
+class ConversionLeadFlagsSerializer(serializers.Serializer):
+    at_80_percent = serializers.BooleanField()
+    active_last_week = serializers.BooleanField()
+    is_power_grader = serializers.BooleanField()
+
+
+class ConversionLeadSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    score = serializers.FloatField()
+    metrics = ConversionLeadMetricsSerializer()
+    flags = ConversionLeadFlagsSerializer()

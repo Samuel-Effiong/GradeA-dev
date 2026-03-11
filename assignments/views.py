@@ -37,7 +37,7 @@ from classrooms.serializers import TopicSerializer
 # from students.serializers import StudentSubmissionSerializer
 from users.models import UserTypes
 
-from .models import Assignment  # Rubric
+from .models import Assignment, AssignmentStatus  # Rubric
 from .serializers import (  # RubricSerializer,
     AssignmentCreateResponseSerializer,
     AssignmentDetailSerializer,
@@ -46,10 +46,12 @@ from .serializers import (  # RubricSerializer,
     AssignmentSerializer,
     AssignmentTextSerializer,
     GeneratedAssignmentSerializer,
-    StatusMessageSerializer,
 )
 from .services import AssignmentProcessingService
 from .tasks import extract_assignment_background_task, grade_all_submissions
+
+# from students.models import StudentSubmission
+
 
 # from ai_processor.validators import AssignmentStructure
 
@@ -115,7 +117,7 @@ from .tasks import extract_assignment_background_task, grade_all_submissions
         description="Update an existing assignment.",
         request=AssignmentTextSerializer,
         responses={
-            200: StatusMessageSerializer,
+            200: AssignmentListSerializer,
             400: OpenApiResponse(description="Invalid input"),
             # 401: OpenApiResponse(description="Authentication credentials were not provided"),
             # 403: OpenApiResponse(description="You do not have permission to perform this action"),
@@ -179,7 +181,9 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         if user.user_type == UserTypes.TEACHER:
             return Assignment.objects.filter(course__teacher=user)
         elif user.user_type == UserTypes.STUDENT:
-            return Assignment.objects.filter(course__enrollments__student=user)
+            return Assignment.objects.filter(
+                course__enrollments__student=user, status=AssignmentStatus.PUBLISHED
+            )
         else:
             return Assignment.objects.none()
 
@@ -372,6 +376,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             instance.title = serializer.validated_data.get("title", instance.title)
             instance.course = serializer.validated_data.get("course", instance.course)
             instance.topic = serializer.validated_data.get("topic", instance.topic)
+            instance.status = serializer.validated_data.get("status", instance.status)
 
             instance.save()
 

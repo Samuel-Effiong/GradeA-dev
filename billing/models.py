@@ -1,12 +1,15 @@
 import math
 import uuid
 
+from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from .errors import InsufficientCreditsError
-from .services import SubscriptionService
+
+# from .services import SubscriptionService
 
 # Create your models here.
 
@@ -250,15 +253,16 @@ class CreditWallet(models.Model):
         total_available = self.total_remaining_credits()
 
         while total_available < amount:
+            # from .services import SubscriptionService
 
-            success = SubscriptionService.purchase_overage_block(wallet=self)
-
-            if not success:
-                available_credits = self.total_remaining_credits()
-                raise InsufficientCreditsError(
-                    f"Insufficient credits and overage limit reached. "
-                    f"Requested: {amount}, Available: {available_credits}"
-                )
+            # success = SubscriptionService.purchase_overage_block(wallet=self)
+            #
+            # if not success:
+            #     available_credits = self.total_remaining_credits()
+            raise InsufficientCreditsError(
+                f"Insufficient credits and overage limit reached. "
+                f"Requested: {amount}, Available: {total_available}"
+            )
 
         # Define FIFO consumption order
         fifo_order = [
@@ -551,3 +555,52 @@ class CreditUsageLog(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+
+
+class BetaProfile(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="beta_profile",
+    )
+
+    # 1. Cohort & Timing
+    joined_beta_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    first_ai_action_at = models.DateTimeField(null=True, blank=True)
+    last_active_at = models.DateTimeField(null=True, blank=True)
+    last_login_date = models.DateField(null=True, blank=True)
+
+    # Credit Velocity
+    initial_beta_credits = models.PositiveIntegerField(default=10_000_000)
+    total_credits_used = models.PositiveIntegerField(default=0, db_index=True)
+
+    # Feature Mix (Raw totals for accurate P90 / Median math)
+    credits_used_grading = models.PositiveIntegerField(default=0)
+    credits_used_creation = models.PositiveIntegerField(default=0)
+    analytics_view_count = models.PositiveIntegerField(default=0)
+
+    # Intent Signals
+    distinct_login_days = models.PositiveSmallIntegerField(default=0)
+    has_hit_80_percent = models.BooleanField(default=False)
+    has_hit_cap = models.BooleanField(default=False)
+
+    conversion_probability = models.FloatField(
+        default=0.0,
+        validators=[MinValueValidator(0.0), MaxValueValidator(100.0)],
+    )
+    days_to_first_action = models.PositiveSmallIntegerField(null=True, blank=True)
+    usage_velocity = models.FloatField(default=0.0, db_index=True)
+
+    class Meta:
+        verbose_name = "Beta Usage Profile"
+        ordering = ["-conversion_probability"]
+        indexes = [
+            models.Index(fields=["conversion_probability"]),
+            models.Index(fields=["last_active_at"]),
+            models.Index(fields=["joined_beta_at"]),
+        ]
+
+    def __str__(self):
+        return (
+            f"Beta Profile for {self.user.email} (Score: {self.conversion_probability})"
+        )

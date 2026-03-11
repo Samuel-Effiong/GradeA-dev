@@ -4,6 +4,7 @@ from django.db.models import F
 from django.utils import timezone
 
 from .models import (  # CreditUsageLog,; SubscriptionPlan,
+    BetaProfile,
     CreditBucket,
     CreditBucketType,
     CreditLedger,
@@ -326,3 +327,127 @@ class SubscriptionService:
         usage_logs.save(update_fields=["is_refunded", "updated_at"])
 
         return total_refunded
+
+
+class AnalyticsService:
+
+    @staticmethod
+    def track_activity(user):
+        profile, created = BetaProfile.objects.get_or_create(user=user)
+        now = timezone.now()
+        today = now.date()
+
+        update_fields = ["last_active_at"]
+        profile.last_active_at = now
+
+        # Only increment distinct days if it's a new calendar day
+        if profile.last_login_date != today:
+            profile.distinct_login_days = F("distinct_login_days") + 1
+            profile.last_login_date = today
+            update_fields.extend(["distinct_login_days", "last_login_date"])
+
+        profile.save(update_fields=update_fields)
+
+    @staticmethod
+    @transaction.atomic
+    def record_consumption(user, amount, feature):
+        """
+        Update usage metrics in real-time
+        Called inside the 'consume_credits' flow
+
+        """
+        profile, created = BetaProfile.objects.get_or_create(user=user)
+        now = timezone.now()
+
+        # 1. Track First Action
+        if not profile.first_ai_action_at:
+            profile.first_ai_action_at = now
+
+            # Calculate days since joining
+            delta = now - profile.joined_beta_at
+            profile.days_to_first_action = max(0, delta.days)
+
+        # 2. Update Raw Total using F() expressions to prevent race conditions
+        profile.total_credits_used = F("total_credits_used") + amount
+
+        grading_categories = ["Grading Assignment"]
+        creation_categories = [
+            "Assignment Extraction",
+            "Answer Extraction",
+            "Assignment Generation",
+        ]
+
+        if feature in grading_categories:
+            profile.total_credits_used_grading = (
+                F("total_credits_used_grading") + amount
+            )
+        elif feature in creation_categories:
+            profile.credits_used_creation = F("credits_used_creation") + amount
+
+        profile.save()
+
+        # 3. Refresh from DB to check thresholds (after F() expressions is applied)
+        profile.refresh_from_db()
+
+        # Check Thresholds
+        usage_ratio = profile.total_credits_used / profile.initial_beta_credits
+
+        if usage_ratio >= 1.0:
+            profile.has_hit_cap = True
+        elif usage_ratio >= 0.8:
+            profile.has_hit_80_percent = True
+
+        profile.save(
+            update_fields=[
+                "has_hit_cap",
+                "has_hit_80_percent",
+                "first_ai_action_at",
+                "days_to_first_action",
+            ]
+        )
+
+    @staticmethod
+    def calculate_conversion_probability(profile):
+        """
+        The "Scoring Engine". Calculates probability from 0 - 100
+        Called by midnight
+        """
+        score = 0
+
+        # +30 points for high engagement (8+ distinct days)
+        if profile.distinct_login_days >= 8:
+            score += 30
+
+        # +30 point for high credit usage (80% or more)
+        if profile.has_hit_80_percent:
+            score += 30
+
+        # +20 point for "Sticky" users (Active in the last 7 days)
+        if profile.last_active_at:
+            days_since_active = (timezone.now() - profile.last_active_at).days
+            if days_since_active <= 7:
+                score += 20
+
+        # +20 points for "Core Use Case" (Grading > Creation)
+        if profile.credit_used_grading > profile.credit_used_creation:
+            score += 20
+
+        # Calculate Velocity (Credits per day)
+        days_since_joined = (timezone.now() - profile.joined_beta_at).days
+        profile.usage_velocity = profile.total_credits_used / days_since_joined
+
+        profile.conversion_probability = float(score)
+        profile.save(update_fields=["conversion_probability", "usage_velocity"])
+
+    @staticmethod
+    def track_analytics_view(user):
+        """
+        Increment the analytic view count for a user
+        Called when a teacher interacts with their performance dashboard
+        """
+
+        # We use F() to ensure the increment is atomic and thread-safe
+        BetaProfile.objects.filter(user=user).update(
+            analytics_view_count=F("analytics_view_count") + 1,
+            last_active_at=timezone.now(),
+        )
