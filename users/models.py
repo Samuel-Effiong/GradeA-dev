@@ -125,6 +125,7 @@ class CustomUser(AbstractUser):
         return self.activation_token
 
     def is_teacher(self):
+        """Love God"""
         if self.user_type == UserTypes.TEACHER:
             return True
         return False
