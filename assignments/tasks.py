@@ -1,9 +1,11 @@
 from celery import shared_task, states
+from django.db import transaction
 
 # from celery.exceptions import Ignore
 from django.utils import timezone
 
 from ai_processor.services import ai_processor
+from classrooms.models import Course, Topic
 from students.models import StudentSubmission
 from students.serializers import StudentSubmissionSerializer
 from students.services import grade_engine, upload_answers_engine
@@ -11,6 +13,7 @@ from users.models import CustomUser
 
 from .models import Assignment
 from .serializers import AssignmentSerializer
+from .services import AssignmentProcessingService
 
 
 @shared_task(bind=True)
@@ -66,7 +69,16 @@ def grade_all_submissions(self, user_id, assignment_id):
 
 
 @shared_task(bind=True)
-def extract_assignment_background_task(self, user, assignment_id, content):
+def extract_assignment_background_task(
+    self, user_id, assignment_id, content, raw_input=None, keep_existing_title=True
+):
+    print(
+        {
+            "user_id": user_id,
+            "assignment_id": assignment_id,
+            "keep_existing_title": keep_existing_title,
+        }
+    )
     try:
         self.update_state(
             state="PROGRESS", meta={"step": "Extracting assignment content"}
@@ -75,35 +87,46 @@ def extract_assignment_background_task(self, user, assignment_id, content):
         print("Extracting assignment content")
 
         assignment = Assignment.objects.get(id=assignment_id)
+        user = CustomUser.objects.get(id=user_id)
 
-        extraction_started_at = timezone.now()
-        assignment_questions = ai_processor.extract_assignment_with_retry(
-            user, content, max_retries=3
+        assignment = AssignmentProcessingService.update_assignment_from_extraction(
+            user,
+            assignment,
+            content,
+            raw_input=raw_input,
+            keep_existing_title=keep_existing_title,
         )
-        extraction_completed_at = timezone.now()
 
-        self.update_state(state="PROGRESS", meta={"step": "Saving assignment content"})
-
-        assignment_questions["ai_generated"] = True
-        ai_raw_payload = {
-            "title": (
-                assignment.title if assignment.title else assignment_questions["title"]
-            ),
-            "instructions": assignment_questions["instructions"],
-            "questions": assignment_questions["questions"],
-        }
-
-        print("Saving assignment content")
-
-        assignment_questions["ai_raw_payload"] = ai_raw_payload
-        assignment_questions["extraction_started_at"] = extraction_started_at
-        assignment_questions["extraction_completed_at"] = extraction_completed_at
-
-        serializer = AssignmentSerializer(
-            assignment, data=assignment_questions, partial=True
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+        #
+        #
+        # extraction_started_at = timezone.now()
+        # assignment_questions = ai_processor.extract_assignment_with_retry(
+        #     user, content, max_retries=3
+        # )
+        # extraction_completed_at = timezone.now()
+        #
+        # self.update_state(state="PROGRESS", meta={"step": "Saving assignment content"})
+        #
+        # assignment_questions["ai_generated"] = True
+        # ai_raw_payload = {
+        #     "title": (
+        #         assignment.title if assignment.title else assignment_questions["title"]
+        #     ),
+        #     "instructions": assignment_questions["instructions"],
+        #     "questions": assignment_questions["questions"],
+        # }
+        #
+        # print("Saving assignment content")
+        #
+        # assignment_questions["ai_raw_payload"] = ai_raw_payload
+        # assignment_questions["extraction_started_at"] = extraction_started_at
+        # assignment_questions["extraction_completed_at"] = extraction_completed_at
+        #
+        # serializer = AssignmentSerializer(
+        #     assignment, data=assignment_questions, partial=True
+        # )
+        # serializer.is_valid(raise_exception=True)
+        # serializer.save()
 
         print("Assignment saved successfully")
 
@@ -248,4 +271,82 @@ def formatted_grade_async(submission_id, user_prompt):
             "message": "Grade formatted successfully",
         }
     except Exception:
+        raise
+
+
+@shared_task(bind=True)
+def upload_assignment_async(self, *, user_id, course_id, topic_id=None, files_payload):
+    try:
+        self.update_state(state="PROGRESS", meta={"step": "Loading context"})
+
+        user = CustomUser.objects.get(id=user_id)
+        course = Course.objects.get(id=course_id, teacher=user)
+        topic = Topic.objects.get(id=topic_id) if topic_id else None
+
+        prompt_text = """
+        Analyze the image of an educational assignment and return a JSON
+
+        IMPORTANT: Return only valid JSON matching the required structure.
+        Do not include any explanatory text before or after the JSON
+        """
+
+        result = []
+        total_files = len(files_payload)
+
+        for index, file_payload in enumerate(files_payload, start=1):
+            self.update_state(
+                state="PROGRESS",
+                meta={
+                    "step": "Extracting assignment",
+                    "current": index,
+                    "total": total_files,
+                    "percent": (
+                        int((index - 1) / total_files * 100) if total_files else 0
+                    ),
+                    "file_name": file_payload.get("name"),
+                },
+            )
+
+            uploaded_file = AssignmentProcessingService.rebuild_uploaded_file(
+                file_payload
+            )
+            content = AssignmentProcessingService.prepare_ai_content(
+                uploaded_file, prompt_text
+            )
+            assignment_questions = AssignmentProcessingService.extract_assignment_data(
+                user,
+                content,
+                course=course,
+                topic=topic,
+                generate_raw_input=True,
+                upload=True,
+            )
+            result.append(assignment_questions)
+
+        self.update_state(state="PROGRESS", meta={"step": "Saving assignments"})
+
+        with transaction.atomic():
+            serializer = AssignmentSerializer(data=result, many=True)
+            serializer.is_valid(raise_exception=True)
+            assignments = serializer.save()
+
+        assignment_ids = [str(assignment.id) for assignment in assignments]
+
+        self.update_state(state="PROGRESS", meta={"step": "Completed", "percent": 100})
+
+        return {
+            "status": states.SUCCESS,
+            "message": "Assignments upload extraction successfully",
+            "assignment_ids": assignment_ids,
+            "created_count": len(assignment_ids),
+        }
+    except Exception as e:
+        self.update_state(
+            state=states.FAILURE,
+            meta={
+                "message": "Assignment upload extraction failed",
+                "error": str(e),
+            },
+        )
+
         raise

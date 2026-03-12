@@ -39,6 +39,8 @@ class Assignment(models.Model):
 
     title = models.CharField(max_length=255, null=True, blank=True, db_index=True)
     raw_input = models.TextField(null=True, blank=True)
+    raw_input_hash = models.CharField(max_length=64, editable=False, null=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     # AI GENERATED FIELDS
@@ -91,12 +93,19 @@ class Assignment(models.Model):
         related_name="assignments",
     )
 
+    # def save(self, *args, **kwargs):
+    #     self.raw_input_hash = hashlib.sha256(
+    #         self.raw_input.encode("utf-8")
+    #     ).hexdigest()
+    #
+    #     super().save(*args, **kwargs)
+
     class Meta:
         ordering = ["title"]
 
         constraints = [
             models.UniqueConstraint(
-                fields=["course", "title"],
+                fields=["course", "title", "raw_input_hash"],
                 name="unique_assignment_per_course",
             )
         ]

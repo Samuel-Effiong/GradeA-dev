@@ -1,3 +1,4 @@
+import hashlib
 import json
 
 from django.core.files.uploadedfile import UploadedFile
@@ -49,7 +50,11 @@ from .serializers import (  # RubricSerializer,
     GeneratedAssignmentSerializer,
 )
 from .services import AssignmentProcessingService
-from .tasks import extract_assignment_background_task, grade_all_submissions
+from .tasks import (
+    extract_assignment_background_task,
+    grade_all_submissions,
+    upload_assignment_async,
+)
 
 # from students.models import StudentSubmission
 
@@ -211,6 +216,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
         raw_input = serializer.validated_data.get("raw_input")
         course = serializer.validated_data.get("course")
         topic = serializer.validated_data.get("topic")
@@ -237,14 +243,15 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
         content = [{"type": "text", "text": text}]
 
-        serializer = AssignmentProcessingService.update_assignment_from_extraction(
-            request.user, assignment, content
+        assignment = AssignmentProcessingService.update_assignment_from_extraction(
+            request.user,
+            assignment,
+            content,
+            raw_input=raw_input,
+            keep_existing_title=True,
         )
 
-        # serializer = AssignmentProcessingService.extract_assignment(
-        #     request.user, assignment, content
-        # )
-
+        serializer = AssignmentListSerializer(assignment)
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
 
     @extend_schema(
@@ -265,6 +272,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
     @action(
         detail=False, methods=["post"], url_path="create-async", url_name="create-async"
     )
+    @transaction.atomic
     def create_async(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -274,11 +282,14 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         topic = serializer.validated_data.get("topic")
         title = serializer.validated_data.get("title")
 
+        raw_input_hash = hashlib.sha256(raw_input.encode("utf-8")).hexdigest()
+
         assignment = Assignment.objects.create(
             topic=topic,
             course=course,
             raw_input=raw_input,
             title=title,
+            raw_input_hash=raw_input_hash,
         )
 
         text = f"""
@@ -295,7 +306,13 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
         content = [{"type": "text", "text": text}]
 
-        task = extract_assignment_background_task.delay(str(assignment.id), content)
+        task = extract_assignment_background_task.delay(
+            str(request.user.id),
+            str(assignment.id),
+            content,
+            raw_input=raw_input,
+            keep_existing_title=True,
+        )
 
         data = {
             "assignment_id": assignment.id,
@@ -353,29 +370,37 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
             content = [{"type": "text", "text": text}]
 
-            extraction_started_at = timezone.now()
-
-            assignment_questions = ai_processor.extract_assignment_with_retry(
-                request.user, content, max_retries=3
+            instance = AssignmentProcessingService.update_assignment_from_extraction(
+                request.user,
+                instance,
+                content,
+                topic=topic,
+                raw_input=raw_input,
             )
-
-            extraction_completed_at = timezone.now()
-
-            assignment_questions["course"] = instance.course.id
-            assignment_questions["raw_input"] = raw_input
-
-            assignment_questions["extraction_started_at"] = extraction_started_at
-            assignment_questions["extraction_completed_at"] = extraction_completed_at
-
-            if topic:
-                assignment_questions["topic"] = topic.id
+            #
+            # extraction_started_at = timezone.now()
+            #
+            # assignment_questions = ai_processor.extract_assignment_with_retry(
+            #     request.user, content, max_retries=3
+            # )
+            #
+            # extraction_completed_at = timezone.now()
+            #
+            # assignment_questions["course"] = instance.course.id
+            # assignment_questions["raw_input"] = raw_input
+            #
+            # assignment_questions["extraction_started_at"] = extraction_started_at
+            # assignment_questions["extraction_completed_at"] = extraction_completed_at
+            #
+            # if topic:
+            #     assignment_questions["topic"] = topic.id
 
             # create assignment object
-            assignment_serializer = AssignmentSerializer(
-                instance=instance, data=assignment_questions, partial=True
-            )
-            assignment_serializer.is_valid(raise_exception=True)
-            instance = assignment_serializer.save()
+            # assignment_serializer = AssignmentSerializer(
+            #     instance=instance, data=assignment_questions, partial=True
+            # )
+            # assignment_serializer.is_valid(raise_exception=True)
+            # instance = assignment_serializer.save()
 
         else:
             instance.title = serializer.validated_data.get("title", instance.title)
@@ -531,7 +556,6 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             content = AssignmentProcessingService.prepare_ai_content(
                 uploaded_file, prompt_text
             )
-
             try:
                 assignment_questions = (
                     AssignmentProcessingService.extract_assignment_data(
@@ -543,48 +567,8 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                         upload=True,
                     )
                 )
-
                 results.append(assignment_questions)
 
-                # extraction_started_at = timezone.now()
-                #
-                # assignment_questions = ai_processor.extract_assignment_with_retry(
-                #     request.user, content, max_retries=3, upload=True
-                # )
-                #
-                # extraction_completed_at = timezone.now()
-                #
-                # assignment_questions["course"] = course.id
-                # assignment_questions["topic"] = topic.id if topic_id else None
-                # assignment_questions["ai_generated"] = False
-                #
-                # ai_raw_payload = {
-                #     "title": assignment_questions["title"],
-                #     "instructions": assignment_questions["instructions"],
-                #     "questions": assignment_questions["questions"],
-                # }
-                # assignment_questions["ai_raw_payload"] = ai_raw_payload
-                #
-                # # assignment_questions["ai_generated_at"] = timezone.now()
-                # assignment_questions["extraction_started_at"] = extraction_started_at
-                # assignment_questions["extraction_completed_at"] = (
-                #     extraction_completed_at
-                # )
-                #
-                # # convert questions to html
-                # assignment_html = (
-                #     AssignmentProcessingService.format_assignment_standard_html(
-                #         assignment_questions
-                #     )
-                # )
-                # raw_input = AssignmentProcessingService.html_to_prosemirror_json(
-                #     assignment_html
-                # )
-                #
-                # raw_input_str = json.dumps(raw_input)
-                # assignment_questions["raw_input"] = raw_input_str
-
-                # results.append(assignment_questions)
             except Exception as e:
                 raise ParseError(str(e)) from Exception
 
@@ -593,9 +577,115 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             instance = serializer.save()
 
-            serializer = AssignmentDetailSerializer(instance[0])
+            serializer = AssignmentListSerializer(instance, many=True)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @extend_schema(
+        tags=["Assignments"],
+        summary="Upload assignment files (images or PDFs)",
+        description="This endpoint allows users to upload one or more files. "
+        "The files can be either images (JPEG, PNG, etc.) or PDFs. "
+        "The system will process each file based on its type.",
+        request={
+            "multipart/form-data": {
+                "type": "object",
+                "properties": {
+                    "course": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "The UUID of the course this assignment belongs",
+                    },
+                    "topic": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": True,
+                        "description": "(Optional) The UUID of the topic this assignment belongs",
+                    },
+                    "assignments": {
+                        "type": "array",
+                        "items": {"type": "string", "format": "binary"},
+                        "description": "A list of files to upload. You can select one or multiple files to upload.",
+                    },
+                },
+            }
+        },
+        responses={
+            201: AssignmentDetailSerializer,
+            400: {
+                "description": "Bad Request. No files were uploaded or invalid file data.",
+                "example": {"error": "No files were uploaded."},
+            },
+            415: {
+                "description": "Unsupported Media Type. The uploaded file format is not allowed.",
+                "example": {
+                    "error": "File 'unsupported.txt' has an unsupported format. Only images and PDFs are allowed."
+                },
+            },
+        },
+    )
+    @action(
+        detail=False,
+        methods=["POST"],
+        url_path="upload-async",
+        url_name="upload-async",
+        permission_classes=[IsAuthenticated, IsTeacher],
+    )
+    def upload_assignment_async(self, request, *args, **kwargs):
+        course_id = request.data.get("course")
+        if not course_id:
+            raise ParseError("Course ID is required.")
+
+        # Validate course exists and user has access to it
+        try:
+            course = get_object_or_404(Course, id=course_id, teacher=request.user)
+        except (ValueError, ValidationError):
+            raise ParseError(
+                "Invalid Course ID format. Must be with a valid UUID"
+            ) from Exception
+        except Http404:
+            raise NotFound(
+                "Course not found or you don't have access to it."
+            ) from Http404
+
+        topic_value = request.data.get("topic", "")
+        topic_id = topic_value.strip() if isinstance(topic_value, str) else None
+
+        if topic_id:
+            topic = get_object_or_404(Topic, id=topic_id)
+        else:
+            topic = None
+
+        # Access files using request.FILES
+        files = request.FILES.getlist("assignments")
+
+        if not files:
+            raise ParseError("No files were uploaded.")
+
+        files_payload = []
+
+        for uploaded_file in files:
+            if not isinstance(uploaded_file, UploadedFile):
+                raise ParseError("Invalid file upload.")
+
+            files_payload.append(
+                AssignmentProcessingService.build_async_upload_payload(uploaded_file)
+            )
+
+        task = upload_assignment_async.delay(
+            user_id=str(request.user.id),
+            course_id=str(course.id),
+            topic_id=str(topic.id) if topic else None,
+            files_payload=files_payload,
+        )
+
+        data = {
+            "task_id": task.id,
+            "message": "Assignment upload extraction started",
+            "file_count": len(files_payload),
+        }
+
+        return Response(data, status=status.HTTP_202_ACCEPTED)
 
     @extend_schema(
         tags=["Assignments"],

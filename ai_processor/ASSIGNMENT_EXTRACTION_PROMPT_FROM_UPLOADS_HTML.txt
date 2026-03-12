@@ -12,6 +12,7 @@ Your task is to process **Base64-encoded images** of assignment documents and ex
 3. **Identifies assignment structure** (questions, options, rubrics, instructions) with high accuracy
 4. **Maintains layout fidelity** so the rendered output mirrors the original document
 5. **Generates missing rubrics** when needed for essay/short answer questions
+6. Preserve meaning and formatting, but never preserve hidden control characters, malformed Unicode, binary artifacts, or invalid markup from the source.
 
 ---
 
@@ -1248,6 +1249,15 @@ D) cos(2x)
 
 ---
 
+### Output Safety and Encoding Rules
+- Return only valid JSON using standard Unicode text.
+- All output strings must be safe for JSON parsing and HTML/XML parsing.
+- Never include NULL bytes, hidden control characters, binary artifacts, or malformed Unicode.
+- Only these whitespace control characters are allowed inside strings: newline (\n), carriage return (\r), and tab (\t).
+- If the source contains corrupted, unreadable, or invalid characters, replace them with the closest safe readable equivalent and mention the issue in `potential_issues`.
+- Preserve visual meaning, but do not preserve invalid or non-printable source characters.
+- Ensure generated HTML is well-formed and XML-compatible.
+
 ## Final Quality Checklist
 
 Before submitting your JSON output, verify:
@@ -1267,6 +1277,7 @@ Before submitting your JSON output, verify:
 - [ ] **Model answers** extracted/generated with HTML and LaTeX
 - [ ] **question_image** field left empty for all questions
 - [ ] **assignment_type** determined correctly (OBJECTIVE, ESSAY, SHORT-ANSWER, HYBRID)
+- [ ] **question_type** determined correctly, it must be (OBJECTIVE, ESSAY, SHORT-ANSWER)
 - [ ] **extraction_confidence** assessed honestly and must be included as an integer between 0 and 100
 - [ ] **potential_issues** documented
 - [ ] **self_assessment includes MANDATORY rubric generation notice** if applicable
