@@ -15,10 +15,11 @@ from django.db.models import (
 )
 from django.db.models.functions import Cast
 from django.utils import timezone
-from django.utils.decorators import method_decorator
 from django.utils.text import gettext_lazy as _
-from django.views.decorators.cache import cache_page
-from django.views.decorators.vary import vary_on_headers
+
+# from django.views.decorators.cache import cache_page
+# from django.utils.decorators import method_decorator
+# from django.views.decorators.vary import vary_on_headers
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import viewsets
@@ -78,8 +79,8 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         """,
         responses={200: PlatformAdoptionSerializer},
     )
-    @method_decorator(cache_page(60 * 30, key_prefix="superadmin:dashboard:adoption"))
-    @method_decorator(vary_on_headers("Authorization"))
+    # @method_decorator(cache_page(60 * 30, key_prefix="superadmin:dashboard:adoption"))
+    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/adoption")
     def platform_adoption(self, request, *args, **kwargs):
         now = timezone.now()
@@ -156,8 +157,8 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         """,
         responses={200: PlatformUsageSerializer},
     )
-    @method_decorator(cache_page(60 * 30, key_prefix="superadmin:dashboard:usage"))
-    @method_decorator(vary_on_headers("Authorization"))
+    # @method_decorator(cache_page(60 * 30, key_prefix="superadmin:dashboard:usage"))
+    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/usage")
     def platform_usage(self, request, *args, **kwargs):
         # BASE QUERYSETS
@@ -256,10 +257,10 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         """,
         responses={200: PlatformAIPerformanceSerializer},
     )
-    @method_decorator(
-        cache_page(60 * 30, key_prefix="superadmin:dashboard:performance")
-    )
-    @method_decorator(vary_on_headers("Authorization"))
+    # @method_decorator(
+    #     cache_page(60 * 30, key_prefix="superadmin:dashboard:performance")
+    # )
+    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/ai_performance")
     def platform_ai_performance(self, request, *args, **kwargs):
         assignments = Assignment.objects.all()
@@ -383,10 +384,10 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         """,
         responses={200: ScalingSignalsSerializer},
     )
-    @method_decorator(
-        cache_page(60 * 30, key_prefix="superadmin:dashboard:scaling_signals")
-    )
-    @method_decorator(vary_on_headers("Authorization"))
+    # @method_decorator(
+    #     cache_page(60 * 30, key_prefix="superadmin:dashboard:scaling_signals")
+    # )
+    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/scaling_signals")
     def scaling_signals(self, request, *args, **kwargs):
         """
@@ -463,8 +464,8 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         return Response(serializer.data)
 
     @extend_schema(tags=["Super Admin"])
-    @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:summary"))
-    @method_decorator(vary_on_headers("Authorization"))
+    # @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:summary"))
+    # @method_decorator(vary_on_headers("Authorization"))
     def summary(self, request, *args, **kwargs):
         # Implementation for summary endpoint
 
@@ -567,8 +568,8 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         """,
         responses={200: SchoolAnalyticsSerializer(many=True)},
     )
-    @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:schools"))
-    @method_decorator(vary_on_headers("Authorization"))
+    # @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:schools"))
+    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/schools")
     def schools(self, request, *args, **kwargs):
 
@@ -632,8 +633,8 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         """,
         responses={200: TeacherPerformanceSerializer(many=True)},
     )
-    @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:teachers"))
-    @method_decorator(vary_on_headers("Authorization"))
+    # @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:teachers"))
+    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/teachers")
     def teachers(self, request, *args, **kwargs):
         """
@@ -707,8 +708,8 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         """,
         responses={200: SuperAdminStudentPerformanceSerializer},
     )
-    @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:students"))
-    @method_decorator(vary_on_headers("Authorization"))
+    # @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:students"))
+    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/students")
     def students(self, request, *args, **kwargs):
         stats = StudentCourse.objects.active().aggregate(
@@ -775,8 +776,8 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         ],
         responses={200: ConcurrencySerializer},
     )
-    @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:concurrency"))
-    @method_decorator(vary_on_headers("Authorization"))
+    # @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:concurrency"))
+    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/concurrency")
     def concurrency(self, request, *args, **kwargs):
         range_key: str = request.query_params.get("range", "daily")
@@ -815,8 +816,8 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         """,
         responses={200: SchoolAdminSummarySerializer},
     )
-    @method_decorator(cache_page(60 * 3, key_prefix="schooladmin:dashboard:summary"))
-    @method_decorator(vary_on_headers("Authorization"))
+    # @method_decorator(cache_page(60 * 3, key_prefix="schooladmin:dashboard:summary"))
+    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/summary")
     def summary(self, request, *args, **kwargs):
         user = request.user
@@ -879,8 +880,8 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         """,
         responses={200: SchoolAdminTeacherPerformanceSerializer(many=True)},
     )
-    @method_decorator(cache_page(60 * 3, key_prefix="schooladmin:dashboard:teachers"))
-    @method_decorator(vary_on_headers("Authorization"))
+    # @method_decorator(cache_page(60 * 3, key_prefix="schooladmin:dashboard:teachers"))
+    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/teachers")
     def teachers(self, request, *args, **kwargs):
         """
@@ -965,8 +966,8 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         """,
         responses={200: SchoolAdminStudentPerformanceSerializer},
     )
-    @method_decorator(cache_page(60 * 3, key_prefix="schooladmin:dashboard:students"))
-    @method_decorator(vary_on_headers("Authorization"))
+    # @method_decorator(cache_page(60 * 3, key_prefix="schooladmin:dashboard:students"))
+    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/students")
     def students(self, request, *args, **kwargs):
         user = request.user
@@ -1052,8 +1053,8 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         ],
         responses={200: TeacherDashboardOverviewSerializer},
     )
-    @method_decorator(cache_page(60 * 3, key_prefix="teacheradmin:dashboard:overview"))
-    @method_decorator(vary_on_headers("Authorization"))
+    # @method_decorator(cache_page(60 * 3, key_prefix="teacheradmin:dashboard:overview"))
+    # @method_decorator(vary_on_headers("Authorization"))
     @action(
         detail=False,
         methods=["get"],
@@ -1122,8 +1123,8 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         ],
         responses={200: TeacherCourseAnalyticsSerializer},
     )
-    @method_decorator(cache_page(60 * 3, key_prefix="teacheradmin:dashboard:courses"))
-    @method_decorator(vary_on_headers("Authorization"))
+    # @method_decorator(cache_page(60 * 3, key_prefix="teacheradmin:dashboard:courses"))
+    # @method_decorator(vary_on_headers("Authorization"))
     @action(
         detail=False,
         methods=["get"],
@@ -1244,10 +1245,10 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         ],
         responses={200: TeacherAssignmentAnalyticsSerializer},
     )
-    @method_decorator(
-        cache_page(60 * 3, key_prefix="teacheradmin:dashboard:assignments")
-    )
-    @method_decorator(vary_on_headers("Authorization"))
+    # @method_decorator(
+    #     cache_page(60 * 3, key_prefix="teacheradmin:dashboard:assignments")
+    # )
+    # @method_decorator(vary_on_headers("Authorization"))
     @action(
         detail=False,
         methods=["get"],
@@ -1329,8 +1330,8 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         ],
         responses={200: TeacherStudentAnalyticsSerializer(many=True)},
     )
-    @method_decorator(cache_page(60 * 3, key_prefix="teacheradmin:dashboard:students"))
-    @method_decorator(vary_on_headers("Authorization"))
+    # @method_decorator(cache_page(60 * 3, key_prefix="teacheradmin:dashboard:students"))
+    # @method_decorator(vary_on_headers("Authorization"))
     @action(
         detail=False,
         methods=["get"],
@@ -1459,8 +1460,8 @@ class StudentAdminDashboardView(viewsets.ViewSet):
         ],
         responses={200: CourseAnalyticsSerializer},
     )
-    @method_decorator(cache_page(60 * 5, key_prefix="studentadmin:dashboard:summary"))
-    @method_decorator(vary_on_headers("Authorization"))
+    # @method_decorator(cache_page(60 * 5, key_prefix="studentadmin:dashboard:summary"))
+    # @method_decorator(vary_on_headers("Authorization"))
     @action(
         detail=False,
         methods=["get"],
@@ -1561,10 +1562,10 @@ class StudentAdminDashboardView(viewsets.ViewSet):
         ],
         responses={200: StudentAssignmentListSerializer(many=True)},
     )
-    @method_decorator(
-        cache_page(60 * 5, key_prefix="studentadmin:dashboard:assignments")
-    )
-    @method_decorator(vary_on_headers("Authorization"))
+    # @method_decorator(
+    #     cache_page(60 * 5, key_prefix="studentadmin:dashboard:assignments")
+    # )
+    # @method_decorator(vary_on_headers("Authorization"))
     @action(
         detail=False,
         methods=["get"],
