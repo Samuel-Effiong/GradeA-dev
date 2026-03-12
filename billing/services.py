@@ -373,7 +373,6 @@ class AnalyticsService:
         grading_categories = ["Grading Assignment"]
         creation_categories = [
             "Assignment Extraction",
-            "Answer Extraction",
             "Assignment Generation",
         ]
 

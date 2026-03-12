@@ -1,5 +1,6 @@
 from django.db.models import F, Sum
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from users.models import CustomUser
@@ -50,6 +51,20 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
             "carry_over_max": {"write_only": True},
             "overage_block_size": {"write_only": True},
         }
+
+    @extend_schema_field(int)
+    def get_display_monthly_credits(self, obj) -> int:
+        return obj.display_monthly_credits
+
+    def get_display_carry_over_max(
+        self, obj
+    ) -> int:  # Adjust to str if it's formatted as string
+        return obj.display_carry_over_max
+
+    def get_display_overage_block_size(
+        self, obj
+    ) -> int:  # Adjust to str if it's formatted as string
+        return obj.display_overage_block_size
 
 
 class UserSubscriptionSerializer(serializers.ModelSerializer):
@@ -133,7 +148,7 @@ class CreditWalletSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["created_at", "updated_at"]
 
-    def get_total_remaining_credits(self, obj):
+    def get_total_remaining_credits(self, obj) -> int:
         return obj.total_remaining_credits()
 
     def create(self, validated_data):
@@ -223,10 +238,10 @@ class CreditWalletSummarySerializer(serializers.ModelSerializer):
             "total_credits",
         ]
 
-    def get_total_remaining_credits(self, obj):
+    def get_total_remaining_credits(self, obj) -> int:
         return obj.total_remaining_credits()
 
-    def get_active_buckets_count(self, obj):
+    def get_active_buckets_count(self, obj) -> int:
         return obj.buckets.filter(expires_at__gt=timezone.now()).count()
 
 
@@ -260,11 +275,11 @@ class OverageStatusSerializer(serializers.ModelSerializer):
             "current_overage_balance",
         ]
 
-    def get_block_remaining(self, obj):
+    def get_block_remaining(self, obj) -> int:
         plan = obj.user.subscriptions.filter(is_active=True).first().plan
         return max(0, plan.max_overage_blocks - obj.overage_blocks_used)
 
-    def get_current_overage_balance(self, obj):
+    def get_current_overage_balance(self, obj) -> int:
         return (
             obj.buckets.filter(bucket_type=CreditBucketType.OVERAGE).aggregate(
                 total=Sum(F("total_credits") - F("used_credits"))
@@ -276,6 +291,7 @@ class OverageStatusSerializer(serializers.ModelSerializer):
 class CarryOverHistorySerializer(serializers.ModelSerializer):
     days_until_expiry = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
+    remaining_credits = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = CreditBucket
@@ -290,13 +306,16 @@ class CarryOverHistorySerializer(serializers.ModelSerializer):
             "status",
         ]
 
-    def get_days_until_expiry(self, obj):
+    def get_remaining_credits(self, obj) -> int:
+        return obj.remaining_credits
+
+    def get_days_until_expiry(self, obj) -> int | None:
         if not obj.expires_at:
             return None
         delta = obj.expires_at - timezone.now()
         return max(0, delta.days)
 
-    def get_status(self, obj):
+    def get_status(self, obj) -> str:
         if obj.is_expired:
             return "expired"
         if obj.remaining_credits == 0:
@@ -309,15 +328,15 @@ class BetaSummarySerializer(serializers.Serializer):
     active_last_7_days_percent = serializers.FloatField()
     avg_credits_used = serializers.FloatField()
     percent_users_at_cap = serializers.FloatField()
-    avg_days_to_action = serializers.FloatField()
+    avg_days_to_first_action = serializers.FloatField()
 
 
 class BetaCohortStatsSerializer(serializers.Serializer):
     standard_allocation = serializers.IntegerField()
     total_users_analyzed = serializers.IntegerField()
-    average_credits_used = serializers.FloatField()
-    median_credits_used = serializers.FloatField()
-    p90_credits_used = serializers.FloatField()
+    average_credit_used = serializers.FloatField()
+    median_credit_used = serializers.FloatField()
+    p90_credit_used = serializers.FloatField()
     average_days_to_reach_cap = serializers.IntegerField()
     percent_unused_credits = serializers.FloatField()
 

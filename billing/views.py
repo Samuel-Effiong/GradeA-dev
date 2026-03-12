@@ -5,9 +5,10 @@ from django.db.models.aggregates import Avg, Count
 from django.db.models.functions import ExtractHour, TruncDay, TruncWeek
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
-from django.views.decorators.vary import vary_on_headers
+
+# from django.utils.decorators import method_decorator
+# from django.views.decorators.cache import cache_page
+# from django.views.decorators.vary import vary_on_headers
 from django_filters.rest_framework import DjangoFilterBackend
 
 # from drf_spectacular.types import OpenApiTypes
@@ -886,6 +887,14 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
         serializer = CreditBucketSerializer(queryset, many=True)
         return Response(serializer.data)
 
+    @extend_schema(
+        tags=["Subscription"],
+        summary="Get credit overage status",
+        description="Get credit overage status for the user.",
+        responses={
+            200: OpenApiResponse(response=OverageStatusSerializer),
+        },
+    )
     @action(
         detail=False,
         methods=["GET"],
@@ -924,6 +933,14 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
 class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = BetaProfile.objects.all()
     permission_classes = [IsSuperAdmin]
+
+    @extend_schema(exclude=True)
+    def retrieve(self, request, *args, **kwargs):
+        raise NotImplementedError("Should not be called")
+
+    @extend_schema(exclude=True)
+    def list(self, request, *args, **kwargs):
+        raise NotImplementedError("Should not be called")
 
     @extend_schema(
         tags=["Beta Analytics"],
@@ -973,8 +990,8 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             ),
         },
     )
-    @method_decorator(cache_page(60 * 15, key_prefix="beta:summary"))
-    @method_decorator(vary_on_headers("Authorization"))
+    # @method_decorator(cache_page(60 * 15, key_prefix="beta:summary"))
+    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["GET"], url_path="beta/summary")
     def summary(self, request, *args, **kwargs):
         now = timezone.now()
@@ -1066,8 +1083,11 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
 
         # 2. Statistical Calculations
         # Median (50th Percentile) and P90 (90th Percentile)
-        median_credits = usage_values[int(count * 0.5)]
-        p90_credits = usage_values[int(count * 0.9)]
+        median_index = min(int(count * 0.5), count - 1)
+        p90_index = min(int(count * 0.9), count - 1)
+
+        median_credits = usage_values[median_index]
+        p90_credits = usage_values[p90_index]
 
         # Aggregates for Average and Time-to-Cap
         # We filter for users who have actually used credits to get an accurate 'Time-to-cap'
@@ -1075,11 +1095,17 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             avg_used=Avg("total_credits_used"),
             avg_days_to_cap=Avg(
                 F("last_active_at__date") - F("joined_beta_at__date"),
-                filter=Q(has_hit_cap=True),
+                filter=Q(
+                    has_hit_cap=True,
+                    last_active_at__isnull=False,
+                    joined_beta_at__isnull=False,
+                ),
             ),
         )
 
         avg_used = aggregates["avg_used"] or 0
+        avg_days_delta = aggregates["avg_days_to_cap"]
+        avg_days_to_reach_cap = avg_days_delta.days if avg_days_delta is not None else 0
         standard_allocation = 10_000_000
 
         # Calculate the percentage of total granted credits that remain unspent
@@ -1093,7 +1119,7 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             "average_credit_used": round(avg_used, 0),
             "median_credit_used": median_credits,
             "p90_credit_used": p90_credits,
-            "average_days_to_cap": round(aggregates["avg_days_to_cap"].days, 1),
+            "average_days_to_reach_cap": avg_days_to_reach_cap,
             "percent_unused_credits": round(unused_credits_pct, 2),
         }
 
@@ -1142,13 +1168,13 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             total_spent=Sum("total_credits_used"),
             total_grading=Sum("credits_used_grading"),
             total_creation=Sum("credits_used_creation"),
-            total_views=Sum("analytic_view_count"),
+            total_views=Sum("analytics_view_count"),
             # To calculate dept, we need to know how many actual tasks were run
             # We fetch this count from the related CreditUsageLog
             total_grading_events=Count(
                 "user__credit_wallet__credit_usage_logs",
                 filter=Q(
-                    user_credit_wallet__credit_usage_logs__feature="Grading Assignment"
+                    user__credit_wallet__credit_usage_logs__feature="Grading Assignment"
                 ),
             ),
         )
