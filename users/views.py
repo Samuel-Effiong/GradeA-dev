@@ -15,9 +15,10 @@ from django.conf import settings
 # from django.core.mail import send_mail
 from django.db import transaction
 from django.utils import timezone
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
-from django.views.decorators.vary import vary_on_headers
+
+# from django.utils.decorators import method_decorator
+# from django.views.decorators.cache import cache_page
+# from django.views.decorators.vary import vary_on_headers
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
@@ -235,13 +236,13 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             )
         return super().create(request, *args, **kwargs)
 
-    @method_decorator(cache_page(60 * 5, key_prefix="users:list"))
-    @method_decorator(vary_on_headers("Authorization"))
+    # @method_decorator(cache_page(60 * 5, key_prefix="users:list"))
+    # @method_decorator(vary_on_headers("Authorization"))
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
-    @method_decorator(cache_page(60 * 5, key_prefix="users:detail"))
-    @method_decorator(vary_on_headers("Authorization"))
+    # @method_decorator(cache_page(60 * 5, key_prefix="users:detail"))
+    # @method_decorator(vary_on_headers("Authorization"))
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
@@ -268,8 +269,8 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             ),
         },
     )
-    @method_decorator(cache_page(60 * 60, key_prefix="users:detail:me"))
-    @method_decorator(vary_on_headers("Authorization"))
+    # @method_decorator(cache_page(60 * 60, key_prefix="users:detail:me"))
+    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"])
     def me(self, request):
         """
