@@ -16,6 +16,11 @@ class AssignmentTypes(models.TextChoices):
     HYBRID = "HYBRID", _("HYBRID")
 
 
+class AssignmentStatus(models.TextChoices):
+    DRAFT = "DRAFT", _("DRAFT")
+    PUBLISHED = "PUBLISHED", _("PUBLISHED")
+
+
 class Assignment(models.Model):
 
     # REQUIRED FIELD NEEDED TO CREATE MODEL
@@ -67,6 +72,10 @@ class Assignment(models.Model):
     extraction_started_at = models.DateTimeField(null=True, blank=True)
     extraction_completed_at = models.DateTimeField(null=True, blank=True)
 
+    status = models.CharField(
+        max_length=20, choices=AssignmentStatus.choices, default=AssignmentStatus.DRAFT
+    )
+
     # grading_status = models.CharField(
     #     max_length=20,
     #     choices=[("NOT_STARTED", "NOT STARTED"), ("COMPLETED", "COMPLETED")],
@@ -91,22 +100,3 @@ class Assignment(models.Model):
                 name="unique_assignment_per_course",
             )
         ]
-
-
-# class Rubric(models.Model):
-#     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-#     assignment = models.OneToOneField(
-#         Assignment, on_delete=models.CASCADE, related_name="rubric"
-#     )
-#     criteria = models.JSONField()
-#     created_at = models.DateTimeField(auto_now_add=True)
-#     updated_at = models.DateTimeField(auto_now=True)
-
-#     def __str__(self):
-#         return f"Rubric for {self.assignment.title}"
-
-#     def has_criteria(self):
-#         return True if self.criteria else False
-
-#     def get_rubric_criteria_json(self):
-#         return self.criteria

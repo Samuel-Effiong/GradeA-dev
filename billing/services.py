@@ -370,11 +370,17 @@ class AnalyticsService:
         # 2. Update Raw Total using F() expressions to prevent race conditions
         profile.total_credits_used = F("total_credits_used") + amount
 
-        if feature == "Grading":
+        grading_categories = ["Grading Assignment"]
+        creation_categories = [
+            "Assignment Extraction",
+            "Assignment Generation",
+        ]
+
+        if feature in grading_categories:
             profile.total_credits_used_grading = (
                 F("total_credits_used_grading") + amount
             )
-        elif feature == "Assignment":
+        elif feature in creation_categories:
             profile.credits_used_creation = F("credits_used_creation") + amount
 
         profile.save()
@@ -431,3 +437,16 @@ class AnalyticsService:
 
         profile.conversion_probability = float(score)
         profile.save(update_fields=["conversion_probability", "usage_velocity"])
+
+    @staticmethod
+    def track_analytics_view(user):
+        """
+        Increment the analytic view count for a user
+        Called when a teacher interacts with their performance dashboard
+        """
+
+        # We use F() to ensure the increment is atomic and thread-safe
+        BetaProfile.objects.filter(user=user).update(
+            analytics_view_count=F("analytics_view_count") + 1,
+            last_active_at=timezone.now(),
+        )

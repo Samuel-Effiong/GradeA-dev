@@ -728,11 +728,14 @@ Now, respond to the following teacher's instruction using the rules above
             # total_prompt += user_prompt
 
         if system_prompt:
-            for prompt in system_prompt:
-                if prompt["type"] == "text":
-                    total_prompt += prompt["text"]
-                elif prompt["type"] == "image_url":
-                    image_bytes.append(prompt.pop("bytes"))
+            if isinstance(system_prompt, str):
+                total_prompt += system_prompt
+            else:
+                for prompt in system_prompt:
+                    if prompt["type"] == "text":
+                        total_prompt += prompt["text"]
+                    elif prompt["type"] == "image_url":
+                        image_bytes.append(prompt.pop("bytes"))
 
         if messages:
             for message in messages:

@@ -253,19 +253,16 @@ class CreditWallet(models.Model):
         total_available = self.total_remaining_credits()
 
         while total_available < amount:
-
             # from .services import SubscriptionService
 
             # success = SubscriptionService.purchase_overage_block(wallet=self)
-
-            success = True
-
-            if not success:
-                available_credits = self.total_remaining_credits()
-                raise InsufficientCreditsError(
-                    f"Insufficient credits and overage limit reached. "
-                    f"Requested: {amount}, Available: {available_credits}"
-                )
+            #
+            # if not success:
+            #     available_credits = self.total_remaining_credits()
+            raise InsufficientCreditsError(
+                f"Insufficient credits and overage limit reached. "
+                f"Requested: {amount}, Available: {total_available}"
+            )
 
         # Define FIFO consumption order
         fifo_order = [

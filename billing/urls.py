@@ -1,6 +1,7 @@
 from rest_framework.routers import DefaultRouter
 
 from .views import (
+    BetaAnalyticViewSet,
     CreditBucketViewSet,
     CreditLedgerViewSet,
     CreditUsageLogViewSet,
@@ -23,7 +24,7 @@ router.register(r"credit-ledgers", CreditLedgerViewSet, basename="credit-ledger"
 router.register(
     r"credit-usage-logs", CreditUsageLogViewSet, basename="credit-usage-log"
 )
-
 router.register(r"subscription", SubscriptionManagementViewSet, basename="subscription")
+router.register(r"analytics", BetaAnalyticViewSet, basename="analytics")
 
 urlpatterns = router.urls

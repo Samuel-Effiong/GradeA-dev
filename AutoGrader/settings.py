@@ -208,12 +208,12 @@ USE_TZ = True
 
 # Celery Configuration Options
 CELERY_BROKER_URL = (
-    env.str("REDIS_URL")
+    env.str("REDIS_LOCAL_URL")
     if ENVIRONMENT == "local"
     else env.str("REDIS_DEV_URL") if ENVIRONMENT == "dev" else env.str("REDIS_PROD_URL")
 )
 CELERY_RESULT_BACKEND = (
-    env.str("REDIS_URL")
+    env.str("REDIS_LOCAL_URL")
     if ENVIRONMENT == "local"
     else env.str("REDIS_DEV_URL") if ENVIRONMENT == "dev" else env.str("REDIS_PROD_URL")
 )
@@ -397,7 +397,7 @@ CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": (
-            env.str("REDIS_URL")
+            env.str("REDIS_LOCAL_URL")
             if ENVIRONMENT == "local"
             else (
                 env.str("REDIS_DEV_URL")

@@ -85,14 +85,17 @@ def student_submission_to_html(submission) -> str:
     """
 
 
-def grade_engine(submission):
+def grade_engine(user, submission):
     from assignments.tasks import formatted_grade_async
 
     answer_json = submission.get_answer()
     submission.ai_graded_at = timezone.now()
 
     grading = ai_processor.extract_grade_with_retry(
-        submission.assignment.questions, answer_json
+        user,
+        submission.assignment.questions,
+        answer_json,
+        assignment_model=submission.assignment,
     )
 
     submission.ai_grading_completed_at = timezone.now()
@@ -135,7 +138,7 @@ def upload_answers_engine(assignment, content, user):
     """
 
     student_submission = ai_processor.extract_answer_with_retry(
-        content, assignment_context, max_retries=3
+        user, content, assignment_context, assignment_model=assignment, max_retries=3
     )
 
     if student_submission is not None:
