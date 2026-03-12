@@ -314,7 +314,10 @@ class CourseViewSet(viewsets.ModelViewSet):
                     if StudentCourse.objects.filter(
                         student=student, course=course
                     ).exists():
-                        raise ParseError("Student is already enrolled in this course.")
+                        return Response(
+                            {"detail": "Student is already enrolled in this course."},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
 
                     StudentCourse.objects.create(
                         student=student,

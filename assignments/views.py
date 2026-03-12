@@ -237,9 +237,13 @@ class AssignmentViewSet(viewsets.ModelViewSet):
 
         content = [{"type": "text", "text": text}]
 
-        serializer = AssignmentProcessingService.extract_assignment(
+        serializer = AssignmentProcessingService.update_assignment_from_extraction(
             request.user, assignment, content
         )
+
+        # serializer = AssignmentProcessingService.extract_assignment(
+        #     request.user, assignment, content
+        # )
 
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
 
@@ -495,7 +499,8 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                 "Course not found or you don't have access to it."
             ) from Http404
 
-        topic_id = request.data.get("topic").strip()
+        topic_value = request.data.get("topic", "")
+        topic_id = topic_value.strip() if isinstance(topic_value, str) else None
 
         if topic_id:
             topic = get_object_or_404(Topic, id=topic_id)
@@ -528,46 +533,58 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             )
 
             try:
-
-                extraction_started_at = timezone.now()
-
-                assignment_questions = ai_processor.extract_assignment_with_retry(
-                    request.user, content, max_retries=3, upload=True
-                )
-
-                extraction_completed_at = timezone.now()
-
-                assignment_questions["course"] = course.id
-                assignment_questions["topic"] = topic.id if topic_id else None
-                assignment_questions["ai_generated"] = False
-
-                ai_raw_payload = {
-                    "title": assignment_questions["title"],
-                    "instructions": assignment_questions["instructions"],
-                    "questions": assignment_questions["questions"],
-                }
-                assignment_questions["ai_raw_payload"] = ai_raw_payload
-
-                # assignment_questions["ai_generated_at"] = timezone.now()
-                assignment_questions["extraction_started_at"] = extraction_started_at
-                assignment_questions["extraction_completed_at"] = (
-                    extraction_completed_at
-                )
-
-                # convert questions to html
-                assignment_html = (
-                    AssignmentProcessingService.format_assignment_standard_html(
-                        assignment_questions
+                assignment_questions = (
+                    AssignmentProcessingService.extract_assignment_data(
+                        request.user,
+                        content,
+                        course=course,
+                        topic=topic,
+                        generate_raw_input=True,
+                        upload=True,
                     )
                 )
-                raw_input = AssignmentProcessingService.html_to_prosemirror_json(
-                    assignment_html
-                )
-
-                raw_input_str = json.dumps(raw_input)
-                assignment_questions["raw_input"] = raw_input_str
 
                 results.append(assignment_questions)
+
+                # extraction_started_at = timezone.now()
+                #
+                # assignment_questions = ai_processor.extract_assignment_with_retry(
+                #     request.user, content, max_retries=3, upload=True
+                # )
+                #
+                # extraction_completed_at = timezone.now()
+                #
+                # assignment_questions["course"] = course.id
+                # assignment_questions["topic"] = topic.id if topic_id else None
+                # assignment_questions["ai_generated"] = False
+                #
+                # ai_raw_payload = {
+                #     "title": assignment_questions["title"],
+                #     "instructions": assignment_questions["instructions"],
+                #     "questions": assignment_questions["questions"],
+                # }
+                # assignment_questions["ai_raw_payload"] = ai_raw_payload
+                #
+                # # assignment_questions["ai_generated_at"] = timezone.now()
+                # assignment_questions["extraction_started_at"] = extraction_started_at
+                # assignment_questions["extraction_completed_at"] = (
+                #     extraction_completed_at
+                # )
+                #
+                # # convert questions to html
+                # assignment_html = (
+                #     AssignmentProcessingService.format_assignment_standard_html(
+                #         assignment_questions
+                #     )
+                # )
+                # raw_input = AssignmentProcessingService.html_to_prosemirror_json(
+                #     assignment_html
+                # )
+                #
+                # raw_input_str = json.dumps(raw_input)
+                # assignment_questions["raw_input"] = raw_input_str
+
+                # results.append(assignment_questions)
             except Exception as e:
                 raise ParseError(str(e)) from Exception
 

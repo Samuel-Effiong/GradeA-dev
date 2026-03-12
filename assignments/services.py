@@ -1,3 +1,4 @@
+import json
 import string
 from datetime import datetime
 from pathlib import Path
@@ -486,7 +487,18 @@ class AssignmentProcessingService:
         return "\n".join(html_output)
 
     @classmethod
-    def extract_assignment(cls, user, assignment, content):
+    def extract_assignment_data(
+        cls,
+        user,
+        content,
+        *,
+        assignment=None,
+        course=None,
+        topic=None,
+        keep_existing_title=False,
+        generate_raw_input=False,
+        upload=False,
+    ) -> dict:
 
         print("Extracting assignment content")
 
@@ -494,33 +506,65 @@ class AssignmentProcessingService:
 
         extraction_started_at = timezone.now()
         assignment_questions = ai_processor.extract_assignment_with_retry(
-            user, content, max_retries=3
+            user, content, max_retries=3, upload=upload
         )
-
-        if assignment.title:
-            assignment_questions["title"] = assignment.title
-
         extraction_completed_at = timezone.now()
 
+        if keep_existing_title and assignment and assignment.title:
+            assignment_questions["title"] = assignment.title
+
         assignment_questions["ai_generated"] = False
-        ai_raw_payload = {
+        assignment_questions["ai_raw_payload"] = {
             "title": (assignment_questions["title"]),
             "instructions": assignment_questions["instructions"],
             "questions": assignment_questions["questions"],
         }
 
-        assignment_questions["ai_raw_payload"] = ai_raw_payload
         assignment_questions["extraction_started_at"] = extraction_started_at
         assignment_questions["extraction_completed_at"] = extraction_completed_at
 
-        serializer = AssignmentSerializer(
-            assignment, data=assignment_questions, partial=True
+        if course is not None:
+            assignment_questions["course"] = (
+                course.id if hasattr(course, "id") else course
+            )
+
+        if topic is not None:
+            assignment_questions["topic"] = topic.id if hasattr(topic, "id") else topic
+
+        if generate_raw_input:
+            assignment_html = cls.format_assignment_standard_html(assignment_questions)
+            raw_input = cls.html_to_prosemirror_json(assignment_html)
+            assignment_questions["raw_input"] = json.dumps(raw_input)
+
+        return assignment_questions
+
+        # serializer = AssignmentSerializer(
+        #     assignment, data=assignment_questions, partial=True
+        # )
+        # serializer.is_valid(raise_exception=True)
+        # serializer.save()
+        #
+        # serializer = AssignmentListSerializer(assignment)
+        #
+        # print("Assignment saved successfully")
+        #
+        # return serializer
+
+    @classmethod
+    def update_assignment_from_extraction(cls, user, assignment, content):
+        assignment_data = cls.extract_assignment_data(
+            user, content, assignment=assignment, keep_existing_title=True
         )
+
+        serializer = AssignmentSerializer(
+            assignment, data=assignment_data, partial=True
+        )
+
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
-        serializer = AssignmentListSerializer(assignment)
+        return AssignmentListSerializer(assignment)
 
-        print("Assignment saved successfully")
-
-        return serializer
+    @classmethod
+    def extract_assignment(cls, user, assignment, content):
+        return cls.update_assignment_from_extraction(user, assignment, content)
