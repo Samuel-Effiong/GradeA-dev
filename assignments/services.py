@@ -4,6 +4,7 @@ import re
 import string
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import fitz
 from django.core.files.uploadedfile import SimpleUploadedFile, UploadedFile
@@ -83,14 +84,16 @@ class AssignmentProcessingService:
 
     @classmethod
     def prepare_ai_content(cls, uploaded_file, prompt_text: str):
-        content = [{"type": "text", "text": prompt_text}]
+        content: list[dict[str, Any]] = [{"type": "text", "text": prompt_text}]
 
         if uploaded_file.content_type in cls.IMAGE_FORMATS:
             base64_data = encode_image(uploaded_file)
             content.append(
                 {
                     "type": "image_url",
-                    "image_url": f"data:{uploaded_file.content_type};base64,{base64_data}",
+                    "image_url": {
+                        "url": f"data:{uploaded_file.content_type};base64,{base64_data}"
+                    },
                     "bytes": base64_data,
                 }
             )
@@ -102,7 +105,7 @@ class AssignmentProcessingService:
                 content.append(
                     {
                         "type": "image_url",
-                        "image_url": f"data:image/PNG;base64,{image}",
+                        "image_url": {"url": f"data:image/PNG;base64,{image}"},
                         "bytes": image,
                     }
                 )

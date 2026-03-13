@@ -724,7 +724,7 @@ Now, respond to the following teacher's instruction using the rules above
                 if prompt["type"] == "text":
                     total_prompt += prompt["text"]
                 elif prompt["type"] == "image_url":
-                    image_bytes.append(prompt.pop("bytes"))
+                    image_bytes.append(prompt.get("bytes"))
             # total_prompt += user_prompt
 
         if system_prompt:
@@ -735,7 +735,7 @@ Now, respond to the following teacher's instruction using the rules above
                     if prompt["type"] == "text":
                         total_prompt += prompt["text"]
                     elif prompt["type"] == "image_url":
-                        image_bytes.append(prompt.pop("bytes"))
+                        image_bytes.append(prompt.get("bytes"))
 
         if messages:
             for message in messages:
@@ -747,7 +747,7 @@ Now, respond to the following teacher's instruction using the rules above
                         if item["type"] == "text":
                             total_prompt += item["text"]
                         elif item["type"] == "image_url":
-                            image_bytes.append(item.pop("bytes"))
+                            image_bytes.append(item.get("bytes"))
                         elif item["type"] == "pdf_url":
                             pdf_bytes.append(item.pop("bytes"))
 
