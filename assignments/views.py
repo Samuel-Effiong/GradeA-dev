@@ -538,7 +538,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         if not files:
             raise ParseError("No files were uploaded.")
 
-        results = []
+        # results = []
 
         prompt_text = """
         Analyze the image of an educational assignment and return a JSON
@@ -547,11 +547,17 @@ class AssignmentViewSet(viewsets.ModelViewSet):
         Do not include any explanatory text before or after the JSON
         """
 
+        successful = []
+        failed = []
+
         # Processing Loop
         for uploaded_file in files:
             # Check if it's an instance of UploadedFile
+            file_name = getattr(uploaded_file, "name", "unknown_file")
+
             if not isinstance(uploaded_file, UploadedFile):
-                raise ParseError("Invalid file upload.")
+                failed.append({"file_name": file_name, "error": "Invalid file upload."})
+                continue
 
             content = AssignmentProcessingService.prepare_ai_content(
                 uploaded_file, prompt_text
@@ -567,18 +573,48 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                         upload=True,
                     )
                 )
-                results.append(assignment_questions)
+
+                with transaction.atomic():
+                    serializer = AssignmentSerializer(data=assignment_questions)
+                    serializer.is_valid(raise_exception=True)
+                    assignment = serializer.save()
+
+                successful.append(
+                    {
+                        "file_name": file_name,
+                        "assignment": AssignmentListSerializer(assignment).data,
+                    }
+                )
+                # results.append(assignment_questions)
 
             except Exception as e:
-                raise ParseError(str(e)) from Exception
+                # raise ParseError(str(e)) from Exception
+                failed.append({"file_name": file_name, "error": str(e)})
 
-        with transaction.atomic():
-            serializer = AssignmentSerializer(data=results, many=True)
-            serializer.is_valid(raise_exception=True)
-            instance = serializer.save()
+        # with transaction.atomic():
+        #     serializer = AssignmentSerializer(data=results, many=True)
+        #     serializer.is_valid(raise_exception=True)
+        #     instance = serializer.save()
+        #
+        #     serializer = AssignmentListSerializer(instance, many=True)
+        response_data = {
+            "successful": successful,
+            "failed": failed,
+            "summary": {
+                "total": len(files),
+                "successful": len(successful),
+                "failed": len(failed),
+            },
+        }
 
-            serializer = AssignmentListSerializer(instance, many=True)
+        if successful and failed:
+            return Response(response_data, status=status.HTTP_207_MULTI_STATUS)
 
+        if successful:
+            return Response(successful, status=status.HTTP_201_CREATED)
+
+        if failed:
+            return Response(failed, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @extend_schema(
