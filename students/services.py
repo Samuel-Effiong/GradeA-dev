@@ -4,8 +4,12 @@ from django.utils import timezone
 
 from ai_processor.services import ai_processor
 from assignments.services import AssignmentProcessingService
+from users.models import CustomUser
 
-from .serializers import StudentSubmissionSerializer
+from .exceptions import CannotAssociateStudentError
+from .models import StudentSubmission
+
+# from .serializers import StudentSubmissionSerializer
 
 
 def student_submission_to_html(submission) -> str:
@@ -131,27 +135,70 @@ def grade_engine(user, submission):
     return submission
 
 
-def upload_answers_engine(assignment, content, user):
+def upload_answers_engine(assignment, content, request_user, is_proxy_upload=False):
     assignment_context = f"""
     This is the Assignment Context to use in properly extracting the student submissions
     {assignment.questions}
     """
 
     student_submission = ai_processor.extract_answer_with_retry(
-        user, content, assignment_context, assignment_model=assignment, max_retries=3
+        request_user,
+        content,
+        assignment_context,
+        assignment_model=assignment,
+        max_retries=3,
     )
 
     if student_submission is not None:
-        student_submission.update(
-            {
-                "assignment": assignment.id,
-                "student": user.id,
-            }
+        target_student = request_user
+
+        if is_proxy_upload:
+            identified_name = student_submission.get("student_name")
+
+            if not identified_name:
+
+                raise CannotAssociateStudentError(
+                    "Could not identify or associate a student with this paper"
+                )
+
+            name_parts = identified_name.split(" ", 1)
+            first_name = name_parts[0]
+            last_name = name_parts[1] if len(name_parts) > 1 else ""
+
+            target_student = CustomUser.objects.filter(
+                enrollments__course=assignment.course,
+                enrollments__enrollment_status="ENROLLED",
+                first_name__icontains=first_name,
+                last_name__icontains=last_name,
+            ).first()
+
+            if not target_student:
+                raise ValueError(
+                    "Could not identify or associate a student with this paper"
+                )
+
+        # Handle duplicates
+        submission, created = StudentSubmission.objects.get_or_create(
+            assignment=assignment,
+            student=target_student,
+            defaults={"answers": student_submission.get("answers")},
         )
 
-        serializer = StudentSubmissionSerializer(data=student_submission)
-        serializer.is_valid(raise_exception=True)
-        submission = serializer.save()
+        if not created:
+            # If it already exists, update the answers
+            submission.answers = student_submission.get("answers", submission.answers)
+            submission.save()
+
+        # student_submission.update(
+        #     {
+        #         "assignment": assignment.id,
+        #         "student": target_student.id,
+        #     }
+        # )
+        #
+        # serializer = StudentSubmissionSerializer(data=student_submission)
+        # serializer.is_valid(raise_exception=True)
+        # submission = serializer.save()
 
         answer_html = student_submission_to_html(submission)
         submission.raw_input = AssignmentProcessingService.html_to_prosemirror_json(

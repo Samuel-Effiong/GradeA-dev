@@ -1,10 +1,13 @@
 # from django.shortcuts import render
+from django.conf import settings
+from django.core.cache import cache
 from django.core.files.uploadedfile import UploadedFile
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
-from django.views.decorators.vary import vary_on_headers
+
+# from django.utils.decorators import method_decorator
+# from django.views.decorators.cache import cache_page
+# from django.views.decorators.vary import vary_on_headers
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
@@ -26,6 +29,7 @@ from rest_framework.response import Response
 from rest_framework.status import (
     HTTP_200_OK,
     HTTP_201_CREATED,
+    HTTP_202_ACCEPTED,
     HTTP_400_BAD_REQUEST,
     HTTP_500_INTERNAL_SERVER_ERROR,
 )
@@ -39,9 +43,10 @@ from assignments.tasks import (
     upload_answers_engine_async,
 )
 from classrooms.permissions import IsStudent, IsTeacher, IsTeacherOrReadOnly
+from users.mixins import UserCacheMixin
 from users.models import UserTypes
 
-from .models import StudentSubmission
+from .models import BatchUploadSession, StudentSubmission
 from .serializers import (
     StudentSubmissionDetailSerializer,
     StudentSubmissionFormattedGradeAsyncSerializer,
@@ -54,6 +59,9 @@ from .serializers import (
     StudentSubmissionUploadAsyncSerializer,
 )
 from .services import grade_engine, student_submission_to_html, upload_answers_engine
+
+# from openai.types import Batch
+
 
 # Create your views here.
 
@@ -184,7 +192,7 @@ STUDENT_RESPONSE_EXAMPLE = {
         },
     ),
 )
-class StudentSubmissionViewSet(viewsets.ModelViewSet):
+class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     queryset = StudentSubmission.objects.all()
     serializer_class = StudentSubmissionSerializer
     permission_classes = (IsAuthenticated,)
@@ -200,26 +208,30 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
     ordering_fields = ["student__first_name", "student__last_name"]
     ordering = ["student__first_name"]
 
-    @method_decorator(cache_page(60 * 3, key_prefix="studentsubmissions:list"))
-    @method_decorator(vary_on_headers("Authorization"))
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
-
-    @method_decorator(cache_page(60 * 3, key_prefix="studentsubmissions:detail"))
-    @method_decorator(vary_on_headers("Authorization"))
+    # @method_decorator(cache_page(60 * 3, key_prefix="studentsubmissions:detail"))
+    # @method_decorator(vary_on_headers("Authorization"))
     def retrieve(self, request, *args, **kwargs):
         submission = self.get_object()
+        cache_key = f"studentsubmissions:user_id__{request.user.id}:instance_id__{submission.id}"
 
-        answer_html = student_submission_to_html(submission)
-        submission.raw_input = AssignmentProcessingService.html_to_prosemirror_json(
-            answer_html
-        )
-        submission.save()
+        data = cache.get(cache_key)
+        if data:
+            return Response(data)
+
+        if not submission.raw_input:
+            answer_html = student_submission_to_html(submission)
+            submission.raw_input = AssignmentProcessingService.html_to_prosemirror_json(
+                answer_html
+            )
+            submission.save(update_fields=["raw_input"])
 
         serializer = StudentSubmissionDetailSerializer(
             submission, context=self.get_serializer_context()
         )
-        return Response(serializer.data)
+        data = serializer.data
+        cache.set(cache_key, data, getattr(settings, "CACHE_TTL", 60 * 5))
+
+        return Response(data)
 
     @extend_schema(exclude=True)
     def create(self, request, *args, **kwargs):
@@ -436,7 +448,11 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
             ]
 
             student_submission = ai_processor.extract_answer_with_retry(
-                request.user, content, assignment_context, assignment_model=assignment, max_retries=3
+                request.user,
+                content,
+                assignment_context,
+                assignment_model=assignment,
+                max_retries=3,
             )
 
             if student_submission is not None:
@@ -481,7 +497,7 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
             ) from StudentSubmission.DoesNotExist
 
         try:
-            submission = grade_engine(submission)
+            submission = grade_engine(request.user, submission)
             serializer = StudentSubmissionDetailSerializer(submission)
 
             return Response(serializer.data, status=HTTP_200_OK)
@@ -530,10 +546,10 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
             HTTP_200_OK: StudentSubmissionTeacherFeedbackSerializer,
         },
     )
-    @method_decorator(
-        cache_page(60 * 3, key_prefix="studentsubmissions:formatted_grade")
-    )
-    @method_decorator(vary_on_headers("Authorization"))
+    # @method_decorator(
+    #     cache_page(60 * 3, key_prefix="studentsubmissions:formatted_grade")
+    # )
+    # @method_decorator(vary_on_headers("Authorization"))
     @action(
         detail=True,
         methods=["GET"],
@@ -660,3 +676,220 @@ class StudentSubmissionViewSet(viewsets.ModelViewSet):
 
         response_serializer = StudentSubmissionDetailSerializer(submission)
         return Response(response_serializer.data, status=HTTP_200_OK)
+
+    # @action(
+    #     detail=False, methods=["POST"], url_path=r"batch_upload/(?P<assignment_id>[-\w]+)",
+    #     permission_classes=[IsAuthenticated, IsTeacher],
+    # )
+    # def teacher_batch_upload(self, request, assignment_id=None, *args, **kwargs):
+    #     """
+    #      Teachers can upload multiple submissions for students at once.
+    #      Files: multipart/form-data "files"
+    #      Optional: student_info_list: JSON list of IDs or names
+    #      """
+    #     files = request.FILES.getlist("files")
+    #     if not files:
+    #         raise ParseError("No files uploaded. Please try again.")
+
+    @extend_schema(
+        tags=["07 Student Submissions"],
+        operation_id="batch_upload_student_submissions",
+        summary="Batch upload student submissions for an assignment",
+        description="""
+    Allows a **teacher** to upload multiple student submissions for a specific assignment in a single request.
+
+    Each uploaded file represents a student's submission.
+    The system will process each submission **asynchronously** using Celery workers.
+
+
+    ### Background Processing
+
+    Each uploaded file produces a **separate Celery task**.
+    The returned `task_ids` can be used to track processing progress.
+
+    ### Example Use Case
+
+    Teacher uploads **30 scanned assignment papers**.
+
+    The system:
+
+    - starts 30 background tasks
+    - extracts answers from each submission
+    - creates submissions
+    - returns 30 task IDs immediately.
+
+    This avoids request timeouts and allows scalable parallel processing.
+    """,
+        request={
+            "multipart/form-data": {
+                "type": "object",
+                "properties": {
+                    "answers": {
+                        "type": "array",
+                        "items": {"type": "string", "format": "binary"},
+                        "description": "List of assignment submission files to upload.",
+                    }
+                },
+                "required": ["answers"],
+            }
+        },
+        responses={
+            202: OpenApiResponse(
+                description="Batch upload accepted and background tasks started.",
+                response=OpenApiTypes.OBJECT,
+                examples=[
+                    OpenApiExample(
+                        "Batch upload started",
+                        value={
+                            "message": "Batch processing started for 3 files.",
+                            "batch_tasks": [
+                                "0d3a7caa-39e1-4f65-86d7-45d9c8bcb96b",
+                                "4fdfe7b4-8d5a-4f92-a8b7-5c21b1c567d0",
+                                "b0b7fd5c-4c8c-4f3b-9c3f-9d15d7e1c901",
+                            ],
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                description="Bad request. No files were uploaded or invalid request format.",
+                examples=[
+                    OpenApiExample(
+                        "No files uploaded",
+                        value={"detail": "No files uploaded. Please try again."},
+                    )
+                ],
+            ),
+            403: OpenApiResponse(
+                description="Permission denied. User is not a teacher.",
+            ),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["POST"],
+        permission_classes=[IsAuthenticated, IsTeacher],
+        url_path=r"(?P<assignment_id>[-\w]+)/batch-upload",
+    )
+    def batch_upload(self, request, assignment_id=None):
+        assignment = get_object_or_404(Assignment, id=assignment_id)
+        files = request.FILES.getlist("answers")
+
+        if not files:
+            raise ParseError("No files uploaded. Please try again.")
+
+        session = BatchUploadSession.objects.create(
+            teacher=request.user, assignment=assignment, total_files=len(files)
+        )
+
+        task_ids = []
+
+        for uploaded_file in files:
+            prompt = """
+            Analyze the image of an educational assignment and return a JSON
+
+            IMPORTANT: Return only valid JSON matching the required structure.
+            Do not include any explanatory text before or after the JSON
+            """
+
+            # Prepare content for each file
+            content = AssignmentProcessingService.prepare_ai_content(
+                uploaded_file, prompt
+            )
+
+            # Trigger individual async tasks for each paper
+            # This allows parallel processing in Celery
+            task = upload_answers_engine_async.delay(
+                str(assignment.id),
+                content,
+                str(request.user.id),
+                session_id=str(session.id),
+                file_name=uploaded_file.name,
+            )
+            task_ids.append(task.id)
+
+        return Response(
+            {
+                "session_id": session.id,
+                "message": f"Batch processing started for {len(files)} files",
+                "batch_tasks": task_ids,
+            },
+            status=HTTP_202_ACCEPTED,
+        )
+
+    @extend_schema(
+        tags=["07 Student Submissions"],
+        summary="Retrieve batch upload session results",
+        description="""
+        Retrieve the processing status and results of a batch upload session.
+
+        This endpoint returns the progress of the background tasks, indicating how many
+        files have been processed and the overall completion status. It provides lists of
+        successfully processed submissions and those that failed.
+        """,
+        responses={
+            200: OpenApiResponse(
+                description="Session results retrieved successfully.",
+                response=OpenApiTypes.OBJECT,
+                examples=[
+                    OpenApiExample(
+                        "In Progress",
+                        value={
+                            "progress": "2 / 3",
+                            "is_complete": False,
+                            "success_count": 2,
+                            "failure_count": 0,
+                            "success_list": [
+                                {
+                                    "status": "SUCCESS",
+                                    "file_name": "student_a.pdf",
+                                    "submission_id": "b2c3d4e5",
+                                },
+                            ],
+                            "failure_list": [],
+                        },
+                    ),
+                    OpenApiExample(
+                        "Completed with failures",
+                        value={
+                            "progress": "3 / 3",
+                            "is_complete": True,
+                            "success_count": 2,
+                            "failure_count": 1,
+                            "success_list": [
+                                {"status": "SUCCESS", "file_name": "student_a.pdf"},
+                            ],
+                            "failure_list": [
+                                {
+                                    "status": "FAILED",
+                                    "file_name": "unknown_file.pdf",
+                                    "error": "Could not identify or associate a student with this paper",
+                                }
+                            ],
+                        },
+                    ),
+                ],
+            ),
+            404: OpenApiResponse(
+                description="Session not found.",
+            ),
+        },
+    )
+    @action(detail=True, methods=["GET"], url_path="session-results")
+    def session_results(self, request, pk=None):
+        session = get_object_or_404(BatchUploadSession, id=pk)
+
+        # Separate into two clean lists for the UI
+        success = [r for r in session.results if r["status"] == "SUCCESS"]
+        failures = [r for r in session.results if r["status"] == "FAILED"]
+
+        return Response(
+            {
+                "progress": f"{len(session.results)} / {session.total_files}",
+                "is_complete": len(session.results) == session.total_files,
+                "success_count": len(success),
+                "failure_count": len(failures),
+                "success_list": success,
+                "failure_list": failures,
+            }
+        )

@@ -22,6 +22,7 @@ from ai_processor.tools import encode_image, perform_search
 from ai_processor.validators import logger
 from billing.errors import InsufficientCreditsError
 from billing.services import AnalyticsService
+from classrooms.models import StudentCourse
 
 # from billing.services import SubscriptionService
 
@@ -59,7 +60,7 @@ with open(
 with open("ai_processor/RUBRIC_EXTRACTION_PROMPT.txt", "r") as file:
     RUBRIC_EXTRACTION_PROMPT = file.read()
 
-with open("ai_processor/ANSWERS_EXTRACTION_PROMPT_HTML_3.txt", "r") as file:
+with open("ai_processor/ANSWERS_EXTRACTION_PROMPT_HTML_4.txt", "r") as file:
     ANSWERS_EXTRACTION_PROMPT = file.read()
 
 with open("ai_processor/GRADING_ASSIGNMENT_PROMPT_2.txt", "r") as file:
@@ -435,9 +436,25 @@ Do not include any explanatory text before or after the JSON
     def extract_answer_image(self, user, content, assignment, assignment_model=None):
         system_prompt = ANSWERS_EXTRACTION_PROMPT
 
-        # return self.__generate_text(system_prompt, user_prompt)
+        # Get all the student in this assignment course
+        # enrolled_student_names = ""
+        student_names = []
+        if assignment_model and hasattr(assignment_model, "course"):
 
-        # content = self.__generate_text(system_prompt, user_prompt)
+            # Fetch all active enrollments for the course
+            enrollments = StudentCourse.objects.filter(
+                course=assignment_model.course, enrollment_status="ENROLLED"
+            ).select_related("student")
+
+            student_names = [
+                f"{enrollment.student.first_name} {enrollment.student.last_name}"
+                for enrollment in enrollments
+            ]
+
+        system_prompt = system_prompt.replace(
+            "{student_roster}", ", ".join(student_names)
+        )
+
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": assignment},
@@ -749,7 +766,7 @@ Now, respond to the following teacher's instruction using the rules above
                         elif item["type"] == "image_url":
                             image_bytes.append(item.get("bytes"))
                         elif item["type"] == "pdf_url":
-                            pdf_bytes.append(item.pop("bytes"))
+                            pdf_bytes.append(item.get("bytes"))
 
         estimated_cost = self.estimate_total_token(total_prompt, image_bytes, pdf_bytes)
 

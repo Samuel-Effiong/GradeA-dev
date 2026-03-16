@@ -11,13 +11,15 @@ profile.
 
 from celery.result import AsyncResult
 from django.conf import settings
+from django.core.cache import cache
 
 # from django.core.mail import send_mail
 from django.db import transaction
 from django.utils import timezone
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
-from django.views.decorators.vary import vary_on_headers
+
+# from django.utils.decorators import method_decorator
+# from django.views.decorators.cache import cache_page
+# from django.views.decorators.vary import vary_on_headers
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
@@ -46,6 +48,7 @@ from AutoGrader.tasks import send_email_task
 from classrooms.models import EnrollmentStatusType, StudentCourse
 from classrooms.permissions import IsSuperAdmin
 from classrooms.serializers import StudentRegistrationCompletionSerializer
+from users.mixins import UserCacheMixin
 from users.models import CustomUser, PasswordChangeOTP, PasswordResetOTP, UserTypes
 from users.serializers import (
     ChangePasswordSerializer,
@@ -167,7 +170,7 @@ class BaseUserViewSet(viewsets.ModelViewSet):
         },
     ),
 )
-class CustomUserViewSet(viewsets.ModelViewSet):
+class CustomUserViewSet(UserCacheMixin, viewsets.ModelViewSet):
     """
     API endpoint for managing users.
 
@@ -235,16 +238,6 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             )
         return super().create(request, *args, **kwargs)
 
-    @method_decorator(cache_page(60 * 5, key_prefix="users:list"))
-    @method_decorator(vary_on_headers("Authorization"))
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
-
-    @method_decorator(cache_page(60 * 5, key_prefix="users:detail"))
-    @method_decorator(vary_on_headers("Authorization"))
-    def retrieve(self, request, *args, **kwargs):
-        return super().retrieve(request, *args, **kwargs)
-
     @extend_schema(
         tags=["Users"],
         summary="Get current authenticated user",
@@ -268,10 +261,8 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             ),
         },
     )
-    @method_decorator(cache_page(60 * 60, key_prefix="users:detail:me"))
-    @method_decorator(vary_on_headers("Authorization"))
-    @action(detail=False, methods=["get"])
-    def me(self, request):
+    @action(detail=False, methods=["GET"])
+    def me(self, request, *args, **kwargs):
         """
         Retrieve the currently authenticated user's information.
 
@@ -282,14 +273,16 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         - 200: Success - Returns the user's profile information
         - 401: Unauthorized - If user is not authenticated
         """
-        if not request.user.is_authenticated:
-            return Response(
-                {"detail": "Authentication credentials were not provided."},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
 
-        serializer = self.get_serializer(request.user)
-        return Response(serializer.data)
+        cache_key = f"user:user_id__{request.user.id}"
+        data = cache.get(cache_key)
+
+        if data is None:
+            serializer = self.get_serializer(request.user)
+            data = serializer.data
+            cache.set(cache_key, data, getattr(settings, "CACHE_TTL", 60 * 5))
+
+        return Response(data)
 
 
 class AuthViewSet(viewsets.ViewSet):

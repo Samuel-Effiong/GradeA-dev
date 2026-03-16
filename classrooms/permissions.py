@@ -28,7 +28,6 @@ class IsTeacherOrReadOnly(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return bool(request.user and request.user.is_authenticated)
 
-        # Write permissions are only allowed to teachers
         return bool(
             request.user
             and request.user.is_authenticated
@@ -91,3 +90,20 @@ class IsSchoolAdmin(permissions.BasePermission):
             and request.user.is_authenticated
             and request.user.user_type == UserTypes.SCHOOL_ADMIN
         )
+
+
+class IsTeacherOrStudent(permissions.BasePermission):
+    message = "You must be a teacher or student to access this endpoint."
+
+    def has_permission(self, request, view):
+        return bool(
+            request.user
+            and request.user.is_authenticated
+            and (
+                request.user.user_type == UserTypes.TEACHER
+                or request.user.user_type == UserTypes.STUDENT
+            )
+        )
+
+    def has_object_permission(self, request, view, obj):
+        return self.has_permission(request, view)

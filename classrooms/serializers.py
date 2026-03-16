@@ -1,4 +1,7 @@
+import secrets
+
 from django.core.validators import MinLengthValidator
+from django.db import transaction
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
@@ -6,7 +9,15 @@ from rest_framework.validators import UniqueTogetherValidator
 from students.serializers import StudentSerializer
 from users.models import CustomUser, UserTypes
 
-from .models import Course, CourseCategory, School, Session, StudentCourse, Topic
+from .models import (
+    Course,
+    CourseCategory,
+    EnrollmentStatusType,
+    School,
+    Session,
+    StudentCourse,
+    Topic,
+)
 
 
 class SessionSerializer(serializers.ModelSerializer):
@@ -126,24 +137,30 @@ class CourseSerializer(serializers.ModelSerializer):
         return course
 
     def get_student_count(self, obj) -> int:
-        return (
-            StudentCourse.objects.filter(course=obj)
-            .exclude(enrollment_status__iexact="withdrawn")
-            .distinct()
-            .count()
-        )
+        # return (
+        #     StudentCourse.objects.filter(course=obj)
+        #     .exclude(enrollment_status__iexact="withdrawn")
+        #     .distinct()
+        #     .count()
+        # )
+
+        return obj.student_count
 
     @extend_schema_field(StudentSerializer(many=True))
     def get_students(self, obj):
-        # TODO: Add users, to ensure that it is by the teacher
-        enrolled_students = (
-            CustomUser.objects.filter(enrollments__course=obj)
-            .exclude(
-                enrollments__course=obj,
-                enrollments__enrollment_status__iexact="withdrawn",
-            )
-            .distinct()
-        )
+        # # TODO: Add users, to ensure that it is by the teacher
+        # enrolled_students = (
+        #     CustomUser.objects.filter(enrollments__course=obj)
+        #     .exclude(
+        #         enrollments__course=obj,
+        #         enrollments__enrollment_status__iexact="withdrawn",
+        #     )
+        #     .distinct()
+        # )
+
+        enrolled_students = [
+            enrollment.student for enrollment in obj.active_enrollments
+        ]
 
         serializer = StudentSerializer(
             enrolled_students, many=True, context={"course": obj}
@@ -205,6 +222,88 @@ class AddStudentToCourseSerializer(serializers.Serializer):
             )
 
         return value
+
+
+class DirectAddStudentSerializer(serializers.Serializer):
+    """Serializer for directly adding and activating a student in a course."""
+
+    first_name = serializers.CharField(
+        max_length=150, validators=[MinLengthValidator(2)], required=True
+    )
+    last_name = serializers.CharField(
+        max_length=150, validators=[MinLengthValidator(2)], required=True
+    )
+    email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
+
+    def validate_email(self, value):
+        if not value:
+            return value
+
+        if CustomUser.objects.filter(
+            email=value,
+            user_type=UserTypes.TEACHER,
+        ).exists():
+            raise serializers.ValidationError(
+                "This email belongs to a teacher account and cannot be added as a student."
+            )
+
+        return value
+
+    def create(self, validated_data):
+
+        first_name = validated_data["first_name"]
+        last_name = validated_data["last_name"]
+        email = validated_data.get("email")
+        course = self.context.get("course")
+
+        if not course:
+            raise serializers.ValidationError("Course context is required.")
+
+        # Generate a tracked backend email if not provided
+        if not email:
+            unique_suffix = secrets.randbelow(10000)
+            safe_first = "".join(c for c in first_name.lower() if c.isalnum())
+            safe_last = "".join(c for c in last_name.lower() if c.isalnum())
+            email = f"{safe_first}.{safe_last}{unique_suffix}@student.local"
+
+        with transaction.atomic():
+            student = CustomUser.objects.filter(email=email).first()
+
+            if student:
+                # Check if already enrolled
+                if StudentCourse.objects.filter(
+                    student=student, course=course
+                ).exists():
+                    raise serializers.ValidationError(
+                        "Student is already enrolled in this course."
+                    )
+
+                StudentCourse.objects.create(
+                    student=student,
+                    course=course,
+                    enrollment_status=EnrollmentStatusType.ENROLLED,
+                    auto_added=True,
+                )
+            else:
+                student = CustomUser.objects.create(
+                    email=email,
+                    first_name=first_name,
+                    last_name=last_name,
+                    user_type=UserTypes.STUDENT,
+                    school=course.teacher.school,
+                    is_active=True,
+                )
+                student.set_password("student123!")
+                student.save()
+
+                StudentCourse.objects.create(
+                    student=student,
+                    course=course,
+                    enrollment_status=EnrollmentStatusType.ENROLLED,
+                    auto_added=True,
+                )
+
+        return student
 
 
 class StudentRegistrationCompletionSerializer(serializers.Serializer):

@@ -6,9 +6,10 @@ from django.db import transaction
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
-from django.views.decorators.vary import vary_on_headers
+
+# from django.utils.decorators import method_decorator
+# from django.views.decorators.cache import cache_page
+# from django.views.decorators.vary import vary_on_headers
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
@@ -35,6 +36,7 @@ from classrooms.models import Course, Topic
 from classrooms.permissions import IsTeacher, IsTeacherOrReadOnly
 from classrooms.serializers import TopicSerializer
 from students.models import StudentSubmission
+from users.mixins import UserCacheMixin
 
 # from students.serializers import StudentSubmissionSerializer
 from users.models import UserTypes
@@ -43,7 +45,7 @@ from .models import Assignment, AssignmentStatus  # Rubric
 from .serializers import (  # RubricSerializer,
     AssignmentCreateResponseSerializer,
     AssignmentDetailSerializer,
-    AssignmentGradeAllSubmissions,
+    AssignmentGradeAllSubmissionsSerializer,
     AssignmentListSerializer,
     AssignmentSerializer,
     AssignmentTextSerializer,
@@ -142,7 +144,7 @@ from .tasks import (
         },
     ),
 )
-class AssignmentViewSet(viewsets.ModelViewSet):
+class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
     """
     API endpoint for managing assignments.
 
@@ -169,18 +171,6 @@ class AssignmentViewSet(viewsets.ModelViewSet):
     search_fields = ["title", "instructions"]
     ordering_fields = ["title", "created_at", "due_date"]
 
-    # def get_permissions(self):
-    #     if (
-    #         self.action == "create"
-    #         or self.action == "destroy"
-    #         or self.action == "partial_update"
-    #     ):
-    #         permission_classes = [IsAuthenticated, IsTeacher]
-    #     else:
-    #         permission_classes = [IsAuthenticated]
-    #
-    #     return [permission() for permission in permission_classes]
-
     def get_queryset(self):
         user = self.request.user
 
@@ -202,15 +192,15 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             return AssignmentTextSerializer
         return super().get_serializer_class()
 
-    @method_decorator(cache_page(60 * 3, key_prefix="assignments:list"))
-    @method_decorator(vary_on_headers("Authorization"))
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
-
-    @method_decorator(cache_page(60 * 3, key_prefix="assignments:detail"))
-    @method_decorator(vary_on_headers("Authorization"))
-    def retrieve(self, request, *args, **kwargs):
-        return super().retrieve(request, *args, **kwargs)
+    # @method_decorator(cache_page(60 * 3, key_prefix="assignments:list"))
+    # @method_decorator(vary_on_headers("Authorization"))
+    # def list(self, request, *args, **kwargs):
+    #     return super().list(request, *args, **kwargs)
+    #
+    # @method_decorator(cache_page(60 * 3, key_prefix="assignments:detail"))
+    # @method_decorator(vary_on_headers("Authorization"))
+    # def retrieve(self, request, *args, **kwargs):
+    #     return super().retrieve(request, *args, **kwargs)
 
     @transaction.atomic
     def create(self, request, *args, **kwargs):
@@ -822,8 +812,17 @@ class AssignmentViewSet(viewsets.ModelViewSet):
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    @extend_schema(tags=["Assignments"])
-    @action(detail=True, methods=["GET"], url_path=r"grade-all", url_name="grade-all")
+    @extend_schema(
+        tags=["Assignments"],
+        request=None,
+        responses={
+            200: OpenApiResponse(
+                response=AssignmentGradeAllSubmissionsSerializer,
+                description="Grading of submissions started",
+            )
+        },
+    )
+    @action(detail=True, methods=["POST"], url_path=r"grade-all", url_name="grade-all")
     def grade_all_submission(self, request, pk=None):
         assignment = self.get_object()
 
@@ -849,7 +848,7 @@ class AssignmentViewSet(viewsets.ModelViewSet):
             "status": "Processing" if task_id else "completed",
         }
 
-        serializer = AssignmentGradeAllSubmissions(data=data)
+        serializer = AssignmentGradeAllSubmissionsSerializer(data=data)
         serializer.is_valid(raise_exception=True)
 
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)

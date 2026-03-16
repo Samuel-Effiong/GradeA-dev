@@ -410,3 +410,5 @@ CACHES = {
         },
     }
 }
+
+CACHE_TTL = 60 * 5

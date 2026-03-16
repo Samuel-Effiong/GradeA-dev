@@ -6,10 +6,11 @@ from django.utils import timezone
 
 from ai_processor.services import ai_processor
 from classrooms.models import Course, Topic
-from students.models import StudentSubmission
+from students.exceptions import CannotAssociateStudentError
+from students.models import BatchUploadSession, StudentSubmission
 from students.serializers import StudentSubmissionSerializer
 from students.services import grade_engine, upload_answers_engine
-from users.models import CustomUser
+from users.models import CustomUser, UserTypes
 
 from .models import Assignment
 from .serializers import AssignmentSerializer
@@ -235,24 +236,50 @@ def format_grade(self, submission_id, prompt):
         raise
 
 
-@shared_task(bind=True)
-def upload_answers_engine_async(self, assignment_id, content, user_id):
+@shared_task(bind=True, max_retries=3)
+def upload_answers_engine_async(
+    self, assignment_id, content, user_id, session_id, file_name
+):
+
     try:
         self.update_state(state="PROGRESS", meta={"step": "Retrieving requirements"})
 
         assignment = Assignment.objects.get(id=assignment_id)
         user = CustomUser.objects.get(id=user_id)
 
+        is_teacher = user.user_type == UserTypes.TEACHER
+
         self.update_state(state="PROGRESS", meta={"step": "Extracting answers"})
-        submission = upload_answers_engine(assignment, content, user)
+        submission = upload_answers_engine(
+            assignment=assignment,
+            content=content,
+            request_user=user,
+            is_proxy_upload=is_teacher,
+        )
+
+        session = BatchUploadSession.objects.get(id=session_id)
+        session.update_result(file_name, "SUCCESS", submission_id=submission.id)
 
         return {
             "status": states.SUCCESS,
             "submission_id": submission.id,
             "message": "Answers extracted successfully",
         }
-    except Exception:
-        raise
+    except CannotAssociateStudentError as exc:
+        session = BatchUploadSession.objects.get(id=session_id)
+        session.update_result(file_name, "FAILED", error=str(exc))
+        return {
+            "status": states.FAILURE,
+            "submission_id": submission.id,
+            "message": "Cannot associate student",
+        }
+    except Exception as exc:
+        if self.request.retries == self.max_retries:
+            raise self.retry(exc=exc, countdown=3) from Exception
+
+        session = BatchUploadSession.objects.get(id=session_id)
+        session.update_result(file_name, "FAILED", error=str(exc))
+        raise exc
 
 
 @shared_task()

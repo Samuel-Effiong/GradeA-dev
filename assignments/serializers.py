@@ -309,7 +309,7 @@ class AssignmentCreateResponseSerializer(serializers.Serializer):
     message = serializers.CharField(max_length=255)
 
 
-class AssignmentGradeAllSubmissions(serializers.Serializer):
+class AssignmentGradeAllSubmissionsSerializer(serializers.Serializer):
     """
     Serializer for the response return after starting the grading of
     all submissions for an assignment

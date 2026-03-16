@@ -135,6 +135,7 @@ class StudentCourse(models.Model):
     course = models.ForeignKey(
         Course, on_delete=models.CASCADE, related_name="enrollments"
     )
+    auto_added = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     enrollment_status = models.CharField(

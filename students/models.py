@@ -1,7 +1,9 @@
 import uuid
 
-from django.db import models
+from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
+
+# from idlelib.pyparse import trans
 
 
 # Create your models here.
@@ -94,3 +96,34 @@ class StudentSubmission(models.Model):
 
     def get_answer(self):
         return self.answers
+
+
+class BatchUploadSession(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    teacher = models.ForeignKey(
+        "users.CustomUser",
+        on_delete=models.CASCADE,
+        related_name="batch_upload_sessions",
+    )
+    assignment = models.ForeignKey(
+        "assignments.Assignment",
+        on_delete=models.CASCADE,
+        related_name="batch_upload_sessions",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    total_files = models.IntegerField(default=0)
+
+    results = models.JSONField(default=list)
+
+    def update_result(self, file_name, status, error=None, submission_id=None):
+        new_entry = {
+            "file_name": file_name,
+            "status": status,
+            "error": error,
+            "submission_id": str(submission_id) if submission_id else None,
+        }
+
+        with transaction.atomic():
+            session = BatchUploadSession.objects.select_related().get(id=self.id)
+            session.results.append(new_entry)
+            session.save(update_fields=["results"])
