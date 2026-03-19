@@ -144,7 +144,16 @@ class CourseSerializer(serializers.ModelSerializer):
         #     .count()
         # )
 
-        return obj.student_count
+        if hasattr(obj, "student_count"):
+            return obj.student_count
+
+        return (
+            obj.enrollments.exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
+            .distinct()
+            .count()
+        )
+
+        # return getattr(obj, "student_count", 0)
 
     @extend_schema_field(StudentSerializer(many=True))
     def get_students(self, obj):
@@ -158,9 +167,17 @@ class CourseSerializer(serializers.ModelSerializer):
         #     .distinct()
         # )
 
-        enrolled_students = [
-            enrollment.student for enrollment in obj.active_enrollments
-        ]
+        if hasattr(obj, "active_enrollments"):
+            enrolled_students = [
+                enrollment.student for enrollment in obj.active_enrollments
+            ]
+        else:
+            enrolled_students = [
+                enrollment.student
+                for enrollment in obj.enrollments.exclude(
+                    enrollment_status=EnrollmentStatusType.WITHDRAWN
+                ).select_related("student")
+            ]
 
         serializer = StudentSerializer(
             enrolled_students, many=True, context={"course": obj}
@@ -229,6 +246,10 @@ class DirectAddStudentSerializer(serializers.Serializer):
 
     first_name = serializers.CharField(
         max_length=150, validators=[MinLengthValidator(2)], required=True
+    )
+    middle_name = serializers.CharField(
+        max_length=150,
+        default="",
     )
     last_name = serializers.CharField(
         max_length=150, validators=[MinLengthValidator(2)], required=True
@@ -313,6 +334,7 @@ class StudentRegistrationCompletionSerializer(serializers.Serializer):
         max_length=150,
         validators=[MinLengthValidator(2)],
     )
+    middle_name = serializers.CharField(max_length=150, default="")
     last_name = serializers.CharField(
         max_length=150,
         validators=[MinLengthValidator(2)],

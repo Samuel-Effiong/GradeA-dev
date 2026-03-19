@@ -35,7 +35,7 @@ from ai_processor.services import ai_processor  # pdf_service
 from classrooms.models import Course, Topic
 from classrooms.permissions import IsTeacher, IsTeacherOrReadOnly
 from classrooms.serializers import TopicSerializer
-from students.models import StudentSubmission
+from students.models import BatchUploadSession, StudentSubmission
 from users.mixins import UserCacheMixin
 
 # from students.serializers import StudentSubmissionSerializer
@@ -663,16 +663,17 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             raise ParseError("Course ID is required.")
 
         # Validate course exists and user has access to it
-        try:
-            course = get_object_or_404(Course, id=course_id, teacher=request.user)
-        except (ValueError, ValidationError):
-            raise ParseError(
-                "Invalid Course ID format. Must be with a valid UUID"
-            ) from Exception
-        except Http404:
-            raise NotFound(
-                "Course not found or you don't have access to it."
-            ) from Http404
+        course = get_object_or_404(Course, id=course_id, teacher=request.user)
+        # try:
+        #     course = get_object_or_404(Course, id=course_id, teacher=request.user)
+        # except (ValueError, ValidationError):
+        #     raise ParseError(
+        #         "Invalid Course ID format. Must be with a valid UUID"
+        #     ) from Exception
+        # except Http404:
+        #     raise NotFound(
+        #         "Course not found or you don't have access to it."
+        #     ) from Http404
 
         topic_value = request.data.get("topic", "")
         topic_id = topic_value.strip() if isinstance(topic_value, str) else None
@@ -686,7 +687,12 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         files = request.FILES.getlist("assignments")
 
         if not files:
-            raise ParseError("No files were uploaded.")
+            raise ParseError("No files were uploaded. Please try again")
+
+        session = BatchUploadSession.objects.create(
+            teacher=request.user, total_files=len(files)
+        )
+        print(session)
 
         files_payload = []
 

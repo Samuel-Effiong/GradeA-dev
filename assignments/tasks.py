@@ -240,7 +240,6 @@ def format_grade(self, submission_id, prompt):
 def upload_answers_engine_async(
     self, assignment_id, content, user_id, session_id, file_name
 ):
-
     try:
         self.update_state(state="PROGRESS", meta={"step": "Retrieving requirements"})
 
@@ -270,8 +269,7 @@ def upload_answers_engine_async(
         session.update_result(file_name, "FAILED", error=str(exc))
         return {
             "status": states.FAILURE,
-            "submission_id": submission.id,
-            "message": "Cannot associate student",
+            "message": "Cannot Identify or Associate Student with this Paper",
         }
     except Exception as exc:
         if self.request.retries == self.max_retries:

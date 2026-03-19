@@ -158,7 +158,7 @@ def upload_answers_engine(assignment, content, request_user, is_proxy_upload=Fal
             if not identified_name:
 
                 raise CannotAssociateStudentError(
-                    "Could not identify or associate a student with this paper"
+                    "Student name cannot be found in the submission"
                 )
 
             name_parts = identified_name.split(" ", 1)
@@ -173,8 +173,8 @@ def upload_answers_engine(assignment, content, request_user, is_proxy_upload=Fal
             ).first()
 
             if not target_student:
-                raise ValueError(
-                    "Could not identify or associate a student with this paper"
+                raise CannotAssociateStudentError(
+                    "Student not among the enrolled students in the course"
                 )
 
         # Handle duplicates

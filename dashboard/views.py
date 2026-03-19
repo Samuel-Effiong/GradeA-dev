@@ -22,18 +22,23 @@ from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework import viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 
-from ai_processor.services import AI_CONFIDENCE_THRESHOLD
+# from ai_processor.models import ChatMessage, ChatSession, RoleType
+from ai_processor.services import AI_CONFIDENCE_THRESHOLD, ai_processor
 from assignments.models import Assignment
+
+# from assignments.services import AssignmentProcessingService
 from classrooms.models import Course, School, Session, StudentCourse
 from classrooms.permissions import IsSchoolAdmin, IsStudent, IsSuperAdmin, IsTeacher
 from dashboard.serializers import (
     ConcurrencySerializer,
     CourseAnalyticsSerializer,
+    CustomAIPrompt,
+    CustomAIReply,
     PlatformAdoptionSerializer,
     PlatformAIPerformanceSerializer,
     PlatformUsageSerializer,
@@ -60,6 +65,8 @@ from users.services import (
     get_time_range,
 )
 
+# from dashboard.services import DashboardService
+
 
 class SuperAdminDashboardView(viewsets.ViewSet):
     permission_classes = [IsSuperAdmin]
@@ -83,7 +90,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
     # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/adoption")
     def platform_adoption(self, request, *args, **kwargs):
-        cache_key = f"superadmins:user_id__{request.user.id}"
+        cache_key = f"superadmins:user_id__{request.user.id}:view__adoption"
         data = cache.get(cache_key)
 
         if data is None:
@@ -169,7 +176,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
     # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/usage")
     def platform_usage(self, request, *args, **kwargs):
-        cache_key = f"superadmins:user_id__{request.user.id}:dashboard:usage"
+        cache_key = f"superadmins:user_id__{request.user.id}:view__usage"
         data = cache.get(cache_key)
 
         if data is None:
@@ -284,7 +291,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
     # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/ai_performance")
     def platform_ai_performance(self, request, *args, **kwargs):
-        cache_key = f"superadmins:user_id__{request.user.id}"
+        cache_key = f"superadmins:user_id__{request.user.id}:view__ai_performance"
         data = cache.get(cache_key)
 
         if data is None:
@@ -422,7 +429,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         Tracks how the platform is moving from individual use to institutional adoption.
         """
 
-        cache_key = f"superadmins:user_id__{request.user.id}"
+        cache_key = f"superadmins:user_id__{request.user.id}:view__scaling_signals"
         data = cache.get(cache_key)
 
         if data is None:
@@ -612,7 +619,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
     @action(detail=False, methods=["get"], url_path="dashboard/schools")
     def schools(self, request, *args, **kwargs):
 
-        cache_key = f"superadmins:user_id__{request.user.id}"
+        cache_key = f"superadmins:user_id__{request.user.id}:view__schools"
         data = cache.get(cache_key)
 
         if data is None:
@@ -692,7 +699,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         - Assignment completion rates per teacher
         """
 
-        cache_key = f"superadmins:user_id__{request.user.id}"
+        cache_key = f"superadmins:user_id__{request.user.id}:view__teachers"
         data = cache.get(cache_key)
 
         if data is None:
@@ -747,7 +754,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
             data = serializer.data
 
             cache.set(cache_key, data, 60 * 15)
-        return Response(serializer.data)
+        return Response(data)
 
     @extend_schema(
         tags=["Super Admin"],
@@ -767,7 +774,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
     # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/students")
     def students(self, request, *args, **kwargs):
-        cache_key = f"superadmins:user_id__{request.user.id}"
+        cache_key = f"superadmins:user_id__{request.user.id}:view__students"
         data = cache.get(cache_key)
 
         if data is None:
@@ -848,7 +855,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
     # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/concurrency")
     def concurrency(self, request, *args, **kwargs):
-        cache_key = f"superadmins:user_id__{request.user.id}"
+        cache_key = f"superadmins:user_id__{request.user.id}:view__concurrency"
         data = cache.get(cache_key)
 
         if data is None:
@@ -873,10 +880,151 @@ class SuperAdminDashboardView(viewsets.ViewSet):
 
         return Response(data)
 
+    @extend_schema(
+        tags=["Super Admin"],
+        summary="Get AI detailed information about analytics ",
+        # description="Retrieve user activity statistics within a specified time range",
+        request=CustomAIPrompt,
+        responses={200: CustomAIReply},
+    )
+    @action(detail=False, methods=["POST"], url_path="dashboard/custom-ai-prompt")
+    def custom_ai_prompt(self, request, *args, **kwargs):
+        serializer = CustomAIPrompt(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        prompt = serializer.validated_data["prompt"]
+
+        try:
+            platform_adoption = self.platform_adoption(request, *args, **kwargs).data
+        except Exception:
+            platform_adoption = {}
+
+        try:
+            platform_usage = self.platform_usage(request, *args, **kwargs).data
+        except Exception:
+            platform_usage = {}
+
+        try:
+            platform_ai_performance = self.platform_ai_performance(
+                request, *args, **kwargs
+            ).data
+        except Exception:
+            platform_ai_performance = {}
+
+        try:
+            scaling_signals = self.scaling_signals(request, *args, **kwargs).data
+        except Exception:
+            scaling_signals = {}
+
+        try:
+            summary = self.summary(request, *args, **kwargs).data
+        except Exception:
+            summary = {}
+
+        try:
+            schools = self.schools(request, *args, **kwargs).data
+        except Exception:
+            schools = {}
+
+        try:
+            teachers = self.teachers(request, *args, **kwargs).data
+        except Exception:
+            teachers = {}
+
+        try:
+            students = self.students(request, *args, **kwargs).data
+        except Exception:
+            students = {}
+
+        try:
+            concurrency = self.concurrency(request, *args, **kwargs).data
+        except Exception:
+            concurrency = {}
+
+        context_template = f"""
+        ### PLATFORM ADOPTION METRICS
+        {platform_adoption}
+
+        ### PLATFORM USAGE METRICS
+        {platform_usage}
+
+        ### PLATFORM AI PERFORMANCE METRICS
+        {platform_ai_performance}
+
+        ### SCALING SIGNALS METRICS
+        {scaling_signals}
+
+        ### SUMMARY METRICS
+        {summary}
+
+        ### SCHOOLS METRICS
+        {schools}
+
+        ### TEACHERS METRICS
+        {teachers}
+
+        ### STUDENTS METRICS
+        {students}
+
+        ### CONCURRENCY METRICS
+        {concurrency}
+        """
+
+        user_prompt = f"""
+        #### CONTEXT DATA
+        {context_template}
+
+        #### END OF CONTEXT DATA
+
+        # FOUNDER QUESTION
+        {prompt}
+        """
+
+        # chat_session, created = ChatSession.objects.get_or_create(user=request.user)
+        # chat_history = (
+        #     ChatMessage.objects.filter(session=chat_session)
+        #     .order_by("timestamp")
+        #     .values_list("role", "content")
+        # )
+        #
+        # messages = [
+        #     {"role": role, "content": content} for role, content in chat_history
+        # ]
+
+        try:
+            ai_feedback = ai_processor.custom_ai_prompt_retry(
+                request.user,
+                user_prompt,
+                UserTypes.SUPER_ADMIN,
+                feature="Superadmin Custom AI Prompt",
+                task_type="custom_ai_prompt:superadmin",
+            )
+
+            # ChatMessage.objects.create(
+            #     session=chat_session, role=RoleType.USER, content=user_prompt
+            # )
+            #
+            # ChatMessage.objects.create(
+            #     session=chat_session, role=RoleType.ASSISTANT, content=ai_feedback
+            # )
+
+            # ai_feedback_prosemirror_json = AssignmentProcessingService.html_to_prosemirror_json(ai_feedback)
+
+            data = {
+                "response": ai_feedback,
+            }
+            serializer = CustomAIReply(data)
+
+            return Response(serializer.data)
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 
 class SchoolAdminDashboardView(viewsets.ViewSet):
     permission_classes = [IsSchoolAdmin]
-    http_method_names = ["get", "head", "options"]
+    # http_method_names = ["get", "head", "options"]
 
     @extend_schema(
         tags=["School Admin"],
@@ -896,7 +1044,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
     @action(detail=False, methods=["get"], url_path="dashboard/summary")
     def summary(self, request, *args, **kwargs):
         user = request.user
-        cache_key = f"schooladmins:user_id__{user.id}"
+        cache_key = f"schooladmins:user_id__{user.id}:view__summary"
         data = cache.get(cache_key)
 
         if data is None:
@@ -914,10 +1062,16 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 is_active=True,
             ).count()
 
+            # active_students = CustomUser.objects.filter(
+            #     school=school,
+            #     user_type=UserTypes.STUDENT,
+            #     is_active=True,
+            # ).count()
+
             active_students = CustomUser.objects.filter(
-                school=school,
-                user_type=UserTypes.STUDENT,
+                enrollments__course__teacher__school=school,
                 is_active=True,
+                user_type=UserTypes.STUDENT,
             ).count()
 
             active_courses = Course.objects.filter(
@@ -976,7 +1130,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         """
 
         user = request.user
-        cache_key = f"schooladmins:user_id__{user.id}"
+        cache_key = f"schooladmins:user_id__{user.id}:view__teachers"
         data = cache.get(cache_key)
 
         if data is None:
@@ -1062,7 +1216,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
     def students(self, request, *args, **kwargs):
         user = request.user
 
-        cache_key = f"schooladmins:user_id__{user.id}"
+        cache_key = f"schooladmins:user_id__{user.id}:view__students"
         data = cache.get(cache_key)
 
         if data is None:
@@ -1134,10 +1288,79 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
             cache.set(cache_key, data, 60 * 15)
         return Response(data)
 
+    @extend_schema(
+        tags=["School Admin"],
+        summary="Get AI detailed information about analytics ",
+        request=CustomAIPrompt,
+        responses={200: CustomAIReply},
+    )
+    @action(detail=False, methods=["POST"], url_path="dashboard/custom-ai-prompt")
+    def custom_ai_prompt(self, request, *args, **kwargs):
+        serializer = CustomAIPrompt(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        prompt = serializer.validated_data["prompt"]
+
+        try:
+            summary = self.summary(request, *args, **kwargs).data
+        except Exception:
+            summary = {}
+
+        try:
+            teachers = self.teachers(request, *args, **kwargs).data
+        except Exception:
+            teachers = {}
+
+        try:
+            students = self.students(request, *args, **kwargs).data
+        except Exception:
+            students = {}
+
+        context_template = f"""
+        ### SUMMARY METRICS
+        {summary}
+
+        ### TEACHERS METRICS
+        {teachers}
+
+        ### STUDENTS METRICS
+        {students}
+        """
+
+        user_prompt = f"""
+        #### CONTEXT DATA
+        {context_template}
+
+        #### END OF CONTEXT DATA
+        {prompt}
+        """
+
+        try:
+            ai_feedback = ai_processor.custom_ai_prompt_retry(
+                request.user,
+                user_prompt,
+                UserTypes.SCHOOL_ADMIN,
+                feature="Schooladmin Custom AI Prompt",
+                task_type="custom_ai_prompt:schooladmin",
+            )
+
+            # ai_feedback_prose_mirror = AssignmentProcessingService.html_to_prosemirror_json(ai_feedback)
+
+            data = {
+                "response": ai_feedback,
+            }
+            serializer = CustomAIReply(data)
+
+            return Response(serializer.data)
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 
 class TeacherAdminDashboardView(viewsets.ViewSet):
     permission_classes = [IsTeacher]
-    http_method_names = ["get", "options", "head"]
+    # http_method_names = ["get", "options", "head"]
 
     @extend_schema(
         tags=["Teacher Admin"],
@@ -1170,7 +1393,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
     )
     def overview(self, request, session_id, *args, **kwargs):
         teacher = request.user
-        cache_key = f"teacheradmins:user_id__{teacher.id}"
+        cache_key = f"teacheradmins:user_id__{teacher.id}:instance__id__{session_id}:view__overview"
         data = cache.get(cache_key)
 
         if data is None:
@@ -1247,12 +1470,11 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         url_path=r"dashboard/courses/(?P<course_id>[-\w]+)",
     )
     def courses(self, request, course_id, *args, **kwargs):
-        course = get_object_or_404(Course, id=course_id, teacher=request.user)
-
-        cache_key = f"teacheradmins:user_id__{request.user.id}:instance_id__{course_id}"
+        cache_key = f"teacheradmins:user_id__{request.user.id}:instance_id__{course_id}:view__courses"
         data = cache.get(cache_key)
 
         if data is None:
+            course = get_object_or_404(Course, id=course_id, teacher=request.user)
             assignments = Assignment.objects.filter(course=course)
             total_assigned = assignments.count()
             submissions = StudentSubmission.objects.filter(assignment__course=course)
@@ -1381,16 +1603,13 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         url_path=r"dashboard/assignments/(?P<assignment_id>[-\w]+)",
     )
     def assignments(self, request, assignment_id, *args, **kwargs):
-        assignment = get_object_or_404(
-            Assignment, id=assignment_id, course__teacher=self.request.user
-        )
-
-        cache_key = (
-            f"teacheradmins:user_id__{request.user.id}:instance_id__{assignment_id}"
-        )
+        cache_key = f"teacheradmins:user_id__{request.user.id}:instance_id__{assignment_id}:view__assignments"
         data = cache.get(cache_key)
 
         if data is None:
+            assignment = get_object_or_404(
+                Assignment, id=assignment_id, course__teacher=self.request.user
+            )
             submissions = StudentSubmission.objects.filter(assignment=assignment)
             total_submissions = submissions.count()
             average_grade = (
@@ -1475,13 +1694,13 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         url_path=r"dashboard/students/(?P<course_id>[-\w]+)",
     )
     def students(self, request, course_id, *args, **kwargs):
-        teacher = request.user
-        course = get_object_or_404(Course, id=course_id, teacher=teacher)
-
-        cache_key = f"teacheradmins:user_id__{teacher.id}:instance_id__{course_id}"
+        cache_key = f"teacheradmins:user_id__{request.user.id}:instance_id__{course_id}:view__students"
         data = cache.get(cache_key)
 
         if data is None:
+            teacher = request.user
+            course = get_object_or_404(Course, id=course_id, teacher=teacher)
+
             assignments = Assignment.objects.filter(course=course)
             total_assigned = assignments.count()
 
@@ -1574,10 +1793,99 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
 
         return Response(data)
 
+    @extend_schema(
+        tags=["Teacher Admin"],
+        summary="Teacher AI Extraction and Grading Insights",
+        request=CustomAIPrompt,
+    )
+    @action(detail=False, methods=["POST"], url_path=r"dashboard/custom-ai-prompt")
+    def custom_ai_prompt(self, request, *args, **kwargs):
+        serializer = CustomAIPrompt(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        prompt = serializer.validated_data["prompt"]
+
+        # Get all sessions for the teacher
+        sessions = Session.objects.filter(teacher=request.user)
+        # overview_data = [
+        #     self.overview(request, session.id, *args, **kwargs).data for session in sessions
+        # ]
+        overview_data = {
+            session.name: self.overview(request, session.id, *args, **kwargs).data
+            for session in sessions
+        }
+
+        # Get all the courses offered by the teacher
+        courses = Course.objects.filter(teacher=request.user)
+
+        course_data = {
+            course.name: self.courses(request, course.id, *args, **kwargs).data
+            for course in courses
+        }
+
+        # Get all the assignment created by this teacher
+        assignments = Assignment.objects.filter(course__teacher=request.user)
+
+        assignment_data = [
+            self.assignments(request, assignment.id, *args, **kwargs).data
+            for assignment in assignments
+        ]
+
+        student_data = [
+            self.students(request, course.id, *args, **kwargs).data
+            for course in courses
+        ]
+
+        context_template = f"""
+        ### Overview Metrics
+        {overview_data}
+
+        ### Course Metrics
+        {course_data}
+
+        ### Assignment Metrics
+        {assignment_data}
+
+        ### Student Metrics
+        {student_data}
+        """
+
+        user_prompt = f"""
+        #### CONTEXT DATA
+        {context_template}
+
+        #### END OF CONTEXT DATA
+
+
+        # TEACHER PROMPT
+        {prompt}
+        """
+
+        try:
+            ai_feedback = ai_processor.custom_ai_prompt_retry(
+                request.user,
+                user_prompt,
+                UserTypes.TEACHER,
+                feature="Teacher Custom AI Prompt",
+                task_type="custom_ai_prompt:teacher",
+            )
+
+            # ai_feedback_prosemirror_json = AssignmentProcessingService.html_to_prosemirror_json(ai_feedback)
+
+            data = {"response": ai_feedback}
+
+            serializer = CustomAIReply(data)
+
+            return Response(serializer.data)
+
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 
 class StudentAdminDashboardView(viewsets.ViewSet):
     permission_classes = [IsStudent]
-    http_method_names = ["get", "options", "head"]
+    # http_method_names = ["get", "options", "head"]
 
     @extend_schema(
         tags=["Student Admin"],
@@ -1612,17 +1920,16 @@ class StudentAdminDashboardView(viewsets.ViewSet):
         url_path=r"dashboard/summary/(?P<course_id>[-\w]+)",
     )
     def summary(self, request, course_id, *args, **kwargs):
-        student = request.user
-
-        # 1. Validate course
-        course = get_object_or_404(
-            Course.objects.select_related("session"), id=course_id, is_active=True
-        )
-
-        cache_key = f"studentadmins:user_id__{student.id}:instance_id__{course_id}"
+        cache_key = f"studentadmins:user_id__{request.user.id}:instance_id__{course_id}:view__summary"
         data = cache.get(cache_key)
 
         if data is None:
+            student = request.user
+
+            # 1. Validate course
+            course = get_object_or_404(
+                Course.objects.select_related("session"), id=course_id, is_active=True
+            )
             # 2. Validate enrollment
             get_object_or_404(
                 StudentCourse.objects.active(), student=student, course=course
@@ -1729,13 +2036,12 @@ class StudentAdminDashboardView(viewsets.ViewSet):
         url_path=r"dashboard/assignments/(?P<course_id>[-\w]+)",
     )
     def assignments(self, request, course_id, *args, **kwargs):
-        student = request.user
-        get_object_or_404(Course, id=course_id, is_active=True)
-
-        cache_key = f"studentadmins:user_id__{student.id}:instance_id__{course_id}"
+        cache_key = f"studentadmins:user_id__{request.user.id}:instance_id__{course_id}:view__assignments"
         data = cache.get(cache_key)
 
         if data is None:
+            student = request.user
+            get_object_or_404(Course, id=course_id, is_active=True)
 
             # Filter assignments for student's course
             assignments = Assignment.objects.filter(course__id=course_id)

@@ -340,3 +340,15 @@ class SchoolAdminStudentPerformanceSerializer(serializers.Serializer):
     assignment_completion_rate = serializers.FloatField(read_only=True)
     grade_distribution = GradeDistributionSerializer(read_only=True)
     total_active_enrollments = serializers.IntegerField(read_only=True)
+
+
+class CustomAIPrompt(serializers.Serializer):
+    """Serializer for custom AI prompts"""
+
+    prompt = serializers.CharField(required=True)
+
+
+class CustomAIReply(serializers.Serializer):
+    """Serializer for custom AI templates"""
+
+    response = serializers.CharField(required=True)

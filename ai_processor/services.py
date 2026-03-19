@@ -18,11 +18,13 @@ from openai import OpenAI
 from pdf2image import convert_from_bytes
 from PIL import Image
 
+# from ai_processor.models import ChatMessage, ChatSession
 from ai_processor.tools import encode_image, perform_search
 from ai_processor.validators import logger
 from billing.errors import InsufficientCreditsError
 from billing.services import AnalyticsService
 from classrooms.models import StudentCourse
+from users.models import UserTypes
 
 # from billing.services import SubscriptionService
 
@@ -451,13 +453,18 @@ Do not include any explanatory text before or after the JSON
                 for enrollment in enrollments
             ]
 
-        system_prompt = system_prompt.replace(
-            "{student_roster}", ", ".join(student_names)
+        student_roster = (
+            "Here is the list of students in this assignment course: Use it to match, "
+            "the student information that is retrieve from the assignment \n "
         )
+        student_roster += "\n\n".join(student_names)
+
+        # roster = {"role": "user", "content": student_roster}
 
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": assignment},
+            {"role": "user", "content": student_roster},
             {"role": "user", "content": content},
         ]
 
@@ -770,7 +777,7 @@ Now, respond to the following teacher's instruction using the rules above
 
         estimated_cost = self.estimate_total_token(total_prompt, image_bytes, pdf_bytes)
 
-        if user.user_type == "STUDENT":
+        if user.user_type == UserTypes.STUDENT:
             # Get the TEACHER wallet
 
             if assignment:
@@ -778,9 +785,17 @@ Now, respond to the following teacher's instruction using the rules above
                 wallet = target_teacher.credit_wallet
             else:
                 raise ValueError("Assignment is required for students")
-        elif user.user_type == "TEACHER":
+        elif (
+            user.user_type == UserTypes.TEACHER
+            or user.user_type == UserTypes.SCHOOL_ADMIN
+        ):
             target_teacher = user
             wallet = user.credit_wallet
+        elif user.user_type == UserTypes.SUPER_ADMIN:
+            response = self.__ai_model(
+                system_prompt, user_prompt, messages, tool_schemas, respond_format
+            )
+            return response
 
         balance = wallet.total_remaining_credits()
 
@@ -855,6 +870,79 @@ Now, respond to the following teacher's instruction using the rules above
         total_estimate += 20000
 
         return total_estimate
+
+    def custom_ai_prompt(
+        self, user, user_prompt, role, chat_history=None, feature=None, task_type=None
+    ):
+        if role == UserTypes.SUPER_ADMIN:
+            system_prompt_file = "ai_processor/SUPERADMIN_CUSTOM_PROMPT_2.txt"
+        elif role == UserTypes.SCHOOL_ADMIN:
+            system_prompt_file = "ai_processor/SCHOOLADMIN_CUSTOM_PROMPT.txt"
+        elif role == UserTypes.TEACHER:
+            system_prompt_file = "ai_processor/TEACHER_CUSTOM_PROMPT.txt"
+        elif role == UserTypes.STUDENT:
+            system_prompt_file = "ai_processor/STUDENT_CUSTOM_PROMPT.txt"
+        else:
+            raise ValueError(f"Invalid role: {role}")
+
+        with open(system_prompt_file, "r") as file:
+            system_prompt = file.read()
+
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+
+        # messages.extend(chat_history)
+
+        try:
+            response = self.execute_graded_task(
+                user=user,
+                feature=feature,
+                task_type=task_type,
+                messages=messages,
+                respond_format=False,
+            )
+
+            content = response.choices[0].message.content
+        except Exception as e:
+            raise Exception(f"Error during AI model: {str(e)}") from Exception
+
+        if content:
+            return content
+        else:
+            raise ValueError("content cannot be empty")
+
+    def custom_ai_prompt_retry(
+        self,
+        user,
+        user_prompt,
+        role,
+        chat_history=None,
+        feature=None,
+        task_type=None,
+        max_retries: int = 3,
+    ):
+        last_error = None
+
+        for attempt in range(max_retries):
+            try:
+                return self.custom_ai_prompt(
+                    user,
+                    user_prompt,
+                    role,
+                    chat_history,
+                    feature=feature,
+                    task_type=task_type,
+                )
+            except Exception as e:
+                last_error = e
+                logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
+
+                if attempt < max_retries - 1:
+                    logger.info("Retrying...")
+
+        raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
 
 
 class PDFService:

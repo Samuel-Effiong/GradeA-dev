@@ -98,6 +98,11 @@ class StudentSubmission(models.Model):
         return self.answers
 
 
+class BatchUploadType(models.TextChoices):
+    SUBMISSION = "submission"
+    ASSIGNMENT = "assignment"
+
+
 class BatchUploadSession(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     teacher = models.ForeignKey(
@@ -105,11 +110,28 @@ class BatchUploadSession(models.Model):
         on_delete=models.CASCADE,
         related_name="batch_upload_sessions",
     )
+    task_type = models.CharField(
+        max_length=255,
+        choices=BatchUploadType.choices,
+        default=BatchUploadType.SUBMISSION,
+    )
+
     assignment = models.ForeignKey(
         "assignments.Assignment",
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name="batch_upload_sessions",
     )
+
+    course = models.ForeignKey(
+        "classrooms.Course",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="batch_upload_sessions",
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     total_files = models.IntegerField(default=0)
 

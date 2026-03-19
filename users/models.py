@@ -67,6 +67,7 @@ class CustomUser(AbstractUser):
     )
 
     email = models.EmailField(unique=True)
+    middle_name = models.CharField(max_length=255, default="")
     user_type = models.CharField(
         max_length=20,
         choices=UserTypes.choices,
@@ -94,8 +95,15 @@ class CustomUser(AbstractUser):
     )
     email_verified_at = models.DateTimeField(blank=True, null=True)
 
+    def get_full_name(self):
+        """
+        Return the first_name plus the middle_name plus the last_name, with a space in between.
+        """
+        names = [self.first_name, self.middle_name, self.last_name]
+        return " ".join(name.strip() for name in names if name and name.strip())
+
     def __str__(self):
-        return f"{self.first_name} {self.last_name}"
+        return self.get_full_name()
 
     class Meta:
         ordering = ("first_name", "last_name", "email")
@@ -104,6 +112,12 @@ class CustomUser(AbstractUser):
 
     def is_student(self):
         if self.user_type == UserTypes.STUDENT:
+            return True
+        return False
+
+    def is_teacher(self):
+        """Love God"""
+        if self.user_type == UserTypes.TEACHER:
             return True
         return False
 
@@ -119,12 +133,6 @@ class CustomUser(AbstractUser):
             )
         self.save()
         return self.activation_token
-
-    def is_teacher(self):
-        """Love God"""
-        if self.user_type == UserTypes.TEACHER:
-            return True
-        return False
 
 
 class UserActivity(models.Model):

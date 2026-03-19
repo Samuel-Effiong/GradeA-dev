@@ -1,3 +1,5 @@
+import hashlib
+import json
 from typing import Any
 
 from django.conf import settings
@@ -23,7 +25,10 @@ class UserCacheMixin:
             instance_id = self.kwargs.get("pk")
             return f"{model_name}s:user_id__{user_id}:instance_id__{instance_id}"
 
-        return f"{model_name}s:user_id__{user_id}"
+        query_params = json.dumps(self.request.query_params.dict(), sort_keys=True)
+        query_hash = hashlib.md5(query_params.encode()).hexdigest()
+
+        return f"{model_name}s:user_id__{user_id}:query__{query_hash}"
 
     def list(self, request, *args, **kwargs):  # type: ignore
         cache_key = self.get_cache_key("list")

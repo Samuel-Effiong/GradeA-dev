@@ -29,6 +29,7 @@ def send_user_activation_email(user):
     context = {
         "first_name": user.first_name,
         "last_name": user.last_name,
+        "middle": user.middle_name,
         "token": user.activation_token,
         "activation_url": activation_url,
         "expiration_duration": 15,

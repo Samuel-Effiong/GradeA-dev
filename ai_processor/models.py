@@ -7,7 +7,9 @@ from django.db import models
 
 class ChatSession(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    # user = models.ForeignKey("users.CustomUser", on_delete=models.CASCADE, null=True, blank=True)
+    user = models.ForeignKey(
+        "users.CustomUser", on_delete=models.CASCADE, null=True, blank=True
+    )
     course = models.ForeignKey(
         "classrooms.Course", null=True, blank=True, on_delete=models.CASCADE
     )
