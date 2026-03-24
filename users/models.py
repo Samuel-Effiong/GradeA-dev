@@ -9,6 +9,9 @@ from django.utils.translation import gettext_lazy as _
 
 from users.services import OTPManager
 
+# from prometheus_client import Summary
+
+
 otp_manager = OTPManager()
 
 
@@ -82,6 +85,7 @@ class CustomUser(AbstractUser):
             "Unselect this instead of deleting accounts."
         ),
     )
+    bio = models.TextField(blank=True, null=True)
 
     objects = CustomUserManager()
 
@@ -111,15 +115,18 @@ class CustomUser(AbstractUser):
         verbose_name_plural = "Users"
 
     def is_student(self):
-        if self.user_type == UserTypes.STUDENT:
-            return True
-        return False
+        # if self.user_type == UserTypes.STUDENT:
+        #     return True
+        # return False
+
+        return self.user_type == UserTypes.STUDENT
 
     def is_teacher(self):
         """Love God"""
-        if self.user_type == UserTypes.TEACHER:
-            return True
-        return False
+        # if self.user_type == UserTypes.TEACHER:
+        #     return True
+        # return False
+        return self.user_type == UserTypes.TEACHER
 
     def renew_activation_token(self):
         """Renew the activation token and extend expiration."""
@@ -133,6 +140,26 @@ class CustomUser(AbstractUser):
             )
         self.save()
         return self.activation_token
+
+
+class ThemeType(models.TextChoices):
+    LIGHT = "LIGHT", "Light"
+    DARK = "DARK", "Dark"
+    SYSTEM = "SYSTEM", "System"
+
+
+class Settings(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    theme = models.CharField(
+        max_length=20, default=ThemeType.SYSTEM, choices=ThemeType.choices
+    )
+
+    # Email Notifications
+    notify_student_submission = models.BooleanField(default=False)
+    notify_weekly_summary = models.BooleanField(default=False)
+    notify_assignment_due_reminder = models.BooleanField(default=False)
+    notify_grading_complete = models.BooleanField(default=False)
 
 
 class UserActivity(models.Model):

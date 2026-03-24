@@ -54,6 +54,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
         min_length=1,
         required=True,
     )
+    submission_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Assignment
@@ -70,6 +71,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
             "created_at",
             "due_date",
             "teacher",
+            "submission_count",
             "questions",
             "raw_input",
             "potential_issues",
@@ -81,7 +83,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
             "extraction_started_at",
             "extraction_completed_at",
         ]
-        read_only_fields = ["created_at", "id"]
+        read_only_fields = ["created_at", "id", "submission_count"]
 
         extra_kwargs = {
             "title": {"required": False},
@@ -199,8 +201,15 @@ class AssignmentSerializer(serializers.ModelSerializer):
                 instance.overridden_at = timezone.now()
         return super().update(instance, validated_data)
 
+    def get_submission_count(self, obj):
+        if obj.status == AssignmentStatus.PUBLISHED or obj.submissions:
+            return obj.submissions.count()
+        return 0
+
 
 class AssignmentListSerializer(serializers.ModelSerializer):
+    submission_count = serializers.SerializerMethodField()
+
     class Meta:
         model = Assignment
         fields = [
@@ -216,7 +225,13 @@ class AssignmentListSerializer(serializers.ModelSerializer):
             "created_at",
             "due_date",
             "extraction_confidence",
+            "submission_count",
         ]
+
+    def get_submission_count(self, obj):
+        if obj.status == AssignmentStatus.PUBLISHED or obj.submissions:
+            return obj.submissions.count()
+        return 0
 
 
 class AssignmentDetailSerializer(serializers.ModelSerializer):

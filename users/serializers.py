@@ -4,8 +4,22 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from classrooms.models import School
-from users.models import CustomUser
+from users.models import CustomUser, Settings
 from users.services import send_user_activation_email
+
+
+class SettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Settings
+        fields = [
+            "id",
+            "user",
+            "theme",
+            "notify_student_submission",
+            "notify_weekly_summary",
+            "notify_assignment_due_reminder",
+            "notify_grading_complete",
+        ]
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -15,6 +29,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
     school = serializers.PrimaryKeyRelatedField(
         queryset=School.objects.all(), required=False
     )
+    settings = SettingsSerializer(read_only=True)
 
     class Meta:
         model = CustomUser
@@ -25,15 +40,20 @@ class CustomUserSerializer(serializers.ModelSerializer):
             "first_name",
             "middle_name",
             "last_name",
+            "bio",
             "user_type",
             "password",
             "is_active",
+            "date_joined",
+            "settings",
         ]
         # read_only_fields = ['id', 'user_type']
+
         extra_kwargs = {
             "email": {"required": True},
             "password": {"write_only": True},
             "is_active": {"read_only": True},
+            "date_joined": {"read_only": True},
         }
 
     def create(self, validated_data):
@@ -124,3 +144,9 @@ class TaskStatusSerializer(serializers.Serializer):
     task_id = serializers.CharField()
     status = serializers.CharField()
     meta = serializers.CharField(allow_null=True)
+
+
+class BatchUploadResponseSerializer(serializers.Serializer):
+    session_id = serializers.UUIDField()
+    message = serializers.CharField()
+    batch_tasks = serializers.ListField(child=serializers.UUIDField())

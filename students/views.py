@@ -45,8 +45,9 @@ from assignments.tasks import (
 from classrooms.permissions import IsStudent, IsTeacher, IsTeacherOrReadOnly
 from users.mixins import UserCacheMixin
 from users.models import UserTypes
+from users.serializers import BatchUploadResponseSerializer
 
-from .models import BatchUploadSession, StudentSubmission
+from .models import BatchUploadSession, BatchUploadType, StudentSubmission
 from .serializers import (
     StudentSubmissionDetailSerializer,
     StudentSubmissionFormattedGradeAsyncSerializer,
@@ -159,7 +160,6 @@ STUDENT_RESPONSE_EXAMPLE = {
                 description="Invalid input. Missing required fields or invalid data format"
             ),
         },
-        examples=[],
     ),
     retrieve=extend_schema(
         tags=["07 Student Submissions"],
@@ -525,9 +525,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 detail="No Student Submission with this ID is found"
             ) from StudentSubmission.DoesNotExist
 
-        task_id = None
-
-        task = grade_engine_async.delay(str(submission.id))
+        task = grade_engine_async.delay(str(request.user.id), str(submission.id))
         task_id = task.id
 
         data = {
@@ -736,20 +734,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         responses={
             202: OpenApiResponse(
                 description="Batch upload accepted and background tasks started.",
-                response=OpenApiTypes.OBJECT,
-                examples=[
-                    OpenApiExample(
-                        "Batch upload started",
-                        value={
-                            "message": "Batch processing started for 3 files.",
-                            "batch_tasks": [
-                                "0d3a7caa-39e1-4f65-86d7-45d9c8bcb96b",
-                                "4fdfe7b4-8d5a-4f92-a8b7-5c21b1c567d0",
-                                "b0b7fd5c-4c8c-4f3b-9c3f-9d15d7e1c901",
-                            ],
-                        },
-                    )
-                ],
+                response=BatchUploadResponseSerializer,
             ),
             400: OpenApiResponse(
                 description="Bad request. No files were uploaded or invalid request format.",
@@ -779,7 +764,10 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             raise ParseError("No files uploaded. Please try again.")
 
         session = BatchUploadSession.objects.create(
-            teacher=request.user, assignment=assignment, total_files=len(files)
+            teacher=request.user,
+            assignment=assignment,
+            task_type=BatchUploadType.SUBMISSION,
+            total_files=len(files),
         )
 
         task_ids = []
@@ -808,88 +796,98 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
             task_ids.append(task.id)
 
+        data = {
+            "session_id": session.id,
+            "message": f"Batch processing started for {len(files)} files",
+            "batch_tasks": task_ids,
+        }
+
+        serializer = BatchUploadResponseSerializer(data)
+
         return Response(
-            {
-                "session_id": session.id,
-                "message": f"Batch processing started for {len(files)} files",
-                "batch_tasks": task_ids,
-            },
+            serializer.data,
             status=HTTP_202_ACCEPTED,
         )
 
-    @extend_schema(
-        tags=["07 Student Submissions"],
-        summary="Retrieve batch upload session results",
-        description="""
-        Retrieve the processing status and results of a batch upload session.
-
-        This endpoint returns the progress of the background tasks, indicating how many
-        files have been processed and the overall completion status. It provides lists of
-        successfully processed submissions and those that failed.
-        """,
-        responses={
-            200: OpenApiResponse(
-                description="Session results retrieved successfully.",
-                response=OpenApiTypes.OBJECT,
-                examples=[
-                    OpenApiExample(
-                        "In Progress",
-                        value={
-                            "progress": "2 / 3",
-                            "is_complete": False,
-                            "success_count": 2,
-                            "failure_count": 0,
-                            "success_list": [
-                                {
-                                    "status": "SUCCESS",
-                                    "file_name": "student_a.pdf",
-                                    "submission_id": "b2c3d4e5",
-                                },
-                            ],
-                            "failure_list": [],
-                        },
-                    ),
-                    OpenApiExample(
-                        "Completed with failures",
-                        value={
-                            "progress": "3 / 3",
-                            "is_complete": True,
-                            "success_count": 2,
-                            "failure_count": 1,
-                            "success_list": [
-                                {"status": "SUCCESS", "file_name": "student_a.pdf"},
-                            ],
-                            "failure_list": [
-                                {
-                                    "status": "FAILED",
-                                    "file_name": "unknown_file.pdf",
-                                    "error": "Could not identify or associate a student with this paper",
-                                }
-                            ],
-                        },
-                    ),
-                ],
-            ),
-            404: OpenApiResponse(
-                description="Session not found.",
-            ),
-        },
-    )
-    @action(detail=True, methods=["GET"], url_path="session-results")
-    def session_results(self, request, pk=None):
-        session = get_object_or_404(BatchUploadSession, id=pk)
-
-        # Separate into two clean lists for the UI
-        success = [r for r in session.results if r["status"] == "SUCCESS"]
-        failures = [r for r in session.results if r["status"] == "FAILED"]
-
-        return Response(
-            {
-                "progress": f"{len(session.results)} / {session.total_files}",
-                "is_complete": len(session.results) == session.total_files,
-                "success_count": len(success),
-                "failure_count": len(failures),
-                "success_list": success,
-                "failure_list": failures,
-            }
-        )
+    # @extend_schema(
+    #     tags=["07 Student Submissions"],
+    #     summary="Retrieve batch upload session results",
+    #     description="""
+    #     Retrieve the processing status and results of a batch upload session.
+    #
+    #     This endpoint returns the progress of the background tasks, indicating how many
+    #     files have been processed and the overall completion status. It provides lists of
+    #     successfully processed submissions and those that failed.
+    #     """,
+    #     responses={
+    #         200: OpenApiResponse(
+    #             description="Session results retrieved successfully.",
+    #             response=OpenApiTypes.OBJECT,
+    #             examples=[
+    #                 OpenApiExample(
+    #                     "In Progress",
+    #                     value={
+    #                         "progress": "2 / 3",
+    #                         "is_complete": False,
+    #                         "success_count": 2,
+    #                         "failure_count": 0,
+    #                         "success_list": [
+    #                             {
+    #                                 "status": "SUCCESS",
+    #                                 "file_name": "student_a.pdf",
+    #                                 "submission_id": "b2c3d4e5",
+    #                             },
+    #                         ],
+    #                         "failure_list": [],
+    #                     },
+    #                 ),
+    #                 OpenApiExample(
+    #                     "Completed with failures",
+    #                     value={
+    #                         "progress": "3 / 3",
+    #                         "is_complete": True,
+    #                         "success_count": 2,
+    #                         "failure_count": 1,
+    #                         "success_list": [
+    #                             {"status": "SUCCESS", "file_name": "student_a.pdf"},
+    #                         ],
+    #                         "failure_list": [
+    #                             {
+    #                                 "status": "FAILED",
+    #                                 "file_name": "unknown_file.pdf",
+    #                                 "error": "Could not identify or associate a student with this paper",
+    #                             }
+    #                         ],
+    #                     },
+    #                 ),
+    #             ],
+    #         ),
+    #         404: OpenApiResponse(
+    #             description="Session not found.",
+    #         ),
+    #     },
+    # )
+    # @action(detail=True, methods=["GET"], url_path="session-results")
+    # def session_results(self, request, pk=None):
+    #     session = get_object_or_404(BatchUploadSession, id=pk)
+    #
+    #     # Separate into two clean lists for the UI
+    #     success = [r for r in session.results if r["status"] == "SUCCESS"]
+    #     failures = [r for r in session.results if r["status"] == "FAILED"]
+    #
+    #     completed = len(session.results)
+    #     total = session.total_files
+    #
+    #     percentage = (completed / total) * 100 if total > 0 else 0
+    #
+    #     return Response(
+    #         {
+    #             "progress": f"{completed} / {total}",
+    #             "percent": round(percentage),
+    #             "is_complete": completed == total,
+    #             "success_count": len(success),
+    #             "failure_count": len(failures),
+    #             "success_list": success,
+    #             "failure_list": failures,
+    #         }
+    #     )

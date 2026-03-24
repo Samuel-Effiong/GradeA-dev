@@ -35,26 +35,26 @@ from ai_processor.services import ai_processor  # pdf_service
 from classrooms.models import Course, Topic
 from classrooms.permissions import IsTeacher, IsTeacherOrReadOnly
 from classrooms.serializers import TopicSerializer
-from students.models import BatchUploadSession, StudentSubmission
+from students.models import BatchUploadSession, BatchUploadType  # , StudentSubmission
 from users.mixins import UserCacheMixin
 
 # from students.serializers import StudentSubmissionSerializer
 from users.models import UserTypes
+from users.serializers import BatchUploadResponseSerializer
 
 from .models import Assignment, AssignmentStatus  # Rubric
-from .serializers import (  # RubricSerializer,
+from .serializers import (  # RubricSerializer,; AssignmentGradeAllSubmissionsSerializer,
     AssignmentCreateResponseSerializer,
     AssignmentDetailSerializer,
-    AssignmentGradeAllSubmissionsSerializer,
     AssignmentListSerializer,
     AssignmentSerializer,
     AssignmentTextSerializer,
     GeneratedAssignmentSerializer,
 )
 from .services import AssignmentProcessingService
-from .tasks import (
+from .tasks import (  # grade_all_submissions,
     extract_assignment_background_task,
-    grade_all_submissions,
+    grade_engine_async,
     upload_assignment_async,
 )
 
@@ -637,7 +637,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             }
         },
         responses={
-            201: AssignmentDetailSerializer,
+            201: BatchUploadResponseSerializer,
             400: {
                 "description": "Bad Request. No files were uploaded or invalid file data.",
                 "example": {"error": "No files were uploaded."},
@@ -690,34 +690,49 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             raise ParseError("No files were uploaded. Please try again")
 
         session = BatchUploadSession.objects.create(
-            teacher=request.user, total_files=len(files)
+            teacher=request.user,
+            course=course,
+            task_type=BatchUploadType.ASSIGNMENT,
+            total_files=len(files),
         )
-        print(session)
-
-        files_payload = []
+        task_ids = []
 
         for uploaded_file in files:
             if not isinstance(uploaded_file, UploadedFile):
                 raise ParseError("Invalid file upload.")
 
-            files_payload.append(
-                AssignmentProcessingService.build_async_upload_payload(uploaded_file)
+            # files_payload.append(
+            #     AssignmentProcessingService.build_async_upload_payload(uploaded_file)
+            # )
+
+            prompt_text = """
+            Analyze the image of an educational assignment and return a JSON
+
+            IMPORTANT: Return only valid JSON matching the required structure.
+            Do not include any explanatory text before or after the JSON
+            """
+
+            content = AssignmentProcessingService.prepare_ai_content(
+                uploaded_file, prompt_text=prompt_text
             )
 
-        task = upload_assignment_async.delay(
-            user_id=str(request.user.id),
-            course_id=str(course.id),
-            topic_id=str(topic.id) if topic else None,
-            files_payload=files_payload,
-        )
+            task = upload_assignment_async.delay(
+                user_id=str(request.user.id),
+                course_id=str(course.id),
+                topic_id=str(topic.id) if topic else None,
+                session_id=str(session.id),
+                content=content,
+                file_name=uploaded_file.name,
+            )
+            task_ids.append(task.id)
 
         data = {
-            "task_id": task.id,
-            "message": "Assignment upload extraction started",
-            "file_count": len(files_payload),
+            "session_id": session.id,
+            "message": f"Batch processing started for {len(files)} files",
+            "batch_tasks": task_ids,
         }
-
-        return Response(data, status=status.HTTP_202_ACCEPTED)
+        serializer = BatchUploadResponseSerializer(data)
+        return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
 
     @extend_schema(
         tags=["Assignments"],
@@ -823,7 +838,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         request=None,
         responses={
             200: OpenApiResponse(
-                response=AssignmentGradeAllSubmissionsSerializer,
+                response=BatchUploadResponseSerializer,
                 description="Grading of submissions started",
             )
         },
@@ -834,27 +849,52 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         submissions = assignment.submissions.all()
 
-        task_id = None
-
         if not submissions.exists():
             return Response(
                 {"message": "No submissions to grade"}, status=status.HTTP_200_OK
             )
 
-        print("Assignment ID: ", Assignment.objects.filter(id=assignment.id))
-        print("Submission:", StudentSubmission.objects.filter(assignment=assignment))
-        task = grade_all_submissions.delay(str(assignment.id))
-        task_id = task.id
+        # print("Assignment ID: ", Assignment.objects.filter(id=assignment.id))
+        # print("Submission:", StudentSubmission.objects.filter(assignment=assignment))
+
+        session = BatchUploadSession.objects.create(
+            teacher=request.user,
+            course=assignment.course,
+            task_type=BatchUploadType.GRADE,
+            total_files=submissions.count(),
+        )
+        task_ids = []
+
+        for _, submission in enumerate(submissions):
+            task = grade_engine_async.delay(
+                str(request.user.id), str(submission.id), batch_id=session.id
+            )
+            task_ids.append(task.id)
 
         data = {
-            "assignment_id": assignment.id,
-            "task_id": task_id,
-            "message": "AI grading started",
-            "submission_count": submissions.count(),
-            "status": "Processing" if task_id else "completed",
+            "session_id": session.id,
+            "message": f"Batch processing started for {submissions.count()} submissions",
+            "batch_tasks": task_ids,
         }
 
-        serializer = AssignmentGradeAllSubmissionsSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
+        serializer = BatchUploadResponseSerializer(data)
 
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
+        #
+        #
+        #
+        # task = grade_all_submissions.delay(str(assignment.id))
+        # task_id = task.id
+        #
+        # data = {
+        #     "assignment_id": assignment.id,
+        #     "task_id": task_id,
+        #     "message": "AI grading started",
+        #     "submission_count": submissions.count(),
+        #     "status": "Processing" if task_id else "completed",
+        # }
+        #
+        # serializer = AssignmentGradeAllSubmissionsSerializer(data=data)
+        # serializer.is_valid(raise_exception=True)
+        #
+        # return Response(serializer.data, status=status.HTTP_202_ACCEPTED)

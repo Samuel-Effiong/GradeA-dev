@@ -101,6 +101,7 @@ class StudentSubmission(models.Model):
 class BatchUploadType(models.TextChoices):
     SUBMISSION = "submission"
     ASSIGNMENT = "assignment"
+    GRADE = "grade"
 
 
 class BatchUploadSession(models.Model):
@@ -137,13 +138,33 @@ class BatchUploadSession(models.Model):
 
     results = models.JSONField(default=list)
 
-    def update_result(self, file_name, status, error=None, submission_id=None):
+    def update_result(
+        self,
+        file_name,
+        status,
+        error=None,
+        batch_type=None,
+        submission_id=None,
+        assignment_id=None,
+    ):
         new_entry = {
             "file_name": file_name,
             "status": status,
             "error": error,
-            "submission_id": str(submission_id) if submission_id else None,
         }
+        if batch_type == BatchUploadType.SUBMISSION:
+            new_entry.update(
+                {
+                    "submission_id": str(submission_id) if submission_id else None,
+                }
+            )
+
+        elif batch_type == BatchUploadType.ASSIGNMENT:
+            new_entry.update(
+                {
+                    "assignment_id": str(assignment_id) if assignment_id else None,
+                }
+            )
 
         with transaction.atomic():
             session = BatchUploadSession.objects.select_related().get(id=self.id)

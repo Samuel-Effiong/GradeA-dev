@@ -1,5 +1,4 @@
 from celery import shared_task, states
-from django.db import transaction
 
 # from celery.exceptions import Ignore
 from django.utils import timezone
@@ -7,7 +6,7 @@ from django.utils import timezone
 from ai_processor.services import ai_processor
 from classrooms.models import Course, Topic
 from students.exceptions import CannotAssociateStudentError
-from students.models import BatchUploadSession, StudentSubmission
+from students.models import BatchUploadSession, BatchUploadType, StudentSubmission
 from students.serializers import StudentSubmissionSerializer
 from students.services import grade_engine, upload_answers_engine
 from users.models import CustomUser, UserTypes
@@ -15,6 +14,8 @@ from users.models import CustomUser, UserTypes
 from .models import Assignment
 from .serializers import AssignmentSerializer
 from .services import AssignmentProcessingService
+
+# from django.db import transaction
 
 
 @shared_task(bind=True)
@@ -183,7 +184,7 @@ def extract_answer_background_task(self, submission_id, content):
 
 
 @shared_task(bind=True)
-def grade_engine_async(self, user_id, submission_id):
+def grade_engine_async(self, user_id, submission_id, batch_id=None):
     try:
         self.update_state(state="PROGRESS", meta={"step": "Retrieving submission"})
         submission = StudentSubmission.objects.select_related("assignment").get(
@@ -199,6 +200,15 @@ def grade_engine_async(self, user_id, submission_id):
         submission.save()
 
         self.update_state(state="PROGRESS", meta={"step": "Completed"})
+
+        if batch_id:
+            session = BatchUploadSession.objects.get(id=batch_id)
+            session.update_result(
+                f"{user.get_full_name()} Submission",
+                "SUCCESS",
+                batch_type=BatchUploadType.GRADE,
+                submission_id=submission.id,
+            )
         return {
             "status": states.SUCCESS,
             "submission_id": submission_id,
@@ -257,7 +267,12 @@ def upload_answers_engine_async(
         )
 
         session = BatchUploadSession.objects.get(id=session_id)
-        session.update_result(file_name, "SUCCESS", submission_id=submission.id)
+        session.update_result(
+            file_name,
+            "SUCCESS",
+            batch_type=BatchUploadType.SUBMISSION,
+            submission_id=submission.id,
+        )
 
         return {
             "status": states.SUCCESS,
@@ -299,8 +314,17 @@ def formatted_grade_async(submission_id, user_prompt):
         raise
 
 
-@shared_task(bind=True)
-def upload_assignment_async(self, *, user_id, course_id, topic_id=None, files_payload):
+@shared_task(bind=True, max_retries=3)
+def upload_assignment_async(
+    self,
+    *,
+    user_id,
+    course_id,
+    topic_id=None,
+    session_id=None,
+    content=None,
+    file_name=None,
+):
     try:
         self.update_state(state="PROGRESS", meta={"step": "Loading context"})
 
@@ -308,70 +332,38 @@ def upload_assignment_async(self, *, user_id, course_id, topic_id=None, files_pa
         course = Course.objects.get(id=course_id, teacher=user)
         topic = Topic.objects.get(id=topic_id) if topic_id else None
 
-        prompt_text = """
-        Analyze the image of an educational assignment and return a JSON
-
-        IMPORTANT: Return only valid JSON matching the required structure.
-        Do not include any explanatory text before or after the JSON
-        """
-
-        result = []
-        total_files = len(files_payload)
-
-        for index, file_payload in enumerate(files_payload, start=1):
-            self.update_state(
-                state="PROGRESS",
-                meta={
-                    "step": "Extracting assignment",
-                    "current": index,
-                    "total": total_files,
-                    "percent": (
-                        int((index - 1) / total_files * 100) if total_files else 0
-                    ),
-                    "file_name": file_payload.get("name"),
-                },
-            )
-
-            uploaded_file = AssignmentProcessingService.rebuild_uploaded_file(
-                file_payload
-            )
-            content = AssignmentProcessingService.prepare_ai_content(
-                uploaded_file, prompt_text
-            )
-            assignment_questions = AssignmentProcessingService.extract_assignment_data(
-                user,
-                content,
-                course=course,
-                topic=topic,
-                generate_raw_input=True,
-                upload=True,
-            )
-            result.append(assignment_questions)
+        assignment_questions = AssignmentProcessingService.extract_assignment_data(
+            user,
+            content,
+            course=course,
+            topic=topic,
+            generate_raw_input=True,
+            upload=True,
+        )
 
         self.update_state(state="PROGRESS", meta={"step": "Saving assignments"})
+        serializer = AssignmentSerializer(data=assignment_questions)
+        serializer.is_valid(raise_exception=True)
+        assignment = serializer.save()
 
-        with transaction.atomic():
-            serializer = AssignmentSerializer(data=result, many=True)
-            serializer.is_valid(raise_exception=True)
-            assignments = serializer.save()
-
-        assignment_ids = [str(assignment.id) for assignment in assignments]
-
-        self.update_state(state="PROGRESS", meta={"step": "Completed", "percent": 100})
+        session = BatchUploadSession.objects.get(id=session_id)
+        session.update_result(
+            file_name,
+            "SUCCESS",
+            batch_type=BatchUploadType.ASSIGNMENT,
+            assignment_id=assignment.id,
+        )
 
         return {
             "status": states.SUCCESS,
-            "message": "Assignments upload extraction successfully",
-            "assignment_ids": assignment_ids,
-            "created_count": len(assignment_ids),
+            "assignment_id": str(assignment.id),
+            "message": "Assignment uploaded successfully",
         }
-    except Exception as e:
-        self.update_state(
-            state=states.FAILURE,
-            meta={
-                "message": "Assignment upload extraction failed",
-                "error": str(e),
-            },
-        )
 
+    except Exception as e:
+        if self.request.retries == self.max_retries:
+            raise self.retry(exc=e, countdown=3) from Exception
+
+        session = BatchUploadSession.objects.get(id=session_id)
+        session.update_result(file_name, "FAILED", error=str(e))
         raise
