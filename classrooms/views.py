@@ -1,8 +1,10 @@
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.core.cache import cache
 
 # from django.core.mail import send_mail
 from django.db import transaction
+from django.db.models import Count, Prefetch, Q
 from django.template.loader import render_to_string
 from django.utils import timezone
 
@@ -27,6 +29,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from AutoGrader.tasks import send_email_task
+from users.mixins import UserCacheMixin
 from users.models import CustomUser, UserTypes
 from users.serializers import CustomUserSerializer
 from users.services import otp_manager
@@ -40,11 +43,12 @@ from .models import (  # , Classroom, ClassroomSettings
     StudentCourse,
     Topic,
 )
-from .permissions import IsSuperAdmin, IsTeacherOrReadOnly
+from .permissions import IsSuperAdmin, IsTeacher, IsTeacherOrReadOnly
 from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
     AddStudentToCourseSerializer,
     CourseCategorySerializer,
     CourseSerializer,
+    DirectAddStudentSerializer,
     ExpiredTokenSerializer,
     SchoolSerializer,
     SessionSerializer,
@@ -114,7 +118,7 @@ from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
         },
     ),
 )
-class SchoolViewSet(viewsets.ModelViewSet):
+class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
     queryset = School.objects.all()
     serializer_class = SchoolSerializer
     permission_classes = (IsSuperAdmin,)
@@ -124,16 +128,6 @@ class SchoolViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     ordering_fields = ["name", "created_at"]
     search_fields = ["name"]
-
-    # @method_decorator(cache_page(60 * 3, key_prefix="schools:list"))
-    # @method_decorator(vary_on_headers("Authorization"))
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
-
-    # @method_decorator(cache_page(60 * 3, key_prefix="schools:retrieve"))
-    # @method_decorator(vary_on_headers("Authorization"))
-    def retrieve(self, request, *args, **kwargs):
-        return super().retrieve(request, *args, **kwargs)
 
     @extend_schema(
         tags=["School"],
@@ -232,7 +226,7 @@ class SchoolViewSet(viewsets.ModelViewSet):
         },
     ),
 )
-class CourseViewSet(viewsets.ModelViewSet):
+class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
     """
     API endpoint for managing sections.
 
@@ -268,23 +262,35 @@ class CourseViewSet(viewsets.ModelViewSet):
         "created_at",
     )
 
-    # @method_decorator(cache_page(60 * 3, key_prefix="courses:list"))
-    # @method_decorator(vary_on_headers("Authorization"))
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
-
-    # @method_decorator(cache_page(60 * 3, key_prefix="courses:detail"))
-    # @method_decorator(vary_on_headers("Authorization"))
-    def retrieve(self, request, *args, **kwargs):
-        return super().retrieve(request, *args, **kwargs)
-
     def get_queryset(self):
         user = self.request.user
+        course = (
+            Course.objects.select_related("session", "teacher")
+            .prefetch_related(
+                "topics",
+                Prefetch(
+                    "enrollments",
+                    queryset=StudentCourse.objects.exclude(
+                        enrollment_status=EnrollmentStatusType.WITHDRAWN
+                    ).select_related("student"),
+                    to_attr="active_enrollments",
+                ),
+            )
+            .annotate(
+                student_count=Count(
+                    "enrollments",
+                    filter=~Q(
+                        enrollments__enrollment_status=EnrollmentStatusType.WITHDRAWN
+                    ),
+                    distinct=True,
+                )
+            )
+        )
 
         if user.user_type == UserTypes.TEACHER:
-            return Course.objects.filter(teacher=user)
+            return course.filter(teacher=user)
         elif user.user_type == UserTypes.STUDENT:
-            return Course.objects.filter(enrollments__student=user)
+            return course.filter(enrollments__student=user)
         else:
             return Course.objects.none()
 
@@ -315,12 +321,16 @@ class CourseViewSet(viewsets.ModelViewSet):
                     if StudentCourse.objects.filter(
                         student=student, course=course
                     ).exists():
-                        raise ParseError("Student is already enrolled in this course.")
+                        return Response(
+                            {"detail": "Student is already enrolled in this course."},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
 
                     StudentCourse.objects.create(
                         student=student,
                         course=course,
                         enrollment_status=EnrollmentStatusType.ENROLLED,
+                        auto_added=False,
                     )
 
                     # Notify student about enrollment
@@ -351,6 +361,7 @@ class CourseViewSet(viewsets.ModelViewSet):
                         email=email,
                         user_type=UserTypes.STUDENT,
                         is_active=False,
+                        school=course.teacher.school,
                         activation_token=activation_token,
                         activation_expires=timezone.now() + timezone.timedelta(days=7),
                     )
@@ -360,6 +371,7 @@ class CourseViewSet(viewsets.ModelViewSet):
                         student=student,
                         course=course,
                         enrollment_status=EnrollmentStatusType.PENDING,
+                        auto_added=False,
                     )
 
                     # Generate registration link
@@ -394,6 +406,42 @@ class CourseViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response(
                 {"detail": f"Failed to process student: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @extend_schema(
+        tags=["02 Course"],
+        summary="Add student directly to a course without email verification",
+        description="Allows teachers to manually create and enroll students (like toddlers) instantly.",
+        request=DirectAddStudentSerializer,
+    )
+    @action(
+        detail=True,
+        methods=["post"],
+        permission_classes=[IsTeacher],
+        url_path="direct-add-student",
+        url_name="direct-add-student",
+    )
+    def direct_add_student(self, request, *args, **kwargs):
+        course = self.get_object()
+        serializer = DirectAddStudentSerializer(
+            data=request.data, context={"course": course}
+        )
+
+        if not serializer.is_valid():
+            raise ValidationError(serializer.errors)
+
+        try:
+            student = serializer.save()
+            serializer = CustomUserSerializer(student)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response(
+                {
+                    "message": "Unable to add student to course",
+                    "detail": f"Failed to process student: {str(e)}",
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -604,11 +652,24 @@ class CourseViewSet(viewsets.ModelViewSet):
         if user.user_type != UserTypes.STUDENT:
             raise ParseError("Only students can access their enrolled courses.")
 
-        student_courses = StudentCourse.objects.filter(student=user)
+        cache_key = f"courses:user_id__{request.user.id}"
+        cached_data = cache.get(cache_key)
+
+        if cached_data is not None:
+            return Response(cached_data)
+
+        student_courses = (
+            StudentCourse.objects.filter(student=user)
+            .select_related("course")
+            .exclude(enrollment_status__iexact=EnrollmentStatusType.WITHDRAWN)
+        )
         courses = [sc.course for sc in student_courses]
 
-        serializer = CourseSerializer(courses, many=True)
-        return Response(serializer.data)
+        serializer = self.get_serializer(courses, many=True)
+        data = serializer.data
+
+        cache.set(cache_key, data, 60 * 5)
+        return Response(data)
 
     @extend_schema(
         tags=["02 Course"],
@@ -733,7 +794,7 @@ class CourseViewSet(viewsets.ModelViewSet):
         },
     ),
 )
-class SessionViewSet(viewsets.ModelViewSet):
+class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     """
     API endpoint for managing academic terms.
 
@@ -765,16 +826,6 @@ class SessionViewSet(viewsets.ModelViewSet):
         "name",
         "created_at",
     )
-
-    # @method_decorator(cache_page(60 * 3, key_prefix="sessions:list"))
-    # @method_decorator(vary_on_headers("Authorization"))
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
-
-    # @method_decorator(cache_page(60 * 3, key_prefix="sessions:detail"))
-    # @method_decorator(vary_on_headers("Authorization"))
-    def retrieve(self, request, *args, **kwargs):
-        return super().retrieve(request, *args, **kwargs)
 
     def get_queryset(self):
         user = self.request.user
@@ -913,7 +964,7 @@ class SessionViewSet(viewsets.ModelViewSet):
         },
     ),
 )
-class StudentCourseViewSet(viewsets.ModelViewSet):
+class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
     """
     API endpoint for managing student sections.
 
@@ -932,16 +983,16 @@ class StudentCourseViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "delete", "patch", "options"]
-
+    #
     # @method_decorator(cache_page(60 * 3, key_prefix="studentcourses:list"))
     # @method_decorator(vary_on_headers("Authorization"))
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
-
+    # def list(self, request, *args, **kwargs):
+    #     return super().list(request, *args, **kwargs)
+    #
     # @method_decorator(cache_page(60 * 3, key_prefix="studentcourses:detail"))
     # @method_decorator(vary_on_headers("Authorization"))
-    def retrieve(self, request, *args, **kwargs):
-        return super().retrieve(request, *args, **kwargs)
+    # def retrieve(self, request, *args, **kwargs):
+    #     return super().retrieve(request, *args, **kwargs)
 
     def get_queryset(self):
         user = self.request.user
@@ -1030,7 +1081,7 @@ class StudentCourseViewSet(viewsets.ModelViewSet):
         },
     ),
 )
-class CourseCategoryViewSet(viewsets.ModelViewSet):
+class CourseCategoryViewSet(UserCacheMixin, viewsets.ModelViewSet):
     """
     API endpoint that allows course categories to be viewed or edited.
     """
@@ -1058,19 +1109,19 @@ class CourseCategoryViewSet(viewsets.ModelViewSet):
 
     # @method_decorator(cache_page(60 * 3, key_prefix="coursecategories:list"))
     # @method_decorator(vary_on_headers("Authorization"))
-    def list(self, request, *args, **kwargs):
-        """
-        List all course categories with optional search and pagination.
-        """
-        return super().list(request, *args, **kwargs)
-
+    # def list(self, request, *args, **kwargs):
+    #     """
+    #     List all course categories with optional search and pagination.
+    #     """
+    #     return super().list(request, *args, **kwargs)
+    #
     # @method_decorator(cache_page(60 * 3, key_prefix="coursecategories:detail"))
     # @method_decorator(vary_on_headers("Authorization"))
-    def retrieve(self, request, *args, **kwargs):
-        """
-        Retrieve a specific course category by ID.
-        """
-        return super().retrieve(request, *args, **kwargs)
+    # def retrieve(self, request, *args, **kwargs):
+    #     """
+    #     Retrieve a specific course category by ID.
+    #     """
+    #     return super().retrieve(request, *args, **kwargs)
 
     @extend_schema(
         tags=["Course Categories"],
@@ -1092,7 +1143,7 @@ class CourseCategoryViewSet(viewsets.ModelViewSet):
         },
     )
     @action(detail=True, methods=["get"], url_path="courses")
-    def category_courses(self, request, pk=None):
+    def category_courses(self, request, pk=None, *args, **kwargs):
         """
         List all courses associated with a specific category.
         """
@@ -1168,7 +1219,7 @@ class CourseCategoryViewSet(viewsets.ModelViewSet):
         },
     ),
 )
-class TopicViewSet(viewsets.ModelViewSet):
+class TopicViewSet(UserCacheMixin, viewsets.ModelViewSet):
     queryset = Topic.objects.all()
     serializer_class = TopicSerializer
     permission_class = (IsAuthenticated, IsTeacherOrReadOnly)
@@ -1191,10 +1242,10 @@ class TopicViewSet(viewsets.ModelViewSet):
 
     # @method_decorator(cache_page(60 * 3, key_prefix="topics:list"))
     # @method_decorator(vary_on_headers("Authorization"))
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
-
+    # def list(self, request, *args, **kwargs):
+    #     return super().list(request, *args, **kwargs)
+    #
     # @method_decorator(cache_page(60 * 3, key_prefix="topics:detail"))
     # @method_decorator(vary_on_headers("Authorization"))
-    def retrieve(self, request, *args, **kwargs):
-        return super().retrieve(request, *args, **kwargs)
+    # def retrieve(self, request, *args, **kwargs):
+    #     return super().retrieve(request, *args, **kwargs)

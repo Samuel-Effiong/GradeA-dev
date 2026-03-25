@@ -1,9 +1,13 @@
+import base64
+import json
+import re
 import string
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import fitz
-from django.core.files.uploadedfile import UploadedFile
+from django.core.files.uploadedfile import SimpleUploadedFile, UploadedFile
 from django.utils import timezone
 from lxml import html
 from prosemirror.model import DOMParser, Schema
@@ -21,6 +25,8 @@ from .serializers import AssignmentListSerializer, AssignmentSerializer
 # from ai_processor.services import ai_processor
 
 # from assignments.models import Assignment
+
+INVALID_XML_CHARS = re.compile(r"[\x00-\x08\x0b-\x0c\x0e-\x1f]")
 
 
 class PDFService:
@@ -78,14 +84,17 @@ class AssignmentProcessingService:
 
     @classmethod
     def prepare_ai_content(cls, uploaded_file, prompt_text: str):
-        content = [{"type": "text", "text": prompt_text}]
+        content: list[dict[str, Any]] = [{"type": "text", "text": prompt_text}]
 
         if uploaded_file.content_type in cls.IMAGE_FORMATS:
             base64_data = encode_image(uploaded_file)
             content.append(
                 {
                     "type": "image_url",
-                    "image_url": f"data:{uploaded_file.content_type};base64,{base64_data}",
+                    "image_url": {
+                        "url": f"data:{uploaded_file.content_type};base64,{base64_data}"
+                    },
+                    "bytes": base64_data,
                 }
             )
         elif uploaded_file.content_type == cls.PDF_FORMAT:
@@ -96,7 +105,8 @@ class AssignmentProcessingService:
                 content.append(
                     {
                         "type": "image_url",
-                        "image_url": f"data:image/PNG;base64,{image}",
+                        "image_url": {"url": f"data:image/PNG;base64,{image}"},
+                        "bytes": image,
                     }
                 )
         else:
@@ -106,6 +116,33 @@ class AssignmentProcessingService:
             )
 
         return content
+
+    @classmethod
+    def clean_xml_text(cls, value):
+        if not isinstance(value, str):
+            return value
+        return INVALID_XML_CHARS.sub("", value)
+
+    @classmethod
+    def build_async_upload_payload(cls, uploaded_file: UploadedFile) -> dict:
+        file_bytes = uploaded_file.read()
+        uploaded_file.seek(0)
+
+        return {
+            "name": uploaded_file.name,
+            "content_type": uploaded_file.content_type,
+            "content_b64": base64.b64encode(file_bytes).decode("utf-8"),
+        }
+
+    @classmethod
+    def rebuild_uploaded_file(cls, payload: dict) -> SimpleUploadedFile:
+        file = SimpleUploadedFile(
+            name=payload["name"],
+            content=base64.b64decode(payload["content_b64"]),
+            content_type=payload["content_type"],
+        )
+
+        return file
 
     @classmethod
     def html_to_prosemirror_json(cls, html_string: str) -> dict:
@@ -313,7 +350,8 @@ class AssignmentProcessingService:
             my_schema = Schema({"nodes": nodes_spec, "marks": marks_spec})
 
             # 5. Parse the HTML
-            dom = html.fromstring(f"<div>{html_string}</div>")
+            safe_html = cls.clean_xml_text(html_string)
+            dom = html.fromstring(f"<div>{safe_html}</div>")
             doc = DOMParser.from_schema(my_schema).parse(dom)
 
             return doc.to_json()
@@ -329,8 +367,8 @@ class AssignmentProcessingService:
         Preserves ALL HTML and displays questions, rubrics, and model answers professionally.
         """
 
-        title_html = data.get("title", "")
-        instructions_html = data.get("instructions", "")
+        title_html = cls.clean_xml_text(data.get("title", ""))
+        instructions_html = cls.clean_xml_text(data.get("instructions", ""))
         due_date = data.get("due_date")
         total_points = data.get("total_points", 0)
         questions = data.get("questions", [])
@@ -382,11 +420,11 @@ class AssignmentProcessingService:
         for q in questions:
             q_no = q.get("question_number")
             q_points = q.get("points")
-            q_text = q.get("question_text", "")
+            q_text = cls.clean_xml_text(q.get("question_text", ""))
             q_type = q.get("question_type", "").upper()
             options = q.get("options", [])
             rubric = q.get("rubric", [])
-            model_answer = q.get("model_answer", "")
+            model_answer = cls.clean_xml_text(q.get("model_answer", ""))
             image_url = q.get("question_image", "")
 
             html_output.append(
@@ -484,7 +522,19 @@ class AssignmentProcessingService:
         return "\n".join(html_output)
 
     @classmethod
-    def extract_assignment(cls, assignment, content):
+    def extract_assignment_data(
+        cls,
+        user,
+        content,
+        *,
+        assignment=None,
+        course=None,
+        topic=None,
+        raw_input=None,
+        keep_existing_title=False,
+        generate_raw_input=False,
+        upload=False,
+    ) -> dict:
 
         print("Extracting assignment content")
 
@@ -492,35 +542,94 @@ class AssignmentProcessingService:
 
         extraction_started_at = timezone.now()
         assignment_questions = ai_processor.extract_assignment_with_retry(
-            content, max_retries=3
+            user, content, max_retries=3, upload=upload
         )
-
-        if assignment.title:
-            assignment_questions["title"] = assignment.title
-
         extraction_completed_at = timezone.now()
 
-        assignment_questions["ai_generated"] = True
-        ai_raw_payload = {
+        if keep_existing_title and assignment and assignment.title:
+            assignment_questions["title"] = assignment.title
+
+        assignment_questions["ai_generated"] = False
+        assignment_questions["ai_raw_payload"] = {
             "title": (assignment_questions["title"]),
             "instructions": assignment_questions["instructions"],
             "questions": assignment_questions["questions"],
         }
-
-        print("Saving assignment content")
-
-        assignment_questions["ai_raw_payload"] = ai_raw_payload
         assignment_questions["extraction_started_at"] = extraction_started_at
         assignment_questions["extraction_completed_at"] = extraction_completed_at
 
+        resolved_course = course or (assignment.course if assignment else None)
+        resolved_topic = (
+            topic if topic is not None else (assignment.topic if assignment else None)
+        )
+
+        if resolved_course is not None:
+            assignment_questions["course"] = (
+                resolved_course.id
+                if hasattr(resolved_course, "id")
+                else resolved_course
+            )
+
+        if resolved_topic is not None:
+            assignment_questions["topic"] = (
+                resolved_topic.id if hasattr(resolved_topic, "id") else resolved_topic
+            )
+
+        if raw_input is not None:
+            assignment_questions["raw_input"] = raw_input
+
+        if generate_raw_input:
+            assignment_html = cls.format_assignment_standard_html(assignment_questions)
+            raw_input = cls.html_to_prosemirror_json(assignment_html)
+            assignment_questions["raw_input"] = json.dumps(raw_input)
+
+        return assignment_questions
+
+        # serializer = AssignmentSerializer(
+        #     assignment, data=assignment_questions, partial=True
+        # )
+        # serializer.is_valid(raise_exception=True)
+        # serializer.save()
+        #
+        # serializer = AssignmentListSerializer(assignment)
+        #
+        # print("Assignment saved successfully")
+        #
+        # return serializer
+
+    @classmethod
+    def update_assignment_from_extraction(
+        cls,
+        user,
+        assignment,
+        content,
+        *,
+        topic=None,
+        raw_input=None,
+        keep_existing_title=False,
+        upload=False,
+    ):
+        assignment_data = cls.extract_assignment_data(
+            user,
+            content,
+            assignment=assignment,
+            topic=topic,
+            raw_input=raw_input,
+            keep_existing_title=keep_existing_title,
+            upload=upload,
+        )
+
         serializer = AssignmentSerializer(
-            assignment, data=assignment_questions, partial=True
+            assignment, data=assignment_data, partial=True
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
-        serializer = AssignmentListSerializer(assignment)
+        return assignment
 
-        print("Assignment saved successfully")
-
-        return serializer
+    @classmethod
+    def extract_assignment(cls, user, assignment, content):
+        updated_assignment = cls.update_assignment_from_extraction(
+            user, assignment, content, keep_existing_title=True
+        )
+        return AssignmentListSerializer(updated_assignment)

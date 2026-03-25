@@ -76,3 +76,4 @@ USER wagtail
 #   phase facilities of your hosting platform. This is used only so the
 #   Wagtail instance can be started with a simple "docker run" command.
 CMD set -xe; gunicorn AutoGrader.wsgi:application --bind 0.0.0.0:${PORT} --timeout 300
+#--worker 17 --threads 4 --max-requests 1000 --worker-class gthread

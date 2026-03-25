@@ -5,55 +5,82 @@ from django.dispatch import receiver
 from classrooms.models import Course, School, Session, StudentCourse, Topic
 
 
+def delete_cache_patterns(*patterns):
+    if not hasattr(cache, "delete_pattern"):
+        return
+
+    for pattern in patterns:
+        cache.delete_pattern(pattern)
+
+
 @receiver([post_save, post_delete], sender=School)
 def clear_school_cache(sender, instance, **kwargs):
-    if hasattr(cache, "delete_pattern"):
-        cache.delete_pattern("*superadmin*")
-        cache.delete_pattern("*schooladmin*")
-        cache.delete_pattern("*schools*")
+    delete_cache_patterns(
+        "*superadmin*",
+        "*schooladmin*",
+        "schools:*",
+        "courses:*",
+        "sessions:*",
+    )
 
 
 @receiver([post_save, post_delete], sender=Session)
 def clear_session_cache(sender, instance, **kwargs):
-    if hasattr(cache, "delete_pattern"):
-        cache.delete_pattern("*superadmin*")
-        cache.delete_pattern("*schooladmin*")
-        cache.delete_pattern("*schools*")
-        cache.delete_pattern("*sessions*")
-        cache.delete_pattern("*course*")
+    delete_cache_patterns(
+        "*superadmin*",
+        "*schooladmin*",
+        "*school*",
+        "sessions:*",
+        "courses:*",
+        "assignments:*",
+        "studentsubmissions:*",
+    )
 
 
 @receiver([post_save, post_delete], sender=Course)
 def clear_course_cache(sender, instance, **kwargs):
-    if hasattr(cache, "delete_pattern"):
-        cache.delete_pattern("*superadmin*")
-        cache.delete_pattern("*schooladmin*")
-        cache.delete_pattern("*schools*")
-        cache.delete_pattern("*sessions*")
-        cache.delete_pattern("*course*")
-        cache.delete_pattern("*assignments*")
+    delete_cache_patterns(
+        "*superadmin*",
+        "*schooladmin*",
+        "*teacheradmin*",
+        "*studentadmin*",
+        "*user*",
+        "*school*",
+        "sessions:*",
+        "courses:*",
+        "assignments:*",
+        "studentsubmissions:*",
+        "studentcourses:*",
+        "topics:*",
+    )
 
 
 @receiver([post_save, post_delete], sender=StudentCourse)
 def clear_student_course_cache(sender, instance, **kwargs):
-    if hasattr(cache, "delete_pattern"):
-        cache.delete_pattern("*superadmin*")
-        cache.delete_pattern("*schooladmin*")
-        cache.delete_pattern("*schools*")
-        cache.delete_pattern("*sessions*")
-        cache.delete_pattern("*course*")
-        cache.delete_pattern("*studentcourses*")
-        cache.delete_pattern("*assignments*")
+    delete_cache_patterns(
+        "*superadmin*",
+        "*schooladmin*",
+        "*teacheradmin*",
+        "*studentadmin*",
+        "*user*",
+        "*school*",
+        "sessions:*",
+        "courses:*",
+        "studentcourses:*",
+        "assignments:*",
+        "studentsubmissions:*",
+    )
 
 
 @receiver([post_save, post_delete], sender=Topic)
 def clear_topic_cache(sender, instance, **kwargs):
-    if hasattr(cache, "delete_pattern"):
-        cache.delete_pattern("*superadmin*")
-        cache.delete_pattern("*schooladmin*")
-        cache.delete_pattern("*schools*")
-        cache.delete_pattern("*sessions*")
-        cache.delete_pattern("*course*")
-        cache.delete_pattern("*studentcourses*")
-        cache.delete_pattern("*assignments*")
-        cache.delete_pattern("*topics*")
+    delete_cache_patterns(
+        "*superadmin*",
+        "*schooladmin*",
+        "*teacheradmin*",
+        "*studentadmin*",
+        "*user*",
+        "topics:*",
+        "courses:*",
+        "assignments:*",
+    )

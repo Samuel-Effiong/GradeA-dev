@@ -1,19 +1,32 @@
+import base64
 import json
+import math
+import uuid
 from io import BytesIO
 
 import fitz
+import tiktoken
 
 # import numpy as np
 from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
+from django.db import transaction
 from environ import Env
 from openai import OpenAI
 
 # from paddleocr import PaddleOCR
 from pdf2image import convert_from_bytes
+from PIL import Image
 
+# from ai_processor.models import ChatMessage, ChatSession
 from ai_processor.tools import encode_image, perform_search
 from ai_processor.validators import logger
+from billing.errors import InsufficientCreditsError
+from billing.services import AnalyticsService
+from classrooms.models import StudentCourse
+from users.models import UserTypes
+
+# from billing.services import SubscriptionService
 
 # from PIL import Image
 # from pytesseract import pytesseract
@@ -49,7 +62,7 @@ with open(
 with open("ai_processor/RUBRIC_EXTRACTION_PROMPT.txt", "r") as file:
     RUBRIC_EXTRACTION_PROMPT = file.read()
 
-with open("ai_processor/ANSWERS_EXTRACTION_PROMPT_HTML_3.txt", "r") as file:
+with open("ai_processor/ANSWERS_EXTRACTION_PROMPT_HTML_4.txt", "r") as file:
     ANSWERS_EXTRACTION_PROMPT = file.read()
 
 with open("ai_processor/GRADING_ASSIGNMENT_PROMPT_2.txt", "r") as file:
@@ -166,6 +179,7 @@ class AIProcessor:
                 temperature=0.1,
                 response_format={"type": "json_object"} if respond_format else None,
             )
+
         return response
 
     def get_ai_model_function(self):
@@ -260,7 +274,7 @@ class AIProcessor:
         result = self.client.files.upload(file=file_tuple, purpose="user_data")
         return result["id"]
 
-    def extract_assignment(self, text):
+    def extract_assignment(self, user, text):
         system_prompt = ASSIGNMENT_EXTRACTION_PROMPT
 
         user_prompt = f"""
@@ -275,7 +289,16 @@ Do not include any explanatory text before or after the JSON
         # content = self.__generate_text(system_prompt, user_prompt)
 
         try:
-            response = self.__ai_model(system_prompt, user_prompt)
+            # response = self.__ai_model(system_prompt, user_prompt)
+
+            response = self.execute_graded_task(
+                user=user,
+                feature="Assignment Extraction",
+                task_type="extract_assignment",
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+            )
+
             content = response.choices[0].message.content
 
         except Exception as e:
@@ -291,14 +314,23 @@ Do not include any explanatory text before or after the JSON
 
         # return self.__generate_text(system_prompt, user_prompt)
 
-    def extract_assignment_image(self, content, upload=False):
+    def extract_assignment_image(self, user, content, upload=False):
         if upload:
             system_prompt = ASSIGNMENT_EXTRACTION_PROMPT_FROM_UPLOADS
         else:
             system_prompt = ASSIGNMENT_EXTRACTION_PROMPT
 
         try:
-            response = self.__ai_model(system_prompt, user_prompt=content)
+            # response = self.__ai_model(system_prompt, user_prompt=content)
+
+            response = self.execute_graded_task(
+                user=user,
+                feature="Assignment Extraction",
+                task_type="extract_assignment",
+                system_prompt=system_prompt,
+                user_prompt=content,
+            )
+
             content = response.choices[0].message.content
         except Exception as e:
             raise Exception(f"Error during AI model: {str(e)}") from Exception
@@ -312,13 +344,13 @@ Do not include any explanatory text before or after the JSON
         return json_data
 
     def extract_assignment_with_retry(
-        self, content: str | list, max_retries: int = 3, upload=False
+        self, user, content: str | list, max_retries: int = 3, upload=False
     ):
         last_error = None
 
         for attempt in range(max_retries):
             try:
-                return self.extract_assignment_image(content, upload=upload)
+                return self.extract_assignment_image(user, content, upload=upload)
             except Exception as e:
                 last_error = e
                 logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
@@ -367,7 +399,7 @@ Do not include any explanatory text before or after the JSON
 
         raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
 
-    def extract_answer(self, text):
+    def extract_answer(self, user, text):
         system_prompt = ANSWERS_EXTRACTION_PROMPT
 
         user_prompt = f"""
@@ -383,7 +415,17 @@ Do not include any explanatory text before or after the JSON
         # return self.__generate_text(system_prompt, user_prompt)
 
         # content = self.__generate_text(system_prompt, user_prompt)
-        content = self.__ai_model(system_prompt, user_prompt)
+        # content = self.__ai_model(system_prompt, user_prompt)
+
+        response = self.execute_graded_task(
+            user=user,
+            feature="Answer Extraction",
+            task_type="extract_answer",
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+        )
+
+        content = response.choices[0].message.content
 
         try:
             json_data = json.loads(content)
@@ -393,21 +435,51 @@ Do not include any explanatory text before or after the JSON
 
         return json_data
 
-    def extract_answer_image(self, content, assignment):
+    def extract_answer_image(self, user, content, assignment, assignment_model=None):
         system_prompt = ANSWERS_EXTRACTION_PROMPT
 
-        # return self.__generate_text(system_prompt, user_prompt)
+        # Get all the student in this assignment course
+        # enrolled_student_names = ""
+        student_names = []
+        if assignment_model and hasattr(assignment_model, "course"):
 
-        # content = self.__generate_text(system_prompt, user_prompt)
+            # Fetch all active enrollments for the course
+            enrollments = StudentCourse.objects.filter(
+                course=assignment_model.course, enrollment_status="ENROLLED"
+            ).select_related("student")
+
+            student_names = [
+                f"{enrollment.student.first_name} {enrollment.student.last_name}"
+                for enrollment in enrollments
+            ]
+
+        student_roster = (
+            "Here is the list of students in this assignment course: Use it to match, "
+            "the student information that is retrieve from the assignment \n "
+        )
+        student_roster += "\n\n".join(student_names)
+
+        # roster = {"role": "user", "content": student_roster}
+
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": assignment},
+            {"role": "user", "content": student_roster},
             {"role": "user", "content": content},
         ]
 
         try:
             # response = self.__ai_model(system_prompt, user_prompt=content)
-            response = self.__ai_model(messages=messages)
+            # response = self.__ai_model(messages=messages)
+
+            response = self.execute_graded_task(
+                user=user,
+                feature="Answer Extraction",
+                task_type="extract_answer",
+                messages=messages,
+                assignment=assignment_model,
+            )
+
             content = response.choices[0].message.content
 
         except Exception as e:
@@ -420,12 +492,16 @@ Do not include any explanatory text before or after the JSON
             raise Exception(f"Error decoding JSON: {str(e)}") from Exception
         return json_data
 
-    def extract_answer_with_retry(self, content, assignment, max_retries: int = 3):
+    def extract_answer_with_retry(
+        self, user, content, assignment, assignment_model=None, max_retries: int = 3
+    ):
         last_error = None
 
         for attempt in range(max_retries):
             try:
-                return self.extract_answer_image(content, assignment)
+                return self.extract_answer_image(
+                    user, content, assignment, assignment_model=assignment_model
+                )
             except Exception as e:
                 last_error = e
                 logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
@@ -434,7 +510,10 @@ Do not include any explanatory text before or after the JSON
                     logger.info("Retrying...")
         raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
 
-    def grade_student_submission(self, rubric_json, answer_json):
+    @transaction.atomic
+    def grade_student_submission(
+        self, user, rubric_json, answer_json, assignment_model=None
+    ):
         system_prompt = GRADING_ASSIGNMENT_PROMPT
 
         user_prompt = f"""
@@ -458,8 +537,21 @@ Make sure to:
         # return self.__generate_text(system_prompt, user_prompt)
 
         # content = self.__generate_text(system_prompt, user_prompt)
-        content = self.__ai_model(system_prompt, user_prompt)
-        grade = content.choices[0].message.content
+        # content = self.__ai_model(system_prompt, user_prompt)
+
+        user_prompts = [{"type": "text", "text": user_prompt}]
+        system_prompts = [{"type": "text", "text": system_prompt}]
+
+        response = self.execute_graded_task(
+            user=user,
+            feature="Grading Assignment",
+            task_type="grade_assignment",
+            system_prompt=system_prompts,
+            user_prompt=user_prompts,
+            assignment=assignment_model,
+        )
+
+        grade = response.choices[0].message.content
 
         try:
             json_data = json.loads(grade)
@@ -468,12 +560,21 @@ Make sure to:
             raise Exception(f"Error decoding JSON: {str(e)}") from Exception
         return json_data
 
-    def extract_grade_with_retry(self, rubric_json, answer_json, max_retries: int = 3):
+    def extract_grade_with_retry(
+        self,
+        user,
+        rubric_json,
+        answer_json,
+        assignment_model=None,
+        max_retries: int = 3,
+    ):
         last_error = None
 
         for attempt in range(max_retries):
             try:
-                return self.grade_student_submission(rubric_json, answer_json)
+                return self.grade_student_submission(
+                    user, rubric_json, answer_json, assignment_model=assignment_model
+                )
             except Exception as e:
                 last_error = e
                 logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
@@ -483,7 +584,7 @@ Make sure to:
 
         raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
 
-    def generate_assignment_from_prompt(self, prompt, chat_history=None):
+    def generate_assignment_from_prompt(self, user, prompt, chat_history=None):
         """Generate an assignment based on the given prompt and chat history."""
         system_prompt = GENERATE_ASSIGNMENT_PROMPT
         messages = [{"role": "system", "content": system_prompt}]
@@ -511,7 +612,16 @@ Now, respond to the following teacher's instruction using the rules above
 
         messages.append(additional_instruction)
 
-        response = self.__ai_model(messages=messages, tool_schemas=tool_schema)
+        # response = self.__ai_model(messages=messages, tool_schemas=tool_schema)
+
+        response = self.execute_graded_task(
+            user=user,
+            feature="Assignment Generation",
+            task_type="generate_assignment",
+            messages=messages,
+            tool_schemas=tool_schema,
+        )
+
         message = response.choices[0].message
         tool_calls = message.tool_calls
 
@@ -534,9 +644,18 @@ Now, respond to the following teacher's instruction using the rules above
                 messages.append(message)  # add reasoning to response
                 messages.append(tool_result)
 
-                response_2 = self.__ai_model(
-                    messages=messages, tool_schemas=tool_schema
+                # response_2 = self.__ai_model(
+                #     messages=messages, tool_schemas=tool_schema
+                # )
+
+                response_2 = self.execute_graded_task(
+                    user=user,
+                    feature="Generate Assignment",
+                    task_type="generate_assignment",
+                    messages=messages,
+                    tool_schemas=tool_schema,
                 )
+
                 content = response_2.choices[0].message.content
         else:
             content = message.content
@@ -554,7 +673,7 @@ Now, respond to the following teacher's instruction using the rules above
         return json_data
 
     def generate_assignment_from_prompt_with_retry(
-        self, prompt, chat_history=None, max_retries: int = 3
+        self, user, prompt, chat_history=None, max_retries: int = 3
     ):
         """
         Retry wrapper for generate_assignment_from_prompt
@@ -564,7 +683,7 @@ Now, respond to the following teacher's instruction using the rules above
 
         for attempt in range(max_retries):
             try:
-                return self.generate_assignment_from_prompt(prompt, chat_history)
+                return self.generate_assignment_from_prompt(user, prompt, chat_history)
             except Exception as e:
                 last_error = e
                 logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
@@ -574,11 +693,24 @@ Now, respond to the following teacher's instruction using the rules above
 
         raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
 
-    def formatted_grade(self, user_prompt):
+    def formatted_grade(self, user, user_prompt, assignment_model=None):
         system_prompt = GRADE_FORMATTER
 
         try:
-            response = self.__ai_model(system_prompt, user_prompt)
+            # response = self.__ai_model(system_prompt, user_prompt)
+
+            user_prompts = [{"type": "text", "text": user_prompt}]
+            system_prompts = [{"type": "text", "text": system_prompt}]
+
+            response = self.execute_graded_task(
+                user=user,
+                feature="Formatted Grade",
+                task_type="formatted_grade",
+                system_prompt=system_prompts,
+                user_prompt=user_prompts,
+                assignment=assignment_model,
+            )
+
             content = response.choices[0].message.content
 
         except Exception as e:
@@ -588,6 +720,229 @@ Now, respond to the following teacher's instruction using the rules above
             return content
         else:
             raise ValueError("content cannot be empty")
+
+    def execute_graded_task(
+        self,
+        user,
+        feature,
+        task_type,
+        system_prompt=None,
+        user_prompt=None,
+        messages=None,
+        tool_schemas=None,
+        respond_format=True,
+        assignment=None,
+    ):
+        # I need the assignment to for students who are submitting
+        # their assignment to know who the teacher that created
+        # the assignment is and charge the teacher
+
+        # Subscription check
+
+        total_prompt = ""
+        image_bytes = []
+        pdf_bytes = []
+
+        if user_prompt:
+            for prompt in user_prompt:
+                if prompt["type"] == "text":
+                    total_prompt += prompt["text"]
+                elif prompt["type"] == "image_url":
+                    image_bytes.append(prompt.get("bytes"))
+            # total_prompt += user_prompt
+
+        if system_prompt:
+            if isinstance(system_prompt, str):
+                total_prompt += system_prompt
+            else:
+                for prompt in system_prompt:
+                    if prompt["type"] == "text":
+                        total_prompt += prompt["text"]
+                    elif prompt["type"] == "image_url":
+                        image_bytes.append(prompt.get("bytes"))
+
+        if messages:
+            for message in messages:
+                content = message["content"]
+                if isinstance(content, str):
+                    total_prompt += content
+                else:
+                    for item in content:
+                        if item["type"] == "text":
+                            total_prompt += item["text"]
+                        elif item["type"] == "image_url":
+                            image_bytes.append(item.get("bytes"))
+                        elif item["type"] == "pdf_url":
+                            pdf_bytes.append(item.get("bytes"))
+
+        estimated_cost = self.estimate_total_token(total_prompt, image_bytes, pdf_bytes)
+
+        if user.user_type == UserTypes.STUDENT:
+            # Get the TEACHER wallet
+
+            if assignment:
+                target_teacher = assignment.course.teacher
+                wallet = target_teacher.credit_wallet
+            else:
+                raise ValueError("Assignment is required for students")
+        elif (
+            user.user_type == UserTypes.TEACHER
+            or user.user_type == UserTypes.SCHOOL_ADMIN
+        ):
+            target_teacher = user
+            wallet = user.credit_wallet
+        elif user.user_type == UserTypes.SUPER_ADMIN:
+            response = self.__ai_model(
+                system_prompt, user_prompt, messages, tool_schemas, respond_format
+            )
+            return response
+
+        balance = wallet.total_remaining_credits()
+
+        if balance < estimated_cost:
+            raise InsufficientCreditsError(
+                f"Task requires ~{estimated_cost} credits, but you only have {balance} credits. "
+                f"Please refill your wallet to continue"
+            )
+
+        if wallet.total_remaining_credits() <= 0:
+            raise InsufficientCreditsError("Refill your wallet to continue")
+
+        task_id = str(uuid.uuid4())
+        response = self.__ai_model(
+            system_prompt, user_prompt, messages, tool_schemas, respond_format
+        )
+
+        with transaction.atomic():
+            actual_cost = response.usage.total_tokens
+            wallet.consume_credits(
+                amount=actual_cost,
+                feature=feature,
+                task_type=task_type,
+                task_id=task_id,
+            )
+
+            # Update the Beta Analytics Profile for the Teacher
+            # This records: raw total, feature mix, and first AI action
+            AnalyticsService.record_consumption(
+                user=target_teacher, amount=actual_cost, feature=feature
+            )
+
+            # Mark the teacher as 'Active' today for the "Active in last 7 days" KPI
+            AnalyticsService.track_activity(user=target_teacher)
+
+        return response
+
+    def estimate_image_token_usage(self, width, height):
+        """
+        Estimate token usage for an image based on its dimensions.
+        Using High-Res Token formula
+        """
+
+        if width > 2048 or height > 2048:
+            ratio = 2048 / max(width, height)
+            width, height = width * ratio, height * ratio
+
+        ratio = 768 / min(width, height)
+        width, height = width * ratio, height * ratio
+
+        tiles_wide = math.ceil(width / 512)
+        tiles_high = math.ceil(height / 512)
+
+        return (tiles_wide * tiles_high * 170) + 85
+
+    def estimate_total_token(self, prompt_text, image_bytes=None, pdf_bytes=None):
+
+        encoding = tiktoken.get_encoding("cl100k_base")
+
+        total_estimate = len(encoding.encode(prompt_text))
+
+        if image_bytes:
+            for bytes in image_bytes:
+                w, h = ocr_service.get_image_dimensions(bytes)
+                total_estimate += self.estimate_image_token_usage(w, h)
+
+        if pdf_bytes:
+            for bytes in pdf_bytes:
+                pages = pdf_service.get_pdf_page_count(bytes)
+                total_estimate += pages * 1200
+
+        total_estimate += 20000
+
+        return total_estimate
+
+    def custom_ai_prompt(
+        self, user, user_prompt, role, chat_history=None, feature=None, task_type=None
+    ):
+        if role == UserTypes.SUPER_ADMIN:
+            system_prompt_file = "ai_processor/SUPERADMIN_CUSTOM_PROMPT_2.txt"
+        elif role == UserTypes.SCHOOL_ADMIN:
+            system_prompt_file = "ai_processor/SCHOOLADMIN_CUSTOM_PROMPT.txt"
+        elif role == UserTypes.TEACHER:
+            system_prompt_file = "ai_processor/TEACHER_CUSTOM_PROMPT.txt"
+        elif role == UserTypes.STUDENT:
+            system_prompt_file = "ai_processor/STUDENT_CUSTOM_PROMPT.txt"
+        else:
+            raise ValueError(f"Invalid role: {role}")
+
+        with open(system_prompt_file, "r") as file:
+            system_prompt = file.read()
+
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+
+        # messages.extend(chat_history)
+
+        try:
+            response = self.execute_graded_task(
+                user=user,
+                feature=feature,
+                task_type=task_type,
+                messages=messages,
+                respond_format=False,
+            )
+
+            content = response.choices[0].message.content
+        except Exception as e:
+            raise Exception(f"Error during AI model: {str(e)}") from Exception
+
+        if content:
+            return content
+        else:
+            raise ValueError("content cannot be empty")
+
+    def custom_ai_prompt_retry(
+        self,
+        user,
+        user_prompt,
+        role,
+        chat_history=None,
+        feature=None,
+        task_type=None,
+        max_retries: int = 3,
+    ):
+        last_error = None
+
+        for attempt in range(max_retries):
+            try:
+                return self.custom_ai_prompt(
+                    user,
+                    user_prompt,
+                    role,
+                    chat_history,
+                    feature=feature,
+                    task_type=task_type,
+                )
+            except Exception as e:
+                last_error = e
+                logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
+
+                if attempt < max_retries - 1:
+                    logger.info("Retrying...")
+
+        raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
 
 
 class PDFService:
@@ -686,38 +1041,62 @@ class PDFService:
         except Exception as e:
             raise ValueError(f"Something went wrong: {e}") from Exception
 
+    def get_pdf_page_count(self, pdf_bytes):
+        """
+        Extracts page count from PDF bytes in-memory.
+        """
 
-# class OCRService:
-#     _paddle_ocr_model: PaddleOCR = None
+        try:
+            with fitz.open(stream=pdf_bytes, filetype="pdf") as pdf:
+                return pdf.page_count
+        except Exception as e:
+            print(f"PDF page count extraction failed: {e}")
+            return 2
 
-#     def __init__(self):
-#         if OCRService._paddle_ocr_model is None:
-#             from paddleocr import PaddleOCR
 
-#             OCRService._paddle_ocr_model = PaddleOCR(
-#                 use_doc_orientation_classify=True,
-#                 use_doc_unwarping=True,
-#                 use_textline_orientation=True,
-#             )
+class OCRService:
 
-#     def extract_with_paddle(self, image):
-#         model = OCRService._paddle_ocr_model
-#         img_np = np.array(image.convert("RGB"))
-#         result = model.predict(img_np)
+    def get_image_dimensions(self, image_bytes):
+        """
+        Extracts width and height from image bytes without saving to disk
+        """
 
-#         text = ""
-#         for res in result:
-#             text = res.json["res"]["rec_texts"]
-#         return "\n".join(text)
+        try:
+            image_bytes = base64.b64decode(image_bytes)
+            with Image.open(BytesIO(image_bytes)) as img:
+                return img.size
+        except Exception as e:
+            print(f"Image dimension extraction failed: {e}")
+            return (1920, 1000)
 
-#     def extract_with_pytessaract(self, image):
-#         """
+    # def __init__(self):
+    #     if OCRService._paddle_ocr_model is None:
+    #         from paddleocr import PaddleOCR
 
-#         :param image: PIL Image
-#         :return:
-#         """
-#         text = pytesseract.image_to_string(image)
-#         return text
+    #         OCRService._paddle_ocr_model = PaddleOCR(
+    #             use_doc_orientation_classify=True,
+    #             use_doc_unwarping=True,
+    #             use_textline_orientation=True,
+    #         )
+
+    # def extract_with_paddle(self, image):
+    #     model = OCRService._paddle_ocr_model
+    #     img_np = np.array(image.convert("RGB"))
+    #     result = model.predict(img_np)
+
+    #     text = ""
+    #     for res in result:
+    #         text = res.json["res"]["rec_texts"]
+    #     return "\n".join(text)
+
+    # def extract_with_pytessaract(self, image):
+    #     """
+
+    #     :param image: PIL Image
+    #     :return:
+    #     """
+    #     text = pytesseract.image_to_string(image)
+    #     return text
 
 
 _ocr_instance = None
@@ -725,6 +1104,6 @@ _pdf_instance = None
 _ai_processor_instance = None
 
 
-# ocr_service = OCRService()
+ocr_service = OCRService()
 pdf_service = PDFService()
 ai_processor = AIProcessor()

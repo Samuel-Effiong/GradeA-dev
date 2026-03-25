@@ -135,6 +135,7 @@ class StudentCourse(models.Model):
     course = models.ForeignKey(
         Course, on_delete=models.CASCADE, related_name="enrollments"
     )
+    auto_added = models.BooleanField(default=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     enrollment_status = models.CharField(
@@ -178,3 +179,29 @@ class StudentCourse(models.Model):
         self.enrollment_status = EnrollmentStatusType.ENROLLED
         self.withdrawal_date = None
         self.save(update_fields=["enrollment_status", "withdrawal_date"])
+
+    def clean(self):
+        if self.student_id or not self.course_id:
+            return
+
+        student = self.student
+        first_name = student.first_name
+        last_name = student.last_name
+        middle_name = student.middle_name
+
+        existing_enrollments = StudentCourse.objects.filter(
+            course=self.course,
+            student__firstname=first_name,
+            student__lastname=last_name,
+            student__middlename=middle_name,
+        ).exclude(id=self.id)
+
+        if existing_enrollments.exists():
+            raise ValueError(
+                f"Student with the name '{first_name} {middle_name} {last_name} "
+                f"is already enrolled in this course."
+            )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)

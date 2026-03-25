@@ -9,6 +9,9 @@ from django.utils.translation import gettext_lazy as _
 
 from users.services import OTPManager
 
+# from prometheus_client import Summary
+
+
 otp_manager = OTPManager()
 
 
@@ -67,6 +70,7 @@ class CustomUser(AbstractUser):
     )
 
     email = models.EmailField(unique=True)
+    middle_name = models.CharField(max_length=255, default="")
     user_type = models.CharField(
         max_length=20,
         choices=UserTypes.choices,
@@ -81,6 +85,7 @@ class CustomUser(AbstractUser):
             "Unselect this instead of deleting accounts."
         ),
     )
+    bio = models.TextField(blank=True, null=True)
 
     objects = CustomUserManager()
 
@@ -94,8 +99,15 @@ class CustomUser(AbstractUser):
     )
     email_verified_at = models.DateTimeField(blank=True, null=True)
 
+    def get_full_name(self):
+        """
+        Return the first_name plus the middle_name plus the last_name, with a space in between.
+        """
+        names = [self.first_name, self.middle_name, self.last_name]
+        return " ".join(name.strip() for name in names if name and name.strip())
+
     def __str__(self):
-        return f"{self.first_name} {self.last_name}"
+        return self.get_full_name()
 
     class Meta:
         ordering = ("first_name", "last_name", "email")
@@ -103,9 +115,18 @@ class CustomUser(AbstractUser):
         verbose_name_plural = "Users"
 
     def is_student(self):
-        if self.user_type == UserTypes.STUDENT:
-            return True
-        return False
+        # if self.user_type == UserTypes.STUDENT:
+        #     return True
+        # return False
+
+        return self.user_type == UserTypes.STUDENT
+
+    def is_teacher(self):
+        """Love God"""
+        # if self.user_type == UserTypes.TEACHER:
+        #     return True
+        # return False
+        return self.user_type == UserTypes.TEACHER
 
     def renew_activation_token(self):
         """Renew the activation token and extend expiration."""
@@ -120,10 +141,25 @@ class CustomUser(AbstractUser):
         self.save()
         return self.activation_token
 
-    def is_teacher(self):
-        if self.user_type == UserTypes.TEACHER:
-            return True
-        return False
+
+class ThemeType(models.TextChoices):
+    LIGHT = "LIGHT", "Light"
+    DARK = "DARK", "Dark"
+    SYSTEM = "SYSTEM", "System"
+
+
+class Settings(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    theme = models.CharField(
+        max_length=20, default=ThemeType.SYSTEM, choices=ThemeType.choices
+    )
+
+    # Email Notifications
+    notify_student_submission = models.BooleanField(default=False)
+    notify_weekly_summary = models.BooleanField(default=False)
+    notify_assignment_due_reminder = models.BooleanField(default=False)
+    notify_grading_complete = models.BooleanField(default=False)
 
 
 class UserActivity(models.Model):

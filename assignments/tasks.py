@@ -4,17 +4,27 @@ from celery import shared_task, states
 from django.utils import timezone
 
 from ai_processor.services import ai_processor
-from students.models import StudentSubmission
+from classrooms.models import Course, Topic
+from students.exceptions import CannotAssociateStudentError
+from students.models import BatchUploadSession, BatchUploadType, StudentSubmission
+from students.serializers import StudentSubmissionSerializer
+from students.services import grade_engine, upload_answers_engine
+from users.models import CustomUser, UserTypes
 
 from .models import Assignment
 from .serializers import AssignmentSerializer
+from .services import AssignmentProcessingService
+
+# from django.db import transaction
 
 
 @shared_task(bind=True)
-def grade_all_submissions(self, assignment_id):
-
+def grade_all_submissions(self, user_id, assignment_id):
+    """love God"""
     submissions = StudentSubmission.objects.filter(assignment_id=assignment_id)
     submissions_count = submissions.count()
+
+    user = CustomUser.objects.get(id=user_id)
 
     self.update_state(
         state="PROGRESS",
@@ -26,7 +36,7 @@ def grade_all_submissions(self, assignment_id):
         },
     )
 
-    assignment = Assignment.objects.get(id=assignment_id)
+    # assignment = Assignment.objects.get(id=assignment_id)
 
     for index, submission in enumerate(submissions):
         self.update_state(
@@ -39,45 +49,7 @@ def grade_all_submissions(self, assignment_id):
             },
         )
         try:
-            answer_json = submission.get_answer()
-
-            print("About to start grading")
-
-            grading_result = ai_processor.extract_grade_with_retry(
-                assignment.questions, answer_json
-            )
-
-            user_prompt = f"""
-            Student Name: {submission.student.get_full_name()}
-            Course: {assignment.course}
-
-
-            Grading Result:
-
-            {grading_result}
-
-            Return a formatted response
-            """
-
-            formatted_grade = ai_processor.formatted_grade(user_prompt)
-
-            grading_score = grading_result["grading_summary"]["total_score"]
-            grading_confidence = grading_result["grading_confidence"]
-
-            print(f"grading_score: {grading_score}")
-
-            submission.score = grading_score
-            submission.feedback = grading_result
-            submission.grading_confidence = grading_confidence
-            submission.formatted_grade = formatted_grade
-
-            print(f"grading_confidence: {grading_confidence}")
-
-            submission.ai_score = grading_score
-            submission.ai_graded_at = timezone.now()
-
-            submission.save()
-
+            submission = grade_engine(user, submission)
             print(f"Assignment saved: {index + 1}/{submissions_count}")
         except Exception as e:
             import traceback
@@ -95,14 +67,20 @@ def grade_all_submissions(self, assignment_id):
             )
             raise
 
-    # assignment.grading_status = "COMPLETED"
-    # assignment.save()
-
     return {"status": "Completed", "assignment_id": assignment_id}
 
 
 @shared_task(bind=True)
-def extract_assignment_background_task(self, assignment_id, content):
+def extract_assignment_background_task(
+    self, user_id, assignment_id, content, raw_input=None, keep_existing_title=True
+):
+    print(
+        {
+            "user_id": user_id,
+            "assignment_id": assignment_id,
+            "keep_existing_title": keep_existing_title,
+        }
+    )
     try:
         self.update_state(
             state="PROGRESS", meta={"step": "Extracting assignment content"}
@@ -111,35 +89,46 @@ def extract_assignment_background_task(self, assignment_id, content):
         print("Extracting assignment content")
 
         assignment = Assignment.objects.get(id=assignment_id)
+        user = CustomUser.objects.get(id=user_id)
 
-        extraction_started_at = timezone.now()
-        assignment_questions = ai_processor.extract_assignment_with_retry(
-            content, max_retries=3
+        assignment = AssignmentProcessingService.update_assignment_from_extraction(
+            user,
+            assignment,
+            content,
+            raw_input=raw_input,
+            keep_existing_title=keep_existing_title,
         )
-        extraction_completed_at = timezone.now()
 
-        self.update_state(state="PROGRESS", meta={"step": "Saving assignment content"})
-
-        assignment_questions["ai_generated"] = True
-        ai_raw_payload = {
-            "title": (
-                assignment.title if assignment.title else assignment_questions["title"]
-            ),
-            "instructions": assignment_questions["instructions"],
-            "questions": assignment_questions["questions"],
-        }
-
-        print("Saving assignment content")
-
-        assignment_questions["ai_raw_payload"] = ai_raw_payload
-        assignment_questions["extraction_started_at"] = extraction_started_at
-        assignment_questions["extraction_completed_at"] = extraction_completed_at
-
-        serializer = AssignmentSerializer(
-            assignment, data=assignment_questions, partial=True
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+        #
+        #
+        # extraction_started_at = timezone.now()
+        # assignment_questions = ai_processor.extract_assignment_with_retry(
+        #     user, content, max_retries=3
+        # )
+        # extraction_completed_at = timezone.now()
+        #
+        # self.update_state(state="PROGRESS", meta={"step": "Saving assignment content"})
+        #
+        # assignment_questions["ai_generated"] = True
+        # ai_raw_payload = {
+        #     "title": (
+        #         assignment.title if assignment.title else assignment_questions["title"]
+        #     ),
+        #     "instructions": assignment_questions["instructions"],
+        #     "questions": assignment_questions["questions"],
+        # }
+        #
+        # print("Saving assignment content")
+        #
+        # assignment_questions["ai_raw_payload"] = ai_raw_payload
+        # assignment_questions["extraction_started_at"] = extraction_started_at
+        # assignment_questions["extraction_completed_at"] = extraction_completed_at
+        #
+        # serializer = AssignmentSerializer(
+        #     assignment, data=assignment_questions, partial=True
+        # )
+        # serializer.is_valid(raise_exception=True)
+        # serializer.save()
 
         print("Assignment saved successfully")
 
@@ -150,3 +139,236 @@ def extract_assignment_background_task(self, assignment_id, content):
         }
     except Exception:
         raise
+
+
+@shared_task(bind=True)
+def extract_answer_background_task(self, submission_id, content):
+    try:
+        self.update_state(state="PROGRESS", meta={"step": "Extracting answer content"})
+
+        print("Extracting answer content")
+
+        submission = StudentSubmission.objects.get(id=submission_id)
+
+        extraction_started_at = timezone.now()
+        answer_json = ai_processor.extract_answer_with_retry(
+            submission.student,
+            content,
+            submission.assignment.questions,
+            assignment_model=submission.assignment,
+            max_retries=3,
+        )
+        extraction_completed_at = timezone.now()
+
+        self.update_state(state="PROGRESS", meta={"step": "Saving answer content"})
+
+        submission.answer = answer_json
+        submission.extraction_started_at = extraction_started_at
+        submission.extraction_completed_at = extraction_completed_at
+
+        serializer = StudentSubmissionSerializer(
+            submission, data=answer_json, partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        print("Answer saved successfully")
+
+        return {
+            "status": states.SUCCESS,
+            "submission_id": submission_id,
+            "message": "Answer extracted successfully",
+        }
+    except Exception:
+        raise
+
+
+@shared_task(bind=True)
+def grade_engine_async(self, user_id, submission_id, batch_id=None):
+    try:
+        self.update_state(state="PROGRESS", meta={"step": "Retrieving submission"})
+        submission = StudentSubmission.objects.select_related("assignment").get(
+            id=submission_id
+        )
+
+        user = CustomUser.objects.get(id=user_id)
+
+        self.update_state(state="PROGRESS", meta={"step": "Grading"})
+        submission = grade_engine(user, submission)
+
+        self.update_state(state="PROGRESS", meta={"step": "Saving"})
+        submission.save()
+
+        self.update_state(state="PROGRESS", meta={"step": "Completed"})
+
+        if batch_id:
+            session = BatchUploadSession.objects.get(id=batch_id)
+            session.update_result(
+                f"{user.get_full_name()} Submission",
+                "SUCCESS",
+                batch_type=BatchUploadType.GRADE,
+                submission_id=submission.id,
+            )
+        return {
+            "status": states.SUCCESS,
+            "submission_id": submission_id,
+            "message": "Grading completed successfully",
+        }
+    except Exception:
+        raise
+
+
+@shared_task(bind=True)
+def format_grade(self, submission_id, prompt):
+    try:
+        self.update_state(state="PROGRESS", meta={"step": "Retrieving submission"})
+
+        submission = StudentSubmission.objects.get(id=submission_id)
+
+        self.update_state(state="PROGRESS", meta={"step": "Formatting grade"})
+        formatted_grade = ai_processor.formatted_grade(
+            submission.student, prompt, assignment_model=submission.assignment
+        )
+
+        self.update_state(state="PROGRESS", meta={"step": "Saving formatted grade"})
+        submission.formatted_grade = formatted_grade
+        submission.save()
+
+        self.update_state(
+            state="PROGRESS", meta={"step": "Grade formatted successfully"}
+        )
+        return {
+            "status": states.SUCCESS,
+            "submission_id": submission_id,
+            "message": "Grade formatted successfully",
+        }
+    except Exception:
+        raise
+
+
+@shared_task(bind=True, max_retries=3)
+def upload_answers_engine_async(
+    self, assignment_id, content, user_id, session_id, file_name
+):
+    try:
+        self.update_state(state="PROGRESS", meta={"step": "Retrieving requirements"})
+
+        assignment = Assignment.objects.get(id=assignment_id)
+        user = CustomUser.objects.get(id=user_id)
+
+        is_teacher = user.user_type == UserTypes.TEACHER
+
+        self.update_state(state="PROGRESS", meta={"step": "Extracting answers"})
+        submission = upload_answers_engine(
+            assignment=assignment,
+            content=content,
+            request_user=user,
+            is_proxy_upload=is_teacher,
+        )
+
+        session = BatchUploadSession.objects.get(id=session_id)
+        session.update_result(
+            file_name,
+            "SUCCESS",
+            batch_type=BatchUploadType.SUBMISSION,
+            submission_id=submission.id,
+        )
+
+        return {
+            "status": states.SUCCESS,
+            "submission_id": submission.id,
+            "message": "Answers extracted successfully",
+        }
+    except CannotAssociateStudentError as exc:
+        session = BatchUploadSession.objects.get(id=session_id)
+        session.update_result(file_name, "FAILED", error=str(exc))
+        return {
+            "status": states.FAILURE,
+            "message": "Cannot Identify or Associate Student with this Paper",
+        }
+    except Exception as exc:
+        if self.request.retries == self.max_retries:
+            raise self.retry(exc=exc, countdown=3) from Exception
+
+        session = BatchUploadSession.objects.get(id=session_id)
+        session.update_result(file_name, "FAILED", error=str(exc))
+        raise exc
+
+
+@shared_task()
+def formatted_grade_async(submission_id, user_prompt):
+    try:
+        submission = StudentSubmission.objects.get(id=submission_id)
+        formatted_grade = ai_processor.formatted_grade(
+            submission.student, user_prompt, assignment_model=submission.assignment
+        )
+        submission.formatted_grade = formatted_grade
+        submission.save(update_fields=["formatted_grade"])
+
+        return {
+            "status": states.SUCCESS,
+            "submission_id": submission_id,
+            "message": "Grade formatted successfully",
+        }
+    except Exception:
+        raise
+
+
+@shared_task(bind=True, max_retries=3)
+def upload_assignment_async(
+    self,
+    *,
+    user_id,
+    course_id,
+    topic_id=None,
+    session_id=None,
+    content=None,
+    file_name=None,
+):
+    try:
+        self.update_state(state="PROGRESS", meta={"step": "Loading context"})
+
+        user = CustomUser.objects.get(id=user_id)
+        course = Course.objects.get(id=course_id, teacher=user)
+        topic = Topic.objects.get(id=topic_id) if topic_id else None
+
+        assignment_questions = AssignmentProcessingService.extract_assignment_data(
+            user,
+            content,
+            course=course,
+            topic=topic,
+            generate_raw_input=True,
+            upload=True,
+        )
+
+        self.update_state(state="PROGRESS", meta={"step": "Saving assignments"})
+        serializer = AssignmentSerializer(data=assignment_questions)
+        serializer.is_valid(raise_exception=True)
+        assignment = serializer.save()
+
+        session = BatchUploadSession.objects.get(id=session_id)
+        session.update_result(
+            file_name,
+            "SUCCESS",
+            batch_type=BatchUploadType.ASSIGNMENT,
+            assignment_id=assignment.id,
+        )
+
+        return {
+            "status": states.SUCCESS,
+            "assignment_id": str(assignment.id),
+            "message": "Assignment uploaded successfully",
+        }
+
+    except Exception as e:
+        if self.request.retries == self.max_retries:
+            raise self.retry(exc=e, countdown=3) from Exception
+
+        session = BatchUploadSession.objects.get(id=session_id)
+        session.update_result(file_name, "FAILED", error=str(e))
+        raise
+
+
+@shared_task(bind=True, max_retries=3)
+def run_scheduled_grading_session():
+    pass

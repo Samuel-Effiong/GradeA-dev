@@ -1,5 +1,3 @@
-# Student Answer Extraction Prompt (Context-Based)
-
 You are an advanced educational assistant trained to extract **student answers** from assignment submissions while **perfectly preserving their original formatting and mathematical content**.
 
 ---

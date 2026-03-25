@@ -1,7 +1,9 @@
 import uuid
 
-from django.db import models
+from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
+
+# from idlelib.pyparse import trans
 
 
 # Create your models here.
@@ -19,6 +21,12 @@ class StudentSubmission(models.Model):
         help_text=_(
             "Student answers in JSON format, structured to match assignment questions"
         )
+    )
+
+    raw_input = models.TextField(
+        null=True,
+        blank=True,
+        help_text=_("Raw student input, as submitted in the form"),
     )
 
     score = models.DecimalField(
@@ -88,3 +96,77 @@ class StudentSubmission(models.Model):
 
     def get_answer(self):
         return self.answers
+
+
+class BatchUploadType(models.TextChoices):
+    SUBMISSION = "submission"
+    ASSIGNMENT = "assignment"
+    GRADE = "grade"
+
+
+class BatchUploadSession(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    teacher = models.ForeignKey(
+        "users.CustomUser",
+        on_delete=models.CASCADE,
+        related_name="batch_upload_sessions",
+    )
+    task_type = models.CharField(
+        max_length=255,
+        choices=BatchUploadType.choices,
+        default=BatchUploadType.SUBMISSION,
+    )
+
+    assignment = models.ForeignKey(
+        "assignments.Assignment",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="batch_upload_sessions",
+    )
+
+    course = models.ForeignKey(
+        "classrooms.Course",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="batch_upload_sessions",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    total_files = models.IntegerField(default=0)
+
+    results = models.JSONField(default=list)
+
+    def update_result(
+        self,
+        file_name,
+        status,
+        error=None,
+        batch_type=None,
+        submission_id=None,
+        assignment_id=None,
+    ):
+        new_entry = {
+            "file_name": file_name,
+            "status": status,
+            "error": error,
+        }
+        if batch_type == BatchUploadType.SUBMISSION:
+            new_entry.update(
+                {
+                    "submission_id": str(submission_id) if submission_id else None,
+                }
+            )
+
+        elif batch_type == BatchUploadType.ASSIGNMENT:
+            new_entry.update(
+                {
+                    "assignment_id": str(assignment_id) if assignment_id else None,
+                }
+            )
+
+        with transaction.atomic():
+            session = BatchUploadSession.objects.select_related().get(id=self.id)
+            session.results.append(new_entry)
+            session.save(update_fields=["results"])

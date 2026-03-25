@@ -11,9 +11,11 @@ profile.
 
 from celery.result import AsyncResult
 from django.conf import settings
+from django.core.cache import cache
 
 # from django.core.mail import send_mail
 from django.db import transaction
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
 # from django.utils.decorators import method_decorator
@@ -30,7 +32,7 @@ from drf_spectacular.utils import (
     extend_schema_view,
 )
 from rest_framework import status, viewsets
-from rest_framework.decorators import action, api_view
+from rest_framework.decorators import action  # , api_view
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.pagination import PageNumberPagination
@@ -47,13 +49,22 @@ from AutoGrader.tasks import send_email_task
 from classrooms.models import EnrollmentStatusType, StudentCourse
 from classrooms.permissions import IsSuperAdmin
 from classrooms.serializers import StudentRegistrationCompletionSerializer
-from users.models import CustomUser, PasswordChangeOTP, PasswordResetOTP, UserTypes
+from students.models import BatchUploadSession
+from users.mixins import UserCacheMixin
+from users.models import (
+    CustomUser,
+    PasswordChangeOTP,
+    PasswordResetOTP,
+    Settings,
+    UserTypes,
+)
 from users.serializers import (
     ChangePasswordSerializer,
     CustomTokenObtainPairSerializer,
     CustomUserSerializer,
     OTPSerializer,
     ResetPasswordSerializer,
+    SettingsSerializer,
     TaskStatusSerializer,
     VerifyCustomUserSerializer,
 )
@@ -168,7 +179,7 @@ class BaseUserViewSet(viewsets.ModelViewSet):
         },
     ),
 )
-class CustomUserViewSet(viewsets.ModelViewSet):
+class CustomUserViewSet(UserCacheMixin, viewsets.ModelViewSet):
     """
     API endpoint for managing users.
 
@@ -201,16 +212,16 @@ class CustomUserViewSet(viewsets.ModelViewSet):
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
-    class Meta:
-        """Meta configuration describing model and exposed fields for the viewset.
-
-        Although DRF's ModelViewSet does not require an inner Meta normally,
-        this inner class documents which model and fields are intended to be
-        surfaced by this viewset for clarity and tooling.
-        """
-
-        model = CustomUser
-        fields = ["id", "username", "email", "user_type"]
+    # class Meta:
+    #     """Meta configuration describing model and exposed fields for the viewset.
+    #
+    #     Although DRF's ModelViewSet does not require an inner Meta normally,
+    #     this inner class documents which model and fields are intended to be
+    #     surfaced by this viewset for clarity and tooling.
+    #     """
+    #
+    #     model = CustomUser
+    #     fields = ["id", "username", "email", "user_type"]
 
     def get_permissions(self):
         """
@@ -236,16 +247,6 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             )
         return super().create(request, *args, **kwargs)
 
-    # @method_decorator(cache_page(60 * 5, key_prefix="users:list"))
-    # @method_decorator(vary_on_headers("Authorization"))
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
-
-    # @method_decorator(cache_page(60 * 5, key_prefix="users:detail"))
-    # @method_decorator(vary_on_headers("Authorization"))
-    def retrieve(self, request, *args, **kwargs):
-        return super().retrieve(request, *args, **kwargs)
-
     @extend_schema(
         tags=["Users"],
         summary="Get current authenticated user",
@@ -269,10 +270,8 @@ class CustomUserViewSet(viewsets.ModelViewSet):
             ),
         },
     )
-    # @method_decorator(cache_page(60 * 60, key_prefix="users:detail:me"))
-    # @method_decorator(vary_on_headers("Authorization"))
-    @action(detail=False, methods=["get"])
-    def me(self, request):
+    @action(detail=False, methods=["GET"])
+    def me(self, request, *args, **kwargs):
         """
         Retrieve the currently authenticated user's information.
 
@@ -283,14 +282,273 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         - 200: Success - Returns the user's profile information
         - 401: Unauthorized - If user is not authenticated
         """
-        if not request.user.is_authenticated:
-            return Response(
-                {"detail": "Authentication credentials were not provided."},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
 
-        serializer = self.get_serializer(request.user)
-        return Response(serializer.data)
+        cache_key = f"user:user_id__{request.user.id}"
+        data = cache.get(cache_key)
+
+        if data is None:
+            serializer = self.get_serializer(request.user)
+            data = serializer.data
+            cache.set(cache_key, data, getattr(settings, "CACHE_TTL", 60 * 5))
+
+        return Response(data)
+
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=["Settings"],
+        summary="List all user settings",
+        description="""
+        Retrieve a paginated list of all user settings in the system.
+
+        This endpoint is restricted to SuperAdmin users only. Regular users should use
+        the 'my_settings' endpoint to retrieve their own settings.
+
+        ## Permissions
+        - SuperAdmin only
+
+        ## Response
+        - 200: Success - Returns paginated list of user settings
+        - 403: Forbidden - If user is not a SuperAdmin
+        """,
+        parameters=[
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page",
+            ),
+            OpenApiParameter(
+                name="user",
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.QUERY,
+                description="Filter by user ID",
+            ),
+        ],
+        responses={
+            200: SettingsSerializer(many=True),
+            403: OpenApiResponse(description="Permission denied - SuperAdmin only"),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    ),
+    retrieve=extend_schema(
+        tags=["Settings"],
+        summary="Retrieve user settings",
+        description="""
+        Retrieve detailed settings for a specific user by settings ID.
+
+        ## Permissions
+        - Users can only retrieve their own settings
+        - SuperAdmin can retrieve any user's settings
+
+        ## Response
+        - 200: Success - Returns the settings object
+        - 403: Forbidden - If user tries to access another user's settings
+        - 404: Not Found - If settings with the given ID don't exist
+        """,
+        responses={
+            200: SettingsSerializer,
+            403: OpenApiResponse(
+                description="Permission denied - can only access own settings"
+            ),
+            404: OpenApiResponse(description="Settings not found"),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    ),
+    partial_update=extend_schema(
+        tags=["Settings"],
+        summary="Update user settings",
+        description="""
+        Partially update settings for the authenticated user.
+
+        Users can update their notification preferences, display preferences, and other
+        configurable settings. All fields are optional.
+
+        ## Available Settings
+        - Notification preferences (email, in-app, push notifications)
+        - Display preferences (theme, language, timezone)
+        - Privacy settings
+        - Default values for various features
+
+        ## Permissions
+        - Users can only update their own settings
+        - SuperAdmin can update any user's settings
+
+        ## Response
+        - 200: Success - Returns updated settings
+        - 400: Bad Request - Invalid input data
+        - 403: Forbidden - If user tries to update another user's settings
+        - 404: Not Found - If settings don't exist
+        """,
+        request=SettingsSerializer(partial=True),
+        responses={
+            200: SettingsSerializer,
+            400: OpenApiResponse(description="Invalid input data"),
+            403: OpenApiResponse(
+                description="Permission denied - can only update own settings"
+            ),
+            404: OpenApiResponse(description="Settings not found"),
+        },
+    ),
+)
+class SettingsViewSet(UserCacheMixin, viewsets.ModelViewSet):
+    """
+    API endpoint for managing user settings.
+
+    Provides operations for managing user-specific settings including:
+    - List all settings (SuperAdmin only)
+    - Retrieve specific user settings
+    - Update user settings
+    - Retrieve authenticated user's settings (my_settings action)
+
+    Settings control user preferences such as notifications, display options,
+    privacy settings, and default values for various features.
+
+    ## Notes
+    - Settings are automatically created for each user
+    - Direct creation and deletion via API is disabled
+    - Use 'my_settings' endpoint for convenient access to own settings
+    """
+
+    queryset = Settings.objects.all()
+    serializer_class = SettingsSerializer
+    permission_classes = (IsAuthenticated,)
+    pagination_class = PageNumberPagination
+    http_method_names = ["get", "head", "patch", "options"]
+
+    filterset_fields = {
+        "user": ["exact"],
+        "user__user_type": ["exact"],
+        "user__school": ["exact"],
+    }
+    search_fields = [
+        "user__username",
+        "user__email",
+        "user__first_name",
+        "user__last_name",
+    ]
+    ordering_fields = ["user__username", "user__email"]
+
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+
+    def get_permissions(self):
+        """
+        Allow only SuperAdmin users to list all settings.
+        Other actions require standard authentication.
+        """
+        if self.action == "list":
+            permission_classes = [IsAuthenticated, IsSuperAdmin]
+        else:
+            permission_classes = [IsAuthenticated]
+
+        return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        """
+        Filter queryset based on user permissions.
+
+        - SuperAdmin: Can access all settings
+        - Regular users: Can only access their own settings
+        """
+        user = self.request.user
+
+        if user.is_superuser or user.user_type == UserTypes.SUPER_ADMIN:
+            return Settings.objects.all()
+
+        return Settings.objects.filter(user=user)
+
+    @extend_schema(
+        tags=["Settings"],
+        summary="Get current user's settings",
+        description="""
+        Retrieve the settings for the currently authenticated user.
+
+        This is a convenience endpoint that returns the authenticated user's settings
+        without requiring the settings ID. It uses caching for improved performance.
+
+        ## Response
+        - 200: Success - Returns the user's settings
+        - 401: Unauthorized - If user is not authenticated
+        - 404: Not Found - If settings don't exist (should never happen as they're auto-created)
+
+        ## Caching
+        Results are cached for 5 minutes to improve performance.
+        """,
+        responses={
+            200: SettingsSerializer,
+            401: OpenApiResponse(
+                description="Unauthorized",
+                examples=[
+                    OpenApiExample(name="unauthorized", value={"error": "Unauthorized"})
+                ],
+            ),
+            404: OpenApiResponse(
+                description="Settings not found",
+                examples=[
+                    OpenApiExample(
+                        name="not_found",
+                        value={"detail": "Settings not found for this user"},
+                    )
+                ],
+            ),
+        },
+    )
+    @action(detail=False, methods=["GET"])
+    def my_settings(self, request, *args, **kwargs):
+        """
+        Retrieve the currently authenticated user's settings.
+        Returns the complete settings profile for the logged-in user with caching support.
+        """
+        cache_key = f"settings:user_id__{request.user.id}:view__my_settings"
+        data = cache.get(cache_key)
+
+        if data is None:
+            try:
+                settings_obj = Settings.objects.get(user=request.user)
+                serializer = self.get_serializer(settings_obj)
+                data = serializer.data
+                cache.set(cache_key, data, getattr(settings, "CACHE_TTL", 60 * 5))
+            except Settings.DoesNotExist:
+                return Response(
+                    {"detail": "Settings not found for this user"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+        return Response(data)
+
+    def create(self, request, *args, **kwargs):
+        """
+        Disable direct creation of settings via API.
+
+        Settings are automatically created for each user via Django signals.
+        """
+        return Response(
+            {
+                "detail": "Settings cannot be created directly. "
+                "They are automatically created for each user."
+            },
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Disable deletion of settings via API.
+
+        Settings should persist for the lifetime of the user account.
+        """
+        return Response(
+            {
+                "detail": "Settings cannot be deleted. "
+                "They are tied to user accounts."
+            },
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
 
 
 class AuthViewSet(viewsets.ViewSet):
@@ -834,39 +1092,157 @@ class TokenRefreshView(BaseTokenRefreshView):
     pass
 
 
-@extend_schema(
-    tags=["Tasks"],
-    summary="Get status of a background task",
-    description="Retrieve the current status and metadata for a Celery background task by its ID.",
-    responses={
-        200: TaskStatusSerializer,
-        404: OpenApiResponse(description="Task not found"),
-    },
-)
-@api_view(["GET"])
-def task_status(request, task_id):
+class TaskViewSet(viewsets.ViewSet):
+    """
+    ViewSet for managing background task status endpoints.
 
-    task = AsyncResult(task_id)
+    This viewset handles endpoints that are not associated with any specific model
+    but provides utility functionality for task management.
+    """
 
-    data = {
-        "task_id": task_id,
-        "status": task.state,
-        "meta": (
-            task.info
-            if isinstance(task.info, dict)
-            else {"result": task.info} if task.info else None
-        ),
-    }
+    http_method_names = ["get", "options"]
+    permission_classes = [IsAuthenticated]
 
-    data["meta"] = str(data["meta"])
+    @extend_schema(
+        tags=["Tasks"],
+        summary="Get status of a background task",
+        description="Retrieve the current status and metadata for a Celery background task by its ID.",
+        responses={
+            200: OpenApiResponse(
+                response=TaskStatusSerializer,
+                examples=[
+                    OpenApiExample(
+                        "Task Completed Example",
+                        value={
+                            "task_id": "9f7e4a19-b299-41b4-9829-b5490e93c523",
+                            "status": "completed",
+                            "meta": "{'status': 'Completed', 'assignment_id': '055eb99a-d9af-4671-ac94-38133376e942'}",
+                        },
+                    ),
+                    OpenApiExample(
+                        "Task Processing Example",
+                        value={
+                            "task_id": "9f7e4a19-b299-41b4-9829-b5490e93c523",
+                            "status": "processing",
+                            "meta": "{'current': 0, 'total': 10, 'percent': 0, 'step': 'Initializing'}",
+                        },
+                    ),
+                ],
+            ),
+            404: OpenApiResponse(description="Task not found"),
+        },
+    )
+    @action(detail=False, methods=["get"], url_path="status/(?P<task_id>[^/.]+)")
+    def task_status(self, request, task_id=None):
+        """
+        Retrieve the status of a background task by its ID.
+        """
+        task = AsyncResult(task_id)
 
-    if task.successful():
-        data["status"] = "completed"
+        data = {
+            "task_id": task_id,
+            "status": task.state,
+            "meta": (
+                task.info
+                if isinstance(task.info, dict)
+                else {"result": task.info} if task.info else None
+            ),
+        }
 
-    elif task.failed():
-        data["status"] = "failed"
+        data["meta"] = str(data["meta"])
 
-    else:
-        data["status"] = "processing"
+        if task.successful():
+            data["status"] = "completed"
 
-    return Response(data, status=status.HTTP_200_OK)
+        elif task.failed():
+            data["status"] = "failed"
+
+        else:
+            data["status"] = "processing"
+
+        return Response(data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        tags=["Tasks"],
+        summary="Retrieve batch upload session results",
+        description="""
+            Retrieve the processing status and results of a batch upload session.
+
+            This endpoint returns the progress of the background tasks, indicating how many
+            files have been processed and the overall completion status. It provides lists of
+            successfully processed submissions and those that failed.
+            """,
+        responses={
+            200: OpenApiResponse(
+                description="Session results retrieved successfully.",
+                response=OpenApiTypes.OBJECT,
+                examples=[
+                    OpenApiExample(
+                        "In Progress",
+                        value={
+                            "progress": "2 / 3",
+                            "is_complete": False,
+                            "success_count": 2,
+                            "failure_count": 0,
+                            "success_list": [
+                                {
+                                    "status": "SUCCESS",
+                                    "file_name": "student_a.pdf",
+                                    "submission_id": "b2c3d4e5",
+                                },
+                            ],
+                            "failure_list": [],
+                        },
+                    ),
+                    OpenApiExample(
+                        "Completed with failures",
+                        value={
+                            "progress": "3 / 3",
+                            "is_complete": True,
+                            "success_count": 2,
+                            "failure_count": 1,
+                            "success_list": [
+                                {"status": "SUCCESS", "file_name": "student_a.pdf"},
+                            ],
+                            "failure_list": [
+                                {
+                                    "status": "FAILED",
+                                    "file_name": "unknown_file.pdf",
+                                    "error": "Could not identify or associate a student with this paper",
+                                }
+                            ],
+                        },
+                    ),
+                ],
+            ),
+            404: OpenApiResponse(
+                description="Session not found.",
+            ),
+        },
+    )
+    @action(
+        detail=False, methods=["GET"], url_path="session-results/(?P<session_id>[^/.]+)"
+    )
+    def session_results(self, request, session_id=None):
+        session = get_object_or_404(BatchUploadSession, id=session_id)
+
+        # Separate into two clean lists for the UI
+        success = [r for r in session.results if r["status"] == "SUCCESS"]
+        failures = [r for r in session.results if r["status"] == "FAILED"]
+
+        completed = len(session.results)
+        total = session.total_files
+
+        percentage = (completed / total) * 100 if total > 0 else 0
+
+        return Response(
+            {
+                "progress": f"{completed} / {total}",
+                "percent": round(percentage),
+                "is_complete": completed == total,
+                "success_count": len(success),
+                "failure_count": len(failures),
+                "success_list": success,
+                "failure_list": failures,
+            }
+        )
