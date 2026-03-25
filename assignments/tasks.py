@@ -367,3 +367,8 @@ def upload_assignment_async(
         session = BatchUploadSession.objects.get(id=session_id)
         session.update_result(file_name, "FAILED", error=str(e))
         raise
+
+
+@shared_task(bind=True, max_retries=3)
+def run_scheduled_grading_session():
+    pass
