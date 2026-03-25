@@ -16,10 +16,11 @@ from django.db.models import (
 )
 from django.db.models.functions import Cast
 from django.utils import timezone
-from django.utils.decorators import method_decorator
 from django.utils.text import gettext_lazy as _
-from django.views.decorators.cache import cache_page
-from django.views.decorators.vary import vary_on_headers
+
+# from django.views.decorators.cache import cache_page
+# from django.utils.decorators import method_decorator
+# from django.views.decorators.vary import vary_on_headers
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status, viewsets
@@ -510,8 +511,8 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         return Response(data)
 
     @extend_schema(tags=["Super Admin"])
-    @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:summary"))
-    @method_decorator(vary_on_headers("Authorization"))
+    # @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:summary"))
+    # @method_decorator(vary_on_headers("Authorization"))
     def summary(self, request, *args, **kwargs):
         # Implementation for summary endpoint
 
