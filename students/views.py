@@ -1,9 +1,16 @@
 # from django.shortcuts import render
+import json
+import uuid
+
 from django.conf import settings
 from django.core.cache import cache
 from django.core.files.uploadedfile import UploadedFile
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django_celery_beat.models import (  # , PeriodicTask, PeriodicTasks
+    ClockedSchedule,
+    PeriodicTasks,
+)
 
 # from django.utils.decorators import method_decorator
 # from django.views.decorators.cache import cache_page
@@ -36,6 +43,10 @@ from rest_framework.status import (
 
 from ai_processor.services import ai_processor
 from assignments.models import Assignment
+from assignments.serializers import (
+    ScheduledGradingResponseSerializer,
+    ScheduleGradingSerializer,
+)
 from assignments.services import AssignmentProcessingService
 from assignments.tasks import (
     formatted_grade_async,
@@ -516,16 +527,17 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     @action(
         detail=True,
         methods=["POST"],
-        permission_classes=[IsAuthenticated],
+        permission_classes=[IsAuthenticated, IsTeacher],
         url_path="grade-async",
     )
     def grade_async(self, request, pk=None):
-        try:
-            submission = StudentSubmission.objects.get(pk=pk)
-        except StudentSubmission.DoesNotExist:
-            raise NotFound(
-                detail="No Student Submission with this ID is found"
-            ) from StudentSubmission.DoesNotExist
+        submission = self.get_object()
+        # try:
+        #     submission = StudentSubmission.objects.get(pk=pk)
+        # except StudentSubmission.DoesNotExist:
+        #     raise NotFound(
+        #         detail="No Student Submission with this ID is found"
+        #     ) from StudentSubmission.DoesNotExist
 
         task = grade_engine_async.delay(str(request.user.id), str(submission.id))
         task_id = task.id
@@ -539,6 +551,45 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         serializer = StudentSubmissionGradeAsyncSerializer(data)
 
         return Response(serializer.data, status=HTTP_200_OK)
+
+    @action(
+        detail=True, methods=["POST"], permission_classes=[IsAuthenticated, IsTeacher]
+    )
+    def schedule_grade_async(self, request, pk=None):
+        submission = self.get_object()
+
+        serializer = ScheduleGradingSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        scheduled_time = serializer.validated_data["scheduled_time"]
+
+        if scheduled_time <= timezone.now():
+            raise ParseError({"schedule_time": "Scheduled time must be in the future"})
+
+        clocked_schedule, _ = ClockedSchedule.objects.get_or_create(
+            clocked_time=scheduled_time
+        )
+
+        task_name = f"grade-submission-{submission.id}-{uuid.uuid4()}"
+
+        periodic_task = PeriodicTasks.objects.create(
+            name=task_name,
+            task="assignments.tasks.grade_engine_async",
+            clocked=clocked_schedule,
+            one_off=True,
+            enabled=True,
+            args=json.dumps([str(request.user.id), str(submission.id)]),
+        )
+
+        data = {
+            "periodic_task_id": periodic_task.id,
+            "task_name": periodic_task.name,
+            "scheduled_time": scheduled_time,
+            "message": "Grading scheduled successfully",
+        }
+
+        serializer = ScheduledGradingResponseSerializer(data)
+        return Response(serializer.data, status=HTTP_202_ACCEPTED)
 
     @extend_schema(
         tags=["07 Student Submissions"],

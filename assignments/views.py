@@ -6,6 +6,7 @@ from django.db import transaction
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django_celery_beat.models import ClockedSchedule
 
 # from django.utils.decorators import method_decorator
 # from django.views.decorators.cache import cache_page
@@ -50,6 +51,7 @@ from .serializers import (  # RubricSerializer,; AssignmentGradeAllSubmissionsSe
     AssignmentSerializer,
     AssignmentTextSerializer,
     GeneratedAssignmentSerializer,
+    ScheduleGradingSerializer,
 )
 from .services import AssignmentProcessingService
 from .tasks import (  # grade_all_submissions,
@@ -854,9 +856,6 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 {"message": "No submissions to grade"}, status=status.HTTP_200_OK
             )
 
-        # print("Assignment ID: ", Assignment.objects.filter(id=assignment.id))
-        # print("Submission:", StudentSubmission.objects.filter(assignment=assignment))
-
         session = BatchUploadSession.objects.create(
             teacher=request.user,
             course=assignment.course,
@@ -880,21 +879,33 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         serializer = BatchUploadResponseSerializer(data)
 
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
-        #
-        #
-        #
-        # task = grade_all_submissions.delay(str(assignment.id))
-        # task_id = task.id
-        #
-        # data = {
-        #     "assignment_id": assignment.id,
-        #     "task_id": task_id,
-        #     "message": "AI grading started",
-        #     "submission_count": submissions.count(),
-        #     "status": "Processing" if task_id else "completed",
-        # }
-        #
-        # serializer = AssignmentGradeAllSubmissionsSerializer(data=data)
-        # serializer.is_valid(raise_exception=True)
-        #
-        # return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
+
+    @action(detail=True, methods=["POST"])
+    def scheduled_grade_all_submission(self, request, pk=None):
+        assignment = self.get_object()
+
+        serializer = ScheduleGradingSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        scheduled_time = serializer.validated_data["scheduled_time"]
+
+        if scheduled_time <= timezone.now():
+            raise ParseError("Scheduled time cannot be in the past")
+
+        submissions = assignment.submissions.all()
+
+        if not submissions.exists():
+            return Response(
+                {"message": "No submissions to grade"}, status=status.HTTP_200_OK
+            )
+
+        BatchUploadSession.objects.create(
+            teacher=request.user,
+            course=assignment.course,
+            task_type=BatchUploadType.GRADE,
+            total_files=submissions.count(),
+        )
+
+        clocked_schedule, _ = ClockedSchedule.objects.get_or_create(
+            clocked_time=scheduled_time,
+        )

@@ -339,3 +339,10 @@ class AssignmentGradeAllSubmissionsSerializer(serializers.Serializer):
 
 class ScheduleGradingSerializer(serializers.Serializer):
     schedule_time = serializers.DateTimeField()
+
+
+class ScheduledGradingResponseSerializer(serializers.Serializer):
+    period_task_id = serializers.UUIDField()
+    task_name = serializers.CharField()
+    scheduled_time = serializers.DateTimeField()
+    message = serializers.CharField()
