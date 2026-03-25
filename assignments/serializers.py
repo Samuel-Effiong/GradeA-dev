@@ -335,3 +335,7 @@ class AssignmentGradeAllSubmissionsSerializer(serializers.Serializer):
     message = serializers.CharField(max_length=255)
     submission_count = serializers.IntegerField()
     status = serializers.CharField(max_length=255)
+
+
+class ScheduleGradingSerializer(serializers.Serializer):
+    schedule_time = serializers.DateTimeField()

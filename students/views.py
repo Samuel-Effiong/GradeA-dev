@@ -477,13 +477,14 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
     @extend_schema(
         tags=["07 Student Submissions"],
+        request=None,
         responses={
             HTTP_200_OK: StudentSubmissionDetailSerializer,
         },
     )
     @action(
         detail=True,
-        methods=["GET"],
+        methods=["POST"],
         permission_classes=[IsAuthenticated, IsTeacher],
         url_path="grade",
     )
@@ -507,13 +508,14 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
     @extend_schema(
         tags=["07 Student Submissions"],
+        request=None,
         responses={
             HTTP_200_OK: StudentSubmissionDetailSerializer,
         },
     )
     @action(
         detail=True,
-        methods=["GET"],
+        methods=["POST"],
         permission_classes=[IsAuthenticated],
         url_path="grade-async",
     )
@@ -544,10 +546,6 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             HTTP_200_OK: StudentSubmissionTeacherFeedbackSerializer,
         },
     )
-    # @method_decorator(
-    #     cache_page(60 * 3, key_prefix="studentsubmissions:formatted_grade")
-    # )
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(
         detail=True,
         methods=["GET"],
