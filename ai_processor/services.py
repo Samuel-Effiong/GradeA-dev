@@ -360,45 +360,6 @@ Do not include any explanatory text before or after the JSON
 
         raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
 
-    def extract_rubric(self, text):
-        system_prompt = RUBRIC_EXTRACTION_PROMPT
-        user_prompt = f"""
-Please analyze the following extracted text from an educational rubric and return a JSON
-
-EXTRACTED TEXT:
-{text}
-
-IMPORTANT: Return only valid JSON matching the required structure.
-Do not include any explanatory text before or after the JSON
-"""
-        # return self.__generate_text(system_prompt, user_prompt)
-
-        # content = self.__generate_text(system_prompt, user_prompt)
-
-        content = self.__ai_model(system_prompt, user_prompt)
-
-        try:
-            json_data = json.loads(content)
-        except json.JSONDecodeError as e:
-            logger.error(f"Error decoding JSON: {str(e)}")
-            raise Exception(f"Error decoding JSON: {str(e)}") from Exception
-        return json_data
-
-    def extract_rubric_with_retry(self, text: str, max_retries: int = 3):
-        last_error = None
-
-        for attempt in range(max_retries):
-            try:
-                return self.extract_rubric(text)
-            except Exception as e:
-                last_error = e
-                logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
-
-                if attempt < max_retries - 1:
-                    logger.info("Retrying...")
-
-        raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
-
     def extract_answer(self, user, text):
         system_prompt = ANSWERS_EXTRACTION_PROMPT
 
