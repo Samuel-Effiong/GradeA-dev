@@ -168,7 +168,6 @@ WSGI_APPLICATION = "AutoGrader.wsgi.application"
 DATABASE_CONFIG = {
     "conn_max_age": 0,
     "conn_health_checks": True,
-    "disable_prepared_statements": True,
 }
 
 if ENVIRONMENT == "local":
@@ -187,7 +186,10 @@ else:
     DATABASES = {
         "default": dj_database_url.config(
             default=env.str("DATABASE_URI"), **DATABASE_CONFIG
-        )
+        ),
+        "OPTIONS": {
+            "prepare_threshold": None,  # or psycopg2 alternative
+        },
     }
 DISABLE_SERVER_SIDE_CURSORS = True
 
