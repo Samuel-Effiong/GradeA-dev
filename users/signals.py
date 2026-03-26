@@ -25,4 +25,4 @@ def create_settings(sender, instance, created, **kwargs):
     Settings.objects.get_or_create(user=instance)
 
     # Create empty wallet
-    CreditWallet.objects.create(user=instance)
+    CreditWallet.objects.get_or_create(user=instance)
