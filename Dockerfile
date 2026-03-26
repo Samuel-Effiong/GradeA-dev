@@ -75,4 +75,4 @@ USER wagtail
 #   PRACTICE. The database should be migrated manually or using the release
 #   phase facilities of your hosting platform. This is used only so the
 #   Wagtail instance can be started with a simple "docker run" command.
-CMD set -xe; gunicorn AutoGrader.wsgi:application --bind 0.0.0.0:${PORT} --timeout 160 --workers 24 --threads 3 --max-requests 1000 --worker-class gthread --keep-alive 5 --max-requests-jitter 200
+CMD set -xe; gunicorn AutoGrader.wsgi:application --bind 0.0.0.0:${PORT} --timeout 100 --workers 9 --threads 4 --max-requests 1000 --worker-class gthread --keep-alive 5 --max-requests-jitter 200
