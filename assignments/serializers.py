@@ -235,9 +235,42 @@ class AssignmentListSerializer(serializers.ModelSerializer):
 
 
 class AssignmentDetailSerializer(serializers.ModelSerializer):
+    submission_count = serializers.SerializerMethodField()
+
     class Meta:
         model = Assignment
-        fields = ["id", "title", "course", "topic", "status", "raw_input"]
+        fields = [
+            "id",
+            "title",
+            "course",
+            "topic",
+            "status",
+            "raw_input",
+            "created_at",
+            "due_date",
+            "submission_count",
+            "extraction_confidence",
+            "assignment_type",
+            "status",
+            "total_points",
+            "question_count",
+        ]
+
+        read_only_fields = [
+            "created_at",
+            "due_date",
+            "submission_count",
+            "extraction_confidence",
+            "assignment_type",
+            "status",
+            "total_points",
+            "question_count",
+        ]
+
+        def get_submission_count(self, obj):
+            if obj.status == AssignmentStatus.PUBLISHED or obj.submissions:
+                return obj.submissions.count()
+            return 0
 
 
 class GeneratedAssignmentSerializer(serializers.Serializer):
