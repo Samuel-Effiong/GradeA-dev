@@ -235,7 +235,7 @@ class AssignmentListSerializer(serializers.ModelSerializer):
 
 
 class AssignmentDetailSerializer(serializers.ModelSerializer):
-    submission_count = serializers.SerializerMethodField()
+    # submission_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Assignment
@@ -248,7 +248,7 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
             "raw_input",
             "created_at",
             "due_date",
-            "submission_count",
+            # "submission_count",
             "extraction_confidence",
             "assignment_type",
             "status",
