@@ -5,7 +5,8 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 
-from classrooms.models import Course, Topic
+from classrooms.models import Course, StudentCourse, Topic
+from students.models import StudentSubmission
 
 from .models import Assignment, AssignmentStatus  # Rubric
 
@@ -235,9 +236,88 @@ class AssignmentListSerializer(serializers.ModelSerializer):
 
 
 class AssignmentDetailSerializer(serializers.ModelSerializer):
+    student_submissions = serializers.SerializerMethodField()
+
     class Meta:
         model = Assignment
-        fields = ["id", "title", "course", "topic", "status", "raw_input"]
+        fields = [
+            "id",
+            "title",
+            "course",
+            "topic",
+            "status",
+            "raw_input",
+            "created_at",
+            "due_date",
+            "extraction_confidence",
+            "assignment_type",
+            "total_points",
+            "question_count",
+            "student_submissions",
+        ]
+        read_only_fields = [
+            "created_at",
+            "due_date",
+            "extraction_confidence",
+            "assignment_type",
+            "status",
+            "total_points",
+            "question_count",
+            "student_submissions",
+        ]
+
+    def get_student_submissions(self, obj):
+
+        # Fetch all enrolled students for this course
+        enrollments = StudentCourse.objects.filter(course=obj.course).select_related(
+            "student"
+        )
+
+        # Build a lookup map: student_id → submission
+        submission_map = {
+            sub.student_id: sub
+            for sub in StudentSubmission.objects.filter(assignment=obj).select_related(
+                "student"
+            )
+        }
+
+        result = []
+        for enrollment in enrollments:
+            student = enrollment.student
+            submission = submission_map.get(student.id)
+
+            # Submission status
+            submission_status = "SUBMITTED" if submission else "NOT SUBMITTED"
+
+            # Grade — prefer human score, fall back to AI score
+            grade = None
+            if submission:
+                if submission.score is not None:
+                    grade = float(submission.score)
+                elif submission.ai_score is not None:
+                    grade = float(submission.ai_score)
+
+            # Grade status
+            grade_status = "PENDING"
+            if submission:
+                if submission.was_regraded and submission.regraded_at:
+                    grade_status = "REGRADED"
+                elif submission.graded_at is not None:
+                    grade_status = "GRADED"
+                elif submission.ai_graded_at is not None:
+                    grade_status = "GRADED"
+
+            result.append(
+                {
+                    "name": student.get_full_name(),
+                    "email": student.email,
+                    "submission_status": submission_status,
+                    "grade": grade,
+                    "grade_status": grade_status,
+                }
+            )
+
+        return result
 
 
 class GeneratedAssignmentSerializer(serializers.Serializer):
