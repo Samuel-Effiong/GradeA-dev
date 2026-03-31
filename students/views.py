@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django_celery_beat.models import (  # , PeriodicTask, PeriodicTasks
     ClockedSchedule,
-    PeriodicTasks,
+    PeriodicTask,
 )
 
 # from django.utils.decorators import method_decorator
@@ -552,8 +552,16 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         return Response(serializer.data, status=HTTP_200_OK)
 
+    @extend_schema(
+        tags=["07 Student Submissions"],
+        request=ScheduleGradingSerializer,
+        responses={200: ScheduledGradingResponseSerializer},
+    )
     @action(
-        detail=True, methods=["POST"], permission_classes=[IsAuthenticated, IsTeacher]
+        detail=True,
+        methods=["POST"],
+        permission_classes=[IsAuthenticated, IsTeacher],
+        url_path="schedule-grade-async",
     )
     def schedule_grade_async(self, request, pk=None):
         submission = self.get_object()
@@ -561,7 +569,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         serializer = ScheduleGradingSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        scheduled_time = serializer.validated_data["scheduled_time"]
+        scheduled_time = serializer.validated_data["schedule_time"]
 
         if scheduled_time <= timezone.now():
             raise ParseError({"schedule_time": "Scheduled time must be in the future"})
@@ -572,17 +580,21 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         task_name = f"grade-submission-{submission.id}-{uuid.uuid4()}"
 
-        periodic_task = PeriodicTasks.objects.create(
+        periodic_task = PeriodicTask.objects.create(
             name=task_name,
             task="assignments.tasks.grade_engine_async",
             clocked=clocked_schedule,
             one_off=True,
             enabled=True,
             args=json.dumps([str(request.user.id), str(submission.id)]),
+            # kwargs=json.dumps({
+            #     "user_id": str(request.user.id),
+            #     "submission_id": str(submission.id)
+            # }),
         )
 
         data = {
-            "periodic_task_id": periodic_task.id,
+            "period_task_id": periodic_task.id,
             "task_name": periodic_task.name,
             "scheduled_time": scheduled_time,
             "message": "Grading scheduled successfully",

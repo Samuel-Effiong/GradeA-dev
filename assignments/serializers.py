@@ -342,6 +342,7 @@ class ScheduleGradingSerializer(serializers.Serializer):
 
 
 class ScheduledGradingResponseSerializer(serializers.Serializer):
+    session_id = serializers.UUIDField(required=False)
     period_task_id = serializers.UUIDField()
     task_name = serializers.CharField()
     scheduled_time = serializers.DateTimeField()

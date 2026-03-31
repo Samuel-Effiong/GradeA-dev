@@ -370,5 +370,13 @@ def upload_assignment_async(
 
 
 @shared_task(bind=True, max_retries=3)
-def run_scheduled_grading_session():
-    pass
+def grade_batch_async(self, user_id, assignment_id, batch_id=None):
+    submissions = StudentSubmission.objects.filter(assignment_id=assignment_id)
+
+    for submission in submissions:
+        grade_engine_async.delay(
+            user_id,
+            str(submission.id),
+            batch_id=batch_id,
+        )
+        print(f"Starting grading of Submission {submission.student.get_full_name}")
