@@ -165,31 +165,15 @@ WSGI_APPLICATION = "AutoGrader.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASE_CONFIG = {
-    "conn_max_age": 0,
-    "conn_health_checks": True,
-    "disable_prepared_statements": True,
-}
-
 if ENVIRONMENT == "local":
     DATABASES = {
-        "default": dj_database_url.config(
-            default=env.str("DATABASE_URI_LOCAL"), **DATABASE_CONFIG
-        )
+        "default": dj_database_url.config(default=env.str("DATABASE_URI_LOCAL"))
     }
 elif ENVIRONMENT == "dev":
-    DATABASES = {
-        "default": dj_database_url.config(
-            default=env.str("DATABASE_URI_DEV"), **DATABASE_CONFIG
-        )
-    }
+    DATABASES = {"default": dj_database_url.config(default=env.str("DATABASE_URI_DEV"))}
 else:
-    DATABASES = {
-        "default": dj_database_url.config(
-            default=env.str("DATABASE_URI"), **DATABASE_CONFIG
-        )
-    }
-DISABLE_SERVER_SIDE_CURSORS = True
+    DATABASES = {"default": dj_database_url.config(default=env.str("DATABASE_URI"))}
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -236,15 +220,7 @@ CELERY_RESULT_BACKEND = (
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
-
-CELERY_TIMEZONE = TIME_ZONECELERY_BROKER_TRANSPORT_OPTIONS = {
-    "visibility_timeout": 600,  # 10 minutes
-}
-
-CELERY_TASK_ACKS_LATE = True
-CELERY_WORKER_PREFETCH_MULTIPLIER = 1
-CELERY_RESULT_EXPIRES = 3600  # Delete results after 1 hour
-
+CELERY_TIMEZONE = TIME_ZONE
 
 # Celery Beat Schedule
 CELERY_BEAT_SCHEDULE = {
