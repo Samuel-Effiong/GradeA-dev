@@ -37,6 +37,21 @@ class StudentSubmission(models.Model):
         blank=True,
         help_text=_("Final score awarded to the submission"),
     )
+    score_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text=_(
+            "Score as a percentage of total possible points (calculated from score and assignment max_points)"
+        ),
+    )
+
+    max_points = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text=_("Maximum points available for this assignment"),
+    )
 
     feedback = models.JSONField(
         null=True, blank=True, help_text=_("Feedback provided for each question")

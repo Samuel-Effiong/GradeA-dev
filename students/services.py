@@ -119,16 +119,20 @@ def grade_engine(user, submission):
     formatted_grade_async.delay(str(submission.id), user_prompt)
 
     grading_score = grading["grading_summary"]["total_score"]
+    max_points = grading["grading_summary"]["max_total_points"]
+    percentage = grading["grading_summary"]["percentage"]
     grading_confidence = grading["grading_confidence"]
 
     print(f"grading_score: {grading_score}")
 
     submission.score = grading_score
+    submission.ai_score = grading_score
+    submission.max_points = max_points
+    submission.score_percentage = percentage
+
     submission.feedback = grading
     submission.grading_confidence = grading_confidence
     submission.graded_at = timezone.now()
-
-    submission.ai_score = grading_score
 
     submission.save()
 

@@ -60,13 +60,49 @@ class CourseAnalyticsSerializer(serializers.Serializer):
     worst_assignments = AssignmentPerformanceSerializer(many=True, read_only=True)
 
 
+class GradeDistributionSerializer(serializers.Serializer):
+    """Serializer for A-F grade distribution"""
+
+    A = serializers.IntegerField(read_only=True)
+    B = serializers.IntegerField(read_only=True)
+    C = serializers.IntegerField(read_only=True)
+    D = serializers.IntegerField(read_only=True)
+    F = serializers.IntegerField(read_only=True)
+
+
 class TeacherDashboardOverviewSerializer(serializers.Serializer):
     """Serializer for the teacher dashboard overview metrics"""
 
     total_assignments_assigned = serializers.IntegerField(read_only=True)
     total_assignments_graded = serializers.IntegerField(read_only=True)
+    total_assignment_pending_grade = serializers.IntegerField(read_only=True)
+    total_students = serializers.IntegerField(read_only=True)
     percentage_graded = serializers.FloatField(read_only=True)
-    average_grading_turnaround = serializers.DurationField(read_only=True)
+    grade_distribution = GradeDistributionSerializer(read_only=True)
+    average_grading_turnaround = serializers.SerializerMethodField()
+
+    def get_average_grading_turnaround(self, obj):
+        duration = obj.get("average_grading_turnaround")
+        if duration is None:
+            return "N/A"
+
+        days = duration.days
+        seconds = duration.seconds
+        hours = seconds // 3600
+        minutes = (seconds % 3600) // 60
+
+        parts = []
+        if days > 0:
+            parts.append(f"{days}d")
+        if hours > 0:
+            parts.append(f"{hours}h")
+        if minutes > 0:
+            parts.append(f"{minutes}m")
+
+        if not parts:
+            return "< 1m"
+
+        return " ".join(parts)
 
 
 class WorkflowStatsSerializer(serializers.Serializer):
@@ -289,16 +325,6 @@ class TeacherPerformanceSerializer(serializers.Serializer):
     number_of_students = serializers.IntegerField(read_only=True)
     average_student_performance = serializers.FloatField(read_only=True)
     assignment_completion_rate = serializers.FloatField(read_only=True)
-
-
-class GradeDistributionSerializer(serializers.Serializer):
-    """Serializer for A-F grade distribution"""
-
-    A = serializers.IntegerField(read_only=True)
-    B = serializers.IntegerField(read_only=True)
-    C = serializers.IntegerField(read_only=True)
-    D = serializers.IntegerField(read_only=True)
-    F = serializers.IntegerField(read_only=True)
 
 
 class SuperAdminStudentPerformanceSerializer(serializers.Serializer):

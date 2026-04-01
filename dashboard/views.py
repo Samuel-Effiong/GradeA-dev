@@ -1372,7 +1372,10 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         Metrics include:
         - Total assignments created by the teacher in the session.
         - Total number of assignments that have at least one graded submission.
+        - Total number of assignments with no graded submissions (pending).
+        - Total number of unique active students in the session.
         - Percentage of assignments that have been partially or fully graded.
+        - Grade distribution (A, B, C, D, F) for all students in the session.
         - Average turnaround time for grading submissions (from submission to grading).
         """,
         parameters=[
@@ -1401,7 +1404,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             session = get_object_or_404(Session, id=session_id, teacher=teacher)
 
             assignments = Assignment.objects.filter(
-                teacher=teacher, course__session=session
+                course__teacher=teacher, course__session=session
             )
             total_assigned = assignments.count()
 
@@ -1427,10 +1430,55 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 )
             ).aggregate(avg_turnaround=Avg("turnaround_time"))["avg_turnaround"]
 
+            # Grade distribution for the session
+            grade_stats = (
+                StudentCourse.objects.filter(course__session=session)
+                .active()
+                .aggregate(
+                    a=Count(Case(When(final_grade__gte=90, then=Value(1)))),
+                    b=Count(
+                        Case(
+                            When(final_grade__gte=80, final_grade__lt=90, then=Value(1))
+                        )
+                    ),
+                    c=Count(
+                        Case(
+                            When(final_grade__gte=70, final_grade__lt=80, then=Value(1))
+                        )
+                    ),
+                    d=Count(
+                        Case(
+                            When(final_grade__gte=60, final_grade__lt=70, then=Value(1))
+                        )
+                    ),
+                    f=Count(Case(When(final_grade__lt=60, then=Value(1)))),
+                )
+            )
+
+            # total student in that session that the teacher has
+            total_students = (
+                StudentCourse.objects.filter(course__session=session)
+                .active()
+                .values("student")
+                .distinct()
+                .count()
+            )
+
+            total_pending = total_assigned - graded_assignments
+
             data = {
                 "total_assignments_assigned": total_assigned,
                 "total_assignments_graded": graded_assignments,
+                "total_assignment_pending_grade": total_pending,
+                "total_students": total_students,
                 "percentage_graded": percent_graded,
+                "grade_distribution": {
+                    "A": grade_stats["a"],
+                    "B": grade_stats["b"],
+                    "C": grade_stats["c"],
+                    "D": grade_stats["d"],
+                    "F": grade_stats["f"],
+                },
                 "average_grading_turnaround": turnaround,
             }
 

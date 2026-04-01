@@ -42,6 +42,7 @@ from users.mixins import UserCacheMixin
 
 # from students.serializers import StudentSubmissionSerializer
 from users.models import UserTypes
+from users.permissions import HasCreditBalance
 from users.serializers import BatchUploadResponseSerializer
 
 from .models import Assignment, AssignmentStatus  # Rubric
@@ -659,7 +660,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         methods=["POST"],
         url_path="upload-async",
         url_name="upload-async",
-        permission_classes=[IsAuthenticated, IsTeacher],
+        permission_classes=[IsAuthenticated, IsTeacher, HasCreditBalance],
     )
     def upload_assignment_async(self, request, *args, **kwargs):
         course_id = request.data.get("course")
@@ -847,7 +848,13 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
         },
     )
-    @action(detail=True, methods=["POST"], url_path=r"grade-all", url_name="grade-all")
+    @action(
+        detail=True,
+        methods=["POST"],
+        url_path=r"grade-all",
+        url_name="grade-all",
+        permission_classes=[IsAuthenticated, IsTeacher, HasCreditBalance],
+    )
     def grade_all_submission(self, request, pk=None):
         assignment = self.get_object()
 
@@ -887,7 +894,11 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         request=ScheduleGradingSerializer,
         responses={200: ScheduledGradingResponseSerializer},
     )
-    @action(detail=True, methods=["POST"])
+    @action(
+        detail=True,
+        methods=["POST"],
+        permission_classes=[IsAuthenticated, IsTeacher, HasCreditBalance],
+    )
     def schedule_grade_all_submission(self, request, pk=None):
         assignment = self.get_object()
 

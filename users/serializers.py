@@ -3,6 +3,7 @@ from django.db import transaction
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
+from billing.serializers import CreditWalletSummarySerializer
 from classrooms.models import School
 from users.models import CustomUser, Settings
 from users.services import send_user_activation_email
@@ -30,6 +31,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
         queryset=School.objects.all(), required=False
     )
     settings = SettingsSerializer(read_only=True)
+    credit_wallet = CreditWalletSummarySerializer(read_only=True)
 
     class Meta:
         model = CustomUser
@@ -46,6 +48,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             "is_active",
             "date_joined",
             "settings",
+            "credit_wallet",
         ]
         # read_only_fields = ['id', 'user_type']
 

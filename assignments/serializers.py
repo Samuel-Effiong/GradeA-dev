@@ -7,6 +7,7 @@ from rest_framework.exceptions import ParseError
 
 from classrooms.models import Course, StudentCourse, Topic
 from students.models import StudentSubmission
+from users.models import UserTypes
 
 from .models import Assignment, AssignmentStatus  # Rubric
 
@@ -237,6 +238,7 @@ class AssignmentListSerializer(serializers.ModelSerializer):
 
 class AssignmentDetailSerializer(serializers.ModelSerializer):
     student_submissions = serializers.SerializerMethodField()
+    raw_input = serializers.SerializerMethodField()
 
     class Meta:
         model = Assignment
@@ -265,6 +267,37 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
             "question_count",
             "student_submissions",
         ]
+
+    def get_raw_input(self, obj):
+        """
+        Return the full raw_input for teachers.
+        For students, regenerate the ProseMirror JSON from the structured
+        questions data with rubric and model answer excluded — so the hidden
+        content is determined at generation time rather than by fragile
+        post-processing of the stored JSON.
+        """
+        request = self.context.get("request")
+        if request and getattr(request.user, "user_type", None) == UserTypes.STUDENT:
+            # Import here to avoid circular imports at module level
+            from .services import AssignmentProcessingService
+
+            if not obj.questions:
+                return obj.raw_input
+
+            data = {
+                "title": obj.title,
+                "instructions": obj.instructions,
+                "total_points": obj.total_points,
+                "due_date": obj.due_date.isoformat() if obj.due_date else None,
+                "questions": obj.questions,
+            }
+            student_html = AssignmentProcessingService.format_assignment_standard_html(
+                data, include_rubric=False
+            )
+            pm_json = AssignmentProcessingService.html_to_prosemirror_json(student_html)
+            return json.dumps(pm_json)
+
+        return obj.raw_input
 
     def get_student_submissions(self, obj):
 

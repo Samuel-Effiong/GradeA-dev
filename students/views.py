@@ -56,6 +56,7 @@ from assignments.tasks import (
 from classrooms.permissions import IsStudent, IsTeacher, IsTeacherOrReadOnly
 from users.mixins import UserCacheMixin
 from users.models import UserTypes
+from users.permissions import HasCreditBalance
 from users.serializers import BatchUploadResponseSerializer
 
 from .models import BatchUploadSession, BatchUploadType, StudentSubmission
@@ -335,7 +336,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         methods=["POST"],
         url_path=r"(?P<assignment_id>[-\w]+)/upload",
         url_name="upload-answers",
-        permission_classes=[IsAuthenticated],
+        permission_classes=[IsAuthenticated, IsStudent, HasCreditBalance],
     )
     def upload_answers(self, request, assignment_id=None, *args, **kwargs):
         assignment = get_object_or_404(Assignment, id=assignment_id)
@@ -392,7 +393,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=["POST"],
-        permission_classes=[IsAuthenticated],
+        permission_classes=[IsAuthenticated, IsStudent, HasCreditBalance],
         url_path=r"(?P<assignment_id>[-\w]+)/upload-async",
         url_name="upload-async",
     )
@@ -496,7 +497,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     @action(
         detail=True,
         methods=["POST"],
-        permission_classes=[IsAuthenticated, IsTeacher],
+        permission_classes=[IsAuthenticated, IsTeacher, HasCreditBalance],
         url_path="grade",
     )
     def grade(self, request, pk=None):
@@ -527,17 +528,11 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     @action(
         detail=True,
         methods=["POST"],
-        permission_classes=[IsAuthenticated, IsTeacher],
+        permission_classes=[IsAuthenticated, IsTeacher, HasCreditBalance],
         url_path="grade-async",
     )
     def grade_async(self, request, pk=None):
         submission = self.get_object()
-        # try:
-        #     submission = StudentSubmission.objects.get(pk=pk)
-        # except StudentSubmission.DoesNotExist:
-        #     raise NotFound(
-        #         detail="No Student Submission with this ID is found"
-        #     ) from StudentSubmission.DoesNotExist
 
         task = grade_engine_async.delay(str(request.user.id), str(submission.id))
         task_id = task.id
@@ -560,7 +555,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     @action(
         detail=True,
         methods=["POST"],
-        permission_classes=[IsAuthenticated, IsTeacher],
+        permission_classes=[IsAuthenticated, IsTeacher, HasCreditBalance],
         url_path="schedule-grade-async",
     )
     def schedule_grade_async(self, request, pk=None):
@@ -632,6 +627,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             grading = submission.feedback
 
             if grading:
+
                 user_prompt = f"""
                 Student Name: {submission.student.get_full_name()}
                 Course: {assignment.course}
@@ -684,7 +680,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     @action(
         detail=True,
         methods=["PATCH"],
-        permission_classes=[IsAuthenticated, IsTeacher],
+        permission_classes=[IsAuthenticated, IsTeacher, HasCreditBalance],
         url_path="update-grade",
         url_name="update-grade",
     )
@@ -710,6 +706,9 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         feedback["grading_summary"]["percentage"] = percentage
 
         submission.score = score
+        submission.score_percentage = percentage
+        submission.max_points = total_score
+
         submission.feedback = feedback
         submission.was_regraded = True
         submission.regraded_at = timezone.now()
@@ -814,7 +813,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     @action(
         detail=False,
         methods=["POST"],
-        permission_classes=[IsAuthenticated, IsTeacher],
+        permission_classes=[IsAuthenticated, IsTeacher, HasCreditBalance],
         url_path=r"(?P<assignment_id>[-\w]+)/batch-upload",
     )
     def batch_upload(self, request, assignment_id=None):
