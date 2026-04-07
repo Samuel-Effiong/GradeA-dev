@@ -44,6 +44,7 @@ from rest_framework.status import (
 from ai_processor.services import ai_processor
 from assignments.models import Assignment
 from assignments.serializers import (
+    BatchUploadResponseSerializer,
     ScheduledGradingResponseSerializer,
     ScheduleGradingSerializer,
 )
@@ -57,7 +58,6 @@ from classrooms.permissions import IsStudent, IsTeacher, IsTeacherOrReadOnly
 from users.mixins import UserCacheMixin
 from users.models import UserTypes
 from users.permissions import HasCreditBalance
-from users.serializers import BatchUploadResponseSerializer
 
 from .models import BatchUploadSession, BatchUploadType, StudentSubmission
 from .serializers import (
@@ -267,10 +267,37 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         return StudentSubmissionSerializer
 
     def get_permissions(self):
-        if self.action in ["create", "upload_answers", "update"]:
-            permission_classes = [IsAuthenticated, IsStudent]
-        else:
+        """
+        Custom permissions for StudentSubmissionViewSet:
+        - List and Retrieve: Both Student and Teacher (Authenticated only).
+        - Create, Uploads, Partial Update: Student only (Requires Credits for AI extraction).
+        - Batch Upload, Grading, Feedback, Regrading: Teacher only (Requires Credits for AI tasks).
+        - Destroy: Teacher only (No credits required).
+        """
+        if self.action in ["list", "retrieve"]:
             permission_classes = [IsAuthenticated]
+        elif self.action in [
+            "create",
+            "upload_answers",
+            "upload_answers_async",
+            "partial_update",
+            "update",
+        ]:
+            # These are student actions that (mostly) consume AI credits
+            permission_classes = [IsAuthenticated, IsStudent, HasCreditBalance]
+        elif self.action in [
+            "batch_upload",
+            "grade",
+            "grade_async",
+            "schedule_grade_async",
+            "teacher_feedback",
+            "update_grade",
+        ]:
+            # These are teacher actions that consume AI credits
+            permission_classes = [IsAuthenticated, IsTeacher, HasCreditBalance]
+        else:
+            # Everything else (e.g., destroy) is teacher-only
+            permission_classes = [IsAuthenticated, IsTeacher]
 
         return [permission() for permission in permission_classes]
 
@@ -730,7 +757,17 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         submission.formatted_grade = ai_processor.formatted_grade(
             request.user, user_prompt, assignment_model=assignment
         )
-        submission.save(update_fields=["score", "feedback", "formatted_grade"])
+        submission.save(
+            update_fields=[
+                "score",
+                "score_percentage",
+                "max_points",
+                "feedback",
+                "formatted_grade",
+                "was_regraded",
+                "regraded_at",
+            ]
+        )
 
         response_serializer = StudentSubmissionDetailSerializer(submission)
         return Response(response_serializer.data, status=HTTP_200_OK)
@@ -830,6 +867,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             total_files=len(files),
         )
 
+        tasks_data = []
         task_ids = []
 
         for uploaded_file in files:
@@ -854,12 +892,13 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 session_id=str(session.id),
                 file_name=uploaded_file.name,
             )
+            tasks_data.append({"file_name": uploaded_file.name, "task_id": task.id})
             task_ids.append(task.id)
 
         data = {
             "session_id": session.id,
             "message": f"Batch processing started for {len(files)} files",
-            "batch_tasks": task_ids,
+            "tasks": tasks_data,
         }
 
         serializer = BatchUploadResponseSerializer(data)
@@ -868,6 +907,39 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             serializer.data,
             status=HTTP_202_ACCEPTED,
         )
+
+    @extend_schema(
+        tags=["07 Student Submissions"],
+        summary="Publish a student's grade",
+        description="Release the grade and feedback to the student. Only works if the submission has been graded.",
+        responses={
+            200: StudentSubmissionDetailSerializer,
+            400: OpenApiResponse(description="Submission is not graded yet"),
+            404: OpenApiResponse(description="Submission not found"),
+        },
+    )
+    @action(
+        detail=True,
+        methods=["POST"],
+        permission_classes=[IsAuthenticated, IsTeacher],
+        url_path="publish",
+    )
+    def publish_grade(self, request, pk=None):
+        submission = self.get_object()
+
+        if not submission.graded_at and submission.score is None:
+            return Response(
+                {"error": "Cannot publish an ungraded submission."},
+                status=HTTP_400_BAD_REQUEST,
+            )
+
+        submission.is_published = True
+        submission.save(update_fields=["is_published"])
+
+        serializer = StudentSubmissionDetailSerializer(
+            submission, context=self.get_serializer_context()
+        )
+        return Response(serializer.data, status=HTTP_200_OK)
 
     # @extend_schema(
     #     tags=["07 Student Submissions"],

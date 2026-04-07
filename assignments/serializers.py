@@ -2,6 +2,7 @@ import json
 
 from django.db import transaction
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 
@@ -16,6 +17,21 @@ class AssignmentRubricSerializer(serializers.Serializer):
     level = serializers.CharField()
     points = serializers.FloatField()
     description = serializers.CharField()
+
+
+class StudentSubmissionStatusSerializer(serializers.Serializer):
+    """Serializer for the student submission items in the assignment details"""
+
+    submission_id = serializers.UUIDField(read_only=True, allow_null=True)
+    name = serializers.CharField(read_only=True)
+    email = serializers.EmailField(read_only=True)
+    submission_status = serializers.CharField(read_only=True)
+    grade = serializers.FloatField(read_only=True, allow_null=True)
+    grade_percentage = serializers.FloatField(read_only=True, allow_null=True)
+    max_points = serializers.IntegerField(read_only=True, allow_null=True)
+    grade_status = serializers.CharField(read_only=True)
+    is_published = serializers.BooleanField(read_only=True)
+    teacher_feedback = serializers.CharField(read_only=True, allow_null=True)
 
 
 class QuestionSerializer(serializers.Serializer):
@@ -72,6 +88,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
             "status",
             "created_at",
             "due_date",
+            "auto_grade_on_due_date",
             "teacher",
             "submission_count",
             "questions",
@@ -226,6 +243,7 @@ class AssignmentListSerializer(serializers.ModelSerializer):
             "status",
             "created_at",
             "due_date",
+            "auto_grade_on_due_date",
             "extraction_confidence",
             "submission_count",
         ]
@@ -251,6 +269,7 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
             "raw_input",
             "created_at",
             "due_date",
+            "auto_grade_on_due_date",
             "extraction_confidence",
             "assignment_type",
             "total_points",
@@ -260,6 +279,7 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "created_at",
             "due_date",
+            "auto_grade_on_due_date",
             "extraction_confidence",
             "assignment_type",
             "status",
@@ -299,6 +319,7 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
 
         return obj.raw_input
 
+    @extend_schema_field(StudentSubmissionStatusSerializer(many=True))
     def get_student_submissions(self, obj):
 
         # Fetch all enrolled students for this course
@@ -321,17 +342,22 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
 
             # Submission status
             submission_status = "SUBMITTED" if submission else "NOT SUBMITTED"
+            submission_id = submission.id if submission else None
 
             # Grade — prefer human score, fall back to AI score
             grade = None
+            grade_percentage = None
             if submission:
+                if submission.score_percentage is not None:
+                    grade_percentage = float(submission.score_percentage)
+
                 if submission.score is not None:
                     grade = float(submission.score)
                 elif submission.ai_score is not None:
                     grade = float(submission.ai_score)
 
             # Grade status
-            grade_status = "PENDING"
+            grade_status = "N/A"
             if submission:
                 if submission.was_regraded and submission.regraded_at:
                     grade_status = "REGRADED"
@@ -339,14 +365,23 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
                     grade_status = "GRADED"
                 elif submission.ai_graded_at is not None:
                     grade_status = "GRADED"
+                elif submission.graded_at is None:
+                    grade_status = "NOT GRADED"
 
             result.append(
                 {
+                    "submission_id": submission_id,
                     "name": student.get_full_name(),
                     "email": student.email,
                     "submission_status": submission_status,
                     "grade": grade,
+                    "grade_percentage": grade_percentage,
+                    "max_points": submission.max_points if submission else None,
                     "grade_status": grade_status,
+                    "is_published": submission.is_published if submission else False,
+                    "teacher_feedback": (
+                        submission.formatted_grade if submission else None
+                    ),
                 }
             )
 
@@ -387,6 +422,13 @@ class AssignmentTextSerializer(serializers.Serializer):
     raw_input = serializers.CharField(
         required=True, allow_blank=False, allow_null=False
     )
+    due_date = serializers.DateTimeField(required=False, allow_null=True)
+    auto_grade_on_due_date = serializers.BooleanField(required=False, default=False)
+
+    def validate_due_date(self, value):
+        if value and value < timezone.now():
+            raise serializers.ValidationError("Due date cannot be in the past.")
+        return value
 
     def validate_raw_input(self, value):
         if not value.strip():
@@ -415,6 +457,18 @@ class AssignmentTextSerializer(serializers.Serializer):
             )
         return data
 
+    def update(self, instance, validated_data):
+        instance.title = validated_data.get("title", instance.title)
+        instance.course = validated_data.get("course", instance.course)
+        instance.topic = validated_data.get("topic", instance.topic)
+        instance.status = validated_data.get("status", instance.status)
+        instance.due_date = validated_data.get("due_date", instance.due_date)
+        instance.auto_grade_on_due_date = validated_data.get(
+            "auto_grade_on_due_date", instance.auto_grade_on_due_date
+        )
+        instance.save()
+        return instance
+
 
 class StatusMessageSerializer(serializers.Serializer):
     """
@@ -433,7 +487,7 @@ class AssignmentCreateResponseSerializer(serializers.Serializer):
     """
 
     assignment_id = serializers.UUIDField()
-    task_id = serializers.CharField(max_length=255)
+    task_id = serializers.UUIDField()
     message = serializers.CharField(max_length=255)
 
 
@@ -444,7 +498,7 @@ class AssignmentGradeAllSubmissionsSerializer(serializers.Serializer):
     """
 
     assignment_id = serializers.UUIDField()
-    task_id = serializers.CharField(max_length=255)
+    task_id = serializers.UUIDField()
     message = serializers.CharField(max_length=255)
     submission_count = serializers.IntegerField()
     status = serializers.CharField(max_length=255)
@@ -460,3 +514,33 @@ class ScheduledGradingResponseSerializer(serializers.Serializer):
     task_name = serializers.CharField()
     scheduled_time = serializers.DateTimeField()
     message = serializers.CharField()
+
+
+class PublishAllGradesResponseSerializer(serializers.Serializer):
+    message = serializers.CharField(help_text="Success message detailing the action")
+    total_graded = serializers.IntegerField(
+        min_value=0, help_text="Total number of submissions that were graded"
+    )
+    ungraded_count = serializers.IntegerField(
+        min_value=0, help_text="Total number of submissions that were not graded"
+    )
+
+
+class TaskInfoSerializer(serializers.Serializer):
+    """
+    Serializer for individual task information within a batch.
+    """
+
+    file_name = serializers.CharField()
+    task_id = serializers.UUIDField()
+
+
+class BatchUploadResponseSerializer(serializers.Serializer):
+    """
+    Serializer for the response returned after starting a batch upload.
+    Includes a mapping of filenames to their respective task IDs.
+    """
+
+    session_id = serializers.UUIDField()
+    message = serializers.CharField()
+    tasks = TaskInfoSerializer(many=True)

@@ -42,6 +42,7 @@ class StudentSubmission(models.Model):
         decimal_places=2,
         null=True,
         blank=True,
+        db_index=True,
         help_text=_(
             "Score as a percentage of total possible points (calculated from score and assignment max_points)"
         ),
@@ -98,6 +99,9 @@ class StudentSubmission(models.Model):
     )
 
     formatted_grade = models.TextField(null=True, blank=True)
+    is_published = models.BooleanField(
+        default=False, help_text=_("Whether the grade has been released to the student")
+    )
 
     class Meta:
         constraints = [

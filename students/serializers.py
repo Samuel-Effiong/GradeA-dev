@@ -108,6 +108,8 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
     student_name = serializers.SerializerMethodField()
     assignment_title = serializers.CharField(source="assignment.title", read_only=True)
     course = serializers.CharField(source="assignment.course.id", read_only=True)
+    score = serializers.SerializerMethodField()
+    score_percentage = serializers.SerializerMethodField()
 
     class Meta:
         model = StudentSubmission
@@ -123,6 +125,8 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
             "score_percentage",
             "max_points",
             "graded_at",
+            "is_published",
+            "grading_confidence",
         ]
 
         read_only_fields = [
@@ -134,22 +138,82 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
             "score_percentage",
             "max_points",
             "graded_at",
+            "is_published",
+            "grading_confidence",
         ]
 
     def get_student_name(self, obj) -> str:
         return f"{obj.student.first_name} {obj.student.last_name}"
 
+    def get_score(self, obj):
+        request = self.context.get("request")
+        if request and request.user.user_type == "STUDENT" and not obj.is_published:
+            return None
+        return obj.score
+
+    def get_score_percentage(self, obj):
+        request = self.context.get("request")
+        if request and request.user.user_type == "STUDENT" and not obj.is_published:
+            return None
+        return obj.score_percentage
+
 
 class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
+    score = serializers.SerializerMethodField()
+    score_percentage = serializers.SerializerMethodField()
+    # feedback = serializers.SerializerMethodField()
+    formatted_grade = serializers.SerializerMethodField()
+
     class Meta:
         model = StudentSubmission
-        fields = ["id", "assignment", "submission_date", "raw_input"]
+        fields = [
+            "id",
+            "assignment",
+            "submission_date",
+            "raw_input",
+            "score",
+            "score_percentage",
+            "formatted_grade",
+            "is_published",
+        ]
 
         read_only_fields = [
             "assignment",
             "submission_date",
             "raw_input",
+            "score",
+            "score_percentage",
+            "formatted_grade",
+            "is_published",
         ]
+
+    def get_score(self, obj):
+        request = self.context.get("request")
+        if request and request.user.user_type == "STUDENT" and not obj.is_published:
+            return None
+        return obj.score
+
+    def get_score_percentage(self, obj):
+        request = self.context.get("request")
+        if request and request.user.user_type == "STUDENT" and not obj.is_published:
+            return None
+        return obj.score_percentage
+
+    # def get_feedback(self, obj):
+    #     request = self.context.get("request")
+    #     if (
+    #         request
+    #         and request.user.user_type == "STUDENT"
+    #         and not obj.is_published
+    #     ):
+    #         return None
+    #     return obj.feedback
+
+    def get_formatted_grade(self, obj):
+        request = self.context.get("request")
+        if request and request.user.user_type == "STUDENT" and not obj.is_published:
+            return None
+        return obj.formatted_grade
 
 
 class StudentSubmissionGradeUpdateSerializer(serializers.ModelSerializer):
@@ -174,14 +238,14 @@ class StudentSubmissionGradeAsyncSerializer(serializers.Serializer):
     """Serializer for async grade engine task ID"""
 
     submission_id = serializers.UUIDField(read_only=True)
-    task_id = serializers.CharField(read_only=True)
+    task_id = serializers.UUIDField(read_only=True)
     message = serializers.CharField(read_only=True)
 
 
 class StudentSubmissionUploadAsyncSerializer(serializers.Serializer):
     """Serializer for async upload answers task ID"""
 
-    task_id = serializers.CharField(read_only=True)
+    task_id = serializers.UUIDField(read_only=True)
     message = serializers.CharField(read_only=True)
 
 
@@ -189,5 +253,5 @@ class StudentSubmissionFormattedGradeAsyncSerializer(serializers.Serializer):
     """Serializer for async formatted grade task ID"""
 
     submission_id = serializers.UUIDField(read_only=True)
-    task_id = serializers.CharField(read_only=True)
+    task_id = serializers.UUIDField(read_only=True)
     message = serializers.CharField(read_only=True)

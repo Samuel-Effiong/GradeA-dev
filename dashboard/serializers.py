@@ -1,3 +1,4 @@
+from django.contrib.humanize.templatetags.humanize import naturaltime
 from rest_framework import serializers
 
 from assignments.models import Assignment
@@ -60,14 +61,71 @@ class CourseAnalyticsSerializer(serializers.Serializer):
     worst_assignments = AssignmentPerformanceSerializer(many=True, read_only=True)
 
 
-class GradeDistributionSerializer(serializers.Serializer):
-    """Serializer for A-F grade distribution"""
+class GradeDistributionEntrySerializer(serializers.Serializer):
+    """Serializer for a single grade tier with count and percentage"""
 
-    A = serializers.IntegerField(read_only=True)
-    B = serializers.IntegerField(read_only=True)
-    C = serializers.IntegerField(read_only=True)
-    D = serializers.IntegerField(read_only=True)
-    F = serializers.IntegerField(read_only=True)
+    count = serializers.IntegerField(read_only=True)
+    percentage = serializers.FloatField(read_only=True)
+
+
+class GradeDistributionSerializer(serializers.Serializer):
+    """Serializer for A-F grade distribution with dual-format entries"""
+
+    A = GradeDistributionEntrySerializer(read_only=True)
+    B = GradeDistributionEntrySerializer(read_only=True)
+    C = GradeDistributionEntrySerializer(read_only=True)
+    D = GradeDistributionEntrySerializer(read_only=True)
+    E = GradeDistributionEntrySerializer(read_only=True)
+    F = GradeDistributionEntrySerializer(read_only=True)
+
+
+class UpcomingAssignmentSerializer(serializers.Serializer):
+    """Serializer for upcoming assignments in the teacher dashboard"""
+
+    id = serializers.UUIDField(read_only=True)
+    title = serializers.CharField(read_only=True)
+    course_id = serializers.UUIDField(source="course.id", read_only=True)
+    course_name = serializers.CharField(source="course.name", read_only=True)
+    remaining_time = serializers.SerializerMethodField()
+    exact_due_date = serializers.SerializerMethodField()
+
+    def get_remaining_time(self, obj):
+        if obj.due_date:
+            return naturaltime(obj.due_date)
+        return "N/A"
+
+    def get_exact_due_date(self, obj):
+        if obj.due_date:
+            return obj.due_date.strftime("%b %d, %Y, %I:%M %p")
+        return "N/A"
+
+
+class CoursePerformanceSerializer(serializers.Serializer):
+    """Serializer for a single course's performance metrics"""
+
+    id = serializers.UUIDField(read_only=True)
+    name = serializers.CharField(read_only=True)
+    average_grade = serializers.FloatField(read_only=True)
+    total_submissions = serializers.IntegerField(read_only=True)
+
+
+class AtRiskStudentSerializer(serializers.Serializer):
+    """Serializer for a student flagged as at-risk in a specific course"""
+
+    student_id = serializers.UUIDField(read_only=True)
+    student_name = serializers.CharField(read_only=True)
+    course_id = serializers.UUIDField(read_only=True)
+    course_name = serializers.CharField(read_only=True)
+    average_grade = serializers.FloatField(read_only=True)
+    grade_trend = serializers.CharField(read_only=True)
+
+
+class AITrustStatsSerializer(serializers.Serializer):
+    """Serializer for AI trust and confidence metrics"""
+
+    average_ai_extraction_confidence = serializers.FloatField(read_only=True)
+    average_ai_grading_confidence = serializers.FloatField(read_only=True)
+    low_confidence_rate = serializers.FloatField(read_only=True)
 
 
 class TeacherDashboardOverviewSerializer(serializers.Serializer):
@@ -79,7 +137,11 @@ class TeacherDashboardOverviewSerializer(serializers.Serializer):
     total_students = serializers.IntegerField(read_only=True)
     percentage_graded = serializers.FloatField(read_only=True)
     grade_distribution = GradeDistributionSerializer(read_only=True)
+    course_performance = CoursePerformanceSerializer(many=True, read_only=True)
+    upcoming_assignments = UpcomingAssignmentSerializer(many=True, read_only=True)
+    at_risk_students = AtRiskStudentSerializer(many=True, read_only=True)
     average_grading_turnaround = serializers.SerializerMethodField()
+    ai_trust = AITrustStatsSerializer(read_only=True)
 
     def get_average_grading_turnaround(self, obj):
         duration = obj.get("average_grading_turnaround")
@@ -148,14 +210,6 @@ class PerformanceStatsSerializer(serializers.Serializer):
         read_only=True, allow_null=True
     )
     course_performance_trend = serializers.CharField(read_only=True)
-
-
-class AITrustStatsSerializer(serializers.Serializer):
-    """Serializer for AI trust and confidence metrics"""
-
-    average_ai_extraction_confidence = serializers.FloatField(read_only=True)
-    average_ai_grading_confidence = serializers.FloatField(read_only=True)
-    low_confidence_rate = serializers.FloatField(read_only=True)
 
 
 class TeacherCourseAnalyticsSerializer(serializers.Serializer):

@@ -108,5 +108,5 @@ def update_student_course_final_grade(sender, instance, **kwargs):
     ).aggregate(Avg("score_percentage"))["score_percentage__avg"]
 
     if avg_percentage is not None:
-        enrollment.final_grade = avg_percentage
+        enrollment.final_grade = round(avg_percentage, 2)
         enrollment.save(update_fields=["final_grade"])

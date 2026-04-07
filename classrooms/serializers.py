@@ -6,6 +6,8 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
+# from assignments.models import AssignmentStatus
+from assignments.serializers import AssignmentListSerializer  # , AssignmentSerializer
 from students.serializers import StudentSerializer
 from users.models import CustomUser, UserTypes
 
@@ -89,6 +91,8 @@ class CourseSerializer(serializers.ModelSerializer):
         required=False,
         allow_empty=True,
     )
+    assignment_count = serializers.SerializerMethodField()
+    assignments = AssignmentListSerializer(many=True, read_only=True)
 
     class Meta:
         model = Course
@@ -101,9 +105,11 @@ class CourseSerializer(serializers.ModelSerializer):
             "created_at",
             "description",
             "student_count",
+            "assignment_count",
             "students",
             "topics",
             "topic_names",
+            "assignments",
         ]
         read_only_fields = ["id", "created_at", "teacher"]
 
@@ -153,7 +159,11 @@ class CourseSerializer(serializers.ModelSerializer):
             .count()
         )
 
-        # return getattr(obj, "student_count", 0)
+    def get_assignment_count(self, obj):
+        if hasattr(obj, "assignment_count"):
+            return obj.assignment_count
+
+        return obj.assignments.distinct().count()
 
     @extend_schema_field(StudentSerializer(many=True))
     def get_students(self, obj):
