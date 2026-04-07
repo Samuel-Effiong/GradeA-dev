@@ -54,6 +54,10 @@ class Assignment(models.Model):
     )
     questions = models.JSONField(null=True, blank=True)
     due_date = models.DateTimeField(null=True, blank=True)
+    auto_grade_on_due_date = models.BooleanField(
+        default=False,
+        help_text="If True, all ungraded submissions will be automatically graded when the due date passes.",
+    )
     extraction_confidence = models.IntegerField(null=True, blank=True, default=0)
     potential_issues = ArrayField(
         models.CharField(max_length=1000), null=True, blank=True

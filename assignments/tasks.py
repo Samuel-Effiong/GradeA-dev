@@ -248,7 +248,7 @@ def format_grade(self, submission_id, prompt):
 
 @shared_task(bind=True, max_retries=3)
 def upload_answers_engine_async(
-    self, assignment_id, content, user_id, session_id, file_name
+    self, assignment_id, content, user_id, session_id=None, file_name=None
 ):
     try:
         self.update_state(state="PROGRESS", meta={"step": "Retrieving requirements"})
@@ -266,19 +266,21 @@ def upload_answers_engine_async(
             is_proxy_upload=is_teacher,
         )
 
-        session = BatchUploadSession.objects.get(id=session_id)
-        session.update_result(
-            file_name,
-            "SUCCESS",
-            batch_type=BatchUploadType.SUBMISSION,
-            submission_id=submission.id,
-        )
+        if session_id:
+            session = BatchUploadSession.objects.get(id=session_id)
+            session.update_result(
+                file_name,
+                "SUCCESS",
+                batch_type=BatchUploadType.SUBMISSION,
+                submission_id=submission.id,
+            )
 
         return {
             "status": states.SUCCESS,
-            "submission_id": submission.id,
+            "submission_id": str(submission.id),
             "message": "Answers extracted successfully",
         }
+
     except CannotAssociateStudentError as exc:
         session = BatchUploadSession.objects.get(id=session_id)
         session.update_result(file_name, "FAILED", error=str(exc))
@@ -370,5 +372,47 @@ def upload_assignment_async(
 
 
 @shared_task(bind=True, max_retries=3)
-def run_scheduled_grading_session():
-    pass
+def grade_batch_async(self, user_id, assignment_id, batch_id=None):
+    submissions = StudentSubmission.objects.filter(assignment_id=assignment_id)
+
+    for submission in submissions:
+        grade_engine_async.delay(
+            user_id,
+            str(submission.id),
+            batch_id=batch_id,
+        )
+        print(f"Starting grading of Submission {submission.student.get_full_name}")
+
+
+@shared_task(name="assignments.tasks.auto_grade_due_assignment")
+def auto_grade_due_assignment(assignment_id):
+    try:
+        assignment = Assignment.objects.get(id=assignment_id)
+
+        if not assignment.auto_grade_on_due_date:
+            return "Auto grade disabled."
+
+        ungraded_submissions = assignment.submissions.filter(graded_at__isnull=True)
+
+        if not ungraded_submissions.exists():
+            return "No ungraded submissions."
+
+        session = BatchUploadSession.objects.create(
+            teacher=assignment.course.teacher,
+            course=assignment.course,
+            task_type=BatchUploadType.GRADE,
+            total_files=ungraded_submissions.count(),
+        )
+
+        for submission in ungraded_submissions:
+            grade_engine_async.delay(
+                str(assignment.course.teacher.id),
+                str(submission.id),
+                batch_id=str(session.id),
+            )
+
+        return f"Auto-grading started for {ungraded_submissions.count()} submissions."
+    except Exception as e:
+        import traceback
+
+        return f"Error: {str(e)} {traceback.format_exc()}"

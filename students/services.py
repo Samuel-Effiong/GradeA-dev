@@ -118,17 +118,27 @@ def grade_engine(user, submission):
 
     formatted_grade_async.delay(str(submission.id), user_prompt)
 
-    grading_score = grading["grading_summary"]["total_score"]
+    grading_score = round(grading["grading_summary"]["total_score"], 2)
+    max_points = int(grading["grading_summary"]["max_total_points"])
+    percentage = round(grading["grading_summary"]["percentage"], 2)
     grading_confidence = grading["grading_confidence"]
 
     print(f"grading_score: {grading_score}")
 
     submission.score = grading_score
+    submission.ai_score = grading_score
+    submission.max_points = max_points
+    submission.score_percentage = percentage
+
     submission.feedback = grading
     submission.grading_confidence = grading_confidence
     submission.graded_at = timezone.now()
 
-    submission.ai_score = grading_score
+    # update the ras_input
+    answer_html = student_submission_to_html(submission)
+    submission.raw_input = AssignmentProcessingService.html_to_prosemirror_json(
+        answer_html
+    )
 
     submission.save()
 
@@ -188,17 +198,6 @@ def upload_answers_engine(assignment, content, request_user, is_proxy_upload=Fal
             # If it already exists, update the answers
             submission.answers = student_submission.get("answers", submission.answers)
             submission.save()
-
-        # student_submission.update(
-        #     {
-        #         "assignment": assignment.id,
-        #         "student": target_student.id,
-        #     }
-        # )
-        #
-        # serializer = StudentSubmissionSerializer(data=student_submission)
-        # serializer.is_valid(raise_exception=True)
-        # submission = serializer.save()
 
         answer_html = student_submission_to_html(submission)
         submission.raw_input = AssignmentProcessingService.html_to_prosemirror_json(

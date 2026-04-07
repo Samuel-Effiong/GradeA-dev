@@ -107,6 +107,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.humanize",
     "django_filters",
     "djoser",
     "anymail",
@@ -262,13 +263,13 @@ CELERY_BEAT_SCHEDULE = {
     "reconcile-expired-buckets-midnight": {
         "task": "billing.tasks.cleanup_expired_credit_buckets",
         "schedule": crontab(minute=0, hour=0),
-        "description": "Formally close expired credit buckets and log losses to the ledger",
     },
     # "send-email-task": {
     #     "task": "AutoGrader.tasks.send_email_task",
     #     "schedule": 60.0,
     # }
 }
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/

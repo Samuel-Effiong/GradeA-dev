@@ -1,11 +1,14 @@
 import hashlib
 import json
+import uuid
 
 from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
+from django.db.models import Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django_celery_beat.models import ClockedSchedule, PeriodicTask
 
 # from django.utils.decorators import method_decorator
 # from django.views.decorators.cache import cache_page
@@ -35,12 +38,12 @@ from ai_processor.services import ai_processor  # pdf_service
 from classrooms.models import Course, Topic
 from classrooms.permissions import IsTeacher, IsTeacherOrReadOnly
 from classrooms.serializers import TopicSerializer
-from students.models import BatchUploadSession, BatchUploadType  # , StudentSubmission
+from students.models import BatchUploadSession, BatchUploadType
 from users.mixins import UserCacheMixin
 
 # from students.serializers import StudentSubmissionSerializer
 from users.models import UserTypes
-from users.serializers import BatchUploadResponseSerializer
+from users.permissions import HasCreditBalance
 
 from .models import Assignment, AssignmentStatus  # Rubric
 from .serializers import (  # RubricSerializer,; AssignmentGradeAllSubmissionsSerializer,
@@ -49,7 +52,11 @@ from .serializers import (  # RubricSerializer,; AssignmentGradeAllSubmissionsSe
     AssignmentListSerializer,
     AssignmentSerializer,
     AssignmentTextSerializer,
+    BatchUploadResponseSerializer,
     GeneratedAssignmentSerializer,
+    PublishAllGradesResponseSerializer,
+    ScheduledGradingResponseSerializer,
+    ScheduleGradingSerializer,
 )
 from .services import AssignmentProcessingService
 from .tasks import (  # grade_all_submissions,
@@ -367,36 +374,14 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 topic=topic,
                 raw_input=raw_input,
             )
-            #
-            # extraction_started_at = timezone.now()
-            #
-            # assignment_questions = ai_processor.extract_assignment_with_retry(
-            #     request.user, content, max_retries=3
-            # )
-            #
-            # extraction_completed_at = timezone.now()
-            #
-            # assignment_questions["course"] = instance.course.id
-            # assignment_questions["raw_input"] = raw_input
-            #
-            # assignment_questions["extraction_started_at"] = extraction_started_at
-            # assignment_questions["extraction_completed_at"] = extraction_completed_at
-            #
-            # if topic:
-            #     assignment_questions["topic"] = topic.id
-
-            # create assignment object
-            # assignment_serializer = AssignmentSerializer(
-            #     instance=instance, data=assignment_questions, partial=True
-            # )
-            # assignment_serializer.is_valid(raise_exception=True)
-            # instance = assignment_serializer.save()
-
         else:
             instance.title = serializer.validated_data.get("title", instance.title)
             instance.course = serializer.validated_data.get("course", instance.course)
             instance.topic = serializer.validated_data.get("topic", instance.topic)
             instance.status = serializer.validated_data.get("status", instance.status)
+            instance.due_date = serializer.validated_data.get(
+                "due_date", instance.due_date
+            )
 
             instance.save()
 
@@ -449,6 +434,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
     @extend_schema(
         tags=["Assignments"],
+        exclude=True,
         summary="Upload assignment files (images or PDFs)",
         description="This endpoint allows users to upload one or more files. "
         "The files can be either images (JPEG, PNG, etc.) or PDFs. "
@@ -655,7 +641,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         methods=["POST"],
         url_path="upload-async",
         url_name="upload-async",
-        permission_classes=[IsAuthenticated, IsTeacher],
+        permission_classes=[IsAuthenticated, IsTeacher, HasCreditBalance],
     )
     def upload_assignment_async(self, request, *args, **kwargs):
         course_id = request.data.get("course")
@@ -695,8 +681,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             task_type=BatchUploadType.ASSIGNMENT,
             total_files=len(files),
         )
-        task_ids = []
-
+        tasks_data = []
         for uploaded_file in files:
             if not isinstance(uploaded_file, UploadedFile):
                 raise ParseError("Invalid file upload.")
@@ -724,12 +709,12 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 content=content,
                 file_name=uploaded_file.name,
             )
-            task_ids.append(task.id)
+            tasks_data.append({"file_name": uploaded_file.name, "task_id": task.id})
 
         data = {
             "session_id": session.id,
             "message": f"Batch processing started for {len(files)} files",
-            "batch_tasks": task_ids,
+            "tasks": tasks_data,
         }
         serializer = BatchUploadResponseSerializer(data)
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
@@ -843,9 +828,75 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
         },
     )
-    @action(detail=True, methods=["POST"], url_path=r"grade-all", url_name="grade-all")
+    @action(
+        detail=True,
+        methods=["POST"],
+        url_path=r"grade-all",
+        url_name="grade-all",
+        permission_classes=[IsAuthenticated, IsTeacher, HasCreditBalance],
+    )
     def grade_all_submission(self, request, pk=None):
+
         assignment = self.get_object()
+
+        # Get only ungraded submissions (skip already graded ones)
+        ungraded_submissions = assignment.submissions.filter(Q(graded_at__isnull=True))
+
+        if not ungraded_submissions.exists():
+            return Response(
+                {"message": "No ungraded submissions to process"},
+                status=status.HTTP_200_OK,
+            )
+
+        session = BatchUploadSession.objects.create(
+            teacher=request.user,
+            course=assignment.course,
+            task_type=BatchUploadType.GRADE,
+            total_files=ungraded_submissions.count(),
+        )
+        tasks_data = []
+
+        for submission in ungraded_submissions:
+            task = grade_engine_async.delay(
+                str(request.user.id), str(submission.id), batch_id=session.id
+            )
+            tasks_data.append(
+                {
+                    "file_name": f"Submission for {submission.student.get_full_name()}",
+                    "task_id": task.id,
+                }
+            )
+
+        data = {
+            "session_id": session.id,
+            "message": f"Batch processing started for {ungraded_submissions.count()} submissions",
+            "tasks": tasks_data,
+        }
+
+        serializer = BatchUploadResponseSerializer(data)
+
+        return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
+
+    @extend_schema(
+        tags=["Assignments"],
+        request=ScheduleGradingSerializer,
+        responses={200: ScheduledGradingResponseSerializer},
+    )
+    @action(
+        detail=True,
+        methods=["POST"],
+        permission_classes=[IsAuthenticated, IsTeacher, HasCreditBalance],
+    )
+    def schedule_grade_all_submission(self, request, pk=None):
+        assignment = self.get_object()
+
+        serializer = ScheduleGradingSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        scheduled_time = serializer.validated_data["schedule_time"]
+
+        if scheduled_time <= timezone.now():
+            raise ParseError("Scheduled time cannot be in the past")
 
         submissions = assignment.submissions.all()
 
@@ -854,47 +905,83 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 {"message": "No submissions to grade"}, status=status.HTTP_200_OK
             )
 
-        # print("Assignment ID: ", Assignment.objects.filter(id=assignment.id))
-        # print("Submission:", StudentSubmission.objects.filter(assignment=assignment))
-
         session = BatchUploadSession.objects.create(
             teacher=request.user,
             course=assignment.course,
             task_type=BatchUploadType.GRADE,
             total_files=submissions.count(),
         )
-        task_ids = []
 
-        for _, submission in enumerate(submissions):
-            task = grade_engine_async.delay(
-                str(request.user.id), str(submission.id), batch_id=session.id
-            )
-            task_ids.append(task.id)
+        clocked_schedule, _ = ClockedSchedule.objects.get_or_create(
+            clocked_time=scheduled_time,
+        )
+
+        task_name = f"grade-batch-{assignment.id}.{uuid.uuid4()}"
+
+        periodic_task = PeriodicTask.objects.create(
+            name=task_name,
+            task="assignments.tasks.grade_batch_async",
+            clocked=clocked_schedule,
+            one_off=True,
+            enabled=True,
+            args=json.dumps([str(request.user.id), str(assignment.id)]),
+            kwargs=json.dumps({"batch_id": str(session.id)}),
+        )
 
         data = {
             "session_id": session.id,
-            "message": f"Batch processing started for {submissions.count()} submissions",
-            "batch_tasks": task_ids,
+            "period_task_id": periodic_task.id,
+            "task_name": periodic_task.name,
+            "scheduled_time": scheduled_time,
+            "message": f"Batch grading scheduled for {submissions.count()} submissions",
         }
 
-        serializer = BatchUploadResponseSerializer(data)
+        serializer = ScheduledGradingResponseSerializer(data)
 
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
-        #
-        #
-        #
-        # task = grade_all_submissions.delay(str(assignment.id))
-        # task_id = task.id
-        #
-        # data = {
-        #     "assignment_id": assignment.id,
-        #     "task_id": task_id,
-        #     "message": "AI grading started",
-        #     "submission_count": submissions.count(),
-        #     "status": "Processing" if task_id else "completed",
-        # }
-        #
-        # serializer = AssignmentGradeAllSubmissionsSerializer(data=data)
-        # serializer.is_valid(raise_exception=True)
-        #
-        # return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
+
+    @extend_schema(
+        tags=["Assignments"],
+        summary="Publish all graded submissions for an assignment",
+        description="Release grades and feedback for all submissions that have been graded. "
+        "Ungraded submissions are ignored.",
+        responses={200: PublishAllGradesResponseSerializer},
+    )
+    @action(
+        detail=True,
+        methods=["POST"],
+        permission_classes=[IsAuthenticated, IsTeacher],
+        url_path="publish-all-grades",
+    )
+    def publish_all_grades(self, request, pk=None):
+        assignment = self.get_object()
+
+        # Get all graded submissions for this assignment (either has graded_at or score)
+        from django.db.models import Q
+
+        graded_submissions = assignment.submissions.filter(
+            Q(graded_at__isnull=False) | Q(score__isnull=False)
+        )
+
+        total_graded = graded_submissions.count()
+        if total_graded == 0:
+            return Response(
+                {"message": "No graded submissions found to publish."},
+                status=status.HTTP_200_OK,
+            )
+
+        # Update all graded submissions to published
+        updated_count = graded_submissions.update(is_published=True)
+
+        total_submissions = assignment.submissions.count()
+        ungraded_count = total_submissions - total_graded
+
+        data = {
+            "message": f"Successfully published {updated_count} submissions.",
+            "total_graded": total_graded,
+            "ungraded_count": ungraded_count,
+        }
+
+        serializer = PublishAllGradesResponseSerializer(data)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)

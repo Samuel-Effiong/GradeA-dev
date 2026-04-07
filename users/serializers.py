@@ -144,12 +144,6 @@ class TaskStatusSerializer(serializers.Serializer):
     Serializer for reflecting the status of a Celery task.
     """
 
-    task_id = serializers.CharField()
+    task_id = serializers.UUIDField()
     status = serializers.CharField()
     meta = serializers.CharField(allow_null=True)
-
-
-class BatchUploadResponseSerializer(serializers.Serializer):
-    session_id = serializers.UUIDField()
-    message = serializers.CharField()
-    batch_tasks = serializers.ListField(child=serializers.UUIDField())

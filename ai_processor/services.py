@@ -49,7 +49,7 @@ OPENROUTER_API_KEY: str = env.str(
 #     "HF_TOKEN_API_KEY",
 # )
 
-AI_CONFIDENCE_THRESHOLD = 60
+AI_CONFIDENCE_THRESHOLD = 80
 
 with open("ai_processor/ASSIGNMENT_EXTRACTION_PROMPT_4_PROSE.txt", "r") as file:
     ASSIGNMENT_EXTRACTION_PROMPT = file.read()

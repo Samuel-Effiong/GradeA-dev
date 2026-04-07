@@ -21,17 +21,25 @@ class UserActivityMiddleware:
             # Log activity.
             # Note: For high traffic, this should be throttled (e.g. once per 1-5 mins)
             # or moved to a background task/cache.
-            object = UserActivity.objects.create(user=user)
-            print(object)
 
-            now = int(time.time())
+            try:
+                # We try creating the activity. If the user was deleted in the view,
+                # this will fail because of the foreign key constraint.
+                UserActivity.objects.create(user=user)
 
-            cache.set(
-                f"active_user:{user.user_type}:{user.id}",
-                now,
-                timeout=ACTIVE_WINDOW_SECONDS,
-            )
+                now = int(time.time())
 
-            cache.sadd("online_users_set", f"{user.user_type}:{user.id}")
+                cache.set(
+                    f"active_user:{user.user_type}:{user.id}",
+                    now,
+                    timeout=ACTIVE_WINDOW_SECONDS,
+                )
+
+                cache.sadd("online_users_set", f"{user.user_type}:{user.id}")
+
+            except Exception:
+                # User was likely deleted or some other DB error occurred.
+                # Since this is non-critical logging, we ignore it.
+                pass
 
         return response

@@ -1,6 +1,9 @@
+import json
+
 from django.core.cache import cache
-from django.db.models.signals import post_delete, post_save
+from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
+from django_celery_beat.models import ClockedSchedule, PeriodicTask
 
 from assignments.models import Assignment
 
@@ -25,3 +28,52 @@ def clear_assignment_cache(sender, instance, **kwargs):
         "assignments:*",
         "studentsubmissions:*",
     )
+
+
+@receiver(post_save, sender=Assignment)
+def schedule_auto_grading(sender, instance, created, **kwargs):
+    task_name = f"auto-grade-assignment-{instance.id}"
+
+    if not instance.due_date or not instance.auto_grade_on_due_date:
+        PeriodicTask.objects.filter(name=task_name).delete()
+        return
+
+    clocked_schedule, _ = ClockedSchedule.objects.get_or_create(
+        clocked_time=instance.due_date
+    )
+
+    PeriodicTask.objects.update_or_create(
+        name=task_name,
+        defaults={
+            "task": "assignments.tasks.auto_grade_due_assignment",
+            "clocked": clocked_schedule,
+            "one_off": True,
+            "enabled": True,
+            "args": json.dumps([str(instance.id)]),
+        },
+    )
+
+
+@receiver(pre_save, sender=Assignment)
+def handle_due_date_removal(sender, instance, **kwargs):
+    if instance.id:
+        try:
+            old_instance = Assignment.objects.get(id=instance.id)
+            if (
+                old_instance.auto_grade_on_due_date
+                and not instance.auto_grade_on_due_date
+            ):
+                PeriodicTask.objects.filter(
+                    name=f"auto-grade-assignment-{instance.id}"
+                ).delete()
+            elif old_instance.due_date and not instance.due_date:
+                PeriodicTask.objects.filter(
+                    name=f"auto-grade-assignment-{instance.id}"
+                ).delete()
+        except Assignment.DoesNotExist:
+            pass
+
+
+@receiver(post_delete, sender=Assignment)
+def delete_auto_grading_task(sender, instance, **kwargs):
+    PeriodicTask.objects.filter(name=f"auto-grade-assignment-{instance.id}").delete()

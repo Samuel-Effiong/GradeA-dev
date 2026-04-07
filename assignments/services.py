@@ -361,10 +361,17 @@ class AssignmentProcessingService:
             ) from e
 
     @classmethod
-    def format_assignment_standard_html(cls, data: dict) -> str:
+    def format_assignment_standard_html(
+        cls, data: dict, include_rubric: bool = True
+    ) -> str:
         """
         Converts structured assignment data into a globally recognized academic format.
         Preserves ALL HTML and displays questions, rubrics, and model answers professionally.
+
+        Args:
+            data: Structured assignment dict with title, instructions, questions, etc.
+            include_rubric: When False, rubric tables and model answers are omitted.
+                            Use False when generating the student-facing version.
         """
 
         title_html = cls.clean_xml_text(data.get("title", ""))
@@ -463,8 +470,8 @@ class AssignmentProcessingService:
 
                 html_output.append("</div>")
 
-            # Rubric (for essay & short answer)
-            if rubric:
+            # Rubric (for essay & short answer) — hidden from students
+            if include_rubric and rubric:
                 html_output.append(
                     """
                 <div style="margin-top:15px;">
@@ -504,8 +511,8 @@ class AssignmentProcessingService:
                 """
                 )
 
-            # Model Answer
-            if model_answer:
+            # Model Answer — hidden from students
+            if include_rubric and model_answer:
                 html_output.append(
                     f"""
                 <div style="margin-top:15px;">
