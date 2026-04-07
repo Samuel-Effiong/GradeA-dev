@@ -1,8 +1,10 @@
 from django.core.cache import cache
+from django.db.models import Avg
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
 from classrooms.models import Course, School, Session, StudentCourse, Topic
+from students.models import StudentSubmission
 
 
 def delete_cache_patterns(*patterns):
@@ -84,3 +86,27 @@ def clear_topic_cache(sender, instance, **kwargs):
         "courses:*",
         "assignments:*",
     )
+
+
+@receiver(post_save, sender=StudentSubmission)
+def update_student_course_final_grade(sender, instance, **kwargs):
+    """
+    When a submission is graded, recalculate the student's final grade
+    using the average of all submission percentages.
+    """
+
+    student = instance.student
+    course = instance.assignment.course
+
+    try:
+        enrollment = StudentCourse.objects.get(student=student, course=course)
+    except StudentCourse.DoesNotExist:
+        return
+
+    avg_percentage = StudentSubmission.objects.filter(
+        student=student, assignment__course=course, score_percentage__isnull=False
+    ).aggregate(Avg("score_percentage"))["score_percentage__avg"]
+
+    if avg_percentage is not None:
+        enrollment.final_grade = round(avg_percentage, 2)
+        enrollment.save(update_fields=["final_grade"])

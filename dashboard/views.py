@@ -9,6 +9,7 @@ from django.db.models import (
     ExpressionWrapper,
     F,
     FloatField,
+    Prefetch,
     Q,
     Value,
     Variance,
@@ -30,7 +31,7 @@ from rest_framework.response import Response
 
 # from ai_processor.models import ChatMessage, ChatSession, RoleType
 from ai_processor.services import AI_CONFIDENCE_THRESHOLD, ai_processor
-from assignments.models import Assignment
+from assignments.models import Assignment, AssignmentStatus
 
 # from assignments.services import AssignmentProcessingService
 from classrooms.models import Course, School, Session, StudentCourse
@@ -810,8 +811,23 @@ class SuperAdminDashboardView(viewsets.ViewSet):
                 d=Count(
                     Case(When(final_grade__gte=60, final_grade__lt=70, then=Value(1)))
                 ),
-                f=Count(Case(When(final_grade__lt=60, then=Value(1)))),
+                e=Count(
+                    Case(When(final_grade__gte=50, final_grade__lt=60, then=Value(1)))
+                ),
+                f=Count(Case(When(final_grade__lt=50, then=Value(1)))),
             )
+
+            total_graded = sum(distribution.values())
+
+            def get_entry(count):
+                return {
+                    "count": count,
+                    "percentage": (
+                        round((count / total_graded) * 100, 2)
+                        if total_graded > 0
+                        else 0
+                    ),
+                }
 
             data = {
                 "average_grade": round(float(stats["avg_grade"] or 0), 2),
@@ -819,11 +835,12 @@ class SuperAdminDashboardView(viewsets.ViewSet):
                     min(float(completion_rate), 100), 2
                 ),
                 "grade_distribution": {
-                    "A": distribution["a"],
-                    "B": distribution["b"],
-                    "C": distribution["c"],
-                    "D": distribution["d"],
-                    "F": distribution["f"],
+                    "A": get_entry(distribution["a"]),
+                    "B": get_entry(distribution["b"]),
+                    "C": get_entry(distribution["c"]),
+                    "D": get_entry(distribution["d"]),
+                    "E": get_entry(distribution["e"]),
+                    "F": get_entry(distribution["f"]),
                 },
                 "total_active_enrollments": stats["total_enrollments"],
             }
@@ -1248,8 +1265,25 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 d=Count(
                     Case(When(final_grade__gte=60, final_grade__lt=70, then=Value(1)))
                 ),
-                f=Count(Case(When(final_grade__lt=60, then=Value(1)))),
+                e=Count(
+                    Case(When(final_grade__gte=50, final_grade__lt=60, then=Value(1)))
+                ),
+                f=Count(Case(When(final_grade__lt=50, then=Value(1)))),
             )
+
+            total_graded = sum(
+                [stats["a"], stats["b"], stats["c"], stats["d"], stats["e"], stats["f"]]
+            )
+
+            def get_entry(count):
+                return {
+                    "count": count,
+                    "percentage": (
+                        round((count / total_graded) * 100, 2)
+                        if total_graded > 0
+                        else 0
+                    ),
+                }
 
             actual_submissions = StudentSubmission.objects.filter(
                 assignment__course__teacher__school=school
@@ -1274,11 +1308,12 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                     min(float(completion_rate), 100), 2
                 ),
                 "grade_distribution": {
-                    "A": stats["a"],
-                    "B": stats["b"],
-                    "C": stats["c"],
-                    "D": stats["d"],
-                    "F": stats["f"],
+                    "A": get_entry(stats["a"]),
+                    "B": get_entry(stats["b"]),
+                    "C": get_entry(stats["c"]),
+                    "D": get_entry(stats["d"]),
+                    "E": get_entry(stats["e"]),
+                    "F": get_entry(stats["f"]),
                 },
                 "total_active_enrollments": stats["total_enrollments"],
             }
@@ -1372,7 +1407,10 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         Metrics include:
         - Total assignments created by the teacher in the session.
         - Total number of assignments that have at least one graded submission.
+        - Total number of assignments with no graded submissions (pending).
+        - Total number of unique active students in the session.
         - Percentage of assignments that have been partially or fully graded.
+        - Grade distribution (A, B, C, D, F) for all students in the session.
         - Average turnaround time for grading submissions (from submission to grading).
         """,
         parameters=[
@@ -1401,7 +1439,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             session = get_object_or_404(Session, id=session_id, teacher=teacher)
 
             assignments = Assignment.objects.filter(
-                teacher=teacher, course__session=session
+                course__teacher=teacher, course__session=session
             )
             total_assigned = assignments.count()
 
@@ -1427,11 +1465,228 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 )
             ).aggregate(avg_turnaround=Avg("turnaround_time"))["avg_turnaround"]
 
+            # Grade distribution for the session
+            grade_stats = (
+                StudentCourse.objects.filter(course__session=session)
+                .active()
+                .aggregate(
+                    a=Count(Case(When(final_grade__gte=90, then=Value(1)))),
+                    b=Count(
+                        Case(
+                            When(final_grade__gte=80, final_grade__lt=90, then=Value(1))
+                        )
+                    ),
+                    c=Count(
+                        Case(
+                            When(final_grade__gte=70, final_grade__lt=80, then=Value(1))
+                        )
+                    ),
+                    d=Count(
+                        Case(
+                            When(final_grade__gte=60, final_grade__lt=70, then=Value(1))
+                        )
+                    ),
+                    e=Count(
+                        Case(
+                            When(final_grade__gte=50, final_grade__lt=60, then=Value(1))
+                        )
+                    ),
+                    f=Count(Case(When(final_grade__lt=50, then=Value(1)))),
+                )
+            )
+
+            total_graded = sum(grade_stats.values())
+
+            def get_entry(count):
+                return {
+                    "count": count,
+                    "percentage": (
+                        round((count / total_graded) * 100, 2)
+                        if total_graded > 0
+                        else 0
+                    ),
+                }
+
+            # total student in that session that the teacher has
+            total_students = (
+                StudentCourse.objects.filter(course__session=session)
+                .active()
+                .values("student")
+                .distinct()
+                .count()
+            )
+
+            total_pending = total_assigned - graded_assignments
+
+            # Course performance for all courses in the session
+            course_performance = (
+                Course.objects.filter(teacher=teacher, session=session)
+                .annotate(
+                    average_grade=Avg("assignments__submissions__score"),
+                    total_submissions=Count("assignments__submissions"),
+                )
+                .values("id", "name", "average_grade", "total_submissions")
+            )
+
+            # Top 7 upcoming published assignments in the session
+            upcoming_assignments = (
+                Assignment.objects.filter(
+                    course__teacher=teacher,
+                    course__session=session,
+                    status=AssignmentStatus.PUBLISHED,
+                    due_date__gt=timezone.now(),
+                )
+                .select_related("course")
+                .order_by("due_date")[:7]
+            )
+
+            # AI Extraction Confidence across all assignments in session
+            avg_extraction_confidence = (
+                assignments.aggregate(avg=Avg("extraction_confidence"))["avg"] or 0
+            )
+            low_extraction_count = assignments.filter(
+                extraction_confidence__lt=AI_CONFIDENCE_THRESHOLD
+            ).count()
+
+            # AI Grading Confidence across all submissions in session
+            grading_qs = graded_submissions.filter(grading_confidence__isnull=False)
+            avg_grading_confidence = (
+                grading_qs.aggregate(avg=Avg("grading_confidence"))["avg"] or 0
+            )
+            low_grading_count = grading_qs.filter(
+                grading_confidence__lt=AI_CONFIDENCE_THRESHOLD
+            ).count()
+
+            total_confidence_records = assignments.count() + grading_qs.count()
+
+            low_confidence_rate = (
+                (low_extraction_count + low_grading_count)
+                / total_confidence_records
+                * 100
+                if total_confidence_records > 0
+                else 0
+            )
+
+            # At-risk students across all courses in the session
+            course_submissions_qs = (
+                StudentSubmission.objects.filter(assignment__course__session=session)
+                .select_related("assignment", "assignment__course")
+                .order_by("graded_at")
+            )
+
+            enrollments = (
+                StudentCourse.objects.filter(course__session=session)
+                .active()
+                .select_related("student", "course")
+                .annotate(
+                    avg_grade_val=Avg(
+                        "student__submissions__score",
+                        filter=Q(
+                            student__submissions__assignment__course=F("course_id")
+                        ),
+                    ),
+                    submitted_count_val=Count(
+                        "student__submissions",
+                        filter=Q(
+                            student__submissions__assignment__course=F("course_id")
+                        ),
+                    ),
+                )
+                .prefetch_related(
+                    Prefetch(
+                        "student__submissions",
+                        queryset=course_submissions_qs,
+                        to_attr="course_submissions",
+                    )
+                )
+            )
+
+            at_risk_students = []
+            # Map course to its total assigned assignments for fast lookup
+            course_totals = {
+                c["course_id"]: c["total_assigned"]
+                for c in Assignment.objects.filter(course__session=session)
+                .values("course_id")
+                .annotate(total_assigned=Count("id"))
+            }
+
+            for enrollment in enrollments:
+                student = enrollment.student
+                course = enrollment.course
+
+                student_course_subs = [
+                    s
+                    for s in student.course_submissions
+                    if s.assignment.course_id == course.id
+                ]
+
+                submitted_count = enrollment.submitted_count_val
+                course_total_assigned = course_totals.get(course.id, 0)
+                avg_grade = enrollment.avg_grade_val or 0
+
+                graded = [s for s in student_course_subs if s.score is not None]
+                recent = graded[-3:] if len(graded) >= 3 else graded
+                scores = [float(s.score) for s in recent]
+
+                if len(scores) < 2:
+                    trend = "INSUFFICIENT_DATA"
+                elif scores[-1] > scores[0]:
+                    trend = "IMPROVING"
+                elif scores[-1] < scores[0]:
+                    trend = "DECLINING"
+                else:
+                    trend = "STABLE"
+
+                risk_flags = 0
+                if avg_grade < 50:
+                    risk_flags += 1
+                if (
+                    course_total_assigned > 0
+                    and (submitted_count / course_total_assigned) < 0.7
+                ):
+                    risk_flags += 1
+                if trend == "DECLINING":
+                    risk_flags += 1
+
+                if risk_flags >= 2:
+                    at_risk_students.append(
+                        {
+                            "student_id": student.id,
+                            "student_name": student.get_full_name(),
+                            "course_id": course.id,
+                            "course_name": course.name,
+                            "average_grade": round(float(avg_grade), 2),
+                            "grade_trend": trend,
+                        }
+                    )
+
             data = {
                 "total_assignments_assigned": total_assigned,
                 "total_assignments_graded": graded_assignments,
+                "total_assignment_pending_grade": total_pending,
+                "total_students": total_students,
                 "percentage_graded": percent_graded,
+                "grade_distribution": {
+                    "A": get_entry(grade_stats["a"]),
+                    "B": get_entry(grade_stats["b"]),
+                    "C": get_entry(grade_stats["c"]),
+                    "D": get_entry(grade_stats["d"]),
+                    "E": get_entry(grade_stats["e"]),
+                    "F": get_entry(grade_stats["f"]),
+                },
+                "course_performance": list(course_performance),
+                "upcoming_assignments": upcoming_assignments,
+                "at_risk_students": at_risk_students,
                 "average_grading_turnaround": turnaround,
+                "ai_trust": {
+                    "average_ai_extraction_confidence": round(
+                        float(avg_extraction_confidence), 2
+                    ),
+                    "average_ai_grading_confidence": round(
+                        float(avg_grading_confidence), 2
+                    ),
+                    "low_confidence_rate": round(float(low_confidence_rate), 2),
+                },
             }
 
             serializer = TeacherDashboardOverviewSerializer(data)
@@ -1705,37 +1960,67 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             assignments = Assignment.objects.filter(course=course)
             total_assigned = assignments.count()
 
-            enrollments = StudentCourse.objects.filter(course=course).select_related(
-                "student"
+            # Pre-fetch submissions for all students in this course to avoid N+1
+            course_submissions_qs = (
+                StudentSubmission.objects.filter(assignment__course=course)
+                .select_related("assignment")
+                .order_by("graded_at")
+            )
+
+            enrollments = (
+                StudentCourse.objects.filter(course=course)
+                .select_related("student")
+                .annotate(
+                    avg_grade_val=Avg(
+                        "student__submissions__score",
+                        filter=Q(student__submissions__assignment__course=course),
+                    ),
+                    submitted_count_val=Count(
+                        "student__submissions",
+                        filter=Q(student__submissions__assignment__course=course),
+                    ),
+                )
+                .prefetch_related(
+                    Prefetch(
+                        "student__submissions",
+                        queryset=course_submissions_qs,
+                        to_attr="course_submissions",
+                    )
+                )
             )
 
             data = []
             for enrollment in enrollments:
                 student = enrollment.student
-                submissions = StudentSubmission.objects.filter(
-                    student=student, assignment__course=course
-                ).select_related("assignment")
-                submitted_count = submissions.count()
-                graded = submissions.filter(score__isnull=False)
-                avg_grade = graded.aggregate(avg=Avg("score"))["avg"] or 0
+                # Use prefetched submissions
+                student_course_submissions = student.course_submissions
+                submitted_count = enrollment.submitted_count_val
+                avg_grade = enrollment.avg_grade_val or 0
 
-                best = graded.order_by("-score").first()
-                worst = graded.order_by("score").first()
+                # Filter specifically for graded submissions from the prefetched list
+                graded = [s for s in student_course_submissions if s.score is not None]
 
-                recent = graded.order_by("-graded_at")[:3]
-                scores = [s.score for s in recent if s.score is not None]
+                # Best/Worst
+                best = max(graded, key=lambda s: s.score, default=None)
+                worst = min(graded, key=lambda s: s.score, default=None)
+
+                # Trend (last 3)
+                # Since query is ordered by graded_at, last 3 are at the end
+                recent = graded[-3:] if len(graded) >= 3 else graded
+                scores = [float(s.score) for s in recent]
 
                 if len(scores) < 2:
                     trend = "INSUFFICIENT_DATA"
-                elif scores[0] > scores[-1]:
+                elif scores[-1] > scores[0]:
                     trend = "IMPROVING"
-                elif scores[0] < scores[-1]:
+                elif scores[-1] < scores[0]:
                     trend = "DECLINING"
                 else:
                     trend = "STABLE"
 
+                # Risk Analysis
                 risk_flags = 0
-                if avg_grade is not None and avg_grade < 50:
+                if avg_grade < 50:
                     risk_flags += 1
                 if total_assigned > 0 and (submitted_count / total_assigned) < 0.7:
                     risk_flags += 1
@@ -1743,6 +2028,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                     risk_flags += 1
 
                 at_risk = risk_flags >= 2
+
                 assignment_history = [
                     {
                         "assignment_id": s.assignment.id,
@@ -1751,17 +2037,16 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                         "score": s.score,
                         "graded_at": s.graded_at,
                     }
-                    for s in submissions
+                    for s in student_course_submissions
                 ]
+
                 data.append(
                     {
                         "student_id": student.id,
                         "student_name": student.get_full_name(),
                         "assignment_submitted": submitted_count,
                         "assignment_assigned": total_assigned,
-                        "average_grade": (
-                            round(avg_grade, 2) if avg_grade is not None else None
-                        ),
+                        "average_grade": round(float(avg_grade), 2) if avg_grade else 0,
                         "best_assignment": (
                             {
                                 "id": best.assignment.id,

@@ -1160,7 +1160,8 @@ class TaskViewSet(viewsets.ViewSet):
         else:
             data["status"] = "processing"
 
-        return Response(data, status=status.HTTP_200_OK)
+        serializer = TaskStatusSerializer(data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(
         tags=["Tasks"],
