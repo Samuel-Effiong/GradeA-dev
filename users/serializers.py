@@ -32,6 +32,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
     )
     settings = SettingsSerializer(read_only=True)
     credit_wallet = CreditWalletSummarySerializer(read_only=True)
+    is_system_generated_email = serializers.SerializerMethodField()
 
     class Meta:
         model = CustomUser
@@ -49,6 +50,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             "date_joined",
             "settings",
             "credit_wallet",
+            "is_system_generated_email",
         ]
         # read_only_fields = ['id', 'user_type']
 
@@ -58,6 +60,15 @@ class CustomUserSerializer(serializers.ModelSerializer):
             "is_active": {"read_only": True},
             "date_joined": {"read_only": True},
         }
+
+    def get_is_system_generated_email(self, obj) -> bool:
+        return bool(obj.email and str(obj.email).endswith("@student.local"))
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if data.get("is_system_generated_email"):
+            data["email"] = None
+        return data
 
     def create(self, validated_data):
         try:

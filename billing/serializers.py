@@ -214,10 +214,17 @@ class CreditWalletSummarySerializer(serializers.ModelSerializer):
     Serializer for the CreditWallet model.
     """
 
-    # total_remaining_credits = serializers.SerializerMethodField(read_only=True)
     active_buckets_count = serializers.SerializerMethodField(read_only=True)
     display_total_remaining_credits = serializers.IntegerField(source="display_balance")
     total_remaining_credits = serializers.SerializerMethodField(read_only=True)
+
+    # --- Progress Bar Fields ---
+    # The plan's monthly allocation — the "100%" baseline for the progress bar
+    monthly_credit_total = serializers.SerializerMethodField(read_only=True)
+    # Only the current MONTHLY bucket remaining — excludes carry-over to keep math clean
+    monthly_credit_remaining = serializers.SerializerMethodField(read_only=True)
+    # Pre-calculated percentage (0–100) so the frontend doesn't need to do math
+    credit_percentage_remaining = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = CreditWallet
@@ -228,12 +235,14 @@ class CreditWalletSummarySerializer(serializers.ModelSerializer):
             "active_buckets_count",
             "total_remaining_credits",
             "display_total_remaining_credits",
+            "monthly_credit_total",
+            "monthly_credit_remaining",
+            "credit_percentage_remaining",
         ]
         read_only_fields = [
             "id",
             "user",
             "overage_blocks_used",
-            # "total_remaining_credits",
             "active_buckets_count",
             "total_credits",
         ]
@@ -243,6 +252,50 @@ class CreditWalletSummarySerializer(serializers.ModelSerializer):
 
     def get_active_buckets_count(self, obj) -> int:
         return obj.buckets.filter(expires_at__gt=timezone.now()).count()
+
+    def get_monthly_credit_total(self, obj) -> int:
+        """
+        Returns the teacher's plan monthly credit allowance as a display value.
+        This is the '100%' ceiling for the progress bar.
+        """
+        subscription = (
+            obj.user.subscriptions.filter(is_active=True).select_related("plan").first()
+        )
+        if not subscription:
+            return 0
+        return subscription.plan.display_monthly_credits
+
+    def get_monthly_credit_remaining(self, obj) -> int:
+        """
+        Returns only the remaining credits in the active MONTHLY bucket as a display value.
+        Intentionally excludes CARRY_OVER so the bar always reflects the current month's budget.
+        A value above 100% is impossible — carry-over is shown separately.
+        """
+        now = timezone.now()
+        monthly_bucket = obj.buckets.filter(
+            bucket_type=CreditBucketType.MONTHLY,
+            expires_at__gt=now,
+        ).first()
+        if not monthly_bucket:
+            return 0
+        from .models import CONVERSION_FACTOR
+
+        return monthly_bucket.remaining_credits // CONVERSION_FACTOR
+
+    def get_credit_percentage_remaining(self, obj) -> float:
+        """
+        Returns the percentage of the monthly credit budget that remains (0.0 – 100.0).
+        Color thresholds for the frontend progress bar:
+          - >= 50%  → Green  (healthy)
+          - >= 20%  → Amber  (warning)
+          -  < 20%  → Red    (critical)
+        """
+        total = self.get_monthly_credit_total(obj)
+        if not total:
+            return 0.0
+        remaining = self.get_monthly_credit_remaining(obj)
+        percentage = (remaining / total) * 100
+        return round(min(percentage, 100.0), 2)
 
 
 class UsageSummarySerializer(serializers.Serializer):

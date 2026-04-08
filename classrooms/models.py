@@ -181,25 +181,29 @@ class StudentCourse(models.Model):
         self.save(update_fields=["enrollment_status", "withdrawal_date"])
 
     def clean(self):
-        if self.student_id or not self.course_id:
+        if not self.student_id or not self.course_id:
             return
+
+        from django.core.exceptions import ValidationError
 
         student = self.student
         first_name = student.first_name
         last_name = student.last_name
-        middle_name = student.middle_name
+        middle_name = getattr(student, "middle_name", "")
 
         existing_enrollments = StudentCourse.objects.filter(
             course=self.course,
-            student__firstname=first_name,
-            student__lastname=last_name,
-            student__middlename=middle_name,
-        ).exclude(id=self.id)
+            student__first_name__iexact=first_name,
+            student__last_name__iexact=last_name,
+            student__middle_name__iexact=middle_name,
+        ).exclude(pk=self.pk)
 
         if existing_enrollments.exists():
-            raise ValueError(
-                f"Student with the name '{first_name} {middle_name} {last_name} "
-                f"is already enrolled in this course."
+            full_name = f"{first_name} {middle_name} {last_name}".replace(
+                "  ", " "
+            ).strip()
+            raise ValidationError(
+                f"A student with the exact name {full_name!r} is already enrolled in this course."
             )
 
     def save(self, *args, **kwargs):

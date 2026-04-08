@@ -10,6 +10,7 @@ class StudentSerializer(serializers.ModelSerializer):
     enrollment_status = serializers.SerializerMethodField(
         method_name="get_enrollment_status"
     )
+    is_system_generated_email = serializers.SerializerMethodField()
 
     class Meta:
         model = CustomUser
@@ -20,7 +21,17 @@ class StudentSerializer(serializers.ModelSerializer):
             "email",
             "is_active",
             "enrollment_status",
+            "is_system_generated_email",
         ]
+
+    def get_is_system_generated_email(self, obj) -> bool:
+        return bool(obj.email and str(obj.email).endswith("@student.local"))
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if data.get("is_system_generated_email"):
+            data["email"] = None
+        return data
 
     def get_enrollment_status(self, obj) -> str | None:
         """Returns the enrollment status for this student in the course provided via serializer context.

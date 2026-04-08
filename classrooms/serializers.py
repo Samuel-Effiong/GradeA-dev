@@ -280,6 +280,32 @@ class DirectAddStudentSerializer(serializers.Serializer):
 
         return value
 
+    def validate(self, attrs):
+        first_name = attrs.get("first_name")
+        last_name = attrs.get("last_name")
+        middle_name = attrs.get("middle_name", "")
+        course = self.context.get("course")
+
+        if course:
+            from classrooms.models import StudentCourse
+
+            existing_enrollments = StudentCourse.objects.filter(
+                course=course,
+                student__first_name__iexact=first_name,
+                student__last_name__iexact=last_name,
+                student__middle_name__iexact=middle_name,
+            )
+
+            if existing_enrollments.exists():
+                full_name = f"{first_name} {middle_name} {last_name}".replace(
+                    "  ", " "
+                ).strip()
+                raise serializers.ValidationError(
+                    f"A student with the exact name {full_name!r} is already enrolled in this course."
+                )
+
+        return attrs
+
     def create(self, validated_data):
 
         first_name = validated_data["first_name"]
