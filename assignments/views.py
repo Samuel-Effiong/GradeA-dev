@@ -199,16 +199,6 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             return AssignmentTextSerializer
         return super().get_serializer_class()
 
-    # @method_decorator(cache_page(60 * 3, key_prefix="assignments:list"))
-    # @method_decorator(vary_on_headers("Authorization"))
-    # def list(self, request, *args, **kwargs):
-    #     return super().list(request, *args, **kwargs)
-    #
-    # @method_decorator(cache_page(60 * 3, key_prefix="assignments:detail"))
-    # @method_decorator(vary_on_headers("Authorization"))
-    # def retrieve(self, request, *args, **kwargs):
-    #     return super().retrieve(request, *args, **kwargs)
-
     @transaction.atomic
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -218,12 +208,21 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         course = serializer.validated_data.get("course")
         topic = serializer.validated_data.get("topic")
         title = serializer.validated_data.get("title")
+        due_date = serializer.validated_data.get("due_date")
+        auto_grade_on_due_date = serializer.validated_data.get("auto_grade_on_due_date")
+        assignment_status = serializer.validated_data.get("status")
+
+        raw_input_hash = hashlib.sha256(raw_input.encode("utf-8")).hexdigest()
 
         assignment = Assignment.objects.create(
             topic=topic,
             course=course,
             raw_input=raw_input,
             title=title,
+            raw_input_hash=raw_input_hash,
+            status=assignment_status,
+            due_date=due_date,
+            auto_grade_on_due_date=auto_grade_on_due_date,
         )
 
         text = f"""
@@ -278,6 +277,9 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         course = serializer.validated_data.get("course")
         topic = serializer.validated_data.get("topic")
         title = serializer.validated_data.get("title")
+        due_date = serializer.validated_data.get("due_date")
+        auto_grade_on_due_date = serializer.validated_data.get("auto_grade_on_due_date")
+        assignment_status = serializer.validated_data.get("status")
 
         raw_input_hash = hashlib.sha256(raw_input.encode("utf-8")).hexdigest()
 
@@ -287,6 +289,9 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             raw_input=raw_input,
             title=title,
             raw_input_hash=raw_input_hash,
+            status=assignment_status,
+            due_date=due_date,
+            auto_grade_on_due_date=auto_grade_on_due_date,
         )
 
         text = f"""
@@ -381,6 +386,9 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             instance.status = serializer.validated_data.get("status", instance.status)
             instance.due_date = serializer.validated_data.get(
                 "due_date", instance.due_date
+            )
+            instance.auto_grade_on_due_date = serializer.validated_data.get(
+                "auto_grade_on_due_date", instance.auto_grade_on_due_date
             )
 
             instance.save()

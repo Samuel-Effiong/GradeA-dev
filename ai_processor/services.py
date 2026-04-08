@@ -135,6 +135,8 @@ class AIProcessor:
         tool_schemas=None,
         respond_format=True,
     ):
+        main_model = "x-ai/grok-4.1-fast"
+        sub_models = ["openai/gpt-5-nano", "google/gemini-3-flash-preview"]
 
         if tool_schemas:
             response = self.client.chat.completions.create(
@@ -142,13 +144,10 @@ class AIProcessor:
                     "HTTP-Referer": settings.FRONTEND_DOMAIN,
                     "X-Title": "GradeA+",
                 },
-                model="openai/gpt-5-nano",
-                # extra_body={
-                #     "models": [
-                #         "x-ai/grok-4-fast",
-                #         "openai/gpt-5-nano"
-                #     ],
-                # },
+                model=main_model,
+                extra_body={
+                    "models": sub_models,
+                },
                 messages=messages
                 or [
                     {"role": "system", "content": system_prompt},
@@ -164,13 +163,8 @@ class AIProcessor:
                     "HTTP-Referer": settings.FRONTEND_DOMAIN,
                     "X-Title": "GradeA+",
                 },
-                model="openai/gpt-5-nano",
-                # extra_body={
-                #     "models": [
-                #         "x-ai/grok-4-fast",
-                #         "openai/gpt-5-nano"
-                #     ],
-                # },
+                model=main_model,
+                extra_body={"models": sub_models},
                 messages=messages
                 or [
                     {"role": "system", "content": system_prompt},

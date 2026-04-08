@@ -138,11 +138,11 @@ class AssignmentSerializer(serializers.ModelSerializer):
 
         questions = data.get("questions", [])
 
-        if questions and "question_count" in data:
-            if len(questions) != data["question_count"]:
-                raise serializers.ValidationError(
-                    "Question count does not match the number of questions provided."
-                )
+        # if questions and "question_count" in data:
+        #     if len(questions) != data["question_count"]:
+        #         raise serializers.ValidationError(
+        #             "Question count does not match the number of questions provided."
+        #         )
 
         assignment_type = data.get("assignment_type")
         if assignment_type and assignment_type != "HYBRID":
