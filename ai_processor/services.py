@@ -74,6 +74,9 @@ with open("ai_processor/ASSIGNMENT_GENERATION_PROMPT_2.txt", "r") as file:
 with open("ai_processor/GRADE_FORMATTER.txt", "r") as file:
     GRADE_FORMATTER = file.read()
 
+with open("ai_processor/STUDENT_SUMMARY_PROMPT.txt", "r") as file:
+    STUDENT_SUMMARY_PROMPT = file.read()
+
 
 tool_schema = [
     {
@@ -898,6 +901,116 @@ Now, respond to the following teacher's instruction using the rules above
                     logger.info("Retrying...")
 
         raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
+
+    def generate_student_summary(self, teacher, student, course):
+        """
+        Generates a short, personalised AI narrative summarising a student's
+        performance across all assignments in a given course.
+
+        The resulting text is intended to be stored on StudentCourse.ai_summary
+        and displayed to the teacher on the student detail view.
+
+        Args:
+            teacher: The CustomUser requesting the summary (credits are charged here)
+            student: The CustomUser whose performance is being summarised
+            course: The Course object providing the scope
+
+        Returns:
+            str: A 3–5 sentence plain-text summary paragraph
+        """
+        from assignments.models import Assignment
+        from classrooms.models import StudentCourse
+        from students.models import StudentSubmission
+
+        # --- Gather enrollment info ---
+        enrollment = StudentCourse.objects.filter(
+            student=student, course=course
+        ).first()
+
+        enrollment_status = enrollment.enrollment_status if enrollment else "UNKNOWN"
+
+        # --- Gather all assignments in this course ---
+        assignments = Assignment.objects.filter(course=course).order_by("created_at")
+        total_assignments = assignments.count()
+
+        # --- Gather student submissions ---
+        submissions = StudentSubmission.objects.filter(
+            student=student,
+            assignment__course=course,
+        ).select_related("assignment")
+
+        submission_map = {sub.assignment_id: sub for sub in submissions}
+        total_submitted = len(submission_map)
+
+        # --- Build per-assignment breakdown ---
+        assignment_details = []
+        scores = []
+
+        for assignment in assignments:
+            submission = submission_map.get(assignment.id)
+
+            if submission:
+                score_pct = (
+                    float(submission.score_percentage)
+                    if submission.score_percentage is not None
+                    else None
+                )
+                if score_pct is not None:
+                    scores.append(score_pct)
+
+                assignment_details.append(
+                    f"- {assignment.title!r}: SUBMITTED | "
+                    f"Score: {submission.score}/{assignment.total_points} "
+                    f"({f'{score_pct:.1f}%' if score_pct is not None else 'ungraded'}) | "
+                    f"Grading Confidence: {submission.grading_confidence}% | "
+                    f"{'Regraded by teacher' if submission.was_regraded else 'Not regraded'}"
+                )
+            else:
+                assignment_details.append(f"- {assignment.title!r}: NOT SUBMITTED")
+
+        avg_score = round(sum(scores) / len(scores), 1) if scores else None
+        submission_rate = (
+            round((total_submitted / total_assignments) * 100)
+            if total_assignments
+            else 0
+        )
+
+        # --- Build the structured data payload for the AI ---
+        user_prompt = f"""
+## Student Information
+- Name: {student.get_full_name()}
+- Enrollment Status: {enrollment_status}
+- Course: {course.name}
+
+## Performance Summary
+- Total Assignments in Course: {total_assignments}
+- Assignments Submitted: {total_submitted} ({submission_rate}% submission rate)
+- Average Score (graded submissions): {f"{avg_score}%" if avg_score is not None else "No graded submissions yet"}
+
+## Assignment Breakdown
+{chr(10).join(assignment_details) if assignment_details else "No assignments have been created for this course yet."}
+
+Based on the data above, write a short personalised summary for the teacher."""
+
+        messages = [
+            {"role": "system", "content": STUDENT_SUMMARY_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ]
+
+        response = self.execute_graded_task(
+            user=teacher,
+            feature="Student Summary",
+            task_type="student_summary",
+            messages=messages,
+            respond_format=False,
+        )
+
+        content = response.choices[0].message.content
+
+        if not content:
+            raise ValueError("AI returned an empty student summary.")
+
+        return content.strip()
 
 
 class PDFService:

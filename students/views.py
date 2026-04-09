@@ -26,7 +26,7 @@ from drf_spectacular.utils import (
 )
 
 # from PIL.Image import Image
-from rest_framework import viewsets
+from rest_framework import filters, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotAcceptable, NotFound, ParseError
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -56,11 +56,12 @@ from assignments.tasks import (
 )
 from classrooms.permissions import IsStudent, IsTeacher, IsTeacherOrReadOnly
 from users.mixins import UserCacheMixin
-from users.models import UserTypes
+from users.models import CustomUser, UserTypes
 from users.permissions import HasCreditBalance
 
 from .models import BatchUploadSession, BatchUploadType, StudentSubmission
 from .serializers import (
+    StudentListSerializer,
     StudentSubmissionDetailSerializer,
     StudentSubmissionFormattedGradeAsyncSerializer,
     StudentSubmissionGradeAsyncSerializer,
@@ -77,65 +78,6 @@ from .services import grade_engine, student_submission_to_html, upload_answers_e
 
 
 # Create your views here.
-
-STUDENT_RESPONSE_EXAMPLE = {
-    "total_score": 40,
-    "max_total_points": 100,
-    "evaluation_details": [
-        {
-            "question_id": 1,
-            "question_text": "Define “digital divide” and explain why it matters in "
-            "discussions about social media use.",
-            "student_answer": "The digital divide is when some people are not on social media.",
-            "model_answer": "",
-            "score_received": 0,
-            "level_achieved": "Poor",
-            "feedback": "Your definition of the digital divide is inaccurate and overly simplistic, "
-            "as it focuses only on not using social media rather than the broader gap in "
-            "access to technology and internet resources. You did not provide any explanation "
-            "of its importance in social media discussions, which is required for even a "
-            "partial score. To improve, research the standard definition (e.g., disparities in "
-            "digital access affecting information equity) and connect it to how it excludes "
-            "groups from social media benefits or risks, aiming for the 'Good' level by including "
-            "limited reasoning.",
-            "summary_and_overall_feedback": {
-                "overall_score_breakdown": "The student scored 15/75, or 20%.",
-                "strengths": [
-                    "Basic awareness of social media concepts, such as recognizing positives like communication and "
-                    "negatives like 'bad' aspects.",
-                    "Attempt to define key terms, even if inaccurately, shows some engagement with the topic.",
-                ],
-                "areas_for_improvement": [
-                    "Lack of depth and specificity across all responses; answers are brief and fail to meet minimum "
-                    "requirements for analysis or examples.",
-                    "Inaccurate or incomplete addressing of core concepts like digital divide and misinformation's "
-                    "democratic impacts.",
-                    "Need for better structure, evidence, and connection to real-world contexts, especially in "
-                    "essay and paper questions.",
-                ],
-            },
-            "grader_evaluation": {
-                "grading_confidence_score": 0.95,
-                "grading_issues": [
-                    "Student answers are consistently brief and underdeveloped, making full evaluation challenging "
-                    "but aligning clearly with lower rubric levels.",
-                    "No major ambiguities in the rubric, but student responses for open-ended questions lack the "
-                    "expected length and detail.",
-                ],
-                "recommendations_for_teacher": [
-                    "Encourage students to provide more detailed responses in instructions, perhaps with word count "
-                    "minimums for essays and papers. ",
-                    "Consider adding sample answers or outlines to the assignment to guide depth in "
-                    "analytical questions. ",
-                    "Review submissions like this one manually to confirm grading, as brevity may indicate "
-                    "incomplete work.",
-                ],
-            },
-        },
-    ],
-}
-
-
 @extend_schema_view(
     list=extend_schema(
         tags=["07 Student Submissions"],
@@ -1023,3 +965,24 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     #             "failure_list": failures,
     #         }
     #     )
+
+
+class StudentViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = StudentListSerializer
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+
+    filterset_fields = {
+        "enrollments__course": ["exact"],
+        "enrollments__course__session": ["exact"],
+    }
+
+    search_fields = ["first_name", "last_name", "middle_name", "email"]
+
+    def get_queryset(self):
+        user = self.request.user
+
+        return CustomUser.objects.filter(enrollments__course__teacher=user).distinct()

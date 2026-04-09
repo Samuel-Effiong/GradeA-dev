@@ -266,3 +266,15 @@ class StudentSubmissionFormattedGradeAsyncSerializer(serializers.Serializer):
     submission_id = serializers.UUIDField(read_only=True)
     task_id = serializers.UUIDField(read_only=True)
     message = serializers.CharField(read_only=True)
+
+
+class StudentListSerializer(serializers.ModelSerializer):
+    full_name = serializers.CharField(source="get_full_name", read_only=True)
+    enrolled_courses = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CustomUser
+        fields = ["id", "full_name", "email", "enrolled_courses"]
+
+    def get_enrolled_courses(self, obj):
+        return obj.enrollments.values_list("course__name", flat=True)
