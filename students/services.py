@@ -4,6 +4,7 @@ from django.utils import timezone
 
 from ai_processor.services import ai_processor
 from assignments.services import AssignmentProcessingService
+from classrooms.tasks import student_summary_async
 from users.models import CustomUser
 
 from .exceptions import CannotAssociateStudentError
@@ -140,6 +141,10 @@ def grade_engine(user, submission):
     )
 
     # Invalidate ai_summary
+    student_summary_async.delay(
+        str(submission.student.id), str(user.id), str(submission.course.id)
+    )
+
     submission.ai_summary = None
     submission.save()
 

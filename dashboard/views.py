@@ -36,7 +36,6 @@ from assignments.models import Assignment, AssignmentStatus
 # from assignments.services import AssignmentProcessingService
 from classrooms.models import Course, School, Session, StudentCourse
 from classrooms.permissions import IsSchoolAdmin, IsStudent, IsSuperAdmin, IsTeacher
-from classrooms.tasks import student_summary_async
 from dashboard.serializers import (
     ConcurrencySerializer,
     CourseAnalyticsSerializer,
@@ -2041,9 +2040,9 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                     for s in student_course_submissions
                 ]
 
-                student_summary_task_id = student_summary_async(
-                    str(student.id), str(request.user.id), str(course.id)
-                )
+                # student_summary_task_id = student_summary_async(
+                #     str(student.id), str(request.user.id), str(course.id)
+                # )
 
                 data.append(
                     {
@@ -2073,9 +2072,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                         "grade_trend": trend,
                         "assignment_history": assignment_history,
                         "ai_student_summary": "Available in Power Tier",
-                        "ai_student_summary_task_id": student_summary_task_id[
-                            "ai_summary"
-                        ],
+                        "ai_student_summary_task_id": enrollment.ai_summary,
                         "at_risk": at_risk,
                     }
                 )
