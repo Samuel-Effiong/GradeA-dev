@@ -62,6 +62,7 @@ from .services import AssignmentProcessingService
 from .tasks import (  # grade_all_submissions,
     extract_assignment_background_task,
     grade_engine_async,
+    update_assignment_background_task,
     upload_assignment_async,
 )
 
@@ -395,6 +396,97 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         serializer = AssignmentListSerializer(instance)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        tags=["Assignments"],
+        summary="Update an assignment asynchronously",
+        description="""Update an existing assignment asynchronously.
+
+        If `raw_input` is provided, non-AI fields (title, status, topic, due_date, etc.)
+        are saved immediately and a background task is dispatched to re-extract and
+        re-structure the assignment using AI. The response returns a `task_id` that
+        can be polled for completion.\n\n
+        If `raw_input` is NOT provided, all fields are updated synchronously and
+        the response contains the updated assignment immediately.
+        """,
+        request=AssignmentTextSerializer,
+        responses={
+            200: AssignmentListSerializer,
+            202: OpenApiResponse(
+                response=AssignmentCreateResponseSerializer,
+                description="AI re-extraction started — task_id returned for polling",
+            ),
+            400: OpenApiResponse(description="Invalid input"),
+            404: OpenApiResponse(description="Assignment not found"),
+        },
+    )
+    @action(
+        detail=True,
+        methods=["patch"],
+        url_path="update-async",
+        url_name="update-async",
+        permission_classes=[IsAuthenticated, IsTeacher, HasCreditBalance],
+    )
+    def update_async(self, request, pk=None, *args, **kwargs):
+        """Async variant of partial_update. Saves metadata immediately, re-extracts AI content in background."""
+        instance = self.get_object()
+        serializer = AssignmentTextSerializer(
+            instance=instance, data=request.data, partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+
+        raw_input = serializer.validated_data.get("raw_input")
+        topic = serializer.validated_data.get("topic", instance.topic)
+
+        # Always commit the non-AI fields synchronously so the teacher
+        # sees their metadata changes immediately regardless of AI status.
+        instance.title = serializer.validated_data.get("title", instance.title)
+        instance.course = serializer.validated_data.get("course", instance.course)
+        instance.topic = topic
+        instance.status = serializer.validated_data.get("status", instance.status)
+        instance.due_date = serializer.validated_data.get("due_date", instance.due_date)
+        instance.auto_grade_on_due_date = serializer.validated_data.get(
+            "auto_grade_on_due_date", instance.auto_grade_on_due_date
+        )
+        instance.save()
+
+        if raw_input:
+            text = f"""
+            Analyze the text of an educational assignment and return a valid JSON
+
+            ### Assignment Details
+            {raw_input}
+
+            ### End of Assignment Details
+
+            IMPORTANT: Return only valid JSON matching the required structure.
+            Do not include any explanatory text before or after the JSON
+            """
+            content = [{"type": "text", "text": text}]
+
+            task = update_assignment_background_task.delay(
+                str(request.user.id),
+                str(instance.id),
+                content,
+                raw_input=raw_input,
+                topic_id=str(topic.id) if topic else None,
+            )
+
+            data = {
+                "assignment_id": instance.id,
+                "task_id": task.id,
+                "message": "Assignment update and re-extraction started",
+            }
+            return Response(
+                AssignmentCreateResponseSerializer(data).data,
+                status=status.HTTP_202_ACCEPTED,
+            )
+
+        # No raw_input — return updated assignment immediately
+        return Response(
+            AssignmentListSerializer(instance).data,
+            status=status.HTTP_200_OK,
+        )
 
     @extend_schema(
         tags=["Assignments"],

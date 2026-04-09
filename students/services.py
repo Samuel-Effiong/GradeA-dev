@@ -22,7 +22,6 @@ def student_submission_to_html(submission) -> str:
         return escape(str(val)) if val else ""
 
     student_name = submission.student.get_full_name()
-    student_id = submission.student_id
 
     meta_html = f"""
     <section>
@@ -32,8 +31,8 @@ def student_submission_to_html(submission) -> str:
 
 
         <h3>Student Information</h3>
-        <p><strong>Name:</strong> {safe(student_name)}</p>
-        <p><strong>Student ID:</strong> {safe(student_id)}</p>
+        <p><strong>Name:</strong> {safe(student_name)}</p><br />
+
 
         <h3>Submission Metadata</h3>
         <p><strong>Submitted At:</strong> {safe(submission.submission_date.strftime("%Y-%m-%d"))}</p>
@@ -42,7 +41,7 @@ def student_submission_to_html(submission) -> str:
         <p><strong>Score:</strong>
         {safe(submission.score) if submission.score is not None else "Not graded yet"}</p>
     </section>
-    <hr/>
+    <hr/><br/>
     """
 
     questions_html = "<section><h3>Student Responses</h3>"

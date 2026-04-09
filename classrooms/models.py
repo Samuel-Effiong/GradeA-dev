@@ -149,6 +149,18 @@ class StudentCourse(models.Model):
     final_grade = models.DecimalField(
         max_digits=5, decimal_places=2, null=True, blank=True
     )
+
+    ai_summary = models.TextField(
+        null=True,
+        blank=True,
+        help_text="AI-generated personalised summary of the student's performance in this course.",
+    )
+    ai_summary_generated_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp of the last AI summary generation.",
+    )
+
     # attendance_record = models.JSONField(default=dict)
     # participation_score = models.DecimalField(
     #     max_digits=5,

@@ -20,7 +20,7 @@ from drf_spectacular.utils import (
     extend_schema,
     extend_schema_view,
 )
-from rest_framework import status, viewsets
+from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ParseError, PermissionDenied, ValidationError
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -28,9 +28,12 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
+from ai_processor.services import ai_processor
 from AutoGrader.tasks import send_email_task
+from students.serializers import StudentListSerializer
 from users.mixins import UserCacheMixin
 from users.models import CustomUser, UserTypes
+from users.permissions import HasCreditBalance
 from users.serializers import CustomUserSerializer
 from users.services import otp_manager
 
@@ -697,6 +700,108 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
             400: OpenApiResponse(description="Invalid input"),
         },
     )
+    @extend_schema(
+        tags=["Courses"],
+        summary="Generate an AI summary for a student in this course",
+        description="""Generates a short, personalised AI narrative about a specific student's
+        performance across all assignments in this course.
+
+        The summary is cached on the enrollment record and only regenerated when explicitly
+        requested by passing `?refresh=true`. Credits are charged to the requesting teacher.
+
+        **Caching behaviour:**
+        - First call: generates and stores the summary, charges credits.
+        - Subsequent calls: returns the cached summary instantly at no credit cost.
+        - `?refresh=true`: forces regeneration and charges credits again.
+        """,
+        parameters=[
+            OpenApiParameter(
+                name="student_id",
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.QUERY,
+                description="UUID of the student to summarise",
+                required=True,
+            ),
+            OpenApiParameter(
+                name="refresh",
+                type=OpenApiTypes.BOOL,
+                location=OpenApiParameter.QUERY,
+                description="Set to true to force regeneration of the summary",
+                required=False,
+            ),
+        ],
+        responses={
+            200: OpenApiResponse(description="Student AI summary"),
+            400: OpenApiResponse(description="student_id is required"),
+            403: OpenApiResponse(description="You do not have permission to do this"),
+            404: OpenApiResponse(description="Student not enrolled in this course"),
+        },
+    )
+    @action(
+        detail=True,
+        methods=["get"],
+        url_path="student-summary",
+        url_name="student-summary",
+        permission_classes=[IsAuthenticated, IsTeacher, HasCreditBalance],
+    )
+    def student_summary(self, request, pk=None):
+        """Return a cached or freshly generated AI summary for a student in this course."""
+        course = self.get_object()
+
+        student_id = request.query_params.get("student_id")
+        if not student_id:
+            raise ParseError("student_id query parameter is required.")
+
+        enrollment = (
+            StudentCourse.objects.filter(course=course, student__id=student_id)
+            .select_related("student")
+            .first()
+        )
+
+        if not enrollment:
+            from rest_framework.exceptions import NotFound
+
+            raise NotFound("This student is not enrolled in the course.")
+
+        force_refresh = request.query_params.get("refresh", "false").lower() == "true"
+
+        # Return cached summary unless refresh is forced
+        if enrollment.ai_summary and not force_refresh:
+            return Response(
+                {
+                    "student_id": enrollment.student.id,
+                    "student_name": enrollment.student.get_full_name(),
+                    "course": course.name,
+                    "summary": enrollment.ai_summary,
+                    "generated_at": enrollment.ai_summary_generated_at,
+                    "cached": True,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        # Generate fresh summary
+        summary = ai_processor.generate_student_summary(
+            teacher=request.user,
+            student=enrollment.student,
+            course=course,
+        )
+
+        enrollment.ai_summary = summary
+        enrollment.ai_summary_generated_at = timezone.now()
+        enrollment.save(update_fields=["ai_summary", "ai_summary_generated_at"])
+
+        return Response(
+            {
+                "student_id": enrollment.student.id,
+                "student_name": enrollment.student.get_full_name(),
+                "course": course.name,
+                "summary": summary,
+                "generated_at": enrollment.ai_summary_generated_at,
+                "cached": False,
+            },
+            status=status.HTTP_200_OK,
+        )
+
     @action(detail=True, methods=["post"], url_path="topics", url_name="create-topics")
     def create_topics(self, request, pk=None):
         """Create topics for a specific course."""
@@ -896,7 +1001,7 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
 @extend_schema_view(
     list=extend_schema(
-        tags=["06 Student Course"],
+        tags=["Student Course"],
         summary="List all student Course",
         description="Retrieve a paginated list of all student Course in the system.",
         parameters=[
@@ -919,7 +1024,7 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         },
     ),
     create=extend_schema(
-        tags=["06 Student Course"],
+        tags=["Student Course"],
         summary="Create a new student Course",
         description="Create a new student Course with the provided details.",
         request=StudentCourseSerializer,
@@ -934,7 +1039,7 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         },
     ),
     retrieve=extend_schema(
-        tags=["06 Student Course"],
+        tags=["Student Course"],
         summary="Retrieve a student Course",
         description="Retrieve detailed information about a specific student Course by its ID.",
         responses={
@@ -944,7 +1049,7 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         },
     ),
     partial_update=extend_schema(
-        tags=["06 Student Course"],
+        tags=["Student Course"],
         summary="Partially update a student Course",
         description="Update one or more fields of an existing student Course.",
         request=StudentCourseSerializer(partial=True),
@@ -955,7 +1060,7 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         },
     ),
     destroy=extend_schema(
-        tags=["06 Student Course"],
+        tags=["Student Course"],
         summary="Delete a student Course",
         description="Delete a student Course by ID. This action cannot be undone.",
         responses={
@@ -997,12 +1102,85 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
+        if self.action == "my_students":
+            if user.user_type == UserTypes.TEACHER:
+                return CustomUser.objects.filter(
+                    enrollments__course__teacher=user
+                ).distinct()
+            return CustomUser.objects.none()
+
         if user.user_type == UserTypes.TEACHER:
             return StudentCourse.objects.filter(course__teacher=user)
         elif user.user_type == UserTypes.STUDENT:
             return StudentCourse.objects.filter(student=user)
-        else:
-            return StudentCourse.objects.none()
+        return StudentCourse.objects.none()
+
+    def get_serializer_class(self):
+        if self.action == "my_students":
+            return StudentListSerializer
+        return super().get_serializer_class()
+
+    def filter_queryset(self, queryset):
+        if self.action == "my_students":
+            self.filterset_fields = {
+                "enrollments__course": ["exact"],
+                "enrollments__course__session": ["exact"],
+            }
+            self.search_fields = ["first_name", "last_name", "email"]
+
+        return super().filter_queryset(queryset)
+
+    @extend_schema(
+        summary="List Teacher's Students",
+        description=(
+            "Retrieves a unique list of students enrolled in any course taught by the currently authenticated teacher. "
+            "Supports filtering by specific course or session and searching by name/email."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="enrollments__course",
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.QUERY,
+                description="Filter students by a specific Course UUID.",
+            ),
+            OpenApiParameter(
+                name="enrollments__course__session",
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.QUERY,
+                description="Filter students by a specific Session (Academic Period) UUID.",
+            ),
+            OpenApiParameter(
+                name="search",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Search students by first name, last name, or email (case-insensitive).",
+            ),
+        ],
+        responses={200: StudentListSerializer(many=True)},
+        tags=["Student Course"],
+    )
+    @action(
+        detail=False,
+        methods=["GET"],
+        url_path="my-students",
+        serializer_class=StudentListSerializer,
+        filter_backends=[DjangoFilterBackend, filters.SearchFilter],
+        permission_classes=[IsTeacher],
+    )
+    def my_students(self, request):
+        """
+        Returns a list of unique students enrolled in courses
+        taught by the authenticated teacher
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 @extend_schema_view(

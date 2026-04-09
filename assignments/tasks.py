@@ -142,6 +142,51 @@ def extract_assignment_background_task(
 
 
 @shared_task(bind=True)
+def update_assignment_background_task(
+    self,
+    user_id,
+    assignment_id,
+    content,
+    raw_input=None,
+    topic_id=None,
+):
+    """
+    Async re-extraction task triggered when a teacher updates an assignment
+    with new raw_input content. Non-AI fields (title, status, due_date, etc.)
+    are saved synchronously in the view before this task fires.
+    """
+    try:
+        self.update_state(
+            state="PROGRESS", meta={"step": "Extracting updated assignment content"}
+        )
+
+        assignment = Assignment.objects.get(id=assignment_id)
+        user = CustomUser.objects.get(id=user_id)
+
+        topic = None
+        if topic_id:
+            from classrooms.models import Topic as TopicModel
+
+            topic = TopicModel.objects.filter(id=topic_id).first()
+
+        assignment = AssignmentProcessingService.update_assignment_from_extraction(
+            user,
+            assignment,
+            content,
+            topic=topic,
+            raw_input=raw_input,
+        )
+
+        return {
+            "status": states.SUCCESS,
+            "assignment_id": assignment_id,
+            "message": "Assignment updated and re-extracted successfully",
+        }
+    except Exception:
+        raise
+
+
+@shared_task(bind=True)
 def extract_answer_background_task(self, submission_id, content):
     try:
         self.update_state(state="PROGRESS", meta={"step": "Extracting answer content"})
