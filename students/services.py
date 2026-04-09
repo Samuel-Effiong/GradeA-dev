@@ -139,6 +139,8 @@ def grade_engine(user, submission):
         answer_html
     )
 
+    # Invalidate ai_summary
+    submission.ai_summary = None
     submission.save()
 
     return submission

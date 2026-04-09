@@ -1057,8 +1057,6 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         assignment = self.get_object()
 
         # Get all graded submissions for this assignment (either has graded_at or score)
-        from django.db.models import Q
-
         graded_submissions = assignment.submissions.filter(
             Q(graded_at__isnull=False) | Q(score__isnull=False)
         )

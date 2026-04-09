@@ -22,13 +22,19 @@ from drf_spectacular.utils import (
 )
 from rest_framework import filters, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import ParseError, PermissionDenied, ValidationError
+from rest_framework.exceptions import (
+    NotFound,
+    ParseError,
+    PermissionDenied,
+    ValidationError,
+)
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from ai_processor.services import ai_processor
+# from ai_processor.services import ai_processor
+from assignments.serializers import TaskInfoSerializer
 from AutoGrader.tasks import send_email_task
 from students.serializers import StudentListSerializer
 from users.mixins import UserCacheMixin
@@ -58,6 +64,7 @@ from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
     StudentCourseSerializer,
     TopicSerializer,
 )
+from .tasks import student_summary_async
 
 
 @extend_schema_view(
@@ -759,8 +766,6 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         )
 
         if not enrollment:
-            from rest_framework.exceptions import NotFound
-
             raise NotFound("This student is not enrolled in the course.")
 
         force_refresh = request.query_params.get("refresh", "false").lower() == "true"
@@ -779,28 +784,40 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 status=status.HTTP_200_OK,
             )
 
-        # Generate fresh summary
-        summary = ai_processor.generate_student_summary(
-            teacher=request.user,
-            student=enrollment.student,
-            course=course,
+        task_id = student_summary_async.delay(
+            student_id, str(request.user.id), str(course.id)
         )
 
-        enrollment.ai_summary = summary
-        enrollment.ai_summary_generated_at = timezone.now()
-        enrollment.save(update_fields=["ai_summary", "ai_summary_generated_at"])
+        data = {
+            "file_name": "Student summary generation started",
+            "task_id": task_id,
+        }
 
-        return Response(
-            {
-                "student_id": enrollment.student.id,
-                "student_name": enrollment.student.get_full_name(),
-                "course": course.name,
-                "summary": summary,
-                "generated_at": enrollment.ai_summary_generated_at,
-                "cached": False,
-            },
-            status=status.HTTP_200_OK,
-        )
+        serializer = TaskInfoSerializer(data)
+        return Response(serializer.data)
+
+        # # Generate fresh summary
+        # summary = ai_processor.generate_student_summary(
+        #     teacher=request.user,
+        #     student=enrollment.student,
+        #     course=course,
+        # )
+        #
+        # enrollment.ai_summary = summary
+        # enrollment.ai_summary_generated_at = timezone.now()
+        # enrollment.save(update_fields=["ai_summary", "ai_summary_generated_at"])
+        #
+        # return Response(
+        #     {
+        #         "student_id": enrollment.student.id,
+        #         "student_name": enrollment.student.get_full_name(),
+        #         "course": course.name,
+        #         "summary": summary,
+        #         "generated_at": enrollment.ai_summary_generated_at,
+        #         "cached": False,
+        #     },
+        #     status=status.HTTP_200_OK,
+        # )
 
     @action(detail=True, methods=["post"], url_path="topics", url_name="create-topics")
     def create_topics(self, request, pk=None):

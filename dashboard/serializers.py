@@ -264,6 +264,7 @@ class TeacherStudentAnalyticsSerializer(serializers.Serializer):
     worst_assignment = MiniAssignmentSerializer(read_only=True, allow_null=True)
     grade_trend = serializers.CharField(read_only=True)
     assignment_history = StudentAssignmentHistorySerializer(many=True, read_only=True)
+    ai_student_summary_task_id = serializers.UUIDField(read_only=True)
     ai_student_summary = serializers.CharField(read_only=True)
     at_risk = serializers.BooleanField(read_only=True)
 
