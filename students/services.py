@@ -142,10 +142,9 @@ def grade_engine(user, submission):
 
     # Invalidate ai_summary
     student_summary_async.delay(
-        str(submission.student.id), str(user.id), str(submission.course.id)
+        str(submission.student.id), str(user.id), str(submission.assignment.course.id)
     )
 
-    submission.ai_summary = None
     submission.save()
 
     return submission
