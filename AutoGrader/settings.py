@@ -413,12 +413,24 @@ SPECTACULAR_SETTINGS = {
     },
 }
 
-EMAIL_BACKEND = "anymail.backends.sendinblue.EmailBackend"
-DEFAULT_FROM_EMAIL = "GradeA+ <samueleffiong80@gmail.com>"
-SUPPORT_EMAIL = "GradeA+@gmail.com"
+# EMAIL_BACKEND = "anymail.backends.sendinblue.EmailBackend"
+# DEFAULT_FROM_EMAIL = "GradeA+ <samueleffiong80@gmail.com>"
+# SUPPORT_EMAIL = "GradeA+@gmail.com"
+
+EMAIL_BACKEND = "anymail.backends.mailersend.EmailBackend"
+# DEFAULT_FROM_EMAIL = "GradeA+ <samueleffiong80@gmail.com>"
+SUPPORT_EMAIL = "support@gradeautomator.com"
+
+
+# This must match the domain in your screenshot
+DEFAULT_FROM_EMAIL = "GradeA+ <support@gradeautomator.com>"
+
+# ANYMAIL = {
+#     "SENDINBLUE_API_KEY": env.str("SENDINBLUE_API_KEY"),
+# }
 
 ANYMAIL = {
-    "SENDINBLUE_API_KEY": env.str("SENDINBLUE_API_KEY"),
+    "MAILERSEND_API_TOKEN": env.str("MAILSEND_API_KEY"),
 }
 
 CACHES = {
