@@ -175,7 +175,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
-    filterset_fields = ["course", "assignment_type", "course__session"]
+    filterset_fields = ["course", "status", "assignment_type", "course__session"]
     search_fields = ["title", "instructions"]
     ordering_fields = ["title", "created_at", "due_date"]
 

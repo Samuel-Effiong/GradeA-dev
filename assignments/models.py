@@ -19,6 +19,7 @@ class AssignmentTypes(models.TextChoices):
 class AssignmentStatus(models.TextChoices):
     DRAFT = "DRAFT", _("DRAFT")
     PUBLISHED = "PUBLISHED", _("PUBLISHED")
+    UNPUBLISHED = "UNPUBLISHED", _("UNPUBLISHED")
 
 
 class Assignment(models.Model):

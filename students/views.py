@@ -42,7 +42,7 @@ from rest_framework.status import (
 )
 
 from ai_processor.services import ai_processor
-from assignments.models import Assignment
+from assignments.models import Assignment, AssignmentStatus
 from assignments.serializers import (
     BatchUploadResponseSerializer,
     ScheduledGradingResponseSerializer,
@@ -195,7 +195,12 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         user = self.request.user
 
         if user.user_type == UserTypes.STUDENT:
-            return StudentSubmission.objects.filter(student=user)
+            return StudentSubmission.objects.filter(student=user).exclude(
+                assignment__status__in=[
+                    AssignmentStatus.DRAFT,
+                    AssignmentStatus.UNPUBLISHED,
+                ]
+            )
         elif user.user_type == UserTypes.TEACHER:
             return StudentSubmission.objects.filter(assignment__course__teacher=user)
         else:
@@ -310,6 +315,9 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     def upload_answers(self, request, assignment_id=None, *args, **kwargs):
         assignment = get_object_or_404(Assignment, id=assignment_id)
 
+        if assignment.status != AssignmentStatus.PUBLISHED:
+            raise ParseError("This assignment is not currently open for submissions.")
+
         files = request.FILES.getlist("answer")
         if not files:
             raise ParseError("No files uploaded. Please try again.")
@@ -369,6 +377,9 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     def upload_answers_async(self, request, assignment_id=None, *args, **kwargs):
         assignment = get_object_or_404(Assignment, id=assignment_id)
 
+        if assignment.status != AssignmentStatus.PUBLISHED:
+            raise ParseError("This assignment is not currently open for submissions.")
+
         files = request.FILES.getlist("answer")
         if not files:
             raise ParseError("No files uploaded. Please try again.")
@@ -409,6 +420,9 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         submission = self.get_object()
         assignment = submission.assignment
+
+        if assignment.status != AssignmentStatus.PUBLISHED:
+            raise ParseError("Cannot update submission for a non-published assignment.")
 
         try:
             assignment_context = f"""
