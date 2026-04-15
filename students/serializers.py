@@ -186,6 +186,7 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
             "score_percentage",
             "formatted_grade",
             "is_published",
+            "answers",
         ]
 
         read_only_fields = [
@@ -196,6 +197,7 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
             "score_percentage",
             "formatted_grade",
             "is_published",
+            "answers",
         ]
 
     def get_score(self, obj):
@@ -242,6 +244,7 @@ class StudentSubmissionTeacherFeedbackSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "formatted_grade",
+            "answers",
         ]
 
 

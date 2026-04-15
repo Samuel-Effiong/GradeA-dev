@@ -71,7 +71,7 @@ with open("ai_processor/GRADING_ASSIGNMENT_PROMPT_2.txt", "r") as file:
 with open("ai_processor/ASSIGNMENT_GENERATION_PROMPT_2.txt", "r") as file:
     GENERATE_ASSIGNMENT_PROMPT = file.read()
 
-with open("ai_processor/GRADE_FORMATTER.txt", "r") as file:
+with open("ai_processor/GRADE_FORMATTER_2.txt", "r") as file:
     GRADE_FORMATTER = file.read()
 
 with open("ai_processor/STUDENT_SUMMARY_PROMPT.txt", "r") as file:
@@ -675,7 +675,14 @@ Now, respond to the following teacher's instruction using the rules above
             raise Exception(f"Error during AI model: {str(e)}") from Exception
 
         if content:
-            return content
+
+            try:
+                json_data = json.loads(content)
+            except json.JSONDecodeError as e:
+                logger.error(f"Error decoding JSON: {str(e)}")
+                raise Exception(f"Error decoding JSON: {str(e)}") from Exception
+            return json_data
+
         else:
             raise ValueError("content cannot be empty")
 
