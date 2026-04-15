@@ -1,4 +1,4 @@
-from rest_framework.routers import DefaultRouter
+from rest_framework.routers import SimpleRouter
 
 from classrooms.views import (  # ClassroomSettingsViewSet,; ClassroomViewSet,
     CourseViewSet,
@@ -8,7 +8,7 @@ from classrooms.views import (  # ClassroomSettingsViewSet,; ClassroomViewSet,
     TopicViewSet,
 )
 
-router = DefaultRouter(trailing_slash=False)
+router = SimpleRouter(trailing_slash=False)
 
 router.register(r"schools", SchoolViewSet, basename="school")
 router.register(r"sessions", SessionViewSet, basename="session")

@@ -31,7 +31,7 @@ class StudentSubmissionStatusSerializer(serializers.Serializer):
     max_points = serializers.IntegerField(read_only=True, allow_null=True)
     grade_status = serializers.CharField(read_only=True)
     is_published = serializers.BooleanField(read_only=True)
-    teacher_feedback = serializers.CharField(read_only=True, allow_null=True)
+    # teacher_feedback = serializers.CharField(read_only=True, allow_null=True)
 
 
 class QuestionSerializer(serializers.Serializer):
@@ -379,9 +379,9 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
                     "max_points": submission.max_points if submission else None,
                     "grade_status": grade_status,
                     "is_published": submission.is_published if submission else False,
-                    "teacher_feedback": (
-                        submission.formatted_grade if submission else None
-                    ),
+                    # "teacher_feedback": (
+                    #     submission.formatted_grade if submission else None
+                    # ),
                 }
             )
 
