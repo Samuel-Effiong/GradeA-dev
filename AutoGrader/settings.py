@@ -387,7 +387,6 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "The API backend for GradeA+",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
-    "APPEND_SLASH": False,
     "SCHEMA_PATH_PREFIX": r"/openapi/v1",
     "SCHEMA_PATH_PREFIX_TRIM": True,
     "COMPONENT_SPLIT_REQUEST": True,
@@ -402,8 +401,7 @@ SPECTACULAR_SETTINGS = {
                 "scheme": "bearer",
                 "name": "Bearer",
                 "bearerFormat": "JWT",
-                "description": "Enter a valid JWT token. (Wait! Do NOT type 'Bearer ' in the box. Only paste the raw "
-                "token sequence, Swagger UI will add 'Bearer' automatically).",
+                "description": "Enter a valid JWT token as: **Bearer &lt;token&gt;**",
             }
         }
     },
