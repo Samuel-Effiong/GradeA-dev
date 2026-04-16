@@ -1,8 +1,8 @@
-from rest_framework.routers import DefaultRouter
+from rest_framework.routers import SimpleRouter
 
 from students.views import StudentSubmissionViewSet
 
-router = DefaultRouter(trailing_slash=False)
+router = SimpleRouter(trailing_slash=False)
 router.register(r"submissions", StudentSubmissionViewSet, basename="student-submission")
 
 

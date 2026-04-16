@@ -2071,8 +2071,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                         ),
                         "grade_trend": trend,
                         "assignment_history": assignment_history,
-                        "ai_student_summary": "Available in Power Tier",
-                        "ai_student_summary_task_id": enrollment.ai_summary,
+                        "ai_student_summary": enrollment.ai_summary,
                         "at_risk": at_risk,
                     }
                 )

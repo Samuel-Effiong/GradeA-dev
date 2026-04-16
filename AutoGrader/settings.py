@@ -423,7 +423,7 @@ SUPPORT_EMAIL = "support@gradeautomator.com"
 
 
 # This must match the domain in your screenshot
-DEFAULT_FROM_EMAIL = "GradeA+ <support@gradeautomator.com>"
+DEFAULT_FROM_EMAIL = "Grade A+ <support@gradeautomator.com>"
 
 # ANYMAIL = {
 #     "SENDINBLUE_API_KEY": env.str("SENDINBLUE_API_KEY"),

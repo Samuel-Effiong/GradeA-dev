@@ -1,8 +1,8 @@
-from rest_framework.routers import DefaultRouter
+from rest_framework.routers import SimpleRouter
 
 from .views import AssignmentViewSet
 
-router = DefaultRouter(trailing_slash=False)
+router = SimpleRouter(trailing_slash=False)
 router.register(r"assignments", AssignmentViewSet, basename="assignment")
 
 
