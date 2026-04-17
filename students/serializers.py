@@ -175,6 +175,8 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
     # feedback = serializers.SerializerMethodField()
     formatted_grade = serializers.SerializerMethodField()
     full_name = serializers.CharField(source="student.get_full_name", read_only=True)
+    first_name = serializers.CharField(source="student.first_name", read_only=True)
+    last_name = serializers.CharField(source="student.last_name", read_only=True)
     email = serializers.EmailField(source="student.email", read_only=True)
     submission_status = serializers.SerializerMethodField()
 
@@ -187,6 +189,8 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
             "assignment",
             "student",
             "full_name",
+            "first_name",
+            "last_name",
             "email",
             "submission_status",
             "score",
