@@ -1,7 +1,8 @@
 import base64
 import json
 import re
-import string
+
+# import string
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -460,11 +461,11 @@ class AssignmentProcessingService:
                 """
                 )
 
-                for idx, opt in enumerate(options):
-                    letter = string.ascii_uppercase[idx]
+                for _, opt in enumerate(options):
+                    # letter = string.ascii_uppercase[idx]
                     html_output.append(
                         f"""
-                        <p><strong>{letter}.</strong> {opt}</p>
+                        <p>{opt}</p>
                     """
                     )
 
