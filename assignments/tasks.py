@@ -361,9 +361,9 @@ def formatted_grade_async(submission_id, user_prompt):
         raise
 
 
-@shared_task(bind=True, max_retries=3, soft_time_limit=1800, time_limit=2100)
+# @shared_task(bind=True, max_retries=3, soft_time_limit=1800, time_limit=2100)
 def upload_assignment_async(
-    self,
+    # self,
     *,
     user_id,
     course_id,
@@ -373,7 +373,7 @@ def upload_assignment_async(
     file_name=None,
 ):
     try:
-        self.update_state(state="PROGRESS", meta={"step": "Loading context"})
+        # self.update_state(state="PROGRESS", meta={"step": "Loading context"})
 
         user = CustomUser.objects.get(id=user_id)
         course = Course.objects.get(id=course_id, teacher=user)
@@ -388,7 +388,7 @@ def upload_assignment_async(
             upload=True,
         )
 
-        self.update_state(state="PROGRESS", meta={"step": "Saving assignments"})
+        # self.update_state(state="PROGRESS", meta={"step": "Saving assignments"})
         serializer = AssignmentSerializer(data=assignment_questions)
         serializer.is_valid(raise_exception=True)
         assignment = serializer.save()
@@ -408,8 +408,8 @@ def upload_assignment_async(
         }
 
     except Exception as e:
-        if self.request.retries == self.max_retries:
-            raise self.retry(exc=e, countdown=3) from Exception
+        # if self.request.retries == self.max_retries:
+        #     raise self.retry(exc=e, countdown=3) from Exception
 
         session = BatchUploadSession.objects.get(id=session_id)
         session.update_result(file_name, "FAILED", error=str(e))

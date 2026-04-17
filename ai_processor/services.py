@@ -3,6 +3,7 @@ import json
 import math
 import uuid
 from io import BytesIO
+from typing import Any, Dict, Optional
 
 import fitz
 import tiktoken
@@ -76,6 +77,9 @@ with open("ai_processor/GRADE_FORMATTER_2.txt", "r") as file:
 
 with open("ai_processor/STUDENT_SUMMARY_PROMPT.txt", "r") as file:
     STUDENT_SUMMARY_PROMPT = file.read()
+
+CHUNKED_EXTRACTION_PAGE_THRESHOLD = 4
+CHUNK_SIZE = 3
 
 
 tool_schema = [
@@ -318,8 +322,6 @@ Do not include any explanatory text before or after the JSON
             system_prompt = ASSIGNMENT_EXTRACTION_PROMPT
 
         try:
-            # response = self.__ai_model(system_prompt, user_prompt=content)
-
             response = self.execute_graded_task(
                 user=user,
                 feature="Assignment Extraction",
@@ -340,18 +342,226 @@ Do not include any explanatory text before or after the JSON
 
         return json_data
 
-    def extract_assignment_with_retry(
-        self, user, content: str | list, max_retries: int = 3, upload=False
-    ):
-        last_error = None
+    def _split_into_chunks(self, items: list, chunk_size: int) -> list:
+        chunks = [items[i : i + chunk_size] for i in range(0, len(items), chunk_size)]
 
+        return chunks
+
+    # def _extract_chunk_with_retry(self, user, page_items: list, ):
+
+    def _extract_assignment_chunked(
+        self, user, image_contents: list, upload=False, pages_per_chunk: int = 4
+    ):
+        """
+        Splits a large list of page images into smaller batches and extracts
+        assignment data from each batch independently, then merges the results.
+
+        This solves two problems with large assignments (30+ questions):
+        1. Truncated output - AI hits output token limits and stops mid-JSON.
+        2. JSON parse errors - truncated JSON is malformed and unreadable.
+
+        The questions array from each chunk is merged sequentially. Question
+        numbers are re-indexed globally to ensure correct ordering.
+        Metadata (title, instructions, total_points, etc.) is taken from the
+        first chunk and updated once all questions are merged.
+
+        Args:
+            user: The authenticated user (for billing).
+            image_contents: A flat list of image_url content items, one per page.
+            upload: Whether to use the uploads prompt or the prose prompt.
+            pages_per_chunk: How many pages to process per AI call (default 4).
+
+        Returns:
+            dict: The merged assignment JSON with all questions.
+        """
+        if upload:
+            system_prompt = ASSIGNMENT_EXTRACTION_PROMPT_FROM_UPLOADS
+        else:
+            system_prompt = ASSIGNMENT_EXTRACTION_PROMPT
+
+        # Split image list into chunks of `pages_per_chunk`
+        chunks = self._split_into_chunks(image_contents, CHUNK_SIZE)
+        # chunks = [
+        #     image_contents[i : i + pages_per_chunk]
+        #     for i in range(0, len(image_contents), pages_per_chunk)
+        # ]
+
+        logger.info(
+            f"[Chunked Extraction] {len(image_contents)} pages → "
+            f"{len(chunks)} chunks of up to {pages_per_chunk} pages each."
+        )
+
+        merged_questions = []
+        base_result = None
+
+        for chunk_index, chunk in enumerate(chunks):
+            logger.info(
+                f"[Chunked Extraction] Processing chunk {chunk_index + 1}/{len(chunks)}..."
+            )
+
+            # Build a context note so the AI knows this is a partial document
+            chunk_note = (
+                f"NOTE: You are processing pages {chunk_index * pages_per_chunk + 1} to "
+                f"{min((chunk_index + 1) * pages_per_chunk, len(image_contents))} of a "
+                f"{len(image_contents)}-page document. Extract ONLY the questions visible "
+                f"on these pages. Continue sequential question numbering from question "
+                f"{len(merged_questions) + 1}. Do not repeat questions from previous pages."
+                f"Your ONLY job is to extract every question on these pages fully and correctly"
+                f"Rubrics, model answers, options - all the same rules apply as normal"
+                f"Dn not rush or abbreviate to 'save space' and do NOT skip any question visible in these pages"
+            )
+
+            chunk_content = [
+                {"type": "text", "text": chunk_note},
+                *chunk,
+            ]
+
+            last_chunk_error: Optional[Exception] = None
+            chunk_result: Optional[Dict[str, Any]] = None
+
+            # Retry each individual chunk up to 3 times before failing
+            for attempt in range(3):
+                try:
+                    response = self.execute_graded_task(
+                        user=user,
+                        feature="Assignment Extraction",
+                        task_type="extract_assignment",
+                        system_prompt=system_prompt,
+                        user_prompt=chunk_content,
+                    )
+                    raw = response.choices[0].message.content
+
+                    # Clean the response in case the model wraps it in markdown blocks
+                    raw = raw.strip()
+                    if raw.startswith("```json"):
+                        raw = raw[7:]
+                    elif raw.startswith("```"):
+                        raw = raw[3:]
+                    if raw.endswith("```"):
+                        raw = raw[:-3]
+                    raw = raw.strip()
+
+                    chunk_result = json.loads(raw)
+                    break
+                except json.JSONDecodeError as e:
+                    last_chunk_error = e
+                    logger.warning(
+                        f"[Chunked Extraction] Chunk {chunk_index + 1}, attempt {attempt + 1}: "
+                        f"JSON decode failed — {str(e)}"
+                    )
+                except Exception as e:
+                    last_chunk_error = e
+                    logger.warning(
+                        f"[Chunked Extraction] Chunk {chunk_index + 1}, attempt {attempt + 1}: "
+                        f"AI call failed — {str(e)}"
+                    )
+
+            if chunk_result is None:
+                raise Exception(
+                    f"[Chunked Extraction] Chunk {chunk_index + 1} failed after 3 attempts. "
+                    f"Last error: {last_chunk_error}"
+                )
+
+            # Store the first chunk's result as the base for metadata fields
+            if base_result is None:
+                base_result = chunk_result
+
+            chunk_questions = chunk_result.get("questions", [])
+            merged_questions.extend(chunk_questions)
+
+        if base_result is None:
+            raise Exception(
+                "[Chunked Extraction] No chunks were successfully processed."
+            )
+
+        # Re-index all question numbers globally (1, 2, 3 ... N)
+        for idx, question in enumerate(merged_questions, start=1):
+            question["question_number"] = idx
+
+        # Assemble the final merged result
+        base_result["questions"] = merged_questions
+        base_result["question_count"] = len(merged_questions)
+        base_result["total_points"] = sum(q.get("points", 0) for q in merged_questions)
+
+        # Determine overall assignment type from merged questions
+        types_present = {q.get("question_type") for q in merged_questions}
+        if len(types_present) > 1:
+            base_result["assignment_type"] = "HYBRID"
+        elif types_present:
+            base_result["assignment_type"] = types_present.pop()
+
+        logger.info(
+            f"[Chunked Extraction] Done. Merged {len(merged_questions)} questions "
+            f"from {len(chunks)} chunks."
+        )
+
+        return base_result
+
+    def extract_assignment_with_retry(
+        self,
+        user,
+        content: str | list,
+        max_retries: int = 3,
+        upload=False,
+        pages_per_chunk: int = 3,
+    ):
+        """
+        Main entry point for image-based assignment extraction.
+
+        Automatically switches to chunked processing when the content list
+        has more images than `pages_per_chunk` (i.e., large multi-page PDFs).
+        For small documents it falls back to the original single-call path.
+        """
+        # Use chunked path when content is a list of images longer than one chunk
+        is_large_document = (
+            isinstance(content, list)
+            and any(item.get("type") == "image_url" for item in content)
+            and len([item for item in content if item.get("type") == "image_url"])
+            > pages_per_chunk
+        )
+
+        if is_large_document:
+            image_items = [
+                item
+                for item in content
+                if isinstance(item, dict) and item.get("type") == "image_url"
+            ]
+            # text_items = [item for item in content if item.get("type") != "image_url"]
+
+            logger.info(
+                f"[Chunked Extraction] Large document detected: {len(image_items)} pages. "
+                f"Switching to chunked extraction with {pages_per_chunk} pages/chunk."
+            )
+
+            last_error = None
+            for attempt in range(max_retries):
+                try:
+                    return self._extract_assignment_chunked(
+                        user=user,
+                        image_contents=image_items,
+                        upload=upload,
+                        pages_per_chunk=pages_per_chunk,
+                    )
+                except Exception as e:
+                    last_error = e
+                    logger.warning(
+                        f"Chunked extraction attempt {attempt + 1} failed: {str(e)}"
+                    )
+                    if attempt < max_retries - 1:
+                        logger.info("Retrying chunked extraction...")
+
+            raise Exception(
+                f"All {max_retries} chunked attempts failed. Last error: {last_error}"
+            )
+
+        # Original single-call path for small documents
+        last_error = None
         for attempt in range(max_retries):
             try:
                 return self.extract_assignment_image(user, content, upload=upload)
             except Exception as e:
                 last_error = e
                 logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
-
                 if attempt < max_retries - 1:
                     logger.info("Retrying...")
 
@@ -709,11 +919,14 @@ Now, respond to the following teacher's instruction using the rules above
         pdf_bytes = []
 
         if user_prompt:
-            for prompt in user_prompt:
-                if prompt["type"] == "text":
-                    total_prompt += prompt["text"]
-                elif prompt["type"] == "image_url":
-                    image_bytes.append(prompt.get("bytes"))
+            if isinstance(user_prompt, str):
+                total_prompt += user_prompt
+            else:
+                for prompt in user_prompt:
+                    if prompt["type"] == "text":
+                        total_prompt += prompt["text"]
+                    elif prompt["type"] == "image_url":
+                        image_bytes.append(prompt.get("bytes"))
             # total_prompt += user_prompt
 
         if system_prompt:

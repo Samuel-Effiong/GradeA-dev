@@ -801,7 +801,17 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 uploaded_file, prompt_text=prompt_text
             )
 
-            task = upload_assignment_async.delay(
+            # task = upload_assignment_async.delay(
+            #     user_id=str(request.user.id),
+            #     course_id=str(course.id),
+            #     topic_id=str(topic.id) if topic else None,
+            #     session_id=str(session.id),
+            #     content=content,
+            #     file_name=uploaded_file.name,
+            # )
+            # tasks_data.append({"file_name": uploaded_file.name, "task_id": task.id})
+
+            task = upload_assignment_async(
                 user_id=str(request.user.id),
                 course_id=str(course.id),
                 topic_id=str(topic.id) if topic else None,
@@ -809,7 +819,8 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 content=content,
                 file_name=uploaded_file.name,
             )
-            tasks_data.append({"file_name": uploaded_file.name, "task_id": task.id})
+
+            tasks_data.append({"file_name": uploaded_file.name, "task_id": task})
 
         data = {
             "session_id": session.id,
