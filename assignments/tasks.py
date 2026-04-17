@@ -361,9 +361,9 @@ def formatted_grade_async(submission_id, user_prompt):
         raise
 
 
-# @shared_task(bind=True, max_retries=3, soft_time_limit=1800, time_limit=2100)
+@shared_task(bind=True, max_retries=3, soft_time_limit=1800, time_limit=2100)
 def upload_assignment_async(
-    # self,
+    self,
     *,
     user_id,
     course_id,
