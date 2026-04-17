@@ -174,26 +174,43 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
     score_percentage = serializers.SerializerMethodField()
     # feedback = serializers.SerializerMethodField()
     formatted_grade = serializers.SerializerMethodField()
+    full_name = serializers.CharField(source="student.get_full_name", read_only=True)
+    email = serializers.EmailField(source="student.email", read_only=True)
+    submission_status = serializers.SerializerMethodField()
+
+    grade_status = serializers.SerializerMethodField()
 
     class Meta:
         model = StudentSubmission
         fields = [
             "id",
             "assignment",
+            "student",
+            "full_name",
+            "email",
+            "submission_status",
+            "score",
+            "max_points",
+            "score_percentage",
+            "grade_status",
+            "is_published",
             "submission_date",
             "raw_input",
-            "score",
-            "score_percentage",
             "formatted_grade",
-            "is_published",
             "answers",
         ]
 
         read_only_fields = [
             "assignment",
+            "student",
+            "full_name",
+            "email",
+            "submission_status",
+            "grade_status",
             "submission_date",
             "raw_input",
             "score",
+            "max_points",
             "score_percentage",
             "formatted_grade",
             "is_published",
@@ -227,6 +244,16 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
         if request and request.user.user_type == "STUDENT" and not obj.is_published:
             return None
         return obj.formatted_grade
+
+    def get_submission_status(self, obj):
+        return "SUBMITTED"
+
+    def get_grade_status(self, obj):
+        if obj.was_regraded and obj.regraded_at:
+            return "REGRADED"
+        if obj.graded_at:
+            return "GRADED"
+        return "NOT GRADED"
 
 
 class StudentSubmissionGradeUpdateSerializer(serializers.ModelSerializer):

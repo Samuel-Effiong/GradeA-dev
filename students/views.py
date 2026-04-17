@@ -409,6 +409,11 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         )
         task_id = task.id
 
+        # task = upload_answers_engine_async(
+        #     str(assignment.id), content, str(request.user.id)
+        # )
+        # task_id = task_id
+
         data = {"task_id": task_id, "message": "Answer Extraction Started"}
 
         serializer = StudentSubmissionUploadAsyncSerializer(data)
@@ -551,6 +556,12 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         if scheduled_time <= timezone.now():
             raise ParseError({"schedule_time": "Scheduled time must be in the future"})
+
+        # If Due date, scheduled time must not be less than due date
+        due_date = submission.assignment.due_date
+
+        if due_date and scheduled_time <= due_date:
+            raise ParseError("Scheduled time must be after the due date")
 
         clocked_schedule, _ = ClockedSchedule.objects.get_or_create(
             clocked_time=scheduled_time
