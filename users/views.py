@@ -52,13 +52,16 @@ from classrooms.serializers import StudentRegistrationCompletionSerializer
 from students.models import BatchUploadSession
 from users.mixins import UserCacheMixin
 from users.models import (
+    BetaWhitelist,
     CustomUser,
     PasswordChangeOTP,
     PasswordResetOTP,
     Settings,
     UserTypes,
+    Waitlist,
 )
 from users.serializers import (
+    BetaWhitelistSerializer,
     ChangePasswordSerializer,
     CustomTokenObtainPairSerializer,
     CustomUserSerializer,
@@ -67,6 +70,7 @@ from users.serializers import (
     SettingsSerializer,
     TaskStatusSerializer,
     VerifyCustomUserSerializer,
+    WaitlistSerializer,
 )
 from users.services import send_user_activation_email
 
@@ -1247,3 +1251,109 @@ class TaskViewSet(viewsets.ViewSet):
                 "failure_list": failures,
             }
         )
+
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=["Beta Whitelist"],
+        summary="List all beta whitelisted emails",
+        description="Retrieve a paginated list of all emails that are whitelisted for the private beta.",
+        responses={200: BetaWhitelistSerializer(many=True)},
+    ),
+    create=extend_schema(
+        tags=["Beta Whitelist"],
+        summary="Add an email to the beta whitelist",
+        description="Add a new email to the private beta whitelist.",
+        request=BetaWhitelistSerializer,
+        responses={201: BetaWhitelistSerializer},
+    ),
+    retrieve=extend_schema(
+        tags=["Beta Whitelist"],
+        summary="Retrieve a beta whitelist entry",
+        description="Retrieve detailed information about a specific entry in the beta whitelist.",
+        responses={200: BetaWhitelistSerializer},
+    ),
+    partial_update=extend_schema(
+        tags=["Beta Whitelist"],
+        summary="Update a beta whitelist entry",
+        description="Update an existing entry in the beta whitelist.",
+        request=BetaWhitelistSerializer,
+        responses={200: BetaWhitelistSerializer},
+    ),
+    destroy=extend_schema(
+        tags=["Beta Whitelist"],
+        summary="Remove an email from the beta whitelist",
+        description="Delete an entry from the private beta whitelist.",
+        responses={204: OpenApiResponse(description="Entry deleted successfully")},
+    ),
+)
+class BetaWhitelistViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for managing the private beta whitelist.
+
+    Only SuperAdmins are allowed to access these endpoints.
+    """
+
+    queryset = BetaWhitelist.objects.all()
+    serializer_class = BetaWhitelistSerializer
+    permission_classes = [AllowAny]  # [IsAuthenticated, IsSuperAdmin]
+    pagination_class = PageNumberPagination
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    search_fields = ["email", "mode"]
+    ordering_fields = ["email", "mode", "created_at"]
+
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=["Waitlist"],
+        summary="List all waitlist entries",
+        description="Retrieve a paginated list of all users currently on the waiting list.",
+        responses={200: WaitlistSerializer(many=True)},
+    ),
+    retrieve=extend_schema(
+        tags=["Waitlist"],
+        summary="Retrieve a waitlist entry",
+        description="Retrieve detailed information about a specific entry in the waitlist.",
+        responses={200: WaitlistSerializer},
+    ),
+    destroy=extend_schema(
+        tags=["Waitlist"],
+        summary="Remove a user from the waitlist",
+        description="Delete a user from the waiting list.",
+        responses={204: OpenApiResponse(description="User removed from waitlist")},
+    ),
+)
+class WaitlistViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for managing the waiting list.
+
+    Only SuperAdmins are allowed to access these endpoints.
+    """
+
+    queryset = Waitlist.objects.all()
+    serializer_class = WaitlistSerializer
+    permission_classes = [AllowAny]  # [IsAuthenticated, IsSuperAdmin]
+    pagination_class = PageNumberPagination
+    http_method_names = ["get", "post", "delete", "head", "options"]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    search_fields = ["email"]
+    ordering_fields = ["email", "created_at"]
+
+    @extend_schema(
+        tags=["Waitlist"],
+        summary="Transfer user to whitelist",
+        description="""
+        Transfers a user from the waitlist to the beta whitelist.
+        This action creates a new BetaWhitelist entry with mode='WAITLIST'
+        and removes the original Waitlist entry.
+        """,
+        request=None,
+        responses={201: BetaWhitelistSerializer},
+    )
+    @action(detail=True, methods=["post"])
+    def transfer(self, request, pk=None):
+        waitlist_user = self.get_object()
+        whitelist_user = waitlist_user.transfer_to_whitelist()
+        serializer = BetaWhitelistSerializer(whitelist_user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)

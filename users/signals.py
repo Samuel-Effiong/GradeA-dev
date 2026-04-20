@@ -2,7 +2,8 @@ from django.core.cache import cache
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
-from billing.models import CreditWallet
+from billing.models import CreditWallet, PlanType, SubscriptionPlan
+from billing.services import SubscriptionService
 from users.models import CustomUser, Settings
 
 
@@ -26,3 +27,9 @@ def create_settings(sender, instance, created, **kwargs):
 
     # Create empty wallet
     CreditWallet.objects.get_or_create(user=instance)
+
+    if created:
+        beta_plan = SubscriptionPlan.objects.filter(name=PlanType.BETA).first()
+
+        if beta_plan:
+            SubscriptionService.activate_subscription(instance, beta_plan)

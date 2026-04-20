@@ -236,3 +236,56 @@ class ConcurrentUserSnapshot(models.Model):
 
     class Meta:
         ordering = ["-timestamp"]
+
+
+class AccessMode(models.TextChoices):
+    BETA = "BETA", "Beta"
+    WAITLIST = "WAITLIST", "Waitlist"
+
+
+class BetaWhitelist(models.Model):
+    id = models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)
+    email = models.EmailField(unique=True)
+    # is_processed = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    mode = models.CharField(
+        max_length=20,
+        choices=AccessMode.choices,
+        default=AccessMode.BETA,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.email} - {'Active' if self.is_active else 'Inactive'}"
+
+    class Meta:
+        verbose_name_plural = "Beta Whitelist"
+
+    @classmethod
+    def add_beta_user(cls, email):
+        return cls.objects.create(email=email)
+
+    @classmethod
+    def remove_beta_user(cls, email):
+        return cls.objects.filter(email=email).delete()
+
+
+class Waitlist(models.Model):
+    id = models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)
+    email = models.EmailField(unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.email} - {self.created_at}"
+
+    class Meta:
+        verbose_name_plural = "Waitlist"
+
+    @classmethod
+    def add_waitlist_user(cls, email):
+        return cls.objects.create(email=email)
+
+    def transfer_to_whitelist(self):
+        user = BetaWhitelist.objects.create(email=self.email, mode=AccessMode.WAITLIST)
+        self.delete()
+        return user

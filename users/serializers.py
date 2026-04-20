@@ -5,7 +5,8 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from billing.serializers import CreditWalletSummarySerializer
 from classrooms.models import School
-from users.models import CustomUser, Settings
+from users.exceptions import NotInBetaException
+from users.models import BetaWhitelist, CustomUser, Settings, Waitlist
 from users.services import send_user_activation_email
 
 
@@ -60,6 +61,31 @@ class CustomUserSerializer(serializers.ModelSerializer):
             "is_active": {"read_only": True},
             "date_joined": {"read_only": True},
         }
+
+    def validate_email(self, value):
+        """
+        Check if the email is in the BetaWhitelist.
+        If not, add to Waitlist and block registration.
+        """
+        # We only enforce this for new registrations.
+        # Update logic usually won't trigger this unless the email changes,
+        # but for safety let's focus on the check itself.
+
+        email = value.lower().strip()
+
+        # Check if the email exists in BetaWhitelist and is active
+        allowed = BetaWhitelist.objects.filter(
+            email__iexact=email, is_active=True
+        ).exists()
+
+        if not allowed:
+            # Record user in Waitlist
+            Waitlist.objects.get_or_create(email=email)
+
+            # Raise the exception that informs the user they are now on the waitlist
+            raise NotInBetaException()
+
+        return email
 
     def get_is_system_generated_email(self, obj) -> bool:
         return bool(obj.email and str(obj.email).endswith("@student.local"))
@@ -158,3 +184,17 @@ class TaskStatusSerializer(serializers.Serializer):
     task_id = serializers.UUIDField()
     status = serializers.CharField()
     meta = serializers.CharField(allow_null=True)
+
+
+class BetaWhitelistSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BetaWhitelist
+        fields = ["id", "email", "mode", "is_active", "created_at"]
+        read_only_fields = ["id", "created_at"]
+
+
+class WaitlistSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Waitlist
+        fields = ["id", "email", "created_at"]
+        read_only_fields = ["id", "created_at"]

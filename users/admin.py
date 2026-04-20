@@ -2,7 +2,13 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.translation import gettext_lazy as _
 
-from .models import CustomUser, PasswordChangeOTP, PasswordResetOTP
+from .models import (
+    BetaWhitelist,
+    CustomUser,
+    PasswordChangeOTP,
+    PasswordResetOTP,
+    Waitlist,
+)
 
 
 @admin.register(CustomUser)
@@ -130,3 +136,33 @@ class PasswordChangeOTPAdmin(admin.ModelAdmin):
     def has_add_permission(self, request):
         # Prevent manual creation - OTPs should be generated through the model's methods
         return False
+
+
+@admin.register(BetaWhitelist)
+class BetaWhitelistAdmin(admin.ModelAdmin):
+    list_display = ("email", "mode", "is_active", "created_at")
+    list_filter = ("mode", "is_active", "created_at")
+    search_fields = ("email",)
+    ordering = ("-created_at",)
+    date_hierarchy = "created_at"
+
+
+@admin.register(Waitlist)
+class WaitlistAdmin(admin.ModelAdmin):
+    list_display = ("email", "created_at")
+    list_filter = ("created_at",)
+    search_fields = ("email",)
+    ordering = ("-created_at",)
+    date_hierarchy = "created_at"
+
+    actions = ["transfer_to_whitelist"]
+
+    @admin.action(description="Transfer selected users to whitelist")
+    def transfer_to_whitelist(self, request, queryset):
+        count = 0
+        for entry in queryset:
+            entry.transfer_to_whitelist()
+            count += 1
+        self.message_user(
+            request, f"{count} users were successfully transferred to the whitelist."
+        )
