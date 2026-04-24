@@ -1,3 +1,5 @@
+import datetime
+import os
 import uuid
 
 from django.contrib.auth.base_user import BaseUserManager
@@ -55,6 +57,12 @@ class UserTypes(models.TextChoices):
     SUPER_ADMIN = "SUPER_ADMIN", "Super Admin"
 
 
+def get_user_name(instance, fname):
+    _, ext = os.path.splitext(fname)
+    email_name = instance.email.split("@")[0]
+    return f"profile_pics/{instance.id}/{email_name}_{datetime.date.today()}_{ext}"
+
+
 # Create your models here.
 class CustomUser(AbstractUser):
     USERNAME_FIELD = "email"
@@ -86,6 +94,7 @@ class CustomUser(AbstractUser):
         ),
     )
     bio = models.TextField(blank=True, null=True)
+    profile_image = models.ImageField(upload_to=get_user_name, null=True, blank=True)
 
     objects = CustomUserManager()
 

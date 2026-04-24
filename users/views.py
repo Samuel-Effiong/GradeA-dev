@@ -1005,6 +1005,7 @@ class AuthViewSet(viewsets.ViewSet):
 
                 user.first_name = serializer.validated_data["first_name"]
                 user.last_name = serializer.validated_data["last_name"]
+                user.profile_image = serializer.validated_data.get("profile_image")
                 user.set_password(serializer.validated_data["password"])
                 user.is_active = True
                 user.activation_token = None

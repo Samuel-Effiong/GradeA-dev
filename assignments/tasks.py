@@ -236,6 +236,12 @@ def grade_engine_async(self, user_id, submission_id, batch_id=None):
             id=submission_id
         )
 
+        # Clear scheduling info if it exists
+        if submission.scheduled_grading_at or submission.grading_task_name:
+            submission.scheduled_grading_at = None
+            submission.grading_task_name = None
+            submission.save(update_fields=["scheduled_grading_at", "grading_task_name"])
+
         user = CustomUser.objects.get(id=user_id)
 
         self.update_state(state="PROGRESS", meta={"step": "Grading"})
@@ -419,6 +425,16 @@ def upload_assignment_async(
 @shared_task(bind=True, max_retries=3)
 def grade_batch_async(self, user_id, assignment_id, batch_id=None):
     submissions = StudentSubmission.objects.filter(assignment_id=assignment_id)
+
+    # Clear assignment-level scheduling info
+    try:
+        assignment = Assignment.objects.get(id=assignment_id)
+        if assignment.scheduled_grading_at or assignment.grading_task_name:
+            assignment.scheduled_grading_at = None
+            assignment.grading_task_name = None
+            assignment.save(update_fields=["scheduled_grading_at", "grading_task_name"])
+    except Assignment.DoesNotExist:
+        pass
 
     for submission in submissions:
         grade_engine_async.delay(

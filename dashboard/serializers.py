@@ -1,6 +1,7 @@
 from django.contrib.humanize.templatetags.humanize import naturaltime
 from rest_framework import serializers
 
+from ai_processor.models import ChatMessage, ChatSession
 from assignments.models import Assignment
 
 
@@ -432,3 +433,27 @@ class CustomAIReply(serializers.Serializer):
     """Serializer for custom AI templates"""
 
     response = serializers.CharField(required=True)
+
+
+class DashboardChatMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChatMessage
+        fields = ["id", "role", "content", "timestamp"]
+        read_only_fields = fields
+
+
+class DashboardChatSessionSerializer(serializers.ModelSerializer):
+    messages = DashboardChatMessageSerializer(
+        many=True, read_only=True, source="chatmessage_set"
+    )
+
+    class Meta:
+        model = ChatSession
+        fields = [
+            "id",
+            "assistant_type",
+            "created_at",
+            "updated_at",
+            "messages",
+        ]
+        read_only_fields = fields

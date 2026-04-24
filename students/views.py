@@ -563,6 +563,10 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if due_date and scheduled_time <= due_date:
             raise ParseError("Scheduled time must be after the due date")
 
+        # Cleanup existing task if it exists
+        if submission.grading_task_name:
+            PeriodicTask.objects.filter(name=submission.grading_task_name).delete()
+
         clocked_schedule, _ = ClockedSchedule.objects.get_or_create(
             clocked_time=scheduled_time
         )
@@ -576,11 +580,11 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             one_off=True,
             enabled=True,
             args=json.dumps([str(request.user.id), str(submission.id)]),
-            # kwargs=json.dumps({
-            #     "user_id": str(request.user.id),
-            #     "submission_id": str(submission.id)
-            # }),
         )
+
+        submission.scheduled_grading_at = scheduled_time
+        submission.grading_task_name = task_name
+        submission.save(update_fields=["scheduled_grading_at", "grading_task_name"])
 
         data = {
             "period_task_id": periodic_task.id,

@@ -34,7 +34,7 @@ class CustomUserAdmin(UserAdmin):
     )
     fieldsets = (
         (None, {"fields": ("email", "password")}),
-        (_("Personal info"), {"fields": ("first_name", "last_name")}),
+        (_("Personal info"), {"fields": ("first_name", "last_name", "profile_image")}),
         (_("School info"), {"fields": ("school", "user_type")}),
         (
             _("Account verification"),

@@ -6,7 +6,8 @@ from django.conf import settings
 from django.core.cache import cache
 from django.db.models import Avg, Max
 from django.db.models.functions import ExtractHour
-from django.template.loader import render_to_string
+
+# from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 
@@ -26,25 +27,30 @@ def send_user_activation_email(user):
         f"{protocol}{frontend_domain}/verify-email?email={user.email}&token={token}"
     )
 
-    context = {
-        "first_name": user.first_name,
-        "last_name": user.last_name,
-        "middle": user.middle_name,
+    merge_data = {
+        "title": "",
+        "name": f"{user.first_name} {user.last_name} {user.middle_name if user.middle_name else ''}",
+        # "first_name": user.first_name,
+        # "last_name": user.last_name,
+        # "middle": user.middle_name,
         "token": user.activation_token,
         "activation_url": activation_url,
         "expiration_duration": 15,
         "support_email": settings.SUPPORT_EMAIL,
+        "account_name": "Grade A+",
         "current_year": timezone.now().year,
     }
 
-    html_content = render_to_string("email/token_activation.html", context=context)
+    # html_content = render_to_string("email/token_activation.html", context=context)
 
     return send_email_task.delay(
         subject="Activate your account",
         message="",
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[user.email],
-        html_message=html_content,
+        html_message=None,
+        template_id="ynrw7gy0ye2l2k8e",
+        merge_data=merge_data,
     )
 
 

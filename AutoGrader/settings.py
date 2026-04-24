@@ -101,12 +101,14 @@ CORS_ALLOW_ALL_ORIGINS = True
 # Application definition
 
 INSTALLED_APPS = [
+    "cloudinary_storage",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "cloudinary",
     "django.contrib.humanize",
     "django_filters",
     "djoser",
@@ -297,7 +299,7 @@ MEDIA_URL = "/media/"
 if ENVIRONMENT == "prod":
     STORAGES = {
         "default": {
-            "BACKEND": "django.core.files.storage.FileSystemStorage",
+            "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
         },
         "staticfiles": {
             "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",
@@ -306,12 +308,22 @@ if ENVIRONMENT == "prod":
 else:
     STORAGES = {
         "default": {
-            "BACKEND": "django.core.files.storage.FileSystemStorage",
+            "BACKEND": (
+                "cloudinary_storage.storage.MediaCloudinaryStorage"
+                if ENVIRONMENT in ["dev", "local"]
+                else "django.core.files.storage.FileSystemStorage"
+            ),
         },
         "staticfiles": {
             "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
         },
     }
+
+CLOUDINARY_STORAGE = {
+    "CLOUD_NAME": env.str("CLOUDINARY_CLOUD_NAME"),
+    "API_KEY": env.str("CLOUDINARY_API_KEY"),
+    "API_SECRET": env.str("CLOUDINARY_API_SECRET"),
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -419,11 +431,13 @@ SPECTACULAR_SETTINGS = {
 
 EMAIL_BACKEND = "anymail.backends.mailersend.EmailBackend"
 # DEFAULT_FROM_EMAIL = "GradeA+ <samueleffiong80@gmail.com>"
+# SUPPORT_EMAIL = "support@test-65qngkdjmm3lwr12.mlsender.net"
 SUPPORT_EMAIL = "support@gradeautomator.com"
 
 
 # This must match the domain in your screenshot
 DEFAULT_FROM_EMAIL = "Grade A+ <support@gradeautomator.com>"
+# DEFAULT_FROM_EMAIL = "Grade A+ <support@test-65qngkdjmm3lwr12.mlsender.net>"
 
 # ANYMAIL = {
 #     "SENDINBLUE_API_KEY": env.str("SENDINBLUE_API_KEY"),
@@ -431,6 +445,7 @@ DEFAULT_FROM_EMAIL = "Grade A+ <support@gradeautomator.com>"
 
 ANYMAIL = {
     "MAILERSEND_API_TOKEN": env.str("MAILSEND_API_KEY"),
+    # "MAILERSEND_API_TOKEN": env.str("MAILSEND_LOCAL_API"),
 }
 
 CACHES = {

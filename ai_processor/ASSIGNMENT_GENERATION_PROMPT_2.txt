@@ -591,11 +591,11 @@ Assignment Type Implementation Rules
 1. OBJECTIVE Assignment Type
 When assignment_type = "OBJECTIVE":
 
-ALL questions must have "question_type": "objective"
+ALL questions must have "question_type": "OBJECTIVE"
 
 EVERY question MUST include "options" array with at least 3 choices
 
-"rubric" field must be an empty object: {}
+"rubric" field must be an empty array: []
 
 "model_answer" must contain the FULL TEXT of the correct option (not just letter)
 
@@ -609,18 +609,18 @@ json
 {
   "question_number": 1,
   "question_text": "What is the capital of France?",
-  "question_type": "objective",
+  "question_type": "OBJECTIVE",
   "points": 5,
   "blooms_level": "Remember",
   "options": ["London", "Berlin", "Paris", "Madrid"],
   "additional_notes": "string - Any special requirements or notes"
-  "rubric": {},
+  "rubric": [],
   "model_answer": "Paris"
 }
 2. ESSAY Assignment Type
 When assignment_type = "ESSAY":
 
-ALL questions must have "question_type": "essay"
+ALL questions must have "question_type": "ESSAY"
 
 "options" array must be empty: []
 
@@ -638,35 +638,39 @@ json
 {
   "question_number": 1,
   "question_text": "Analyze the causes and effects of the Industrial Revolution.",
-  "question_type": "essay",
+  "question_type": "ESSAY",
   "points": 25,
   "blooms_level": "Analyze",
   "options": [],
   "additional_notes": "string - Any special requirements or notes"
-  "rubric": {
-    "excellent": {
+  "rubric": [
+    {
+      "level": "excellent",
       "description": "Comprehensive analysis with 4+ specific examples, demonstrates deep understanding of causes and effects, and shows sophisticated connections between economic and social factors",
       "points": 25
     },
-    "good": {
+    {
+      "level": "good",
       "description": "Clear analysis with 2-3 specific examples, demonstrates solid understanding of causes and effects, and includes basic connections",
       "points": 20
     },
-    "fair": {
+    {
+      "level": "fair",
       "description": "Basic analysis with 1 example, demonstrates limited understanding with some gaps, and includes minimal connections",
       "points": 15
     },
-    "poor": {
+    {
+      "level": "poor",
       "description": "Incorrect or irrelevant analysis, demonstrates misunderstanding of concepts, or fails to address the question",
       "points": 5
     }
-  },
+  ],
   "model_answer": "The Industrial Revolution, spanning from approximately 1760 to 1840, was driven by several interconnected factors including technological innovations, agricultural improvements, and economic changes. Key causes included the development of steam power, which revolutionized transportation and manufacturing... [full essay continues]"
 }
 3. SHORT-ANSWER Assignment Type
 When assignment_type = "SHORT-ANSWER":
 
-ALL questions must have "question_type": "short_answer"
+ALL questions must have "question_type": "SHORT-ANSWER"
 
 "options" array must be empty: []
 
@@ -684,35 +688,39 @@ json
 {
   "question_number": 1,
   "question_text": "Explain how photosynthesis converts light energy into chemical energy.",
-  "question_type": "short_answer",
+  "question_type": "SHORT-ANSWER",
   "points": 10,
   "blooms_level": "Understand",
   "options": [],
   "additional_notes": "string - Any special requirements or notes"
-  "rubric": {
-    "excellent": {
+  "rubric": [
+    {
+      "level": "excellent",
       "description": "Comprehensive explanation with 3+ specific steps, demonstrates deep understanding of energy conversion, and includes key terms like chlorophyll and ATP",
       "points": 10
     },
-    "good": {
+    {
+      "level": "good",
       "description": "Clear explanation with 2 specific steps, demonstrates solid understanding of energy conversion, and includes most key terms",
       "points": 8
     },
-    "fair": {
+    {
+      "level": "fair",
       "description": "Basic explanation with 1 step, demonstrates limited understanding with some gaps, and includes few key terms",
       "points": 6
     },
-    "poor": {
+    {
+      "level": "poor",
       "description": "Incorrect or irrelevant explanation, demonstrates misunderstanding of process, or fails to address energy conversion",
       "points": 2
     }
-  },
+  ],
   "model_answer": "Photosynthesis converts light energy into chemical energy through a two-stage process. In the light-dependent reactions, chlorophyll absorbs sunlight, which splits water molecules and generates ATP and NADPH. In the light-independent reactions (Calvin cycle), these energy carriers are used to convert carbon dioxide into glucose, storing chemical energy in sugar bonds."
 }
 4. HYBRID Assignment Type
 When assignment_type = "HYBRID":
 
-Mix of question types: "objective", "essay", "short_answer"
+Mix of question types: "OBJECTIVE", "ESSAY", "SHORT-ANSWER"
 
 Each question must have appropriate structure for its type
 
@@ -723,9 +731,9 @@ Distribution should be logical (e.g., start with objective, then short answer, t
 Point distribution varies by question type and complexity
 
 Example Hybrid Distribution:
-Questions 1-5: "objective" (5 points each)
-Questions 6-8: "short_answer" (10 points each)
-Questions 9-10: "essay" (15 points each)
+Questions 1-5: "OBJECTIVE" (5 points each)
+Questions 6-8: "SHORT-ANSWER" (10 points each)
+Questions 9-10: "ESSAY" (15 points each)
 
 Question Design Principles by Type
 

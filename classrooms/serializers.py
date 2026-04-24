@@ -265,6 +265,7 @@ class DirectAddStudentSerializer(serializers.Serializer):
         max_length=150, validators=[MinLengthValidator(2)], required=True
     )
     email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
+    profile_image = serializers.ImageField(required=False, allow_null=True)
 
     def validate_email(self, value):
         if not value:
@@ -346,6 +347,7 @@ class DirectAddStudentSerializer(serializers.Serializer):
                     email=email,
                     first_name=first_name,
                     last_name=last_name,
+                    profile_image=validated_data.get("profile_image"),
                     user_type=UserTypes.STUDENT,
                     school=course.teacher.school,
                     is_active=True,
@@ -381,6 +383,7 @@ class StudentRegistrationCompletionSerializer(serializers.Serializer):
         validators=[MinLengthValidator(8)],
     )
     token = serializers.CharField(write_only=True)
+    profile_image = serializers.ImageField(required=False, allow_null=True)
 
 
 class ExpiredTokenSerializer(serializers.Serializer):

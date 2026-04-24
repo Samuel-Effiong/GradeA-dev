@@ -102,6 +102,17 @@ class StudentSubmission(models.Model):
     is_published = models.BooleanField(
         default=False, help_text=_("Whether the grade has been released to the student")
     )
+    scheduled_grading_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=_("The time this submission is scheduled to be graded"),
+    )
+    grading_task_name = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text=_("The name of the Celery task handling the scheduled grading"),
+    )
 
     class Meta:
         constraints = [

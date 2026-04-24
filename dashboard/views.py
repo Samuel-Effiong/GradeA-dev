@@ -29,7 +29,7 @@ from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 
-# from ai_processor.models import ChatMessage, ChatSession, RoleType
+from ai_processor.models import AssistantType, ChatMessage, ChatSession, RoleType
 from ai_processor.services import AI_CONFIDENCE_THRESHOLD, ai_processor
 from assignments.models import Assignment, AssignmentStatus
 
@@ -41,6 +41,7 @@ from dashboard.serializers import (
     CourseAnalyticsSerializer,
     CustomAIPrompt,
     CustomAIReply,
+    DashboardChatSessionSerializer,
     PlatformAdoptionSerializer,
     PlatformAIPerformanceSerializer,
     PlatformUsageSerializer,
@@ -68,6 +69,22 @@ from users.services import (
 )
 
 # from dashboard.services import DashboardService
+
+
+def get_or_create_dashboard_chat_session(user, assistant_type):
+    session, _ = ChatSession.objects.get_or_create(
+        user=user,
+        assistant_type=assistant_type,
+    )
+    return session
+
+
+def append_dashboard_chat_message(session, role, content):
+    return ChatMessage.objects.create(
+        session=session,
+        role=role,
+        content=content,
+    )
 
 
 class SuperAdminDashboardView(viewsets.ViewSet):
@@ -911,6 +928,10 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         serializer.is_valid(raise_exception=True)
 
         prompt = serializer.validated_data["prompt"]
+        chat_session = get_or_create_dashboard_chat_session(
+            request.user,
+            AssistantType.SUPER_ADMIN_ANALYTICS,
+        )
 
         try:
             platform_adoption = self.platform_adoption(request, *args, **kwargs).data
@@ -998,18 +1019,8 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         {prompt}
         """
 
-        # chat_session, created = ChatSession.objects.get_or_create(user=request.user)
-        # chat_history = (
-        #     ChatMessage.objects.filter(session=chat_session)
-        #     .order_by("timestamp")
-        #     .values_list("role", "content")
-        # )
-        #
-        # messages = [
-        #     {"role": role, "content": content} for role, content in chat_history
-        # ]
-
         try:
+            append_dashboard_chat_message(chat_session, RoleType.USER, prompt)
             ai_feedback = ai_processor.custom_ai_prompt_retry(
                 request.user,
                 user_prompt,
@@ -1017,16 +1028,11 @@ class SuperAdminDashboardView(viewsets.ViewSet):
                 feature="Superadmin Custom AI Prompt",
                 task_type="custom_ai_prompt:superadmin",
             )
-
-            # ChatMessage.objects.create(
-            #     session=chat_session, role=RoleType.USER, content=user_prompt
-            # )
-            #
-            # ChatMessage.objects.create(
-            #     session=chat_session, role=RoleType.ASSISTANT, content=ai_feedback
-            # )
-
-            # ai_feedback_prosemirror_json = AssignmentProcessingService.html_to_prosemirror_json(ai_feedback)
+            append_dashboard_chat_message(
+                chat_session,
+                RoleType.ASSISTANT,
+                ai_feedback,
+            )
 
             data = {
                 "response": ai_feedback,
@@ -1038,6 +1044,27 @@ class SuperAdminDashboardView(viewsets.ViewSet):
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    @extend_schema(
+        tags=["Super Admin"],
+        summary="Get custom AI prompt conversation history",
+        responses={200: DashboardChatSessionSerializer},
+    )
+    @action(
+        detail=False, methods=["GET"], url_path="dashboard/custom-ai-prompt/history"
+    )
+    def custom_ai_prompt_history(self, request, *args, **kwargs):
+        session = get_or_create_dashboard_chat_session(
+            request.user,
+            AssistantType.SUPER_ADMIN_ANALYTICS,
+        )
+        session = (
+            ChatSession.objects.filter(id=session.id)
+            .prefetch_related("chatmessage_set")
+            .get()
+        )
+        serializer = DashboardChatSessionSerializer(session)
+        return Response(serializer.data)
 
 
 class SchoolAdminDashboardView(viewsets.ViewSet):
@@ -1336,6 +1363,10 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         serializer.is_valid(raise_exception=True)
 
         prompt = serializer.validated_data["prompt"]
+        chat_session = get_or_create_dashboard_chat_session(
+            request.user,
+            AssistantType.SCHOOL_ADMIN_ANALYTICS,
+        )
 
         try:
             summary = self.summary(request, *args, **kwargs).data
@@ -1372,6 +1403,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         """
 
         try:
+            append_dashboard_chat_message(chat_session, RoleType.USER, prompt)
             ai_feedback = ai_processor.custom_ai_prompt_retry(
                 request.user,
                 user_prompt,
@@ -1379,8 +1411,11 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 feature="Schooladmin Custom AI Prompt",
                 task_type="custom_ai_prompt:schooladmin",
             )
-
-            # ai_feedback_prose_mirror = AssignmentProcessingService.html_to_prosemirror_json(ai_feedback)
+            append_dashboard_chat_message(
+                chat_session,
+                RoleType.ASSISTANT,
+                ai_feedback,
+            )
 
             data = {
                 "response": ai_feedback,
@@ -1392,6 +1427,27 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    @extend_schema(
+        tags=["School Admin"],
+        summary="Get custom AI prompt conversation history",
+        responses={200: DashboardChatSessionSerializer},
+    )
+    @action(
+        detail=False, methods=["GET"], url_path="dashboard/custom-ai-prompt/history"
+    )
+    def custom_ai_prompt_history(self, request, *args, **kwargs):
+        session = get_or_create_dashboard_chat_session(
+            request.user,
+            AssistantType.SCHOOL_ADMIN_ANALYTICS,
+        )
+        session = (
+            ChatSession.objects.filter(id=session.id)
+            .prefetch_related("chatmessage_set")
+            .get()
+        )
+        serializer = DashboardChatSessionSerializer(session)
+        return Response(serializer.data)
 
 
 class TeacherAdminDashboardView(viewsets.ViewSet):
@@ -2093,6 +2149,10 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         serializer = CustomAIPrompt(data=request.data)
         serializer.is_valid(raise_exception=True)
         prompt = serializer.validated_data["prompt"]
+        chat_session = get_or_create_dashboard_chat_session(
+            request.user,
+            AssistantType.TEACHER_ADMIN_ANALYTICS,
+        )
 
         # Get all sessions for the teacher
         sessions = Session.objects.filter(teacher=request.user)
@@ -2151,6 +2211,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         """
 
         try:
+            append_dashboard_chat_message(chat_session, RoleType.USER, prompt)
             ai_feedback = ai_processor.custom_ai_prompt_retry(
                 request.user,
                 user_prompt,
@@ -2158,8 +2219,11 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 feature="Teacher Custom AI Prompt",
                 task_type="custom_ai_prompt:teacher",
             )
-
-            # ai_feedback_prosemirror_json = AssignmentProcessingService.html_to_prosemirror_json(ai_feedback)
+            append_dashboard_chat_message(
+                chat_session,
+                RoleType.ASSISTANT,
+                ai_feedback,
+            )
 
             data = {"response": ai_feedback}
 
@@ -2171,6 +2235,27 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    @extend_schema(
+        tags=["Teacher Admin"],
+        summary="Get custom AI prompt conversation history",
+        responses={200: DashboardChatSessionSerializer},
+    )
+    @action(
+        detail=False, methods=["GET"], url_path="dashboard/custom-ai-prompt/history"
+    )
+    def custom_ai_prompt_history(self, request, *args, **kwargs):
+        session = get_or_create_dashboard_chat_session(
+            request.user,
+            AssistantType.TEACHER_ADMIN_ANALYTICS,
+        )
+        session = (
+            ChatSession.objects.filter(id=session.id)
+            .prefetch_related("chatmessage_set")
+            .get()
+        )
+        serializer = DashboardChatSessionSerializer(session)
+        return Response(serializer.data)
 
 
 class StudentAdminDashboardView(viewsets.ViewSet):

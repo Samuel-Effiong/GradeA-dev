@@ -45,6 +45,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             "middle_name",
             "last_name",
             "bio",
+            "profile_image",
             "user_type",
             "password",
             "is_active",

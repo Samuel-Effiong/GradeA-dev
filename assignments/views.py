@@ -30,7 +30,6 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from ai_processor.models import ChatMessage, ChatSession, RoleType
 from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor  # pdf_service
 
@@ -45,10 +44,18 @@ from users.mixins import UserCacheMixin
 from users.models import UserTypes
 from users.permissions import HasCreditBalance
 
-from .models import Assignment, AssignmentStatus  # Rubric
+from .models import (  # Rubric
+    Assignment,
+    AssignmentGenerationMessage,
+    AssignmentGenerationRole,
+    AssignmentGenerationSession,
+    AssignmentStatus,
+)
 from .serializers import (  # RubricSerializer,; AssignmentGradeAllSubmissionsSerializer,
     AssignmentCreateResponseSerializer,
     AssignmentDetailSerializer,
+    AssignmentGenerationSessionDetailSerializer,
+    AssignmentGenerationSessionSerializer,
     AssignmentListSerializer,
     AssignmentSerializer,
     AssignmentTextSerializer,
@@ -820,7 +827,14 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
     @extend_schema(
         tags=["Assignments"],
         summary="Generate an assignment based on user prompts",
-        description="""Create a new assignment based on user prompts.""",
+        description="""Create a new assignment based on user prompts.
+
+        Request fields:
+        - `prompt` (required): the teacher instruction sent to the AI
+        - `session_id` (optional): provide an existing assignment-generation session ID
+          to continue that conversation thread for the same course. If omitted, a new
+          session is created.
+        """,
         request=AssignmentGeneratorSerializer,
         responses={
             201: GeneratedAssignmentSerializer,
@@ -854,50 +868,65 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         and answers using AI processing.
         """
 
-        course = Course.objects.filter(id=course_id)
-
-        if not course.exists():
-            raise NotFound("No Course found with this ID.")
-
-        # Get all the past history of the user chats for this particular course
-        chat_session, created = ChatSession.objects.get_or_create(course_id=course_id)
-        chat_history = (
-            ChatMessage.objects.filter(session=chat_session)
-            .order_by("timestamp")
-            .values_list("role", "content")
-        )
-
-        messages = [
-            {"role": role, "content": content} for role, content in chat_history
-        ]
-
-        prompt = request.data.get("prompt")
-        if not prompt:
-            raise ParseError("Prompt is required to generate an assignment.")
+        # course = Course.objects.filter(id=course_id)
+        course = get_object_or_404(Course, id=course_id, teacher=request.user)
+        serializer = AssignmentGeneratorSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        prompt = serializer.validated_data["prompt"]
+        session_id = request.data.get("session_id")
 
         try:
+            with transaction.atomic():
+                if session_id:
+                    generation_session = get_object_or_404(
+                        AssignmentGenerationSession,
+                        id=session_id,
+                        user=request.user,
+                        course=course,
+                    )
+                else:
+                    generation_session = AssignmentGenerationSession.objects.create(
+                        user=request.user,
+                        course=course,
+                        title=prompt[:80],
+                    )
 
-            generated_assignment = (
-                ai_processor.generate_assignment_from_prompt_with_retry(
-                    request.user, prompt, chat_history=messages, max_retries=3
+                user_message = AssignmentGenerationMessage.objects.create(
+                    session=generation_session,
+                    role=AssignmentGenerationRole.USER,
+                    content=prompt,
                 )
-            )
 
-            # Store the new user message
-            ChatMessage.objects.create(
-                session=chat_session, role=RoleType.USER, content=prompt
-            )
+                generated_assignment = (
+                    ai_processor.generate_assignment_from_prompt_with_retry(
+                        request.user, prompt, max_retries=3
+                    )
+                )
 
-            # Store the AI's response in the chat history
-            ChatMessage.objects.create(
-                session=chat_session,
-                role=RoleType.ASSISTANT,
-                content=str(generated_assignment),
-            )
+                assignment_data = {
+                    **generated_assignment,
+                    "course": str(course.id),
+                    "ai_generated": True,
+                }
+                serializer = AssignmentSerializer(data=assignment_data)
+                serializer.is_valid(raise_exception=True)
+                assignment = serializer.save()
+
+                assistant_message = AssignmentGenerationMessage.objects.create(
+                    session=generation_session,
+                    role=AssignmentGenerationRole.ASSISTANT,
+                    content=json.dumps(assignment_data),
+                    assignment=assignment,
+                    assignment_snapshot=assignment_data,
+                    metadata={
+                        "source": "generate_assignment_from_prompt",
+                        "user_message_id": str(user_message.id),
+                    },
+                )
 
             assignment_standard = (
                 AssignmentProcessingService.format_assignment_standard_html(
-                    generated_assignment
+                    assignment_data
                 )
             )
             assignment_prosemirror_json = (
@@ -906,11 +935,14 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 )
             )
 
-            data = {"content": assignment_prosemirror_json}
+            data = {
+                "content": assignment_prosemirror_json,
+                "assignment_id": str(assignment.id),
+                "session_id": str(generation_session.id),
+                "message_id": str(assistant_message.id),
+            }
 
-            serializer = GeneratedAssignmentSerializer(data)
-
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(data, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -1000,7 +1032,8 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         if not submissions.exists():
             return Response(
-                {"message": "No submissions to grade"}, status=status.HTTP_200_OK
+                {"message": "No submissions to grade"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         session = BatchUploadSession.objects.create(
@@ -1009,6 +1042,10 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             task_type=BatchUploadType.GRADE,
             total_files=submissions.count(),
         )
+
+        # Cleanup existing task if it exists
+        if assignment.grading_task_name:
+            PeriodicTask.objects.filter(name=assignment.grading_task_name).delete()
 
         clocked_schedule, _ = ClockedSchedule.objects.get_or_create(
             clocked_time=scheduled_time,
@@ -1025,6 +1062,10 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             args=json.dumps([str(request.user.id), str(assignment.id)]),
             kwargs=json.dumps({"batch_id": str(session.id)}),
         )
+
+        assignment.scheduled_grading_at = scheduled_time
+        assignment.grading_task_name = task_name
+        assignment.save(update_fields=["scheduled_grading_at", "grading_task_name"])
 
         data = {
             "session_id": session.id,
@@ -1081,3 +1122,58 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         serializer = PublishAllGradesResponseSerializer(data)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=["Assignment Generation Sessions"],
+        summary="List assignment generation sessions",
+        description="Retrieve a paginated list of assignment-generation chat sessions for the current user.",
+        responses={
+            200: AssignmentGenerationSessionSerializer(many=True),
+            401: OpenApiResponse(
+                description="Authentication credentials were not provided"
+            ),
+        },
+    ),
+    retrieve=extend_schema(
+        tags=["Assignment Generation Sessions"],
+        summary="Get a specific generation session",
+        description="Retrieve a generation session with its ordered chat messages.",
+        responses={
+            200: AssignmentGenerationSessionDetailSerializer,
+            404: OpenApiResponse(description="Session not found"),
+        },
+    ),
+)
+class AssignmentGenerationSessionViewSet(UserCacheMixin, viewsets.ReadOnlyModelViewSet):
+    """
+    API endpoint for browsing assignment-generation chat sessions.
+
+    Provides read-only access to:
+    - List all sessions for the current teacher
+    - Retrieve a specific session with its full prompt/response history
+    """
+
+    queryset = AssignmentGenerationSession.objects.all()
+    serializer_class = AssignmentGenerationSessionSerializer
+    permission_classes = (IsAuthenticated,)
+    pagination_class = PageNumberPagination
+    http_method_names = ["get", "head", "options"]
+
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_fields = ["course"]
+    ordering_fields = ["created_at", "updated_at", "title"]
+    ordering = ["-updated_at", "-created_at"]
+
+    def get_queryset(self):
+        return (
+            AssignmentGenerationSession.objects.filter(user=self.request.user)
+            .select_related("course", "user")
+            .prefetch_related("messages", "messages__assignment")
+        )
+
+    def get_serializer_class(self):
+        if self.action == "retrieve":
+            return AssignmentGenerationSessionDetailSerializer
+        return AssignmentGenerationSessionSerializer

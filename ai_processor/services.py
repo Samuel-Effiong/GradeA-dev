@@ -752,7 +752,7 @@ Make sure to:
 
         raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
 
-    def generate_assignment_from_prompt(self, user, prompt, chat_history=None):
+    def generate_assignment_from_prompt(self, user, prompt):
         """Generate an assignment based on the given prompt and chat history."""
         system_prompt = GENERATE_ASSIGNMENT_PROMPT
         messages = [{"role": "system", "content": system_prompt}]
@@ -841,7 +841,7 @@ Now, respond to the following teacher's instruction using the rules above
         return json_data
 
     def generate_assignment_from_prompt_with_retry(
-        self, user, prompt, chat_history=None, max_retries: int = 3
+        self, user, prompt, max_retries: int = 3
     ):
         """
         Retry wrapper for generate_assignment_from_prompt
@@ -851,7 +851,7 @@ Now, respond to the following teacher's instruction using the rules above
 
         for attempt in range(max_retries):
             try:
-                return self.generate_assignment_from_prompt(user, prompt, chat_history)
+                return self.generate_assignment_from_prompt(user, prompt)
             except Exception as e:
                 last_error = e
                 logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")

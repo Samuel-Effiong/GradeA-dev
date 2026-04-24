@@ -10,7 +10,14 @@ from classrooms.models import Course, StudentCourse, Topic
 from students.models import StudentSubmission
 from users.models import UserTypes
 
-from .models import Assignment, AssignmentStatus  # Rubric
+from .models import (  # Rubric
+    Assignment,
+    AssignmentGenerationHistory,
+    AssignmentGenerationMessage,
+    AssignmentGenerationRole,
+    AssignmentGenerationSession,
+    AssignmentStatus,
+)
 
 
 class AssignmentRubricSerializer(serializers.Serializer):
@@ -228,6 +235,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
 
 class AssignmentListSerializer(serializers.ModelSerializer):
     submission_count = serializers.SerializerMethodField()
+    is_grading_scheduled = serializers.SerializerMethodField()
 
     class Meta:
         model = Assignment
@@ -246,6 +254,17 @@ class AssignmentListSerializer(serializers.ModelSerializer):
             "auto_grade_on_due_date",
             "extraction_confidence",
             "submission_count",
+            "scheduled_grading_at",
+            "grading_task_name",
+            "is_grading_scheduled",
+        ]
+        read_only_fields = [
+            "created_at",
+            "id",
+            "submission_count",
+            "scheduled_grading_at",
+            "grading_task_name",
+            "is_grading_scheduled",
         ]
 
     def get_submission_count(self, obj):
@@ -253,10 +272,16 @@ class AssignmentListSerializer(serializers.ModelSerializer):
             return obj.submissions.count()
         return 0
 
+    def get_is_grading_scheduled(self, obj) -> bool:
+        return bool(
+            obj.scheduled_grading_at and obj.scheduled_grading_at > timezone.now()
+        )
+
 
 class AssignmentDetailSerializer(serializers.ModelSerializer):
     student_submissions = serializers.SerializerMethodField()
     raw_input = serializers.SerializerMethodField()
+    is_grading_scheduled = serializers.SerializerMethodField()
 
     class Meta:
         model = Assignment
@@ -275,6 +300,9 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
             "total_points",
             "question_count",
             "student_submissions",
+            "scheduled_grading_at",
+            "grading_task_name",
+            "is_grading_scheduled",
         ]
         read_only_fields = [
             "created_at",
@@ -286,6 +314,9 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
             "total_points",
             "question_count",
             "student_submissions",
+            "scheduled_grading_at",
+            "grading_task_name",
+            "is_grading_scheduled",
         ]
 
     def get_raw_input(self, obj):
@@ -387,9 +418,17 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
 
         return result
 
+    def get_is_grading_scheduled(self, obj) -> bool:
+        return bool(
+            obj.scheduled_grading_at and obj.scheduled_grading_at > timezone.now()
+        )
+
 
 class GeneratedAssignmentSerializer(serializers.Serializer):
     content = serializers.CharField()
+    assignment_id = serializers.UUIDField(required=False, allow_null=True)
+    session_id = serializers.UUIDField(required=False, allow_null=True)
+    message_id = serializers.UUIDField(required=False, allow_null=True)
 
 
 class ScoringLevelSerializer(serializers.Serializer):
@@ -544,3 +583,222 @@ class BatchUploadResponseSerializer(serializers.Serializer):
     session_id = serializers.UUIDField()
     message = serializers.CharField()
     tasks = TaskInfoSerializer(many=True)
+
+
+class AssignmentGenerationMessageSerializer(serializers.ModelSerializer):
+    assignment_title = serializers.CharField(
+        source="assignment.title",
+        read_only=True,
+    )
+
+    class Meta:
+        model = AssignmentGenerationMessage
+        fields = [
+            "id",
+            "session",
+            "role",
+            "content",
+            "assignment",
+            "assignment_title",
+            "assignment_snapshot",
+            "metadata",
+            "created_at",
+        ]
+        read_only_fields = [
+            "id",
+            "created_at",
+            "assignment_title",
+        ]
+
+
+class AssignmentGenerationMessageCreateSerializer(serializers.Serializer):
+    content = serializers.CharField(allow_blank=False, trim_whitespace=True)
+    role = serializers.ChoiceField(
+        choices=AssignmentGenerationRole.choices,
+        default=AssignmentGenerationRole.USER,
+    )
+
+
+class AssignmentGenerationSessionSerializer(serializers.ModelSerializer):
+    course_name = serializers.CharField(source="course.name", read_only=True)
+    user_name = serializers.CharField(source="user.get_full_name", read_only=True)
+    message_count = serializers.SerializerMethodField()
+    latest_message_preview = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AssignmentGenerationSession
+        fields = [
+            "id",
+            "user",
+            "user_name",
+            "course",
+            "course_name",
+            "title",
+            "message_count",
+            "latest_message_preview",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "user_name",
+            "course_name",
+            "message_count",
+            "latest_message_preview",
+            "created_at",
+            "updated_at",
+        ]
+
+    def get_message_count(self, obj):
+        return getattr(obj, "message_count", None) or obj.messages.count()
+
+    def get_latest_message_preview(self, obj):
+        latest_message = getattr(obj, "latest_message", None)
+
+        if latest_message is None:
+            latest_message = obj.messages.order_by("-created_at").first()
+
+        if not latest_message:
+            return None
+
+        content = latest_message.content or ""
+        return content[:140]
+
+
+class AssignmentGenerationSessionCreateSerializer(serializers.Serializer):
+    title = serializers.CharField(required=False, allow_blank=True, max_length=255)
+
+
+class AssignmentGenerationSessionDetailSerializer(serializers.ModelSerializer):
+    course_name = serializers.CharField(source="course.name", read_only=True)
+    user_name = serializers.CharField(source="user.get_full_name", read_only=True)
+    messages = AssignmentGenerationMessageSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = AssignmentGenerationSession
+        fields = [
+            "id",
+            "user",
+            "user_name",
+            "course",
+            "course_name",
+            "title",
+            "messages",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "user_name",
+            "course_name",
+            "messages",
+            "created_at",
+            "updated_at",
+        ]
+
+
+class AssignmentGenerationHistorySerializer(serializers.ModelSerializer):
+    """
+    Serializer for the AssignmentGenerationHistory model.
+
+    This serializer provides a simplified view of the history entry,
+    including the prompt and a summary of the generated assignment.
+    """
+
+    assignment_title = serializers.CharField(
+        source="assignment.title",
+        read_only=True,
+        help_text="Title of the generated assignment",
+    )
+    assignment_questions_count = serializers.IntegerField(
+        source="assignment.question_count",
+        read_only=True,
+        help_text="Number of questions in the generated assignment",
+    )
+    assignment_type = serializers.CharField(
+        source="assignment.assignment_type",
+        read_only=True,
+        help_text="Type of the generated assignment",
+    )
+    course_name = serializers.CharField(
+        source="course.name", read_only=True, help_text="Name of the course"
+    )
+    topic_name = serializers.CharField(
+        source="topic.name",
+        read_only=True,
+        allow_null=True,
+        help_text="Name of the topic (if any)",
+    )
+
+    class Meta:
+        model = AssignmentGenerationHistory
+        fields = [
+            "id",
+            "prompt",
+            "assignment",
+            "assignment_title",
+            "assignment_questions_count",
+            "assignment_type",
+            "course",
+            "course_name",
+            "topic",
+            "topic_name",
+            "generation_mode",
+            "created_at",
+        ]
+        read_only_fields = [
+            "id",
+            "assignment_title",
+            "assignment_questions_count",
+            "assignment_type",
+            "course_name",
+            "topic_name",
+            "created_at",
+        ]
+
+
+class AssignmentGenerationHistoryDetailSerializer(serializers.ModelSerializer):
+    """
+    Detailed serializer for AssignmentGenerationHistory.
+
+    Includes the full assignment object alongside the prompt and metadata.
+    """
+
+    assignment = AssignmentListSerializer(read_only=True)
+    course_name = serializers.CharField(
+        source="course.name", read_only=True, help_text="Name of the course"
+    )
+    topic_name = serializers.CharField(
+        source="topic.name",
+        read_only=True,
+        allow_null=True,
+        help_text="Name of the topic (if any)",
+    )
+    user_name = serializers.CharField(
+        source="user.get_full_name",
+        read_only=True,
+        help_text="Name of the user who generated the assignment",
+    )
+
+    class Meta:
+        model = AssignmentGenerationHistory
+        fields = [
+            "id",
+            "prompt",
+            "assignment",
+            "course",
+            "course_name",
+            "topic",
+            "topic_name",
+            "user_name",
+            "generation_mode",
+            "created_at",
+        ]
+        read_only_fields = [
+            "id",
+            "assignment",
+            "course_name",
+            "topic_name",
+            "user_name",
+            "created_at",
+        ]

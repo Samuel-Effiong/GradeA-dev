@@ -82,6 +82,19 @@ class Assignment(models.Model):
     status = models.CharField(
         max_length=20, choices=AssignmentStatus.choices, default=AssignmentStatus.DRAFT
     )
+    scheduled_grading_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=_(
+            "The time all submissions for this assignment are scheduled to be graded"
+        ),
+    )
+    grading_task_name = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text=_("The name of the Celery task handling the batch grading"),
+    )
 
     # grading_status = models.CharField(
     #     max_length=20,
@@ -114,3 +127,123 @@ class Assignment(models.Model):
                 name="unique_assignment_per_course",
             )
         ]
+
+
+class AssignmentGenerationHistory(models.Model):
+    """
+    Stores the history of assignment generation requests.
+
+    This model maintains a record of:
+    - User prompts sent to the AI
+    - Assignments generated in response to those prompts
+
+    Used for the chat-like history UI where users can browse
+    and reuse previously generated assignments without re-running AI.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name="assignment_generation_history",
+    )
+
+    # The original prompt/input the user provided
+    prompt = models.TextField(
+        help_text="The original prompt sent to generate or extract the assignment"
+    )
+
+    # The resulting assignment that was generated
+    assignment = models.ForeignKey(
+        Assignment,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="generation_history",
+        help_text="The assignment generated from this prompt",
+    )
+
+    assignment_snapshot = models.JSONField(null=True, blank=True)
+
+    # Timestamp for when this generation occurred
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+
+class AssignmentGenerationSession(models.Model):
+    """
+    Groups a teacher's assignment-generation conversation for a single course.
+    The frontend can treat this as a chat thread and fetch its messages in order.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name="assignment_generation_sessions",
+    )
+    course = models.ForeignKey(
+        "classrooms.Course",
+        on_delete=models.CASCADE,
+        related_name="assignment_generation_sessions",
+    )
+    title = models.CharField(max_length=255, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True, db_index=True)
+
+    class Meta:
+        ordering = ["-updated_at", "-created_at"]
+        indexes = [
+            models.Index(fields=["user", "course", "-updated_at"]),
+        ]
+
+    def __str__(self):
+        return self.title or f"{self.course.name} generation session"
+
+
+class AssignmentGenerationRole(models.TextChoices):
+    USER = "USER", _("User")
+    ASSISTANT = "ASSISTANT", _("Assistant")
+
+
+class AssignmentGenerationMessage(models.Model):
+    """
+    Stores individual prompt/response items inside an assignment-generation session.
+
+    Assistant messages may optionally link to a saved Assignment when one is created
+    from that AI response.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    session = models.ForeignKey(
+        AssignmentGenerationSession,
+        on_delete=models.CASCADE,
+        related_name="messages",
+    )
+    role = models.CharField(
+        max_length=20,
+        choices=AssignmentGenerationRole.choices,
+        db_index=True,
+    )
+    content = models.TextField()
+    assignment = models.ForeignKey(
+        Assignment,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="generation_messages",
+    )
+    assignment_snapshot = models.JSONField(null=True, blank=True)
+    metadata = models.JSONField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        indexes = [
+            models.Index(fields=["session", "created_at"]),
+            models.Index(fields=["session", "role", "created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.role} message in {self.session_id}"

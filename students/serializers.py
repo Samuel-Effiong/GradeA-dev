@@ -20,6 +20,7 @@ class StudentSerializer(serializers.ModelSerializer):
             "last_name",
             "email",
             "is_active",
+            "profile_image",
             "enrollment_status",
             "is_system_generated_email",
         ]
@@ -121,6 +122,7 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
     course = serializers.CharField(source="assignment.course.id", read_only=True)
     score = serializers.SerializerMethodField()
     score_percentage = serializers.SerializerMethodField()
+    is_grading_scheduled = serializers.SerializerMethodField()
 
     class Meta:
         model = StudentSubmission
@@ -138,6 +140,9 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
             "graded_at",
             "is_published",
             "grading_confidence",
+            "scheduled_grading_at",
+            "grading_task_name",
+            "is_grading_scheduled",
         ]
 
         read_only_fields = [
@@ -151,6 +156,9 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
             "graded_at",
             "is_published",
             "grading_confidence",
+            "scheduled_grading_at",
+            "grading_task_name",
+            "is_grading_scheduled",
         ]
 
     def get_student_name(self, obj) -> str:
@@ -168,6 +176,11 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
             return None
         return obj.score_percentage
 
+    def get_is_grading_scheduled(self, obj) -> bool:
+        return bool(
+            obj.scheduled_grading_at and obj.scheduled_grading_at > timezone.now()
+        )
+
 
 class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
     score = serializers.SerializerMethodField()
@@ -178,6 +191,7 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(source="student.first_name", read_only=True)
     last_name = serializers.CharField(source="student.last_name", read_only=True)
     email = serializers.EmailField(source="student.email", read_only=True)
+    is_grading_scheduled = serializers.SerializerMethodField()
     submission_status = serializers.SerializerMethodField()
 
     grade_status = serializers.SerializerMethodField()
@@ -202,6 +216,9 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
             "raw_input",
             "formatted_grade",
             "answers",
+            "scheduled_grading_at",
+            "grading_task_name",
+            "is_grading_scheduled",
         ]
 
         read_only_fields = [
@@ -219,6 +236,9 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
             "formatted_grade",
             "is_published",
             "answers",
+            "scheduled_grading_at",
+            "grading_task_name",
+            "is_grading_scheduled",
         ]
 
     def get_score(self, obj):
@@ -258,6 +278,11 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
         if obj.graded_at:
             return "GRADED"
         return "NOT GRADED"
+
+    def get_is_grading_scheduled(self, obj) -> bool:
+        return bool(
+            obj.scheduled_grading_at and obj.scheduled_grading_at > timezone.now()
+        )
 
 
 class StudentSubmissionGradeUpdateSerializer(serializers.ModelSerializer):
