@@ -1,17 +1,20 @@
 from celery import shared_task, states
-
-# from celery.exceptions import Ignore
+from django.conf import settings
+from django.template.loader import render_to_string
 from django.utils import timezone
 
 from ai_processor.services import ai_processor
-from classrooms.models import Course, Topic
+
+# from celery.exceptions import Ignore
+from AutoGrader.tasks import send_email_task
+from classrooms.models import Course, EnrollmentStatusType, Topic
 from students.exceptions import CannotAssociateStudentError
 from students.models import BatchUploadSession, BatchUploadType, StudentSubmission
 from students.serializers import StudentSubmissionSerializer
 from students.services import grade_engine, upload_answers_engine
 from users.models import CustomUser, UserTypes
 
-from .models import Assignment
+from .models import Assignment, AssignmentStatus
 from .serializers import AssignmentSerializer
 from .services import AssignmentProcessingService
 
@@ -473,6 +476,99 @@ def auto_grade_due_assignment(assignment_id):
             )
 
         return f"Auto-grading started for {ungraded_submissions.count()} submissions."
+    except Exception as e:
+        import traceback
+
+        return f"Error: {str(e)} {traceback.format_exc()}"
+
+
+@shared_task(name="assignments.tasks.send_assignment_due_reminder")
+def send_assignment_due_reminder(assignment_id, hours_before):
+    try:
+        assignment = Assignment.objects.select_related("course", "course__teacher").get(
+            id=assignment_id
+        )
+
+        if not assignment.due_date or assignment.status != AssignmentStatus.PUBLISHED:
+            return "Assignment is not eligible for due date reminders."
+
+        reminder_label = "24 hours" if hours_before == 24 else "1 hour"
+        due_date_display = timezone.localtime(assignment.due_date).strftime(
+            "%B %d, %Y at %I:%M %p"
+        )
+
+        teacher = assignment.course.teacher
+        notifications_sent = 0
+
+        if (
+            teacher
+            and teacher.email
+            and hasattr(teacher, "settings")
+            and teacher.settings.notify_assignment_due_reminder
+        ):
+            teacher_html = render_to_string(
+                "email/assignment_due_reminder.html",
+                {
+                    "recipient": teacher,
+                    "assignment": assignment,
+                    "course": assignment.course,
+                    "due_date_display": due_date_display,
+                    "reminder_label": reminder_label,
+                    "is_teacher": True,
+                },
+            )
+
+            send_email_task.delay(
+                subject=(
+                    f"Assignment due reminder: "
+                    f"{assignment.title or assignment.course.name}"
+                ),
+                message=(
+                    f"Reminder: {assignment.title or 'An assignment'} "
+                    f"is due in {reminder_label}."
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[teacher.email],
+                html_message=teacher_html,
+            )
+            notifications_sent += 1
+
+        students = CustomUser.objects.filter(
+            user_type=UserTypes.STUDENT,
+            enrollments__course=assignment.course,
+            enrollments__enrollment_status=EnrollmentStatusType.ENROLLED,
+            settings__notify_assignment_due_reminder=True,
+        ).exclude(email__iendswith="@student.local")
+
+        for student in students.distinct():
+            student_html = render_to_string(
+                "email/assignment_due_reminder.html",
+                {
+                    "recipient": student,
+                    "assignment": assignment,
+                    "course": assignment.course,
+                    "due_date_display": due_date_display,
+                    "reminder_label": reminder_label,
+                    "is_teacher": False,
+                },
+            )
+
+            send_email_task.delay(
+                subject=(
+                    f"Assignment due reminder: "
+                    f"{assignment.title or assignment.course.name}"
+                ),
+                message=(
+                    f"Reminder: {assignment.title or 'An assignment'} "
+                    f"is due in {reminder_label}."
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[student.email],
+                html_message=student_html,
+            )
+            notifications_sent += 1
+
+        return f"Queued {notifications_sent} assignment due reminder emails."
     except Exception as e:
         import traceback
 

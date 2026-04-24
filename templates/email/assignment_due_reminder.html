@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .container {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #d97706;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px;
+        }
+        .content {
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .details {
+            background-color: #fff7ed;
+            border-left: 4px solid #d97706;
+            padding: 15px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Assignment Due Reminder</h1>
+        </div>
+
+        <div class="content">
+            <p>Dear {{ recipient.get_full_name }},</p>
+
+            <p>
+                This is a reminder that
+                <strong>{{ assignment.title|default:"an assignment" }}</strong>
+                for <strong>{{ course.name }}</strong>
+                is due in <strong>{{ reminder_label }}</strong>.
+            </p>
+
+            <div class="details">
+                <h3>Assignment Details</h3>
+                <ul>
+                    <li><strong>Course:</strong> {{ course.name }}</li>
+                    <li><strong>Assignment:</strong> {{ assignment.title|default:"Untitled Assignment" }}</li>
+                    <li><strong>Due Date:</strong> {{ due_date_display }}</li>
+                </ul>
+            </div>
+
+            {% if is_teacher %}
+                <p>Please make sure everything is ready before the deadline.</p>
+            {% else %}
+                <p>Please complete and submit your work before the deadline.</p>
+            {% endif %}
+
+            <p>Best regards,<br>GradeA+ Team</p>
+        </div>
+    </div>
+</body>
+</html>

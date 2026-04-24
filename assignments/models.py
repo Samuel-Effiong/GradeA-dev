@@ -131,14 +131,14 @@ class Assignment(models.Model):
 
 class AssignmentGenerationHistory(models.Model):
     """
-    Stores the history of assignment generation requests.
+        Stores the history of assignment generation requests.
 
-    This model maintains a record of:
-    - User prompts sent to the AI
-    - Assignments generated in response to those prompts
-
-    Used for the chat-like history UI where users can browse
-    and reuse previously generated assignments without re-running AI.
+        This model maintains a record of:
+        - User prompts sent to the AI
+        - Assignments generated in response to those prompts
+    f
+        Used for the chat-like history UI where users can browse
+        and reuse previously generated assignments without re-running AI.
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

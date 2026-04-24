@@ -1,11 +1,15 @@
 from html import escape
 
+from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
+from django.template.loader import render_to_string
 from django.utils import timezone
 
 from ai_processor.services import ai_processor
 from assignments.services import AssignmentProcessingService
+from AutoGrader.tasks import send_email_task
 from classrooms.tasks import student_summary_async
-from users.models import CustomUser
+from users.models import CustomUser, UserTypes
 
 from .exceptions import CannotAssociateStudentError
 from .models import StudentSubmission
@@ -150,6 +154,50 @@ def grade_engine(user, submission):
     return submission
 
 
+def notify_teacher_of_student_submission(submission):
+    teacher = submission.assignment.course.teacher
+
+    if not teacher or not teacher.email:
+        return
+
+    try:
+        teacher_settings = teacher.settings
+    except ObjectDoesNotExist:
+        return
+
+    if not teacher_settings or not teacher_settings.notify_student_submission:
+        return
+
+    context = {
+        "teacher": teacher,
+        "student": submission.student,
+        "assignment": submission.assignment,
+        "course": submission.assignment.course,
+        "submission": submission,
+    }
+
+    html_content = render_to_string(
+        "email/student_submission_notification.html", context=context
+    )
+
+    message = (
+        f"{submission.student.get_full_name()} submitted "
+        f"{submission.assignment.title or 'an assignment'} "
+        f"for {submission.assignment.course.name}."
+    )
+
+    send_email_task.delay(
+        subject=(
+            f"New student submission: "
+            f"{submission.assignment.title or submission.assignment.course.name}"
+        ),
+        message=message,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[teacher.email],
+        html_message=html_content,
+    )
+
+
 def upload_answers_engine(assignment, content, request_user, is_proxy_upload=False):
     assignment_context = f"""
     This is the Assignment Context to use in properly extracting the student submissions
@@ -209,5 +257,8 @@ def upload_answers_engine(assignment, content, request_user, is_proxy_upload=Fal
             answer_html
         )
         submission.save()
+
+        if created and request_user.user_type == UserTypes.STUDENT:
+            notify_teacher_of_student_submission(submission)
 
     return submission

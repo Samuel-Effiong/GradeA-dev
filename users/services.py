@@ -28,23 +28,17 @@ def send_user_activation_email(user):
     )
 
     merge_data = {
-        "title": "",
-        "name": f"{user.first_name} {user.last_name} {user.middle_name if user.middle_name else ''}",
-        # "first_name": user.first_name,
-        # "last_name": user.last_name,
-        # "middle": user.middle_name,
-        "token": user.activation_token,
+        "name": f"{user.first_name}",
         "activation_url": activation_url,
         "expiration_duration": 15,
         "support_email": settings.SUPPORT_EMAIL,
-        "account_name": "Grade A+",
         "current_year": timezone.now().year,
     }
 
     # html_content = render_to_string("email/token_activation.html", context=context)
 
     return send_email_task.delay(
-        subject="Activate your account",
+        subject="Verify your email and get started with faster, smarter grading",
         message="",
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[user.email],
