@@ -211,7 +211,7 @@ class CustomUserViewSet(UserCacheMixin, viewsets.ModelViewSet):
         "enrollments__course__session": ["exact"],
         "enrollments__enrollment_status": ["exact", "in"],
     }
-    search_fields = ["username", "first_name", "last_name", "email"]
+    search_fields = ["first_name", "last_name", "email"]
     ordering_fields = ["first_name", "last_name", "email", "username"]
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]

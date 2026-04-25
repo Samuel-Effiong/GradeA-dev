@@ -975,7 +975,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if not ungraded_submissions.exists():
             return Response(
                 {"message": "No ungraded submissions to process"},
-                status=status.HTTP_200_OK,
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         session = BatchUploadSession.objects.create(
