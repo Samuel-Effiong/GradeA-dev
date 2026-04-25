@@ -672,9 +672,24 @@ class AuthViewSet(viewsets.ViewSet):
             otp_obj, created = PasswordResetOTP.objects.get_or_create(user=user)
             otp_code = otp_obj.generate_code()
 
+            message = f"""
+Hello {user.first_name},
+
+We received a request to reset your Grade A+ password
+
+Your Password reset code is: {otp_code}
+
+Enter this code in the app to continue. If you did not request a password reset,
+you can ignore this email and your account will remain secure.
+
+The Grade A+ Team
+
+Need help? Contact us at {settings.SUPPORT_EMAIL}
+            """
+
             send_email_task.delay(
-                subject="Your Password Reset OTP",
-                message=f"Your Password Reset OTP is: {otp_code}",
+                subject="Your Grade A+ password reset code",
+                message=message,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[user.email],
             )
@@ -757,9 +772,23 @@ class AuthViewSet(viewsets.ViewSet):
             otp_obj, created = PasswordChangeOTP.objects.get_or_create(user=user)
             otp = otp_obj.generate_code()
 
+        message = f"""
+Hello {user.first_name},
+
+You are one step away from updating your Grade A+ password.
+
+Your password change code is: {otp}
+
+
+Enter this code to complete the update. If you did not request this change, please secure your account immediately.
+
+The Grade A+ Team
+Need help? Contact us at {settings.SUPPORT_EMAIL}
+"""
+
         send_email_task.delay(
-            subject="Your Password Change OTP",
-            message=f"Your OTP for password change is: {otp}",
+            subject="Your Grade A+ password change code",
+            message=message,
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[user.email],
             fail_silently=False,
@@ -1003,24 +1032,58 @@ class AuthViewSet(viewsets.ViewSet):
                         }
                     )
 
-                user.first_name = serializer.validated_data["first_name"]
-                user.last_name = serializer.validated_data["last_name"]
+                first_name = serializer.validated_data["first_name"]
+                middle_name = serializer.validated_data.get("middle_name", "")
+                last_name = serializer.validated_data["last_name"]
+                pending_enrollments = list(
+                    StudentCourse.objects.filter(
+                        student=user, enrollment_status=EnrollmentStatusType.PENDING
+                    ).select_related("course")
+                )
+
+                conflicting_courses = [
+                    enrollment.course.name
+                    for enrollment in pending_enrollments
+                    if StudentCourse.find_name_conflicts(
+                        course=enrollment.course,
+                        first_name=first_name,
+                        last_name=last_name,
+                        middle_name=middle_name,
+                        exclude_student_id=user.id,
+                    ).exists()
+                ]
+
+                if conflicting_courses:
+                    raise ValidationError(
+                        {
+                            "detail": (
+                                "A student with this exact name is already enrolled in "
+                                f"the following course(s): {', '.join(conflicting_courses)}."
+                            )
+                        }
+                    )
+
+                user.first_name = first_name
+                user.middle_name = middle_name
+                user.last_name = last_name
                 user.profile_image = serializer.validated_data.get("profile_image")
                 user.set_password(serializer.validated_data["password"])
                 user.is_active = True
                 user.activation_token = None
-                user.activation_expire = None
+                user.activation_expires = None
                 user.email_verified_at = timezone.now()
                 user.save()
 
-                StudentCourse.objects.filter(
-                    student=user, enrollment_status=EnrollmentStatusType.PENDING
-                ).update(enrollment_status=EnrollmentStatusType.ENROLLED)
+                for enrollment in pending_enrollments:
+                    enrollment.enrollment_status = EnrollmentStatusType.ENROLLED
+                    enrollment.save(update_fields=["enrollment_status"])
 
                 return Response(
                     {"detail": "Student registration completed successfully"},
                     status=status.HTTP_200_OK,
                 )
+        except (ParseError, ValidationError):
+            raise
         except Exception as e:
             return Response(
                 {"detail": f"Internal Server Error: {str(e)}"},

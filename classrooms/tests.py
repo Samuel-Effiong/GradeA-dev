@@ -1,12 +1,11 @@
 from datetime import date, timedelta
 
 from django.contrib.auth import get_user_model
-
-# from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.test import TestCase
 
-from .models import Course, School, Session
+from .models import Course, EnrollmentStatusType, School, Session, StudentCourse
 
 User = get_user_model()
 
@@ -159,3 +158,84 @@ class CourseModelTest(TestCase):
         courses = Course.objects.all()
         self.assertEqual(courses[0].name, "A Course")
         self.assertEqual(courses[1].name, "B Course")
+
+
+class StudentCourseModelTest(TestCase):
+    def setUp(self):
+        self.teacher = User.objects.create_user(
+            email="teacher.studentcourse@example.com",
+            password="password123",  # pragma: allowlist secret
+            first_name="Course",
+            last_name="Teacher",
+        )
+        self.session = Session.objects.create(name="Summer 2025", teacher=self.teacher)
+        self.course = Course.objects.create(
+            name="Biology",
+            teacher=self.teacher,
+            session=self.session,
+        )
+
+    def test_blank_pending_student_names_do_not_conflict(self):
+        first_pending_student = User.objects.create_user(
+            email="pending1@example.com",
+            password="password123",  # pragma: allowlist secret
+            first_name="",
+            last_name="",
+            user_type="STUDENT",
+            is_active=False,
+        )
+        second_pending_student = User.objects.create_user(
+            email="pending2@example.com",
+            password="password123",  # pragma: allowlist secret
+            first_name="",
+            last_name="",
+            user_type="STUDENT",
+            is_active=False,
+        )
+
+        StudentCourse.objects.create(
+            student=first_pending_student,
+            course=self.course,
+            enrollment_status=EnrollmentStatusType.PENDING,
+        )
+
+        StudentCourse.objects.create(
+            student=second_pending_student,
+            course=self.course,
+            enrollment_status=EnrollmentStatusType.PENDING,
+        )
+
+        self.assertEqual(StudentCourse.objects.filter(course=self.course).count(), 2)
+
+    def test_exact_student_names_still_must_be_unique_per_course(self):
+        first_student = User.objects.create_user(
+            email="john.one@example.com",
+            password="password123",  # pragma: allowlist secret
+            first_name="John",
+            last_name="Doe",
+            middle_name="",
+            user_type="STUDENT",
+            is_active=True,
+        )
+        second_student = User.objects.create_user(
+            email="john.two@example.com",
+            password="password123",  # pragma: allowlist secret
+            first_name="John",
+            last_name="Doe",
+            middle_name="",
+            user_type="STUDENT",
+            is_active=True,
+        )
+
+        StudentCourse.objects.create(
+            student=first_student,
+            course=self.course,
+            enrollment_status=EnrollmentStatusType.ENROLLED,
+        )
+
+        with self.assertRaises(ValidationError):
+            StudentCourse.objects.create(
+                student=second_student,
+                course=self.course,
+                enrollment_status=EnrollmentStatusType.ENROLLED,
+            )

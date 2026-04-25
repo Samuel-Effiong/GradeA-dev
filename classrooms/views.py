@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
+from django.core.exceptions import ValidationError as DjangoValidationError
 
 # from django.core.mail import send_mail
 from django.db import transaction
@@ -326,8 +327,6 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 student = CustomUser.objects.filter(email=email).first()
 
                 if student:
-                    # Existing student flow
-
                     if StudentCourse.objects.filter(
                         student=student, course=course
                     ).exists():
@@ -336,32 +335,140 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                             status=status.HTTP_400_BAD_REQUEST,
                         )
 
-                    StudentCourse.objects.create(
-                        student=student,
-                        course=course,
-                        enrollment_status=EnrollmentStatusType.ENROLLED,
-                        auto_added=False,
-                    )
+                    if student.is_active:
+                        StudentCourse.objects.create(
+                            student=student,
+                            course=course,
+                            enrollment_status=EnrollmentStatusType.ENROLLED,
+                            auto_added=False,
+                        )
 
-                    # Notify student about enrollment
-                    context = {
-                        "course": course,
-                        "teacher": course.teacher,
-                        "student": student,
-                        "login_url": f"https://{settings.FRONTEND_DOMAIN}",
-                    }
+                        context = {
+                            "course": course,
+                            "teacher": course.teacher,
+                            "student": student,
+                            "login_url": f"https://{settings.FRONTEND_DOMAIN}",
+                        }
 
-                    html_content = render_to_string(
-                        "email/existing_student_course_enrollment.html", context=context
-                    )
+                        # html_content = render_to_string(
+                        #     "email/existing_student_course_enrollment.html",
+                        #     context=context,
+                        # )
 
-                    send_email_task.delay(
-                        subject=f"New Course Enrollment: {course.name}",
-                        message="",
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        recipient_list=[student.email],
-                        html_message=html_content,
-                    )
+                        content = f"""
+                        You have been added to {course.name} by {course.teacher.get_full_name()}<br><br>
+
+                        Your access is already active, so you can sign in now and start participating right away.
+                        <br><br>
+
+                        Course Details:<br>
+                        - Course: {course.name}<br>
+                        - Teacher: {course.teacher.get_full_name()}<br>
+                        - Description: {course.description}<br><br>
+
+                        Open your dashboard here:<br>
+                        {context['login_url']}<br><br>
+
+                        We are glad to have you in the course.<br><br>
+
+                        Questions about the course? Contact {course.teacher.email}.
+                        """
+
+                        merge_data = {
+                            "title": f"You have been added to {course.name}",
+                            "name": f"{student.get_full_name()}",
+                            "content": content,
+                            "current_year": timezone.now().year,
+                            "support_email": settings.SUPPORT_EMAIL,
+                        }
+
+                        send_email_task.delay(
+                            subject=f"You have been added to {course.name}",
+                            message="",
+                            from_email=settings.DEFAULT_FROM_EMAIL,
+                            recipient_list=[student.email],
+                            html_message=None,
+                            template_id="yzkq340r0n04d796",
+                            merge_data=merge_data,
+                        )
+                    else:
+                        if (
+                            not student.activation_token
+                            or not student.activation_expires
+                            or student.activation_expires < timezone.now()
+                        ):
+                            activation_token = student.renew_activation_token()
+                        else:
+                            activation_token = student.activation_token
+
+                        StudentCourse.objects.create(
+                            student=student,
+                            course=course,
+                            enrollment_status=EnrollmentStatusType.PENDING,
+                            auto_added=False,
+                        )
+
+                        frontend_domain = settings.FRONTEND_DOMAIN
+                        registration_link = (
+                            f"https://{frontend_domain}/register/student/"
+                            f"{activation_token}?email={email}"
+                        )
+
+                        top_content = f"""
+                        {course.teacher.get_full_name()} has invited you to join {course.name} on Grade A+ <br><br>
+
+                        Your student access has been prepared. Complete your registration to create your password,
+                        set up your profile, and enter the course with confidence.<br><br>
+
+                        Finish your registration here:<br>
+                        """
+
+                        bottom_content = f"""
+                        This invitation link expires in 7 days.<br><br>
+
+                        If you were not expecting this invitation, you can ignore this email.<br><br>
+                        Questions about this course? Contact {course.teacher.email}.<br><br>
+                        """
+
+                        merge_data = {
+                            "title": f"Complete your registration for {course.name}",
+                            "name": f"{student.get_full_name()}",
+                            "top_content": top_content,
+                            "bottom_content": bottom_content,
+                            "activation_url": registration_link,
+                            "current_year": timezone.now().year,
+                            "support_email": settings.SUPPORT_EMAIL,
+                        }
+
+                        # context = {
+                        #     "course": course,
+                        #     "teacher": course.teacher,
+                        #     "registration_link": registration_link,
+                        #     "top_content": top_content,
+                        #     "bottom_content": bottom_content,
+                        # }
+
+                        # html_content = render_to_string(
+                        #     "email/student_course_registration.html", context=context
+                        # )
+
+                        # send_email_task.delay(
+                        #     subject="Complete Your Registration for the Course",
+                        #     message="",
+                        #     from_email=settings.DEFAULT_FROM_EMAIL,
+                        #     recipient_list=[student.email],
+                        #     html_message=html_content,
+                        # )
+
+                        send_email_task.delay(
+                            subject="Your course invitation is ready. Finish setup and join your class",
+                            message="",
+                            from_email=settings.DEFAULT_FROM_EMAIL,
+                            recipient_list=[student.email],
+                            html_message=None,
+                            template_id="ynrw7gy0ye2l2k8e",
+                            merge_data=merge_data,
+                        )
                 else:
                     # New student flow
                     activation_token = otp_manager.generate_otp()
@@ -394,16 +501,52 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                         "registration_link": registration_link,
                     }
 
-                    html_content = render_to_string(
-                        "email/student_course_registration.html", context=context
-                    )
+                    top_content = f"""
+                    {course.teacher.get_full_name()} has invited you to join {course.name} on Grade A+ <br><br>
+
+                    Your student access has been prepared. Complete your registration to create your password,
+                    set up your profile, and enter the course with confidence.<br><br>
+
+                    Finish your registration here:<br>
+                    """
+
+                    bottom_content = f"""
+                    This invitation link expires in 7 days.<br><br>
+
+                    If you were not expecting this invitation, you can ignore this email.<br><br>
+                    Questions about this course? Contact {course.teacher.email}.<br><br>
+                    """
+
+                    # html_content = render_to_string(
+                    #     "email/student_course_registration.html", context=context
+                    # )
+
+                    # send_email_task.delay(
+                    #     subject="Complete Your Registration for the Course",
+                    #     message="",
+                    #     from_email=settings.DEFAULT_FROM_EMAIL,
+                    #     recipient_list=[student.email],
+                    #     html_message=html_content,
+                    # )
+
+                    merge_data = {
+                        "title": f"Complete your registration for {course.name}",
+                        "name": f"{student.get_full_name()}",
+                        "top_content": top_content,
+                        "bottom_content": bottom_content,
+                        "activation_url": registration_link,
+                        "current_year": timezone.now().year,
+                        "support_email": settings.SUPPORT_EMAIL,
+                    }
 
                     send_email_task.delay(
-                        subject="Complete Your Registration for the Course",
+                        subject="Your course invitation is ready. Finish setup and join your class",
                         message="",
                         from_email=settings.DEFAULT_FROM_EMAIL,
                         recipient_list=[student.email],
-                        html_message=html_content,
+                        html_message=None,
+                        template_id="ynrw7gy0ye2l2k8e",
+                        merge_data=merge_data,
                     )
 
                 return Response(
@@ -413,6 +556,9 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     },
                     status=status.HTTP_200_OK,
                 )
+        except DjangoValidationError as e:
+            detail = e.message_dict if hasattr(e, "message_dict") else e.messages
+            raise ValidationError(detail) from e
         except Exception as e:
             return Response(
                 {"detail": f"Failed to process student: {str(e)}"},
@@ -446,6 +592,9 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
             serializer = CustomUserSerializer(student)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
+        except DjangoValidationError as e:
+            detail = e.message_dict if hasattr(e, "message_dict") else e.messages
+            raise ValidationError(detail) from e
         except Exception as e:
             return Response(
                 {
@@ -514,25 +663,53 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
                 # Send notification to student
                 student = enrollment.student
-                context = {
-                    "course": course,
-                    "teacher": course.teacher,
-                    "student": student,
-                }
+                # context = {
+                #     "course": course,
+                #     "teacher": course.teacher,
+                #     "student": student,
+                # }
 
                 enrollment.delete()
                 student.delete()
 
-                html_content = render_to_string(
-                    "email/student_course_removal.html", context=context
-                )
+                content = f"""
+                Your enrollment in {course.name} has been removed.<br><br>
+
+                Course details:<br>
+                - Course: {course.name}<br>
+                - Teacher: {course.teacher.get_full_name()}<br><br>
+
+                If you have any questions about this removal, please contact your teacher at {course.teacher.email}
+                """
+
+                # html_content = render_to_string(
+                #     "email/student_course_removal.html", context=context
+                # )
+
+                # send_email_task.delay(
+                #     subject=f"Removed from Course: {course.name}",
+                #     message="",
+                #     from_email=settings.DEFAULT_FROM_EMAIL,
+                #     recipient_list=[student.email],
+                #     html_message=html_content,
+                # )
+
+                merge_data = {
+                    "title": f"Your access to {course.name} has been updated",
+                    "name": f"{student.get_full_name()}",
+                    "content": content,
+                    "current_year": timezone.now().year,
+                    "support_email": settings.SUPPORT_EMAIL,
+                }
 
                 send_email_task.delay(
-                    subject=f"Removed from Course: {course.name}",
+                    subject="You are no longer enrolled in this course",
                     message="",
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[student.email],
-                    html_message=html_content,
+                    html_message=None,
+                    template_id="yzkq340r0n04d796",
+                    merge_data=merge_data,
                 )
 
                 return Response(

@@ -185,6 +185,25 @@ def notify_teacher_of_student_submission(submission):
         f"{submission.assignment.title or 'an assignment'} "
         f"for {submission.assignment.course.name}."
     )
+    # merge_data = {
+    #     "name": f"{user.first_name}",
+    #     "activation_url": activation_url,
+    #     "expiration_duration": 15,
+    #     "support_email": settings.SUPPORT_EMAIL,
+    #     "current_year": timezone.now().year,
+    # }
+
+    # html_content = render_to_string("email/token_activation.html", context=context)
+
+    # return send_email_task.delay(
+    #     subject="Verify your email and get started with faster, smarter grading",
+    #     message="",
+    #     from_email=settings.DEFAULT_FROM_EMAIL,
+    #     recipient_list=[user.email],
+    #     html_message=None,
+    #     template_id="ynrw7gy0ye2l2k8e",
+    #     merge_data=merge_data,
+    # )
 
     send_email_task.delay(
         subject=(

@@ -238,14 +238,17 @@ class AddStudentToCourseSerializer(serializers.Serializer):
         1. Is not associated with a teacher account
         2. Is a valid email format (handled by EmailField)
         """
-        teacher_exists = CustomUser.objects.filter(
-            email=value,
-            user_type=UserTypes.TEACHER,
-        ).exists()
+        existing_user = CustomUser.objects.filter(email=value).first()
 
-        if teacher_exists:
+        if existing_user and existing_user.user_type == UserTypes.TEACHER:
             raise serializers.ValidationError(
                 "This email belongs to a teacher account and cannot be added as a student."
+            )
+
+        if existing_user and existing_user.user_type != UserTypes.STUDENT:
+            raise serializers.ValidationError(
+                "This email already exists in the system and cannot be added as a "
+                f"{existing_user.get_user_type_display().lower()}."
             )
 
         return value
@@ -288,13 +291,11 @@ class DirectAddStudentSerializer(serializers.Serializer):
         course = self.context.get("course")
 
         if course:
-            from classrooms.models import StudentCourse
-
-            existing_enrollments = StudentCourse.objects.filter(
+            existing_enrollments = StudentCourse.find_name_conflicts(
                 course=course,
-                student__first_name__iexact=first_name,
-                student__last_name__iexact=last_name,
-                student__middle_name__iexact=middle_name,
+                first_name=first_name,
+                last_name=last_name,
+                middle_name=middle_name,
             )
 
             if existing_enrollments.exists():
@@ -310,6 +311,7 @@ class DirectAddStudentSerializer(serializers.Serializer):
     def create(self, validated_data):
 
         first_name = validated_data["first_name"]
+        middle_name = validated_data.get("middle_name", "")
         last_name = validated_data["last_name"]
         email = validated_data.get("email")
         course = self.context.get("course")
@@ -346,6 +348,7 @@ class DirectAddStudentSerializer(serializers.Serializer):
                 student = CustomUser.objects.create(
                     email=email,
                     first_name=first_name,
+                    middle_name=middle_name,
                     last_name=last_name,
                     profile_image=validated_data.get("profile_image"),
                     user_type=UserTypes.STUDENT,

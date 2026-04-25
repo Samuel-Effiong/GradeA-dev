@@ -192,6 +192,43 @@ class StudentCourse(models.Model):
         self.withdrawal_date = None
         self.save(update_fields=["enrollment_status", "withdrawal_date"])
 
+    @staticmethod
+    def _normalize_name_part(value):
+        return (value or "").strip()
+
+    @classmethod
+    def find_name_conflicts(
+        cls,
+        *,
+        course,
+        first_name,
+        last_name,
+        middle_name="",
+        exclude_pk=None,
+        exclude_student_id=None,
+    ):
+        first_name = cls._normalize_name_part(first_name)
+        last_name = cls._normalize_name_part(last_name)
+        middle_name = cls._normalize_name_part(middle_name)
+
+        if not course or not first_name or not last_name:
+            return cls.objects.none()
+
+        conflicts = cls.objects.filter(
+            course=course,
+            student__first_name__iexact=first_name,
+            student__last_name__iexact=last_name,
+            student__middle_name__iexact=middle_name,
+        )
+
+        if exclude_pk:
+            conflicts = conflicts.exclude(pk=exclude_pk)
+
+        if exclude_student_id:
+            conflicts = conflicts.exclude(student_id=exclude_student_id)
+
+        return conflicts
+
     def clean(self):
         if not self.student_id or not self.course_id:
             return
@@ -199,16 +236,18 @@ class StudentCourse(models.Model):
         from django.core.exceptions import ValidationError
 
         student = self.student
-        first_name = student.first_name
-        last_name = student.last_name
-        middle_name = getattr(student, "middle_name", "")
+        first_name = self._normalize_name_part(student.first_name)
+        last_name = self._normalize_name_part(student.last_name)
+        middle_name = self._normalize_name_part(getattr(student, "middle_name", ""))
 
-        existing_enrollments = StudentCourse.objects.filter(
+        existing_enrollments = self.find_name_conflicts(
             course=self.course,
-            student__first_name__iexact=first_name,
-            student__last_name__iexact=last_name,
-            student__middle_name__iexact=middle_name,
-        ).exclude(pk=self.pk)
+            first_name=first_name,
+            last_name=last_name,
+            middle_name=middle_name,
+            exclude_pk=self.pk,
+            exclude_student_id=self.student_id,
+        )
 
         if existing_enrollments.exists():
             full_name = f"{first_name} {middle_name} {last_name}".replace(

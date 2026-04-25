@@ -190,6 +190,23 @@ class CourseViewSetTest(ClassroomBaseAPITest):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("already enrolled", str(response.data.get("detail", "")))
 
+    @patch("classrooms.views.send_email_task.delay")
+    def test_teacher_can_invite_multiple_pending_students_by_email(
+        self, mock_send_email
+    ):
+        course = Course.objects.create(
+            name="Physics", teacher=self.teacher1, session=self.session
+        )
+        self.authenticate(self.teacher1)
+        url = reverse("course-students", kwargs={"pk": course.id})
+
+        first_response = self.client.post(url, {"email": "pending1@example.com"})
+        second_response = self.client.post(url, {"email": "pending2@example.com"})
+
+        self.assertEqual(first_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(second_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(mock_send_email.call_count, 2)
+
     def test_hacker_modify_others_course(self):
         t1_course = Course.objects.create(
             name="T1 Course", teacher=self.teacher1, session=self.session
