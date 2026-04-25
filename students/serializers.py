@@ -190,9 +190,10 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(source="student.get_full_name", read_only=True)
     first_name = serializers.CharField(source="student.first_name", read_only=True)
     last_name = serializers.CharField(source="student.last_name", read_only=True)
-    email = serializers.EmailField(source="student.email", read_only=True)
+    # email = serializers.EmailField(source="student.email", read_only=True)
     is_grading_scheduled = serializers.SerializerMethodField()
     submission_status = serializers.SerializerMethodField()
+    email = serializers.SerializerMethodField()
 
     grade_status = serializers.SerializerMethodField()
 
@@ -240,6 +241,11 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
             "grading_task_name",
             "is_grading_scheduled",
         ]
+
+    def get_email(self, obj):
+        if "student.local" in obj.student.email:
+            return None
+        return obj.student.email
 
     def get_score(self, obj):
         request = self.context.get("request")
