@@ -314,7 +314,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         Do not include any explanatory text before or after the JSON
         """
 
-        content = [{"type": "text", "text": text}]
+        content = [{"type": "text", "text": text, "raw_input": raw_input}]
 
         task = extract_assignment_background_task.delay(
             str(request.user.id),
