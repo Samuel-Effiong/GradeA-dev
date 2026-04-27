@@ -245,7 +245,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         Do not include any explanatory text before or after the JSON
         """
 
-        content = [{"type": "text", "text": text}]
+        content = [{"type": "text", "text": text, "raw_input": raw_input}]
 
         assignment = AssignmentProcessingService.update_assignment_from_extraction(
             request.user,

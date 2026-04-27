@@ -696,14 +696,14 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 "Submission has not be graded yet", status=HTTP_400_BAD_REQUEST
             )
 
-        score = serializer.validated_data["score"]
-        total_score = feedback["grading_summary"]["total_score"]
-        percentage = (score / total_score) * 100
+        score = float(serializer.validated_data["score"])
+        total_score = float(feedback["grading_summary"]["max_total_points"])
+        percentage = round((score / total_score) * 100, 2)
 
         feedback["grading_summary"]["total_score"] = score
         feedback["grading_summary"]["percentage"] = percentage
 
-        submission.score = score
+        submission.score = float(score)
         submission.score_percentage = percentage
         submission.max_points = total_score
 
@@ -713,6 +713,18 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # submission.save(update_fields=["score", "feedback"])
 
         # Update the formatted grade since the score/feedback changed
+
+        submission.save(
+            update_fields=[
+                "score",
+                "score_percentage",
+                "max_points",
+                "feedback",
+                "was_regraded",
+                "regraded_at",
+            ]
+        )
+
         assignment = submission.assignment
         user_prompt = f"""
         Student Name: {submission.student.get_full_name()}
@@ -725,20 +737,12 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         Return a formatted response
         """
-        submission.formatted_grade = ai_processor.formatted_grade(
-            request.user, user_prompt, assignment_model=assignment
-        )
-        submission.save(
-            update_fields=[
-                "score",
-                "score_percentage",
-                "max_points",
-                "feedback",
-                "formatted_grade",
-                "was_regraded",
-                "regraded_at",
-            ]
-        )
+
+        formatted_grade_async.delay(str(submission.id), user_prompt)
+
+        # submission.formatted_grade = ai_processor.formatted_grade(
+        #     request.user, user_prompt, assignment_model=assignment
+        # )
 
         response_serializer = StudentSubmissionDetailSerializer(submission)
         return Response(response_serializer.data, status=HTTP_200_OK)

@@ -79,7 +79,10 @@ with open("ai_processor/STUDENT_SUMMARY_PROMPT.txt", "r") as file:
     STUDENT_SUMMARY_PROMPT = file.read()
 
 CHUNKED_EXTRACTION_PAGE_THRESHOLD = 4
-CHUNK_SIZE = 3
+CHUNK_SIZE = 2
+
+PROSEMIRROR_CHUNK_THRESHOLD = 6000
+PROSEMIRROR_TOKEN_BUDGET_PER_CHUNK = 3000
 
 
 tool_schema = [
@@ -278,6 +281,24 @@ class AIProcessor:
     def extract_assignment(self, user, text):
         system_prompt = ASSIGNMENT_EXTRACTION_PROMPT
 
+        try:
+            doc = json.loads(text)
+
+            if isinstance(doc, dict) and doc.get("type") == "doc":
+                encoding = tiktoken.get_encoding("cl100k_base")
+                token_count = len(encoding.encode(text))
+
+                if token_count > PROSEMIRROR_CHUNK_THRESHOLD:
+                    logger.info(
+                        f"[Chunked Extraction] ProseMirror document is {token_count} tokens "
+                        f"(threshold: {PROSEMIRROR_CHUNK_THRESHOLD}). "
+                        f"Switching to chunked extraction."
+                    )
+                    return self._extract_prosemirror_chunked(user, doc)
+
+        except (json.JSONDecodeError, TypeError):
+            pass
+
         user_prompt = f"""
 Please analyze the following extracted text from an educational assignment and return a JSON
 
@@ -322,6 +343,26 @@ Do not include any explanatory text before or after the JSON
             system_prompt = ASSIGNMENT_EXTRACTION_PROMPT
 
         try:
+            if "raw_input" in content[0]:
+                raw_input = content[0]["raw_input"]
+                doc = json.loads(raw_input)
+
+                if isinstance(doc, dict) and doc.get("type") == "doc":
+                    encoding = tiktoken.get_encoding("cl100k_base")
+                    token_count = len(encoding.encode(raw_input))
+
+                    if token_count > PROSEMIRROR_CHUNK_THRESHOLD:
+                        logger.info(
+                            f"[Chunked Extraction] ProseMirror document is {token_count} tokens "
+                            f"(threshold: {PROSEMIRROR_CHUNK_THRESHOLD}). "
+                            f"Switching to chunked extraction."
+                        )
+                        return self._extract_prosemirror_chunked(user, doc)
+        except (json.JSONDecodeError, TypeError) as e:
+            logger.error(f"Error decoding JSON: {str(e)}")
+            pass
+
+        try:
             response = self.execute_graded_task(
                 user=user,
                 feature="Assignment Extraction",
@@ -348,6 +389,182 @@ Do not include any explanatory text before or after the JSON
         return chunks
 
     # def _extract_chunk_with_retry(self, user, page_items: list, ):
+
+    def _split_prosemirror_into_chunks(
+        self, doc: dict, token_budget: int = PROSEMIRROR_TOKEN_BUDGET_PER_CHUNK
+    ) -> list:
+        encoding = tiktoken.get_encoding("cl100k_base")
+        top_level_nodes = doc.get("content", [])
+
+        chunks = []
+        current_chunk_nodes = []
+        current_token_count = 0
+
+        for node in top_level_nodes:
+            node_tokens = len(encoding.encode(json.dumps(node)))
+
+            # if adding this node would exceed the budget AND we already have
+            # nodes accumulated, close the current chunk first
+
+            if current_token_count + node_tokens > token_budget and current_chunk_nodes:
+                chunks.append({"type": "doc", "content": current_chunk_nodes})
+                current_chunk_nodes = []
+                current_token_count = 0
+
+            current_chunk_nodes.append(node)
+            current_token_count += node_tokens
+
+        # Flush any remaining nodes as the final chunk
+        if current_chunk_nodes:
+            chunks.append({"type": "doc", "content": current_chunk_nodes})
+
+        return chunks
+
+    def _extract_prosemirror_chunked(self, user, doc: dict):
+        chunks = self._split_prosemirror_into_chunks(doc)
+
+        total_chunks = len(chunks)
+
+        logger.info(
+            f"[Chunked Extraction] ProseMirror document -> "
+            f"{total_chunks} token-bounded chunks."
+        )
+
+        merged_questions = []
+        base_result = None
+
+        for chunk_index, chunk_doc in enumerate(chunks):
+            logger.info(
+                f"[Chunked Extraction] Processing ProseMirror chunk "
+                f"{chunk_index + 1} / {total_chunks}..."
+            )
+
+            # Build a context note so the AI knows this is a partial document
+            # and where question numbering should continue from
+
+            chunk_note = (
+                f"NOTE: You are processing part {chunk_index + 1} of {total_chunks} "
+                f"of a large assignment document that has been split for processing. "
+                f"Extract ONLY the questions visible in this portion. "
+                f"Continue sequential question numbering from question "
+                f"{len(merged_questions) + 1}. "
+                f"Do not repeat questions from previous parts. "
+                f"Your ONLY job is to extract every question in this portion fully and correctly. "
+                f"You must be extremely meticulous and thorough. "
+                f"Do not skip any questions. "
+                f"Rubrics, model answers, options -- all the same rules apply as normal. "
+                f"Do not rush or abbreviate to 'save space' and do NOT skip any question "
+                f"visible in this portion. "
+            )
+
+            # Only the first chunk should emit title and instructions
+            # All other chunks should set those fields to empty strings
+
+            if chunk_index == 0:
+                chunk_note += (
+                    "This is the FIRST part -- extract the assignment title and "
+                    "instructions as normal"
+                )
+            else:
+                chunk_note += (
+                    "This is NOT the first part -- set title and instructions to "
+                    "empty strings. they were already extracted."
+                )
+
+            # Combine context note + serialized ProseMirror chunk as plain text
+            chunk_content = [
+                {
+                    "type": "text",
+                    "text": (
+                        chunk_note
+                        + "\n\nPROSEMIRROR DOCUMENT CHUNK:\n"
+                        + json.dumps(chunk_doc, indent=2)
+                        + "\n\nEND OF CHUNK"
+                    ),
+                }
+            ]
+
+            last_chunk_error = None
+            chunk_result = None
+
+            # Retry each individual chuk up to 3 times before failing
+            for attempt in range(3):
+                try:
+                    response = self.execute_graded_task(
+                        user=user,
+                        feature="Assignment Extraction",
+                        task_type="extract_assignment",
+                        system_prompt=ASSIGNMENT_EXTRACTION_PROMPT,
+                        user_prompt=chunk_content,
+                    )
+                    raw = response.choices[0].message.content
+
+                    # Strip markdown fences in case the model wraps output
+                    raw = raw.strip()
+
+                    if raw.startswith("```json"):
+                        raw = raw[7:]
+                    elif raw.startswith("```"):
+                        raw = raw[3:]
+                    if raw.endswith("```"):
+                        raw = raw[:-3]
+
+                    raw = raw.strip()
+
+                    chunk_result = json.loads(raw)
+                    break
+                except json.JSONDecodeError as e:
+                    last_chunk_error = e
+                    logger.warning(
+                        f"[Chunked Extraction] ProseMirror chunk {chunk_index + 1}, "
+                        f"attempt {attempt + 1}: JSON decode failed - {str(e)}"
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"[Chunked Extraction] ProseMirror chunk {chunk_index + 1}, "
+                        f"attempt {attempt + 1}: AI call failed — {str(e)}"
+                    )
+
+            if chunk_result is None:
+                raise Exception(
+                    f"[Chunked Extraction] ProseMirror chunk {chunk_index + 1} failed "
+                    f"after 3 attempts. Last error: {last_chunk_error}"
+                )
+
+            # Store the first chunk's result as the base for metadata fields
+            if base_result is None:
+                base_result = chunk_result
+
+            chunk_questions = chunk_result.get("questions", [])
+            merged_questions.extend(chunk_questions)
+
+        if base_result is None:
+            raise Exception(
+                "[Chunked Extraction] No ProseMirror chunks were successfully processed."
+            )
+
+        # Re-index all question numbers globally (1, 2, 3 ... N)
+        for idx, question in enumerate(merged_questions, start=1):
+            question["question_number"] = idx
+
+        # Assemble the final merged result
+        base_result["questions"] = merged_questions
+        base_result["question_count"] = len(merged_questions)
+        base_result["total_points"] = sum(q.get("points", 0) for q in merged_questions)
+
+        # Determine overall assignment type from merged questions
+        types_present = {q.get("question_type") for q in merged_questions}
+        if len(types_present) > 1:
+            base_result["assignment_type"] = "HYBRID"
+        elif types_present:
+            base_result["assignment_type"] = types_present.pop()
+
+        logger.info(
+            f"[Chunked Extraction] ProseMirror done. Merged {len(merged_questions)} "
+            f"questions from {total_chunks} chunks."
+        )
+
+        return base_result
 
     def _extract_assignment_chunked(
         self, user, image_contents: list, upload=False, pages_per_chunk: int = 4
@@ -408,7 +625,7 @@ Do not include any explanatory text before or after the JSON
                 f"{len(merged_questions) + 1}. Do not repeat questions from previous pages."
                 f"Your ONLY job is to extract every question on these pages fully and correctly"
                 f"Rubrics, model answers, options - all the same rules apply as normal"
-                f"Dn not rush or abbreviate to 'save space' and do NOT skip any question visible in these pages"
+                f"Do not rush or abbreviate to 'save space' and do NOT skip any question visible in these pages"
             )
 
             chunk_content = [
