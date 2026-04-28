@@ -84,6 +84,10 @@ CHUNK_SIZE = 2
 PROSEMIRROR_CHUNK_THRESHOLD = 4500
 PROSEMIRROR_TOKEN_BUDGET_PER_CHUNK = 3000
 
+ANSWERS_EXTRACTION_PAGES_PER_CHUNK = 1
+
+GRADING_QUESTIONS_PER_CHUNK = 5
+
 
 tool_schema = [
     {
@@ -784,6 +788,374 @@ Do not include any explanatory text before or after the JSON
 
         raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
 
+    def _build_answer_chunk_note(
+        self,
+        chunk_index: int,
+        total_chunks: int,
+        page_start: int,
+        page_end: int,
+        total_pages: int,
+        already_found_question_numbers: list,
+    ):
+        """
+        Builds the plain-text context note prepended to each answer extraction
+        chunk. Tells the model:
+          - Which pages it is looking at
+          - Which question answers have already been extracted in prior chunks
+            so it focuses only on what remains
+          - That it must still output an entry for every question in the full
+            list (skipped ones with empty answer_html)
+
+        Args:
+            chunk_index: 0-based index of the current chunk.
+            total_chunks: Total number of chunks.
+            page_start: 1-based first page number in this chunk.
+            page_end: 1-based last page number in this chunk.
+            total_pages: Total pages in the full submission.
+            already_found_question_numbers: List of question numbers that were
+                successfully extracted in previous chunks.
+
+        Returns:
+            str: The context note to prepend to the user message.
+        """
+
+        is_first = chunk_index == 0
+        is_last = chunk_index == total_chunks - 1
+
+        note_lines = [
+            f"NOTE: You are processing pages {page_start} to {page_end} of a "
+            f"{total_pages}-page student submission. "
+            f"This is part {chunk_index + 1} of {total_chunks}. "
+            "The full assignment question list is provided above as context. "
+            "Use it to map every answer you find to the correct question number."
+        ]
+
+        if already_found_question_numbers:
+            found_str = ". ".join(
+                str(n) for n in sorted(already_found_question_numbers)
+            )
+            note_lines += [
+                "The following question answers were already extracted from previous "
+                f"pages and do NOT need to be extracted again: Q{found_str}. "
+                "Focus on finding answers to all remaining questions in these pages."
+            ]
+        else:
+            note_lines.append(
+                "No answers have been extracted yet - This is the first set of pages."
+            )
+            note_lines.append("")
+
+        note_lines += [
+            "RULES FOR THIS CHUNK:",
+            "- Extract every answer visible on these pages, no matter how brief.",
+            "- Do NOT skip any answer even if it is short, partial, or unclear.",
+            "- Do NOT mark a question as skipped unless it is genuinely absent "
+            "from these pages AND was not already found in a previous chunk.",
+            "- For questions not visible on these pages and not yet found, "
+            'set answer_html to "" and notes to "Not found in this page range."',
+            "- Preserve all HTML formatting and LaTeX math exactly.",
+            "- Do not rush or abbreviate.",
+            "",
+        ]
+
+        if is_first:
+            note_lines.append(
+                "This is the FIRST chunk — scan for student name and ID at the "
+                "top of the first page and populate student_name and student_id."
+            )
+        else:
+            note_lines.append(
+                "This is NOT the first chunk — set student_name and student_id "
+                'to "" (they were already extracted from the first pages).'
+            )
+
+        if is_last:
+            note_lines.append(
+                "This is the LAST chunk - after extracting, mark any question "
+                "That was not found in any chunk as genuinely skipped."
+            )
+
+        return "\n".join(note_lines)
+
+    def _slim_assignment_context(self, assignment_json: str) -> str:
+        """
+        Strips rubric and model_answer fields from the assignment JSON before
+        sending it as context with each answer extraction chunk.
+
+        The model only needs question_number, question_text, question_type, and
+        options to map student answers correctly. Sending full rubrics and model
+        answers doubles the context token load unnecessarily and competes with
+        the image content for the model's attention.
+
+        Args:
+            assignment_json: The full assignment JSON string.
+
+        Returns:
+            str: A slimmed JSON string with only the fields needed for mapping.
+                 Falls back to the original string if parsing fails.
+        """
+
+        try:
+            data = json.loads(assignment_json)
+
+            # Handle both list-of-questions and full assignment object formats
+            if isinstance(data, list):
+                questions = data
+            elif isinstance(data, dict):
+                questions = data.get("questions", [])
+            else:
+                return assignment_json
+
+            slim_questions = [
+                {
+                    "question_number": q.get("question_number"),
+                    "question_text": q.get("question_text", ""),
+                    "question_type": q.get("question_type", ""),
+                    "points": q.get("points", 0),
+                    # Keep options for objective questions so the model can
+                    # validate single-letter answers against the option list
+                    **({"options": q["options"]} if q.get("options") else {}),
+                }
+                for q in questions
+            ]
+
+            return json.dumps(slim_questions)
+
+        except (json.JSONDecodeError, TypeError, AttributeError):
+            # If anything goes wrong, return the original - never break extraction
+            return assignment_json
+
+    def _extract_answers_chunked(
+        self, user, image_contents: list, assignment: str, assignment_model=None
+    ) -> dict:
+        """
+        Chunked answer extraction pipeline for multi-page student submissions.
+
+        Splits page images into batches of ANSWER_EXTRACTION_PAGES_PER_CHUNK,
+        extracts answers from each batch independently, then merges all results
+        into a single unified answer JSON.
+
+        Key difference from assignment extraction chunking: the full (slimmed)
+        question list is sent with EVERY chunk so the model can map any answer
+        to any question regardless of which page it appears on. The context note
+        tells the model which questions were already found in previous chunks so
+        it focuses on the remaining ones.
+
+        Merge strategy: for each question number, keep the first non-empty
+        answer found across all chunks. This handles the case where a student
+        writes an answer across a page boundary.
+
+        Args:
+            user: The authenticated user (for billing).
+            image_contents: Flat list of image_url content items, one per page.
+            assignment: The full assignment JSON string (will be slimmed).
+            assignment_model: The Assignment model instance (for billing context).
+
+        Returns:
+            dict: Merged answer JSON with all questions accounted for.
+        """
+
+        system_prompt = ANSWERS_EXTRACTION_PROMPT
+        total_pages = len(image_contents)
+
+        # Build slimmed question context once - reused for every chunk
+        slim_context = self._slim_assignment_context(assignment)
+
+        # Get student roster the same way extract_answer_image does
+        student_names = []
+
+        if assignment_model and hasattr(assignment_model, "course"):
+            enrollments = StudentCourse.objects.filter(
+                course=assignment_model.course, enrollment_status="ENROLLED"
+            ).select_related("student")
+
+            student_names = [
+                f"{e.student.first_name} {e.student.last_name}" for e in enrollments
+            ]
+
+        student_roster = (
+            "Here is the list of students in this assignment course: Use it to match, "
+            "the student information that is retrieve from the assignment \n "
+            + "\n".join(student_names)
+        )
+
+        # Split pages into chunks
+        chunks = self._split_into_chunks(
+            image_contents, ANSWERS_EXTRACTION_PAGES_PER_CHUNK
+        )
+        total_chunks = len(chunks)
+
+        logger.info(
+            f"[Answer Extraction] {total_pages} pages → "
+            f"{total_chunks} chunks of up to {ANSWERS_EXTRACTION_PAGES_PER_CHUNK} pages each."
+        )
+
+        # Track all answers found so far keyed by question number
+        # Used to tell each subsequent chunk what has already been found
+        found_answers: dict = {}
+
+        # Student identity comes from the first chunk only
+        student_name = ""
+        student_name_raw = None
+        student_id = ""
+        all_feedback = []
+
+        for chunk_index, chunk in enumerate(chunks):
+            page_start = chunk_index * ANSWERS_EXTRACTION_PAGES_PER_CHUNK + 1
+            page_end = min(
+                (chunk_index + 1) * ANSWERS_EXTRACTION_PAGES_PER_CHUNK, total_pages
+            )
+
+            logger.info(
+                f"[Answer Extraction] Processing chunk {chunk_index + 1}/{total_chunks} "
+                f"(pages {page_start}–{page_end})..."
+            )
+
+            already_found = list(found_answers.keys())
+
+            chunk_note = self._build_answer_chunk_note(
+                chunk_index=chunk_index,
+                total_chunks=total_chunks,
+                page_start=page_start,
+                page_end=page_end,
+                total_pages=total_pages,
+                already_found_question_numbers=already_found,
+            )
+
+            # Message structure mirrors extract_answer_image exactly
+            # with the chunk note and slimmed context replacing the full assignment
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": slim_context},
+                {"role": "user", "content": student_roster},
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": chunk_note},
+                        *chunk,
+                    ],
+                },
+            ]
+
+            last_chunk_error = None
+            chunk_result = None
+
+            for attempt in range(3):
+                try:
+                    response = self.execute_graded_task(
+                        user=user,
+                        feature="Answer Extraction",
+                        task_type="extract_answer",
+                        messages=messages,
+                        assignment=assignment_model,
+                    )
+
+                    raw = response.choices[0].message.content
+
+                    raw = raw.strip()
+                    if raw.startswith("```json"):
+                        raw = raw[7:]
+                    elif raw.startswith("```"):
+                        raw = raw[3:]
+                    if raw.endswith("```"):
+                        raw = raw[:-3]
+                    raw = raw.strip()
+
+                    chunk_result = json.loads(raw)
+                    break
+                except json.JSONDecodeError as e:
+                    last_chunk_error = e
+                    logger.warning(
+                        f"[Answer Extraction] Chunk {chunk_index + 1}, "
+                        f"attempt {attempt + 1}: JSON decode failed — {str(e)}"
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"[Answer Extraction] Chunk {chunk_index + 1}, "
+                        f"attempt {attempt + 1}: AI call failed — {str(e)}"
+                    )
+
+            if chunk_result is None:
+                raise Exception(
+                    f"[Answer Extraction] Chunk {chunk_index + 1} failed after 3 attempts. "
+                    f"Last error: {last_chunk_error}"
+                )
+
+            # Extract student identity from the first chunk only
+            if chunk_index == 0:
+                student_name = chunk_result.get("student_name", "")
+                student_name_raw = chunk_result.get("student_name_raw")
+                student_id = chunk_result.get("student_id", "")
+
+            # Merge answers: keep first non-empty answer found per question number
+            for answer in chunk_result.get("answers", []):
+                q_num = answer.get("question_number")
+                if q_num is None:
+                    continue
+
+                if q_num not in found_answers:
+                    # First time seeing this question — always store it
+                    found_answers[q_num] = answer
+                else:
+                    existing = found_answers[q_num]
+                    existing_html = existing.get("answer_html", "").strip()
+                    new_html = answer.get("answer_html", "").strip()
+
+                    # Upgrade an empty/not-found answer if a real answer appears
+                    # in a later chunk (student wrote answer on a later page)
+                    if not existing_html and new_html:
+                        found_answers[q_num] = answer
+                        logger.info(
+                            f"[Answer Extraction] Q{q_num}: upgraded from empty to "
+                            f"answer found in chunk {chunk_index + 1}."
+                        )
+
+            chunk_feedback = chunk_result.get("feedback", "")
+            if chunk_feedback:
+                all_feedback.append(
+                    f"[Pages {page_start}–{page_end}]: {chunk_feedback}"
+                )
+
+            logger.info(
+                f"[Answer Extraction] Chunk {chunk_index + 1}/{total_chunks} complete. "
+                f"Running total: {len(found_answers)} questions mapped."
+            )
+
+        # Build the final merged answer list sorted by question number
+        merged_answers = [
+            found_answers[q_num] for q_num in sorted(found_answers.keys())
+        ]
+
+        # Derive confidence from answer quality across the merged result:
+        # percentage of questions that received a non-empty answer.
+        # This is conservative — a question marked empty by ALL chunks is
+        # genuinely unanswered, not an extraction failure.
+        empty_count = sum(
+            1 for a in merged_answers if not a.get("answer_html", "").strip()
+        )
+        total_q = len(merged_answers)
+        derived_confidence = (
+            round(((total_q - empty_count) / total_q) * 100) if total_q else 0
+        )
+
+        merged_result = {
+            "student_name": student_name,
+            "student_id": student_id,
+            "answers": merged_answers,
+            "extraction_confidence": derived_confidence,
+            "feedback": " | ".join(all_feedback) if all_feedback else "",
+        }
+
+        if student_name_raw is not None:
+            merged_result["student_name_raw"] = student_name_raw
+
+        logger.info(
+            f"[Answer Extraction] Done. Merged {len(merged_answers)} answers "
+            f"from {total_chunks} chunks. Confidence: {derived_confidence}%."
+        )
+
+        return merged_result
+
     def extract_answer(self, user, text):
         system_prompt = ANSWERS_EXTRACTION_PROMPT
 
@@ -822,6 +1194,39 @@ Do not include any explanatory text before or after the JSON
 
     def extract_answer_image(self, user, content, assignment, assignment_model=None):
         system_prompt = ANSWERS_EXTRACTION_PROMPT
+
+        is_large_submission = (
+            isinstance(content, list)
+            and any(
+                isinstance(item, dict) and item.get("type") == "image_url"
+                for item in content
+            )
+            and len(
+                [
+                    item
+                    for item in content
+                    if isinstance(item, dict) and item.get("type") == "image_url"
+                ]
+            )
+            >= ANSWERS_EXTRACTION_PAGES_PER_CHUNK
+        )
+
+        if is_large_submission:
+            image_items = [
+                item
+                for item in content
+                if isinstance(item, dict) and item.get("type") == "image_url"
+            ]
+            logger.info(
+                f"[Answer Extraction] Large submission detected: {len(image_items)} pages. "
+                f"Switching to chunked extraction."
+            )
+            return self._extract_answers_chunked(
+                user=user,
+                image_contents=image_items,
+                assignment=assignment,
+                assignment_model=assignment_model,
+            )
 
         # Get all the student in this assignment course
         # enrolled_student_names = ""
@@ -895,55 +1300,465 @@ Do not include any explanatory text before or after the JSON
                     logger.info("Retrying...")
         raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
 
-    @transaction.atomic
-    def grade_student_submission(
-        self, user, rubric_json, answer_json, assignment_model=None
-    ):
+    def _pair_question_with_answers(self, rubric_json: str, answer_json: str) -> list:
+        """
+        Zips the rubric questions list and the answers list by question_number
+        into a single list of paired dicts, sorted by question_number.
+
+        Any question with no matching answer gets an empty answer entry so it
+        is still graded (marked not_attempted) rather than silently dropped.
+
+        Args:
+        rubric_json: JSON string — the questions array from the assignment.
+        answer_json: JSON string — the answers array from extraction output.
+
+        Returns:
+            list of dicts, each with keys "question" and "answer".
+        """
+
+        try:
+            questions = (
+                json.loads(rubric_json) if isinstance(rubric_json, str) else rubric_json
+            )
+            answers = (
+                json.loads(answer_json) if isinstance(answer_json, str) else answer_json
+            )
+        except (json.JSONDecodeError, TypeError) as e:
+            raise Exception(f"Failed to parse rubric or answer JSON: {str(e)}") from e
+
+        # Build a lookup of answers by question_number
+        answer_map = {a.get("question_number"): a for a in answers}
+
+        pairs = []
+        for question in questions:
+            q_num = question.get("question_number")
+            answer = answer_map.get(
+                q_num,
+                {
+                    "question_number": q_num,
+                    "question_text": question.get("question_text", ""),
+                    "answer_html": "",
+                    "notes": "No answer found for this question.",
+                },
+            )
+            pairs.append({"question": question, "answer": answer})
+
+        # Sort by question_number to guarantee correct order
+        pairs.sort(key=lambda p: p["question"].get("question_number", 0))
+        return pairs
+
+    def _grade_question_batch(
+        self,
+        user,
+        question_pairs: list,
+        batch_number: int,
+        total_batches: int,
+        assignment_model=None,
+    ) -> list:
+        """
+        Grades a small batch of questions (up to GRADING_QUESTIONS_PER_CHUNK)
+        in a single AI call.
+
+        Sending a small batch rather than one question at a time balances
+        accuracy (the model can see question relationships within a batch)
+        with reliability (small enough that the model reads every rubric
+        descriptor carefully rather than pattern-matching).
+
+        Each pair in question_pairs contains one question rubric object and
+        one student answer object. The model is asked to return a
+        question_evaluations array — one entry per question in the batch.
+
+        Args:
+            user: The authenticated user (for billing).
+            question_pairs: List of {"question": ..., "answer": ...} dicts.
+            batch_number: 1-based batch index (for logging).
+            total_batches: Total number of batches (for logging).
+            assignment_model: The Assignment model instance (for billing context).
+
+        Returns:
+            list of question_evaluation dicts from the grading response.
+        """
         system_prompt = GRADING_ASSIGNMENT_PROMPT
 
+        # Build the batch payload - only what the model needs for this batch
+        batch_rubric = [pair["question"] for pair in question_pairs]
+        batch_answers = [pair["answer"] for pair in question_pairs]
+        q_numbers = [q.get("question_number") for q in batch_rubric]
+
         user_prompt = f"""
-You are given the following rubric and student answers.
-Use the rubric to grade each student answer, assign points, and provide constructive feedback.
-Return the results strictly in the JSON grading format shown in the background instructions.
+        You are grading a batch of {len(question_pairs)} question(s) from a student submission.
+        This is batch {batch_number} of {total_batches}.
 
-### Rubric JSON
-{rubric_json}
+        Grade ONLY the questions in this batch. Do not reference or grade any other questions.
+        For each question, compare the student's answer directly against the rubric criteria
+        and assign the exact point value from the matching rubric level.
 
-### Student Answers JSON
-{answer_json}
+        ### Questions and Rubrics (Batch {batch_number})
+        {json.dumps(batch_rubric, indent=2)}
 
-Now, grade the student answers based on the rubric.
-Make sure to:
-1. Match each answer with its question in the rubric.
-2. Award points according to the closest scoring level.
-3. Provide detailed feedback for each answer.
-4. Calculate the total score and overall feedback.
-"""
-        # return self.__generate_text(system_prompt, user_prompt)
+        ### Student Answers (Batch {batch_number})
+        {json.dumps(batch_answers, indent=2)}
 
-        # content = self.__generate_text(system_prompt, user_prompt)
-        # content = self.__ai_model(system_prompt, user_prompt)
+        Return a JSON object with a single key "question_evaluations" containing an array
+        of evaluation objects — one per question in this batch, in order.
+        Each evaluation must follow the exact question_evaluations structure defined in
+        your instructions. Grade question numbers: {q_numbers}.
+        """
 
         user_prompts = [{"type": "text", "text": user_prompt}]
         system_prompts = [{"type": "text", "text": system_prompt}]
 
-        response = self.execute_graded_task(
-            user=user,
-            feature="Grading Assignment",
-            task_type="grade_assignment",
-            system_prompt=system_prompts,
-            user_prompt=user_prompts,
-            assignment=assignment_model,
+        last_error = None
+        for attempt in range(3):
+            try:
+                response = self.execute_graded_task(
+                    user=user,
+                    feature="Grading Assignment",
+                    task_type="grade_assignment",
+                    system_prompt=system_prompts,
+                    user_prompt=user_prompts,
+                    assignment=assignment_model,
+                )
+                raw = response.choices[0].message.content
+
+                # Strip Markdown fences in case the model wraps output
+                raw = raw.strip()
+                if raw.startswith("```json"):
+                    raw = raw[7:]
+                elif raw.startswith("```"):
+                    raw = raw[3:]
+                if raw.endswith("```"):
+                    raw = raw[:-3]
+                raw = raw.strip()
+
+                batch_result = json.loads(raw)
+
+                evaluations = batch_result.get("question_evaluations", [])
+                if not evaluations:
+                    raise ValueError(
+                        f"Batch {batch_number} returned no question_evaluations."
+                    )
+
+                logger.info(
+                    f"[Grading] Batch {batch_number}/{total_batches} complete — "
+                    f"{len(evaluations)} question(s) graded."
+                )
+                return evaluations
+
+            except (json.JSONDecodeError, ValueError) as e:
+                last_error = e
+                logger.warning(
+                    f"[Grading] Batch {batch_number}, attempt {attempt + 1}: "
+                    f"parse failed — {str(e)}"
+                )
+            except Exception as e:
+                logger.warning(
+                    f"[Grading] Batch {batch_number}, attempt {attempt + 1}: "
+                    f"AI call failed — {str(e)}"
+                )
+        raise Exception(
+            f"[Grading] Batch {batch_number}/{total_batches} failed after 3 attempts. "
+            f"Last error: {last_error}"
         )
 
-        grade = response.choices[0].message.content
+    def _build_overall_grading_summary(
+        self,
+        user,
+        all_evaluations: list,
+        rubric_json: str,
+        answer_json: str,
+        assignment_model=None,
+    ) -> dict:
+        """
+        After all question batches are graded, runs one final AI call to produce
+        the overall grading summary fields:
+          - grading_summary (total_score, max_total_points, percentage)
+          - overall_performance_analysis
+          - score_calculation_verification
+          - grading_confidence
+          - recommendations
 
+        These fields require seeing all question_evaluations together — they
+        cannot be produced accurately from a single batch.
+
+        The score arithmetic (total_score, percentage) is also recalculated
+        in Python from the individual scores and verified before the final
+        call, so the model cannot introduce arithmetic errors.
+
+        Args:
+            user: The authenticated user (for billing).
+            all_evaluations: The full merged list of question_evaluation dicts.
+            rubric_json: JSON string — the questions array (for max points).
+            answer_json: JSON string — the answers array (for context).
+            assignment_model: The Assignment model instance.
+
+        Returns:
+            dict: The complete final grading JSON matching the output schema
+                  defined in GRADING_ASSIGNMENT_PROMPT_2.txt.
+        """
+        system_prompt = GRADING_ASSIGNMENT_PROMPT
+
+        # ── Recalculate score arithmetic in Python — never trust the model ────────
         try:
-            json_data = json.loads(grade)
-        except json.JSONDecodeError as e:
-            logger.error(f"Error decoding JSON: {str(e)}")
-            raise Exception(f"Error decoding JSON: {str(e)}") from Exception
-        return json_data
+            questions = (
+                json.loads(rubric_json) if isinstance(rubric_json, str) else rubric_json
+            )
+        except (json.JSONDecodeError, TypeError):
+            questions = []
+
+        max_total_points = sum(q.get("points", 0) for q in questions)
+
+        # Sum scores from the evaluations — use score_awarded field
+        individual_scores = []
+        for ev in all_evaluations:
+            score = ev.get("score_awarded", ev.get("points_awarded", 0))
+            individual_scores.append(score)
+
+        total_score = sum(individual_scores)
+        percentage = (
+            round((total_score / max_total_points) * 100, 2) if max_total_points else 0
+        )
+
+        # Build verification block — pass this to the model so it cannot alter
+        # the arithmetic
+        verification = {
+            "individual_scores": individual_scores,
+            "manual_sum": total_score,
+            "verification_status": "PASS",
+            "calculation_notes": (
+                f"Score arithmetic calculated by system: "
+                f"{' + '.join(str(s) for s in individual_scores)} = {total_score}"
+            ),
+        }
+
+        user_prompt = f"""
+        All questions have been graded individually. Below are all the question evaluations
+        and the verified score arithmetic. Your task is to produce ONLY the following fields
+        for the final grading report:
+          - grading_summary
+          - overall_performance_analysis
+          - grader_meta_analysis
+          - recommendations
+
+        Do NOT re-grade any question. Do NOT alter any score. The scores are final.
+
+        ### Verified Score Summary
+        - total_score: {total_score}
+        - max_total_points: {max_total_points}
+        - percentage: {percentage}
+        - score_calculation_verification: {json.dumps(verification)}
+
+        ### All Question Evaluations
+        {json.dumps(all_evaluations, indent=2)}
+
+        Return a JSON object containing exactly these top-level keys:
+        grading_summary, overall_performance_analysis, score_calculation_verification,
+        grader_meta_analysis, recommendations.
+        """
+
+        user_prompts = [{"type": "text", "text": user_prompt}]
+        system_prompts = [{"type": "text", "text": system_prompt}]
+
+        last_error = None
+        for attempt in range(3):
+            try:
+                response = self.execute_graded_task(
+                    user=user,
+                    feature="Grading Assignment",
+                    task_type="grade_assignment",
+                    system_prompt=system_prompts,
+                    user_prompt=user_prompts,
+                    assignment=assignment_model,
+                )
+                raw = response.choices[0].message.content
+
+                raw = raw.strip()
+                if raw.startswith("```json"):
+                    raw = raw[7:]
+                elif raw.startswith("```"):
+                    raw = raw[3:]
+                if raw.endswith("```"):
+                    raw = raw[:-3]
+                raw = raw.strip()
+
+                summary = json.loads(raw)
+
+                # Always overwrite score fields with Python-calculated values
+                # regardless of what the model returned — arithmetic is not
+                # the model's job here
+                summary["grading_summary"] = {
+                    "total_score": total_score,
+                    "max_total_points": max_total_points,
+                    "percentage": percentage,
+                }
+                summary["score_calculation_verification"] = verification
+
+                return summary
+
+            except (json.JSONDecodeError, ValueError) as e:
+                last_error = e
+                logger.warning(
+                    f"[Grading] Summary call attempt {attempt + 1}: "
+                    f"parse failed — {str(e)}"
+                )
+            except Exception as e:
+                logger.warning(
+                    f"[Grading] Summary call attempt {attempt + 1}: "
+                    f"AI call failed — {str(e)}"
+                )
+
+        raise Exception(
+            f"[Grading] Summary call failed after 3 attempts. Last error: {last_error}"
+        )
+
+    @transaction.atomic
+    def grade_student_submission(
+        self, user, rubric_json, answer_json, assignment_model=None
+    ):
+        """
+        Main entry point for grading a student submission.
+
+        Automatically switches to per-batch grading when the assignment has
+        more questions than GRADING_QUESTIONS_PER_CHUNK. For small assignments
+        (≤ GRADING_QUESTIONS_PER_CHUNK questions) it runs all questions in
+        a single call — identical to the original behaviour.
+
+        The batched pipeline:
+          1. Pairs each question rubric with its matching student answer
+             by question_number.
+          2. Grades each batch of GRADING_QUESTIONS_PER_CHUNK questions in
+             an isolated AI call — the model sees only those questions and
+             answers, giving it full attention for each rubric comparison.
+          3. Merges all question_evaluation results.
+          4. Runs one final AI call to produce the overall summary, patterns,
+             and recommendations from the complete picture.
+          5. Recalculates all score arithmetic in Python and overwrites any
+             model-generated numbers — the model cannot introduce errors here.
+        """
+        try:
+            questions = (
+                json.loads(rubric_json) if isinstance(rubric_json, str) else rubric_json
+            )
+        except (json.JSONDecodeError, TypeError):
+            questions = []
+
+        total_questions = len(questions)
+
+        # ── Single-pass path for small assignments ──────────
+        if total_questions <= GRADING_QUESTIONS_PER_CHUNK:
+            logger.info(
+                f"[Grading] {total_questions} question(s) - using single pass grading"
+            )
+
+            system_prompt = GRADING_ASSIGNMENT_PROMPT
+
+            user_prompt = f"""
+    You are given the following rubric and student answers.
+    Use the rubric to grade each student answer, assign points, and provide constructive feedback.
+    Return the results strictly in the JSON grading format shown in the background instructions.
+
+    ### Rubric JSON
+    {rubric_json}
+
+    ### Student Answers JSON
+    {answer_json}
+
+    Now, grade the student answers based on the rubric.
+    Make sure to:
+    1. Match each answer with its question in the rubric.
+    2. Award points according to the closest scoring level.
+    3. Provide detailed feedback for each answer.
+    4. Calculate the total score and overall feedback.
+    """
+
+            user_prompts = [{"type": "text", "text": user_prompt}]
+            system_prompts = [{"type": "text", "text": system_prompt}]
+
+            response = self.execute_graded_task(
+                user=user,
+                feature="Grading Assignment",
+                task_type="grade_assignment",
+                system_prompt=system_prompts,
+                user_prompt=user_prompts,
+                assignment=assignment_model,
+            )
+
+            grade = response.choices[0].message.content
+
+            try:
+                json_data = json.loads(grade)
+                return json_data
+            except json.JSONDecodeError as e:
+                logger.error(f"Error decoding JSON: {str(e)}")
+                raise Exception(f"Error decoding JSON: {str(e)}") from Exception
+
+        # ── Batched path for large assignments ────────────────────────────────────
+        logger.info(
+            f"[Grading] {total_questions} questions — "
+            f"switching to batched grading ({GRADING_QUESTIONS_PER_CHUNK} questions/batch)."
+        )
+
+        # Step 1: Pair every question with its student answer
+        question_pairs = self._pair_question_with_answers(rubric_json, answer_json)
+
+        # Step 2: Split into batches
+        batches = self._split_into_chunks(question_pairs, GRADING_QUESTIONS_PER_CHUNK)
+        total_batches = len(batches)
+
+        logger.info(
+            f"[Grading] {total_questions} questions → "
+            f"{total_batches} batches of up to {GRADING_QUESTIONS_PER_CHUNK}."
+        )
+
+        # Step 3: Grade each batch independently
+        all_evaluations = []
+
+        for batch_index, batch in enumerate(batches):
+            batch_number = batch_index + 1
+            q_nums = [p["question"].get("question_number") for p in batch]
+
+            logger.info(
+                f"[Grading] Grading batch {batch_number}/{total_batches} "
+                f"(Q{q_nums[0]}–Q{q_nums[-1]})..."
+            )
+
+            batch_evaluations = self._grade_question_batch(
+                user=user,
+                question_pairs=batch,
+                batch_number=batch_number,
+                total_batches=total_batches,
+                assignment_model=assignment_model,
+            )
+            all_evaluations.extend(batch_evaluations)
+
+        logger.info(
+            f"[Grading] All {total_batches} batches complete. "
+            f"{len(all_evaluations)} question evaluations collected. "
+            f"Building overall summary..."
+        )
+
+        # Step 4: Build the overall summary from all evaluations
+        summary = self._build_overall_grading_summary(
+            user=user,
+            all_evaluations=all_evaluations,
+            rubric_json=rubric_json,
+            answer_json=answer_json,
+            assignment_model=assignment_model,
+        )
+
+        # Step 5: Assemble the final result — evaluations + summary
+        final_result = {
+            **summary,
+            "question_evaluations": all_evaluations,
+        }
+
+        logger.info(
+            f"[Grading] Complete. Score: {summary['grading_summary']['total_score']}/"
+            f"{summary['grading_summary']['max_total_points']} "
+            f"({summary['grading_summary']['percentage']}%)"
+        )
+
+        return final_result
 
     def extract_grade_with_retry(
         self,
@@ -962,10 +1777,10 @@ Make sure to:
                 )
             except Exception as e:
                 last_error = e
-                logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
+                logger.warning(f"[Grading] Attempt {attempt + 1} failed: {str(e)}")
 
                 if attempt < max_retries - 1:
-                    logger.info("Retrying...")
+                    logger.info("[Grading] Retrying...")
 
         raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
 

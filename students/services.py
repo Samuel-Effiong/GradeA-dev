@@ -185,10 +185,26 @@ def notify_teacher_of_student_submission(submission):
         f"{submission.assignment.title or 'an assignment'} "
         f"for {submission.assignment.course.name}."
     )
+
+    # content = f"""
+    # {submission.student.get_full_name()} has submitted work for {submission.assignment.title or 'an assignment'}
+    # for {submission.assignment.course.name}.
+    #
+    # <b>Submission Detail</b>
+    #
+    # <ul>
+    #     <li><strong>Student:</strong> {submission.student.get_full_name()}</li>
+    #     <li><strong>Course:</strong> {submission.assignment.course.name}</li>
+    #     <li><strong>Assignment:</strong> {submission.assignment.title}</li>
+    #     <li><strong>Submitted At:</strong> {submission.submission_date}</li>
+    # </ul>
+    #
+    # You can review the submission from your Grade A+ Dashboard.
+    # """
+
     # merge_data = {
-    #     "name": f"{user.first_name}",
-    #     "activation_url": activation_url,
-    #     "expiration_duration": 15,
+    #     "name": f"{teacher.first_name}",
+    #     "content": content,
     #     "support_email": settings.SUPPORT_EMAIL,
     #     "current_year": timezone.now().year,
     # }
