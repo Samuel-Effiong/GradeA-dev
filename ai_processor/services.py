@@ -1538,6 +1538,7 @@ Do not include any explanatory text before or after the JSON
           - grading_summary
           - overall_performance_analysis
           - grader_meta_analysis
+          - grading_confidence
           - recommendations
 
         Do NOT re-grade any question. Do NOT alter any score. The scores are final.
@@ -1553,7 +1554,7 @@ Do not include any explanatory text before or after the JSON
 
         Return a JSON object containing exactly these top-level keys:
         grading_summary, overall_performance_analysis, score_calculation_verification,
-        grader_meta_analysis, recommendations.
+        grader_meta_analysis, grading_confidence, recommendations.
         """
 
         user_prompts = [{"type": "text", "text": user_prompt}]
