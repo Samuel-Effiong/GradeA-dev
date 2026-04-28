@@ -716,9 +716,8 @@ Before finalizing your output, verify:
    - Judge each answer on its own merits
 
 3. **RUBRIC FIDELITY**:
-   - ALWAYS use exact point values from rubric levels
-   - NEVER create custom point values between levels
-   - If answer doesn't fit rubric, choose closest level and document reasoning
+   - use point values from rubric levels
+   - You can create custom point values within levels if answer justifies it and document your reasoning
 
 4. **CONSTRUCTIVE FEEDBACK**:
    - NEVER be discouraging or harsh

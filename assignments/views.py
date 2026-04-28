@@ -814,7 +814,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
             tasks_data.append({"file_name": uploaded_file.name, "task_id": task.id})
 
-            tasks_data.append({"file_name": uploaded_file.name, "task_id": task})
+            # tasks_data.append({"file_name": uploaded_file.name, "task_id": task})
 
         data = {
             "session_id": session.id,
