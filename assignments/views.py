@@ -1031,10 +1031,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         submissions = assignment.submissions.all()
 
         if not submissions.exists():
-            return Response(
-                {"message": "No submissions to grade"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ParseError("No submissions to grade")
 
         session = BatchUploadSession.objects.create(
             teacher=request.user,
