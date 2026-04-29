@@ -1,9 +1,12 @@
+import logging
+
 from dateutil.relativedelta import relativedelta  # type: ignore
 from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
 
 from .models import (  # CreditUsageLog,; SubscriptionPlan,
+    CONVERSION_FACTOR,
     BetaProfile,
     CreditBucket,
     CreditBucketType,
@@ -13,6 +16,8 @@ from .models import (  # CreditUsageLog,; SubscriptionPlan,
     CreditWallet,
     UserSubscription,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class SubscriptionService:
@@ -172,7 +177,9 @@ class SubscriptionService:
                         reference=f"Rollover from {old_plan.name} to {target_plan.name}",
                         metadata={
                             "previous_unused": unused_credits,
-                            "rollover_applied_percent": str(target_plan.car),
+                            "rollover_applied_percent": str(
+                                target_plan.carry_over_percent
+                            ),
                         },
                     )
 
@@ -189,8 +196,10 @@ class SubscriptionService:
         """Schedule a downgrade for the end of the billing cycle"""
 
         # 1. Find the currently active subscription
-        current_sub = UserSubscription.objects.select_for_update().filter(
-            user=user, is_active=True
+        current_sub = (
+            UserSubscription.objects.select_for_update()
+            .filter(user=user, is_active=True)
+            .first()
         )
 
         if not current_sub:
@@ -234,7 +243,7 @@ class SubscriptionService:
         new_bucket = CreditBucket.objects.create(
             wallet=wallet,
             bucket_type=CreditBucketType.OVERAGE,
-            total_credits=plan.max_overage_blocks,
+            total_credits=plan.overage_block_size,
             used_credits=0,
             expires_at=user_sub.billing_cycle_end,
         )
@@ -323,10 +332,121 @@ class SubscriptionService:
 
             total_refunded += amount_to_restore
 
-        usage_logs.is_refunded = True
-        usage_logs.save(update_fields=["is_refunded", "updated_at"])
+        usage_logs.update(is_refunded=True)
 
         return total_refunded
+
+
+class ManualCreditService:
+    """
+    Handles superadmin-initiated manual credit grants.
+
+    All grants create a dedicated MANUAL_GRANT CreditBucket so they are
+    clearly distinguishable from subscription-driven credits in the ledger,
+    wallet summary, and analytics. This keeps beta cohort data clean and
+    gives support teams an unambiguous audit trail.
+    """
+
+    @staticmethod
+    @transaction.atomic
+    def top_up_credits(
+        target_user, amount_display, reason, expires_at=None, granted_by=None
+    ):
+        """
+        Injects a manual credit grant into a user's wallet.
+
+        Args:
+            target_user (CustomUser): The user receiving the credits.
+            amount_display (int): Credit amount in display units (multiplied
+                by CONVERSION_FACTOR internally). Must be >= 1.
+            reason (str): Human-readable explanation shown in the audit ledger.
+            expires_at (datetime | None): Optional expiry. None = credits never expire.
+            granted_by (CustomUser | None): The admin authorising the grant, recorded
+                in the ledger metadata for accountability.
+
+        Returns:
+            CreditBucket: The newly created MANUAL_GRANT bucket.
+
+        Raises:
+            ValueError: If amount_display is less than 1.
+        """
+
+        if amount_display < 1:
+            raise ValueError("Credit amount must be at least 1.")
+
+        raw_amount = amount_display * CONVERSION_FACTOR
+
+        # Ensure the wallet exists (it should via signals, but be defensive)
+        wallet, _ = CreditWallet.objects.get_or_create(user=target_user)
+
+        # Create the MANUAL_GRANT bucket
+        bucket = CreditBucket.objects.create(
+            wallet=wallet,
+            bucket_type=CreditBucketType.MANUAL_GRANT,
+            total_credits=raw_amount,
+            used_credits=0,
+            expires_at=expires_at,
+        )
+
+        # Immutable audit ledger entry
+        CreditLedger.objects.create(
+            user=target_user,
+            bucket=bucket,
+            ledger_type=CreditLedgerType.GRANT,
+            amount=raw_amount,
+            reference=reason,
+            metadata={
+                "grant_type": "MANUAL_ADMIN_GRANT",
+                "display_amount": amount_display,
+                "raw_amount": raw_amount,
+                "expires_at": expires_at.isoformat() if expires_at else None,
+                "granted_by_id": str(granted_by.id) if granted_by else None,
+                "granted_by_email": granted_by.email if granted_by else None,
+            },
+        )
+
+        logger.info(
+            "Manual credit grant: %d display credits (%d raw) granted to %s by %s. "
+            "Bucket ID: %s. Expires: %s. Reason: %s",
+            amount_display,
+            raw_amount,
+            target_user.email,
+            granted_by.email if granted_by else "system",
+            bucket.id,
+            expires_at or "never",
+            reason,
+        )
+
+        return bucket
+
+    @staticmethod
+    def get_grant_history(target_user):
+        """
+        Returns all MANUAL_GRANT buckets for a user, most recent first.
+        Includes both active and expired grants for full audit visibility.
+        """
+
+        return (
+            CreditBucket.objects.filter(
+                wallet__user=target_user,
+                bucket_type=CreditBucketType.MANUAL_GRANT,
+            )
+            .select_related("wallet__user")
+            .prefetch_related("credit_ledgers")
+            .order_by("-created_at")
+        )
+
+    @staticmethod
+    def get_all_grants_summary():
+        """
+        Returns a queryset of all MANUAL_GRANT buckets across all users.
+        Used by the superadmin dashboard to audit the full grant history.
+        """
+        return (
+            CreditBucket.objects.filter(bucket_type=CreditBucketType.MANUAL_GRANT)
+            .select_related("wallet__user")
+            .order_by("-created_at")
+        )
 
 
 class AnalyticsService:
@@ -428,7 +548,7 @@ class AnalyticsService:
                 score += 20
 
         # +20 points for "Core Use Case" (Grading > Creation)
-        if profile.credit_used_grading > profile.credit_used_creation:
+        if profile.credits_used_grading > profile.credits_used_creation:
             score += 20
 
         # Calculate Velocity (Credits per day)

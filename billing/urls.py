@@ -10,6 +10,7 @@ from .views import (
     SubscriptionPlanViewSet,
     UserSubscriptionViewSet,
 )
+from .views_admin_credits import AdminCreditManagementViewSet
 
 router = DefaultRouter(trailing_slash=False)
 router.register(
@@ -26,5 +27,9 @@ router.register(
 )
 router.register(r"subscription", SubscriptionManagementViewSet, basename="subscription")
 router.register(r"analytics", BetaAnalyticViewSet, basename="analytics")
+
+router.register(
+    r"admin/credits", AdminCreditManagementViewSet, basename="admin-credits"
+)
 
 urlpatterns = router.urls

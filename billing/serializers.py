@@ -6,6 +6,7 @@ from rest_framework import serializers
 from users.models import CustomUser
 
 from .models import (
+    CONVERSION_FACTOR,
     CreditBucket,
     CreditBucketType,
     CreditLedger,
@@ -374,6 +375,170 @@ class CarryOverHistorySerializer(serializers.ModelSerializer):
         if obj.remaining_credits == 0:
             return "exhausted"
         return "active"
+
+
+class ManualCreditTopUpSerializer(serializers.Serializer):
+    """
+    Input serializer for a superadmin manual credit grant.
+
+    `amount` is expressed in display units (the user-facing number).
+    Internally it is multiplied by CONVERSION_FACTOR before storage.
+    For example, passing amount=500 injects 500,000 raw credits.
+    """
+
+    user_id = serializers.UUIDField(
+        help_text="UUID of the user who will receive the credits."
+    )
+    amount = serializers.IntegerField(
+        min_value=1,
+        help_text=(
+            "Credits to grant in display units (e.g. 500 = 500 AI credits visible "
+            f"to the user). Stored internally as amount × {CONVERSION_FACTOR}."
+        ),
+    )
+    reason = serializers.CharField(
+        max_length=500,
+        help_text=(
+            "Human-readable explanation for the grant. This is written verbatim "
+            "into the immutable audit ledger."
+        ),
+    )
+    expires_at = serializers.DateTimeField(
+        required=False,
+        allow_null=True,
+        default=None,
+        help_text=(
+            "Optional expiry datetime (ISO 8601). If omitted or null, "
+            "the granted credits never expire."
+        ),
+    )
+
+    def validate_user_id(self, value):
+        try:
+            user = CustomUser.objects.get(id=value)
+        except CustomUser.DoesNotExist as e:
+            raise serializers.ValidationError(
+                f"No user found with id {value!r}."
+            ) from e
+        return user  # Return the resolved instance for convenience in the view
+
+    def validate_expires_at(self, value):
+        if value and value <= timezone.now():
+            raise serializers.ValidationError("expires_at must be a future datetime.")
+        return value
+
+    def validate(self, data):
+        # Replace user_id with the resolved user object (set by validate_user_id)
+        # so the view can pass it directly to ManualCreditService.
+        return data
+
+
+class ManualGrantBucketSerializer(serializers.ModelSerializer):
+    """
+    Read serializer for a MANUAL_GRANT CreditBucket.
+    Exposes display-unit amounts and a computed status for the frontend.
+    """
+
+    display_total = serializers.SerializerMethodField(
+        help_text=f"total_credits ÷ {CONVERSION_FACTOR} (user-facing amount)"
+    )
+    display_remaining = serializers.SerializerMethodField(
+        help_text=f"remaining_credits ÷ {CONVERSION_FACTOR} (user-facing amount)"
+    )
+    display_used = serializers.SerializerMethodField(
+        help_text=f"used_credits ÷ {CONVERSION_FACTOR} (user-facing amount)"
+    )
+    status = serializers.SerializerMethodField()
+    days_until_expiry = serializers.SerializerMethodField()
+    granted_by_email = serializers.SerializerMethodField(
+        help_text="Email of the admin who created this grant (from the ledger metadata)."
+    )
+    ledger_reason = serializers.SerializerMethodField(
+        help_text="The reason string recorded in the audit ledger."
+    )
+    is_expired = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CreditBucket
+        fields = [
+            "id",
+            "wallet",
+            "bucket_type",
+            "total_credits",
+            "used_credits",
+            "display_total",
+            "display_remaining",
+            "display_used",
+            "expires_at",
+            "days_until_expiry",
+            "is_expired",
+            "status",
+            "granted_by_email",
+            "ledger_reason",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+    def get_display_total(self, obj) -> int:
+        return obj.total_credits // CONVERSION_FACTOR
+
+    def get_display_remaining(self, obj) -> int:
+        return obj.remaining_credits // CONVERSION_FACTOR
+
+    def get_display_used(self, obj) -> int:
+        return obj.used_credits // CONVERSION_FACTOR
+
+    def get_is_expired(self, obj) -> bool:
+        return obj.is_expired()
+
+    def get_status(self, obj) -> str:
+        if obj.is_expired():
+            return "expired"
+        if obj.remaining_credits == 0:
+            return "exhausted"
+        return "active"
+
+    def get_days_until_expiry(self, obj) -> int | None:
+        if not obj.expires_at:
+            return None
+        delta = obj.expires_at - timezone.now()
+        return max(0, delta.days)
+
+    def _get_ledger_entry(self, obj):
+        """Helper: fetch the GRANT ledger entry for this bucket (cached on instance)."""
+        if not hasattr(obj, "_grant_ledger"):
+            obj._grant_ledger = obj.credit_ledgers.filter(ledger_type="GRANT").first()
+        return obj._grant_ledger
+
+    def get_granted_by_email(self, obj) -> str | None:
+        ledger = self._get_ledger_entry(obj)
+        if ledger and ledger.metadata:
+            return ledger.metadata.get("granted_by_email")
+        return None
+
+    def get_ledger_reason(self, obj) -> str | None:
+        ledger = self._get_ledger_entry(obj)
+        return ledger.reference if ledger else None
+
+
+class AdminGrantSummarySerializer(serializers.Serializer):
+    """
+    Aggregate summary of all manual grants — used on the superadmin dashboard.
+    """
+
+    total_grants = serializers.IntegerField()
+    total_credits_granted_display = serializers.IntegerField(
+        help_text="Sum of all granted credits in display units."
+    )
+    total_credits_remaining_display = serializers.IntegerField(
+        help_text="Sum of all remaining credits across active MANUAL_GRANT buckets."
+    )
+    active_grants = serializers.IntegerField(
+        help_text="Number of grants that are not expired and not exhausted."
+    )
+    expired_grants = serializers.IntegerField()
+    exhausted_grants = serializers.IntegerField()
 
 
 class BetaSummarySerializer(serializers.Serializer):
