@@ -973,10 +973,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         ungraded_submissions = assignment.submissions.filter(Q(graded_at__isnull=True))
 
         if not ungraded_submissions.exists():
-            return Response(
-                {"message": "No ungraded submissions to process"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ParseError("No ungraded submissons to process")
 
         session = BatchUploadSession.objects.create(
             teacher=request.user,
@@ -1031,7 +1028,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         submissions = assignment.submissions.all()
 
         if not submissions.exists():
-            raise ParseError("No submissions to grade")
+            raise ParseError("No submissions to process")
 
         session = BatchUploadSession.objects.create(
             teacher=request.user,
