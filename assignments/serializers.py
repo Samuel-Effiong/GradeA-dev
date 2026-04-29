@@ -391,7 +391,7 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
             grade_status = "N/A"
             if submission:
                 if submission.was_regraded and submission.regraded_at:
-                    grade_status = "REGRADED"
+                    grade_status = "GRADED"
                 elif submission.graded_at is not None:
                     grade_status = "GRADED"
                 elif submission.ai_graded_at is not None:
@@ -409,6 +409,7 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
                     "grade_percentage": grade_percentage,
                     "max_points": submission.max_points if submission else None,
                     "grade_status": grade_status,
+                    "is_regraded": submission.was_regraded if submission else None,
                     "is_published": submission.is_published if submission else False,
                     # "teacher_feedback": (
                     #     submission.formatted_grade if submission else None
