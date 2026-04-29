@@ -22,6 +22,7 @@ class ConcurrencySerializer(serializers.Serializer):
 class StudentAssignmentListSerializer(serializers.ModelSerializer):
     assignment = serializers.IntegerField(source="id", read_only=True)
     score = serializers.CharField()
+    score_percentage = serializers.FloatField(read_only=True)
     submission_date = serializers.DateTimeField()
     feedback = serializers.CharField()
     submission_status = serializers.CharField(max_length=30)
@@ -34,6 +35,7 @@ class StudentAssignmentListSerializer(serializers.ModelSerializer):
             "due_date",
             "submission_date",
             "score",
+            "score_percentage",
             "submission_status",
             "feedback",
         ]
@@ -45,6 +47,7 @@ class AssignmentPerformanceSerializer(serializers.Serializer):
     assignment_id = serializers.UUIDField(source="assignment.id", read_only=True)
     assignment_name = serializers.CharField(source="assignment.title", read_only=True)
     score = serializers.FloatField(read_only=True)
+    score_percentage = serializers.FloatField(read_only=True)
 
 
 class CourseAnalyticsSerializer(serializers.Serializer):
@@ -242,6 +245,7 @@ class StudentAssignmentHistorySerializer(serializers.Serializer):
     assignment_title = serializers.CharField(read_only=True)
     submitted = serializers.BooleanField(read_only=True)
     score = serializers.FloatField(read_only=True, allow_null=True)
+    score_percentage = serializers.FloatField(read_only=True, allow_null=True)
     graded_at = serializers.DateTimeField(read_only=True, allow_null=True)
 
 
@@ -251,6 +255,7 @@ class MiniAssignmentSerializer(serializers.Serializer):
     id = serializers.UUIDField(read_only=True)
     title = serializers.CharField(read_only=True)
     score = serializers.FloatField(read_only=True)
+    score_percentage = serializers.FloatField(read_only=True)
 
 
 class TeacherStudentAnalyticsSerializer(serializers.Serializer):

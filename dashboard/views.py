@@ -1578,7 +1578,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             course_performance = (
                 Course.objects.filter(teacher=teacher, session=session)
                 .annotate(
-                    average_grade=Avg("assignments__submissions__score"),
+                    average_grade=Avg("assignments__submissions__score_percentage"),
                     total_submissions=Count("assignments__submissions"),
                 )
                 .values("id", "name", "average_grade", "total_submissions")
@@ -1798,23 +1798,23 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             # Average grade by Assignment Type
             avg_grade_by_type = graded_submissions.values(
                 "assignment__assignment_type"
-            ).annotate(avg_score=Avg("score"))
+            ).annotate(avg_score=Avg("score_percentage"))
 
             avg_grade_by_topic = graded_submissions.values(
                 "assignment__topic__name"
-            ).annotate(avg_score=Avg("score"))
+            ).annotate(avg_score=Avg("score_percentage"))
 
             # Lowest Mastery Assignment
             lowest_assignment = (
                 graded_submissions.values("assignment__id", "assignment__title")
-                .annotate(avg_score=Avg("score"))
+                .annotate(avg_score=Avg("score_percentage"))
                 .order_by("avg_score")  # Fixed: order by ascending for lowest mastery
                 .first()
             )
 
             # Course Performance trend
             trend_data = graded_submissions.order_by("graded_at").values_list(
-                "graded_at", "score"
+                "graded_at", "score_percentage"
             )
 
             trend = "stable"
@@ -1925,9 +1925,9 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             submissions = StudentSubmission.objects.filter(assignment=assignment)
             total_submissions = submissions.count()
             average_grade = (
-                submissions.filter(score__isnull=False).aggregate(avg=Avg("score"))[
-                    "avg"
-                ]
+                submissions.filter(score__isnull=False).aggregate(
+                    avg=Avg("score_percentage")
+                )["avg"]
                 or 0
             )
 
@@ -2056,14 +2056,14 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 # Filter specifically for graded submissions from the prefetched list
                 graded = [s for s in student_course_submissions if s.score is not None]
 
-                # Best/Worst
-                best = max(graded, key=lambda s: s.score, default=None)
-                worst = min(graded, key=lambda s: s.score, default=None)
+                # Best/Worst (using score_percentage for normalized comparison)
+                best = max(graded, key=lambda s: s.score_percentage or 0, default=None)
+                worst = min(graded, key=lambda s: s.score_percentage or 0, default=None)
 
                 # Trend (last 3)
                 # Since query is ordered by graded_at, last 3 are at the end
                 recent = graded[-3:] if len(graded) >= 3 else graded
-                scores = [float(s.score) for s in recent]
+                scores = [float(s.score_percentage or 0) for s in recent]
 
                 if len(scores) < 2:
                     trend = "INSUFFICIENT_DATA"
@@ -2091,6 +2091,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                         "assignment_title": s.assignment.title,
                         "submitted": True,
                         "score": s.score,
+                        "score_percentage": s.score_percentage,
                         "graded_at": s.graded_at,
                     }
                     for s in student_course_submissions
@@ -2112,6 +2113,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                                 "id": best.assignment.id,
                                 "title": best.assignment.title,
                                 "score": best.score,
+                                "score_percentage": best.score_percentage,
                             }
                             if best
                             else None
@@ -2121,6 +2123,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                                 "id": worst.assignment.id,
                                 "title": worst.assignment.title,
                                 "score": worst.score,
+                                "score_percentage": worst.score_percentage,
                             }
                             if worst
                             else None
@@ -2336,18 +2339,22 @@ class StudentAdminDashboardView(viewsets.ViewSet):
             ).count()
 
             # 7. Average grade (course)
-            average_grade = submissions.aggregate(avg=Avg("score"))["avg"] or 0
+            average_grade = (
+                submissions.aggregate(avg=Avg("score_percentage"))["avg"] or 0
+            )
 
             recent_scores = list(
                 submissions.order_by("-submission_date").values_list(
-                    "score", flat=True
+                    "score_percentage", flat=True
                 )[:5]
             )
 
             trend = "stable"
             if len(recent_scores) >= 3:
-                first_half = recent_scores[: len(recent_scores) // 2]
-                second_half = recent_scores[len(recent_scores) // 2 :]
+                # Use only valid scores for trend
+                valid_scores = [float(s or 0) for s in recent_scores]
+                first_half = valid_scores[: len(valid_scores) // 2]
+                second_half = valid_scores[len(valid_scores) // 2 :]
 
                 if sum(second_half) > sum(first_half):
                     trend = "improving"
@@ -2355,8 +2362,8 @@ class StudentAdminDashboardView(viewsets.ViewSet):
                     trend = "declining"
 
             # 9. Best & Worst assignments
-            best_assignments = submissions.order_by("-score")[:3]
-            worst_assignments = submissions.order_by("score")[:3]
+            best_assignments = submissions.order_by("-score_percentage")[:3]
+            worst_assignments = submissions.order_by("score_percentage")[:3]
 
             data = {
                 "course": course.id,
@@ -2435,17 +2442,17 @@ class StudentAdminDashboardView(viewsets.ViewSet):
                         if a.due_date and s.submission_date > a.due_date
                         else "submitted"
                     )
-                    score = s.score
+
                     submission_date = a.submissions.first().submission_date
-                    feedback = s.feedback
                     data.append(
                         {
                             "assignment": a,
                             "title": a.title,
                             "due_date": a.due_date,
                             "submission_date": submission_date,
-                            "score": score,
-                            "feedback": feedback,
+                            "score": s.score,
+                            "score_percentage": s.score_percentage,
+                            "feedback": s.feedback,
                             "submission_status": submission_status,
                         }
                     )
