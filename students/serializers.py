@@ -279,11 +279,15 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
         return "SUBMITTED"
 
     def get_grade_status(self, obj):
-        if obj.was_regraded and obj.regraded_at:
-            return "REGRADED"
-        if obj.graded_at:
+        if obj.graded_at is None:
+            return "NOT GRADED"
+        else:
             return "GRADED"
-        return "NOT GRADED"
+        # if obj.was_regraded and obj.regraded_at:
+        #     return "REGRADED"
+        # if obj.graded_at:
+        #     return "GRADED"
+        # return "NOT GRADED"
 
     def get_is_grading_scheduled(self, obj) -> bool:
         return bool(
