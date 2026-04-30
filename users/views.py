@@ -745,8 +745,19 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         user.save()
 
         otp_obj.delete()
+
+        tokens = OutstandingToken.objects.filter(user=user)
+        for token in tokens:
+            BlacklistedToken.objects.get_or_create(token=token)
+
+        refresh = RefreshToken.for_user(user)
+
         return Response(
-            {"detail": "Password has been reset successfully."},
+            {
+                "detail": "Password has been reset successfully. You are now logged in.",
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+            },
             status=status.HTTP_200_OK,
         )
 
@@ -850,7 +861,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         refresh = RefreshToken.for_user(user)
         return Response(
             {
-                "detail": "Password changed successfully. All other devices have been logged out.",
+                "detail": "Password changed successfully.",
                 "access": str(refresh.access_token),
                 "refresh": str(refresh),
             }
