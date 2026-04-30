@@ -817,28 +817,28 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         serializer.is_valid(raise_exception=True)
 
         user = request.user
-        otp = serializer.validated_data.get("otp")
+        # otp = serializer.validated_data.get("otp")
         current_password = serializer.validated_data.get("current_password")
         new_password = serializer.validated_data.get("new_password")
 
         if not user.check_password(current_password):
             raise ParseError("Incorrect current password. Please try again.")
 
-        try:
-            otp_obj = PasswordChangeOTP.objects.get(user=user, code=otp)
-        except PasswordChangeOTP.DoesNotExist:
-            raise ParseError(
-                "Invalid OTP or expired OTP. Please try again."
-            ) from Exception
+        # try:
+        #     otp_obj = PasswordChangeOTP.objects.get(user=user, code=otp)
+        # except PasswordChangeOTP.DoesNotExist:
+        #     raise ParseError(
+        #         "Invalid OTP or expired OTP. Please try again."
+        #     ) from Exception
 
-        if not otp_obj.is_valid():
-            otp_obj.delete()
-            raise ParseError("Invalid OTP or expired OTP. Please try again.")
+        # if not otp_obj.is_valid():
+        #     otp_obj.delete()
+        #     raise ParseError("Invalid OTP or expired OTP. Please try again.")
 
         user.set_password(new_password)
         user.save()
 
-        otp_obj.delete()
+        # otp_obj.delete()
 
         return Response({"detail": "Password changed successfully"})
 
