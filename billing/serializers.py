@@ -1,3 +1,5 @@
+"The love of God"
+
 from django.db.models import F, Sum
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
