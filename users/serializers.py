@@ -131,6 +131,9 @@ class CustomUserSerializer(serializers.ModelSerializer):
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
+        if "email" in attrs:
+            attrs["email"] = attrs["email"].lower().strip()
+
         data = super().validate(attrs)
         user_data = CustomUserSerializer(self.user).data
 
