@@ -293,10 +293,18 @@ class CreditWalletSummarySerializer(serializers.ModelSerializer):
           - >= 20%  → Amber  (warning)
           -  < 20%  → Red    (critical)
         """
+        # total = self.get_monthly_credit_total(obj)
+        # if not total:
+        #     return 0.0
+        # remaining = self.get_monthly_credit_remaining(obj)
+        # percentage = (remaining / total) * 100
+        # return round(min(percentage, 100.0), 2)
+
         total = self.get_monthly_credit_total(obj)
         if not total:
             return 0.0
-        remaining = self.get_monthly_credit_remaining(obj)
+
+        remaining = getattr(obj, "display_balance", obj.display_balance)
         percentage = (remaining / total) * 100
         return round(min(percentage, 100.0), 2)
 
