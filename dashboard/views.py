@@ -1822,7 +1822,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 first = trend_data.first()[1]
                 last = trend_data.last()[1]
 
-                if last > first:
+                if last is not None and first is not None and last > first:
                     trend = "improving"
                 elif last < first:
                     trend = "declining"
