@@ -1,5 +1,6 @@
 "The love of God"
 
+from django.db import models
 from django.db.models import F, Sum
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
@@ -300,13 +301,35 @@ class CreditWalletSummarySerializer(serializers.ModelSerializer):
         # percentage = (remaining / total) * 100
         # return round(min(percentage, 100.0), 2)
 
-        total = self.get_monthly_credit_total(obj)
-        if not total:
+        # total = self.get_monthly_credit_total(obj)
+        # if not total:
+        #     return 0.0
+
+        # remaining = getattr(obj, "display_balance", obj.display_balance)
+        # percentage = (remaining / total) * 100
+        # return round(min(percentage, 100.0), 2)
+
+        now = timezone.now()
+
+        active_buckets_query = obj.buckets.filter(
+            models.Q(expires_at__isnull=True) | models.Q(expires_at__gt=now)
+        )
+
+        aggregate_result = active_buckets_query.aggregate(
+            total_initial=models.Sum("total_credits")
+        )
+        total_allocated = aggregate_result["total_initial"] or 0
+
+        # 2. Prevent Division by Zero (if they have absolutely no active buckets)
+        if not total_allocated:
             return 0.0
 
-        remaining = getattr(obj, "display_balance", obj.display_balance)
-        percentage = (remaining / total) * 100
-        return round(min(percentage, 100.0), 2)
+        # 3. Calculate Global Percentage using the raw remaining value
+        # (It's mathematically safer to stick to raw DB units here rather than display units)
+        remaining = obj.total_remaining_credits()
+        percentage = (remaining / total_allocated) * 100
+
+        return round(percentage, 2)
 
 
 class UsageSummarySerializer(serializers.Serializer):
