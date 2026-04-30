@@ -1636,7 +1636,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 .select_related("student", "course")
                 .annotate(
                     avg_grade_val=Avg(
-                        "student__submissions__score",
+                        "student__submissions__score_percentage",
                         filter=Q(
                             student__submissions__assignment__course=F("course_id")
                         ),
@@ -2029,7 +2029,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 .select_related("student")
                 .annotate(
                     avg_grade_val=Avg(
-                        "student__submissions__score",
+                        "student__submissions__score_percentage",
                         filter=Q(student__submissions__assignment__course=course),
                     ),
                     submitted_count_val=Count(
