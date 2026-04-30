@@ -39,6 +39,10 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.token_blacklist.models import (
+    BlacklistedToken,
+    OutstandingToken,
+)
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import (
     TokenObtainPairView as BaseTokenObtainPairView,
@@ -838,9 +842,23 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         user.set_password(new_password)
         user.save()
 
+        tokens = OutstandingToken.objects.filter(user=user)
+        for token in tokens:
+            BlacklistedToken.objects.get_or_create(token=token)
+
+        # 2. Generate new tokens for the current device
+        refresh = RefreshToken.for_user(user)
+        return Response(
+            {
+                "detail": "Password changed successfully. All other devices have been logged out.",
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+            }
+        )
+
         # otp_obj.delete()
 
-        return Response({"detail": "Password changed successfully"})
+        # return Response({"detail": "Password changed successfully"})
 
     @extend_schema(
         tags=["Authentication"],
