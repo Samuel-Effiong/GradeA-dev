@@ -564,7 +564,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
             )
 
         user_subscription.auto_renew = False
-        user_subscription.save(updated_fields=["auto_renew", "updated_at"])
+        user_subscription.save(update_fields=["auto_renew", "updated_at"])
 
         return Response(
             {

@@ -234,22 +234,26 @@ class CreditWallet(models.Model):
     @transaction.atomic
     def consume_credits(self, amount, feature=None, task_type=None, task_id=None):
         """
-        Consumes credits from the user's wallet.
+        Consumes credits from the user's wallet using a smart expiry-aware FIFO strategy.
 
-        This method attempts to deduct the specified amount of credits from the user's
-        available balance. It prioritizes consumption from the oldest valid buckets
-        (Carry Over -> Monthly -> Overage) to ensure fair usage and minimize waste.
+        Consumption order is determined by expiry date (soonest-expiring first) among
+        CARRY_OVER, MONTHLY, and MANUAL_GRANT buckets, with OVERAGE always consumed last.
+        MANUAL_GRANT buckets with no expiry are consumed after time-bounded buckets
+        but before OVERAGE, ensuring goodwill credits don't displace subscription value
+        unnecessarily while still being used before paid overage blocks.
 
         Args:
-            amount (int): The number of credits to consume.
-            feature (str, optional): The feature or service for which credits are being consumed.
-            task_type (str, optional): The type of task being performed.
-            task_id (str, optional): The ID of the task.
+            amount (int): Raw credits to consume.
+            feature (str, optional): Feature identifier for analytics.
+            task_type (str, optional): Task type for analytics.
+            task_id (str, optional): Task ID for refund traceability.
 
         Returns:
-            bool: True if credits were successfully consumed, False otherwise.
+            int: The amount consumed (always equals requested amount on success).
+
+        Raises:
+            InsufficientCreditsError: If total available credits are less than requested.
         """
-        remaining = amount
         total_available = self.total_remaining_credits()
 
         while total_available < amount:
@@ -264,33 +268,60 @@ class CreditWallet(models.Model):
                 f"Requested: {amount}, Available: {total_available}"
             )
 
-        # Define FIFO consumption order
-        fifo_order = [
+        now = timezone.now()
+
+        # --- Build the ordered bucket query ---
+        # Strategy:
+        #   1. OVERAGE always comes last (it costs money).
+        #   2. Among CARRY_OVER, MONTHLY, MANUAL_GRANT: order by expires_at ASC
+        #      so soonest-to-expire credits are drained first.
+        #   3. Buckets with no expiry (null expires_at) sit after time-bounded
+        #      ones but before OVERAGE — achieved via nulls_last on expires_at.
+        #   4. Within the same expires_at value, prefer CARRY_OVER → MONTHLY →
+        #      MANUAL_GRANT via a type-priority tiebreaker.
+
+        consumable_types = [
             CreditBucketType.CARRY_OVER,
             CreditBucketType.MONTHLY,
+            CreditBucketType.MANUAL_GRANT,
             CreditBucketType.OVERAGE,
         ]
 
+        type_priority = models.Case(
+            models.When(bucket_type=CreditBucketType.CARRY_OVER, then=models.Value(0)),
+            models.When(bucket_type=CreditBucketType.MONTHLY, then=models.Value(1)),
+            models.When(
+                bucket_type=CreditBucketType.MANUAL_GRANT, then=models.Value(2)
+            ),
+            models.When(bucket_type=CreditBucketType.OVERAGE, then=models.Value(3)),
+            default=models.Value(4),
+            output_field=models.IntegerField(),
+        )
+
+        # Sentinel: push overage to the very back regardless of its expires_at
+        is_overage = models.Case(
+            models.When(bucket_type=CreditBucketType.OVERAGE, then=models.Value(1)),
+            default=models.Value(0),
+            output_fields=models.IntegerField(),
+        )
+
         buckets = (
             self.buckets.select_for_update()
-            .filter(bucket_type__in=fifo_order)
-            .filter(
-                models.Q(expires_at__isnull=True)
-                | models.Q(expires_at__gt=timezone.now())
+            .filter(bucket_type__in=consumable_types)
+            .filter(models.Q(expires_at__isnull=True) | models.Q(expires_at__gt=now))
+            .annotate(
+                overage_sentinel=is_overage,
+                type_priority=type_priority,
             )
             .order_by(
-                models.Case(
-                    *[
-                        models.When(bucket_type=bucket_type, then=models.Value(i))
-                        for i, bucket_type in enumerate(fifo_order)
-                    ]
-                ),
-                "expires_at",
+                "overage_sentinel",
+                models.F("expires_at").asc(nulls_last=True),
+                "type_priority",
                 "created_at",
             )
         )
 
-        # total_deducted = 0
+        remaining = amount
         usage_log = []
         ledger_log = []
 
@@ -318,7 +349,10 @@ class CreditWallet(models.Model):
                     bucket=bucket,
                     ledger_type=CreditLedgerType.CONSUME,
                     amount=-deducted,
-                    reference=f"Consumption of {deducted} credits for {feature} ({task_type}: {task_id})",
+                    reference=(
+                        f"Consumption of {deducted} credits for "
+                        f"{feature} ({task_type}: {task_id})"
+                    ),
                     metadata={
                         "feature": feature,
                         "task_type": task_type,
@@ -330,7 +364,7 @@ class CreditWallet(models.Model):
         CreditUsageLog.objects.bulk_create(usage_log)
         CreditLedger.objects.bulk_create(ledger_log)
 
-        return amount  # Always returns the requested amount (all successfully deducted)
+        return amount
 
     @property
     def display_balance(self):
@@ -353,6 +387,7 @@ class CreditBucketType(models.TextChoices):
     MONTHLY = "MONTHLY", _("Monthly")
     CARRY_OVER = "CARRY_OVER", _("Carry Over")
     OVERAGE = "OVERAGE", _("Overage")
+    MANUAL_GRANT = "MANUAL_GRANT", _("Manual Grant")
 
 
 class CreditBucket(models.Model):
@@ -363,6 +398,10 @@ class CreditBucket(models.Model):
     to facilitate granular tracking of usage, expiration policies, and consumption priority.
     Each bucket tracks the initial allocation versus the remaining balance.
 
+    - MONTHLY: Regular subscription allocation
+    - CARRY_OVER: Unused credits rolled over from a previous cycle
+    - OVERAGE: Purchased blocks beyond the subscription limit
+    - MANUAL_GRANT: Credits manually added by a superadmin
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -388,7 +427,10 @@ class CreditBucket(models.Model):
     expires_at = models.DateTimeField(
         null=True,
         blank=True,
-        help_text="Date and time when the credits expire. Only for carry_over / overage",
+        help_text=(
+            "Date and time when the credits expire. Only for carry_over / overage",
+            "Null means the credits never expire (valid for MANUAL_GRANT).",
+        ),
     )
 
     created_at = models.DateTimeField(
@@ -425,7 +467,7 @@ class CreditBucket(models.Model):
         between total_credits and used_credits, ensuring the result is never negative.
 
         """
-        if self.expires_at and timezone.now() > self.expires_at:
+        if self.is_expired():
             return 0
         return max(0, self.total_credits - self.used_credits)
 
@@ -602,5 +644,6 @@ class BetaProfile(models.Model):
 
     def __str__(self):
         return (
-            f"Beta Profile for {self.user.email} (Score: {self.conversion_probability})"
+            f"Beta Profile for {self.user.email} "
+            f"(Score: {self.conversion_probability})"
         )
