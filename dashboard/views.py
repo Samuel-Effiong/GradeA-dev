@@ -1822,10 +1822,11 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 first = trend_data.first()[1]
                 last = trend_data.last()[1]
 
-                if last is not None and first is not None and last > first:
-                    trend = "improving"
-                elif last < first:
-                    trend = "declining"
+                if last is not None and first is not None:
+                    if last > first:
+                        trend = "improving"
+                    elif last < first:
+                        trend = "declining"
 
             avg_extraction_confidence = (
                 assignments.aggregate(avg=Avg("extraction_confidence"))["avg"] or 0
