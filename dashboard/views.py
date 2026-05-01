@@ -1575,14 +1575,40 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             total_pending = total_assigned - graded_assignments
 
             # Course performance for all courses in the session
-            course_performance = (
+            course_performance_raw = (
                 Course.objects.filter(teacher=teacher, session=session)
                 .annotate(
-                    average_grade=Avg("assignments__submissions__score_percentage"),
-                    total_submissions=Count("assignments__submissions"),
+                    avg_grade=Avg("assignments__submissions__score_percentage"),
+                    actual_subs=Count("assignments__submissions"),
+                    enrollment_count=Count("enrollments", distinct=True),
+                    assignment_count=Count("assignments", distinct=True),
                 )
-                .values("id", "name", "average_grade", "total_submissions")
+                .values(
+                    "id",
+                    "name",
+                    "avg_grade",
+                    "actual_subs",
+                    "enrollment_count",
+                    "assignment_count",
+                )
             )
+
+            course_performance = []
+            for cp in course_performance_raw:
+                expected_subs = cp["enrollment_count"] * cp["assignment_count"]
+                sub_rate = (
+                    round((cp["actual_subs"] / expected_subs) * 100, 2)
+                    if expected_subs > 0
+                    else 0
+                )
+                course_performance.append(
+                    {
+                        "id": cp["id"],
+                        "name": cp["name"],
+                        "average_grade": round(float(cp["avg_grade"] or 0), 2),
+                        "submission_rate": sub_rate,
+                    }
+                )
 
             # Top 7 upcoming published assignments in the session
             upcoming_assignments = (

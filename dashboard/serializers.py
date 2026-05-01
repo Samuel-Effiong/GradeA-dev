@@ -110,7 +110,7 @@ class CoursePerformanceSerializer(serializers.Serializer):
     id = serializers.UUIDField(read_only=True)
     name = serializers.CharField(read_only=True)
     average_grade = serializers.FloatField(read_only=True)
-    total_submissions = serializers.IntegerField(read_only=True)
+    submission_rate = serializers.FloatField(read_only=True)
 
 
 class AtRiskStudentSerializer(serializers.Serializer):
