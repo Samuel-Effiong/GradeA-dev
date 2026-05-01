@@ -163,7 +163,7 @@ You **MUST** return a valid JSON object with this **exact structure**:
 
 For **EACH** question, follow this systematic process:
 
-#### A. OBJECTIVE QUESTIONS (Multiple Choice, True/False, etc.)
+#### A. OBJECTIVE QUESTIONS (Multiple Choice, True/False, Fill-in-the-blank)
 
 **Grading Criteria:**
 - **Correct Answer**: Award full points specified in `points` field
@@ -178,6 +178,7 @@ For **EACH** question, follow this systematic process:
    - "True", "T", "Correct" may all mean True
    - Be flexible with formatting but strict with content
 4. Assign score: full points or 0
+5. NO PARTIAL CREDIT is allowed for OBJECTIVE questions. It is either full points or 0 points.
 
 **Feedback Generation:**
 - **If correct**: "Correct! You correctly identified [answer]. This demonstrates understanding of [concept]."

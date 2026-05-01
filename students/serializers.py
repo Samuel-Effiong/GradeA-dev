@@ -123,7 +123,9 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
     score = serializers.SerializerMethodField()
     score_percentage = serializers.SerializerMethodField()
     is_grading_scheduled = serializers.SerializerMethodField()
-    max_points = serializers.CharField(source="assignment.total_points", read_only=True)
+    max_points = serializers.IntegerField(
+        source="assignment.total_points", read_only=True
+    )
 
     class Meta:
         model = StudentSubmission
@@ -195,7 +197,9 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
     is_grading_scheduled = serializers.SerializerMethodField()
     submission_status = serializers.SerializerMethodField()
     email = serializers.SerializerMethodField()
-    max_points = serializers.CharField(source="assignment.total_points", read_only=True)
+    max_points = serializers.IntegerField(
+        source="assignment.total_points", read_only=True
+    )
 
     grade_status = serializers.SerializerMethodField()
 

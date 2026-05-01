@@ -168,7 +168,7 @@ class AIProcessor:
                     {"role": "user", "content": user_prompt},
                 ],
                 tools=tool_schemas,
-                temperature=0.1,
+                temperature=0.0,
                 response_format={"type": "json_object"},
             )
         else:
@@ -184,7 +184,7 @@ class AIProcessor:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
-                temperature=0.1,
+                temperature=0.0,
                 response_format={"type": "json_object"} if respond_format else None,
             )
 
@@ -214,7 +214,7 @@ class AIProcessor:
                     },
                 ],
                 tools=tool_schema,
-                temperature=0.1,
+                temperature=0.0,
                 response_format={"type": "json_object"},
             )
 
