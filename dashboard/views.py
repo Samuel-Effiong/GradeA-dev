@@ -1720,17 +1720,22 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                     trend = "STABLE"
 
                 risk_flags = 0
-                if avg_grade < 50:
+                is_critical = False
+
+                if avg_grade < 70:
                     risk_flags += 1
+                    is_critical = True  # Direct override
+
                 if (
                     course_total_assigned > 0
                     and (submitted_count / course_total_assigned) < 0.7
                 ):
                     risk_flags += 1
+
                 if trend == "DECLINING":
                     risk_flags += 1
 
-                if risk_flags >= 2:
+                if is_critical or risk_flags >= 2:
                     at_risk_students.append(
                         {
                             "student_id": student.id,
@@ -2010,10 +2015,12 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         - Full submission history for the course.
 
         Risk Analysis Logic:
-        A student is flagged as "at_risk" if they meet at least two of the following criteria:
-        1. Average grade below 50%.
-        2. Submission rate below 70%.
-        3. Performance trend is "DECLINING".
+        A student is flagged as "at_risk" if they meet:
+        - ANY of the following "Critical" conditions:
+            1. Average grade below 70%.
+        - OR at least TWO of the following "Moderate" conditions:
+            2. Submission rate below 70%.
+            3. Performance trend is "DECLINING".
         """,
         parameters=[
             OpenApiParameter(
@@ -2103,14 +2110,19 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
 
                 # Risk Analysis
                 risk_flags = 0
-                if avg_grade < 50:
+                is_critical = False
+
+                if avg_grade < 70:
                     risk_flags += 1
+                    is_critical = True
+
                 if total_assigned > 0 and (submitted_count / total_assigned) < 0.7:
                     risk_flags += 1
+
                 if trend == "DECLINING":
                     risk_flags += 1
 
-                at_risk = risk_flags >= 2
+                at_risk = is_critical or risk_flags >= 2
 
                 assignment_history = [
                     {
