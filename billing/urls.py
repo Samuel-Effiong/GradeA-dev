@@ -2,6 +2,7 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     BetaAnalyticViewSet,
+    BetaProfileViewSet,
     CreditBucketViewSet,
     CreditLedgerViewSet,
     CreditUsageLogViewSet,
@@ -27,6 +28,7 @@ router.register(
 )
 router.register(r"subscription", SubscriptionManagementViewSet, basename="subscription")
 router.register(r"analytics", BetaAnalyticViewSet, basename="analytics")
+router.register(r"beta-profile", BetaProfileViewSet, basename="beta-profile")
 
 router.register(
     r"admin/credits", AdminCreditManagementViewSet, basename="admin-credits"
