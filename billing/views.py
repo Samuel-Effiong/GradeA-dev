@@ -1257,12 +1257,39 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         """
 
         # 1. Credits Used Per Day (Last 30 Days)
-        daily_usage = (
-            CreditUsageLog.objects.annotate(day=TruncDay("created_at"))
+
+        thirty_days_ago = timezone.now() - timedelta(days=30)
+
+        raw_usage = (
+            CreditUsageLog.objects.filter(created_at__date__gte=thirty_days_ago)
+            .annotate(day=TruncDay("created_at"))
             .values("day")
             .annotate(total=Sum("amount"))
-            .order_by("day")[:30]
+            .order_by("day")
         )
+
+        # Convert to a dict: {date_object: total_amount}
+        usage_dict = {d["day"].date(): d["total"] for d in raw_usage}
+
+        # 2. Generate the full range of 30 days and "Pad" missing ones with 0
+        daily_time_series = []
+        for i in range(30):
+            target_date = thirty_days_ago + timedelta(days=i)
+            daily_time_series.append(
+                {
+                    "date": target_date,
+                    "credits": usage_dict.get(
+                        target_date, 0
+                    ),  # Use 0 if the date is missing
+                }
+            )
+
+        # daily_usage = (
+        #     CreditUsageLog.objects.annotate(day=TruncDay("created_at"))
+        #     .values("day")
+        #     .annotate(total=Sum("amount"))
+        #     .order_by("day")[:30]
+        # )
 
         # 2. Peak Usage Hours (0 - 23)
         # Identifies when the AI 'Engine' are under the most stress
@@ -1283,9 +1310,10 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         )
 
         data = {
-            "daily_time_series": [
-                {"date": d["day"].date(), "credits": d["total"]} for d in daily_usage
-            ],
+            # "daily_time_series": [
+            #     {"date": d["day"].date(), "credits": d["total"]} for d in daily_usage
+            # ],
+            "daily_time_series": daily_time_series,
             "peak_usage_hours": [
                 {"hour_24h": h["hour"], "total_credits": h["total"]}
                 for h in hourly_distribution
@@ -1508,7 +1536,7 @@ class BetaProfileViewSet(viewsets.ModelViewSet):
     ]
     ordering = ["-conversion_probability"]
 
-    http_method_names = ["get", "option", "delete"]
+    http_method_names = ["get", "option", "patch", "delete"]
 
     def get_queryset(self):
         """
