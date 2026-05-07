@@ -10,6 +10,7 @@ from users.models import CustomUser
 
 from .models import (
     CONVERSION_FACTOR,
+    BetaProfile,
     CreditBucket,
     CreditBucketType,
     CreditLedger,
@@ -648,3 +649,62 @@ class ConversionLeadSerializer(serializers.Serializer):
     score = serializers.FloatField()
     metrics = ConversionLeadMetricsSerializer()
     flags = ConversionLeadFlagsSerializer()
+
+
+class BetaProfileSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the BetaProfile model providing deep insights
+    into user behavior and credit consumption.
+    """
+
+    # Bring in user details for context without extra DB hits
+    # (handled via select_related in ViewSet)
+    user_email = serializers.EmailField(source="user.email", read_only=True)
+    full_name = serializers.CharField(source="user.get_full_name", read_only=True)
+
+    # Calculated Fields for the Dashboard
+    credits_remaining = serializers.SerializerMethodField()
+    utilization_percentage = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BetaProfile
+        fields = [
+            "id",
+            "user_email",
+            "full_name",
+            "joined_beta_at",
+            "first_ai_action_at",
+            "last_active_at",
+            "last_login_date",
+            "initial_beta_credits",
+            "total_credits_used",
+            "credits_remaining",
+            "credits_used_grading",
+            "credits_used_creation",
+            "analytics_view_count",
+            "distinct_login_days",
+            "has_hit_80_percent",
+            "has_hit_cap",
+            "conversion_probability",
+            "days_to_first_action",
+            "usage_velocity",
+            "utilization_percentage",
+        ]
+        read_only_fields = [
+            "total_credits_used",
+            "conversion_probability",
+            "usage_velocity",
+        ]
+
+    @extend_schema_field(serializers.IntegerField())
+    def get_credits_remaining(self, obj) -> int:
+        """Calculates current credit balance."""
+        return max(0, obj.initial_beta_credits - obj.total_credits_used)
+
+    @extend_schema_field(serializers.FloatField())
+    def get_utilization_percentage(self, obj) -> float:
+        """Calculates how much of the initial grant has been consumed."""
+        if obj.initial_beta_credits == 0:
+            return 0.0
+        percentage = (obj.total_credits_used / obj.initial_beta_credits) * 100
+        return round(percentage, 2)

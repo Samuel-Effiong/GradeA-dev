@@ -14,7 +14,9 @@ from django_filters.rest_framework import DjangoFilterBackend
 # from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiExample,
+    OpenApiParameter,
     OpenApiResponse,
+    OpenApiTypes,
     extend_schema,
     extend_schema_view,
 )
@@ -40,6 +42,7 @@ from .models import (
 from .serializers import (  # SubscriptionSerializer,
     BetaCohortStatsSerializer,
     BetaFeatureMixSerializer,
+    BetaProfileSerializer,
     BetaSummarySerializer,
     BetaUsageTrendSerializer,
     CarryOverHistorySerializer,
@@ -1433,3 +1436,83 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
 
         serializer = ConversionLeadSerializer(data, many=True)
         return Response(serializer.data)
+
+
+@extend_schema_view(
+    list=extend_schema(
+        tags=["Beta Profile"],
+        summary="List all Beta Usage Profiles",
+        description=(
+            "Retrieves a prioritized list of beta users. Use this to identify high-intent power "
+            "users or users at risk of churning."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="conversion_probability__gte",
+                type=OpenApiTypes.FLOAT,
+                location=OpenApiParameter.QUERY,
+                description="Filter for users with a conversion probability higher than this value (e.g., 75.0).",
+            ),
+        ],
+    ),
+    retrieve=extend_schema(
+        tags=["Beta Profile"],
+        summary="Detailed Beta User Insights",
+        description=(
+            "Get a deep-dive into a specific user's usage patterns, credit velocity, "
+            "and feature engagement mix."
+        ),
+    ),
+    update=extend_schema(
+        tags=["Beta Profile"], summary="Update Beta Profile (Admin Only)"
+    ),
+    partial_update=extend_schema(
+        tags=["Beta Profile"], summary="Patch Beta Profile (Admin Only)"
+    ),
+    destroy=extend_schema(tags=["Beta Profile"], summary="Remove User from Beta Track"),
+)
+class BetaProfileViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for SuperAdmins to monitor and manage Beta User engagement.
+
+    Optimized with select_related to prevent N+1 queries on the User relation.
+    """
+
+    queryset = BetaProfile.objects.select_related("user").all()
+    serializer_class = BetaProfileSerializer
+
+    # Strictly for SuperAdmins (Founders)
+    permission_classes = [IsSuperAdmin]
+
+    # Advanced Search and Filtering
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+
+    # Filter by intent signals and credit status
+    filterset_fields = {
+        "has_hit_cap": ["exact"],
+        "has_hit_80_percent": ["exact"],
+        "conversion_probability": ["gte", "lte"],
+        "joined_beta_at": ["gte", "lte"],
+        "last_active_at": ["gte", "lte"],
+    }
+
+    # Search by User identity
+    search_fields = ["user__email", "user__first_name", "user__last_name"]
+
+    # Default ordering by probability of conversion
+    ordering_fields = [
+        "conversion_probability",
+        "usage_velocity",
+        "total_credits_used",
+        "joined_beta_at",
+    ]
+    ordering = ["-conversion_probability"]
+
+    http_method_names = ["get", "option", "delete"]
+
+    def get_queryset(self):
+        """
+        Optional: Custom logic to further restrict or annotate the queryset.
+        Ensures the Founder only sees relevant data.
+        """
+        return super().get_queryset()
