@@ -423,3 +423,17 @@ class CourseCategorySerializer(serializers.ModelSerializer):
         if not value or not value.strip():
             raise serializers.ValidationError("Category name cannot be empty.")
         return value
+
+
+class BulkAddStudentSerializer(serializers.Serializer):
+    """Serializer for bulk adding students via CSV or Excel paste."""
+
+    file = serializers.FileField(required=False)
+    raw_data = serializers.CharField(required=False, allow_blank=True)
+
+    def validate(self, attrs):
+        if not attrs.get("file") and not attrs.get("raw_data"):
+            raise serializers.ValidationError(
+                "Either a CSV file or raw text data must be provided."
+            )
+        return attrs

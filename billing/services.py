@@ -497,9 +497,7 @@ class AnalyticsService:
         ]
 
         if feature in grading_categories:
-            profile.total_credits_used_grading = (
-                F("total_credits_used_grading") + amount
-            )
+            profile.credits_used_grading = F("credits_used_grading") + amount
         elif feature in creation_categories:
             profile.credits_used_creation = F("credits_used_creation") + amount
 
