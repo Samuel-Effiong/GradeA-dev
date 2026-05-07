@@ -1258,7 +1258,7 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
 
         # 1. Credits Used Per Day (Last 30 Days)
 
-        thirty_days_ago = timezone.now() - timedelta(days=30)
+        thirty_days_ago = timezone.now().date() - timedelta(days=30)
 
         raw_usage = (
             CreditUsageLog.objects.filter(created_at__date__gte=thirty_days_ago)
@@ -1273,7 +1273,7 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
 
         # 2. Generate the full range of 30 days and "Pad" missing ones with 0
         daily_time_series = []
-        for i in range(30):
+        for i in range(31):
             target_date = thirty_days_ago + timedelta(days=i)
             daily_time_series.append(
                 {
