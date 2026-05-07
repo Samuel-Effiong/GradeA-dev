@@ -613,7 +613,7 @@ class BetaProfile(models.Model):
     last_login_date = models.DateField(null=True, blank=True)
 
     # Credit Velocity
-    initial_beta_credits = models.PositiveIntegerField(default=10_000_000)
+    initial_beta_credits = models.PositiveIntegerField(default=20_000_000)
     total_credits_used = models.PositiveIntegerField(default=0, db_index=True)
 
     # Feature Mix (Raw totals for accurate P90 / Median math)

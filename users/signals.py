@@ -2,7 +2,7 @@ from django.core.cache import cache
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
-from billing.models import CreditWallet, PlanType, SubscriptionPlan
+from billing.models import BetaProfile, CreditWallet, PlanType, SubscriptionPlan
 from billing.services import SubscriptionService
 from users.models import CustomUser, Settings
 
@@ -32,4 +32,8 @@ def create_settings(sender, instance, created, **kwargs):
         beta_plan = SubscriptionPlan.objects.filter(name=PlanType.BETA).first()
 
         if beta_plan:
+            initial_credits = beta_plan.monthly_credits
+            BetaProfile.objects.get_or_create(
+                user=instance, defaults={"initial_beta_credits": initial_credits}
+            )
             SubscriptionService.activate_subscription(instance, beta_plan)
