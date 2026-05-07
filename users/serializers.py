@@ -131,6 +131,9 @@ class CustomUserSerializer(serializers.ModelSerializer):
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
+        if "email" in attrs:
+            attrs["email"] = attrs["email"].lower().strip()
+
         data = super().validate(attrs)
         user_data = CustomUserSerializer(self.user).data
 
@@ -163,7 +166,7 @@ class ResetPasswordSerializer(serializers.Serializer):
 
 
 class ChangePasswordSerializer(serializers.Serializer):
-    otp = serializers.CharField(required=True)
+    # otp = serializers.CharField(required=False)
     current_password = serializers.CharField(required=True, write_only=True)
     new_password = serializers.CharField(
         required=True, write_only=True, validators=[validate_password]

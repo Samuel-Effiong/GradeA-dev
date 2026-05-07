@@ -8,6 +8,7 @@ from users.models import CustomUser, Settings
 
 
 @receiver([post_save, post_delete], sender=CustomUser)
+@receiver([post_save, post_delete], sender=Settings)
 def clear_user_cache(sender, instance, **kwargs):
     if hasattr(cache, "delete_pattern"):
         cache.delete_pattern("*superadmin*")
@@ -18,6 +19,7 @@ def clear_user_cache(sender, instance, **kwargs):
         cache.delete_pattern("*school*")
         cache.delete_pattern("*course*")
         cache.delete_pattern("*studentcourse*")
+        cache.delete_pattern("*settings*")
 
 
 @receiver(post_save, sender=CustomUser)

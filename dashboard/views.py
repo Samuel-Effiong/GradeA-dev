@@ -1575,14 +1575,40 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             total_pending = total_assigned - graded_assignments
 
             # Course performance for all courses in the session
-            course_performance = (
+            course_performance_raw = (
                 Course.objects.filter(teacher=teacher, session=session)
                 .annotate(
-                    average_grade=Avg("assignments__submissions__score_percentage"),
-                    total_submissions=Count("assignments__submissions"),
+                    avg_grade=Avg("assignments__submissions__score_percentage"),
+                    actual_subs=Count("assignments__submissions", distinct=True),
+                    enrollment_count=Count("enrollments", distinct=True),
+                    assignment_count=Count("assignments", distinct=True),
                 )
-                .values("id", "name", "average_grade", "total_submissions")
+                .values(
+                    "id",
+                    "name",
+                    "avg_grade",
+                    "actual_subs",
+                    "enrollment_count",
+                    "assignment_count",
+                )
             )
+
+            course_performance = []
+            for cp in course_performance_raw:
+                expected_subs = cp["enrollment_count"] * cp["assignment_count"]
+                sub_rate = (
+                    round((cp["actual_subs"] / expected_subs) * 100, 2)
+                    if expected_subs > 0
+                    else 0
+                )
+                course_performance.append(
+                    {
+                        "id": cp["id"],
+                        "name": cp["name"],
+                        "average_grade": round(float(cp["avg_grade"] or 0), 2),
+                        "submission_rate": sub_rate,
+                    }
+                )
 
             # Top 7 upcoming published assignments in the session
             upcoming_assignments = (
@@ -1636,7 +1662,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 .select_related("student", "course")
                 .annotate(
                     avg_grade_val=Avg(
-                        "student__submissions__score",
+                        "student__submissions__score_percentage",
                         filter=Q(
                             student__submissions__assignment__course=F("course_id")
                         ),
@@ -1694,17 +1720,22 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                     trend = "STABLE"
 
                 risk_flags = 0
-                if avg_grade < 50:
+                is_critical = False
+
+                if avg_grade < 70:
                     risk_flags += 1
+                    is_critical = True  # Direct override
+
                 if (
                     course_total_assigned > 0
                     and (submitted_count / course_total_assigned) < 0.7
                 ):
                     risk_flags += 1
+
                 if trend == "DECLINING":
                     risk_flags += 1
 
-                if risk_flags >= 2:
+                if is_critical or risk_flags >= 2:
                     at_risk_students.append(
                         {
                             "student_id": student.id,
@@ -1822,10 +1853,11 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 first = trend_data.first()[1]
                 last = trend_data.last()[1]
 
-                if last > first:
-                    trend = "improving"
-                elif last < first:
-                    trend = "declining"
+                if last is not None and first is not None:
+                    if last > first:
+                        trend = "improving"
+                    elif last < first:
+                        trend = "declining"
 
             avg_extraction_confidence = (
                 assignments.aggregate(avg=Avg("extraction_confidence"))["avg"] or 0
@@ -1983,10 +2015,12 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         - Full submission history for the course.
 
         Risk Analysis Logic:
-        A student is flagged as "at_risk" if they meet at least two of the following criteria:
-        1. Average grade below 50%.
-        2. Submission rate below 70%.
-        3. Performance trend is "DECLINING".
+        A student is flagged as "at_risk" if they meet:
+        - ANY of the following "Critical" conditions:
+            1. Average grade below 70%.
+        - OR at least TWO of the following "Moderate" conditions:
+            2. Submission rate below 70%.
+            3. Performance trend is "DECLINING".
         """,
         parameters=[
             OpenApiParameter(
@@ -2028,7 +2062,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 .select_related("student")
                 .annotate(
                     avg_grade_val=Avg(
-                        "student__submissions__score",
+                        "student__submissions__score_percentage",
                         filter=Q(student__submissions__assignment__course=course),
                     ),
                     submitted_count_val=Count(
@@ -2076,14 +2110,19 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
 
                 # Risk Analysis
                 risk_flags = 0
-                if avg_grade < 50:
+                is_critical = False
+
+                if avg_grade < 70:
                     risk_flags += 1
+                    is_critical = True
+
                 if total_assigned > 0 and (submitted_count / total_assigned) < 0.7:
                     risk_flags += 1
+
                 if trend == "DECLINING":
                     risk_flags += 1
 
-                at_risk = risk_flags >= 2
+                at_risk = is_critical or risk_flags >= 2
 
                 assignment_history = [
                     {

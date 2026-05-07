@@ -39,6 +39,10 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.token_blacklist.models import (
+    BlacklistedToken,
+    OutstandingToken,
+)
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import (
     TokenObtainPairView as BaseTokenObtainPairView,
@@ -741,8 +745,19 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         user.save()
 
         otp_obj.delete()
+
+        tokens = OutstandingToken.objects.filter(user=user)
+        for token in tokens:
+            BlacklistedToken.objects.get_or_create(token=token)
+
+        refresh = RefreshToken.for_user(user)
+
         return Response(
-            {"detail": "Password has been reset successfully."},
+            {
+                "detail": "Password has been reset successfully. You are now logged in.",
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+            },
             status=status.HTTP_200_OK,
         )
 
@@ -817,30 +832,44 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         serializer.is_valid(raise_exception=True)
 
         user = request.user
-        otp = serializer.validated_data.get("otp")
+        # otp = serializer.validated_data.get("otp")
         current_password = serializer.validated_data.get("current_password")
         new_password = serializer.validated_data.get("new_password")
 
         if not user.check_password(current_password):
             raise ParseError("Incorrect current password. Please try again.")
 
-        try:
-            otp_obj = PasswordChangeOTP.objects.get(user=user, code=otp)
-        except PasswordChangeOTP.DoesNotExist:
-            raise ParseError(
-                "Invalid OTP or expired OTP. Please try again."
-            ) from Exception
+        # try:
+        #     otp_obj = PasswordChangeOTP.objects.get(user=user, code=otp)
+        # except PasswordChangeOTP.DoesNotExist:
+        #     raise ParseError(
+        #         "Invalid OTP or expired OTP. Please try again."
+        #     ) from Exception
 
-        if not otp_obj.is_valid():
-            otp_obj.delete()
-            raise ParseError("Invalid OTP or expired OTP. Please try again.")
+        # if not otp_obj.is_valid():
+        #     otp_obj.delete()
+        #     raise ParseError("Invalid OTP or expired OTP. Please try again.")
 
         user.set_password(new_password)
         user.save()
 
-        otp_obj.delete()
+        tokens = OutstandingToken.objects.filter(user=user)
+        for token in tokens:
+            BlacklistedToken.objects.get_or_create(token=token)
 
-        return Response({"detail": "Password changed successfully"})
+        # 2. Generate new tokens for the current device
+        refresh = RefreshToken.for_user(user)
+        return Response(
+            {
+                "detail": "Password changed successfully.",
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+            }
+        )
+
+        # otp_obj.delete()
+
+        # return Response({"detail": "Password changed successfully"})
 
     @extend_schema(
         tags=["Authentication"],

@@ -403,7 +403,9 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
                     "submission_status": submission_status,
                     "grade": grade,
                     "grade_percentage": grade_percentage,
-                    "max_points": submission.max_points if submission else None,
+                    "max_points": (
+                        submission.max_points if submission else obj.total_points
+                    ),
                     "grade_status": grade_status,
                     "was_regraded": submission.was_regraded if submission else None,
                     "is_published": submission.is_published if submission else False,
