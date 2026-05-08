@@ -263,6 +263,7 @@ class DirectAddStudentSerializer(serializers.Serializer):
     middle_name = serializers.CharField(
         max_length=150,
         default="",
+        allow_blank=True,
     )
     last_name = serializers.CharField(
         max_length=150, validators=[MinLengthValidator(2)], required=True
