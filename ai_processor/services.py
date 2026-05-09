@@ -1851,7 +1851,7 @@ Now, respond to the following teacher's instruction using the rules above
 
                 response_2 = self.execute_graded_task(
                     user=user,
-                    feature="Generate Assignment",
+                    feature="Assignment Generation",
                     task_type="generate_assignment",
                     messages=messages,
                     tool_schemas=tool_schema,

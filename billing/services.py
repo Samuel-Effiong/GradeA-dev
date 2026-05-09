@@ -495,11 +495,14 @@ class AnalyticsService:
             "Assignment Extraction",
             "Assignment Generation",
         ]
+        feedback_categories = ["Formatted Grade", "Student Summary"]
 
         if feature in grading_categories:
             profile.credits_used_grading = F("credits_used_grading") + amount
         elif feature in creation_categories:
             profile.credits_used_creation = F("credits_used_creation") + amount
+        elif feature in feedback_categories:
+            profile.credits_used_feedback = F("credits_used_feedback") + amount
 
         profile.save()
 
