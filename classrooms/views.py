@@ -637,7 +637,6 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
             rows = list(reader)
         elif raw_data:
             # Handle Excel paste (TSV) or raw CSV string
-            # Determine delimiter: if tab exists, assume TSV; otherwise comma.
             delimiter = "\t" if "\t" in raw_data else ","
             f = io.StringIO(raw_data.strip())
             reader = csv.DictReader(f, delimiter=delimiter)
@@ -653,12 +652,10 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         success_count = 0
         failure_count = 0
 
-        # Helper to normalize field names from common CSV variations
         def get_val(row, variations):
             for v in variations:
                 if v in row:
                     return (row[v] or "").strip()
-                # Also try lowercase and underscored
                 norm_v = v.lower().replace(" ", "_")
                 if norm_v in row:
                     return (row[norm_v] or "").strip()
@@ -684,9 +681,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 continue
 
             try:
-                # Decide which flow to use based on presence of email
                 if email:
-                    # Reuse invitation logic from 'students' action
                     with transaction.atomic():
                         student = CustomUser.objects.filter(email=email).first()
                         is_new = False
@@ -706,7 +701,6 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                                 + timezone.timedelta(days=7),
                             )
 
-                        # Check if already enrolled
                         if StudentCourse.objects.filter(
                             student=student, course=course
                         ).exists():
@@ -719,64 +713,94 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                             )
                             continue
 
-                        # Create enrollment
-                        enroll_status = (
-                            EnrollmentStatusType.ENROLLED
-                            if student.is_active
-                            else EnrollmentStatusType.PENDING
+                        enrollment_status = (
+                            EnrollmentStatusType.PENDING
+                            if is_new
+                            else EnrollmentStatusType.ENROLLED
                         )
+
                         StudentCourse.objects.create(
                             student=student,
                             course=course,
-                            enrollment_status=enroll_status,
+                            enrollment_status=enrollment_status,
                             auto_added=False,
                         )
-
-                        # Trigger email (simplified here, but following the existing pattern)
-                        # In a real scenario, we'd reuse a service method if available
-                        # Here we just queue the same task used in the 'students' action
                         self._send_bulk_enrollment_email(student, course, is_new)
-
                         results.append(
                             {
-                                "name": f"{first_name} {last_name}",
-                                "status": "invited" if is_new else "enrolled",
+                                "name": student.get_full_name(),
+                                "status": "invited",
                                 "type": "invitation",
                             }
                         )
                         success_count += 1
                 else:
-                    # Reuse direct add logic
-                    # We can directly use the serializer for simplicity and validation
-                    data = {
-                        "first_name": first_name,
-                        "middle_name": middle_name,
-                        "last_name": last_name,
-                    }
-                    direct_serializer = DirectAddStudentSerializer(
-                        data=data, context={"course": course}
-                    )
-                    if direct_serializer.is_valid():
-                        direct_serializer.save()
-                        results.append(
-                            {
-                                "name": f"{first_name} {last_name}",
-                                "status": "enrolled",
-                                "type": "direct_add",
-                            }
-                        )
-                        success_count += 1
-                    else:
-                        error_msg = next(iter(direct_serializer.errors.values()))[0]
-                        results.append(
-                            {
-                                "name": f"{first_name} {last_name}",
-                                "status": "failed",
-                                "error": error_msg,
-                            }
-                        )
-                        failure_count += 1
+                    with transaction.atomic():
+                        student = CustomUser.objects.filter(
+                            first_name__iexact=first_name,
+                            last_name__iexact=last_name,
+                            middle_name__iexact=middle_name,
+                            user_type=UserTypes.STUDENT,
+                        ).first()
 
+                        if student:
+                            if StudentCourse.objects.filter(
+                                student=student, course=course
+                            ).exists():
+                                results.append(
+                                    {
+                                        "name": student.get_full_name(),
+                                        "status": "skipped",
+                                        "error": "Already enrolled",
+                                    }
+                                )
+                                continue
+
+                            StudentCourse.objects.create(
+                                student=student,
+                                course=course,
+                                enrollment_status=EnrollmentStatusType.ENROLLED,
+                                auto_added=True,
+                            )
+                            results.append(
+                                {
+                                    "name": student.get_full_name(),
+                                    "status": "enrolled",
+                                    "type": "direct_add",
+                                }
+                            )
+                            success_count += 1
+                        else:
+                            data = {
+                                "first_name": first_name,
+                                "middle_name": middle_name,
+                                "last_name": last_name,
+                            }
+                            direct_serializer = DirectAddStudentSerializer(
+                                data=data, context={"course": course}
+                            )
+                            if direct_serializer.is_valid():
+                                student = direct_serializer.save()
+                                results.append(
+                                    {
+                                        "name": student.get_full_name(),
+                                        "status": "enrolled",
+                                        "type": "direct_add",
+                                    }
+                                )
+                                success_count += 1
+                            else:
+                                error_msg = next(
+                                    iter(direct_serializer.errors.values())
+                                )[0]
+                                results.append(
+                                    {
+                                        "name": f"{first_name} {last_name}",
+                                        "status": "failed",
+                                        "error": error_msg,
+                                    }
+                                )
+                                failure_count += 1
             except Exception as e:
                 results.append(
                     {
@@ -798,13 +822,11 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         )
 
     def _send_bulk_enrollment_email(self, student, course, is_new):
-        """Helper to send the appropriate email during bulk enrollment."""
         if student.is_active:
-            # Existing active student email
-            content = f"""
-            You have been added to {course.name} by {course.teacher.get_full_name()}<br><br>
-            Your access is already active.
-            """
+            content = (
+                f"You have been added to {course.name} by {course.teacher.get_full_name()}.<br><br>\n\n"
+                "Your access is already active."
+            )
             merge_data = {
                 "title": f"You have been added to {course.name}",
                 "name": student.get_full_name(),
@@ -821,8 +843,10 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 merge_data=merge_data,
             )
         else:
-            # New/Inactive student invitation email
-            registration_link = f"https://{settings.FRONTEND_DOMAIN}/register/student/{student.activation_token}?email={student.email}"
+            registration_link = (
+                f"https://{settings.FRONTEND_DOMAIN}/register/student/"
+                f"{student.activation_token}?email={student.email}"
+            )
             merge_data = {
                 "title": f"Complete your registration for {course.name}",
                 "name": student.get_full_name(),
