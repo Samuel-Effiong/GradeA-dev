@@ -1010,11 +1010,15 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             "avg_credits_used": round(stats["avg_usage"] or 0, 0),
             "percent_users_at_cap": round((stats["hit_cap"] / total) * 100, 2),
             "avg_days_to_first_action": round(stats["avg_days_to_action"] or 0, 1),
-            "high_consumption_rate": round(
+            "credit_used_greater_than_80_percent": round(
                 (stats["high_consumption"] / total) * 100, 2
             ),
-            "habit_formation_rate": round((stats["habit_formation"] / total) * 100, 2),
-            "primary_graders_rate": round((stats["primary_graders"] / total) * 100, 2),
+            "login_greater_than_8_days": round(
+                (stats["habit_formation"] / total) * 100, 2
+            ),
+            "grading_percent_greater_than_creation_percent": round(
+                (stats["primary_graders"] / total) * 100, 2
+            ),
         }
 
         serializer = BetaSummarySerializer(data)
