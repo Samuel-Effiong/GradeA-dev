@@ -977,19 +977,6 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             200: OpenApiResponse(
                 response=BetaSummarySerializer,
                 description="Beta program summary statistics",
-                examples=[
-                    OpenApiExample(
-                        name="Beta Summary Example",
-                        value={
-                            "total_beta_users": 1250,
-                            "active_last_7_days_percent": 68.4,
-                            "avg_credits_used": 3250000,
-                            "percent_users_at_cap": 12.8,
-                            "avg_days_to_first_action": 2.3,
-                        },
-                        description="Typical beta program summary showing healthy engagement",
-                    )
-                ],
             ),
         },
     )
@@ -1006,6 +993,11 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             avg_usage=Avg("total_credits_used"),
             hit_cap=Count("id", filter=Q(has_hit_cap=True)),
             avg_days_to_action=Avg("days_to_first_action"),
+            high_consumption=Count("id", filter=Q(has_hit_80_percent=True)),
+            habit_formation=Count("id", filter=Q(distinct_login_days__gte=8)),
+            primary_graders=Count(
+                "id", filter=Q(credits_used_grading__gt=F("credits_used_creation"))
+            ),
         )
 
         total = stats["total"] or 1
@@ -1018,6 +1010,11 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             "avg_credits_used": round(stats["avg_usage"] or 0, 0),
             "percent_users_at_cap": round((stats["hit_cap"] / total) * 100, 2),
             "avg_days_to_first_action": round(stats["avg_days_to_action"] or 0, 1),
+            "high_consumption_rate": round(
+                (stats["high_consumption"] / total) * 100, 2
+            ),
+            "habit_formation_rate": round((stats["habit_formation"] / total) * 100, 2),
+            "primary_graders_rate": round((stats["primary_graders"] / total) * 100, 2),
         }
 
         serializer = BetaSummarySerializer(data)
@@ -1403,7 +1400,7 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         # Each 'Q' object represents one of your four core business rules
         power_user_query = (
             Q(
-                # Trigger 1: High consumption (>= 80% of their 10M grant)
+                # Trigger 1: High consumption (>= 80% of their 20M grant)
                 has_hit_80_percent=True
             )
             | Q(

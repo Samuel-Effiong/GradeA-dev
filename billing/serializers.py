@@ -581,6 +581,9 @@ class BetaSummarySerializer(serializers.Serializer):
     avg_credits_used = serializers.FloatField()
     percent_users_at_cap = serializers.FloatField()
     avg_days_to_first_action = serializers.FloatField()
+    high_consumption_rate = serializers.FloatField()
+    habit_formation_rate = serializers.FloatField()
+    primary_graders_rate = serializers.FloatField()
 
 
 class BetaCohortStatsSerializer(serializers.Serializer):
