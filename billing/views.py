@@ -1024,52 +1024,12 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = BetaSummarySerializer(data)
         return Response(serializer.data)
 
-    @extend_schema(
-        tags=["Beta Analytics"],
-        summary="Get beta cohort statistical breakdown",
-        description="Provides detailed statistical analysis of the 10 Million Token for the beta cohort, "
-        "including median usage, 90th percentile consumption, average credits used, "
-        "time-to-cap metrics, and unused credit percentages. This data directly informs "
-        "pricing tier design for the August commercial launch.",
-        responses={
-            200: OpenApiResponse(
-                response=BetaCohortStatsSerializer,
-                description="Statistical breakdown of beta cohort usage patterns",
-                examples=[
-                    OpenApiExample(
-                        name="Cohort Statistics Example",
-                        value={
-                            "standard_allocation": 10_000_000,
-                            "total_users_analyzed": 1250,
-                            "average_credit_used": 3250000,
-                            "median_credit_used": 1800000,
-                            "p90_credit_used": 7500000,
-                            "average_days_to_cap": 45.3,
-                            "percent_unused_credits": 67.5,
-                        },
-                        description="Example showing typical beta cohort distribution",
-                    )
-                ],
-            ),
-            204: OpenApiResponse(
-                description="No beta usage data recorded yet",
-                examples=[
-                    OpenApiExample(
-                        name="No Data Example",
-                        value={"message": "No beta usage data recorded yet"},
-                    )
-                ],
-            ),
-        },
-    )
-    @action(detail=False, methods=["GET"], url_path="beta/cohort-stats")
-    def cohort_stats(self, request, *args, **kwargs):
+    @action(detail=False, methods=["GET"], url_path="beta/credit-usage-stats")
+    def credit_usage_stats(self, request, *args, **kwargs):
         """
         Statistical breakdown of 10 Million / 10k AI Credit Beta Cohort
-        Used to determine priciing tiers for the August launch
+        Used to determine pricing tiers for the August launch
         """
-        # 1. Fetch all usage values in ascending oder for percentile math
-        # We only pull the specific field to keep memory usage low
         usage_values = (
             self.get_queryset()
             .values_list("total_credits_used", flat=True)
@@ -1079,22 +1039,17 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         count = usage_values.count()
         if count == 0:
             return Response(
-                {
-                    "message": "No beta usage data recorded yet",
-                },
+                {"message": "No beta usage data recorded yet"},
                 status=status.HTTP_204_NO_CONTENT,
             )
 
-        # 2. Statistical Calculations
-        # Median (50th Percentile) and P90 (90th Percentile)
+        # 1. Percentiles
         median_index = min(int(count * 0.5), count - 1)
         p90_index = min(int(count * 0.9), count - 1)
-
         median_credits = usage_values[median_index]
         p90_credits = usage_values[p90_index]
 
-        # Aggregates for Average and Time-to-Cap
-        # We filter for users who have actually used credits to get an accurate 'Time-to-cap'
+        # 2. Aggregates
         aggregates = self.get_queryset().aggregate(
             avg_used=Avg("total_credits_used"),
             avg_days_to_cap=Avg(
@@ -1110,12 +1065,52 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         avg_used = aggregates["avg_used"] or 0
         avg_days_delta = aggregates["avg_days_to_cap"]
         avg_days_to_reach_cap = avg_days_delta.days if avg_days_delta is not None else 0
-        standard_allocation = 10_000_000
-
-        # Calculate the percentage of total granted credits that remain unspent
+        standard_allocation = 20_000_000
         unused_credits_pct = max(
             0, ((standard_allocation - avg_used) / standard_allocation) * 100
         )
+
+        # 3. Credit Usage Distribution (Histogram)
+        agg_filters = {}
+        for i in range(0, 100, 10):
+            lower, upper = i, i + 10
+            label = f"bucket_{lower}_{upper}"
+            q_filter = Q(
+                total_credits_used__gte=(F("initial_beta_credits") * lower) / 100
+            )
+            if upper < 100:
+                q_filter &= Q(
+                    total_credits_used__lt=(F("initial_beta_credits") * upper) / 100
+                )
+            else:
+                q_filter &= Q(
+                    total_credits_used__lte=(F("initial_beta_credits") * upper) / 100
+                )
+            agg_filters[label] = Count("id", filter=q_filter)
+
+        distribution_stats = self.get_queryset().aggregate(**agg_filters)
+        usage_distribution = {
+            f"{i}-{i + 10}%": distribution_stats[f"bucket_{i}_{i + 10}"]
+            for i in range(0, 100, 10)
+        }
+
+        # 4. Daily Time Series (Last 60 Days)
+        sixty_days_ago = timezone.now().date() - timedelta(days=60)
+        raw_usage = (
+            CreditUsageLog.objects.filter(created_at__date__gte=sixty_days_ago)
+            .annotate(day=TruncDay("created_at"))
+            .values("day")
+            .annotate(total=Sum("amount"))
+            .order_by("day")
+        )
+        usage_dict = {d["day"].date(): d["total"] for d in raw_usage}
+
+        daily_time_series = []
+        for i in range(61):
+            target_date = sixty_days_ago + timedelta(days=i)
+            daily_time_series.append(
+                {"date": target_date, "credits": usage_dict.get(target_date, 0)}
+            )
 
         data = {
             "standard_allocation": standard_allocation,
@@ -1125,6 +1120,8 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             "p90_credit_used": p90_credits,
             "average_days_to_reach_cap": avg_days_to_reach_cap,
             "percent_unused_credits": round(unused_credits_pct, 2),
+            "usage_distribution": usage_distribution,
+            "daily_time_series": daily_time_series,
         }
 
         serializer = BetaCohortStatsSerializer(data)
