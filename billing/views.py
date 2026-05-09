@@ -1172,8 +1172,9 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             total_spent=Sum("total_credits_used"),
             total_grading=Sum("credits_used_grading"),
             total_creation=Sum("credits_used_creation"),
+            total_feedback=Sum("credits_used_feedback"),
             total_views=Sum("analytics_view_count"),
-            # To calculate dept, we need to know how many actual tasks were run
+            # To calculate depth, we need to know how many actual tasks were run
             # We fetch this count from the related CreditUsageLog
             total_grading_events=Count(
                 "user__credit_wallet__credit_usage_logs",
@@ -1186,6 +1187,7 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         total_spent = mix_stats["total_spent"] or 1
         total_grading = mix_stats["total_grading"] or 0
         total_creation = mix_stats["total_creation"] or 0
+        total_feedback = mix_stats["total_feedback"] or 0
 
         # 2. Calculate Feedback Depth (Tokens per Grading Task)
         # Higher tokens per grading session = Higher perceived value / depth
@@ -1195,8 +1197,14 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         data = {
             "grading_percent": round((total_grading / total_spent) * 100, 2),
             "creation_percent": round((total_creation / total_spent) * 100, 2),
+            "feedback_percent": round((total_feedback / total_spent) * 100, 2),
             "other_percent": round(
-                ((total_spent - total_grading - total_creation) / total_spent) * 100, 2
+                (
+                    (total_spent - total_grading - total_creation - total_feedback)
+                    / total_spent
+                )
+                * 100,
+                2,
             ),
             "average_feedback_depth_token": round(avg_feedback_depth, 0),
             "total_analytics_views": mix_stats["total_views"],
