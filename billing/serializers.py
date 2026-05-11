@@ -603,15 +603,24 @@ class BetaCohortStatsSerializer(serializers.Serializer):
     daily_time_series = DailyTimeSeriesSerializer(many=True)
 
 
+class FeatureConsumptionTimeSeriesSerializer(serializers.Serializer):
+    date = serializers.DateField()
+    avg_tokens_grading = serializers.FloatField()
+    avg_tokens_feedback = serializers.FloatField()
+    avg_tokens_creation = serializers.FloatField()
+
+
 class BetaFeatureMixSerializer(serializers.Serializer):
     grading_percent = serializers.FloatField()
     creation_percent = serializers.FloatField()
+    feedback_percent = serializers.FloatField()
     other_percent = serializers.FloatField()
     average_feedback_depth_token = serializers.IntegerField()
     total_analytics_views = serializers.IntegerField()
     views_per_user = serializers.FloatField()
     primary_driver = serializers.CharField()
     engagement_quality = serializers.CharField()
+    consumption_time_series = FeatureConsumptionTimeSeriesSerializer(many=True)
 
 
 class PeakUsageHourSerializer(serializers.Serializer):

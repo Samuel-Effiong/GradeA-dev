@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from django.db.models import F, Q, Sum
+from django.db.models import Case, F, Q, Sum, Value, When
 from django.db.models.aggregates import Avg, Count
 from django.db.models.functions import ExtractHour, TruncDay, TruncWeek
 from django.utils import timezone
@@ -1024,6 +1024,27 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = BetaSummarySerializer(data)
         return Response(serializer.data)
 
+    @extend_schema(
+        tags=["Beta Analytics"],
+        summary="Get beta credit usage statistics",
+        description="""
+            Statistical breakdown of 20 Million / 20k AI Credit Beta Cohort
+
+        This endpoint provides comprehensive usage metrics for the beta program, including:
+        - Percentiles (p50, p90, p99)
+        - Average usage and first action time
+        - Credit consumption distribution (per credit bucket)
+        - Daily and hourly usage trends
+
+        Used to determine optimal pricing tiers for the August launch.
+        """,
+        responses={
+            200: OpenApiResponse(
+                response=BetaCohortStatsSerializer,
+                description="Beta credit usage statistics",
+            ),
+        },
+    )
     @action(detail=False, methods=["GET"], url_path="beta/credit-usage-stats")
     def credit_usage_stats(self, request, *args, **kwargs):
         """
@@ -1127,36 +1148,6 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = BetaCohortStatsSerializer(data)
         return Response(serializer.data)
 
-    @extend_schema(
-        tags=["Beta Analytics"],
-        summary="Analyze feature usage distribution",
-        description="Analyzes how teachers allocate their credit budget across different features "
-        "(Grading vs Creation vs Other). Calculates feedback depth (tokens per grading session), "
-        "analytics engagement, and identifies the primary value driver. This data determines "
-        "which features should be positioned as 'Core' versus 'Secondary' in the product offering.",
-        responses={
-            200: OpenApiResponse(
-                response=BetaFeatureMixSerializer,
-                description="Feature usage distribution and engagement quality metrics",
-                examples=[
-                    OpenApiExample(
-                        name="Feature Mix Example",
-                        value={
-                            "grading_percent": 65.3,
-                            "creation_percent": 28.7,
-                            "other_percent": 6.0,
-                            "average_feedback_depth_token": 1850,
-                            "total_analytics_views": 3420,
-                            "views_per_user": 2.7,
-                            "primary_driver": "GRADING",
-                            "engagement_quality": "HIGH",
-                        },
-                        description="Example showing grading-heavy usage with high engagement",
-                    )
-                ],
-            ),
-        },
-    )
     @action(detail=False, methods=["GET"], url_path="beta/feature-mix")
     def feature_mix(self, request, *args, **kwargs):
         """
@@ -1171,8 +1162,6 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             total_creation=Sum("credits_used_creation"),
             total_feedback=Sum("credits_used_feedback"),
             total_views=Sum("analytics_view_count"),
-            # To calculate depth, we need to know how many actual tasks were run
-            # We fetch this count from the related CreditUsageLog
             total_grading_events=Count(
                 "user__credit_wallet__credit_usage_logs",
                 filter=Q(
@@ -1185,11 +1174,56 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         total_grading = mix_stats["total_grading"] or 0
         total_creation = mix_stats["total_creation"] or 0
         total_feedback = mix_stats["total_feedback"] or 0
-
-        # 2. Calculate Feedback Depth (Tokens per Grading Task)
-        # Higher tokens per grading session = Higher perceived value / depth
         grading_events = mix_stats["total_grading_events"] or 1
         avg_feedback_depth = total_grading / grading_events
+
+        # 2. Feature Consumption Time Series (Last 60 Days)
+        sixty_days_ago = timezone.now().date() - timedelta(days=60)
+
+        grading_cats = ["Grading Assignment"]
+        feedback_cats = ["Formatted Grade", "Student Summary"]
+        creation_cats = ["Assignment Extraction", "Assignment Generation"]
+
+        category_trends = (
+            CreditUsageLog.objects.filter(created_at__date__gte=sixty_days_ago)
+            .annotate(
+                day=TruncDay("created_at"),
+                category=Case(
+                    When(feature__in=grading_cats, then=Value("grading")),
+                    When(feature__in=feedback_cats, then=Value("feedback")),
+                    When(feature__in=creation_cats, then=Value("creation")),
+                    default=Value("other"),
+                ),
+            )
+            .filter(category__in=["grading", "feedback", "creation"])
+            .values("day", "category")
+            .annotate(avg_tokens=Avg("amount"))
+            .order_by("day")
+        )
+
+        trends_map = {}
+        for item in category_trends:
+            date = item["day"].date()
+            cat = item["category"]
+            avg = item["avg_tokens"]
+            if date not in trends_map:
+                trends_map[date] = {"grading": 0, "feedback": 0, "creation": 0}
+            trends_map[date][cat] = avg
+
+        consumption_series = []
+        for i in range(61):
+            target_date = sixty_days_ago + timedelta(days=i)
+            day_data = trends_map.get(
+                target_date, {"grading": 0, "feedback": 0, "creation": 0}
+            )
+            consumption_series.append(
+                {
+                    "date": target_date,
+                    "avg_tokens_grading": round(day_data["grading"], 2),
+                    "avg_tokens_feedback": round(day_data["feedback"], 2),
+                    "avg_tokens_creation": round(day_data["creation"], 2),
+                }
+            )
 
         data = {
             "grading_percent": round((total_grading / total_spent) * 100, 2),
@@ -1212,6 +1246,7 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                 "GRADING" if total_grading > total_creation else "CREATION"
             ),
             "engagement_quality": "HIGH" if avg_feedback_depth > 1500 else "LOW",
+            "consumption_time_series": consumption_series,
         }
 
         serializer = BetaFeatureMixSerializer(data)

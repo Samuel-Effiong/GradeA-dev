@@ -629,45 +629,84 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         input_file = serializer.validated_data.get("file")
         raw_data = serializer.validated_data.get("raw_data")
 
-        rows = []
+        raw_rows = []
         if input_file:
             # Handle CSV file upload
             decoded_file = input_file.read().decode("utf-8").splitlines()
-            reader = csv.DictReader(decoded_file)
-            rows = list(reader)
+            reader = csv.reader(decoded_file)
+            raw_rows = list(reader)
         elif raw_data:
             # Handle Excel paste (TSV) or raw CSV string
             delimiter = "\t" if "\t" in raw_data else ","
             f = io.StringIO(raw_data.strip())
-            reader = csv.DictReader(f, delimiter=delimiter)
-            rows = list(reader)
+            reader = csv.reader(f, delimiter=delimiter)
+            raw_rows = list(reader)
 
-        if not rows:
+        if not raw_rows:
             return Response(
                 {"detail": "No valid student data found in input."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Define header variations
+        header_variations = {
+            "first_name": ["First Name", "FirstName", "first_name", "first"],
+            "last_name": ["Last Name", "LastName", "last_name", "last"],
+            "middle_name": ["Middle Name", "middle_name", "middle"],
+            "email": ["Email", "email", "e-mail"],
+        }
+
+        # Header detection
+        first_row = [str(c).strip() for c in raw_rows[0]]
+        column_map = {}
+        is_header = False
+
+        # Try to map columns by header names
+        header_fields_found = set()
+        for field, variations in header_variations.items():
+            for i, cell in enumerate(first_row):
+                # Match exact or normalized variations
+                norm_cell = cell.lower().replace(" ", "_")
+                if cell in variations or norm_cell in [
+                    v.lower().replace(" ", "_") for v in variations
+                ]:
+                    column_map[field] = i
+                    header_fields_found.add(field)
+                    break
+
+        # If we found at least two of the expected fields, treat it as a header
+        if len(header_fields_found) >= 2:
+            is_header = True
+        else:
+            # If only one or zero fields matched, it's likely data or a very incomplete header.
+            # Reset column_map to avoid partial matches from the "header" row if we decide it's data.
+            column_map = {}
+
+        if is_header:
+            data_rows = raw_rows[1:]
+        else:
+            # Fallback pattern if no header detected: First, Last, Middle, Email
+            column_map = {"first_name": 0, "last_name": 1, "middle_name": 2, "email": 3}
+            data_rows = raw_rows
+
         results = []
         success_count = 0
         failure_count = 0
 
-        def get_val(row, variations):
-            for v in variations:
-                if v in row:
-                    return (row[v] or "").strip()
-                norm_v = v.lower().replace(" ", "_")
-                if norm_v in row:
-                    return (row[norm_v] or "").strip()
-            return ""
+        for row in data_rows:
+            if not any(row):  # Skip empty rows
+                continue
 
-        for row in rows:
-            first_name = get_val(
-                row, ["First Name", "FirstName", "first_name", "first"]
-            )
-            last_name = get_val(row, ["Last Name", "LastName", "last_name", "last"])
-            middle_name = get_val(row, ["Middle Name", "middle_name", "middle"])
-            email = get_val(row, ["Email", "email", "e-mail"])
+            def get_row_val(field):
+                idx = column_map.get(field)
+                if idx is not None and idx < len(row):
+                    return (row[idx] or "").strip()
+                return ""
+
+            first_name = get_row_val("first_name")
+            last_name = get_row_val("last_name")
+            middle_name = get_row_val("middle_name")
+            email = get_row_val("email")
 
             if not first_name or not last_name:
                 results.append(
@@ -813,7 +852,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         return Response(
             {
-                "total_processed": len(rows),
+                "total_processed": len(data_rows),
                 "success_count": success_count,
                 "failure_count": failure_count,
                 "results": results,
