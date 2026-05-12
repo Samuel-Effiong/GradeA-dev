@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.db.models import Case, F, Q, Sum, Value, When
 from django.db.models.aggregates import Avg, Count
 from django.db.models.functions import ExtractHour, TruncDay, TruncWeek
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
@@ -44,6 +45,7 @@ from .serializers import (  # SubscriptionSerializer,; BetaUsageTrendSerializer,
     BetaFeatureMixSerializer,
     BetaProfileSerializer,
     BetaSummarySerializer,
+    BetaUserDetailResponseSerializer,
     CarryOverHistorySerializer,
     ConversionLeadSerializer,
     CreditBucketSerializer,
@@ -1305,17 +1307,42 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
         Used to determine which features are 'Core' vs 'Secondary'.
         """
 
-        # 1. Aggregate global totals across the entire cohort
+        # 1. Define categories
+        grading_cats = ["Grading Assignment"]
+        feedback_cats = ["Formatted Grade", "Student Summary"]
+        creation_cats = ["Assignment Extraction", "Assignment Generation"]
+
+        # 2. Aggregate global totals and event counts across the entire cohort
         mix_stats = self.get_queryset().aggregate(
             total_spent=Sum("total_credits_used"),
             total_grading=Sum("credits_used_grading"),
             total_creation=Sum("credits_used_creation"),
             total_feedback=Sum("credits_used_feedback"),
             total_views=Sum("analytics_view_count"),
-            total_grading_events=Count(
+            grading_events=Count(
                 "user__credit_wallet__credit_usage_logs",
                 filter=Q(
-                    user__credit_wallet__credit_usage_logs__feature="Grading Assignment"
+                    user__credit_wallet__credit_usage_logs__feature__in=grading_cats
+                ),
+            ),
+            creation_events=Count(
+                "user__credit_wallet__credit_usage_logs",
+                filter=Q(
+                    user__credit_wallet__credit_usage_logs__feature__in=creation_cats
+                ),
+            ),
+            feedback_events=Count(
+                "user__credit_wallet__credit_usage_logs",
+                filter=Q(
+                    user__credit_wallet__credit_usage_logs__feature__in=feedback_cats
+                ),
+            ),
+            other_events=Count(
+                "user__credit_wallet__credit_usage_logs",
+                filter=~Q(
+                    user__credit_wallet__credit_usage_logs__feature__in=grading_cats
+                    + feedback_cats
+                    + creation_cats
                 ),
             ),
         )
@@ -1324,22 +1351,27 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
         total_grading = mix_stats["total_grading"] or 0
         total_creation = mix_stats["total_creation"] or 0
         total_feedback = mix_stats["total_feedback"] or 0
-        grading_events = mix_stats["total_grading_events"] or 1
-        avg_feedback_depth = total_grading / grading_events
+        total_other = max(
+            0, total_spent - total_grading - total_creation - total_feedback
+        )
 
         data = {
             "grading_percent": round((total_grading / total_spent) * 100, 2),
             "creation_percent": round((total_creation / total_spent) * 100, 2),
             "feedback_percent": round((total_feedback / total_spent) * 100, 2),
-            "other_percent": round(
-                (
-                    (total_spent - total_grading - total_creation - total_feedback)
-                    / total_spent
-                )
-                * 100,
-                2,
+            "other_percent": round((total_other / total_spent) * 100, 2),
+            "avg_tokens_grading": round(
+                total_grading / (mix_stats["grading_events"] or 1), 2
             ),
-            "average_feedback_depth_token": round(avg_feedback_depth, 0),
+            "avg_tokens_creation": round(
+                total_creation / (mix_stats["creation_events"] or 1), 2
+            ),
+            "avg_tokens_feedback": round(
+                total_feedback / (mix_stats["feedback_events"] or 1), 2
+            ),
+            "avg_tokens_other": round(
+                total_other / (mix_stats["other_events"] or 1), 2
+            ),
             "total_analytics_views": mix_stats["total_views"],
             "views_per_user": round(
                 mix_stats["total_views"] / (self.get_queryset().count() or 1), 1
@@ -1347,8 +1379,6 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
             "primary_driver": (
                 "GRADING" if total_grading > total_creation else "CREATION"
             ),
-            # "engagement_quality": "HIGH" if avg_feedback_depth > 1500 else "LOW",
-            # "consumption_time_series": consumption_series,
         }
 
         serializer = BetaFeatureMixSerializer(data)
@@ -1448,6 +1478,11 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                 (stats["primary_graders"] / total) * 100, 2
             ),
             "percent_unused_credits": round(unused_credits_percent, 2),
+            # Absolute counts
+            "credit_used_greater_than_80_count": stats["high_consumption"],
+            "login_greater_than_8_days_count": stats["habit_formation"],
+            "grading_percent_greater_than_creation_count": stats["primary_graders"],
+            "active_last_7_days_count": stats["active_recent"],
         }
 
         serializer = BetaSummarySerializer(data)
@@ -1799,9 +1834,12 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         for p in leads:
             data.append(
                 {
+                    "id": str(p.user.id),
+                    "name": p.user.get_full_name(),
                     "email": p.user.email,
                     "score": round(p.conversion_probability, 1),
                     "metrics": {
+                        "credit_usage": p.total_credits_used,
                         "usage_percentage": round(
                             (p.total_credits_used / p.initial_beta_credits) * 100, 1
                         ),
@@ -1824,11 +1862,114 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                         ),
                         "is_power_grader": p.credits_used_grading
                         > p.credits_used_creation,
+                        # "grading_heavy": p.credits_used_grading > p.credits_used_creation,
+                        "frequent_user": p.distinct_login_days >= 8,
                     },
                 }
             )
 
         serializer = ConversionLeadSerializer(data, many=True)
+        return Response(serializer.data)
+
+    @extend_schema(
+        tags=["Beta Analytics"],
+        summary="Detailed usage data for a specific high-intent lead",
+        description=(
+            "Returns daily consumption trends, feature mix percentages, and "
+            "engagement metrics for a specific user ID."
+        ),
+        responses={200: BetaUserDetailResponseSerializer},
+    )
+    @action(
+        detail=False,
+        methods=["GET"],
+        url_path="intent-signal-detail/(?P<user_id>[^/.]+)",
+        url_name="intent-signal-detail",
+    )
+    def intent_signal_detail(self, request, user_id=None, *args, **kwargs):
+        profile = get_object_or_404(BetaProfile, user__id=user_id)
+        seven_days_ago = timezone.now() - timedelta(days=7)
+
+        # 1. Lead Profile & Metrics
+        total_used = profile.total_credits_used or 0
+        initial = profile.initial_beta_credits or 1
+
+        lead_info = {
+            "id": profile.user.id,
+            "name": profile.user.get_full_name(),
+            "email": profile.user.email,
+            "score": round(profile.conversion_probability, 1),
+            "metrics": {
+                "credit_usage": profile.total_credits_used,
+                "usage_percentage": round((total_used / initial) * 100, 1),
+                "login_days": profile.distinct_login_days,
+                "last_active": (
+                    profile.last_active_at.date() if profile.last_active_at else None
+                ),
+                "primary_use_case": (
+                    "Grading"
+                    if profile.credits_used_grading > profile.credits_used_creation
+                    else "Creation"
+                ),
+            },
+            "flags": {
+                "at_80_percent": profile.has_hit_80_percent,
+                "active_last_week": (
+                    profile.last_active_at >= seven_days_ago
+                    if profile.last_active_at
+                    else False
+                ),
+                "is_power_grader": profile.credits_used_grading
+                > profile.credits_used_creation,
+                # "grading_heavy": profile.credits_used_grading
+                # > profile.credits_used_creation,
+                "frequent_user": profile.distinct_login_days >= 8,
+            },
+        }
+
+        # 2. Daily Consumption (Last 60 Days)
+        sixty_days_ago = timezone.now().date() - timedelta(days=60)
+        raw_usage = (
+            CreditUsageLog.objects.filter(
+                wallet__user_id=user_id, created_at__date__gte=sixty_days_ago
+            )
+            .annotate(day=TruncDay("created_at"))
+            .values("day")
+            .annotate(total=Sum("amount"))
+            .order_by("day")
+        )
+        usage_dict = {d["day"].date(): d["total"] for d in raw_usage}
+
+        daily_time_series = []
+        for i in range(61):
+            target_date = sixty_days_ago + timedelta(days=i)
+            daily_time_series.append(
+                {"date": target_date, "credits": usage_dict.get(target_date, 0)}
+            )
+
+        # 3. Feature Mix Percentages
+        divisor = total_used or 1
+        grading = profile.credits_used_grading
+        creation = profile.credits_used_creation
+        feedback = profile.credits_used_feedback
+        other = max(0, total_used - grading - creation - feedback)
+
+        feature_mix = {
+            "grading_percent": round((grading / divisor) * 100, 2),
+            "creation_percent": round((creation / divisor) * 100, 2),
+            "feedback_percent": round((feedback / divisor) * 100, 2),
+            "other_percent": round((other / divisor) * 100, 2),
+        }
+
+        # 4. Assemble Final Response
+        data = {
+            **lead_info,
+            "daily_usage": daily_time_series,
+            "feature_mix": feature_mix,
+            "dashboard_view_count": profile.analytics_view_count,
+        }
+
+        serializer = BetaUserDetailResponseSerializer(data)
         return Response(serializer.data)
 
 
