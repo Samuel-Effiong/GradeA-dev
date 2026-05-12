@@ -30,7 +30,7 @@ router.register(
 router.register(r"subscription", SubscriptionManagementViewSet, basename="subscription")
 router.register(r"analytics", BetaAnalyticViewSet, basename="analytics")
 router.register(r"beta-profile", BetaProfileViewSet, basename="beta-profile")
-router.register(r"beta-charts", BetaAnaylicChartViewSet, basename="beta-charts")
+router.register(r"beta-chart", BetaAnaylicChartViewSet, basename="beta-chart")
 
 router.register(
     r"admin/credits", AdminCreditManagementViewSet, basename="admin-credits"

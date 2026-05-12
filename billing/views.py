@@ -1055,10 +1055,10 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
     @action(
         detail=False,
         methods=["GET"],
-        url_path="token-per-submission",
-        url_name="token-per-submission",
+        url_path="daily-credit-consumption-grouping",
+        url_name="daily-credit-consumption-grouping",
     )
-    def token_per_submission(self, request, *args, **kwargs):
+    def daily_credit_consumption_grouping(self, request, *args, **kwargs):
         # Time series stats showing the average tokens consumed daily per AI action for each feature
         # Three lines: Grading, Feedback, Assignment Creation
 
@@ -1293,6 +1293,67 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = CreditUsageDistributionResponseSerializer({"distribution": data})
         return Response(serializer.data)
 
+    @extend_schema(
+        tags=["Beta Analytics Charts"],
+        summary="Feature Usage Mixture",
+        responses={200: BetaFeatureMixSerializer},
+    )
+    @action(detail=False, methods=["GET"], url_path="feature-usage-mix")
+    def feature_usage_mix(self, request, *args, **kwargs):
+        """
+        Analyses how teachers are allocating their credit budget.
+        Used to determine which features are 'Core' vs 'Secondary'.
+        """
+
+        # 1. Aggregate global totals across the entire cohort
+        mix_stats = self.get_queryset().aggregate(
+            total_spent=Sum("total_credits_used"),
+            total_grading=Sum("credits_used_grading"),
+            total_creation=Sum("credits_used_creation"),
+            total_feedback=Sum("credits_used_feedback"),
+            total_views=Sum("analytics_view_count"),
+            total_grading_events=Count(
+                "user__credit_wallet__credit_usage_logs",
+                filter=Q(
+                    user__credit_wallet__credit_usage_logs__feature="Grading Assignment"
+                ),
+            ),
+        )
+
+        total_spent = mix_stats["total_spent"] or 1
+        total_grading = mix_stats["total_grading"] or 0
+        total_creation = mix_stats["total_creation"] or 0
+        total_feedback = mix_stats["total_feedback"] or 0
+        grading_events = mix_stats["total_grading_events"] or 1
+        avg_feedback_depth = total_grading / grading_events
+
+        data = {
+            "grading_percent": round((total_grading / total_spent) * 100, 2),
+            "creation_percent": round((total_creation / total_spent) * 100, 2),
+            "feedback_percent": round((total_feedback / total_spent) * 100, 2),
+            "other_percent": round(
+                (
+                    (total_spent - total_grading - total_creation - total_feedback)
+                    / total_spent
+                )
+                * 100,
+                2,
+            ),
+            "average_feedback_depth_token": round(avg_feedback_depth, 0),
+            "total_analytics_views": mix_stats["total_views"],
+            "views_per_user": round(
+                mix_stats["total_views"] / (self.get_queryset().count() or 1), 1
+            ),
+            "primary_driver": (
+                "GRADING" if total_grading > total_creation else "CREATION"
+            ),
+            # "engagement_quality": "HIGH" if avg_feedback_depth > 1500 else "LOW",
+            # "consumption_time_series": consumption_series,
+        }
+
+        serializer = BetaFeatureMixSerializer(data)
+        return Response(serializer.data)
+
 
 class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = BetaProfile.objects.all()
@@ -1347,6 +1408,7 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
     def summary(self, request, *args, **kwargs):
         now = timezone.now()
         seven_days_ago = now - timedelta(days=7)
+        standard_allocation = 20_000_000
 
         stats = self.get_queryset().aggregate(
             total=Count("id"),
@@ -1362,6 +1424,11 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         )
 
         total = stats["total"] or 1
+        average_used = stats["avg_usage"] or 0
+
+        unused_credits_percent = max(
+            0, ((standard_allocation - average_used) / standard_allocation) * 100
+        )
 
         data = {
             "total_beta_users": total,
@@ -1380,6 +1447,7 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             "grading_percent_greater_than_creation_percent": round(
                 (stats["primary_graders"] / total) * 100, 2
             ),
+            "percent_unused_credits": round(unused_credits_percent, 2),
         }
 
         serializer = BetaSummarySerializer(data)
@@ -1507,110 +1575,6 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         }
 
         serializer = BetaCohortStatsSerializer(data)
-        return Response(serializer.data)
-
-    @action(detail=False, methods=["GET"], url_path="beta/feature-mix")
-    def feature_mix(self, request, *args, **kwargs):
-        """
-        Analyses how teachers are allocating their credit budget.
-        Used to determine which features are 'Core' vs 'Secondary'.
-        """
-
-        # 1. Aggregate global totals across the entire cohort
-        mix_stats = self.get_queryset().aggregate(
-            total_spent=Sum("total_credits_used"),
-            total_grading=Sum("credits_used_grading"),
-            total_creation=Sum("credits_used_creation"),
-            total_feedback=Sum("credits_used_feedback"),
-            total_views=Sum("analytics_view_count"),
-            total_grading_events=Count(
-                "user__credit_wallet__credit_usage_logs",
-                filter=Q(
-                    user__credit_wallet__credit_usage_logs__feature="Grading Assignment"
-                ),
-            ),
-        )
-
-        total_spent = mix_stats["total_spent"] or 1
-        total_grading = mix_stats["total_grading"] or 0
-        total_creation = mix_stats["total_creation"] or 0
-        total_feedback = mix_stats["total_feedback"] or 0
-        grading_events = mix_stats["total_grading_events"] or 1
-        avg_feedback_depth = total_grading / grading_events
-
-        # 2. Feature Consumption Time Series (Last 60 Days)
-        sixty_days_ago = timezone.now().date() - timedelta(days=60)
-
-        grading_cats = ["Grading Assignment"]
-        feedback_cats = ["Formatted Grade", "Student Summary"]
-        creation_cats = ["Assignment Extraction", "Assignment Generation"]
-
-        category_trends = (
-            CreditUsageLog.objects.filter(created_at__date__gte=sixty_days_ago)
-            .annotate(
-                day=TruncDay("created_at"),
-                category=Case(
-                    When(feature__in=grading_cats, then=Value("grading")),
-                    When(feature__in=feedback_cats, then=Value("feedback")),
-                    When(feature__in=creation_cats, then=Value("creation")),
-                    default=Value("other"),
-                ),
-            )
-            .filter(category__in=["grading", "feedback", "creation"])
-            .values("day", "category")
-            .annotate(avg_tokens=Avg("amount"))
-            .order_by("day")
-        )
-
-        trends_map = {}
-        for item in category_trends:
-            date = item["day"].date()
-            cat = item["category"]
-            avg = item["avg_tokens"]
-            if date not in trends_map:
-                trends_map[date] = {"grading": 0, "feedback": 0, "creation": 0}
-            trends_map[date][cat] = avg
-
-        consumption_series = []
-        for i in range(61):
-            target_date = sixty_days_ago + timedelta(days=i)
-            day_data = trends_map.get(
-                target_date, {"grading": 0, "feedback": 0, "creation": 0}
-            )
-            consumption_series.append(
-                {
-                    "date": target_date,
-                    "avg_tokens_grading": round(day_data["grading"], 2),
-                    "avg_tokens_feedback": round(day_data["feedback"], 2),
-                    "avg_tokens_creation": round(day_data["creation"], 2),
-                }
-            )
-
-        data = {
-            "grading_percent": round((total_grading / total_spent) * 100, 2),
-            "creation_percent": round((total_creation / total_spent) * 100, 2),
-            "feedback_percent": round((total_feedback / total_spent) * 100, 2),
-            "other_percent": round(
-                (
-                    (total_spent - total_grading - total_creation - total_feedback)
-                    / total_spent
-                )
-                * 100,
-                2,
-            ),
-            "average_feedback_depth_token": round(avg_feedback_depth, 0),
-            "total_analytics_views": mix_stats["total_views"],
-            "views_per_user": round(
-                mix_stats["total_views"] / (self.get_queryset().count() or 1), 1
-            ),
-            "primary_driver": (
-                "GRADING" if total_grading > total_creation else "CREATION"
-            ),
-            "engagement_quality": "HIGH" if avg_feedback_depth > 1500 else "LOW",
-            "consumption_time_series": consumption_series,
-        }
-
-        serializer = BetaFeatureMixSerializer(data)
         return Response(serializer.data)
 
     # @extend_schema(

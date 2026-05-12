@@ -584,6 +584,7 @@ class BetaSummarySerializer(serializers.Serializer):
     credit_used_greater_than_80_percent = serializers.FloatField()
     login_greater_than_8_days = serializers.FloatField()
     grading_percent_greater_than_creation_percent = serializers.FloatField()
+    percent_unused_credits = serializers.FloatField()
 
 
 class DailyTimeSeriesSerializer(serializers.Serializer):
@@ -617,8 +618,8 @@ class BetaFeatureMixSerializer(serializers.Serializer):
     total_analytics_views = serializers.IntegerField()
     views_per_user = serializers.FloatField()
     primary_driver = serializers.CharField()
-    engagement_quality = serializers.CharField()
-    consumption_time_series = FeatureConsumptionTimeSeriesSerializer(many=True)
+    # engagement_quality = serializers.CharField()
+    # consumption_time_series = FeatureConsumptionTimeSeriesSerializer(many=True)
 
 
 class PeakUsageHourSerializer(serializers.Serializer):
