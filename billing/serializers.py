@@ -599,8 +599,6 @@ class BetaCohortStatsSerializer(serializers.Serializer):
     p90_credit_used = serializers.FloatField()
     average_days_to_reach_cap = serializers.IntegerField()
     percent_unused_credits = serializers.FloatField()
-    usage_distribution = serializers.DictField()
-    daily_time_series = DailyTimeSeriesSerializer(many=True)
 
 
 class FeatureConsumptionTimeSeriesSerializer(serializers.Serializer):
@@ -638,11 +636,45 @@ class InfrastructureInsightSerializer(serializers.Serializer):
     current_week_velocity = serializers.IntegerField()
 
 
-class BetaUsageTrendSerializer(serializers.Serializer):
-    daily_time_series = DailyTimeSeriesSerializer(many=True)
-    peak_usage_hours = PeakUsageHourSerializer(many=True)
-    weekly_growth = WeeklyGrowthSerializer(many=True)
-    infrastructure_insight = InfrastructureInsightSerializer()
+# class BetaUsageTrendSerializer(serializers.Serializer):
+# daily_time_series = DailyTimeSeriesSerializer(many=True)
+# peak_usage_hours = PeakUsageHourSerializer(many=True)
+# weekly_growth = WeeklyGrowthSerializer(many=True)
+# infrastructure_insight = InfrastructureInsightSerializer()
+
+
+class UsageQuintileBreakdownSerializer(serializers.Serializer):
+    group_label = serializers.CharField()
+    user_count = serializers.IntegerField()
+    user_ids = serializers.ListField(child=serializers.UUIDField())
+    grading_percent = serializers.FloatField()
+    feedback_percent = serializers.FloatField()
+    creation_percent = serializers.FloatField()
+    other_percent = serializers.FloatField()
+
+
+class UsageQuintileResponseSerializer(serializers.Serializer):
+    quintiles = UsageQuintileBreakdownSerializer(many=True)
+
+
+class IntentSignalDistributionSerializer(serializers.Serializer):
+    signal_count = serializers.IntegerField()
+    user_count = serializers.IntegerField()
+    user_ids = serializers.ListField(child=serializers.UUIDField())
+
+
+class IntentSignalResponseSerializer(serializers.Serializer):
+    distribution = IntentSignalDistributionSerializer(many=True)
+
+
+class CreditUsageBucketSerializer(serializers.Serializer):
+    bucket = serializers.CharField()
+    user_count = serializers.IntegerField()
+    user_ids = serializers.ListField(child=serializers.UUIDField())
+
+
+class CreditUsageDistributionResponseSerializer(serializers.Serializer):
+    distribution = CreditUsageBucketSerializer(many=True)
 
 
 class ConversionLeadMetricsSerializer(serializers.Serializer):

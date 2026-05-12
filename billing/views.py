@@ -39,23 +39,29 @@ from .models import (
     SubscriptionPlan,
     UserSubscription,
 )
-from .serializers import (  # SubscriptionSerializer,
+from .serializers import (  # SubscriptionSerializer,; BetaUsageTrendSerializer,
     BetaCohortStatsSerializer,
     BetaFeatureMixSerializer,
     BetaProfileSerializer,
     BetaSummarySerializer,
-    BetaUsageTrendSerializer,
     CarryOverHistorySerializer,
     ConversionLeadSerializer,
     CreditBucketSerializer,
     CreditLedgerSerializer,
+    CreditUsageDistributionResponseSerializer,
     CreditUsageLogSerializer,
     CreditWalletSerializer,
     CreditWalletSummarySerializer,
+    DailyTimeSeriesSerializer,
+    FeatureConsumptionTimeSeriesSerializer,
+    IntentSignalResponseSerializer,
     OverageStatusSerializer,
+    PeakUsageHourSerializer,
     SubscriptionPlanSerializer,
+    UsageQuintileResponseSerializer,
     UsageSummarySerializer,
     UserSubscriptionSerializer,
+    WeeklyGrowthSerializer,
 )
 from .services import AnalyticsService, SubscriptionService
 
@@ -933,6 +939,361 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
         return Response(serializer.data)
 
 
+class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = BetaProfile.objects.all()
+    permission_classes = [IsSuperAdmin]
+
+    @extend_schema(exclude=True)
+    def retrieve(self, request, *args, **kwargs):
+        raise NotImplementedError("Should not be called")
+
+    @extend_schema(exclude=True)
+    def list(self, request, *args, **kwargs):
+        raise NotImplementedError("Should not be called")
+
+    @extend_schema(
+        tags=["Beta Analytics Charts"],
+        summary="Daily credit consumption",
+        description="Get daily credit consumption for the beta program.",
+        responses={
+            200: OpenApiResponse(response=DailyTimeSeriesSerializer),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["GET"],
+        url_path="daily-credit-consumption",
+        url_name="daily-credit-consumption",
+    )
+    def daily_credit_consumption(self, request, *args, **kwargs):
+        # 4. Daily Time Series (Last 60 Days)
+        sixty_days_ago = timezone.now().date() - timedelta(days=60)
+        raw_usage = (
+            CreditUsageLog.objects.filter(created_at__date__gte=sixty_days_ago)
+            .annotate(day=TruncDay("created_at"))
+            .values("day")
+            .annotate(total=Sum("amount"))
+            .order_by("day")
+        )
+        usage_dict = {d["day"].date(): d["total"] for d in raw_usage}
+
+        daily_time_series = []
+        for i in range(61):
+            target_date = sixty_days_ago + timedelta(days=i)
+            daily_time_series.append(
+                {"date": target_date, "credits": usage_dict.get(target_date, 0)}
+            )
+
+        serializer = DailyTimeSeriesSerializer(daily_time_series, many=True)
+        return Response(serializer.data)
+
+    @extend_schema(
+        tags=["Beta Analytics Charts"],
+        summary="Weekly credit trends",
+        description="Get weekly credit trends for the beta program.",
+        responses={
+            200: OpenApiResponse(response=WeeklyGrowthSerializer),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["GET"],
+        url_path="weekly-credit-trends",
+        url_name="weekly-credit-trends",
+    )
+    def weekly_credit_trends(self, request, *args, **kwargs):
+        weekly_usage = (
+            CreditUsageLog.objects.annotate(week=TruncWeek("created_at"))
+            .values("week")
+            .annotate(total=Sum("amount"))
+            .order_by("-week")[:12]
+        )
+
+        weekly_growth = [
+            {"week_start": w["week"].date(), "total_credits": w["total"]}
+            for w in weekly_usage
+        ]
+
+        serializer = WeeklyGrowthSerializer(weekly_growth, many=True)
+        return Response(serializer.data)
+
+    @extend_schema(
+        tags=["Beta Analytics Charts"],
+        summary="Peak usage hours",
+        description="Get peak usage hours for the beta program.",
+        responses={
+            200: OpenApiResponse(response=PeakUsageHourSerializer),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["GET"],
+        url_path="peak-usage-hours",
+        url_name="peak-usage-hours",
+    )
+    def peak_usage_hours(self, request, *args, **kwargs):
+        hourly_distribution = (
+            CreditUsageLog.objects.annotate(hour=ExtractHour("created_at"))
+            .values("hour")
+            .annotate(total=Sum("amount"))
+            .order_by("hour")
+        )
+
+        peak_usage = [
+            {"hour_24h": h["hour"], "total_credits": h["total"]}
+            for h in hourly_distribution
+        ]
+
+        serializer = PeakUsageHourSerializer(peak_usage, many=True)
+        return Response(serializer.data)
+
+    @extend_schema(
+        tags=["Beta Analytics Charts"],
+        summary="Token per submission",
+        description="Get token per submission for the beta program.",
+    )
+    @action(
+        detail=False,
+        methods=["GET"],
+        url_path="token-per-submission",
+        url_name="token-per-submission",
+    )
+    def token_per_submission(self, request, *args, **kwargs):
+        # Time series stats showing the average tokens consumed daily per AI action for each feature
+        # Three lines: Grading, Feedback, Assignment Creation
+
+        sixty_days_ago = timezone.now().date() - timedelta(days=60)
+
+        grading_cats = ["Grading Assignment"]
+        feedback_cats = ["Formatted Grade", "Student Summary"]
+        creation_cats = ["Assignment Extraction", "Assignment Generation"]
+
+        category_trends = (
+            CreditUsageLog.objects.filter(created_at__date__gte=sixty_days_ago)
+            .annotate(
+                day=TruncDay("created_at"),
+                category=Case(
+                    When(feature__in=grading_cats, then=Value("grading")),
+                    When(feature__in=feedback_cats, then=Value("feedback")),
+                    When(feature__in=creation_cats, then=Value("creation")),
+                    default=Value("other"),
+                ),
+            )
+            .filter(category__in=["grading", "feedback", "creation"])
+            .values("day", "category")
+            .annotate(avg_tokens=Avg("amount"))
+            .order_by("day")
+        )
+
+        trends_map = {}
+        for item in category_trends:
+            date = item["day"].date()
+            cat = item["category"]
+            avg = item["avg_tokens"]
+            if date not in trends_map:
+                trends_map[date] = {"grading": 0, "feedback": 0, "creation": 0}
+            trends_map[date][cat] = avg
+
+        consumption_series = []
+        for i in range(61):
+            target_date = sixty_days_ago + timedelta(days=i)
+            day_data = trends_map.get(
+                target_date, {"grading": 0, "feedback": 0, "creation": 0}
+            )
+            consumption_series.append(
+                {
+                    "date": target_date,
+                    "avg_tokens_grading": round(day_data["grading"], 2),
+                    "avg_tokens_feedback": round(day_data["feedback"], 2),
+                    "avg_tokens_creation": round(day_data["creation"], 2),
+                }
+            )
+
+        serializer = FeatureConsumptionTimeSeriesSerializer(
+            consumption_series, many=True
+        )
+        return Response(serializer.data)
+
+    @extend_schema(
+        tags=["Beta Analytics Charts"],
+        summary="Feature mix across group",
+        description="Analyzes the proportional split of AI credit spend across five user tiers (quintiles). "
+        "Each group represents 20% of the user base, ranked by total consumption. "
+        "Used for identifying behavioral differences between light and power users.",
+        responses={200: UsageQuintileResponseSerializer},
+    )
+    @action(
+        detail=False,
+        methods=["GET"],
+        url_path="feature-mix-across-groups",
+        url_name="feature-mix-across-groups",
+    )
+    def feature_mix_across_groups(self, request, *args, **kwargs):
+        profiles = BetaProfile.objects.all().order_by("total_credits_used")
+        total_count = profiles.count()
+
+        if total_count == 0:
+            return Response({"quintiles": []})
+
+        quintile_size = max(1, total_count // 5)
+        quintiles_data = []
+
+        grading_cats = ["Grading Assignment"]
+        feedback_cats = ["Formatted Grade", "Student Summary"]
+        creation_cats = ["Assignment Extraction", "Assignment Generation"]
+
+        for i in range(5):
+            start_idx = i * quintile_size
+            # The last quintile takes any remainders
+            if i == 4:
+                group_profiles = profiles[start_idx:]
+            else:
+                group_profiles = profiles[start_idx : start_idx + quintile_size]
+
+            user_ids = group_profiles.values_list("user_id", flat=True)
+            user_count = group_profiles.count()
+
+            # Aggregate spend for this group
+            group_usage = CreditUsageLog.objects.filter(
+                wallet__user_id__in=user_ids
+            ).aggregate(
+                grading=Sum("amount", filter=Q(feature__in=grading_cats)),
+                feedback=Sum("amount", filter=Q(feature__in=feedback_cats)),
+                creation=Sum("amount", filter=Q(feature__in=creation_cats)),
+                total=Sum("amount"),
+            )
+
+            total_spend = group_usage["total"] or 1
+            grading_sum = group_usage["grading"] or 0
+            feedback_sum = group_usage["feedback"] or 0
+            creation_sum = group_usage["creation"] or 0
+            other_sum = max(0, total_spend - grading_sum - feedback_sum - creation_sum)
+
+            quintiles_data.append(
+                {
+                    "group_label": f"Group {i + 1}",
+                    "user_count": user_count,
+                    "user_ids": list(user_ids),
+                    "grading_percent": round((grading_sum / total_spend) * 100, 2),
+                    "feedback_percent": round((feedback_sum / total_spend) * 100, 2),
+                    "creation_percent": round((creation_sum / total_spend) * 100, 2),
+                    "other_percent": round((other_sum / total_spend) * 100, 2),
+                }
+            )
+
+        serializer = UsageQuintileResponseSerializer({"quintiles": quintiles_data})
+        return Response(serializer.data)
+
+    @extend_schema(
+        tags=["Beta Analytics Charts"],
+        summary="Conversion intent distribution",
+        description="Categorizes users by the number of conversion signals they meet (1-4). "
+        "Signals: High Consumption (>=80%), High Frequency (>=8 days), Recent Activity (<7 days), "
+        "and Grading-Heavy Usage.",
+        responses={200: IntentSignalResponseSerializer},
+    )
+    @action(
+        detail=False,
+        methods=["GET"],
+        url_path="intent-signal-distribution",
+        url_name="intent-signal-distribution",
+    )
+    def intent_signal_distribution(self, request, *args, **kwargs):
+        profiles = BetaProfile.objects.all()
+        now = timezone.now()
+        seven_days_ago = now - timedelta(days=7)
+
+        # Initialize structure for buckets 1, 2, 3, 4
+        distribution = {
+            1: {"user_count": 0, "user_ids": []},
+            2: {"user_count": 0, "user_ids": []},
+            3: {"user_count": 0, "user_ids": []},
+            4: {"user_count": 0, "user_ids": []},
+        }
+
+        for profile in profiles:
+            signals = 0
+
+            # 1. High consumption (>= 80%)
+            if profile.has_hit_80_percent:
+                signals += 1
+
+            # 2. High frequency (>= 8 distinct days)
+            if profile.distinct_login_days >= 8:
+                signals += 1
+
+            # 3. Recent activity (last 7 days)
+            if profile.last_active_at and profile.last_active_at >= seven_days_ago:
+                signals += 1
+
+            # 4. Grading-heavy
+            if profile.credits_used_grading > profile.credits_used_creation:
+                signals += 1
+
+            # Increment the corresponding bucket if signals >= 1
+            if signals in distribution:
+                distribution[signals]["user_count"] += 1
+                distribution[signals]["user_ids"].append(profile.user_id)
+
+        data = [
+            {
+                "signal_count": count,
+                "user_count": info["user_count"],
+                "user_ids": info["user_ids"],
+            }
+            for count, info in distribution.items()
+        ]
+
+        serializer = IntentSignalResponseSerializer({"distribution": data})
+        return Response(serializer.data)
+
+    @extend_schema(
+        tags=["Beta Analytics Charts"],
+        summary="Credit usage distribution",
+        description="Histogram showing how many users fall into each 10% bracket of their credit allocation.",
+        responses={200: CreditUsageDistributionResponseSerializer},
+    )
+    @action(
+        detail=False,
+        methods=["GET"],
+        url_path="credit-usage-distribution",
+        url_name="credit-usage-distribution",
+    )
+    def credit_usage_distribution(self, request, *args, **kwargs):
+        profiles = BetaProfile.objects.all()
+
+        # Initialize buckets
+        buckets = {
+            f"{i}-{i + 10}%": {"user_count": 0, "user_ids": []}
+            for i in range(0, 100, 10)
+        }
+
+        for profile in profiles:
+            initial = profile.initial_beta_credits or 1
+            used = profile.total_credits_used or 0
+            percentage = (used / initial) * 100
+
+            # Determine bucket (0-9, 10-19, ..., 90-100+)
+            bucket_idx = min(int(percentage // 10) * 10, 90)
+            bucket_key = f"{bucket_idx}-{bucket_idx + 10}%"
+
+            if bucket_key in buckets:
+                buckets[bucket_key]["user_count"] += 1
+                buckets[bucket_key]["user_ids"].append(profile.user_id)
+
+        data = [
+            {
+                "bucket": key,
+                "user_count": val["user_count"],
+                "user_ids": val["user_ids"],
+            }
+            for key, val in buckets.items()
+        ]
+
+        serializer = CreditUsageDistributionResponseSerializer({"distribution": data})
+        return Response(serializer.data)
+
+
 class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = BetaProfile.objects.all()
     permission_classes = [IsSuperAdmin]
@@ -1092,46 +1453,46 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         )
 
         # 3. Credit Usage Distribution (Histogram)
-        agg_filters = {}
-        for i in range(0, 100, 10):
-            lower, upper = i, i + 10
-            label = f"bucket_{lower}_{upper}"
-            q_filter = Q(
-                total_credits_used__gte=(F("initial_beta_credits") * lower) / 100
-            )
-            if upper < 100:
-                q_filter &= Q(
-                    total_credits_used__lt=(F("initial_beta_credits") * upper) / 100
-                )
-            else:
-                q_filter &= Q(
-                    total_credits_used__lte=(F("initial_beta_credits") * upper) / 100
-                )
-            agg_filters[label] = Count("id", filter=q_filter)
+        # agg_filters = {}
+        # for i in range(0, 100, 10):
+        #     lower, upper = i, i + 10
+        #     label = f"bucket_{lower}_{upper}"
+        #     q_filter = Q(
+        #         total_credits_used__gte=(F("initial_beta_credits") * lower) / 100
+        #     )
+        #     if upper < 100:
+        #         q_filter &= Q(
+        #             total_credits_used__lt=(F("initial_beta_credits") * upper) / 100
+        #         )
+        #     else:
+        #         q_filter &= Q(
+        #             total_credits_used__lte=(F("initial_beta_credits") * upper) / 100
+        #         )
+        #     agg_filters[label] = Count("id", filter=q_filter)
 
-        distribution_stats = self.get_queryset().aggregate(**agg_filters)
-        usage_distribution = {
-            f"{i}-{i + 10}%": distribution_stats[f"bucket_{i}_{i + 10}"]
-            for i in range(0, 100, 10)
-        }
+        # distribution_stats = self.get_queryset().aggregate(**agg_filters)
+        # usage_distribution = {
+        #     f"{i}-{i + 10}%": distribution_stats[f"bucket_{i}_{i + 10}"]
+        #     for i in range(0, 100, 10)
+        # }
 
         # 4. Daily Time Series (Last 60 Days)
-        sixty_days_ago = timezone.now().date() - timedelta(days=60)
-        raw_usage = (
-            CreditUsageLog.objects.filter(created_at__date__gte=sixty_days_ago)
-            .annotate(day=TruncDay("created_at"))
-            .values("day")
-            .annotate(total=Sum("amount"))
-            .order_by("day")
-        )
-        usage_dict = {d["day"].date(): d["total"] for d in raw_usage}
+        # sixty_days_ago = timezone.now().date() - timedelta(days=60)
+        # raw_usage = (
+        #     CreditUsageLog.objects.filter(created_at__date__gte=sixty_days_ago)
+        #     .annotate(day=TruncDay("created_at"))
+        #     .values("day")
+        #     .annotate(total=Sum("amount"))
+        #     .order_by("day")
+        # )
+        # usage_dict = {d["day"].date(): d["total"] for d in raw_usage}
 
-        daily_time_series = []
-        for i in range(61):
-            target_date = sixty_days_ago + timedelta(days=i)
-            daily_time_series.append(
-                {"date": target_date, "credits": usage_dict.get(target_date, 0)}
-            )
+        # daily_time_series = []
+        # for i in range(61):
+        #     target_date = sixty_days_ago + timedelta(days=i)
+        #     daily_time_series.append(
+        #         {"date": target_date, "credits": usage_dict.get(target_date, 0)}
+        #     )
 
         data = {
             "standard_allocation": standard_allocation,
@@ -1141,8 +1502,8 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             "p90_credit_used": p90_credits,
             "average_days_to_reach_cap": avg_days_to_reach_cap,
             "percent_unused_credits": round(unused_credits_pct, 2),
-            "usage_distribution": usage_distribution,
-            "daily_time_series": daily_time_series,
+            # "usage_distribution": usage_distribution,
+            # "daily_time_series": daily_time_series,
         }
 
         serializer = BetaCohortStatsSerializer(data)
@@ -1252,131 +1613,131 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = BetaFeatureMixSerializer(data)
         return Response(serializer.data)
 
-    @extend_schema(
-        tags=["Beta Analytics"],
-        summary="Analyze temporal usage patterns",
-        description="Analyzes credit consumption over time to identify usage patterns and predict "
-        "server load. Returns daily time series (last 30 days), hourly distribution (0-23), "
-        "and weekly growth trends (last 12 weeks). Infrastructure insights include peak usage "
-        "hours and current velocity metrics for capacity planning.",
-        responses={
-            200: OpenApiResponse(
-                response=BetaUsageTrendSerializer,
-                description="Temporal usage patterns and infrastructure insights",
-                examples=[
-                    OpenApiExample(
-                        name="Usage Trends Example",
-                        value={
-                            "daily_time_series": [
-                                {"date": "2024-01-15", "credits": 12500000},
-                                {"date": "2024-01-16", "credits": 14200000},
-                            ],
-                            "peak_usage_hours": [
-                                {"hour_24h": 14, "total_credits": 45000000},
-                                {"hour_24h": 15, "total_credits": 52000000},
-                            ],
-                            "weekly_growth": [
-                                {"week_start": "2024-01-08", "total_credits": 85000000},
-                                {"week_start": "2024-01-15", "total_credits": 92000000},
-                            ],
-                            "infrastructure_insight": {
-                                "peak_hour": 15,
-                                "current_week_velocity": 92000000,
-                            },
-                        },
-                        description="Example showing peak afternoon usage and growing weekly velocity",
-                    )
-                ],
-            ),
-        },
-    )
-    @action(detail=False, methods=["GET"], url_path="beta/usage-trends")
-    def usage_trends(self, request, *args, **kwargs):
-        """
-        Analyze temporal usage patterns to predict server load.
-        Identifies 'Peak Hours' and 'Weekly Rhythms'
-        """
+    # @extend_schema(
+    #     tags=["Beta Analytics"],
+    #     summary="Analyze temporal usage patterns",
+    #     description="Analyzes credit consumption over time to identify usage patterns and predict "
+    #     "server load. Returns daily time series (last 30 days), hourly distribution (0-23), "
+    #     "and weekly growth trends (last 12 weeks). Infrastructure insights include peak usage "
+    #     "hours and current velocity metrics for capacity planning.",
+    #     responses={
+    #         200: OpenApiResponse(
+    #             response=BetaUsageTrendSerializer,
+    #             description="Temporal usage patterns and infrastructure insights",
+    #             examples=[
+    #                 OpenApiExample(
+    #                     name="Usage Trends Example",
+    #                     value={
+    #                         "daily_time_series": [
+    #                             {"date": "2024-01-15", "credits": 12500000},
+    #                             {"date": "2024-01-16", "credits": 14200000},
+    #                         ],
+    #                         "peak_usage_hours": [
+    #                             {"hour_24h": 14, "total_credits": 45000000},
+    #                             {"hour_24h": 15, "total_credits": 52000000},
+    #                         ],
+    #                         "weekly_growth": [
+    #                             {"week_start": "2024-01-08", "total_credits": 85000000},
+    #                             {"week_start": "2024-01-15", "total_credits": 92000000},
+    #                         ],
+    #                         "infrastructure_insight": {
+    #                             "peak_hour": 15,
+    #                             "current_week_velocity": 92000000,
+    #                         },
+    #                     },
+    #                     description="Example showing peak afternoon usage and growing weekly velocity",
+    #                 )
+    #             ],
+    #         ),
+    #     },
+    # )
+    # @action(detail=False, methods=["GET"], url_path="beta/usage-trends")
+    # def usage_trends(self, request, *args, **kwargs):
+    #     """
+    #     Analyze temporal usage patterns to predict server load.
+    #     Identifies 'Peak Hours' and 'Weekly Rhythms'
+    #     """
 
-        # 1. Credits Used Per Day (Last 30 Days)
+    #     # 1. Credits Used Per Day (Last 30 Days)
 
-        thirty_days_ago = timezone.now().date() - timedelta(days=30)
+    #     thirty_days_ago = timezone.now().date() - timedelta(days=30)
 
-        raw_usage = (
-            CreditUsageLog.objects.filter(created_at__date__gte=thirty_days_ago)
-            .annotate(day=TruncDay("created_at"))
-            .values("day")
-            .annotate(total=Sum("amount"))
-            .order_by("day")
-        )
+    #     raw_usage = (
+    #         CreditUsageLog.objects.filter(created_at__date__gte=thirty_days_ago)
+    #         .annotate(day=TruncDay("created_at"))
+    #         .values("day")
+    #         .annotate(total=Sum("amount"))
+    #         .order_by("day")
+    #     )
 
-        # Convert to a dict: {date_object: total_amount}
-        usage_dict = {d["day"].date(): d["total"] for d in raw_usage}
+    #     # Convert to a dict: {date_object: total_amount}
+    #     usage_dict = {d["day"].date(): d["total"] for d in raw_usage}
 
-        # 2. Generate the full range of 30 days and "Pad" missing ones with 0
-        daily_time_series = []
-        for i in range(31):
-            target_date = thirty_days_ago + timedelta(days=i)
-            daily_time_series.append(
-                {
-                    "date": target_date,
-                    "credits": usage_dict.get(
-                        target_date, 0
-                    ),  # Use 0 if the date is missing
-                }
-            )
+    #     # 2. Generate the full range of 30 days and "Pad" missing ones with 0
+    #     daily_time_series = []
+    #     for i in range(31):
+    #         target_date = thirty_days_ago + timedelta(days=i)
+    #         daily_time_series.append(
+    #             {
+    #                 "date": target_date,
+    #                 "credits": usage_dict.get(
+    #                     target_date, 0
+    #                 ),  # Use 0 if the date is missing
+    #             }
+    #         )
 
-        # daily_usage = (
-        #     CreditUsageLog.objects.annotate(day=TruncDay("created_at"))
-        #     .values("day")
-        #     .annotate(total=Sum("amount"))
-        #     .order_by("day")[:30]
-        # )
+    #     # daily_usage = (
+    #     #     CreditUsageLog.objects.annotate(day=TruncDay("created_at"))
+    #     #     .values("day")
+    #     #     .annotate(total=Sum("amount"))
+    #     #     .order_by("day")[:30]
+    #     # )
 
-        # 2. Peak Usage Hours (0 - 23)
-        # Identifies when the AI 'Engine' are under the most stress
-        hourly_distribution = (
-            CreditUsageLog.objects.annotate(hour=ExtractHour("created_at"))
-            .values("hour")
-            .annotate(total=Sum("amount"))
-            .order_by("hour")
-        )
+    #     # 2. Peak Usage Hours (0 - 23)
+    #     # Identifies when the AI 'Engine' are under the most stress
+    #     hourly_distribution = (
+    #         CreditUsageLog.objects.annotate(hour=ExtractHour("created_at"))
+    #         .values("hour")
+    #         .annotate(total=Sum("amount"))
+    #         .order_by("hour")
+    #     )
 
-        # 3. Week-by-Week Trends
-        # Helps identify if usage is growing or falling over the Beta period
-        weekly_usage = (
-            CreditUsageLog.objects.annotate(week=TruncWeek("created_at"))
-            .values("week")
-            .annotate(total=Sum("amount"))
-            .order_by("-week")[:12]
-        )
+    #     # 3. Week-by-Week Trends
+    #     # Helps identify if usage is growing or falling over the Beta period
+    #     weekly_usage = (
+    #         CreditUsageLog.objects.annotate(week=TruncWeek("created_at"))
+    #         .values("week")
+    #         .annotate(total=Sum("amount"))
+    #         .order_by("-week")[:12]
+    #     )
 
-        data = {
-            # "daily_time_series": [
-            #     {"date": d["day"].date(), "credits": d["total"]} for d in daily_usage
-            # ],
-            "daily_time_series": daily_time_series,
-            "peak_usage_hours": [
-                {"hour_24h": h["hour"], "total_credits": h["total"]}
-                for h in hourly_distribution
-            ],
-            "weekly_growth": [
-                {"week_start": w["week"].date(), "total_credits": w["total"]}
-                for w in weekly_usage
-            ],
-            "infrastructure_insight": {
-                "peak_hour": (
-                    max(hourly_distribution, key=lambda x: x["total"])["hour"]
-                    if hourly_distribution
-                    else None
-                ),
-                "current_week_velocity": (
-                    weekly_usage[0]["total"] if weekly_usage else 0
-                ),
-            },
-        }
+    #     data = {
+    #         # "daily_time_series": [
+    #         #     {"date": d["day"].date(), "credits": d["total"]} for d in daily_usage
+    #         # ],
+    #         "daily_time_series": daily_time_series,
+    #         "peak_usage_hours": [
+    #             {"hour_24h": h["hour"], "total_credits": h["total"]}
+    #             for h in hourly_distribution
+    #         ],
+    #         "weekly_growth": [
+    #             {"week_start": w["week"].date(), "total_credits": w["total"]}
+    #             for w in weekly_usage
+    #         ],
+    #         "infrastructure_insight": {
+    #             "peak_hour": (
+    #                 max(hourly_distribution, key=lambda x: x["total"])["hour"]
+    #                 if hourly_distribution
+    #                 else None
+    #             ),
+    #             "current_week_velocity": (
+    #                 weekly_usage[0]["total"] if weekly_usage else 0
+    #             ),
+    #         },
+    #     }
 
-        serializer = BetaUsageTrendSerializer(data)
-        return Response(serializer.data)
+    #     serializer = BetaUsageTrendSerializer(data)
+    #     return Response(serializer.data)
 
     @extend_schema(
         tags=["Beta Analytics"],
