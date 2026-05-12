@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.db import transaction
 from django.db.models import Case, F, Q, Sum, Value, When
 from django.db.models.aggregates import Avg, Count
 from django.db.models.functions import ExtractHour, TruncDay, TruncWeek
@@ -27,7 +28,10 @@ from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from ai_processor.models import AssistantType, ChatMessage, ChatSession, RoleType
+from ai_processor.services import ai_processor
 from classrooms.permissions import IsNotStudent, IsSuperAdmin, IsTeacher
+from dashboard.serializers import CustomAIPrompt, CustomAIReply
 from users.models import UserTypes
 
 from .models import (
@@ -68,6 +72,22 @@ from .serializers import (  # SubscriptionSerializer,; BetaUsageTrendSerializer,
 from .services import AnalyticsService, SubscriptionService
 
 # from rest_framework.generics import GenericAPIView
+
+
+def get_or_create_dashboard_chat_session(user, assistant_type):
+    session, _ = ChatSession.objects.get_or_create(
+        user=user,
+        assistant_type=assistant_type,
+    )
+    return session
+
+
+def append_dashboard_chat_message(session, role, content):
+    return ChatMessage.objects.create(
+        session=session,
+        role=role,
+        content=content,
+    )
 
 
 @extend_schema_view(
@@ -1432,8 +1452,6 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             ),
         },
     )
-    # @method_decorator(cache_page(60 * 15, key_prefix="beta:summary"))
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["GET"], url_path="beta/summary")
     def summary(self, request, *args, **kwargs):
         now = timezone.now()
@@ -1555,48 +1573,6 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             0, ((standard_allocation - avg_used) / standard_allocation) * 100
         )
 
-        # 3. Credit Usage Distribution (Histogram)
-        # agg_filters = {}
-        # for i in range(0, 100, 10):
-        #     lower, upper = i, i + 10
-        #     label = f"bucket_{lower}_{upper}"
-        #     q_filter = Q(
-        #         total_credits_used__gte=(F("initial_beta_credits") * lower) / 100
-        #     )
-        #     if upper < 100:
-        #         q_filter &= Q(
-        #             total_credits_used__lt=(F("initial_beta_credits") * upper) / 100
-        #         )
-        #     else:
-        #         q_filter &= Q(
-        #             total_credits_used__lte=(F("initial_beta_credits") * upper) / 100
-        #         )
-        #     agg_filters[label] = Count("id", filter=q_filter)
-
-        # distribution_stats = self.get_queryset().aggregate(**agg_filters)
-        # usage_distribution = {
-        #     f"{i}-{i + 10}%": distribution_stats[f"bucket_{i}_{i + 10}"]
-        #     for i in range(0, 100, 10)
-        # }
-
-        # 4. Daily Time Series (Last 60 Days)
-        # sixty_days_ago = timezone.now().date() - timedelta(days=60)
-        # raw_usage = (
-        #     CreditUsageLog.objects.filter(created_at__date__gte=sixty_days_ago)
-        #     .annotate(day=TruncDay("created_at"))
-        #     .values("day")
-        #     .annotate(total=Sum("amount"))
-        #     .order_by("day")
-        # )
-        # usage_dict = {d["day"].date(): d["total"] for d in raw_usage}
-
-        # daily_time_series = []
-        # for i in range(61):
-        #     target_date = sixty_days_ago + timedelta(days=i)
-        #     daily_time_series.append(
-        #         {"date": target_date, "credits": usage_dict.get(target_date, 0)}
-        #     )
-
         data = {
             "standard_allocation": standard_allocation,
             "total_users_analyzed": count,
@@ -1611,132 +1587,6 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
 
         serializer = BetaCohortStatsSerializer(data)
         return Response(serializer.data)
-
-    # @extend_schema(
-    #     tags=["Beta Analytics"],
-    #     summary="Analyze temporal usage patterns",
-    #     description="Analyzes credit consumption over time to identify usage patterns and predict "
-    #     "server load. Returns daily time series (last 30 days), hourly distribution (0-23), "
-    #     "and weekly growth trends (last 12 weeks). Infrastructure insights include peak usage "
-    #     "hours and current velocity metrics for capacity planning.",
-    #     responses={
-    #         200: OpenApiResponse(
-    #             response=BetaUsageTrendSerializer,
-    #             description="Temporal usage patterns and infrastructure insights",
-    #             examples=[
-    #                 OpenApiExample(
-    #                     name="Usage Trends Example",
-    #                     value={
-    #                         "daily_time_series": [
-    #                             {"date": "2024-01-15", "credits": 12500000},
-    #                             {"date": "2024-01-16", "credits": 14200000},
-    #                         ],
-    #                         "peak_usage_hours": [
-    #                             {"hour_24h": 14, "total_credits": 45000000},
-    #                             {"hour_24h": 15, "total_credits": 52000000},
-    #                         ],
-    #                         "weekly_growth": [
-    #                             {"week_start": "2024-01-08", "total_credits": 85000000},
-    #                             {"week_start": "2024-01-15", "total_credits": 92000000},
-    #                         ],
-    #                         "infrastructure_insight": {
-    #                             "peak_hour": 15,
-    #                             "current_week_velocity": 92000000,
-    #                         },
-    #                     },
-    #                     description="Example showing peak afternoon usage and growing weekly velocity",
-    #                 )
-    #             ],
-    #         ),
-    #     },
-    # )
-    # @action(detail=False, methods=["GET"], url_path="beta/usage-trends")
-    # def usage_trends(self, request, *args, **kwargs):
-    #     """
-    #     Analyze temporal usage patterns to predict server load.
-    #     Identifies 'Peak Hours' and 'Weekly Rhythms'
-    #     """
-
-    #     # 1. Credits Used Per Day (Last 30 Days)
-
-    #     thirty_days_ago = timezone.now().date() - timedelta(days=30)
-
-    #     raw_usage = (
-    #         CreditUsageLog.objects.filter(created_at__date__gte=thirty_days_ago)
-    #         .annotate(day=TruncDay("created_at"))
-    #         .values("day")
-    #         .annotate(total=Sum("amount"))
-    #         .order_by("day")
-    #     )
-
-    #     # Convert to a dict: {date_object: total_amount}
-    #     usage_dict = {d["day"].date(): d["total"] for d in raw_usage}
-
-    #     # 2. Generate the full range of 30 days and "Pad" missing ones with 0
-    #     daily_time_series = []
-    #     for i in range(31):
-    #         target_date = thirty_days_ago + timedelta(days=i)
-    #         daily_time_series.append(
-    #             {
-    #                 "date": target_date,
-    #                 "credits": usage_dict.get(
-    #                     target_date, 0
-    #                 ),  # Use 0 if the date is missing
-    #             }
-    #         )
-
-    #     # daily_usage = (
-    #     #     CreditUsageLog.objects.annotate(day=TruncDay("created_at"))
-    #     #     .values("day")
-    #     #     .annotate(total=Sum("amount"))
-    #     #     .order_by("day")[:30]
-    #     # )
-
-    #     # 2. Peak Usage Hours (0 - 23)
-    #     # Identifies when the AI 'Engine' are under the most stress
-    #     hourly_distribution = (
-    #         CreditUsageLog.objects.annotate(hour=ExtractHour("created_at"))
-    #         .values("hour")
-    #         .annotate(total=Sum("amount"))
-    #         .order_by("hour")
-    #     )
-
-    #     # 3. Week-by-Week Trends
-    #     # Helps identify if usage is growing or falling over the Beta period
-    #     weekly_usage = (
-    #         CreditUsageLog.objects.annotate(week=TruncWeek("created_at"))
-    #         .values("week")
-    #         .annotate(total=Sum("amount"))
-    #         .order_by("-week")[:12]
-    #     )
-
-    #     data = {
-    #         # "daily_time_series": [
-    #         #     {"date": d["day"].date(), "credits": d["total"]} for d in daily_usage
-    #         # ],
-    #         "daily_time_series": daily_time_series,
-    #         "peak_usage_hours": [
-    #             {"hour_24h": h["hour"], "total_credits": h["total"]}
-    #             for h in hourly_distribution
-    #         ],
-    #         "weekly_growth": [
-    #             {"week_start": w["week"].date(), "total_credits": w["total"]}
-    #             for w in weekly_usage
-    #         ],
-    #         "infrastructure_insight": {
-    #             "peak_hour": (
-    #                 max(hourly_distribution, key=lambda x: x["total"])["hour"]
-    #                 if hourly_distribution
-    #                 else None
-    #             ),
-    #             "current_week_velocity": (
-    #                 weekly_usage[0]["total"] if weekly_usage else 0
-    #             ),
-    #         },
-    #     }
-
-    #     serializer = BetaUsageTrendSerializer(data)
-    #     return Response(serializer.data)
 
     @extend_schema(
         tags=["Beta Analytics"],
@@ -1971,6 +1821,184 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
 
         serializer = BetaUserDetailResponseSerializer(data)
         return Response(serializer.data)
+
+    @extend_schema(
+        tags=["Beta Analytics"],
+        summary="Ask AI questions about the Beta Cohort",
+        description=(
+            "Feeds all beta analytics data (usage, intent, features) "
+            "into the AI to answer complex business questions."
+        ),
+        request=CustomAIPrompt,
+        responses={200: CustomAIReply},
+    )
+    @action(detail=False, methods=["POST"], url_path="beta/custom-ai-prompt")
+    def custom_ai_prompt(self, request, *args, **kwargs):
+        serializer = CustomAIPrompt(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        prompt = serializer.validated_data["prompt"]
+        chat_session = get_or_create_dashboard_chat_session(
+            request.user,
+            AssistantType.SUPER_ADMIN_ANALYTICS,
+        )
+
+        # 1. Gather all the context data from other endpoints
+        try:
+            summary_data = self.summary(request, *args, **kwargs).data
+        except Exception:
+            summary_data = {}
+
+        try:
+            credit_usage_data = self.credit_usage_stats(request, *args, **kwargs).data
+        except Exception:
+            credit_usage_data = {}
+
+        try:
+            intent_leads = self.intent_signals(request, *args, **kwargs).data[:10]
+        except Exception:
+            intent_leads = []
+
+        # 3. Get Feature Mix from the Chart ViewSet internally
+        from .views import BetaAnaylicChartViewSet
+
+        chart_viewset = BetaAnaylicChartViewSet()
+        chart_viewset.request = request
+
+        try:
+            daily_credit_consumption_data = chart_viewset.daily_credit_consumption(
+                request, *args, **kwargs
+            ).data
+        except Exception:
+            daily_credit_consumption_data = {}
+
+        try:
+            weekly_credit_trends_data = chart_viewset.weekly_credit_trends(
+                request, *args, **kwargs
+            ).data
+        except Exception:
+            weekly_credit_trends_data = {}
+
+        try:
+            peak_usage_hours_data = chart_viewset.peak_usage_hours(
+                request, *args, **kwargs
+            ).data
+        except Exception:
+            peak_usage_hours_data = {}
+
+        try:
+            daily_credit_consumption_grouping_data = (
+                chart_viewset.daily_credit_consumption_grouping(
+                    request, *args, **kwargs
+                ).data
+            )
+        except Exception:
+            daily_credit_consumption_grouping_data = {}
+
+        try:
+            feature_mix_across_groups_data = chart_viewset.feature_mix_across_groups(
+                request, *args, **kwargs
+            ).data
+        except Exception:
+            feature_mix_across_groups_data = {}
+
+        try:
+            intent_signal_distribution_data = chart_viewset.intent_signal_distribution(
+                request, *args, **kwargs
+            ).data
+        except Exception:
+            intent_signal_distribution_data = {}
+
+        try:
+            feature_mix = chart_viewset.feature_usage_mix(request, *args, **kwargs).data
+        except Exception:
+            feature_mix = {}
+
+        # 5. Construct the contextual prompt
+        context_template = f"""
+        You are the 'Beta Conversion Strategist' for Grade Automator Plus.
+        Your goal is to analyze the following data and answer the Super Admin's query.
+
+        ### BUSINESS LOGIC DEFINITIONS:
+        - HIGH INTENT: User has hit 80% of their 20M credit grant.
+        - HABIT FORMATION: User has logged in >= 8 distinct days.
+        - STICKY: User was active in the last 7 days.
+        - POWER GRADER: User uses 'Grading' features more than 'Assignment Creation'.
+
+        ### COHORT SUMMARY:
+        {summary_data}
+
+        ### USAGE STATISTICS & DISTRIBUTIONS:
+        {credit_usage_data}
+
+        ### TOP 10 HIGH-INTENT LEADS (For specific outreach):
+        {intent_leads}
+
+        ### DAILY CREDIT CONSUMPTION
+        {daily_credit_consumption_data}
+
+        ### WEEKLY CREDIT TRENDS METRIC
+        {weekly_credit_trends_data}
+
+        ### PEAK USAGE HOURS
+        {peak_usage_hours_data}
+
+        ### DAILY CREDIT CONSUMPTION BASED ON GROUPINGS (GRADING, CREATION, FEEDBACK, OTHERS)
+        {daily_credit_consumption_grouping_data}
+
+        ### FEATURE MIXTURE ACROSS GROUPING
+        {feature_mix_across_groups_data}
+
+        ### INTENT SIGNAL DISTRIBUTION DATA
+        {intent_signal_distribution_data}
+
+        ### FEATURE MIX (Value Drivers):
+        {feature_mix}
+        ---
+
+        """
+
+        user_prompt = f"""
+        #### CONTEXT DATA
+        {context_template}
+
+        #### END OF CONTEXT DATA
+
+
+        #### USER QUERY
+        {prompt}
+
+        """
+
+        try:
+            with transaction.atomic():
+
+                append_dashboard_chat_message(chat_session, RoleType.USER, prompt)
+                ai_feedback = ai_processor.custom_ai_prompt_retry(
+                    request.user,
+                    user_prompt,
+                    UserTypes.SUPER_ADMIN,
+                    feature="Superadmin Custom AI Prompt",
+                    task_type="custom_ai_prompt:superadmin",
+                )
+
+                append_dashboard_chat_message(
+                    chat_session,
+                    RoleType.ASSISTANT,
+                    ai_feedback,
+                )
+
+                data = {
+                    "response": ai_feedback,
+                }
+
+                serializer = CustomAIReply(data)
+                return Response(serializer.data)
+
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 @extend_schema_view(
