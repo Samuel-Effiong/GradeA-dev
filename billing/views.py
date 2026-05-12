@@ -1305,17 +1305,42 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
         Used to determine which features are 'Core' vs 'Secondary'.
         """
 
-        # 1. Aggregate global totals across the entire cohort
+        # 1. Define categories
+        grading_cats = ["Grading Assignment"]
+        feedback_cats = ["Formatted Grade", "Student Summary"]
+        creation_cats = ["Assignment Extraction", "Assignment Generation"]
+
+        # 2. Aggregate global totals and event counts across the entire cohort
         mix_stats = self.get_queryset().aggregate(
             total_spent=Sum("total_credits_used"),
             total_grading=Sum("credits_used_grading"),
             total_creation=Sum("credits_used_creation"),
             total_feedback=Sum("credits_used_feedback"),
             total_views=Sum("analytics_view_count"),
-            total_grading_events=Count(
+            grading_events=Count(
                 "user__credit_wallet__credit_usage_logs",
                 filter=Q(
-                    user__credit_wallet__credit_usage_logs__feature="Grading Assignment"
+                    user__credit_wallet__credit_usage_logs__feature__in=grading_cats
+                ),
+            ),
+            creation_events=Count(
+                "user__credit_wallet__credit_usage_logs",
+                filter=Q(
+                    user__credit_wallet__credit_usage_logs__feature__in=creation_cats
+                ),
+            ),
+            feedback_events=Count(
+                "user__credit_wallet__credit_usage_logs",
+                filter=Q(
+                    user__credit_wallet__credit_usage_logs__feature__in=feedback_cats
+                ),
+            ),
+            other_events=Count(
+                "user__credit_wallet__credit_usage_logs",
+                filter=~Q(
+                    user__credit_wallet__credit_usage_logs__feature__in=grading_cats
+                    + feedback_cats
+                    + creation_cats
                 ),
             ),
         )
@@ -1324,22 +1349,27 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
         total_grading = mix_stats["total_grading"] or 0
         total_creation = mix_stats["total_creation"] or 0
         total_feedback = mix_stats["total_feedback"] or 0
-        grading_events = mix_stats["total_grading_events"] or 1
-        avg_feedback_depth = total_grading / grading_events
+        total_other = max(
+            0, total_spent - total_grading - total_creation - total_feedback
+        )
 
         data = {
             "grading_percent": round((total_grading / total_spent) * 100, 2),
             "creation_percent": round((total_creation / total_spent) * 100, 2),
             "feedback_percent": round((total_feedback / total_spent) * 100, 2),
-            "other_percent": round(
-                (
-                    (total_spent - total_grading - total_creation - total_feedback)
-                    / total_spent
-                )
-                * 100,
-                2,
+            "other_percent": round((total_other / total_spent) * 100, 2),
+            "avg_tokens_grading": round(
+                total_grading / (mix_stats["grading_events"] or 1), 2
             ),
-            "average_feedback_depth_token": round(avg_feedback_depth, 0),
+            "avg_tokens_creation": round(
+                total_creation / (mix_stats["creation_events"] or 1), 2
+            ),
+            "avg_tokens_feedback": round(
+                total_feedback / (mix_stats["feedback_events"] or 1), 2
+            ),
+            "avg_tokens_other": round(
+                total_other / (mix_stats["other_events"] or 1), 2
+            ),
             "total_analytics_views": mix_stats["total_views"],
             "views_per_user": round(
                 mix_stats["total_views"] / (self.get_queryset().count() or 1), 1
@@ -1347,8 +1377,6 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
             "primary_driver": (
                 "GRADING" if total_grading > total_creation else "CREATION"
             ),
-            # "engagement_quality": "HIGH" if avg_feedback_depth > 1500 else "LOW",
-            # "consumption_time_series": consumption_series,
         }
 
         serializer = BetaFeatureMixSerializer(data)
@@ -1448,6 +1476,11 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                 (stats["primary_graders"] / total) * 100, 2
             ),
             "percent_unused_credits": round(unused_credits_percent, 2),
+            # Absolute counts
+            "credit_used_greater_than_80_count": stats["high_consumption"],
+            "login_greater_than_8_days_count": stats["habit_formation"],
+            "grading_percent_greater_than_creation_count": stats["primary_graders"],
+            "active_last_7_days_count": stats["active_recent"],
         }
 
         serializer = BetaSummarySerializer(data)
