@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.db.models import Case, F, Q, Sum, Value, When
 from django.db.models.aggregates import Avg, Count
 from django.db.models.functions import ExtractHour, TruncDay, TruncWeek
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
@@ -44,6 +45,7 @@ from .serializers import (  # SubscriptionSerializer,; BetaUsageTrendSerializer,
     BetaFeatureMixSerializer,
     BetaProfileSerializer,
     BetaSummarySerializer,
+    BetaUserDetailResponseSerializer,
     CarryOverHistorySerializer,
     ConversionLeadSerializer,
     CreditBucketSerializer,
@@ -1832,9 +1834,12 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         for p in leads:
             data.append(
                 {
+                    "id": str(p.user.id),
+                    "name": p.user.get_full_name(),
                     "email": p.user.email,
                     "score": round(p.conversion_probability, 1),
                     "metrics": {
+                        "credit_usage": p.total_credits_used,
                         "usage_percentage": round(
                             (p.total_credits_used / p.initial_beta_credits) * 100, 1
                         ),
@@ -1857,11 +1862,114 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                         ),
                         "is_power_grader": p.credits_used_grading
                         > p.credits_used_creation,
+                        # "grading_heavy": p.credits_used_grading > p.credits_used_creation,
+                        "frequent_user": p.distinct_login_days >= 8,
                     },
                 }
             )
 
         serializer = ConversionLeadSerializer(data, many=True)
+        return Response(serializer.data)
+
+    @extend_schema(
+        tags=["Beta Analytics"],
+        summary="Detailed usage data for a specific high-intent lead",
+        description=(
+            "Returns daily consumption trends, feature mix percentages, and "
+            "engagement metrics for a specific user ID."
+        ),
+        responses={200: BetaUserDetailResponseSerializer},
+    )
+    @action(
+        detail=False,
+        methods=["GET"],
+        url_path="intent-signal-detail/(?P<user_id>[^/.]+)",
+        url_name="intent-signal-detail",
+    )
+    def intent_signal_detail(self, request, user_id=None, *args, **kwargs):
+        profile = get_object_or_404(BetaProfile, user__id=user_id)
+        seven_days_ago = timezone.now() - timedelta(days=7)
+
+        # 1. Lead Profile & Metrics
+        total_used = profile.total_credits_used or 0
+        initial = profile.initial_beta_credits or 1
+
+        lead_info = {
+            "id": profile.user.id,
+            "name": profile.user.get_full_name(),
+            "email": profile.user.email,
+            "score": round(profile.conversion_probability, 1),
+            "metrics": {
+                "credit_usage": profile.total_credits_used,
+                "usage_percentage": round((total_used / initial) * 100, 1),
+                "login_days": profile.distinct_login_days,
+                "last_active": (
+                    profile.last_active_at.date() if profile.last_active_at else None
+                ),
+                "primary_use_case": (
+                    "Grading"
+                    if profile.credits_used_grading > profile.credits_used_creation
+                    else "Creation"
+                ),
+            },
+            "flags": {
+                "at_80_percent": profile.has_hit_80_percent,
+                "active_last_week": (
+                    profile.last_active_at >= seven_days_ago
+                    if profile.last_active_at
+                    else False
+                ),
+                "is_power_grader": profile.credits_used_grading
+                > profile.credits_used_creation,
+                # "grading_heavy": profile.credits_used_grading
+                # > profile.credits_used_creation,
+                "frequent_user": profile.distinct_login_days >= 8,
+            },
+        }
+
+        # 2. Daily Consumption (Last 60 Days)
+        sixty_days_ago = timezone.now().date() - timedelta(days=60)
+        raw_usage = (
+            CreditUsageLog.objects.filter(
+                wallet__user_id=user_id, created_at__date__gte=sixty_days_ago
+            )
+            .annotate(day=TruncDay("created_at"))
+            .values("day")
+            .annotate(total=Sum("amount"))
+            .order_by("day")
+        )
+        usage_dict = {d["day"].date(): d["total"] for d in raw_usage}
+
+        daily_time_series = []
+        for i in range(61):
+            target_date = sixty_days_ago + timedelta(days=i)
+            daily_time_series.append(
+                {"date": target_date, "credits": usage_dict.get(target_date, 0)}
+            )
+
+        # 3. Feature Mix Percentages
+        divisor = total_used or 1
+        grading = profile.credits_used_grading
+        creation = profile.credits_used_creation
+        feedback = profile.credits_used_feedback
+        other = max(0, total_used - grading - creation - feedback)
+
+        feature_mix = {
+            "grading_percent": round((grading / divisor) * 100, 2),
+            "creation_percent": round((creation / divisor) * 100, 2),
+            "feedback_percent": round((feedback / divisor) * 100, 2),
+            "other_percent": round((other / divisor) * 100, 2),
+        }
+
+        # 4. Assemble Final Response
+        data = {
+            **lead_info,
+            "daily_usage": daily_time_series,
+            "feature_mix": feature_mix,
+            "dashboard_view_count": profile.analytics_view_count,
+        }
+
+        serializer = BetaUserDetailResponseSerializer(data)
         return Response(serializer.data)
 
 

@@ -687,7 +687,15 @@ class CreditUsageDistributionResponseSerializer(serializers.Serializer):
     distribution = CreditUsageBucketSerializer(many=True)
 
 
+class BetaUserFeatureMixSerializer(serializers.Serializer):
+    grading_percent = serializers.FloatField()
+    creation_percent = serializers.FloatField()
+    feedback_percent = serializers.FloatField()
+    other_percent = serializers.FloatField()
+
+
 class ConversionLeadMetricsSerializer(serializers.Serializer):
+    credit_usage = serializers.IntegerField()
     usage_percentage = serializers.FloatField()
     login_days = serializers.IntegerField()
     last_active = serializers.DateField(allow_null=True)
@@ -698,9 +706,30 @@ class ConversionLeadFlagsSerializer(serializers.Serializer):
     at_80_percent = serializers.BooleanField()
     active_last_week = serializers.BooleanField()
     is_power_grader = serializers.BooleanField()
+    # grading_heavy = serializers.BooleanField()
+    frequent_user = serializers.BooleanField()
+
+
+class BetaUserDetailResponseSerializer(serializers.Serializer):
+    # Identity & Probability
+    id = serializers.UUIDField()
+    name = serializers.CharField()
+    email = serializers.EmailField()
+    score = serializers.FloatField()
+
+    # Metrics & Flags (Lead Summary)
+    metrics = ConversionLeadMetricsSerializer()
+    flags = ConversionLeadFlagsSerializer()
+
+    # Behavioral Charts & Engagement
+    daily_usage = DailyTimeSeriesSerializer(many=True)
+    feature_mix = BetaUserFeatureMixSerializer()
+    dashboard_view_count = serializers.IntegerField()
 
 
 class ConversionLeadSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    name = serializers.CharField()
     email = serializers.EmailField()
     score = serializers.FloatField()
     metrics = ConversionLeadMetricsSerializer()
