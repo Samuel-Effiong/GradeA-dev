@@ -135,7 +135,7 @@ def grade_engine(user, submission):
     submission.score_percentage = percentage
 
     submission.feedback = grading
-    submission.grading_confidence = grading.get("grading_confidence", "medium")
+    submission.grading_confidence = grading.get("grading_confidence")
     submission.graded_at = timezone.now()
 
     # update the ras_input
