@@ -5,6 +5,7 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.validators import validate_email
 
 # from django.core.mail import send_mail
 from django.db import transaction
@@ -70,6 +71,42 @@ from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
     TopicSerializer,
 )
 from .tasks import student_summary_async
+
+
+def _is_email_value(value):
+    candidate = (value or "").strip()
+    if not candidate:
+        return False
+
+    try:
+        validate_email(candidate)
+        return True
+    except DjangoValidationError:
+        return False
+
+
+def _parse_row_without_headers(row):
+    email = ""
+    name_parts = []
+
+    for cell in row:
+        value = (cell or "").strip()
+        if not value:
+            continue
+
+        if _is_email_value(value):
+            if not email:
+                email = value
+            continue
+
+        name_parts.append(value)
+
+    return {
+        "first_name": name_parts[0] if len(name_parts) > 0 else "",
+        "last_name": name_parts[1] if len(name_parts) > 1 else "",
+        "middle_name": name_parts[2] if len(name_parts) > 2 else "",
+        "email": email,
+    }
 
 
 @extend_schema_view(
@@ -643,10 +680,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
             raw_rows = list(reader)
 
         if not raw_rows:
-            return Response(
-                {"detail": "No valid student data found in input."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            raise ParseError("No valid student data found in input")
 
         # Define header variations
         header_variations = {
@@ -685,8 +719,6 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if is_header:
             data_rows = raw_rows[1:]
         else:
-            # Fallback pattern if no header detected: First, Last, Middle, Email
-            column_map = {"first_name": 0, "last_name": 1, "middle_name": 2, "email": 3}
             data_rows = raw_rows
 
         results = []
@@ -697,16 +729,24 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
             if not any(row):  # Skip empty rows
                 continue
 
-            def get_row_val(field):
-                idx = column_map.get(field)
-                if idx is not None and idx < len(row):
-                    return (row[idx] or "").strip()
-                return ""
+            if is_header:
 
-            first_name = get_row_val("first_name")
-            last_name = get_row_val("last_name")
-            middle_name = get_row_val("middle_name")
-            email = get_row_val("email")
+                def get_row_val(field):
+                    idx = column_map.get(field)
+                    if idx is not None and idx < len(row):
+                        return (row[idx] or "").strip()
+                    return ""
+
+                first_name = get_row_val("first_name")
+                last_name = get_row_val("last_name")
+                middle_name = get_row_val("middle_name")
+                email = get_row_val("email")
+            else:
+                parsed_row = _parse_row_without_headers(row)
+                first_name = parsed_row["first_name"]
+                last_name = parsed_row["last_name"]
+                middle_name = parsed_row["middle_name"]
+                email = parsed_row["email"]
 
             if not first_name or not last_name:
                 results.append(
