@@ -59,7 +59,12 @@ from users.mixins import UserCacheMixin
 from users.models import CustomUser, UserTypes
 from users.permissions import HasCreditBalance
 
-from .models import BatchUploadSession, BatchUploadType, StudentSubmission
+from .models import (
+    BackgroundTaskType,
+    BatchUploadSession,
+    BatchUploadType,
+    StudentSubmission,
+)
 from .serializers import (
     StudentListSerializer,
     StudentSubmissionDetailSerializer,
@@ -73,6 +78,7 @@ from .serializers import (
     StudentSubmissionUploadAsyncSerializer,
 )
 from .services import grade_engine, student_submission_to_html, upload_answers_engine
+from .task_tracking import create_processing_task, launch_processing_task
 
 # from openai.types import Batch
 
@@ -404,8 +410,19 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         task_id = None
 
-        task = upload_answers_engine_async.delay(
-            str(assignment.id), content, str(request.user.id)
+        processing_task = create_processing_task(
+            requested_by=request.user,
+            task_type=BackgroundTaskType.ANSWER_EXTRACTION,
+            assignment=assignment,
+            file_name=uploaded_file.name,
+            meta={"step": "Queued for answer extraction"},
+        )
+        task = launch_processing_task(
+            upload_answers_engine_async,
+            processing_task,
+            str(assignment.id),
+            content,
+            str(request.user.id),
         )
         task_id = task.id
 
@@ -522,7 +539,20 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     def grade_async(self, request, pk=None):
         submission = self.get_object()
 
-        task = grade_engine_async.delay(str(request.user.id), str(submission.id))
+        processing_task = create_processing_task(
+            requested_by=request.user,
+            task_type=BackgroundTaskType.SUBMISSION_GRADING,
+            assignment=submission.assignment,
+            submission=submission,
+            file_name=f"Submission for {submission.student.get_full_name()}",
+            meta={"step": "Queued for grading"},
+        )
+        task = launch_processing_task(
+            grade_engine_async,
+            processing_task,
+            str(request.user.id),
+            str(submission.id),
+        )
         task_id = task.id
 
         data = {
@@ -639,7 +669,19 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 """
 
                 task_id = None
-                task = formatted_grade_async.delay(str(submission.id), user_prompt)
+                processing_task = create_processing_task(
+                    requested_by=request.user,
+                    task_type=BackgroundTaskType.FORMATTED_GRADE,
+                    assignment=assignment,
+                    submission=submission,
+                    meta={"step": "Queued for formatted grade generation"},
+                )
+                task = launch_processing_task(
+                    formatted_grade_async,
+                    processing_task,
+                    str(submission.id),
+                    user_prompt,
+                )
                 task_id = task.id
 
                 # formatted_grade = ai_processor.formatted_grade(user_prompt)
@@ -860,7 +902,17 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
             # Trigger individual async tasks for each paper
             # This allows parallel processing in Celery
-            task = upload_answers_engine_async.delay(
+            processing_task = create_processing_task(
+                requested_by=request.user,
+                task_type=BackgroundTaskType.BATCH_ANSWER_UPLOAD,
+                batch_session=session,
+                assignment=assignment,
+                file_name=uploaded_file.name,
+                meta={"step": "Queued for batch answer extraction"},
+            )
+            task = launch_processing_task(
+                upload_answers_engine_async,
+                processing_task,
                 str(assignment.id),
                 content,
                 str(request.user.id),

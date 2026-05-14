@@ -2008,7 +2008,7 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             )
 
     @extend_schema(
-        tags=["Super Admin"],
+        tags=["Beta Analytics"],
         summary="Get custom AI prompt conversation history",
         responses={200: DashboardChatSessionSerializer},
     )

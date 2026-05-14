@@ -25,6 +25,7 @@ from ai_processor.validators import logger
 from billing.errors import InsufficientCreditsError
 from billing.services import AnalyticsService
 from classrooms.models import StudentCourse
+from students.task_tracking import ensure_task_not_cancelled
 from users.models import UserTypes
 
 # from billing.services import SubscriptionService
@@ -340,7 +341,9 @@ Do not include any explanatory text before or after the JSON
 
         # return self.__generate_text(system_prompt, user_prompt)
 
-    def extract_assignment_image(self, user, content, upload=False):
+    def extract_assignment_image(
+        self, user, content, upload=False, processing_task_id=None
+    ):
         if upload:
             system_prompt = ASSIGNMENT_EXTRACTION_PROMPT_FROM_UPLOADS
         else:
@@ -361,18 +364,22 @@ Do not include any explanatory text before or after the JSON
                             f"(threshold: {PROSEMIRROR_CHUNK_THRESHOLD}). "
                             f"Switching to chunked extraction."
                         )
-                        return self._extract_prosemirror_chunked(user, doc)
+                        return self._extract_prosemirror_chunked(
+                            user, doc, processing_task_id=processing_task_id
+                        )
         except (json.JSONDecodeError, TypeError) as e:
             logger.error(f"Error decoding JSON: {str(e)}")
             pass
 
         try:
+            ensure_task_not_cancelled(processing_task_id)
             response = self.execute_graded_task(
                 user=user,
                 feature="Assignment Extraction",
                 task_type="extract_assignment",
                 system_prompt=system_prompt,
                 user_prompt=content,
+                processing_task_id=processing_task_id,
             )
 
             content = response.choices[0].message.content
@@ -424,7 +431,7 @@ Do not include any explanatory text before or after the JSON
 
         return chunks
 
-    def _extract_prosemirror_chunked(self, user, doc: dict):
+    def _extract_prosemirror_chunked(self, user, doc: dict, processing_task_id=None):
         chunks = self._split_prosemirror_into_chunks(doc)
 
         total_chunks = len(chunks)
@@ -438,6 +445,7 @@ Do not include any explanatory text before or after the JSON
         base_result = None
 
         for chunk_index, chunk_doc in enumerate(chunks):
+            ensure_task_not_cancelled(processing_task_id)
             logger.info(
                 f"[Chunked Extraction] Processing ProseMirror chunk "
                 f"{chunk_index + 1} / {total_chunks}..."
@@ -493,6 +501,7 @@ Do not include any explanatory text before or after the JSON
 
             # Retry each individual chuk up to 3 times before failing
             for attempt in range(3):
+                ensure_task_not_cancelled(processing_task_id)
                 try:
                     response = self.execute_graded_task(
                         user=user,
@@ -500,6 +509,7 @@ Do not include any explanatory text before or after the JSON
                         task_type="extract_assignment",
                         system_prompt=ASSIGNMENT_EXTRACTION_PROMPT,
                         user_prompt=chunk_content,
+                        processing_task_id=processing_task_id,
                     )
                     raw = response.choices[0].message.content
 
@@ -539,6 +549,7 @@ Do not include any explanatory text before or after the JSON
             if base_result is None:
                 base_result = chunk_result
 
+            ensure_task_not_cancelled(processing_task_id)
             chunk_questions = chunk_result.get("questions", [])
             merged_questions.extend(chunk_questions)
 
@@ -571,7 +582,12 @@ Do not include any explanatory text before or after the JSON
         return base_result
 
     def _extract_assignment_chunked(
-        self, user, image_contents: list, upload=False, pages_per_chunk: int = 4
+        self,
+        user,
+        image_contents: list,
+        upload=False,
+        pages_per_chunk: int = 4,
+        processing_task_id=None,
     ):
         """
         Splits a large list of page images into smaller batches and extracts
@@ -616,6 +632,7 @@ Do not include any explanatory text before or after the JSON
         base_result = None
 
         for chunk_index, chunk in enumerate(chunks):
+            ensure_task_not_cancelled(processing_task_id)
             logger.info(
                 f"[Chunked Extraction] Processing chunk {chunk_index + 1}/{len(chunks)}..."
             )
@@ -642,6 +659,7 @@ Do not include any explanatory text before or after the JSON
 
             # Retry each individual chunk up to 3 times before failing
             for attempt in range(3):
+                ensure_task_not_cancelled(processing_task_id)
                 try:
                     response = self.execute_graded_task(
                         user=user,
@@ -649,6 +667,7 @@ Do not include any explanatory text before or after the JSON
                         task_type="extract_assignment",
                         system_prompt=system_prompt,
                         user_prompt=chunk_content,
+                        processing_task_id=processing_task_id,
                     )
                     raw = response.choices[0].message.content
 
@@ -687,6 +706,7 @@ Do not include any explanatory text before or after the JSON
             if base_result is None:
                 base_result = chunk_result
 
+            ensure_task_not_cancelled(processing_task_id)
             chunk_questions = chunk_result.get("questions", [])
             merged_questions.extend(chunk_questions)
 
@@ -725,6 +745,7 @@ Do not include any explanatory text before or after the JSON
         max_retries: int = 3,
         upload=False,
         pages_per_chunk: int = 3,
+        processing_task_id=None,
     ):
         """
         Main entry point for image-based assignment extraction.
@@ -756,12 +777,14 @@ Do not include any explanatory text before or after the JSON
 
             last_error = None
             for attempt in range(max_retries):
+                ensure_task_not_cancelled(processing_task_id)
                 try:
                     return self._extract_assignment_chunked(
                         user=user,
                         image_contents=image_items,
                         upload=upload,
                         pages_per_chunk=pages_per_chunk,
+                        processing_task_id=processing_task_id,
                     )
                 except Exception as e:
                     last_error = e
@@ -778,8 +801,14 @@ Do not include any explanatory text before or after the JSON
         # Original single-call path for small documents
         last_error = None
         for attempt in range(max_retries):
+            ensure_task_not_cancelled(processing_task_id)
             try:
-                return self.extract_assignment_image(user, content, upload=upload)
+                return self.extract_assignment_image(
+                    user,
+                    content,
+                    upload=upload,
+                    processing_task_id=processing_task_id,
+                )
             except Exception as e:
                 last_error = e
                 logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
@@ -926,7 +955,12 @@ Do not include any explanatory text before or after the JSON
             return assignment_json
 
     def _extract_answers_chunked(
-        self, user, image_contents: list, assignment: str, assignment_model=None
+        self,
+        user,
+        image_contents: list,
+        assignment: str,
+        assignment_model=None,
+        processing_task_id=None,
     ) -> dict:
         """
         Chunked answer extraction pipeline for multi-page student submissions.
@@ -1001,6 +1035,7 @@ Do not include any explanatory text before or after the JSON
         all_feedback = []
 
         for chunk_index, chunk in enumerate(chunks):
+            ensure_task_not_cancelled(processing_task_id)
             page_start = chunk_index * ANSWERS_EXTRACTION_PAGES_PER_CHUNK + 1
             page_end = min(
                 (chunk_index + 1) * ANSWERS_EXTRACTION_PAGES_PER_CHUNK, total_pages
@@ -1041,6 +1076,7 @@ Do not include any explanatory text before or after the JSON
             chunk_result = None
 
             for attempt in range(3):
+                ensure_task_not_cancelled(processing_task_id)
                 try:
                     response = self.execute_graded_task(
                         user=user,
@@ -1048,6 +1084,7 @@ Do not include any explanatory text before or after the JSON
                         task_type="extract_answer",
                         messages=messages,
                         assignment=assignment_model,
+                        processing_task_id=processing_task_id,
                     )
 
                     raw = response.choices[0].message.content
@@ -1088,6 +1125,7 @@ Do not include any explanatory text before or after the JSON
                 student_id = chunk_result.get("student_id", "")
 
             # Merge answers: keep first non-empty answer found per question number
+            ensure_task_not_cancelled(processing_task_id)
             for answer in chunk_result.get("answers", []):
                 q_num = answer.get("question_number")
                 if q_num is None:
@@ -1192,7 +1230,14 @@ Do not include any explanatory text before or after the JSON
 
         return json_data
 
-    def extract_answer_image(self, user, content, assignment, assignment_model=None):
+    def extract_answer_image(
+        self,
+        user,
+        content,
+        assignment,
+        assignment_model=None,
+        processing_task_id=None,
+    ):
         system_prompt = ANSWERS_EXTRACTION_PROMPT
 
         is_large_submission = (
@@ -1226,6 +1271,7 @@ Do not include any explanatory text before or after the JSON
                 image_contents=image_items,
                 assignment=assignment,
                 assignment_model=assignment_model,
+                processing_task_id=processing_task_id,
             )
 
         # Get all the student in this assignment course
@@ -1262,12 +1308,14 @@ Do not include any explanatory text before or after the JSON
             # response = self.__ai_model(system_prompt, user_prompt=content)
             # response = self.__ai_model(messages=messages)
 
+            ensure_task_not_cancelled(processing_task_id)
             response = self.execute_graded_task(
                 user=user,
                 feature="Answer Extraction",
                 task_type="extract_answer",
                 messages=messages,
                 assignment=assignment_model,
+                processing_task_id=processing_task_id,
             )
 
             content = response.choices[0].message.content
@@ -1283,14 +1331,25 @@ Do not include any explanatory text before or after the JSON
         return json_data
 
     def extract_answer_with_retry(
-        self, user, content, assignment, assignment_model=None, max_retries: int = 3
+        self,
+        user,
+        content,
+        assignment,
+        assignment_model=None,
+        max_retries: int = 3,
+        processing_task_id=None,
     ):
         last_error = None
 
         for attempt in range(max_retries):
+            ensure_task_not_cancelled(processing_task_id)
             try:
                 return self.extract_answer_image(
-                    user, content, assignment, assignment_model=assignment_model
+                    user,
+                    content,
+                    assignment,
+                    assignment_model=assignment_model,
+                    processing_task_id=processing_task_id,
                 )
             except Exception as e:
                 last_error = e
@@ -1354,6 +1413,7 @@ Do not include any explanatory text before or after the JSON
         batch_number: int,
         total_batches: int,
         assignment_model=None,
+        processing_task_id=None,
     ) -> list:
         """
         Grades a small batch of questions (up to GRADING_QUESTIONS_PER_CHUNK)
@@ -1410,6 +1470,7 @@ Do not include any explanatory text before or after the JSON
 
         last_error = None
         for attempt in range(3):
+            ensure_task_not_cancelled(processing_task_id)
             try:
                 response = self.execute_graded_task(
                     user=user,
@@ -1418,6 +1479,7 @@ Do not include any explanatory text before or after the JSON
                     system_prompt=system_prompts,
                     user_prompt=user_prompts,
                     assignment=assignment_model,
+                    processing_task_id=processing_task_id,
                 )
                 raw = response.choices[0].message.content
 
@@ -1468,6 +1530,7 @@ Do not include any explanatory text before or after the JSON
         rubric_json: str,
         answer_json: str,
         assignment_model=None,
+        processing_task_id=None,
     ) -> dict:
         """
         After all question batches are graded, runs one final AI call to produce
@@ -1562,6 +1625,7 @@ Do not include any explanatory text before or after the JSON
 
         last_error = None
         for attempt in range(3):
+            ensure_task_not_cancelled(processing_task_id)
             try:
                 response = self.execute_graded_task(
                     user=user,
@@ -1570,6 +1634,7 @@ Do not include any explanatory text before or after the JSON
                     system_prompt=system_prompts,
                     user_prompt=user_prompts,
                     assignment=assignment_model,
+                    processing_task_id=processing_task_id,
                 )
                 raw = response.choices[0].message.content
 
@@ -1614,7 +1679,12 @@ Do not include any explanatory text before or after the JSON
 
     @transaction.atomic
     def grade_student_submission(
-        self, user, rubric_json, answer_json, assignment_model=None
+        self,
+        user,
+        rubric_json,
+        answer_json,
+        assignment_model=None,
+        processing_task_id=None,
     ):
         """
         Main entry point for grading a student submission.
@@ -1644,6 +1714,7 @@ Do not include any explanatory text before or after the JSON
             questions = []
 
         total_questions = len(questions)
+        ensure_task_not_cancelled(processing_task_id)
 
         # ── Single-pass path for small assignments ──────────
         if total_questions <= GRADING_QUESTIONS_PER_CHUNK:
@@ -1682,6 +1753,7 @@ Do not include any explanatory text before or after the JSON
                 system_prompt=system_prompts,
                 user_prompt=user_prompts,
                 assignment=assignment_model,
+                processing_task_id=processing_task_id,
             )
 
             grade = response.choices[0].message.content
@@ -1715,6 +1787,7 @@ Do not include any explanatory text before or after the JSON
         all_evaluations = []
 
         for batch_index, batch in enumerate(batches):
+            ensure_task_not_cancelled(processing_task_id)
             batch_number = batch_index + 1
             q_nums = [p["question"].get("question_number") for p in batch]
 
@@ -1729,6 +1802,7 @@ Do not include any explanatory text before or after the JSON
                 batch_number=batch_number,
                 total_batches=total_batches,
                 assignment_model=assignment_model,
+                processing_task_id=processing_task_id,
             )
             all_evaluations.extend(batch_evaluations)
 
@@ -1745,6 +1819,7 @@ Do not include any explanatory text before or after the JSON
             rubric_json=rubric_json,
             answer_json=answer_json,
             assignment_model=assignment_model,
+            processing_task_id=processing_task_id,
         )
 
         # Step 5: Assemble the final result — evaluations + summary
@@ -1768,13 +1843,19 @@ Do not include any explanatory text before or after the JSON
         answer_json,
         assignment_model=None,
         max_retries: int = 3,
+        processing_task_id=None,
     ):
         last_error = None
 
         for attempt in range(max_retries):
+            ensure_task_not_cancelled(processing_task_id)
             try:
                 return self.grade_student_submission(
-                    user, rubric_json, answer_json, assignment_model=assignment_model
+                    user,
+                    rubric_json,
+                    answer_json,
+                    assignment_model=assignment_model,
+                    processing_task_id=processing_task_id,
                 )
             except Exception as e:
                 last_error = e
@@ -1894,7 +1975,9 @@ Now, respond to the following teacher's instruction using the rules above
 
         raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
 
-    def formatted_grade(self, user, user_prompt, assignment_model=None):
+    def formatted_grade(
+        self, user, user_prompt, assignment_model=None, processing_task_id=None
+    ):
         system_prompt = GRADE_FORMATTER
 
         try:
@@ -1910,6 +1993,7 @@ Now, respond to the following teacher's instruction using the rules above
                 system_prompt=system_prompts,
                 user_prompt=user_prompts,
                 assignment=assignment_model,
+                processing_task_id=processing_task_id,
             )
 
             content = response.choices[0].message.content
@@ -1940,6 +2024,7 @@ Now, respond to the following teacher's instruction using the rules above
         tool_schemas=None,
         respond_format=True,
         assignment=None,
+        processing_task_id=None,
     ):
         # I need the assignment to for students who are submitting
         # their assignment to know who the teacher that created
@@ -1986,6 +2071,7 @@ Now, respond to the following teacher's instruction using the rules above
                         elif item["type"] == "pdf_url":
                             pdf_bytes.append(item.get("bytes"))
 
+        ensure_task_not_cancelled(processing_task_id)
         estimated_cost = self.estimate_total_token(total_prompt, image_bytes, pdf_bytes)
 
         if user.user_type == UserTypes.STUDENT:
@@ -2019,12 +2105,14 @@ Now, respond to the following teacher's instruction using the rules above
         if wallet.total_remaining_credits() <= 0:
             raise InsufficientCreditsError("Refill your wallet to continue")
 
+        ensure_task_not_cancelled(processing_task_id)
         task_id = str(uuid.uuid4())
         response = self.__ai_model(
             system_prompt, user_prompt, messages, tool_schemas, respond_format
         )
 
         with transaction.atomic():
+            ensure_task_not_cancelled(processing_task_id)
             actual_cost = response.usage.total_tokens
             wallet.consume_credits(
                 amount=actual_cost,

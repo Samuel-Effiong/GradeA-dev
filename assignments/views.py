@@ -37,7 +37,8 @@ from ai_processor.services import ai_processor  # pdf_service
 from classrooms.models import Course, Topic
 from classrooms.permissions import IsTeacher, IsTeacherOrReadOnly
 from classrooms.serializers import TopicSerializer
-from students.models import BatchUploadSession, BatchUploadType
+from students.models import BackgroundTaskType, BatchUploadSession, BatchUploadType
+from students.task_tracking import create_processing_task, launch_processing_task
 from users.mixins import UserCacheMixin
 
 # from students.serializers import StudentSubmissionSerializer
@@ -316,7 +317,15 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         content = [{"type": "text", "text": text, "raw_input": raw_input}]
 
-        task = extract_assignment_background_task.delay(
+        processing_task = create_processing_task(
+            requested_by=request.user,
+            task_type=BackgroundTaskType.ASSIGNMENT_EXTRACTION,
+            assignment=assignment,
+            meta={"step": "Queued for assignment extraction"},
+        )
+        task = launch_processing_task(
+            extract_assignment_background_task,
+            processing_task,
             str(request.user.id),
             str(assignment.id),
             content,
@@ -471,7 +480,15 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             """
             content = [{"type": "text", "text": text}]
 
-            task = update_assignment_background_task.delay(
+            processing_task = create_processing_task(
+                requested_by=request.user,
+                task_type=BackgroundTaskType.ASSIGNMENT_REEXTRACTION,
+                assignment=instance,
+                meta={"step": "Queued for assignment re-extraction"},
+            )
+            task = launch_processing_task(
+                update_assignment_background_task,
+                processing_task,
                 str(request.user.id),
                 str(instance.id),
                 content,
@@ -804,7 +821,16 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 uploaded_file, prompt_text=prompt_text
             )
 
-            task = upload_assignment_async.delay(
+            processing_task = create_processing_task(
+                requested_by=request.user,
+                task_type=BackgroundTaskType.BATCH_ASSIGNMENT_UPLOAD,
+                batch_session=session,
+                file_name=uploaded_file.name,
+                meta={"step": "Queued for batch assignment extraction"},
+            )
+            task = launch_processing_task(
+                upload_assignment_async,
+                processing_task,
                 user_id=str(request.user.id),
                 course_id=str(course.id),
                 topic_id=str(topic.id) if topic else None,
@@ -986,8 +1012,21 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         tasks_data = []
 
         for submission in ungraded_submissions:
-            task = grade_engine_async.delay(
-                str(request.user.id), str(submission.id), batch_id=session.id
+            processing_task = create_processing_task(
+                requested_by=request.user,
+                task_type=BackgroundTaskType.BATCH_SUBMISSION_GRADING,
+                batch_session=session,
+                assignment=assignment,
+                submission=submission,
+                file_name=f"Submission for {submission.student.get_full_name()}",
+                meta={"step": "Queued for batch grading"},
+            )
+            task = launch_processing_task(
+                grade_engine_async,
+                processing_task,
+                str(request.user.id),
+                str(submission.id),
+                batch_id=session.id,
             )
             tasks_data.append(
                 {
