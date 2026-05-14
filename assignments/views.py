@@ -908,6 +908,17 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     "course": str(course.id),
                     "ai_generated": True,
                 }
+                assignment_html = (
+                    AssignmentProcessingService.format_assignment_standard_html(
+                        assignment_data
+                    )
+                )
+                raw_input = AssignmentProcessingService.html_to_prosemirror_json(
+                    assignment_html
+                )
+
+                assignment_data["raw_input"] = json.dumps(raw_input)
+
                 serializer = AssignmentSerializer(data=assignment_data)
                 serializer.is_valid(raise_exception=True)
                 assignment = serializer.save()
@@ -915,28 +926,19 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 assistant_message = AssignmentGenerationMessage.objects.create(
                     session=generation_session,
                     role=AssignmentGenerationRole.ASSISTANT,
-                    content=json.dumps(assignment_data),
+                    content=assignment_data.get("raw_input", ""),
                     assignment=assignment,
                     assignment_snapshot=assignment_data,
                     metadata={
                         "source": "generate_assignment_from_prompt",
                         "user_message_id": str(user_message.id),
+                        "reply": generated_assignment["self_assessment"],
                     },
                 )
 
-            assignment_standard = (
-                AssignmentProcessingService.format_assignment_standard_html(
-                    assignment_data
-                )
-            )
-            assignment_prosemirror_json = (
-                AssignmentProcessingService.html_to_prosemirror_json(
-                    assignment_standard
-                )
-            )
-
             data = {
-                "content": assignment_prosemirror_json,
+                "content": assignment.raw_input,
+                "reply": generated_assignment["self_assessment"],
                 "assignment_id": str(assignment.id),
                 "session_id": str(generation_session.id),
                 "message_id": str(assistant_message.id),

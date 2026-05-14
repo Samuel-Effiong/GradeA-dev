@@ -24,6 +24,7 @@ from drf_spectacular.utils import (
 )
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ParseError
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -476,6 +477,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
     def get_my_subscription(self, request, *args, **kwargs):
         subscription = self.get_queryset().first()
         if not subscription:
+
             return Response(
                 {"detail": "No active subscription found"},
                 status=status.HTTP_404_NOT_FOUND,

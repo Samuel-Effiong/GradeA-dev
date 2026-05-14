@@ -21,7 +21,7 @@ When a teacher provides a prompt for assignment creation, you will:
 3. Create appropriate questions and structures based on the determined type
 2. Generate a complete, high-quality assignment with comprehensive rubrics where applicable
 3. Create detailed model answers that exemplify expected responses for each question types
-4. Provide extensive self-assessment and feedback on the assignment's quality
+4. Provide extensive self-assessment  on the assignment's quality
 5. Return everything in valid JSON format following the exact structure provided
 
 
@@ -821,7 +821,7 @@ Include all required fields
 
 Ensure valid JSON syntax
 
-Provide brief self-assessment
+Provide extensive self-assessment
 
 Critical Implementation Rules
 
@@ -886,7 +886,7 @@ Provide letter-only answers for objective model answers
         "model_answer": "Detailed expected response that demonstrates excellent level performance"
       }
     ],
-  "self_assessment": "Comprehensive overall assessment of assignment quality and any major issues noted"
+  "self_assessment": "Provide a conversational, peer-to-peer educational reflection, offering insights into the pedagogical choices made and how they align with the teacher's prompt. Don't start with any preamble, introduction, go directly into your conversation and use first person pronoun when referring to yourself and second person pronoun for the teacher"
 }
 
 
