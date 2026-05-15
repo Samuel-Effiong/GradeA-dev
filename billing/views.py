@@ -24,7 +24,8 @@ from drf_spectacular.utils import (
 )
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import ParseError
+
+# from rest_framework.exceptions import ParseError
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -32,7 +33,11 @@ from rest_framework.response import Response
 from ai_processor.models import AssistantType, ChatMessage, ChatSession, RoleType
 from ai_processor.services import ai_processor
 from classrooms.permissions import IsNotStudent, IsSuperAdmin, IsTeacher
-from dashboard.serializers import CustomAIPrompt, CustomAIReply
+from dashboard.serializers import (
+    CustomAIPrompt,
+    CustomAIReply,
+    DashboardChatSessionSerializer,
+)
 from users.models import UserTypes
 
 from .models import (
@@ -2001,6 +2006,25 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    @extend_schema(
+        tags=["Super Admin"],
+        summary="Get custom AI prompt conversation history",
+        responses={200: DashboardChatSessionSerializer},
+    )
+    @action(detail=False, methods=["GET"], url_path="beta/custom-ai-prompt/history")
+    def custom_ai_prompt_history(self, request, *args, **kwargs):
+        session = get_or_create_dashboard_chat_session(
+            request.user,
+            AssistantType.SUPER_ADMIN_ANALYTICS,
+        )
+        session = (
+            ChatSession.objects.filter(id=session.id)
+            .prefetch_related("chatmessage_set")
+            .get()
+        )
+        serializer = DashboardChatSessionSerializer(session)
+        return Response(serializer.data)
 
 
 @extend_schema_view(

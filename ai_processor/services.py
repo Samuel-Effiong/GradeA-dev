@@ -66,7 +66,7 @@ with open("ai_processor/RUBRIC_EXTRACTION_PROMPT.txt", "r") as file:
 with open("ai_processor/ANSWERS_EXTRACTION_PROMPT_HTML_4.txt", "r") as file:
     ANSWERS_EXTRACTION_PROMPT = file.read()
 
-with open("ai_processor/GRADING_ASSIGNMENT_PROMPT_2.txt", "r") as file:
+with open("ai_processor/GRADING_ASSIGNMENT_PROMPT_3.txt", "r") as file:
     GRADING_ASSIGNMENT_PROMPT = file.read()
 
 with open("ai_processor/ASSIGNMENT_GENERATION_PROMPT_2.txt", "r") as file:
