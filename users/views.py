@@ -33,7 +33,7 @@ from drf_spectacular.utils import (
 )
 from rest_framework import status, viewsets
 from rest_framework.decorators import action  # , api_view
-from rest_framework.exceptions import ParseError, ValidationError
+from rest_framework.exceptions import NotFound, ParseError, ValidationError
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -53,7 +53,12 @@ from AutoGrader.tasks import send_email_task
 from classrooms.models import EnrollmentStatusType, StudentCourse
 from classrooms.permissions import IsSuperAdmin
 from classrooms.serializers import StudentRegistrationCompletionSerializer
-from students.models import BatchUploadSession
+from students.models import BackgroundTaskStatus, BatchUploadSession
+from students.task_tracking import (
+    cancel_processing_task,
+    get_processing_task,
+    normalize_processing_task_status,
+)
 from users.mixins import UserCacheMixin
 from users.models import (
     BetaWhitelist,
@@ -65,6 +70,7 @@ from users.models import (
     Waitlist,
 )
 from users.serializers import (
+    BatchSessionCancelSerializer,
     BetaWhitelistSerializer,
     ChangePasswordSerializer,
     CustomTokenObtainPairSerializer,
@@ -72,6 +78,7 @@ from users.serializers import (
     OTPSerializer,
     ResetPasswordSerializer,
     SettingsSerializer,
+    TaskCancelSerializer,
     TaskStatusSerializer,
     VerifyCustomUserSerializer,
     WaitlistSerializer,
@@ -1197,8 +1204,57 @@ class TaskViewSet(viewsets.ViewSet):
     but provides utility functionality for task management.
     """
 
-    http_method_names = ["get", "options"]
+    http_method_names = ["get", "post", "options"]
     permission_classes = [IsAuthenticated]
+
+    def _serialize_task_status(self, task_id, processing_task=None):
+        if processing_task:
+            normalize_processing_task_status(processing_task)
+            processing_task.refresh_from_db()
+
+            meta = dict(processing_task.meta or {})
+            if processing_task.error:
+                meta.setdefault("error", processing_task.error)
+
+            if processing_task.status == "SUCCESS":
+                status_value = "completed"
+            elif processing_task.status == "FAILURE":
+                status_value = "failed"
+            elif processing_task.status == "CANCELLED":
+                status_value = "cancelled"
+            else:
+                status_value = "processing"
+
+            return {
+                "task_id": task_id,
+                "status": status_value,
+                "meta": str(meta) if meta else None,
+            }
+
+        task = AsyncResult(task_id)
+
+        data = {
+            "task_id": task_id,
+            "status": task.state,
+            "meta": (
+                task.info
+                if isinstance(task.info, dict)
+                else {"result": task.info} if task.info else None
+            ),
+        }
+
+        data["meta"] = str(data["meta"])
+
+        if task.state == "REVOKED":
+            data["status"] = "cancelled"
+        elif task.successful():
+            data["status"] = "completed"
+        elif task.failed():
+            data["status"] = "failed"
+        else:
+            data["status"] = "processing"
+
+        return data
 
     @extend_schema(
         tags=["Tasks"],
@@ -1234,30 +1290,84 @@ class TaskViewSet(viewsets.ViewSet):
         """
         Retrieve the status of a background task by its ID.
         """
-        task = AsyncResult(task_id)
-
-        data = {
-            "task_id": task_id,
-            "status": task.state,
-            "meta": (
-                task.info
-                if isinstance(task.info, dict)
-                else {"result": task.info} if task.info else None
-            ),
-        }
-
-        data["meta"] = str(data["meta"])
-
-        if task.successful():
-            data["status"] = "completed"
-
-        elif task.failed():
-            data["status"] = "failed"
-
-        else:
-            data["status"] = "processing"
+        processing_task = get_processing_task(task_id, requested_by=request.user)
+        data = self._serialize_task_status(task_id, processing_task=processing_task)
 
         serializer = TaskStatusSerializer(data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        tags=["Tasks"],
+        summary="Cancel a background task",
+        description=(
+            "Cancel a background task by its Celery task id. "
+            "If the task is already running, the worker is terminated "
+            "and any remaining pipeline steps will refuse to save results."
+        ),
+        responses={
+            200: OpenApiResponse(response=TaskCancelSerializer),
+            404: OpenApiResponse(description="Tracked task not found"),
+        },
+    )
+    @action(detail=False, methods=["post"], url_path="cancel/(?P<task_id>[^/.]+)")
+    def cancel(self, request, task_id=None):
+        processing_task = get_processing_task(task_id, requested_by=request.user)
+        if not processing_task:
+            raise NotFound("Tracked task not found for this user.")
+
+        cancel_processing_task(processing_task)
+
+        serializer = TaskCancelSerializer(
+            {
+                "task_id": task_id,
+                "status": "cancelled",
+                "message": "Background task cancellation requested successfully.",
+            }
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        tags=["Tasks"],
+        summary="Cancel all remaining tasks in a batch session",
+        description=(
+            "Cancel all pending or running tracked tasks in a batch upload session "
+            "owned by the authenticated teacher."
+        ),
+        responses={
+            200: OpenApiResponse(response=BatchSessionCancelSerializer),
+            404: OpenApiResponse(description="Session not found"),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="cancel-session/(?P<session_id>[^/.]+)",
+    )
+    def cancel_session(self, request, session_id=None):
+        session = get_object_or_404(
+            BatchUploadSession, id=session_id, teacher=request.user
+        )
+
+        cancellable_tasks = list(
+            session.processing_tasks.exclude(
+                status__in=[
+                    BackgroundTaskStatus.SUCCESS,
+                    BackgroundTaskStatus.FAILURE,
+                    BackgroundTaskStatus.CANCELLED,
+                ]
+            )
+        )
+
+        for processing_task in cancellable_tasks:
+            cancel_processing_task(processing_task)
+
+        serializer = BatchSessionCancelSerializer(
+            {
+                "session_id": session.id,
+                "cancelled_count": len(cancellable_tasks),
+                "message": "Batch session cancellation requested successfully.",
+            }
+        )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(
@@ -1322,9 +1432,66 @@ class TaskViewSet(viewsets.ViewSet):
         detail=False, methods=["GET"], url_path="session-results/(?P<session_id>[^/.]+)"
     )
     def session_results(self, request, session_id=None):
-        session = get_object_or_404(BatchUploadSession, id=session_id)
+        session = get_object_or_404(
+            BatchUploadSession, id=session_id, teacher=request.user
+        )
 
-        # Separate into two clean lists for the UI
+        tracked_tasks = list(
+            session.processing_tasks.select_related("assignment", "submission").all()
+        )
+
+        if tracked_tasks:
+            success = []
+            failures = []
+            cancelled = []
+            pending = []
+
+            for processing_task in tracked_tasks:
+                normalize_processing_task_status(processing_task)
+                processing_task.refresh_from_db()
+
+                task_entry = {
+                    "status": processing_task.status,
+                    "file_name": processing_task.file_name,
+                    "task_id": processing_task.celery_task_id,
+                    "error": processing_task.error,
+                }
+
+                if processing_task.assignment_id:
+                    task_entry["assignment_id"] = str(processing_task.assignment_id)
+
+                if processing_task.submission_id:
+                    task_entry["submission_id"] = str(processing_task.submission_id)
+
+                if processing_task.status == "SUCCESS":
+                    success.append(task_entry)
+                elif processing_task.status == "FAILURE":
+                    failures.append(task_entry)
+                elif processing_task.status == "CANCELLED":
+                    cancelled.append(task_entry)
+                else:
+                    pending.append(task_entry)
+
+            completed = len(success) + len(failures) + len(cancelled)
+            total = session.total_files or len(tracked_tasks)
+            percentage = (completed / total) * 100 if total > 0 else 0
+
+            return Response(
+                {
+                    "progress": f"{completed} / {total}",
+                    "percent": round(percentage),
+                    "is_complete": completed == total,
+                    "success_count": len(success),
+                    "failure_count": len(failures),
+                    "cancelled_count": len(cancelled),
+                    "pending_count": len(pending),
+                    "success_list": success,
+                    "failure_list": failures,
+                    "cancelled_list": cancelled,
+                    "pending_list": pending,
+                }
+            )
+
         success = [r for r in session.results if r["status"] == "SUCCESS"]
         failures = [r for r in session.results if r["status"] == "FAILED"]
 
@@ -1340,8 +1507,12 @@ class TaskViewSet(viewsets.ViewSet):
                 "is_complete": completed == total,
                 "success_count": len(success),
                 "failure_count": len(failures),
+                "cancelled_count": 0,
+                "pending_count": max(total - completed, 0),
                 "success_list": success,
                 "failure_list": failures,
+                "cancelled_list": [],
+                "pending_list": [],
             }
         )
 

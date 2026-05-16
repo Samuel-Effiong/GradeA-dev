@@ -10,6 +10,7 @@ from users.models import CustomUser
 
 from .models import (
     CONVERSION_FACTOR,
+    BetaProfile,
     CreditBucket,
     CreditBucketType,
     CreditLedger,
@@ -580,6 +581,21 @@ class BetaSummarySerializer(serializers.Serializer):
     avg_credits_used = serializers.FloatField()
     percent_users_at_cap = serializers.FloatField()
     avg_days_to_first_action = serializers.FloatField()
+    credit_used_greater_than_80_percent = serializers.FloatField()
+    login_greater_than_8_days = serializers.FloatField()
+    grading_percent_greater_than_creation_percent = serializers.FloatField()
+    percent_unused_credits = serializers.FloatField()
+
+    # Absolute counts
+    credit_used_greater_than_80_count = serializers.IntegerField()
+    login_greater_than_8_days_count = serializers.IntegerField()
+    grading_percent_greater_than_creation_count = serializers.IntegerField()
+    active_last_7_days_count = serializers.IntegerField()
+
+
+class DailyTimeSeriesSerializer(serializers.Serializer):
+    date = serializers.DateField()
+    credits = serializers.IntegerField()
 
 
 class BetaCohortStatsSerializer(serializers.Serializer):
@@ -592,20 +608,27 @@ class BetaCohortStatsSerializer(serializers.Serializer):
     percent_unused_credits = serializers.FloatField()
 
 
+class FeatureConsumptionTimeSeriesSerializer(serializers.Serializer):
+    date = serializers.DateField()
+    avg_tokens_grading = serializers.FloatField()
+    avg_tokens_feedback = serializers.FloatField()
+    avg_tokens_creation = serializers.FloatField()
+
+
 class BetaFeatureMixSerializer(serializers.Serializer):
     grading_percent = serializers.FloatField()
     creation_percent = serializers.FloatField()
+    feedback_percent = serializers.FloatField()
     other_percent = serializers.FloatField()
-    average_feedback_depth_token = serializers.IntegerField()
+    avg_tokens_grading = serializers.FloatField()
+    avg_tokens_creation = serializers.FloatField()
+    avg_tokens_feedback = serializers.FloatField()
+    avg_tokens_other = serializers.FloatField()
     total_analytics_views = serializers.IntegerField()
     views_per_user = serializers.FloatField()
     primary_driver = serializers.CharField()
-    engagement_quality = serializers.CharField()
-
-
-class DailyTimeSeriesSerializer(serializers.Serializer):
-    date = serializers.DateField()
-    credits = serializers.IntegerField()
+    # engagement_quality = serializers.CharField()
+    # consumption_time_series = FeatureConsumptionTimeSeriesSerializer(many=True)
 
 
 class PeakUsageHourSerializer(serializers.Serializer):
@@ -623,14 +646,56 @@ class InfrastructureInsightSerializer(serializers.Serializer):
     current_week_velocity = serializers.IntegerField()
 
 
-class BetaUsageTrendSerializer(serializers.Serializer):
-    daily_time_series = DailyTimeSeriesSerializer(many=True)
-    peak_usage_hours = PeakUsageHourSerializer(many=True)
-    weekly_growth = WeeklyGrowthSerializer(many=True)
-    infrastructure_insight = InfrastructureInsightSerializer()
+# class BetaUsageTrendSerializer(serializers.Serializer):
+# daily_time_series = DailyTimeSeriesSerializer(many=True)
+# peak_usage_hours = PeakUsageHourSerializer(many=True)
+# weekly_growth = WeeklyGrowthSerializer(many=True)
+# infrastructure_insight = InfrastructureInsightSerializer()
+
+
+class UsageQuintileBreakdownSerializer(serializers.Serializer):
+    group_label = serializers.CharField()
+    user_count = serializers.IntegerField()
+    user_ids = serializers.ListField(child=serializers.UUIDField())
+    grading_percent = serializers.FloatField()
+    feedback_percent = serializers.FloatField()
+    creation_percent = serializers.FloatField()
+    other_percent = serializers.FloatField()
+
+
+class UsageQuintileResponseSerializer(serializers.Serializer):
+    quintiles = UsageQuintileBreakdownSerializer(many=True)
+
+
+class IntentSignalDistributionSerializer(serializers.Serializer):
+    signal_count = serializers.IntegerField()
+    user_count = serializers.IntegerField()
+    user_ids = serializers.ListField(child=serializers.UUIDField())
+
+
+class IntentSignalResponseSerializer(serializers.Serializer):
+    distribution = IntentSignalDistributionSerializer(many=True)
+
+
+class CreditUsageBucketSerializer(serializers.Serializer):
+    bucket = serializers.CharField()
+    user_count = serializers.IntegerField()
+    user_ids = serializers.ListField(child=serializers.UUIDField())
+
+
+class CreditUsageDistributionResponseSerializer(serializers.Serializer):
+    distribution = CreditUsageBucketSerializer(many=True)
+
+
+class BetaUserFeatureMixSerializer(serializers.Serializer):
+    grading_percent = serializers.FloatField()
+    creation_percent = serializers.FloatField()
+    feedback_percent = serializers.FloatField()
+    other_percent = serializers.FloatField()
 
 
 class ConversionLeadMetricsSerializer(serializers.Serializer):
+    credit_usage = serializers.IntegerField()
     usage_percentage = serializers.FloatField()
     login_days = serializers.IntegerField()
     last_active = serializers.DateField(allow_null=True)
@@ -641,10 +706,90 @@ class ConversionLeadFlagsSerializer(serializers.Serializer):
     at_80_percent = serializers.BooleanField()
     active_last_week = serializers.BooleanField()
     is_power_grader = serializers.BooleanField()
+    # grading_heavy = serializers.BooleanField()
+    frequent_user = serializers.BooleanField()
+
+
+class BetaUserDetailResponseSerializer(serializers.Serializer):
+    # Identity & Probability
+    id = serializers.UUIDField()
+    name = serializers.CharField()
+    email = serializers.EmailField()
+    score = serializers.FloatField()
+
+    # Metrics & Flags (Lead Summary)
+    metrics = ConversionLeadMetricsSerializer()
+    flags = ConversionLeadFlagsSerializer()
+
+    # Behavioral Charts & Engagement
+    daily_usage = DailyTimeSeriesSerializer(many=True)
+    feature_mix = BetaUserFeatureMixSerializer()
+    dashboard_view_count = serializers.IntegerField()
 
 
 class ConversionLeadSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    name = serializers.CharField()
     email = serializers.EmailField()
     score = serializers.FloatField()
     metrics = ConversionLeadMetricsSerializer()
     flags = ConversionLeadFlagsSerializer()
+
+
+class BetaProfileSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the BetaProfile model providing deep insights
+    into user behavior and credit consumption.
+    """
+
+    # Bring in user details for context without extra DB hits
+    # (handled via select_related in ViewSet)
+    user_email = serializers.EmailField(source="user.email", read_only=True)
+    full_name = serializers.CharField(source="user.get_full_name", read_only=True)
+
+    # Calculated Fields for the Dashboard
+    credits_remaining = serializers.SerializerMethodField()
+    utilization_percentage = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BetaProfile
+        fields = [
+            "id",
+            "user_email",
+            "full_name",
+            "joined_beta_at",
+            "first_ai_action_at",
+            "last_active_at",
+            "last_login_date",
+            "initial_beta_credits",
+            "total_credits_used",
+            "credits_remaining",
+            "credits_used_grading",
+            "credits_used_creation",
+            "analytics_view_count",
+            "distinct_login_days",
+            "has_hit_80_percent",
+            "has_hit_cap",
+            "conversion_probability",
+            "days_to_first_action",
+            "usage_velocity",
+            "utilization_percentage",
+        ]
+        read_only_fields = [
+            "total_credits_used",
+            "conversion_probability",
+            "usage_velocity",
+        ]
+
+    @extend_schema_field(serializers.IntegerField())
+    def get_credits_remaining(self, obj) -> int:
+        """Calculates current credit balance."""
+        return max(0, obj.initial_beta_credits - obj.total_credits_used)
+
+    @extend_schema_field(serializers.FloatField())
+    def get_utilization_percentage(self, obj) -> float:
+        """Calculates how much of the initial grant has been consumed."""
+        if obj.initial_beta_credits == 0:
+            return 0.0
+        percentage = (obj.total_credits_used / obj.initial_beta_credits) * 100
+        return round(percentage, 2)

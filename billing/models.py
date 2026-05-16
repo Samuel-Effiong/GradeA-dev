@@ -600,6 +600,7 @@ class CreditUsageLog(models.Model):
 
 
 class BetaProfile(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -619,6 +620,7 @@ class BetaProfile(models.Model):
     # Feature Mix (Raw totals for accurate P90 / Median math)
     credits_used_grading = models.PositiveIntegerField(default=0)
     credits_used_creation = models.PositiveIntegerField(default=0)
+    credits_used_feedback = models.PositiveIntegerField(default=0)
     analytics_view_count = models.PositiveIntegerField(default=0)
 
     # Intent Signals

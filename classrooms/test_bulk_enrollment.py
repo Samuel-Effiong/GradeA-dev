@@ -1,4 +1,4 @@
-import csv
+# import csv
 import io
 
 from django.contrib.auth import get_user_model
@@ -75,7 +75,7 @@ class BulkEnrollmentTest(APITestCase):
         # Pre-enroll Alice
         alice = User.objects.create_user(
             email="alice@example.com",
-            password="password123",
+            password="password123",  # pragma: allowlist secret
             first_name="Alice",
             last_name="Wonderland",
             user_type="STUDENT",
@@ -101,3 +101,43 @@ class BulkEnrollmentTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["failure_count"], 1)
         self.assertEqual(response.data["results"][0]["status"], "failed")
+
+    def test_bulk_add_without_headers_detects_email_in_any_column(self):
+        """Rows without headers should detect email by value and map remaining cells by order."""
+        raw_data = (
+            "john.doe@example.com,John,Doe\n"
+            "Jane,jane.smith@example.com,Smith,Marie\n"
+            "Michael,Brown,michael.brown@example.com\n"
+        )
+        response = self.client.post(self.url, {"raw_data": raw_data})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["success_count"], 3)
+        self.assertEqual(response.data["failure_count"], 0)
+
+        john = User.objects.get(email="john.doe@example.com")
+        self.assertEqual(john.first_name, "John")
+        self.assertEqual(john.last_name, "Doe")
+        self.assertEqual(john.middle_name, "")
+
+        jane = User.objects.get(email="jane.smith@example.com")
+        self.assertEqual(jane.first_name, "Jane")
+        self.assertEqual(jane.last_name, "Smith")
+        self.assertEqual(jane.middle_name, "Marie")
+
+        michael = User.objects.get(email="michael.brown@example.com")
+        self.assertEqual(michael.first_name, "Michael")
+        self.assertEqual(michael.last_name, "Brown")
+
+    def test_bulk_add_without_headers_requires_first_and_last_name(self):
+        """Rows without headers should fail when either first or last name is missing."""
+        raw_data = "mary@example.com,Mary\n"
+        response = self.client.post(self.url, {"raw_data": raw_data})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["success_count"], 0)
+        self.assertEqual(response.data["failure_count"], 1)
+        self.assertEqual(response.data["results"][0]["status"], "failed")
+        self.assertEqual(
+            response.data["results"][0]["error"], "First and last names are required."
+        )

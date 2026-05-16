@@ -5,6 +5,7 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.validators import validate_email
 
 # from django.core.mail import send_mail
 from django.db import transaction
@@ -70,6 +71,42 @@ from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
     TopicSerializer,
 )
 from .tasks import student_summary_async
+
+
+def _is_email_value(value):
+    candidate = (value or "").strip()
+    if not candidate:
+        return False
+
+    try:
+        validate_email(candidate)
+        return True
+    except DjangoValidationError:
+        return False
+
+
+def _parse_row_without_headers(row):
+    email = ""
+    name_parts = []
+
+    for cell in row:
+        value = (cell or "").strip()
+        if not value:
+            continue
+
+        if _is_email_value(value):
+            if not email:
+                email = value
+            continue
+
+        name_parts.append(value)
+
+    return {
+        "first_name": name_parts[0] if len(name_parts) > 0 else "",
+        "last_name": name_parts[1] if len(name_parts) > 1 else "",
+        "middle_name": name_parts[2] if len(name_parts) > 2 else "",
+        "email": email,
+    }
 
 
 @extend_schema_view(
@@ -629,48 +666,87 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         input_file = serializer.validated_data.get("file")
         raw_data = serializer.validated_data.get("raw_data")
 
-        rows = []
+        raw_rows = []
         if input_file:
             # Handle CSV file upload
             decoded_file = input_file.read().decode("utf-8").splitlines()
-            reader = csv.DictReader(decoded_file)
-            rows = list(reader)
+            reader = csv.reader(decoded_file)
+            raw_rows = list(reader)
         elif raw_data:
             # Handle Excel paste (TSV) or raw CSV string
-            # Determine delimiter: if tab exists, assume TSV; otherwise comma.
             delimiter = "\t" if "\t" in raw_data else ","
             f = io.StringIO(raw_data.strip())
-            reader = csv.DictReader(f, delimiter=delimiter)
-            rows = list(reader)
+            reader = csv.reader(f, delimiter=delimiter)
+            raw_rows = list(reader)
 
-        if not rows:
-            return Response(
-                {"detail": "No valid student data found in input."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        if not raw_rows:
+            raise ParseError("No valid student data found in input")
+
+        # Define header variations
+        header_variations = {
+            "first_name": ["First Name", "FirstName", "first_name", "first"],
+            "last_name": ["Last Name", "LastName", "last_name", "last"],
+            "middle_name": ["Middle Name", "middle_name", "middle"],
+            "email": ["Email", "email", "e-mail"],
+        }
+
+        # Header detection
+        first_row = [str(c).strip() for c in raw_rows[0]]
+        column_map = {}
+        is_header = False
+
+        # Try to map columns by header names
+        header_fields_found = set()
+        for field, variations in header_variations.items():
+            for i, cell in enumerate(first_row):
+                # Match exact or normalized variations
+                norm_cell = cell.lower().replace(" ", "_")
+                if cell in variations or norm_cell in [
+                    v.lower().replace(" ", "_") for v in variations
+                ]:
+                    column_map[field] = i
+                    header_fields_found.add(field)
+                    break
+
+        # If we found at least two of the expected fields, treat it as a header
+        if len(header_fields_found) >= 2:
+            is_header = True
+        else:
+            # If only one or zero fields matched, it's likely data or a very incomplete header.
+            # Reset column_map to avoid partial matches from the "header" row if we decide it's data.
+            column_map = {}
+
+        if is_header:
+            data_rows = raw_rows[1:]
+        else:
+            data_rows = raw_rows
 
         results = []
         success_count = 0
         failure_count = 0
 
-        # Helper to normalize field names from common CSV variations
-        def get_val(row, variations):
-            for v in variations:
-                if v in row:
-                    return (row[v] or "").strip()
-                # Also try lowercase and underscored
-                norm_v = v.lower().replace(" ", "_")
-                if norm_v in row:
-                    return (row[norm_v] or "").strip()
-            return ""
+        for row in data_rows:
+            if not any(row):  # Skip empty rows
+                continue
 
-        for row in rows:
-            first_name = get_val(
-                row, ["First Name", "FirstName", "first_name", "first"]
-            )
-            last_name = get_val(row, ["Last Name", "LastName", "last_name", "last"])
-            middle_name = get_val(row, ["Middle Name", "middle_name", "middle"])
-            email = get_val(row, ["Email", "email", "e-mail"])
+            if is_header:
+
+                def get_row_val(field):
+                    idx = column_map.get(field)
+                    if idx is not None and idx < len(row):
+                        return (row[idx] or "").strip()
+                    return ""
+
+                first_name = get_row_val("first_name")
+                last_name = get_row_val("last_name")
+                middle_name = get_row_val("middle_name")
+                email = get_row_val("email")
+            else:
+                parsed_row = _parse_row_without_headers(row)
+                first_name = parsed_row["first_name"]
+                last_name = parsed_row["last_name"]
+                middle_name = parsed_row["middle_name"]
+                email = parsed_row["email"]
 
             if not first_name or not last_name:
                 results.append(
@@ -684,9 +760,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 continue
 
             try:
-                # Decide which flow to use based on presence of email
                 if email:
-                    # Reuse invitation logic from 'students' action
                     with transaction.atomic():
                         student = CustomUser.objects.filter(email=email).first()
                         is_new = False
@@ -706,7 +780,6 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                                 + timezone.timedelta(days=7),
                             )
 
-                        # Check if already enrolled
                         if StudentCourse.objects.filter(
                             student=student, course=course
                         ).exists():
@@ -719,64 +792,94 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                             )
                             continue
 
-                        # Create enrollment
-                        enroll_status = (
-                            EnrollmentStatusType.ENROLLED
-                            if student.is_active
-                            else EnrollmentStatusType.PENDING
+                        enrollment_status = (
+                            EnrollmentStatusType.PENDING
+                            if is_new
+                            else EnrollmentStatusType.ENROLLED
                         )
+
                         StudentCourse.objects.create(
                             student=student,
                             course=course,
-                            enrollment_status=enroll_status,
+                            enrollment_status=enrollment_status,
                             auto_added=False,
                         )
-
-                        # Trigger email (simplified here, but following the existing pattern)
-                        # In a real scenario, we'd reuse a service method if available
-                        # Here we just queue the same task used in the 'students' action
                         self._send_bulk_enrollment_email(student, course, is_new)
-
                         results.append(
                             {
-                                "name": f"{first_name} {last_name}",
-                                "status": "invited" if is_new else "enrolled",
+                                "name": student.get_full_name(),
+                                "status": "invited",
                                 "type": "invitation",
                             }
                         )
                         success_count += 1
                 else:
-                    # Reuse direct add logic
-                    # We can directly use the serializer for simplicity and validation
-                    data = {
-                        "first_name": first_name,
-                        "middle_name": middle_name,
-                        "last_name": last_name,
-                    }
-                    direct_serializer = DirectAddStudentSerializer(
-                        data=data, context={"course": course}
-                    )
-                    if direct_serializer.is_valid():
-                        direct_serializer.save()
-                        results.append(
-                            {
-                                "name": f"{first_name} {last_name}",
-                                "status": "enrolled",
-                                "type": "direct_add",
-                            }
-                        )
-                        success_count += 1
-                    else:
-                        error_msg = next(iter(direct_serializer.errors.values()))[0]
-                        results.append(
-                            {
-                                "name": f"{first_name} {last_name}",
-                                "status": "failed",
-                                "error": error_msg,
-                            }
-                        )
-                        failure_count += 1
+                    with transaction.atomic():
+                        student = CustomUser.objects.filter(
+                            first_name__iexact=first_name,
+                            last_name__iexact=last_name,
+                            middle_name__iexact=middle_name,
+                            user_type=UserTypes.STUDENT,
+                        ).first()
 
+                        if student:
+                            if StudentCourse.objects.filter(
+                                student=student, course=course
+                            ).exists():
+                                results.append(
+                                    {
+                                        "name": student.get_full_name(),
+                                        "status": "skipped",
+                                        "error": "Already enrolled",
+                                    }
+                                )
+                                continue
+
+                            StudentCourse.objects.create(
+                                student=student,
+                                course=course,
+                                enrollment_status=EnrollmentStatusType.ENROLLED,
+                                auto_added=True,
+                            )
+                            results.append(
+                                {
+                                    "name": student.get_full_name(),
+                                    "status": "enrolled",
+                                    "type": "direct_add",
+                                }
+                            )
+                            success_count += 1
+                        else:
+                            data = {
+                                "first_name": first_name,
+                                "middle_name": middle_name,
+                                "last_name": last_name,
+                            }
+                            direct_serializer = DirectAddStudentSerializer(
+                                data=data, context={"course": course}
+                            )
+                            if direct_serializer.is_valid():
+                                student = direct_serializer.save()
+                                results.append(
+                                    {
+                                        "name": student.get_full_name(),
+                                        "status": "enrolled",
+                                        "type": "direct_add",
+                                    }
+                                )
+                                success_count += 1
+                            else:
+                                error_msg = next(
+                                    iter(direct_serializer.errors.values())
+                                )[0]
+                                results.append(
+                                    {
+                                        "name": f"{first_name} {last_name}",
+                                        "status": "failed",
+                                        "error": error_msg,
+                                    }
+                                )
+                                failure_count += 1
             except Exception as e:
                 results.append(
                     {
@@ -789,7 +892,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         return Response(
             {
-                "total_processed": len(rows),
+                "total_processed": len(data_rows),
                 "success_count": success_count,
                 "failure_count": failure_count,
                 "results": results,
@@ -798,13 +901,11 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         )
 
     def _send_bulk_enrollment_email(self, student, course, is_new):
-        """Helper to send the appropriate email during bulk enrollment."""
         if student.is_active:
-            # Existing active student email
-            content = f"""
-            You have been added to {course.name} by {course.teacher.get_full_name()}<br><br>
-            Your access is already active.
-            """
+            content = (
+                f"You have been added to {course.name} by {course.teacher.get_full_name()}.<br><br>\n\n"
+                "Your access is already active."
+            )
             merge_data = {
                 "title": f"You have been added to {course.name}",
                 "name": student.get_full_name(),
@@ -821,8 +922,10 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 merge_data=merge_data,
             )
         else:
-            # New/Inactive student invitation email
-            registration_link = f"https://{settings.FRONTEND_DOMAIN}/register/student/{student.activation_token}?email={student.email}"
+            registration_link = (
+                f"https://{settings.FRONTEND_DOMAIN}/register/student/"
+                f"{student.activation_token}?email={student.email}"
+            )
             merge_data = {
                 "title": f"Complete your registration for {course.name}",
                 "name": student.get_full_name(),

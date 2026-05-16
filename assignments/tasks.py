@@ -8,10 +8,18 @@ from ai_processor.services import ai_processor
 # from celery.exceptions import Ignore
 from AutoGrader.tasks import send_email_task
 from classrooms.models import Course, EnrollmentStatusType, Topic
-from students.exceptions import CannotAssociateStudentError
+from students.exceptions import CannotAssociateStudentError, TaskCancelledError
 from students.models import BatchUploadSession, BatchUploadType, StudentSubmission
 from students.serializers import StudentSubmissionSerializer
 from students.services import grade_engine, upload_answers_engine
+from students.task_tracking import (
+    ensure_task_not_cancelled,
+    mark_processing_task_cancelled,
+    mark_processing_task_failure,
+    mark_processing_task_started,
+    mark_processing_task_success,
+    update_processing_task,
+)
 from users.models import CustomUser, UserTypes
 
 from .models import Assignment, AssignmentStatus
@@ -22,12 +30,22 @@ from .services import AssignmentProcessingService
 
 
 @shared_task(bind=True)
-def grade_all_submissions(self, user_id, assignment_id):
+def grade_all_submissions(self, user_id, assignment_id, processing_task_id=None):
     """love God"""
     submissions = StudentSubmission.objects.filter(assignment_id=assignment_id)
     submissions_count = submissions.count()
 
     user = CustomUser.objects.get(id=user_id)
+    ensure_task_not_cancelled(processing_task_id)
+    mark_processing_task_started(
+        processing_task_id,
+        meta={
+            "current": 0,
+            "total": submissions_count,
+            "percent": 0,
+            "step": "Initializing",
+        },
+    )
 
     self.update_state(
         state="PROGRESS",
@@ -42,6 +60,7 @@ def grade_all_submissions(self, user_id, assignment_id):
     # assignment = Assignment.objects.get(id=assignment_id)
 
     for index, submission in enumerate(submissions):
+        ensure_task_not_cancelled(processing_task_id)
         self.update_state(
             state="PROGRESS",
             meta={
@@ -51,9 +70,32 @@ def grade_all_submissions(self, user_id, assignment_id):
                 "step": "Grading",
             },
         )
+        update_processing_task(
+            processing_task_id,
+            meta={
+                "current": index,
+                "total": submissions_count,
+                "percent": (
+                    (index) / submissions_count * 100 if submissions_count else 0
+                ),
+                "step": "Grading",
+            },
+        )
         try:
-            submission = grade_engine(user, submission)
+            submission = grade_engine(
+                user, submission, processing_task_id=processing_task_id
+            )
             print(f"Assignment saved: {index + 1}/{submissions_count}")
+        except TaskCancelledError:
+            mark_processing_task_cancelled(
+                processing_task_id,
+                meta={
+                    "current": index,
+                    "total": submissions_count,
+                    "step": "Cancelled",
+                },
+            )
+            raise
         except Exception as e:
             import traceback
 
@@ -68,14 +110,35 @@ def grade_all_submissions(self, user_id, assignment_id):
                     "detail": stack_trace_str,
                 },
             )
+            mark_processing_task_failure(
+                processing_task_id,
+                e,
+                meta={
+                    "current": index,
+                    "total": submissions_count,
+                    "step": "Failed",
+                    "assignment_id": assignment_id,
+                    "current_submission_id": str(submission.id),
+                },
+            )
             raise
 
+    mark_processing_task_success(
+        processing_task_id,
+        meta={"current": submissions_count, "total": submissions_count, "percent": 100},
+    )
     return {"status": "Completed", "assignment_id": assignment_id}
 
 
 @shared_task(bind=True)
 def extract_assignment_background_task(
-    self, user_id, assignment_id, content, raw_input=None, keep_existing_title=True
+    self,
+    user_id,
+    assignment_id,
+    content,
+    raw_input=None,
+    keep_existing_title=True,
+    processing_task_id=None,
 ):
     print(
         {
@@ -85,6 +148,10 @@ def extract_assignment_background_task(
         }
     )
     try:
+        ensure_task_not_cancelled(processing_task_id)
+        mark_processing_task_started(
+            processing_task_id, meta={"step": "Extracting assignment content"}
+        )
         self.update_state(
             state="PROGRESS", meta={"step": "Extracting assignment content"}
         )
@@ -94,12 +161,14 @@ def extract_assignment_background_task(
         assignment = Assignment.objects.get(id=assignment_id)
         user = CustomUser.objects.get(id=user_id)
 
+        ensure_task_not_cancelled(processing_task_id)
         assignment = AssignmentProcessingService.update_assignment_from_extraction(
             user,
             assignment,
             content,
             raw_input=raw_input,
             keep_existing_title=keep_existing_title,
+            processing_task_id=processing_task_id,
         )
 
         #
@@ -134,13 +203,33 @@ def extract_assignment_background_task(
         # serializer.save()
 
         print("Assignment saved successfully")
+        mark_processing_task_success(
+            processing_task_id,
+            meta={
+                "step": "Assignment extracted successfully",
+                "assignment_id": str(assignment.id),
+            },
+        )
 
         return {
             "status": states.SUCCESS,
             "assignment_id": assignment_id,
             "message": "Assignment extracted successfully",
         }
+    except TaskCancelledError:
+        mark_processing_task_cancelled(
+            processing_task_id, meta={"step": "Assignment extraction cancelled"}
+        )
+        raise
     except Exception:
+        mark_processing_task_failure(
+            processing_task_id,
+            "Assignment extraction failed",
+            meta={
+                "step": "Assignment extraction failed",
+                "assignment_id": assignment_id,
+            },
+        )
         raise
 
 
@@ -152,6 +241,7 @@ def update_assignment_background_task(
     content,
     raw_input=None,
     topic_id=None,
+    processing_task_id=None,
 ):
     """
     Async re-extraction task triggered when a teacher updates an assignment
@@ -159,6 +249,10 @@ def update_assignment_background_task(
     are saved synchronously in the view before this task fires.
     """
     try:
+        ensure_task_not_cancelled(processing_task_id)
+        mark_processing_task_started(
+            processing_task_id, meta={"step": "Extracting updated assignment content"}
+        )
         self.update_state(
             state="PROGRESS", meta={"step": "Extracting updated assignment content"}
         )
@@ -172,26 +266,54 @@ def update_assignment_background_task(
 
             topic = TopicModel.objects.filter(id=topic_id).first()
 
+        ensure_task_not_cancelled(processing_task_id)
         assignment = AssignmentProcessingService.update_assignment_from_extraction(
             user,
             assignment,
             content,
             topic=topic,
             raw_input=raw_input,
+            processing_task_id=processing_task_id,
         )
 
+        mark_processing_task_success(
+            processing_task_id,
+            meta={
+                "step": "Assignment updated and re-extracted successfully",
+                "assignment_id": str(assignment.id),
+            },
+        )
         return {
             "status": states.SUCCESS,
             "assignment_id": assignment_id,
             "message": "Assignment updated and re-extracted successfully",
         }
+    except TaskCancelledError:
+        mark_processing_task_cancelled(
+            processing_task_id, meta={"step": "Assignment re-extraction cancelled"}
+        )
+        raise
     except Exception:
+        mark_processing_task_failure(
+            processing_task_id,
+            "Assignment re-extraction failed",
+            meta={
+                "step": "Assignment re-extraction failed",
+                "assignment_id": assignment_id,
+            },
+        )
         raise
 
 
 @shared_task(bind=True)
-def extract_answer_background_task(self, submission_id, content):
+def extract_answer_background_task(
+    self, submission_id, content, processing_task_id=None
+):
     try:
+        ensure_task_not_cancelled(processing_task_id)
+        mark_processing_task_started(
+            processing_task_id, meta={"step": "Extracting answer content"}
+        )
         self.update_state(state="PROGRESS", meta={"step": "Extracting answer content"})
 
         print("Extracting answer content")
@@ -199,21 +321,27 @@ def extract_answer_background_task(self, submission_id, content):
         submission = StudentSubmission.objects.get(id=submission_id)
 
         extraction_started_at = timezone.now()
+        ensure_task_not_cancelled(processing_task_id)
         answer_json = ai_processor.extract_answer_with_retry(
             submission.student,
             content,
             submission.assignment.questions,
             assignment_model=submission.assignment,
             max_retries=3,
+            processing_task_id=processing_task_id,
         )
         extraction_completed_at = timezone.now()
 
         self.update_state(state="PROGRESS", meta={"step": "Saving answer content"})
+        update_processing_task(
+            processing_task_id, meta={"step": "Saving answer content"}
+        )
 
         submission.answer = answer_json
         submission.extraction_started_at = extraction_started_at
         submission.extraction_completed_at = extraction_completed_at
 
+        ensure_task_not_cancelled(processing_task_id)
         serializer = StudentSubmissionSerializer(
             submission, data=answer_json, partial=True
         )
@@ -221,19 +349,42 @@ def extract_answer_background_task(self, submission_id, content):
         serializer.save()
 
         print("Answer saved successfully")
+        mark_processing_task_success(
+            processing_task_id,
+            meta={
+                "step": "Answer extracted successfully",
+                "submission_id": str(submission.id),
+            },
+        )
 
         return {
             "status": states.SUCCESS,
             "submission_id": submission_id,
             "message": "Answer extracted successfully",
         }
+    except TaskCancelledError:
+        mark_processing_task_cancelled(
+            processing_task_id, meta={"step": "Answer extraction cancelled"}
+        )
+        raise
     except Exception:
+        mark_processing_task_failure(
+            processing_task_id,
+            "Answer extraction failed",
+            meta={"step": "Answer extraction failed", "submission_id": submission_id},
+        )
         raise
 
 
 @shared_task(bind=True)
-def grade_engine_async(self, user_id, submission_id, batch_id=None):
+def grade_engine_async(
+    self, user_id, submission_id, batch_id=None, processing_task_id=None
+):
     try:
+        ensure_task_not_cancelled(processing_task_id)
+        mark_processing_task_started(
+            processing_task_id, meta={"step": "Retrieving submission"}
+        )
         self.update_state(state="PROGRESS", meta={"step": "Retrieving submission"})
         submission = StudentSubmission.objects.select_related("assignment").get(
             id=submission_id
@@ -248,17 +399,31 @@ def grade_engine_async(self, user_id, submission_id, batch_id=None):
         user = CustomUser.objects.get(id=user_id)
 
         self.update_state(state="PROGRESS", meta={"step": "Grading"})
-        submission = grade_engine(user, submission)
+        update_processing_task(processing_task_id, meta={"step": "Grading"})
+        ensure_task_not_cancelled(processing_task_id)
+        submission = grade_engine(
+            user, submission, processing_task_id=processing_task_id
+        )
 
         self.update_state(state="PROGRESS", meta={"step": "Saving"})
+        update_processing_task(processing_task_id, meta={"step": "Saving"})
+        ensure_task_not_cancelled(processing_task_id)
         submission.save()
 
         self.update_state(state="PROGRESS", meta={"step": "Completed"})
+        mark_processing_task_success(
+            processing_task_id,
+            meta={
+                "step": "Completed",
+                "submission_id": str(submission.id),
+                "batch_id": str(batch_id) if batch_id else None,
+            },
+        )
 
         if batch_id:
             session = BatchUploadSession.objects.get(id=batch_id)
             session.update_result(
-                f"{user.get_full_name()} Submission",
+                f"Submission for {submission.student.get_full_name()}",
                 "SUCCESS",
                 batch_type=BatchUploadType.GRADE,
                 submission_id=submission.id,
@@ -268,43 +433,95 @@ def grade_engine_async(self, user_id, submission_id, batch_id=None):
             "submission_id": submission_id,
             "message": "Grading completed successfully",
         }
+    except TaskCancelledError:
+        mark_processing_task_cancelled(
+            processing_task_id,
+            meta={"step": "Grading cancelled", "submission_id": submission_id},
+        )
+        raise
     except Exception:
+        mark_processing_task_failure(
+            processing_task_id,
+            "Grading failed",
+            meta={"step": "Grading failed", "submission_id": submission_id},
+        )
         raise
 
 
 @shared_task(bind=True)
-def format_grade(self, submission_id, prompt):
+def format_grade(self, submission_id, prompt, processing_task_id=None):
     try:
+        ensure_task_not_cancelled(processing_task_id)
+        mark_processing_task_started(
+            processing_task_id, meta={"step": "Retrieving submission"}
+        )
         self.update_state(state="PROGRESS", meta={"step": "Retrieving submission"})
 
         submission = StudentSubmission.objects.get(id=submission_id)
 
         self.update_state(state="PROGRESS", meta={"step": "Formatting grade"})
+        update_processing_task(processing_task_id, meta={"step": "Formatting grade"})
+        ensure_task_not_cancelled(processing_task_id)
         formatted_grade = ai_processor.formatted_grade(
-            submission.student, prompt, assignment_model=submission.assignment
+            submission.student,
+            prompt,
+            assignment_model=submission.assignment,
+            processing_task_id=processing_task_id,
         )
 
         self.update_state(state="PROGRESS", meta={"step": "Saving formatted grade"})
+        update_processing_task(
+            processing_task_id, meta={"step": "Saving formatted grade"}
+        )
+        ensure_task_not_cancelled(processing_task_id)
         submission.formatted_grade = formatted_grade
         submission.save()
 
         self.update_state(
             state="PROGRESS", meta={"step": "Grade formatted successfully"}
         )
+        mark_processing_task_success(
+            processing_task_id,
+            meta={
+                "step": "Grade formatted successfully",
+                "submission_id": str(submission.id),
+            },
+        )
         return {
             "status": states.SUCCESS,
             "submission_id": submission_id,
             "message": "Grade formatted successfully",
         }
+    except TaskCancelledError:
+        mark_processing_task_cancelled(
+            processing_task_id,
+            meta={"step": "Formatted grade generation cancelled"},
+        )
+        raise
     except Exception:
+        mark_processing_task_failure(
+            processing_task_id,
+            "Formatted grade generation failed",
+            meta={"step": "Formatted grade generation failed"},
+        )
         raise
 
 
 @shared_task(bind=True, max_retries=3)
 def upload_answers_engine_async(
-    self, assignment_id, content, user_id, session_id=None, file_name=None
+    self,
+    assignment_id,
+    content,
+    user_id,
+    session_id=None,
+    file_name=None,
+    processing_task_id=None,
 ):
     try:
+        ensure_task_not_cancelled(processing_task_id)
+        mark_processing_task_started(
+            processing_task_id, meta={"step": "Retrieving requirements"}
+        )
         self.update_state(state="PROGRESS", meta={"step": "Retrieving requirements"})
 
         assignment = Assignment.objects.get(id=assignment_id)
@@ -313,11 +530,14 @@ def upload_answers_engine_async(
         is_teacher = user.user_type == UserTypes.TEACHER
 
         self.update_state(state="PROGRESS", meta={"step": "Extracting answers"})
+        update_processing_task(processing_task_id, meta={"step": "Extracting answers"})
+        ensure_task_not_cancelled(processing_task_id)
         submission = upload_answers_engine(
             assignment=assignment,
             content=content,
             request_user=user,
             is_proxy_upload=is_teacher,
+            processing_task_id=processing_task_id,
         )
 
         if session_id:
@@ -329,13 +549,38 @@ def upload_answers_engine_async(
                 submission_id=submission.id,
             )
 
+        mark_processing_task_success(
+            processing_task_id,
+            meta={
+                "step": "Answers extracted successfully",
+                "submission_id": str(submission.id),
+                "assignment_id": assignment_id,
+            },
+        )
         return {
             "status": states.SUCCESS,
             "submission_id": str(submission.id),
             "message": "Answers extracted successfully",
         }
 
+    except TaskCancelledError as exc:
+        mark_processing_task_cancelled(
+            processing_task_id,
+            meta={
+                "step": "Answer extraction cancelled",
+                "assignment_id": assignment_id,
+            },
+        )
+        if session_id:
+            session = BatchUploadSession.objects.get(id=session_id)
+            session.update_result(file_name, "CANCELLED", error=str(exc))
+        raise
     except CannotAssociateStudentError as exc:
+        mark_processing_task_failure(
+            processing_task_id,
+            exc,
+            meta={"step": "Student association failed", "assignment_id": assignment_id},
+        )
         session = BatchUploadSession.objects.get(id=session_id)
         session.update_result(file_name, "FAILED", error=str(exc))
         return {
@@ -343,7 +588,12 @@ def upload_answers_engine_async(
             "message": "Cannot Identify or Associate Student with this Paper",
         }
     except Exception as exc:
-        if self.request.retries == self.max_retries:
+        mark_processing_task_failure(
+            processing_task_id,
+            exc,
+            meta={"step": "Answer extraction failed", "assignment_id": assignment_id},
+        )
+        if self.request.retries < self.max_retries:
             raise self.retry(exc=exc, countdown=3) from Exception
 
         session = BatchUploadSession.objects.get(id=session_id)
@@ -352,21 +602,47 @@ def upload_answers_engine_async(
 
 
 @shared_task()
-def formatted_grade_async(submission_id, user_prompt):
+def formatted_grade_async(submission_id, user_prompt, processing_task_id=None):
     try:
+        ensure_task_not_cancelled(processing_task_id)
+        mark_processing_task_started(
+            processing_task_id, meta={"step": "Formatting grade"}
+        )
         submission = StudentSubmission.objects.get(id=submission_id)
         formatted_grade = ai_processor.formatted_grade(
-            submission.student, user_prompt, assignment_model=submission.assignment
+            submission.student,
+            user_prompt,
+            assignment_model=submission.assignment,
+            processing_task_id=processing_task_id,
         )
+        ensure_task_not_cancelled(processing_task_id)
         submission.formatted_grade = formatted_grade
         submission.save(update_fields=["formatted_grade"])
 
+        mark_processing_task_success(
+            processing_task_id,
+            meta={
+                "step": "Grade formatted successfully",
+                "submission_id": str(submission.id),
+            },
+        )
         return {
             "status": states.SUCCESS,
             "submission_id": submission_id,
             "message": "Grade formatted successfully",
         }
+    except TaskCancelledError:
+        mark_processing_task_cancelled(
+            processing_task_id,
+            meta={"step": "Formatted grade generation cancelled"},
+        )
+        raise
     except Exception:
+        mark_processing_task_failure(
+            processing_task_id,
+            "Formatted grade generation failed",
+            meta={"step": "Formatted grade generation failed"},
+        )
         raise
 
 
@@ -380,14 +656,23 @@ def upload_assignment_async(
     session_id=None,
     content=None,
     file_name=None,
+    processing_task_id=None,
 ):
     try:
+        ensure_task_not_cancelled(processing_task_id)
+        mark_processing_task_started(
+            processing_task_id, meta={"step": "Loading assignment context"}
+        )
         # self.update_state(state="PROGRESS", meta={"step": "Loading context"})
 
         user = CustomUser.objects.get(id=user_id)
         course = Course.objects.get(id=course_id, teacher=user)
         topic = Topic.objects.get(id=topic_id) if topic_id else None
 
+        update_processing_task(
+            processing_task_id, meta={"step": "Extracting assignment"}
+        )
+        ensure_task_not_cancelled(processing_task_id)
         assignment_questions = AssignmentProcessingService.extract_assignment_data(
             user,
             content,
@@ -395,9 +680,12 @@ def upload_assignment_async(
             topic=topic,
             generate_raw_input=True,
             upload=True,
+            processing_task_id=processing_task_id,
         )
 
         # self.update_state(state="PROGRESS", meta={"step": "Saving assignments"})
+        update_processing_task(processing_task_id, meta={"step": "Saving assignment"})
+        ensure_task_not_cancelled(processing_task_id)
         serializer = AssignmentSerializer(data=assignment_questions)
         serializer.is_valid(raise_exception=True)
         assignment = serializer.save()
@@ -410,13 +698,34 @@ def upload_assignment_async(
             assignment_id=assignment.id,
         )
 
+        mark_processing_task_success(
+            processing_task_id,
+            meta={
+                "step": "Assignment uploaded successfully",
+                "assignment_id": str(assignment.id),
+                "file_name": file_name,
+            },
+        )
         return {
             "status": states.SUCCESS,
             "assignment_id": str(assignment.id),
             "message": "Assignment uploaded successfully",
         }
 
+    except TaskCancelledError as exc:
+        mark_processing_task_cancelled(
+            processing_task_id,
+            meta={"step": "Assignment upload cancelled", "file_name": file_name},
+        )
+        session = BatchUploadSession.objects.get(id=session_id)
+        session.update_result(file_name, "CANCELLED", error=str(exc))
+        raise
     except Exception as e:
+        mark_processing_task_failure(
+            processing_task_id,
+            e,
+            meta={"step": "Assignment upload failed", "file_name": file_name},
+        )
         # if self.request.retries == self.max_retries:
         #     raise self.retry(exc=e, countdown=3) from Exception
 
@@ -426,7 +735,9 @@ def upload_assignment_async(
 
 
 @shared_task(bind=True, max_retries=3)
-def grade_batch_async(self, user_id, assignment_id, batch_id=None):
+def grade_batch_async(
+    self, user_id, assignment_id, batch_id=None, processing_task_id=None
+):
     submissions = StudentSubmission.objects.filter(assignment_id=assignment_id)
 
     # Clear assignment-level scheduling info
@@ -440,6 +751,7 @@ def grade_batch_async(self, user_id, assignment_id, batch_id=None):
         pass
 
     for submission in submissions:
+        ensure_task_not_cancelled(processing_task_id)
         grade_engine_async.delay(
             user_id,
             str(submission.id),

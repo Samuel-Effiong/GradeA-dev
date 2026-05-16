@@ -425,6 +425,7 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
 
 class GeneratedAssignmentSerializer(serializers.Serializer):
     content = serializers.CharField()
+    reply = serializers.CharField()
     assignment_id = serializers.UUIDField(required=False, allow_null=True)
     session_id = serializers.UUIDField(required=False, allow_null=True)
     message_id = serializers.UUIDField(required=False, allow_null=True)
@@ -660,8 +661,13 @@ class AssignmentGenerationSessionSerializer(serializers.ModelSerializer):
         if not latest_message:
             return None
 
-        content = latest_message.content or ""
-        return content[:140]
+        metadata = getattr(latest_message, "metadata", {})
+        reply = metadata.get("reply", "")
+
+        if reply:
+            return reply[:140]
+        else:
+            return ""
 
 
 class AssignmentGenerationSessionCreateSerializer(serializers.Serializer):

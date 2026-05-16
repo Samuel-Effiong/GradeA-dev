@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.core.cache import cache
+from django.db import transaction
 from django.db.models import (
     Avg,
     Case,
@@ -18,10 +19,6 @@ from django.db.models import (
 from django.db.models.functions import Cast
 from django.utils import timezone
 from django.utils.text import gettext_lazy as _
-
-# from django.views.decorators.cache import cache_page
-# from django.utils.decorators import method_decorator
-# from django.views.decorators.vary import vary_on_headers
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status, viewsets
@@ -1020,26 +1017,27 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         """
 
         try:
-            append_dashboard_chat_message(chat_session, RoleType.USER, prompt)
-            ai_feedback = ai_processor.custom_ai_prompt_retry(
-                request.user,
-                user_prompt,
-                UserTypes.SUPER_ADMIN,
-                feature="Superadmin Custom AI Prompt",
-                task_type="custom_ai_prompt:superadmin",
-            )
-            append_dashboard_chat_message(
-                chat_session,
-                RoleType.ASSISTANT,
-                ai_feedback,
-            )
+            with transaction.atomic():
+                append_dashboard_chat_message(chat_session, RoleType.USER, prompt)
+                ai_feedback = ai_processor.custom_ai_prompt_retry(
+                    request.user,
+                    user_prompt,
+                    UserTypes.SUPER_ADMIN,
+                    feature="Superadmin Custom AI Prompt",
+                    task_type="custom_ai_prompt:superadmin",
+                )
+                append_dashboard_chat_message(
+                    chat_session,
+                    RoleType.ASSISTANT,
+                    ai_feedback,
+                )
 
-            data = {
-                "response": ai_feedback,
-            }
-            serializer = CustomAIReply(data)
+                data = {
+                    "response": ai_feedback,
+                }
+                serializer = CustomAIReply(data)
 
-            return Response(serializer.data)
+                return Response(serializer.data)
         except Exception as e:
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -1403,26 +1401,27 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         """
 
         try:
-            append_dashboard_chat_message(chat_session, RoleType.USER, prompt)
-            ai_feedback = ai_processor.custom_ai_prompt_retry(
-                request.user,
-                user_prompt,
-                UserTypes.SCHOOL_ADMIN,
-                feature="Schooladmin Custom AI Prompt",
-                task_type="custom_ai_prompt:schooladmin",
-            )
-            append_dashboard_chat_message(
-                chat_session,
-                RoleType.ASSISTANT,
-                ai_feedback,
-            )
+            with transaction.atomic():
+                append_dashboard_chat_message(chat_session, RoleType.USER, prompt)
+                ai_feedback = ai_processor.custom_ai_prompt_retry(
+                    request.user,
+                    user_prompt,
+                    UserTypes.SCHOOL_ADMIN,
+                    feature="Schooladmin Custom AI Prompt",
+                    task_type="custom_ai_prompt:schooladmin",
+                )
+                append_dashboard_chat_message(
+                    chat_session,
+                    RoleType.ASSISTANT,
+                    ai_feedback,
+                )
 
-            data = {
-                "response": ai_feedback,
-            }
-            serializer = CustomAIReply(data)
+                data = {
+                    "response": ai_feedback,
+                }
+                serializer = CustomAIReply(data)
 
-            return Response(serializer.data)
+                return Response(serializer.data)
         except Exception as e:
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -2253,25 +2252,26 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         """
 
         try:
-            append_dashboard_chat_message(chat_session, RoleType.USER, prompt)
-            ai_feedback = ai_processor.custom_ai_prompt_retry(
-                request.user,
-                user_prompt,
-                UserTypes.TEACHER,
-                feature="Teacher Custom AI Prompt",
-                task_type="custom_ai_prompt:teacher",
-            )
-            append_dashboard_chat_message(
-                chat_session,
-                RoleType.ASSISTANT,
-                ai_feedback,
-            )
+            with transaction.atomic():
+                append_dashboard_chat_message(chat_session, RoleType.USER, prompt)
+                ai_feedback = ai_processor.custom_ai_prompt_retry(
+                    request.user,
+                    user_prompt,
+                    UserTypes.TEACHER,
+                    feature="Teacher Custom AI Prompt",
+                    task_type="custom_ai_prompt:teacher",
+                )
+                append_dashboard_chat_message(
+                    chat_session,
+                    RoleType.ASSISTANT,
+                    ai_feedback,
+                )
 
-            data = {"response": ai_feedback}
+                data = {"response": ai_feedback}
 
-            serializer = CustomAIReply(data)
+                serializer = CustomAIReply(data)
 
-            return Response(serializer.data)
+                return Response(serializer.data)
 
         except Exception as e:
             return Response(

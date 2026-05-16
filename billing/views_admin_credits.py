@@ -13,6 +13,7 @@ from django.db.models import Sum
 from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from classrooms.permissions import IsSuperAdmin
@@ -156,10 +157,12 @@ class AdminCreditManagementViewSet(viewsets.GenericViewSet):
         try:
             target_user = CustomUser.objects.get(id=user_id)
         except CustomUser.DoesNotExist:
-            return Response(
-                {"detail": f"No user found with id {user_id!r}."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            raise ParseError(f"No user found with id {user_id!r}.")
+
+            # return Response(
+            #     {"detail": f"No user found with id {user_id!r}."},
+            #     status=status.HTTP_404_NOT_FOUND,
+            # )
 
         grants = ManualCreditService.get_grant_history(target_user)
         serializer = ManualGrantBucketSerializer(grants, many=True)
