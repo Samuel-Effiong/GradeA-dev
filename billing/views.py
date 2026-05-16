@@ -1681,10 +1681,10 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         # 2. Fetch the leads with their conversion probability score
         leads = (
             self.get_queryset()
+            .filter(user__user_type=UserTypes.TEACHER)
             # .filter(power_user_query)
-            .select_related("user").order_by(
-                "-conversion_probability", "-total_credits_used"
-            )
+            .select_related("user")
+            .order_by("-conversion_probability", "-total_credits_used")
         )
 
         # 3. Structure the response for the Sales Team
