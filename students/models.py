@@ -200,3 +200,82 @@ class BatchUploadSession(models.Model):
             session = BatchUploadSession.objects.select_related().get(id=self.id)
             session.results.append(new_entry)
             session.save(update_fields=["results"])
+
+
+class BackgroundTaskType(models.TextChoices):
+    ASSIGNMENT_EXTRACTION = "assignment_extraction", _("Assignment Extraction")
+    ASSIGNMENT_REEXTRACTION = "assignment_reextraction", _("Assignment Re-extraction")
+    BATCH_ASSIGNMENT_UPLOAD = "batch_assignment_upload", _("Batch Assignment Upload")
+    ANSWER_EXTRACTION = "answer_extraction", _("Answer Extraction")
+    BATCH_ANSWER_UPLOAD = "batch_answer_upload", _("Batch Answer Upload")
+    SUBMISSION_GRADING = "submission_grading", _("Submission Grading")
+    BATCH_SUBMISSION_GRADING = "batch_submission_grading", _("Batch Submission Grading")
+    FORMATTED_GRADE = "formatted_grade", _("Formatted Grade")
+
+
+class BackgroundTaskStatus(models.TextChoices):
+    PENDING = "PENDING", _("Pending")
+    STARTED = "STARTED", _("Started")
+    CANCELLED = "CANCELLED", _("Cancelled")
+    SUCCESS = "SUCCESS", _("Success")
+    FAILURE = "FAILURE", _("Failure")
+
+
+class BackgroundProcessingTask(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    celery_task_id = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        unique=True,
+        db_index=True,
+        help_text=_("The Celery task id for the running background process."),
+    )
+    requested_by = models.ForeignKey(
+        "users.CustomUser",
+        on_delete=models.CASCADE,
+        related_name="background_processing_tasks",
+    )
+    batch_session = models.ForeignKey(
+        "students.BatchUploadSession",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="processing_tasks",
+    )
+    assignment = models.ForeignKey(
+        "assignments.Assignment",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="processing_tasks",
+    )
+    submission = models.ForeignKey(
+        "students.StudentSubmission",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="processing_tasks",
+    )
+    task_type = models.CharField(max_length=64, choices=BackgroundTaskType.choices)
+    status = models.CharField(
+        max_length=20,
+        choices=BackgroundTaskStatus.choices,
+        default=BackgroundTaskStatus.PENDING,
+        db_index=True,
+    )
+    file_name = models.CharField(max_length=255, null=True, blank=True)
+    meta = models.JSONField(default=dict, blank=True)
+    error = models.TextField(null=True, blank=True)
+    cancel_requested_at = models.DateTimeField(null=True, blank=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        label = self.file_name or self.celery_task_id or str(self.id)
+        return f"{self.task_type}::{label}"

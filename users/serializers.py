@@ -190,6 +190,18 @@ class TaskStatusSerializer(serializers.Serializer):
     meta = serializers.CharField(allow_null=True)
 
 
+class TaskCancelSerializer(serializers.Serializer):
+    task_id = serializers.UUIDField()
+    status = serializers.CharField()
+    message = serializers.CharField()
+
+
+class BatchSessionCancelSerializer(serializers.Serializer):
+    session_id = serializers.UUIDField()
+    cancelled_count = serializers.IntegerField()
+    message = serializers.CharField()
+
+
 class BetaWhitelistSerializer(serializers.ModelSerializer):
     class Meta:
         model = BetaWhitelist

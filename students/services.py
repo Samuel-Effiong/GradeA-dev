@@ -12,7 +12,12 @@ from classrooms.tasks import student_summary_async
 from users.models import CustomUser, UserTypes
 
 from .exceptions import CannotAssociateStudentError
-from .models import StudentSubmission
+from .models import BackgroundTaskType, StudentSubmission
+from .task_tracking import (
+    create_processing_task,
+    ensure_task_not_cancelled,
+    launch_processing_task,
+)
 
 # from .serializers import StudentSubmissionSerializer
 
@@ -93,9 +98,10 @@ def student_submission_to_html(submission) -> str:
     """
 
 
-def grade_engine(user, submission):
+def grade_engine(user, submission, processing_task_id=None):
     from assignments.tasks import formatted_grade_async
 
+    ensure_task_not_cancelled(processing_task_id)
     answer_json = submission.get_answer()
     submission.ai_graded_at = timezone.now()
 
@@ -104,8 +110,10 @@ def grade_engine(user, submission):
         submission.assignment.questions,
         answer_json,
         assignment_model=submission.assignment,
+        processing_task_id=processing_task_id,
     )
 
+    ensure_task_not_cancelled(processing_task_id)
     submission.ai_grading_completed_at = timezone.now()
 
     user_prompt = f"""
@@ -120,7 +128,19 @@ def grade_engine(user, submission):
     Return a formatted response
     """
 
-    formatted_grade_async.delay(str(submission.id), user_prompt)
+    formatted_processing_task = create_processing_task(
+        requested_by=user,
+        task_type=BackgroundTaskType.FORMATTED_GRADE,
+        assignment=submission.assignment,
+        submission=submission,
+        meta={"step": "Queued for formatted grade generation"},
+    )
+    launch_processing_task(
+        formatted_grade_async,
+        formatted_processing_task,
+        str(submission.id),
+        user_prompt,
+    )
 
     grading_score = round(grading["grading_summary"]["total_score"], 2)
     max_points = int(grading["grading_summary"]["max_total_points"])
@@ -139,16 +159,19 @@ def grade_engine(user, submission):
     submission.graded_at = timezone.now()
 
     # update the ras_input
+    ensure_task_not_cancelled(processing_task_id)
     answer_html = student_submission_to_html(submission)
     submission.raw_input = AssignmentProcessingService.html_to_prosemirror_json(
         answer_html
     )
 
     # Invalidate ai_summary
+    ensure_task_not_cancelled(processing_task_id)
     student_summary_async.delay(
         str(submission.student.id), str(user.id), str(submission.assignment.course.id)
     )
 
+    ensure_task_not_cancelled(processing_task_id)
     submission.save()
 
     return submission
@@ -233,18 +256,26 @@ def notify_teacher_of_student_submission(submission):
     )
 
 
-def upload_answers_engine(assignment, content, request_user, is_proxy_upload=False):
+def upload_answers_engine(
+    assignment,
+    content,
+    request_user,
+    is_proxy_upload=False,
+    processing_task_id=None,
+):
     assignment_context = f"""
     This is the Assignment Context to use in properly extracting the student submissions
     {assignment.questions}
     """
 
+    ensure_task_not_cancelled(processing_task_id)
     student_submission = ai_processor.extract_answer_with_retry(
         request_user,
         content,
         assignment_context,
         assignment_model=assignment,
         max_retries=3,
+        processing_task_id=processing_task_id,
     )
 
     if student_submission is not None:
@@ -284,13 +315,16 @@ def upload_answers_engine(assignment, content, request_user, is_proxy_upload=Fal
 
         if not created:
             # If it already exists, update the answers
+            ensure_task_not_cancelled(processing_task_id)
             submission.answers = student_submission.get("answers", submission.answers)
             submission.save()
 
+        ensure_task_not_cancelled(processing_task_id)
         answer_html = student_submission_to_html(submission)
         submission.raw_input = AssignmentProcessingService.html_to_prosemirror_json(
             answer_html
         )
+        ensure_task_not_cancelled(processing_task_id)
         submission.save()
 
         if created and request_user.user_type == UserTypes.STUDENT:

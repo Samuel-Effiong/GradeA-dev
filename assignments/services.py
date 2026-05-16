@@ -18,6 +18,7 @@ from rest_framework.exceptions import ParseError
 
 from ai_processor.services import ai_processor, pdf_service
 from ai_processor.tools import encode_image
+from students.task_tracking import ensure_task_not_cancelled
 
 from .serializers import AssignmentListSerializer, AssignmentSerializer
 
@@ -542,15 +543,21 @@ class AssignmentProcessingService:
         keep_existing_title=False,
         generate_raw_input=False,
         upload=False,
+        processing_task_id=None,
     ) -> dict:
 
         print("Extracting assignment content")
 
         # assignment = Assignment.objects.get(id=assignment_id)
 
+        ensure_task_not_cancelled(processing_task_id)
         extraction_started_at = timezone.now()
         assignment_questions = ai_processor.extract_assignment_with_retry(
-            user, content, max_retries=3, upload=upload
+            user,
+            content,
+            max_retries=3,
+            upload=upload,
+            processing_task_id=processing_task_id,
         )
         extraction_completed_at = timezone.now()
 
@@ -587,6 +594,7 @@ class AssignmentProcessingService:
             assignment_questions["raw_input"] = raw_input
 
         if generate_raw_input:
+            ensure_task_not_cancelled(processing_task_id)
             assignment_html = cls.format_assignment_standard_html(assignment_questions)
             raw_input = cls.html_to_prosemirror_json(assignment_html)
             assignment_questions["raw_input"] = json.dumps(raw_input)
@@ -616,6 +624,7 @@ class AssignmentProcessingService:
         raw_input=None,
         keep_existing_title=False,
         upload=False,
+        processing_task_id=None,
     ):
         assignment_data = cls.extract_assignment_data(
             user,
@@ -625,8 +634,10 @@ class AssignmentProcessingService:
             raw_input=raw_input,
             keep_existing_title=keep_existing_title,
             upload=upload,
+            processing_task_id=processing_task_id,
         )
 
+        ensure_task_not_cancelled(processing_task_id)
         serializer = AssignmentSerializer(
             assignment, data=assignment_data, partial=True
         )
