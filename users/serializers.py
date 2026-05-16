@@ -4,6 +4,7 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from billing.serializers import CreditWalletSummarySerializer
+from billing.services import AnalyticsService
 from classrooms.models import School
 from users.exceptions import NotInBetaException
 from users.models import BetaWhitelist, CustomUser, Settings, Waitlist
@@ -138,6 +139,10 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         user_data = CustomUserSerializer(self.user).data
 
         data.update({"user": user_data})
+
+        # Track user activity (distinct login days)
+        AnalyticsService.track_activity(self.user)
+
         return data
 
 

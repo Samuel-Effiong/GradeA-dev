@@ -50,6 +50,7 @@ from rest_framework_simplejwt.views import (
 from rest_framework_simplejwt.views import TokenRefreshView as BaseTokenRefreshView
 
 from AutoGrader.tasks import send_email_task
+from billing.services import AnalyticsService
 from classrooms.models import EnrollmentStatusType, StudentCourse
 from classrooms.permissions import IsSuperAdmin
 from classrooms.serializers import StudentRegistrationCompletionSerializer
@@ -613,6 +614,9 @@ class AuthViewSet(viewsets.ViewSet):
 
         refresh = RefreshToken.for_user(user)
 
+        # Track activity
+        AnalyticsService.track_activity(user)
+
         return Response(
             {
                 "refresh": str(refresh),
@@ -759,6 +763,9 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
         refresh = RefreshToken.for_user(user)
 
+        # Track activity
+        AnalyticsService.track_activity(user)
+
         return Response(
             {
                 "detail": "Password has been reset successfully. You are now logged in.",
@@ -866,6 +873,10 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
         # 2. Generate new tokens for the current device
         refresh = RefreshToken.for_user(user)
+
+        # Track activity
+        AnalyticsService.track_activity(user)
+
         return Response(
             {
                 "detail": "Password changed successfully.",
