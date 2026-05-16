@@ -1659,31 +1659,32 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
 
         # 1. Build the "Power User" Filter
         # Each 'Q' object represents one of your four core business rules
-        power_user_query = (
-            Q(
-                # Trigger 1: High consumption (>= 80% of their 20M grant)
-                has_hit_80_percent=True
-            )
-            | Q(
-                # Trigger 2: High frequency (Logged in >=8 distinct days)
-                distinct_login_days__gte=8
-            )
-            | Q(
-                # Trigger 3: Sticky behavior (Active in the final week of Beta)
-                last_active_at__gte=seven_days_ago
-            )
-            | Q(
-                # Trigger 4: Core value (Uses Grading more than Assignment Creation)
-                credits_used_grading__gt=F("credits_used_creation")
-            )
-        )
+        # power_user_query = (
+        #     Q(
+        #         # Trigger 1: High consumption (>= 80% of their 20M grant)
+        #         has_hit_80_percent=True
+        #     )
+        #     | Q(
+        #         # Trigger 2: High frequency (Logged in >=8 distinct days)
+        #         distinct_login_days__gte=8
+        #     )
+        #     | Q(
+        #         # Trigger 3: Sticky behavior (Active in the final week of Beta)
+        #         last_active_at__gte=seven_days_ago
+        #     )
+        #     | Q(
+        #         # Trigger 4: Core value (Uses Grading more than Assignment Creation)
+        #         credits_used_grading__gt=F("credits_used_creation")
+        #     )
+        # )
 
         # 2. Fetch the leads with their conversion probability score
         leads = (
             self.get_queryset()
-            .filter(power_user_query)
-            .select_related("user")
-            .order_by("-conversion_probability", "-total_credits_used")
+            # .filter(power_user_query)
+            .select_related("user").order_by(
+                "-conversion_probability", "-total_credits_used"
+            )
         )
 
         # 3. Structure the response for the Sales Team
