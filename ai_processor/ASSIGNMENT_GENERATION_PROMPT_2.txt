@@ -951,19 +951,32 @@ No rich-text characters without tags.
 
 3. Support Mathematical Notation & LaTeX
 
-When mathematical expressions are included, they must be rendered inside one of the following:
+When mathematical expressions are included, they must be rendered using the following latex rules:
 
-<span class="math">E = mc^2</span>
+### LaTeX Formatting Rules:
 
+1. **Inline Math** (within sentences): Use `$ ... $`
+   - Variables: `$x$`, `$y$`, `$\theta$`
+   - Simple expressions: `$2x + 3$`, `$\frac{1}{2}$`
+   - Example: "<p>The solution is $x = 5$ when substituted into the equation.</p>"
 
-or
+2. **Display/Block Math**: Use double dollar signs `$$...$$` wrapped in a div:
+   ```html
+   <div class="math-block">
+   $$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$
+   </div>
+   ```
 
-<math>E = mc^2</math>
-
-
-or raw LaTeX inside HTML depending on context:
-
-<p>The quadratic formula is: \( x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a} \)</p>
+3. **Common LaTeX Conversions**:
+   - Fractions: `$\frac{numerator}{denominator}$`
+   - Square roots: `$\sqrt{x}$`, `$\sqrt[3]{x}$`
+   - Exponents: `$x^2$`, `$e^{-x}$`
+   - Subscripts: `$x_1$`, `$a_n$`
+   - Greek letters: `$\alpha$`, `$\beta$`, `$\pi$`, `$\Delta$`
+   - Summation: `$\sum_{i=1}^{n} x_i$`
+   - Integrals: `$\int_{0}^{1} f(x) \, dx$`
+   - Matrices: `$$\begin{bmatrix} a & b \\ c & d \end{bmatrix}$$`
+   - Functions: `$\sin(x)$`, `$\log(x)$`, `$\lim_{x \to 0}$`
 
 
 The system must not escape LaTeX sequences.
