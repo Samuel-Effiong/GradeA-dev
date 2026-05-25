@@ -20,9 +20,12 @@ class ConcurrencySerializer(serializers.Serializer):
 
 
 class StudentAssignmentListSerializer(serializers.ModelSerializer):
-    assignment = serializers.IntegerField(source="id", read_only=True)
-    score = serializers.CharField()
+    course = serializers.CharField()
+    teacher = serializers.CharField()
+    assignment = serializers.UUIDField(source="id", read_only=True)
+    score = serializers.IntegerField()
     score_percentage = serializers.FloatField(read_only=True)
+    total_score = serializers.IntegerField()
     submission_date = serializers.DateTimeField()
     feedback = serializers.CharField()
     submission_status = serializers.CharField(max_length=30)
@@ -30,14 +33,17 @@ class StudentAssignmentListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Assignment
         fields = [
+            "course",
+            "teacher",
             "assignment",
             "title",
             "due_date",
             "submission_date",
             "score",
             "score_percentage",
-            "submission_status",
+            "total_score",
             "feedback",
+            "submission_status",
         ]
 
 

@@ -2470,12 +2470,96 @@ class StudentAdminDashboardView(viewsets.ViewSet):
             cache.set(cache_key, data, 60 * 15)
         return Response(data)
 
+    # @extend_schema(
+    #     tags=["Student Admin"],
+    #     summary="Student Course Assignments List",
+    #     description="""
+    #     Retrieve a list of all assignments for a student within a specific course,
+    #     including their submission details, scores, and feedback.
+
+    #     This endpoint returns:
+    #     - Assignment identification (ID and Title)
+    #     - Deadlines (Due Date)
+    #     - Student performance (Score and Feedback)
+    #     - Timestamps (Submission Date)
+    #     - Status tracking (Submitted, Late, etc.)
+    #     """,
+    #     parameters=[
+    #         OpenApiParameter(
+    #             name="course_id",
+    #             type=OpenApiTypes.UUID,
+    #             location=OpenApiParameter.PATH,
+    #             description=_(
+    #                 "The unique identifier (UUID) of the course to retrieve assignments for"
+    #             ),
+    #         )
+    #     ],
+    #     responses={200: StudentAssignmentListSerializer(many=True)},
+    # )
+    # # @method_decorator(
+    # #     cache_page(60 * 5, key_prefix="studentadmin:dashboard:assignments")
+    # # )
+    # # @method_decorator(vary_on_headers("Authorization"))
+    # @action(
+    #     detail=False,
+    #     methods=["get"],
+    #     url_path=r"dashboard/assignments/(?P<course_id>[-\w]+)",
+    # )
+    # def assignments(self, request, course_id, *args, **kwargs):
+    #     cache_key = f"studentadmins:user_id__{request.user.id}:instance_id__{course_id}:view__assignments"
+    #     data = cache.get(cache_key)
+
+    #     if data is None:
+    #         student = request.user
+    #         get_object_or_404(Course, id=course_id, is_active=True)
+
+    #         # Filter assignments for student's course
+    #         assignments = Assignment.objects.filter(course__id=course_id)
+    #         submissions = StudentSubmission.objects.filter(
+    #             student=student, assignment__in=assignments
+    #         ).select_related("assignment")
+
+    #         submissions_map = {s.assignment_id: s for s in submissions}
+
+    #         data = []
+    #         for a in assignments:
+    #             s = submissions_map.get(a.id)
+
+    #             if s:
+    #                 submission_status = (
+    #                     "late"
+    #                     if a.due_date and s.submission_date > a.due_date
+    #                     else "submitted"
+    #                 )
+
+    #                 submission_date = a.submissions.first().submission_date
+    #                 data.append(
+    #                     {
+    #                         "course": a.course.name,
+    #                         "teacher": a.course.teacher.get_full_name(),
+    #                         "assignment": a,
+    #                         "title": a.title,
+    #                         "due_date": a.due_date,
+    #                         "submission_date": submission_date,
+    #                         "score": s.score,
+    #                         "score_percentage": s.score_percentage,
+    #                         "total_score": a.total_points,
+    #                         "feedback": s.feedback,
+    #                         "submission_status": submission_status,
+    #                     }
+    #                 )
+
+    #         serializer = StudentAssignmentListSerializer(data, many=True)
+    #         data = serializer.data
+
+    #         cache.set(cache_key, data, 60 * 15)
+    #     return Response(data)
+
     @extend_schema(
         tags=["Student Admin"],
-        summary="Student Course Assignments List",
+        summary="Student Assignments List",
         description="""
-        Retrieve a list of all assignments for a student within a specific course,
-        including their submission details, scores, and feedback.
+        Retrieve a list of all assignments for a student, including their submission details, scores, and feedback.
 
         This endpoint returns:
         - Assignment identification (ID and Title)
@@ -2483,38 +2567,36 @@ class StudentAdminDashboardView(viewsets.ViewSet):
         - Student performance (Score and Feedback)
         - Timestamps (Submission Date)
         - Status tracking (Submitted, Late, etc.)
+        - etc
         """,
-        parameters=[
-            OpenApiParameter(
-                name="course_id",
-                type=OpenApiTypes.UUID,
-                location=OpenApiParameter.PATH,
-                description=_(
-                    "The unique identifier (UUID) of the course to retrieve assignments for"
-                ),
-            )
-        ],
+        # parameters=[
+        #     OpenApiParameter(
+        #         name="course_id",
+        #         type=OpenApiTypes.UUID,
+        #         location=OpenApiParameter.PATH,
+        #         description=_(
+        #             "The unique identifier (UUID) of the course to retrieve assignments for"
+        #         ),
+        #     )
+        # ],
         responses={200: StudentAssignmentListSerializer(many=True)},
     )
-    # @method_decorator(
-    #     cache_page(60 * 5, key_prefix="studentadmin:dashboard:assignments")
-    # )
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(
         detail=False,
         methods=["get"],
-        url_path=r"dashboard/assignments/(?P<course_id>[-\w]+)",
+        url_path=r"dashboard/assignments",
     )
-    def assignments(self, request, course_id, *args, **kwargs):
-        cache_key = f"studentadmins:user_id__{request.user.id}:instance_id__{course_id}:view__assignments"
+    def assignments(self, request, *args, **kwargs):
+        cache_key = f"studentadmins:user_id__{request.user.id}:view__assignments"
         data = cache.get(cache_key)
 
         if data is None:
             student = request.user
-            get_object_or_404(Course, id=course_id, is_active=True)
 
             # Filter assignments for student's course
-            assignments = Assignment.objects.filter(course__id=course_id)
+            assignments = Assignment.objects.filter(
+                submissions__student=student
+            ).order_by("-created_at")
             submissions = StudentSubmission.objects.filter(
                 student=student, assignment__in=assignments
             ).select_related("assignment")
@@ -2524,26 +2606,29 @@ class StudentAdminDashboardView(viewsets.ViewSet):
             data = []
             for a in assignments:
                 s = submissions_map.get(a.id)
-                if s:
-                    submission_status = (
-                        "late"
-                        if a.due_date and s.submission_date > a.due_date
-                        else "submitted"
-                    )
 
-                    submission_date = a.submissions.first().submission_date
-                    data.append(
-                        {
-                            "assignment": a,
-                            "title": a.title,
-                            "due_date": a.due_date,
-                            "submission_date": submission_date,
-                            "score": s.score,
-                            "score_percentage": s.score_percentage,
-                            "feedback": s.feedback,
-                            "submission_status": submission_status,
-                        }
-                    )
+                submission_status = (
+                    None
+                    if not s
+                    else "SUBMITTED" if s and not s.graded_at else "GRADED"
+                )
+                submission_date = a.submissions.first().submission_date if s else None
+
+                stats = {
+                    "course": a.course.name,
+                    "teacher": a.course.teacher.get_full_name(),
+                    "assignment": a,
+                    "title": a.title,
+                    "due_date": a.due_date,
+                    "submission_date": submission_date,
+                    "score": s.score if s else None,
+                    "score_percentage": s.score_percentage if s else None,
+                    "total_score": a.total_points,
+                    "feedback": s.feedback if s else None,
+                    "submission_status": submission_status,
+                }
+
+                data.append(stats)
 
             serializer = StudentAssignmentListSerializer(data, many=True)
             data = serializer.data
