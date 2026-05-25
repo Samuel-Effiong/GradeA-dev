@@ -251,6 +251,11 @@ CELERY_TASK_ACKS_LATE = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_RESULT_EXPIRES = 3600  # Delete results after 1 hour
 
+WEEKLY_COURSE_SUMMARY_DAY_OF_WEEK = env.str(
+    "WEEKLY_COURSE_SUMMARY_DAY_OF_WEEK", default="6"
+)
+WEEKLY_COURSE_SUMMARY_HOUR = env.int("WEEKLY_COURSE_SUMMARY_HOUR", default=7)
+WEEKLY_COURSE_SUMMARY_MINUTE = env.int("WEEKLY_COURSE_SUMMARY_MINUTE", default=0)
 
 # Celery Beat Schedule
 CELERY_BEAT_SCHEDULE = {
@@ -265,6 +270,14 @@ CELERY_BEAT_SCHEDULE = {
     "reconcile-expired-buckets-midnight": {
         "task": "billing.tasks.cleanup_expired_credit_buckets",
         "schedule": crontab(minute=0, hour=0),
+    },
+    "send-weekly-course-summaries": {
+        "task": "dashboard.tasks.send_weekly_course_summaries",
+        "schedule": crontab(
+            minute=WEEKLY_COURSE_SUMMARY_MINUTE,
+            hour=WEEKLY_COURSE_SUMMARY_HOUR,
+            day_of_week=WEEKLY_COURSE_SUMMARY_DAY_OF_WEEK,
+        ),
     },
     # "send-email-task": {
     #     "task": "AutoGrader.tasks.send_email_task",
@@ -467,3 +480,7 @@ CACHES = {
 }
 
 CACHE_TTL = 60 * 5
+
+
+GOOGLE_OAUTH_CLIENT_ID = env.str("GOOGLE_OAUTH_CLIENT_ID")
+GOOGLE_OAUTH_CLIENT_SECRET = env.str("GOOGLE_OAUTH_CLIENT_SECRET")

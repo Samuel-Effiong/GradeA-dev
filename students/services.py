@@ -1,3 +1,4 @@
+import logging
 from html import escape
 
 from django.conf import settings
@@ -20,6 +21,9 @@ from .task_tracking import (
 )
 
 # from .serializers import StudentSubmissionSerializer
+
+
+logger = logging.getLogger(__name__)
 
 
 def student_submission_to_html(submission) -> str:
@@ -199,10 +203,6 @@ def notify_teacher_of_student_submission(submission):
         "submission": submission,
     }
 
-    html_content = render_to_string(
-        "email/student_submission_notification.html", context=context
-    )
-
     message = (
         f"{submission.student.get_full_name()} submitted "
         f"{submission.assignment.title or 'an assignment'} "
@@ -244,16 +244,30 @@ def notify_teacher_of_student_submission(submission):
     #     merge_data=merge_data,
     # )
 
-    send_email_task.delay(
-        subject=(
-            f"New student submission: "
-            f"{submission.assignment.title or submission.assignment.course.name}"
-        ),
-        message=message,
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[teacher.email],
-        html_message=html_content,
-    )
+    try:
+        html_content = render_to_string(
+            "email/student_submission_notification.html", context=context
+        )
+
+        send_email_task.delay(
+            subject=(
+                f"New student submission: "
+                f"{submission.assignment.title or submission.assignment.course.name}"
+            ),
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[teacher.email],
+            html_message=html_content,
+        )
+    except Exception:
+        logger.exception(
+            "Failed to queue student submission notification",
+            extra={
+                "submission_id": str(submission.id),
+                "assignment_id": str(submission.assignment_id),
+                "teacher_id": str(teacher.id),
+            },
+        )
 
 
 def upload_answers_engine(

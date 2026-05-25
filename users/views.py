@@ -10,10 +10,10 @@ profile.
 """
 
 from celery.result import AsyncResult
-from django.conf import settings
-from django.core.cache import cache
 
 # from django.core.mail import send_mail
+from django.conf import settings
+from django.core.cache import cache
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -30,8 +30,11 @@ from drf_spectacular.utils import (
     OpenApiResponse,
     extend_schema,
     extend_schema_view,
+    inline_serializer,
 )
-from rest_framework import status, viewsets
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token
+from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action  # , api_view
 from rest_framework.exceptions import NotFound, ParseError, ValidationError
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -50,6 +53,7 @@ from rest_framework_simplejwt.views import (
 from rest_framework_simplejwt.views import TokenRefreshView as BaseTokenRefreshView
 
 from AutoGrader.tasks import send_email_task
+from billing.services import AnalyticsService
 from classrooms.models import EnrollmentStatusType, StudentCourse
 from classrooms.permissions import IsSuperAdmin
 from classrooms.serializers import StudentRegistrationCompletionSerializer
@@ -75,6 +79,7 @@ from users.serializers import (
     ChangePasswordSerializer,
     CustomTokenObtainPairSerializer,
     CustomUserSerializer,
+    GoogleUserSerializer,
     OTPSerializer,
     ResetPasswordSerializer,
     SettingsSerializer,
@@ -443,7 +448,6 @@ class SettingsViewSet(UserCacheMixin, viewsets.ModelViewSet):
         "user__school": ["exact"],
     }
     search_fields = [
-        "user__username",
         "user__email",
         "user__first_name",
         "user__last_name",
@@ -613,6 +617,9 @@ class AuthViewSet(viewsets.ViewSet):
 
         refresh = RefreshToken.for_user(user)
 
+        # Track activity
+        AnalyticsService.track_activity(user)
+
         return Response(
             {
                 "refresh": str(refresh),
@@ -759,6 +766,9 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
         refresh = RefreshToken.for_user(user)
 
+        # Track activity
+        AnalyticsService.track_activity(user)
+
         return Response(
             {
                 "detail": "Password has been reset successfully. You are now logged in.",
@@ -866,6 +876,10 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
         # 2. Generate new tokens for the current device
         refresh = RefreshToken.for_user(user)
+
+        # Track activity
+        AnalyticsService.track_activity(user)
+
         return Response(
             {
                 "detail": "Password changed successfully.",
@@ -1125,6 +1139,129 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 {"detail": f"Internal Server Error: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+    @extend_schema(
+        tags=["Authentication"],
+        summary="Authenticate with Google OAuth2",
+        description="""
+        Verifies a Google ID token (credential) sent from the frontend.
+
+        - If the user does not exist: Creates a new user (if they are in the Beta Whitelist),
+        assigns an unusable password, marks their email as verified, and logs them in.
+        - If the user exists: Authenticates them if their registration method is `GOOGLE`.
+        - Returns a pair of JWT (JSON Web Tokens) access and refresh tokens, along with user details.
+        """,
+        request=inline_serializer(
+            name="GoogleAuthRequest",
+            fields={
+                "token": serializers.CharField(
+                    required=True,
+                    help_text="The ID Token (credential) received from Google's credential service on the frontend.",
+                )
+            },
+        ),
+        responses={
+            200: OpenApiResponse(
+                description="Successfully authenticated. Returns JWT tokens and user profile.",
+                response=inline_serializer(
+                    name="GoogleAuthResponse",
+                    fields={
+                        "access": serializers.CharField(help_text="JWT Access Token"),
+                        "refresh": serializers.CharField(help_text="JWT Refresh Token"),
+                        "user": CustomUserSerializer(
+                            help_text="The authenticated user's profile details."
+                        ),
+                    },
+                ),
+            ),
+            400: OpenApiResponse(
+                description="Bad Request. Possible causes:\n"
+                "- Missing token\n"
+                "- Invalid Google Token (expired or bad signature)\n"
+                "- Email address has not been verified by Google\n"
+                "- Email is not whitelisted in the Beta system\n"
+                "- User already registered via standard Email instead of Google"
+            ),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["post"],
+        permission_classes=[AllowAny],
+        url_path="google-auth",
+    )
+    def google_auth(self, request, *args, **kwargs):
+        token = request.data.get("token")
+
+        # FIXME ParseError
+        if not token:
+            raise ParseError("Token is required")
+
+        try:
+            id_info = id_token.verify_oauth2_token(
+                token,
+                google_requests.Request(),
+                settings.GOOGLE_OAUTH_CLIENT_ID,
+            )
+
+            if not id_info.get("email_verified"):
+                raise ParseError("Google has not verified your email")
+
+            with transaction.atomic():
+                email = id_info["email"]
+                first_name = id_info.get("given_name", "")
+                last_name = id_info.get("family_name", "")
+                middle_name = id_info.get("middle_name", "")
+                profile_image_url = id_info.get(
+                    "picture",
+                )
+
+                user = CustomUser.objects.filter(email=email).first()
+
+                if not user:
+                    # create the user with
+
+                    data = {
+                        "email": email,
+                        "first_name": first_name,
+                        "last_name": last_name,
+                        "middle_name": middle_name,
+                        "profile_image_url": profile_image_url,
+                        "registration_method": "GOOGLE",
+                        "is_active": True,
+                        "email_verified_at": timezone.now(),
+                    }
+
+                    serializer = GoogleUserSerializer(data=data)
+                    if serializer.is_valid():
+                        user = serializer.save()
+
+                        user.is_active = True
+                        user.set_unusable_password()
+                        user.save(update_fields=["password", "is_active"])
+
+                    else:
+                        raise ValidationError(serializer.errors)
+
+                # else:
+                #     if user.registration_method != 'GOOGLE':
+                #         # FIXME ParseError
+                #         raise ParseError("User needs to sign in through email")
+
+            refresh = RefreshToken.for_user(user)
+
+            return Response(
+                {
+                    "access": str(refresh.access_token),
+                    "refresh": str(refresh),
+                    "user": CustomUserSerializer(user).data,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except ValueError as e:
+            raise ParseError("Invalid Google token") from e
 
 
 @extend_schema(

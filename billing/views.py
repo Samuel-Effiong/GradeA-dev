@@ -96,6 +96,12 @@ def append_dashboard_chat_message(session, role, content):
     )
 
 
+def get_teacher_beta_profiles():
+    return BetaProfile.objects.select_related("user").filter(
+        user__user_type=UserTypes.TEACHER
+    )
+
+
 @extend_schema_view(
     list=extend_schema(
         tags=["Subscription Plans"],
@@ -969,8 +975,15 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
 
 
 class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = BetaProfile.objects.all()
     permission_classes = [IsSuperAdmin]
+
+    def get_queryset(self):
+        return get_teacher_beta_profiles()
+
+    def get_cohort_usage_logs(self):
+        return CreditUsageLog.objects.filter(
+            wallet__user_id__in=self.get_queryset().values("user_id")
+        )
 
     @extend_schema(exclude=True)
     def retrieve(self, request, *args, **kwargs):
@@ -998,7 +1011,8 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
         # 4. Daily Time Series (Last 60 Days)
         sixty_days_ago = timezone.now().date() - timedelta(days=60)
         raw_usage = (
-            CreditUsageLog.objects.filter(created_at__date__gte=sixty_days_ago)
+            self.get_cohort_usage_logs()
+            .filter(created_at__date__gte=sixty_days_ago)
             .annotate(day=TruncDay("created_at"))
             .values("day")
             .annotate(total=Sum("amount"))
@@ -1032,7 +1046,8 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
     )
     def weekly_credit_trends(self, request, *args, **kwargs):
         weekly_usage = (
-            CreditUsageLog.objects.annotate(week=TruncWeek("created_at"))
+            self.get_cohort_usage_logs()
+            .annotate(week=TruncWeek("created_at"))
             .values("week")
             .annotate(total=Sum("amount"))
             .order_by("-week")[:12]
@@ -1062,7 +1077,8 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
     )
     def peak_usage_hours(self, request, *args, **kwargs):
         hourly_distribution = (
-            CreditUsageLog.objects.annotate(hour=ExtractHour("created_at"))
+            self.get_cohort_usage_logs()
+            .annotate(hour=ExtractHour("created_at"))
             .values("hour")
             .annotate(total=Sum("amount"))
             .order_by("hour")
@@ -1098,7 +1114,8 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
         creation_cats = ["Assignment Extraction", "Assignment Generation"]
 
         category_trends = (
-            CreditUsageLog.objects.filter(created_at__date__gte=sixty_days_ago)
+            self.get_cohort_usage_logs()
+            .filter(created_at__date__gte=sixty_days_ago)
             .annotate(
                 day=TruncDay("created_at"),
                 category=Case(
@@ -1158,7 +1175,7 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
         url_name="feature-mix-across-groups",
     )
     def feature_mix_across_groups(self, request, *args, **kwargs):
-        profiles = BetaProfile.objects.all().order_by("total_credits_used")
+        profiles = self.get_queryset().order_by("total_credits_used")
         total_count = profiles.count()
 
         if total_count == 0:
@@ -1228,12 +1245,14 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
         url_name="intent-signal-distribution",
     )
     def intent_signal_distribution(self, request, *args, **kwargs):
-        profiles = BetaProfile.objects.all()
+        profiles = self.get_queryset()
         now = timezone.now()
         seven_days_ago = now - timedelta(days=7)
 
+        import typing
+
         # Initialize structure for buckets 1, 2, 3, 4
-        distribution = {
+        distribution: typing.Dict[int, typing.Dict[str, typing.Any]] = {
             1: {"user_count": 0, "user_ids": []},
             2: {"user_count": 0, "user_ids": []},
             3: {"user_count": 0, "user_ids": []},
@@ -1289,10 +1308,12 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
         url_name="credit-usage-distribution",
     )
     def credit_usage_distribution(self, request, *args, **kwargs):
-        profiles = BetaProfile.objects.all()
+        profiles = self.get_queryset()
+
+        import typing
 
         # Initialize buckets
-        buckets = {
+        buckets: typing.Dict[str, typing.Dict[str, typing.Any]] = {
             f"{i}-{i + 10}%": {"user_count": 0, "user_ids": []}
             for i in range(0, 100, 10)
         }
@@ -1681,10 +1702,10 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         # 2. Fetch the leads with their conversion probability score
         leads = (
             self.get_queryset()
+            .filter(user__user_type=UserTypes.TEACHER)
             # .filter(power_user_query)
-            .select_related("user").order_by(
-                "-conversion_probability", "-total_credits_used"
-            )
+            .select_related("user")
+            .order_by("-conversion_probability", "-total_credits_used")
         )
 
         # 3. Structure the response for the Sales Team

@@ -9,6 +9,7 @@ from assignments.models import Assignment, AssignmentStatus
 from assignments.signals import assignment_due_reminder_task_name
 from assignments.tasks import send_assignment_due_reminder
 from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
+from students.models import StudentSubmission
 from users.models import CustomUser, UserTypes
 
 
@@ -61,6 +62,47 @@ class AssignmentDueReminderSchedulingTest(TestCase):
             ).exists()
         )
         self.assertTrue(
+            PeriodicTask.objects.filter(
+                name=assignment_due_reminder_task_name(assignment.id, 1)
+            ).exists()
+        )
+
+    def test_draft_assignment_does_not_schedule_due_reminders(self):
+        assignment = Assignment.objects.create(
+            title="Draft Essay",
+            course=self.course,
+            status=AssignmentStatus.DRAFT,
+            due_date=timezone.now() + timedelta(days=2),
+        )
+
+        self.assertFalse(
+            PeriodicTask.objects.filter(
+                name=assignment_due_reminder_task_name(assignment.id, 24)
+            ).exists()
+        )
+        self.assertFalse(
+            PeriodicTask.objects.filter(
+                name=assignment_due_reminder_task_name(assignment.id, 1)
+            ).exists()
+        )
+
+    def test_unpublishing_assignment_removes_due_reminders(self):
+        assignment = Assignment.objects.create(
+            title="Essay Three",
+            course=self.course,
+            status=AssignmentStatus.PUBLISHED,
+            due_date=timezone.now() + timedelta(days=2),
+        )
+
+        assignment.status = AssignmentStatus.UNPUBLISHED
+        assignment.save(update_fields=["status"])
+
+        self.assertFalse(
+            PeriodicTask.objects.filter(
+                name=assignment_due_reminder_task_name(assignment.id, 24)
+            ).exists()
+        )
+        self.assertFalse(
             PeriodicTask.objects.filter(
                 name=assignment_due_reminder_task_name(assignment.id, 1)
             ).exists()
@@ -156,3 +198,44 @@ class AssignmentDueReminderDeliveryTest(TestCase):
 
         self.assertEqual(result, "Assignment is not eligible for due date reminders.")
         mock_send_email.assert_not_called()
+
+    @patch("assignments.tasks.send_email_task.delay")
+    def test_due_reminder_skips_students_who_already_submitted(self, mock_send_email):
+        self.teacher.settings.notify_assignment_due_reminder = True
+        self.teacher.settings.save(update_fields=["notify_assignment_due_reminder"])
+        self.student.settings.notify_assignment_due_reminder = True
+        self.student.settings.save(update_fields=["notify_assignment_due_reminder"])
+
+        StudentSubmission.objects.create(
+            assignment=self.assignment,
+            student=self.student,
+            answers={"q1": "done"},
+        )
+
+        result = send_assignment_due_reminder(str(self.assignment.id), 24)
+
+        self.assertIn("Queued 1 assignment due reminder emails.", result)
+        self.assertEqual(mock_send_email.call_count, 1)
+        self.assertEqual(
+            mock_send_email.mock_calls[0].kwargs["recipient_list"], [self.teacher.email]
+        )
+
+    @patch("assignments.tasks.send_email_task.delay")
+    def test_due_reminder_rejects_invalid_offset(self, mock_send_email):
+        result = send_assignment_due_reminder(str(self.assignment.id), 6)
+
+        self.assertEqual(result, "Invalid reminder offset: 6")
+        mock_send_email.assert_not_called()
+
+    @patch("assignments.tasks.send_email_task.delay")
+    def test_due_reminder_continues_when_one_email_queue_fails(self, mock_send_email):
+        self.teacher.settings.notify_assignment_due_reminder = True
+        self.teacher.settings.save(update_fields=["notify_assignment_due_reminder"])
+        self.student.settings.notify_assignment_due_reminder = True
+        self.student.settings.save(update_fields=["notify_assignment_due_reminder"])
+        mock_send_email.side_effect = [RuntimeError("queue failed"), None]
+
+        result = send_assignment_due_reminder(str(self.assignment.id), 24)
+
+        self.assertIn("Queued 1 assignment due reminder emails.", result)
+        self.assertEqual(mock_send_email.call_count, 2)

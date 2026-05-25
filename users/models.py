@@ -63,6 +63,13 @@ def get_user_name(instance, fname):
     return f"profile_pics/{instance.id}/{email_name}_{datetime.date.today()}_{ext}"
 
 
+class RegistrationMethod(models.TextChoices):
+    EMAIL = "EMAIL", _("Email")
+    GOOGLE = "GOOGLE", _("Google")
+    FACEBOOK = "FACEBOOK", _("Facebook")
+    TWITTER = "TWITTER", _("Twitter")
+
+
 # Create your models here.
 class CustomUser(AbstractUser):
     USERNAME_FIELD = "email"
@@ -78,7 +85,7 @@ class CustomUser(AbstractUser):
     )
 
     email = models.EmailField(unique=True)
-    middle_name = models.CharField(max_length=255, default="")
+    middle_name = models.CharField(max_length=255, null=True, blank=True, default="")
     user_type = models.CharField(
         max_length=20,
         choices=UserTypes.choices,
@@ -95,6 +102,7 @@ class CustomUser(AbstractUser):
     )
     bio = models.TextField(blank=True, null=True)
     profile_image = models.ImageField(upload_to=get_user_name, null=True, blank=True)
+    profile_image_url = models.CharField(max_length=255, null=True, blank=True)
 
     objects = CustomUserManager()
 
@@ -107,6 +115,11 @@ class CustomUser(AbstractUser):
         blank=True,
     )
     email_verified_at = models.DateTimeField(blank=True, null=True)
+    registration_method = models.CharField(
+        max_length=20,
+        choices=RegistrationMethod.choices,
+        default=RegistrationMethod.EMAIL,
+    )
 
     def get_full_name(self):
         """
@@ -135,6 +148,10 @@ class CustomUser(AbstractUser):
         # if self.user_type == UserTypes.TEACHER:
         #     return True
         # return False
+        return self.user_type == UserTypes.TEACHER
+
+    def is_beta_eligible(self):
+        """Beta access is restricted to teacher accounts."""
         return self.user_type == UserTypes.TEACHER
 
     def renew_activation_token(self):

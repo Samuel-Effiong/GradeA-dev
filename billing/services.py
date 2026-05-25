@@ -14,6 +14,7 @@ from .models import (  # CreditUsageLog,; SubscriptionPlan,
     CreditLedgerType,
     CreditUsageLog,
     CreditWallet,
+    PlanType,
     UserSubscription,
 )
 
@@ -35,6 +36,9 @@ class SubscriptionService:
         4. Crediting credits
         5. Auditing
         """
+
+        if plan.name == PlanType.BETA and not user.is_beta_eligible():
+            raise ValueError("The Beta plan is restricted to teacher accounts.")
 
         now = timezone.now()
         billing_end = now + relativedelta(months=1)
@@ -453,6 +457,9 @@ class AnalyticsService:
 
     @staticmethod
     def track_activity(user):
+        if not user.is_beta_eligible():
+            return
+
         profile, created = BetaProfile.objects.get_or_create(user=user)
         now = timezone.now()
         today = now.date()
@@ -476,6 +483,9 @@ class AnalyticsService:
         Called inside the 'consume_credits' flow
 
         """
+        if not user.is_beta_eligible():
+            return
+
         profile, created = BetaProfile.objects.get_or_create(user=user)
         now = timezone.now()
 
@@ -565,6 +575,9 @@ class AnalyticsService:
         Increment the analytic view count for a user
         Called when a teacher interacts with their performance dashboard
         """
+
+        if not user.is_beta_eligible():
+            return
 
         # We use F() to ensure the increment is atomic and thread-safe
         BetaProfile.objects.filter(user=user).update(

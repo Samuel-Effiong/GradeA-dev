@@ -20,9 +20,12 @@ class ConcurrencySerializer(serializers.Serializer):
 
 
 class StudentAssignmentListSerializer(serializers.ModelSerializer):
-    assignment = serializers.IntegerField(source="id", read_only=True)
-    score = serializers.CharField()
+    course = serializers.CharField()
+    teacher = serializers.CharField()
+    assignment = serializers.UUIDField(source="id", read_only=True)
+    score = serializers.IntegerField()
     score_percentage = serializers.FloatField(read_only=True)
+    total_score = serializers.IntegerField()
     submission_date = serializers.DateTimeField()
     feedback = serializers.CharField()
     submission_status = serializers.CharField(max_length=30)
@@ -30,14 +33,17 @@ class StudentAssignmentListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Assignment
         fields = [
+            "course",
+            "teacher",
             "assignment",
             "title",
             "due_date",
             "submission_date",
             "score",
             "score_percentage",
-            "submission_status",
+            "total_score",
             "feedback",
+            "submission_status",
         ]
 
 
@@ -48,6 +54,35 @@ class AssignmentPerformanceSerializer(serializers.Serializer):
     assignment_name = serializers.CharField(source="assignment.title", read_only=True)
     score = serializers.FloatField(read_only=True)
     score_percentage = serializers.FloatField(read_only=True)
+
+
+class StudentCourseGradeSerializer(serializers.Serializer):
+    """Serializer for a student's performance metrics inside a single course"""
+
+    course_id = serializers.UUIDField(read_only=True)
+    course_name = serializers.CharField(read_only=True)
+    score = serializers.FloatField(read_only=True)
+    percentage = serializers.FloatField(read_only=True)
+    grade = serializers.CharField(read_only=True)
+    gpa = serializers.FloatField(read_only=True)
+
+
+class StudentDashboardOverviewSerializer(serializers.Serializer):
+    """Serializer for the student dashboard overview metrics"""
+
+    total_courses = serializers.IntegerField(read_only=True)
+    assignments_submitted = serializers.IntegerField(read_only=True)
+    assignments_pending_not_due = serializers.IntegerField(read_only=True)
+    assignments_due_no_submission = serializers.IntegerField(read_only=True)
+
+    # Grade Standing Metrics
+    overall_percentage = serializers.FloatField(read_only=True)
+    overall_grade = serializers.CharField(read_only=True)
+    overall_gpa = serializers.FloatField(read_only=True)
+    overall_remark = serializers.CharField(read_only=True)
+
+    # Per-Course Breakdowns
+    courses_grades = StudentCourseGradeSerializer(many=True, read_only=True)
 
 
 class CourseAnalyticsSerializer(serializers.Serializer):

@@ -136,3 +136,18 @@ class StudentSubmissionNotificationTest(APITestCase):
 
         mock_send_email.assert_called_once()
         self.assertEqual(StudentSubmission.objects.count(), 1)
+
+    @patch("students.services.send_email_task.delay")
+    @patch("students.services.ai_processor.extract_answer_with_retry")
+    def test_notification_failure_does_not_abort_submission_creation(
+        self, mock_extract_answer_with_retry, mock_send_email
+    ):
+        self.teacher.settings.notify_student_submission = True
+        self.teacher.settings.save(update_fields=["notify_student_submission"])
+        mock_extract_answer_with_retry.return_value = self.mock_submission_payload
+        mock_send_email.side_effect = RuntimeError("queue failed")
+
+        upload_answers_engine(self.assignment, self.content, self.student)
+
+        self.assertEqual(StudentSubmission.objects.count(), 1)
+        mock_send_email.assert_called_once()
