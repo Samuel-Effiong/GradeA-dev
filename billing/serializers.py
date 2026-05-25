@@ -77,6 +77,17 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
     Serializer for the UserSubscription model.
     """
 
+    def validate(self, attrs):
+        user = attrs.get("user")
+        plan = attrs.get("plan")
+
+        if user and plan and plan.name == "BETA" and not user.is_beta_eligible():
+            raise serializers.ValidationError(
+                {"plan": "The Beta plan can only be assigned to teachers."}
+            )
+
+        return attrs
+
     class Meta:
         model = UserSubscription
         fields = [

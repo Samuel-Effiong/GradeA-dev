@@ -48,6 +48,7 @@ from dashboard.serializers import (
     SchoolAdminTeacherPerformanceSerializer,
     SchoolAnalyticsSerializer,
     StudentAssignmentListSerializer,
+    StudentDashboardOverviewSerializer,
     SuperAdminStudentPerformanceSerializer,
     TeacherAssignmentAnalyticsSerializer,
     TeacherCourseAnalyticsSerializer,
@@ -2300,6 +2301,54 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         return Response(serializer.data)
 
 
+def get_grade_details(percentage):
+    """
+    Returns (letter_grade, gpa, remark) for a given percentage score.
+
+    Grading scale:
+      A+  97-100  4.0  Excellent
+      A   93-96   4.0  Excellent
+      A-  90-92   3.7  Very Good
+      B+  87-89   3.3  Good
+      B   83-86   3.0  Good
+      B-  80-82   2.7  Satisfactory
+      C+  77-79   2.3  Satisfactory
+      C   73-76   2.0  Pass
+      C-  70-72   1.7  Pass
+      D+  67-69   1.3  Poor
+      D   63-66   1.0  Poor
+      D-  60-62   0.7  Marginal Pass
+      F   0-59    0.0  Fail
+    """
+    pct = float(percentage)
+    if pct >= 97:
+        return "A+", 4.0, "Excellent"
+    elif pct >= 93:
+        return "A", 4.0, "Excellent"
+    elif pct >= 90:
+        return "A-", 3.7, "Very Good"
+    elif pct >= 87:
+        return "B+", 3.3, "Good"
+    elif pct >= 83:
+        return "B", 3.0, "Good"
+    elif pct >= 80:
+        return "B-", 2.7, "Satisfactory"
+    elif pct >= 77:
+        return "C+", 2.3, "Satisfactory"
+    elif pct >= 73:
+        return "C", 2.0, "Pass"
+    elif pct >= 70:
+        return "C-", 1.7, "Pass"
+    elif pct >= 67:
+        return "D+", 1.3, "Poor"
+    elif pct >= 63:
+        return "D", 1.0, "Poor"
+    elif pct >= 60:
+        return "D-", 0.7, "Marginal Pass"
+    else:
+        return "F", 0.0, "Fail"
+
+
 class StudentAdminDashboardView(viewsets.ViewSet):
     permission_classes = [IsStudent]
     # http_method_names = ["get", "options", "head"]
@@ -2500,6 +2549,146 @@ class StudentAdminDashboardView(viewsets.ViewSet):
             data = serializer.data
 
             cache.set(cache_key, data, 60 * 15)
+        return Response(data)
+
+    @extend_schema(
+        tags=["Student Admin"],
+        summary="Student Dashboard Overview",
+        description="""
+        Retrieve an overview of the student's academic metrics across all active courses they are enrolled in.
+        Returns:
+        - Total courses enrolled
+        - Number of assignments submitted/completed
+        - Number of assignments not yet due but pending submission
+        - Number of assignments due but not yet submitted
+        """,
+        responses={200: StudentDashboardOverviewSerializer},
+    )
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="dashboard/overview",
+    )
+    def overview(self, request, *args, **kwargs):
+        cache_key = f"studentadmins:user_id__{request.user.id}:view__overview"
+        data = cache.get(cache_key)
+
+        if data is None:
+            student = request.user
+            now = timezone.now()
+
+            # 1. Active courses the student is enrolled in
+            active_courses = list(
+                Course.objects.filter(
+                    enrollments__student=student,
+                    enrollments__in=StudentCourse.objects.active(),
+                    is_active=True,
+                ).distinct()
+            )
+            total_courses = len(active_courses)
+
+            # 2. All published assignments across active courses
+            assignments = Assignment.objects.filter(
+                course__in=active_courses,
+                status=AssignmentStatus.PUBLISHED,
+            )
+
+            # 3. All student submissions for those assignments
+            submissions = StudentSubmission.objects.filter(
+                student=student,
+                assignment__in=assignments,
+            ).select_related("assignment__course")
+
+            assignments_submitted = submissions.count()
+
+            # 4. Pending assignment buckets
+            submitted_assignment_ids = submissions.values_list(
+                "assignment_id", flat=True
+            )
+            pending_assignments = assignments.exclude(id__in=submitted_assignment_ids)
+
+            assignments_pending_not_due = pending_assignments.filter(
+                Q(due_date__gte=now) | Q(due_date__isnull=True)
+            ).count()
+
+            assignments_due_no_submission = pending_assignments.filter(
+                due_date__lt=now
+            ).count()
+
+            # 5. Per-course grade breakdown
+            # Group graded submissions by course for efficient computation
+            course_submissions: dict = {course.id: [] for course in active_courses}
+            all_percentages = []
+            all_scores = []
+
+            for sub in submissions:
+                course_id = sub.assignment.course_id
+                if course_id in course_submissions:
+                    if sub.score_percentage is not None:
+                        course_submissions[course_id].append(sub)
+
+            courses_grades = []
+            for course in active_courses:
+                course_subs = course_submissions.get(course.id, [])
+                if course_subs:
+                    avg_pct = sum(float(s.score_percentage) for s in course_subs) / len(
+                        course_subs
+                    )
+                    avg_score = sum(
+                        float(s.score) for s in course_subs if s.score is not None
+                    ) / len(course_subs)
+                    all_percentages.extend(
+                        float(s.score_percentage) for s in course_subs
+                    )
+                    all_scores.extend(
+                        float(s.score) for s in course_subs if s.score is not None
+                    )
+                else:
+                    avg_pct = 0.0
+                    avg_score = 0.0
+
+                grade, gpa, _ = get_grade_details(avg_pct)
+                courses_grades.append(
+                    {
+                        "course_id": course.id,
+                        "course_name": course.name,
+                        "score": round(avg_score, 2),
+                        "percentage": round(avg_pct, 2),
+                        "grade": grade,
+                        "gpa": gpa,
+                    }
+                )
+
+            # 6. Overall grade standing (across all graded submissions)
+            if all_percentages:
+                overall_percentage = round(
+                    sum(all_percentages) / len(all_percentages), 2
+                )
+            else:
+                overall_percentage = 0.0
+
+            overall_grade, overall_gpa, overall_remark = get_grade_details(
+                overall_percentage
+            )
+
+            overview_data = {
+                "total_courses": total_courses,
+                "assignments_submitted": assignments_submitted,
+                "assignments_pending_not_due": assignments_pending_not_due,
+                "assignments_due_no_submission": assignments_due_no_submission,
+                # Grade standing
+                "overall_percentage": overall_percentage,
+                "overall_grade": overall_grade,
+                "overall_gpa": overall_gpa,
+                "overall_remark": overall_remark,
+                # Per-course breakdowns
+                "courses_grades": courses_grades,
+            }
+
+            serializer = StudentDashboardOverviewSerializer(overview_data)
+            data = serializer.data
+            cache.set(cache_key, data, 60 * 15)
+
         return Response(data)
 
     # @extend_schema(tags=["Student Admin"])

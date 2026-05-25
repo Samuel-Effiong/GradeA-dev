@@ -79,6 +79,9 @@ with open("ai_processor/GRADE_FORMATTER_2.txt", "r") as file:
 with open("ai_processor/STUDENT_SUMMARY_PROMPT.txt", "r") as file:
     STUDENT_SUMMARY_PROMPT = file.read()
 
+with open("ai_processor/WEEKLY_COURSE_SUMMARY_PROMPT.txt", "r") as file:
+    WEEKLY_COURSE_SUMMARY_PROMPT = file.read()
+
 CHUNKED_EXTRACTION_PAGE_THRESHOLD = 4
 CHUNK_SIZE = 2
 
@@ -2352,6 +2355,70 @@ Based on the data above, write a short personalised summary for the teacher."""
             raise ValueError("AI returned an empty student summary.")
 
         return content.strip()
+
+    def generate_weekly_course_summary_narrative(
+        self, teacher, course, summary_payload
+    ):
+        """
+        Convert a structured weekly course summary payload into compact
+        teacher-facing narration for email and dashboard display.
+
+        Returns:
+            dict: {
+                "overall_narrative": str,
+                "at_risk_narrative": str,
+                "commonality_narrative": str,
+                "intervention_narrative": str,
+            }
+        """
+        user_prompt = f"""
+Course: {course.name}
+Session: {course.session.name if course.session else "N/A"}
+
+Structured Weekly Summary Data:
+{json.dumps(summary_payload, default=str, indent=2)}
+
+Turn this data into concise teacher-facing narration.
+"""
+
+        messages = [
+            {"role": "system", "content": WEEKLY_COURSE_SUMMARY_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ]
+
+        response = self.execute_graded_task(
+            user=teacher,
+            feature="Weekly Course Summary",
+            task_type="weekly_course_summary",
+            messages=messages,
+            respond_format=True,
+        )
+
+        content = response.choices[0].message.content
+        if not content:
+            raise ValueError("AI returned an empty weekly course summary narration.")
+
+        try:
+            parsed = json.loads(content)
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                "AI returned invalid JSON for weekly course summary narration."
+            ) from exc
+
+        required_fields = [
+            "overall_narrative",
+            "at_risk_narrative",
+            "commonality_narrative",
+            "intervention_narrative",
+        ]
+
+        missing_fields = [field for field in required_fields if not parsed.get(field)]
+        if missing_fields:
+            raise ValueError(
+                f"AI weekly course summary narration missing fields: {', '.join(missing_fields)}"
+            )
+
+        return {field: str(parsed[field]).strip() for field in required_fields}
 
 
 class PDFService:

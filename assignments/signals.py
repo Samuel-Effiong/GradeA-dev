@@ -7,7 +7,7 @@ from django.dispatch import receiver
 from django.utils import timezone
 from django_celery_beat.models import ClockedSchedule, PeriodicTask
 
-from assignments.models import Assignment
+from assignments.models import Assignment, AssignmentStatus
 
 ASSIGNMENT_DUE_REMINDER_OFFSETS = (24, 1)
 
@@ -28,7 +28,7 @@ def sync_assignment_due_reminder_tasks(instance):
     for hours_before in ASSIGNMENT_DUE_REMINDER_OFFSETS:
         task_name = assignment_due_reminder_task_name(instance.id, hours_before)
 
-        if not instance.due_date:
+        if not instance.due_date or instance.status != AssignmentStatus.PUBLISHED:
             PeriodicTask.objects.filter(name=task_name).delete()
             continue
 

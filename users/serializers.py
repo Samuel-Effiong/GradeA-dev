@@ -7,7 +7,13 @@ from billing.serializers import CreditWalletSummarySerializer
 from billing.services import AnalyticsService
 from classrooms.models import School
 from users.exceptions import NotInBetaException
-from users.models import BetaWhitelist, CustomUser, Settings, Waitlist
+from users.models import (
+    BetaWhitelist,
+    CustomUser,
+    RegistrationMethod,
+    Settings,
+    Waitlist,
+)
 from users.services import send_user_activation_email
 
 
@@ -23,6 +29,8 @@ class SettingsSerializer(serializers.ModelSerializer):
             "notify_assignment_due_reminder",
             "notify_grading_complete",
         ]
+
+    read_only_fields = ["id", "user"]
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -47,6 +55,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             "last_name",
             "bio",
             "profile_image",
+            "profile_image_url",
             "user_type",
             "password",
             "is_active",
@@ -62,6 +71,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             "password": {"write_only": True},
             "is_active": {"read_only": True},
             "date_joined": {"read_only": True},
+            "profile_image_url": {"read_only": True},
         }
 
     def validate_email(self, value):
@@ -102,7 +112,9 @@ class CustomUserSerializer(serializers.ModelSerializer):
         try:
             with transaction.atomic():
                 user = CustomUser.objects.create_user(**validated_data)
-                send_user_activation_email(user)
+
+                if user.registration_method == RegistrationMethod.EMAIL:
+                    send_user_activation_email(user)
 
                 return user
 
@@ -128,6 +140,17 @@ class CustomUserSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 str(e), code="User update error"
             ) from Exception
+
+
+class GoogleUserSerializer(CustomUserSerializer):
+    password = serializers.CharField(write_only=True, required=False)
+
+    class Meta(CustomUserSerializer.Meta):
+        # Override the extra_kwargs to make password NOT required
+        extra_kwargs = {
+            **CustomUserSerializer.Meta.extra_kwargs,
+            "password": {"required": False, "write_only": True},
+        }
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):

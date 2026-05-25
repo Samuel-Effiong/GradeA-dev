@@ -30,7 +30,7 @@ def create_settings(sender, instance, created, **kwargs):
     # Create empty wallet
     CreditWallet.objects.get_or_create(user=instance)
 
-    if created:
+    if created and instance.is_beta_eligible():
         beta_plan = SubscriptionPlan.objects.filter(name=PlanType.BETA).first()
 
         if beta_plan:
