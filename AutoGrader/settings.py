@@ -132,6 +132,8 @@ INSTALLED_APPS = [
     "billing",
     "django_celery_results",
     "django_celery_beat",
+    # Third-party packages
+    "encrypted_model_fields",
 ]
 
 MIDDLEWARE = [
@@ -486,3 +488,5 @@ CACHE_TTL = 60 * 5
 
 GOOGLE_OAUTH_CLIENT_ID = env.str("GOOGLE_OAUTH_CLIENT_ID")
 GOOGLE_OAUTH_CLIENT_SECRET = env.str("GOOGLE_OAUTH_CLIENT_SECRET")
+
+FIELD_ENCRYPTION_KEY = env.str("FIELD_ENCRYPTION_KEY", "")

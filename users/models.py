@@ -8,6 +8,7 @@ from django.db import models
 from django.db.models import UniqueConstraint
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from encrypted_model_fields.fields import EncryptedCharField
 
 from users.services import OTPManager
 
@@ -103,6 +104,8 @@ class CustomUser(AbstractUser):
     bio = models.TextField(blank=True, null=True)
     profile_image = models.ImageField(upload_to=get_user_name, null=True, blank=True)
     profile_image_url = models.CharField(max_length=255, null=True, blank=True)
+    # google_access_token = models.TextField(blank=True, null=True, help_text="Encrypted Google access token")
+    # google_refresh_token = models.TextField(blank=True, null=True, help_text="Encrypted Google refresh token")
 
     objects = CustomUserManager()
 
@@ -166,6 +169,19 @@ class CustomUser(AbstractUser):
             )
         self.save()
         return self.activation_token
+
+
+class UserGoogleCredentials(models.Model):
+    user = models.OneToOneField(
+        CustomUser, on_delete=models.CASCADE, related_name="google_credentials"
+    )
+    access_token = EncryptedCharField(max_length=1024)
+    refresh_token = EncryptedCharField(max_length=1024, null=True, blank=True)
+    token_expiry = models.DateTimeField()
+    scopes = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.user.email}'s Google Credentials"
 
 
 class ThemeType(models.TextChoices):
