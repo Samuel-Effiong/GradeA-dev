@@ -3,149 +3,75 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sign in with Google</title>
+  <title>Sign in with Google (Auth Code Flow)</title>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
-    body {
-      background: linear-gradient(to bottom, #111827, #1f2937);
-      font-family: sans-serif;
-      color: white;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-    }
-    .card {
-      background-color: #1f2937;
-      padding: 2rem;
-      border-radius: 0.5rem;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-      width: 100%;
-      max-width: 400px;
-      text-align: center;
-    }
-    .google-button {
-      display: flex;
-      justify-content: center;
-      margin-top: 1rem;
-    }
-    .loading, .error, .success {
-      margin-top: 1rem;
-      font-size: 0.9rem;
-    }
-    .error {
-      color: red;
-    }
-    .success {
-      color: green;
-    }
-    .token-display {
-      background-color: #374151;
-      padding: 1rem;
-      border-radius: 0.25rem;
-      margin-top: 1rem;
-      word-break: break-all;
-      font-family: monospace;
-      font-size: 0.75rem;
-      text-align: left;
-    }
+    body { background: linear-gradient(to bottom, #111827, #1f2937); font-family: sans-serif; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+    .card { background-color: #1f2937; padding: 2rem; border-radius: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.2); width: 100%; max-width: 400px; text-align: center; }
+    button { background-color: #4285f4; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 1rem; }
+    button:hover { background-color: #357ae8; }
+    #status { margin-top: 1rem; font-size: 0.9rem; }
+    .error { color: #f87171; }
+    .success { color: #4ade80; }
   </style>
 </head>
 <body>
   <div class="card">
-    <h2>Welcome</h2>
-    <p>Sign in to your account</p>
-    <div id="googleSignInDiv" class="google-button"></div>
-    <div id="loading" class="loading" style="display: none;">Signing in…</div>
-    <div id="error" class="error" style="display: none;"></div>
-    <div id="success" class="success" style="display: none;"></div>
-    <div id="tokenDisplay" class="token-display" style="display: none;"></div>
-    <p style="font-size: 0.75rem; margin-top: 2rem;">
-      By signing in, you agree to our
-      <a href="#" style="color: #3b82f6;">Terms of Service</a> and
-      <a href="#" style="color: #3b82f6;">Privacy Policy</a>.
-    </p>
+    <h2>Secure Login</h2>
+    <p>Sign in using Authorization Code Flow</p>
+    <button id="loginBtn">Sign in with Google</button>
+    <div id="status"></div>
   </div>
+
   <script>
-    const api = "http://127.0.0.1:8000/api/v1/auth/google-auth"; // Update with your server URL
-    const loadingEl = document.getElementById("loading");
-    const errorEl = document.getElementById("error");
-    const successEl = document.getElementById("success");
-    const tokenDisplayEl = document.getElementById("tokenDisplay");
+    const API_ENDPOINT = "http://127.0.0.1:8000/api/v1/auth/google-auth";
+    const statusEl = document.getElementById("status");
 
-    function handleCallbackResponse(response) {
-      console.log("Response received:", response);
-
-      loadingEl.style.display = "block";
-      errorEl.style.display = "none";
-      successEl.style.display = "none";
-      tokenDisplayEl.style.display = "none";
-
-      const formData = new FormData();
-      formData.append("token", response.credential);
-
-      fetch(`${api}`, {
-        method: "POST",
-        body: formData,
-      })
-      .then(res => {
-        if (!res.ok) {
-          throw new Error("Login failed. Please try again.");
+    // 1. Initialize the Code Client (PKCE is handled automatically)
+    const client = google.accounts.oauth2.initCodeClient({
+      client_id: "148866120854-17bpho8icnpm4al405qg8ip0pms7fluo.apps.googleusercontent.com", // Replace this
+      scope: "email profile openid",
+      ux_mode: "popup",
+      callback: (response) => {
+        if (response.code) {
+          exchangeCodeForTokens(response.code);
+        } else {
+          showStatus("Error: No authorization code received", "error");
         }
-        return res.json();
-      })
-      .then(data => {
-        console.log("Login successful:", data);
+      },
+    });
 
-        successEl.textContent = "Login successful! Tokens received:";
-        successEl.style.display = "block";
-
-        // Display tokens in the div
-        const tokenInfo = {
-        tokens: data.tokens,
-        full_response: data
-        };
-
-        tokenDisplayEl.innerHTML = `
-        <strong>Access Token:</strong><br>
-        ${tokenInfo.tokens || 'Not found'}<br><br>
-        <strong>Full Response:</strong><br>
-        ${JSON.stringify(data, null, 2)}
-        `;
-        tokenDisplayEl.style.display = "block";
-      })
-      .catch(err => {
-        console.error("Login error:", err);
-        errorEl.textContent = "An unexpected error occurred. Please try again.";
-        errorEl.style.display = "block";
-      })
-      .finally(() => {
-        loadingEl.style.display = "none";
-      });
-    }
-
-    window.onload = () => {
-      if (window.google && window.google.accounts) {
-        window.google.accounts.id.initialize({
-          client_id: "148866120854-17bpho8icnpm4al405qg8ip0pms7fluo.apps.googleusercontent.com", // Replace with your actual client ID
-          callback: handleCallbackResponse
+    // 2. Send the code to your Django backend
+    async function exchangeCodeForTokens(code) {
+      showStatus("Authenticating with server...");
+      try {
+        const response = await fetch(API_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            code: code,
+            redirect_uri: "postmessage"
+          }),
         });
 
-        window.google.accounts.id.renderButton(
-          document.getElementById("googleSignInDiv"),
-          {
-            theme: "outline",
-            size: "large",
-            text: "sign_in_with",
-            shape: "rectangular"
-          }
-        );
-      } else {
-        document.getElementById("googleSignInDiv").innerHTML =
-          "Google script not loaded. Please refresh the page.";
+        const data = await response.json();
+        if (response.ok) {
+          showStatus("Login successful! Access token stored in backend.", "success");
+          console.log("Tokens received:", data);
+        } else {
+          throw new Error(data.detail || "Authentication failed");
+        }
+      } catch (err) {
+        showStatus(err.message, "error");
       }
-    };
+    }
+
+    function showStatus(msg, type) {
+      statusEl.textContent = msg;
+      statusEl.className = type || "";
+    }
+
+    document.getElementById("loginBtn").onclick = () => client.requestCode();
   </script>
 </body>
 </html>

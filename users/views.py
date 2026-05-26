@@ -9,6 +9,8 @@ and a convenience `me` action to fetch the currently authenticated user's
 profile.
 """
 
+from datetime import timedelta
+
 from celery.result import AsyncResult
 
 # from django.core.mail import send_mail
@@ -70,6 +72,7 @@ from users.models import (
     PasswordChangeOTP,
     PasswordResetOTP,
     Settings,
+    UserGoogleCredentials,
     UserTypes,
     Waitlist,
 )
@@ -1154,10 +1157,14 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         request=inline_serializer(
             name="GoogleAuthRequest",
             fields={
-                "token": serializers.CharField(
+                "code": serializers.CharField(
                     required=True,
-                    help_text="The ID Token (credential) received from Google's credential service on the frontend.",
-                )
+                    help_text="The authorization code received from Google's credential service on the frontend.",
+                ),
+                "redirect_uri": serializers.CharField(
+                    required=False,
+                    help_text="The redirect URI used on the frontend",
+                ),
             },
         ),
         responses={
@@ -1176,8 +1183,8 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             ),
             400: OpenApiResponse(
                 description="Bad Request. Possible causes:\n"
-                "- Missing token\n"
-                "- Invalid Google Token (expired or bad signature)\n"
+                "- Missing code\n"
+                "- Invalid or expired authorization code\n"
                 "- Email address has not been verified by Google\n"
                 "- Email is not whitelisted in the Beta system\n"
                 "- User already registered via standard Email instead of Google"
@@ -1192,15 +1199,45 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         url_path="google-auth",
     )
     def google_auth(self, request, *args, **kwargs):
-        token = request.data.get("token")
+        code = request.data.get("code")
+        redirect_uri = request.data.get(
+            "redirect_uri", "http://localhost:3000/auth/google/callback"
+        )
 
-        # FIXME ParseError
-        if not token:
-            raise ParseError("Token is required")
+        if not code:
+            raise ParseError("Authorization code is required")
 
         try:
+            import requests as http_requests
+
+            token_url = "https://oauth2.googleapis.com/token"
+            payload = {
+                "client_id": settings.GOOGLE_OAUTH_CLIENT_ID,
+                "client_secret": settings.GOOGLE_OAUTH_CLIENT_SECRET,
+                "code": code,
+                "grant_type": "authorization_code",
+                "redirect_uri": redirect_uri,
+            }
+
+            try:
+                response = http_requests.post(token_url, data=payload)
+                response.raise_for_status()
+                token_data = response.json()
+            except http_requests.exceptions.RequestException as e:
+                raise ParseError(
+                    f"Failed to exchange authorization code for tokens: {str(e)}"
+                ) from e
+
+            id_token_str = token_data.get("id_token")
+            access_token = token_data.get("access_token")
+            refresh_token = token_data.get("refresh_token")
+            expires_in = token_data.get("expires_in", 500)
+
+            if not id_token_str:
+                raise ParseError("Google did not return an ID token")
+
             id_info = id_token.verify_oauth2_token(
-                token,
+                id_token_str,
                 google_requests.Request(),
                 settings.GOOGLE_OAUTH_CLIENT_ID,
             )
@@ -1221,7 +1258,6 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
                 if not user:
                     # create the user with
-
                     data = {
                         "email": email,
                         "first_name": first_name,
@@ -1240,14 +1276,21 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                         user.is_active = True
                         user.set_unusable_password()
                         user.save(update_fields=["password", "is_active"])
-
                     else:
                         raise ValidationError(serializer.errors)
 
-                # else:
-                #     if user.registration_method != 'GOOGLE':
-                #         # FIXME ParseError
-                #         raise ParseError("User needs to sign in through email")
+                expiry = timezone.now() + timedelta(seconds=expires_in)
+                credentials, _ = UserGoogleCredentials.objects.update_or_create(
+                    user=user,
+                    defaults={
+                        "access_token": access_token,
+                        "token_expiry": expiry,
+                        "scopes": id_info.get("scope", ""),
+                        **({"refresh_token": refresh_token} if refresh_token else {}),
+                    },
+                )
+                # if access_token or refresh_token:
+                #     user.save(update_fields=["google_access_token", "google_refresh_token"])
 
             refresh = RefreshToken.for_user(user)
 
@@ -1261,7 +1304,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             )
 
         except ValueError as e:
-            raise ParseError("Invalid Google token") from e
+            raise ParseError("Invalid Google token signature") from e
 
 
 @extend_schema(
