@@ -1161,10 +1161,6 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                     required=True,
                     help_text="The authorization code received from Google's credential service on the frontend.",
                 ),
-                "redirect_uri": serializers.CharField(
-                    required=False,
-                    help_text="The redirect URI used on the frontend",
-                ),
             },
         ),
         responses={
@@ -1200,9 +1196,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
     )
     def google_auth(self, request, *args, **kwargs):
         code = request.data.get("code")
-        redirect_uri = request.data.get(
-            "redirect_uri", "http://localhost:3000/auth/google/callback"
-        )
+        redirect_uri = settings.GOOGLE_REDIRECT_URI
 
         if not code:
             raise ParseError("Authorization code is required")
