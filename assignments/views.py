@@ -1180,8 +1180,17 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             404: OpenApiResponse(description="Session not found"),
         },
     ),
+    destroy=extend_schema(
+        tags=["Assignment Generation Sessions"],
+        summary="Delete a generation session",
+        description="Delete a generation session and all its related messages.",
+        responses={
+            200: OpenApiResponse(description="Session deleted successfully"),
+            404: OpenApiResponse(description="Session not found"),
+        },
+    ),
 )
-class AssignmentGenerationSessionViewSet(UserCacheMixin, viewsets.ReadOnlyModelViewSet):
+class AssignmentGenerationSessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     """
     API endpoint for browsing assignment-generation chat sessions.
 
@@ -1194,7 +1203,7 @@ class AssignmentGenerationSessionViewSet(UserCacheMixin, viewsets.ReadOnlyModelV
     serializer_class = AssignmentGenerationSessionSerializer
     permission_classes = (IsAuthenticated,)
     pagination_class = PageNumberPagination
-    http_method_names = ["get", "head", "options"]
+    http_method_names = ["get", "head", "delete", "options"]
 
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = ["course"]
