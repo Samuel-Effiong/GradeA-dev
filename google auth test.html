@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GradeA+ · Auth Test Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b0f;
+    --surface: #111318;
+    --surface2: #191c24;
+    --border: #252830;
+    --border2: #2e323d;
+    --accent: #4ade80;
+    --accent-dim: rgba(74, 222, 128, 0.12);
+    --accent-glow: rgba(74, 222, 128, 0.35);
+    --warn: #f59e0b;
+    --warn-dim: rgba(245, 158, 11, 0.12);
+    --error: #f87171;
+    --error-dim: rgba(248, 113, 113, 0.12);
+    --info: #60a5fa;
+    --info-dim: rgba(96, 165, 250, 0.12);
+    --text: #e2e8f0;
+    --text-dim: #64748b;
+    --text-mid: #94a3b8;
+    --mono: 'JetBrains Mono', monospace;
+    --display: 'Syne', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .shell {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--border2);
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .logo { font-family: var(--display); font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
+  .logo span { color: var(--accent); }
+
+  .badge {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border2); color: var(--text-dim);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--surface); border: 1px solid var(--border2); border-radius: 10px; overflow: hidden; }
+
+  .panel-header {
+    padding: 12px 16px; background: var(--surface2); border-bottom: 1px solid var(--border2);
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim);
+  }
+
+  .panel-header .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px var(--accent-glow); flex-shrink: 0; }
+  .panel-header .dot.warn { background: var(--warn); box-shadow: 0 0 6px rgba(245,158,11,.4); }
+  .panel-header .dot.info { background: var(--info); box-shadow: 0 0 6px rgba(96,165,250,.4); }
+
+  .panel-body { padding: 18px; }
+
+  .field { margin-bottom: 16px; }
+  .field:last-child { margin-bottom: 0; }
+
+  label { display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; }
+
+  input, textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border2); border-radius: 6px;
+    color: var(--text); font-family: var(--mono); font-size: 12px; padding: 9px 12px;
+    outline: none; transition: border-color 0.15s, box-shadow 0.15s; resize: vertical;
+  }
+  input:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+  input::placeholder, textarea::placeholder { color: var(--text-dim); }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 10px 18px; border-radius: 6px; font-family: var(--mono); font-size: 12px;
+    font-weight: 700; letter-spacing: 0.04em; cursor: pointer; border: none;
+    transition: all 0.15s; white-space: nowrap;
+  }
+  .btn-primary { background: var(--accent); color: #0a0b0f; width: 100%; }
+  .btn-primary:hover { filter: brightness(1.1); box-shadow: 0 0 16px var(--accent-glow); }
+  .btn-primary:active { filter: brightness(0.95); }
+  .btn-ghost { background: transparent; color: var(--text-mid); border: 1px solid var(--border2); width: 100%; }
+  .btn-ghost:hover { border-color: var(--text-dim); color: var(--text); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  /* Flow steps */
+  .flow-steps { display: flex; flex-direction: column; gap: 6px; }
+
+  .flow-step {
+    display: flex; gap: 8px; align-items: flex-start;
+    padding: 8px 10px; border-radius: 6px;
+    background: var(--surface2); border: 1px solid var(--border2);
+    transition: all 0.2s;
+  }
+  .flow-step.active { border-color: var(--warn); background: var(--warn-dim); }
+  .flow-step.done   { border-color: var(--accent); background: var(--accent-dim); }
+
+  .flow-num {
+    width: 18px; height: 18px; border-radius: 50%; background: var(--border2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; flex-shrink: 0; transition: background 0.2s;
+  }
+  .flow-step.active .flow-num { background: var(--warn); color: #0a0b0f; }
+  .flow-step.done .flow-num   { background: var(--accent); color: #0a0b0f; }
+
+  .flow-text { font-size: 11px; color: var(--text-mid); }
+  .flow-step.active .flow-text,
+  .flow-step.done .flow-text { color: var(--text); }
+
+  .flow-sub { font-size: 10px; color: var(--text-dim); margin-top: 2px; font-style: italic; }
+  .flow-step.active .flow-sub { color: var(--warn); }
+  .flow-step.done .flow-sub   { color: var(--accent); }
+
+  /* Nonce display */
+  .nonce-box {
+    background: var(--surface2); border: 1px solid var(--border2); border-radius: 5px;
+    padding: 7px 10px; font-size: 11px; color: var(--info); word-break: break-all;
+    min-height: 28px; transition: border-color .15s;
+  }
+  .nonce-box.set { border-color: var(--info); }
+
+  /* Status bar */
+  .status-bar {
+    padding: 10px 14px; border-radius: 6px; font-size: 12px;
+    display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+  }
+  .status-bar.idle    { background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border2); }
+  .status-bar.loading { background: var(--warn-dim); color: var(--warn); border: 1px solid rgba(245,158,11,.3); }
+  .status-bar.success { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(74,222,128,.3); }
+  .status-bar.error   { background: var(--error-dim); color: var(--error); border: 1px solid rgba(248,113,113,.3); }
+
+  .spinner { width: 12px; height: 12px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes fadeSlide { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Token rows */
+  .token-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .token-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); width: 60px; flex-shrink: 0; }
+  .token-value {
+    flex: 1; background: var(--surface2); border: 1px solid var(--border2); border-radius: 5px;
+    padding: 6px 10px; font-size: 11px; color: var(--info); word-break: break-all;
+    cursor: pointer; transition: border-color 0.15s;
+  }
+  .token-value:hover { border-color: var(--info); }
+  .token-value.copied { border-color: var(--accent); color: var(--accent); }
+
+  /* Cookie display */
+  .cookie-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--accent-dim); border: 1px solid rgba(74,222,128,.3);
+    border-radius: 5px; padding: 6px 10px; font-size: 11px; color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  /* Log console */
+  .log-console { background: var(--bg); border: 1px solid var(--border2); border-radius: 8px; height: 360px; overflow-y: auto; padding: 14px; font-size: 12px; }
+  .log-console::-webkit-scrollbar { width: 5px; }
+  .log-console::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 10px; }
+
+  .log-entry { display: flex; gap: 10px; margin-bottom: 6px; animation: fadeSlide 0.2s ease; }
+  .log-time { color: var(--text-dim); flex-shrink: 0; }
+  .log-tag { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; padding: 1px 6px; border-radius: 3px; flex-shrink: 0; align-self: flex-start; margin-top: 1px; }
+  .tag-info  { background: var(--info-dim);  color: var(--info); }
+  .tag-ok    { background: var(--accent-dim); color: var(--accent); }
+  .tag-warn  { background: var(--warn-dim);  color: var(--warn); }
+  .tag-error { background: var(--error-dim); color: var(--error); }
+  .tag-data  { background: rgba(167,139,250,.12); color: #a78bfa; }
+  .log-msg { color: var(--text-mid); flex: 1; word-break: break-all; }
+
+  /* User card */
+  .user-card { background: var(--surface2); border: 1px solid var(--border2); border-radius: 8px; padding: 14px; display: flex; gap: 12px; align-items: center; margin-bottom: 14px; }
+  .user-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent); box-shadow: 0 0 10px var(--accent-dim); }
+  .user-avatar-placeholder { width: 48px; height: 48px; border-radius: 50%; background: var(--surface); border: 2px solid var(--border2); display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--text-dim); }
+  .user-info .name { font-family: var(--display); font-size: 15px; font-weight: 600; }
+  .user-info .email { color: var(--text-dim); font-size: 12px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 2px; background: var(--surface2); padding: 4px; border-radius: 7px; margin-bottom: 14px; }
+  .tab-btn { flex: 1; padding: 7px; border: none; background: transparent; color: var(--text-dim); font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; border-radius: 5px; transition: all 0.15s; }
+  .tab-btn.active { background: var(--surface); color: var(--accent); box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  .json-viewer { background: var(--bg); border: 1px solid var(--border2); border-radius: 6px; padding: 12px; font-size: 12px; max-height: 280px; overflow: auto; white-space: pre-wrap; word-break: break-all; }
+  .json-viewer::-webkit-scrollbar { width: 4px; }
+  .json-viewer::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 10px; }
+
+  .json-key { color: #60a5fa; }
+  .json-str { color: #86efac; }
+  .json-num { color: #fbbf24; }
+  .json-bool { color: #f472b6; }
+  .json-null { color: var(--text-dim); }
+
+  .divider { border: none; border-top: 1px solid var(--border2); margin: 16px 0; }
+  .hint { font-size: 11px; color: var(--text-dim); margin-top: 6px; }
+
+  /* Confidential client notice */
+  .notice {
+    background: var(--info-dim); border: 1px solid rgba(96,165,250,.25);
+    border-radius: 6px; padding: 10px 12px; font-size: 11px; color: var(--info);
+    display: flex; gap: 8px; align-items: flex-start; margin-bottom: 14px;
+  }
+  .notice-icon { flex-shrink: 0; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header>
+    <div class="logo">GradeA<span>+</span></div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div class="badge">OAuth2 · Confidential Client · State CSRF</div>
+      <div id="envLabel" class="badge" style="color:var(--warn)">ENV: localhost</div>
+    </div>
+  </header>
+
+  <div class="grid">
+
+    <!-- LEFT -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+
+      <!-- Config -->
+      <div class="panel">
+        <div class="panel-header"><div class="dot warn"></div>Configuration</div>
+        <div class="panel-body">
+          <div class="field">
+            <label>Backend Base URL</label>
+            <input type="text" id="apiBase" value="http://localhost:8000" placeholder="https://api.gradea.plus">
+          </div>
+          <div class="field">
+            <label>Auth Endpoint Path</label>
+            <input type="text" id="authPath" value="/api/v1/auth/google-auth/" placeholder="/api/v1/auth/google-auth/">
+          </div>
+          <div class="field">
+            <label>Google Client ID</label>
+            <input type="text" id="clientId" placeholder="123456789.apps.googleusercontent.com">
+          </div>
+          <div class="field">
+            <label>Redirect URI (this page)</label>
+            <input type="text" id="redirectUri" placeholder="Auto-detected from window.location">
+            <div class="hint">Leave blank to auto-use this page's URL. Must match Google Console.</div>
+          </div>
+          <hr class="divider">
+          <div class="field">
+            <label>OAuth2 Scope</label>
+            <input type="text" id="oauthScope" value="openid email profile">
+          </div>
+          <button class="btn btn-ghost" onclick="saveConfig()">💾 Save to LocalStorage</button>
+        </div>
+      </div>
+
+      <!-- Flow state -->
+      <div class="panel">
+        <div class="panel-header"><div class="dot info"></div>Flow State (per diagram)</div>
+        <div class="panel-body">
+          <div class="flow-steps">
+            <div class="flow-step" id="step1">
+              <div class="flow-num">1</div>
+              <div>
+                <div class="flow-text"><strong>Generate</strong> state nonce</div>
+                <div class="flow-sub">Store in sessionStorage</div>
+              </div>
+            </div>
+            <div class="flow-step" id="step2">
+              <div class="flow-num">2</div>
+              <div>
+                <div class="flow-text"><strong>Redirect</strong> to Google /auth</div>
+                <div class="flow-sub">?response_type=code&state=NONCE</div>
+              </div>
+            </div>
+            <div class="flow-step" id="step3">
+              <div class="flow-num">3</div>
+              <div>
+                <div class="flow-text"><strong>Callback</strong> received from Google</div>
+                <div class="flow-sub">?code=AUTH_CODE&state=NONCE</div>
+              </div>
+            </div>
+            <div class="flow-step" id="step4">
+              <div class="flow-num">4</div>
+              <div>
+                <div class="flow-text"><strong>Validate</strong> state (CSRF check)</div>
+                <div class="flow-sub">Compare with sessionStorage value</div>
+              </div>
+            </div>
+            <div class="flow-step" id="step5">
+              <div class="flow-num">5</div>
+              <div>
+                <div class="flow-text"><strong>POST</strong> code → Django backend</div>
+                <div class="flow-sub">{ code, redirect_uri }</div>
+              </div>
+            </div>
+            <div class="flow-step" id="step6">
+              <div class="flow-num">6</div>
+              <div>
+                <div class="flow-text"><strong>Done.</strong> JWT issued ✓</div>
+                <div class="flow-sub">Update Zustand store with user</div>
+              </div>
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <div class="field">
+            <label>State Nonce (sessionStorage)</label>
+            <div id="stateNonceDisplay" class="nonce-box">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="panel">
+        <div class="panel-header"><div class="dot"></div>Actions</div>
+        <div class="panel-body" style="display:flex;flex-direction:column;gap:8px;">
+          <button class="btn btn-primary" id="loginBtn" onclick="startOAuthFlow()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+            Sign in with Google
+          </button>
+          <button class="btn btn-ghost" onclick="toggleManual()">⚡ Manual Code Exchange</button>
+          <button class="btn btn-ghost" onclick="clearAll()">🗑 Clear State + Log</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+
+      <!-- Response -->
+      <div class="panel">
+        <div class="panel-header"><div class="dot info"></div>Response</div>
+        <div class="panel-body">
+
+          <div class="notice">
+            <span class="notice-icon">🔐</span>
+            <span><strong>Confidential Client flow:</strong> No PKCE. Backend holds <code>client_secret</code> and exchanges the code directly with Google. State nonce is the only CSRF protection on the frontend.</span>
+          </div>
+
+          <div id="statusBar" class="status-bar idle">
+            <span id="statusIcon">○</span>
+            <span id="statusText">Waiting for authentication…</span>
+          </div>
+
+          <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('userTab', this)">User</button>
+            <button class="tab-btn" onclick="switchTab('tokensTab', this)">Tokens</button>
+            <button class="tab-btn" onclick="switchTab('rawTab', this)">Raw JSON</button>
+          </div>
+
+          <div class="tab-pane active" id="userTab">
+            <div id="userCardWrap">
+              <div style="color:var(--text-dim);font-size:12px;padding:20px 0;text-align:center;">No user data yet.</div>
+            </div>
+            <div id="userJsonWrap" style="display:none;">
+              <label style="margin-bottom:6px;">Full user object</label>
+              <div class="json-viewer" id="userJsonViewer"></div>
+            </div>
+          </div>
+
+          <div class="tab-pane" id="tokensTab">
+            <div id="tokensWrap">
+              <div style="color:var(--text-dim);font-size:12px;padding:20px 0;text-align:center;">No tokens yet.</div>
+            </div>
+          </div>
+
+          <div class="tab-pane" id="rawTab">
+            <div id="rawJsonWrap">
+              <div style="color:var(--text-dim);font-size:12px;padding:20px 0;text-align:center;">No response yet.</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Manual exchange -->
+      <div class="panel" id="manualPanel" style="display:none;">
+        <div class="panel-header"><div class="dot warn"></div>Manual Code Exchange</div>
+        <div class="panel-body">
+          <div class="field">
+            <label>Authorization Code</label>
+            <input type="text" id="manualCode" placeholder="Paste code from callback URL here">
+          </div>
+          <button class="btn btn-primary" onclick="sendCodeToBackend(document.getElementById('manualCode').value.trim())">
+            🚀 Exchange with Backend
+          </button>
+        </div>
+      </div>
+
+      <!-- Console log -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="dot"></div>
+          Debug Console
+          <span id="logCount" style="margin-left:auto;background:var(--border2);padding:2px 7px;border-radius:10px;font-size:10px;">0</span>
+        </div>
+        <div class="panel-body" style="padding:10px;">
+          <div class="log-console" id="logConsole"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── State ──────────────────────────────────────────────────────────────────
+let logCount = 0;
+
+// ─── Logger ─────────────────────────────────────────────────────────────────
+function log(msg, type = 'info') {
+  const con = document.getElementById('logConsole');
+  const time = new Date().toTimeString().slice(0, 8);
+  const tagClass = { info:'tag-info', ok:'tag-ok', warn:'tag-warn', error:'tag-error', data:'tag-data' }[type] || 'tag-info';
+  const tagLabel = { info:'INFO', ok:'OK', warn:'WARN', error:'ERR', data:'DATA' }[type] || type.toUpperCase();
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `<span class="log-time">${time}</span><span class="log-tag ${tagClass}">${tagLabel}</span><span class="log-msg">${msg}</span>`;
+  con.appendChild(entry);
+  con.scrollTop = con.scrollHeight;
+  document.getElementById('logCount').textContent = ++logCount;
+}
+
+// ─── Config ──────────────────────────────────────────────────────────────────
+function loadConfig() {
+  const cfg = JSON.parse(localStorage.getItem('gradeaAuthTest') || '{}');
+  if (cfg.apiBase)     document.getElementById('apiBase').value     = cfg.apiBase;
+  if (cfg.authPath)    document.getElementById('authPath').value    = cfg.authPath;
+  if (cfg.clientId)    document.getElementById('clientId').value    = cfg.clientId;
+  if (cfg.redirectUri) document.getElementById('redirectUri').value = cfg.redirectUri;
+  if (cfg.oauthScope)  document.getElementById('oauthScope').value  = cfg.oauthScope;
+  log('Config loaded from localStorage', 'info');
+}
+
+function saveConfig() {
+  localStorage.setItem('gradeaAuthTest', JSON.stringify({
+    apiBase:     document.getElementById('apiBase').value.trim(),
+    authPath:    document.getElementById('authPath').value.trim(),
+    clientId:    document.getElementById('clientId').value.trim(),
+    redirectUri: document.getElementById('redirectUri').value.trim(),
+    oauthScope:  document.getElementById('oauthScope').value.trim(),
+  }));
+  log('Config saved ✓', 'ok');
+}
+
+function getRedirectUri() {
+  const r = document.getElementById('redirectUri').value.trim();
+  return r || (window.location.origin + window.location.pathname);
+}
+
+// ─── State nonce (CSRF) ──────────────────────────────────────────────────────
+function generateNonce(length = 32) {
+  const arr = new Uint8Array(length);
+  crypto.getRandomValues(arr);
+  return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// ─── Step indicators ─────────────────────────────────────────────────────────
+function setStep(n) {
+  for (let i = 1; i <= 6; i++) {
+    const el = document.getElementById(`step${i}`);
+    el.classList.remove('active', 'done');
+    if (i < n)      el.classList.add('done');
+    else if (i === n) el.classList.add('active');
+  }
+}
+
+// ─── Status bar ──────────────────────────────────────────────────────────────
+function setStatus(state, text) {
+  const bar = document.getElementById('statusBar');
+  bar.className = 'status-bar ' + state;
+  document.getElementById('statusText').textContent = text;
+  const iconEl = document.getElementById('statusIcon');
+  if (state === 'loading') {
+    iconEl.outerHTML = '<span class="spinner" id="statusIcon"></span>';
+  } else {
+    const icons = { idle: '○', success: '✓', error: '✗' };
+    document.getElementById('statusIcon').outerHTML = `<span id="statusIcon">${icons[state] || '○'}</span>`;
+  }
+}
+
+// ─── Step 1+2: Start OAuth flow ───────────────────────────────────────────────
+function startOAuthFlow() {
+  const clientId = document.getElementById('clientId').value.trim();
+  if (!clientId) {
+    log('Google Client ID is required', 'error');
+    alert('Please enter your Google Client ID first.');
+    return;
+  }
+
+  // Step 1: Generate state nonce → sessionStorage
+  const state = generateNonce(32);
+  sessionStorage.setItem('oauth_state', state);
+
+  document.getElementById('stateNonceDisplay').textContent = state;
+  document.getElementById('stateNonceDisplay').classList.add('set');
+
+  log('State nonce generated and stored in sessionStorage', 'info');
+  log(`state: ${state}`, 'data');
+  setStep(1);
+
+  // Step 2: Build Google auth URL (NO code_challenge — confidential client)
+  const params = new URLSearchParams({
+    client_id:     clientId,
+    redirect_uri:  getRedirectUri(),
+    response_type: 'code',
+    scope:         document.getElementById('oauthScope').value.trim(),
+    state:         state,
+    access_type:   'offline',
+    prompt:        'consent',
+  });
+
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+  log(`Redirecting → Google OAuth2`, 'info');
+  log(`redirect_uri: ${getRedirectUri()}`, 'data');
+  log(`No code_challenge — confidential client uses client_secret server-side`, 'warn');
+  setStep(2);
+
+  window.location.href = authUrl;
+}
+
+// ─── Step 3+4: Handle callback ────────────────────────────────────────────────
+async function handleCallback() {
+  const params = new URLSearchParams(window.location.search);
+  const code   = params.get('code');
+  const state  = params.get('state');
+  const error  = params.get('error');
+
+  if (error) {
+    log(`Google returned error: ${error}`, 'error');
+    setStatus('error', `Google error: ${error}`);
+    setStep(3);
+    return;
+  }
+
+  if (!code) return; // Fresh load, no callback
+
+  // Step 3
+  log(`Callback received ✓`, 'ok');
+  log(`code: ${code.slice(0, 24)}…`, 'data');
+  log(`state: ${state}`, 'data');
+  setStep(3);
+
+  // Step 4: Validate state (CSRF)
+  const savedState = sessionStorage.getItem('oauth_state');
+  log(`Validating state against sessionStorage…`, 'info');
+
+  if (!savedState) {
+    log('No saved state found in sessionStorage — possible session loss or direct URL access', 'warn');
+  } else if (state !== savedState) {
+    log(`State MISMATCH. Expected: ${savedState} | Got: ${state}`, 'error');
+    setStatus('error', 'State mismatch — CSRF check failed');
+    setStep(4);
+    return;
+  } else {
+    log(`State verified ✓`, 'ok');
+  }
+
+  setStep(4);
+
+  // Clean code from URL
+  window.history.replaceState({}, '', window.location.pathname);
+
+  // Step 5
+  await sendCodeToBackend(code);
+}
+
+// ─── Step 5: POST code → backend ─────────────────────────────────────────────
+async function sendCodeToBackend(code) {
+  if (!code) { log('No code to send', 'error'); return; }
+
+  const url         = document.getElementById('apiBase').value.trim() + document.getElementById('authPath').value.trim();
+  const redirectUri = getRedirectUri();
+  const body        = { code, redirect_uri: redirectUri };
+
+  log(`POSTing to: ${url}`, 'info');
+  log(`Payload: ${JSON.stringify(body)}`, 'data');
+  log(`Backend will exchange code with Google using client_secret`, 'info');
+
+  setStep(5);
+  setStatus('loading', 'Exchanging code with backend…');
+
+  try {
+    const res  = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // needed if backend sets HttpOnly cookies
+      body: JSON.stringify(body),
+    });
+
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch { data = { raw: text }; }
+
+    log(`Response: HTTP ${res.status} ${res.statusText}`, res.ok ? 'ok' : 'error');
+
+    // Check for Set-Cookie (won't be visible in JS for HttpOnly, but log presence)
+    const setCookie = res.headers.get('set-cookie');
+    if (setCookie) {
+      log(`Set-Cookie header present (HttpOnly session cookie set)`, 'ok');
+    }
+
+    if (res.ok) {
+      log('Authentication successful ✓', 'ok');
+      setStep(6);
+      setStatus('success', `Authenticated as ${data.user?.email || 'unknown'}`);
+      renderResponse(data, !!setCookie);
+      sessionStorage.removeItem('oauth_state');
+    } else {
+      log(`Error body: ${text}`, 'error');
+      setStatus('error', `Backend returned ${res.status}`);
+      renderRawError(data, res.status);
+    }
+
+  } catch (err) {
+    log(`Network error: ${err.message}`, 'error');
+    setStatus('error', `Network error: ${err.message}`);
+  }
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function renderResponse(data, hasCookie) {
+  const user = data.user || {};
+
+  // User tab
+  document.getElementById('userCardWrap').innerHTML = `
+    <div class="user-card">
+      ${user.profile_image_url
+        ? `<img class="user-avatar" src="${user.profile_image_url}" alt="avatar" referrerpolicy="no-referrer">`
+        : `<div class="user-avatar-placeholder">👤</div>`}
+      <div class="user-info">
+        <div class="name">${[user.first_name, user.middle_name, user.last_name].filter(Boolean).join(' ') || 'Unknown'}</div>
+        <div class="email">${user.email || '—'}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;">
+      ${Object.entries({
+        'ID': user.id ?? '—',
+        'Method': user.registration_method ?? '—',
+        'Active': String(user.is_active ?? '—'),
+        'Email Verified': user.email_verified_at ? '✓' : '✗',
+        'Role': user.role ?? '—',
+        'Joined': user.date_joined ? user.date_joined.split('T')[0] : '—',
+      }).map(([k, v]) => `
+        <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:5px;padding:7px 10px;">
+          <div style="font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:2px;">${k}</div>
+          <div style="color:var(--text);">${v}</div>
+        </div>`).join('')}
+    </div>
+  `;
+  document.getElementById('userJsonWrap').style.display = 'block';
+  document.getElementById('userJsonViewer').innerHTML = syntaxHighlight(JSON.stringify(user, null, 2));
+
+  // Tokens tab
+  const isJwtResponse = !!(data.access || data.refresh);
+  document.getElementById('tokensWrap').innerHTML = `
+    ${hasCookie ? `<div class="cookie-badge">🍪 HttpOnly session cookie set by backend</div>` : ''}
+    ${isJwtResponse ? `
+      <div style="margin-bottom:12px;">
+        ${makeTokenRow('ACCESS',  data.access)}
+        ${makeTokenRow('REFRESH', data.refresh)}
+      </div>
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:12px;">Click a token to copy to clipboard.</div>
+      ${data.access ? `<label style="margin-bottom:6px;">Access Token Payload (decoded)</label>
+        <div class="json-viewer">${syntaxHighlight(JSON.stringify(decodeJwt(data.access), null, 2))}</div>` : ''}
+    ` : `<div style="color:var(--text-dim);font-size:12px;padding:12px 0;">No JWT in response body — likely HttpOnly cookie mode.</div>`}
+  `;
+
+  // Raw tab
+  document.getElementById('rawJsonWrap').innerHTML = `<div class="json-viewer">${syntaxHighlight(JSON.stringify(data, null, 2))}</div>`;
+}
+
+function renderRawError(data, status) {
+  switchTabByName('rawTab');
+  document.getElementById('rawJsonWrap').innerHTML = `
+    <div style="color:var(--error);font-size:11px;margin-bottom:8px;">HTTP ${status}</div>
+    <div class="json-viewer">${syntaxHighlight(JSON.stringify(data, null, 2))}</div>
+  `;
+}
+
+function makeTokenRow(label, value) {
+  if (!value) return '';
+  const id = 'tok_' + label;
+  return `
+    <div class="token-row">
+      <div class="token-label">${label}</div>
+      <div class="token-value" id="${id}" title="${value}" onclick="copyToken('${id}', '${value}')">${value.slice(0, 40)}…</div>
+    </div>`;
+}
+
+async function copyToken(id, value) {
+  await navigator.clipboard.writeText(value);
+  const el = document.getElementById(id);
+  el.classList.add('copied');
+  el.textContent = '✓ Copied!';
+  setTimeout(() => { el.classList.remove('copied'); el.textContent = value.slice(0, 40) + '…'; }, 1500);
+}
+
+function decodeJwt(token) {
+  try {
+    const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(b64));
+  } catch { return { error: 'Could not decode JWT' }; }
+}
+
+function syntaxHighlight(json) {
+  return json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
+      let cls = 'json-num';
+      if (/^"/.test(m))      cls = /:$/.test(m) ? 'json-key' : 'json-str';
+      else if (/true|false/.test(m)) cls = 'json-bool';
+      else if (/null/.test(m))       cls = 'json-null';
+      return `<span class="${cls}">${m}</span>`;
+    });
+}
+
+// ─── Tabs ─────────────────────────────────────────────────────────────────────
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+function switchTabByName(id) {
+  document.querySelectorAll('.tab-pane').forEach((p, i) => {
+    const btns = document.querySelectorAll('.tab-btn');
+    if (p.id === id) { p.classList.add('active'); btns[i]?.classList.add('active'); }
+    else             { p.classList.remove('active'); btns[i]?.classList.remove('active'); }
+  });
+}
+
+// ─── Misc ─────────────────────────────────────────────────────────────────────
+function toggleManual() {
+  const p = document.getElementById('manualPanel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+function clearAll() {
+  sessionStorage.removeItem('oauth_state');
+  document.getElementById('logConsole').innerHTML = '';
+  logCount = 0;
+  document.getElementById('logCount').textContent = '0';
+  document.getElementById('stateNonceDisplay').textContent = '—';
+  document.getElementById('stateNonceDisplay').classList.remove('set');
+  document.getElementById('userCardWrap').innerHTML = '<div style="color:var(--text-dim);font-size:12px;padding:20px 0;text-align:center;">No user data yet.</div>';
+  document.getElementById('userJsonWrap').style.display = 'none';
+  document.getElementById('tokensWrap').innerHTML = '<div style="color:var(--text-dim);font-size:12px;padding:20px 0;text-align:center;">No tokens yet.</div>';
+  document.getElementById('rawJsonWrap').innerHTML = '<div style="color:var(--text-dim);font-size:12px;padding:20px 0;text-align:center;">No response yet.</div>';
+  setStatus('idle', 'Waiting for authentication…');
+  for (let i = 1; i <= 6; i++) document.getElementById(`step${i}`).classList.remove('active', 'done');
+  log('State cleared.', 'warn');
+}
+
+function updateEnvLabel() {
+  const base  = document.getElementById('apiBase').value.trim();
+  const label = document.getElementById('envLabel');
+  if (base.includes('localhost') || base.includes('127.0.0.1')) { label.textContent = 'ENV: localhost'; label.style.color = 'var(--warn)'; }
+  else if (base.includes('staging') || base.includes('dev'))    { label.textContent = 'ENV: staging';   label.style.color = 'var(--info)'; }
+  else if (base.startsWith('https://'))                         { label.textContent = 'ENV: production'; label.style.color = 'var(--accent)'; }
+  else                                                           { label.textContent = 'ENV: ?';         label.style.color = 'var(--text-dim)'; }
+}
+document.getElementById('apiBase').addEventListener('input', updateEnvLabel);
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+loadConfig();
+updateEnvLabel();
+log(`Auth Test Console ready — Confidential Client / State-CSRF flow`, 'info');
+log(`Redirect URI will be: ${window.location.origin + window.location.pathname}`, 'data');
+log(`Checking for OAuth callback in URL…`, 'info');
+handleCallback();
+</script>
+</body>
+</html>
