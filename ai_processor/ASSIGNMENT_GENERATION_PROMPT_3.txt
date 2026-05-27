@@ -951,21 +951,18 @@ No rich-text characters without tags.
 
 3. Support Mathematical Notation & LaTeX
 
-When mathematical expressions are included, they must be rendered using the following latex rules:
+When mathematical expressions are included, they must be rendered using the following LaTeX rules. This applies to EVERY field in the JSON — including question_text, model_answer, rubric descriptions, additional_notes, AND every string inside the options array. No exceptions.
 
 ### LaTeX Formatting Rules:
 
 1. **Inline Math** (within sentences): Use `$ ... $`
    - Variables: `$x$`, `$y$`, `$\theta$`
    - Simple expressions: `$2x + 3$`, `$\frac{1}{2}$`
-   - Example: "<p>The solution is $x = 5$ when substituted into the equation.</p>"
+   - Even standalone simple values in a mathematical context: `$n = 10$`, `$x = 5$`, `$2$`
+   - Example: `<p>The solution is $x = 5$ when substituted into the equation.</p>`
 
-2. **Display/Block Math**: Use double dollar signs `$$...$$` wrapped in a div:
-   ```html
-   <div class="math-block">
-   $$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$
-   </div>
-   ```
+2. **Display/Block Math** (standalone equations): Use double dollar signs `$$...$$` wrapped in a `<span class="math-block">`:
+   `<span class="math-block">$$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$</span>`
 
 3. **Common LaTeX Conversions**:
    - Fractions: `$\frac{numerator}{denominator}$`
@@ -978,6 +975,22 @@ When mathematical expressions are included, they must be rendered using the foll
    - Matrices: `$$\begin{bmatrix} a & b \\ c & d \end{bmatrix}$$`
    - Functions: `$\sin(x)$`, `$\log(x)$`, `$\lim_{x \to 0}$`
 
+4. **LaTeX in Options (Objective Questions)**:
+   Any option string that contains a mathematical expression — no matter how simple — must wrap that expression in LaTeX delimiters. Plain-text representations of math inside options are forbidden.
+
+   ❌ Wrong:
+   `"options": ["x = 2", "x = -3", "x = 1/2", "x = 3^2"]`
+
+   ✅ Correct:
+   `"options": ["<p>$x = 2$</p>", "<p>$x = -3$</p>", "<p>$x = \\frac{1}{2}$</p>", "<p>$x = 3^2$</p>"]`
+
+5. **Always Use LaTeX — No Plain-Text Math**:
+   Any symbol, variable, number, or expression that is mathematical in nature must use LaTeX. This includes:
+   - Single variables: write `$x$`, not `x`
+   - Simple arithmetic: write `$3 + 4 = 7$`, not `3 + 4 = 7`
+   - Fractions: write `$\frac{1}{2}$`, not `1/2`
+   - Powers/exponents: write `$x^2$`, not `x^2` or `x²`
+   - Roots: write `$\sqrt{9} = 3$`, not `√9 = 3`
 
 The system must not escape LaTeX sequences.
 
@@ -1040,7 +1053,7 @@ Only safe tags: p, h1–h6, strong, em, ul, ol, li, table, tr, td, code, pre, sp
 
 No custom attributes except:
 
-class="math"
+class="math-block" (used exclusively on <span> elements wrapping display/block LaTeX: `<span class="math-block">$$...$$</span>`)
 
 Standard HTML attributes like colspan, rowspan when needed for tables
 
