@@ -1618,12 +1618,18 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
 
     @extend_schema(
         tags=["Beta Analytics"],
-        summary="Identify high-intent conversion leads",
-        description="Identifies 'Power Users' with high conversion probability based on four engagement "
-        "triggers: (1) High consumption (≥80% of allocation), (2) High frequency (≥8 login days), "
-        "(3) Recent activity (active in last 7 days), (4) Core value alignment (grading-focused). "
-        "Returns ranked leads with conversion scores, detailed metrics, and behavioral flags for "
-        "targeted sales outreach and August launch conversion planning.",
+        summary="Identify and search conversion leads",
+        description="Returns a ranked list of teacher leads ordered by conversion probability "
+        "and total credits used. Includes detailed metrics and behavioral flags "
+        "for targeted sales outreach. Supports searching by name or email.",
+        parameters=[
+            OpenApiParameter(
+                name="search",
+                type=OpenApiTypes.STR,
+                required=False,
+                description="Search by user's first name, last name, middle name, or email",
+            ),
+        ],
         responses={
             200: OpenApiResponse(
                 response=ConversionLeadSerializer(many=True),
@@ -1672,8 +1678,9 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=False, methods=["GET"], url_path="beta/intent-signals")
     def intent_signals(self, request, *args, **kwargs):
         """
-        Identifies "High-Intent" teachers based on specific Beta engagement triggers
-        Used for August Sales outreach and conversion planning.
+        Returns all teacher leads ranked by conversion probability.
+        Supports searching by user's first name, last name, middle name, or email.
+        Used for Sales outreach and conversion planning.
         """
 
         seven_days_ago = timezone.now() - timedelta(days=7)
@@ -1700,12 +1707,23 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         # )
 
         # 2. Fetch the leads with their conversion probability score
+        queryset = self.get_queryset().filter(user__user_type=UserTypes.TEACHER)
+
+        search_query = request.query_params.get("search")
+        if search_query:
+            queryset = queryset.filter(
+                Q(user__first_name__icontains=search_query)
+                | Q(user__last_name__icontains=search_query)
+                | Q(user__middle_name__icontains=search_query)
+                | Q(user__email__icontains=search_query)
+            )
+
         leads = (
-            self.get_queryset()
-            .filter(user__user_type=UserTypes.TEACHER)
+            queryset
             # .filter(power_user_query)
-            .select_related("user")
-            .order_by("-conversion_probability", "-total_credits_used")
+            .select_related("user").order_by(
+                "-conversion_probability", "-total_credits_used"
+            )
         )
 
         # 3. Structure the response for the Sales Team
