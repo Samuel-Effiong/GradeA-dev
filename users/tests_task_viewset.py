@@ -5,6 +5,8 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from assignments.models import Assignment
+from classrooms.models import Course
 from students.models import (
     BackgroundProcessingTask,
     BackgroundTaskStatus,
@@ -31,6 +33,11 @@ class TaskViewSetTest(APITestCase):
             last_name="Teacher",
         )
         self.client.force_authenticate(user=self.teacher)
+        self.course = Course.objects.create(
+            name="Task Cleanup 101",
+            teacher=self.teacher,
+            description="A course for task cleanup tests.",
+        )
 
     @patch("students.task_tracking.celery_app.control.revoke")
     @patch("students.task_tracking.AsyncResult.revoke")
@@ -213,3 +220,115 @@ class TaskViewSetTest(APITestCase):
         response = self.client.post(url)
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    @patch("students.task_tracking.celery_app.control.revoke")
+    @patch("students.task_tracking.AsyncResult.revoke")
+    def test_cancel_assignment_extraction_deletes_placeholder_assignment(
+        self, mock_async_revoke, mock_control_revoke
+    ):
+        task_id = str(uuid.uuid4())
+        assignment = Assignment.objects.create(
+            course=self.course,
+            title="Ghost assignment",
+            raw_input="Unprocessed uploaded text",
+        )
+        processing_task = BackgroundProcessingTask.objects.create(
+            requested_by=self.teacher,
+            assignment=assignment,
+            celery_task_id=task_id,
+            task_type=BackgroundTaskType.ASSIGNMENT_EXTRACTION,
+            status=BackgroundTaskStatus.STARTED,
+            file_name="manual-assignment.pdf",
+        )
+
+        url = reverse("task-cancel", kwargs={"task_id": task_id})
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(Assignment.objects.filter(id=assignment.id).exists())
+
+        processing_task.refresh_from_db()
+        self.assertEqual(processing_task.status, BackgroundTaskStatus.CANCELLED)
+        self.assertIsNone(processing_task.assignment_id)
+        self.assertTrue(processing_task.meta["cancelled_assignment_deleted"])
+        self.assertEqual(
+            processing_task.meta["deleted_assignment_id"], str(assignment.id)
+        )
+        mock_async_revoke.assert_called_once_with(terminate=True, signal="SIGTERM")
+        mock_control_revoke.assert_called_once_with(
+            task_id, terminate=True, signal="SIGTERM"
+        )
+
+    @patch("students.task_tracking.celery_app.control.revoke")
+    @patch("students.task_tracking.AsyncResult.revoke")
+    def test_cancel_assignment_reextraction_keeps_existing_assignment(
+        self, mock_async_revoke, mock_control_revoke
+    ):
+        task_id = str(uuid.uuid4())
+        assignment = Assignment.objects.create(
+            course=self.course,
+            title="Existing assignment",
+            questions=[{"question_number": 1, "question_text": "Keep me"}],
+        )
+        processing_task = BackgroundProcessingTask.objects.create(
+            requested_by=self.teacher,
+            assignment=assignment,
+            celery_task_id=task_id,
+            task_type=BackgroundTaskType.ASSIGNMENT_REEXTRACTION,
+            status=BackgroundTaskStatus.STARTED,
+        )
+
+        url = reverse("task-cancel", kwargs={"task_id": task_id})
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(Assignment.objects.filter(id=assignment.id).exists())
+
+        processing_task.refresh_from_db()
+        self.assertEqual(processing_task.status, BackgroundTaskStatus.CANCELLED)
+        self.assertEqual(processing_task.assignment_id, assignment.id)
+        mock_async_revoke.assert_called_once_with(terminate=True, signal="SIGTERM")
+        mock_control_revoke.assert_called_once_with(
+            task_id, terminate=True, signal="SIGTERM"
+        )
+
+    @patch("students.task_tracking.celery_app.control.revoke")
+    @patch("students.task_tracking.AsyncResult.revoke")
+    def test_cancel_batch_assignment_upload_deletes_saved_upload_artifact(
+        self, mock_async_revoke, mock_control_revoke
+    ):
+        session = BatchUploadSession.objects.create(
+            teacher=self.teacher,
+            course=self.course,
+            task_type="assignment",
+            total_files=1,
+        )
+        task_id = str(uuid.uuid4())
+        assignment = Assignment.objects.create(
+            course=self.course,
+            title="Uploaded assignment artifact",
+            questions=[{"question_number": 1, "question_text": "Delete me"}],
+        )
+        processing_task = BackgroundProcessingTask.objects.create(
+            requested_by=self.teacher,
+            batch_session=session,
+            assignment=assignment,
+            celery_task_id=task_id,
+            task_type=BackgroundTaskType.BATCH_ASSIGNMENT_UPLOAD,
+            status=BackgroundTaskStatus.STARTED,
+            file_name="uploaded-assignment.pdf",
+        )
+
+        url = reverse("task-cancel", kwargs={"task_id": task_id})
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(Assignment.objects.filter(id=assignment.id).exists())
+
+        processing_task.refresh_from_db()
+        self.assertEqual(processing_task.status, BackgroundTaskStatus.CANCELLED)
+        self.assertIsNone(processing_task.assignment_id)
+        mock_async_revoke.assert_called_once_with(terminate=True, signal="SIGTERM")
+        mock_control_revoke.assert_called_once_with(
+            task_id, terminate=True, signal="SIGTERM"
+        )

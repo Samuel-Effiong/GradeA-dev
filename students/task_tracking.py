@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from celery.result import AsyncResult
 from django.db import transaction
 from django.utils import timezone
@@ -7,7 +9,9 @@ from django.utils import timezone
 from AutoGrader.celery import app as celery_app
 
 from .exceptions import TaskCancelledError
-from .models import BackgroundProcessingTask, BackgroundTaskStatus
+from .models import BackgroundProcessingTask, BackgroundTaskStatus, BackgroundTaskType
+
+logger = logging.getLogger(__name__)
 
 TERMINAL_TASK_STATUSES = {
     BackgroundTaskStatus.CANCELLED,
@@ -181,20 +185,103 @@ def ensure_task_not_cancelled(processing_task_id, *, message=None):
         raise TaskCancelledError(message or "Task cancelled by user.")
 
 
+def lock_processing_task_for_final_save(processing_task_id, *, message=None):
+    """
+    Lock the tracked task while committing a cancellable task's final artifact.
+
+    This closes the race where a worker checks for cancellation, a user cancels,
+    and the worker then saves an assignment anyway using stale in-memory data.
+    """
+    if not processing_task_id:
+        return None
+
+    task = (
+        BackgroundProcessingTask.objects.select_for_update()
+        .filter(id=processing_task_id)
+        .first()
+    )
+
+    if task and task.status == BackgroundTaskStatus.CANCELLED:
+        raise TaskCancelledError(message or "Task cancelled by user.")
+
+    return task
+
+
+def _is_cancellable_assignment_artifact(processing_task):
+    return processing_task.task_type in {
+        BackgroundTaskType.ASSIGNMENT_EXTRACTION,
+        BackgroundTaskType.BATCH_ASSIGNMENT_UPLOAD,
+    }
+
+
+def cleanup_cancelled_task_artifacts(processing_task):
+    """
+    Remove assignment rows that exist only because a cancellable create/upload task
+    had already persisted them before cancellation was observed.
+
+    Re-extraction/update tasks are intentionally excluded: those operate on real,
+    pre-existing assignments and cancellation must leave the previous assignment
+    intact.
+    """
+    if not processing_task or not _is_cancellable_assignment_artifact(processing_task):
+        return None
+
+    assignment = processing_task.assignment
+    if not assignment:
+        return None
+
+    if assignment.submissions.exists():
+        logger.warning(
+            "Skipping cleanup for cancelled task %s because assignment %s has submissions.",
+            processing_task.id,
+            assignment.id,
+        )
+        return None
+
+    assignment_id = str(assignment.id)
+
+    # Detach tracked tasks first; deleting the assignment would otherwise cascade
+    # and erase the cancellation record the frontend still needs to poll.
+    BackgroundProcessingTask.objects.filter(assignment_id=assignment.id).update(
+        assignment=None
+    )
+    assignment.delete()
+
+    processing_task.assignment = None
+    processing_task.assignment_id = None
+    processing_task.meta = merge_task_meta(
+        processing_task.meta,
+        {
+            "cancelled_assignment_deleted": True,
+            "deleted_assignment_id": assignment_id,
+        },
+    )
+    processing_task.save(update_fields=["meta", "updated_at"])
+    return assignment_id
+
+
 def cancel_processing_task(processing_task):
-    if processing_task.status in TERMINAL_TASK_STATUSES:
-        return processing_task
+    with transaction.atomic():
+        processing_task = (
+            BackgroundProcessingTask.objects.select_for_update()
+            .select_related("assignment")
+            .get(id=processing_task.id)
+        )
 
-    now = timezone.now()
-    update_fields = ["status", "cancel_requested_at", "updated_at"]
-    processing_task.status = BackgroundTaskStatus.CANCELLED
-    processing_task.cancel_requested_at = now
+        if processing_task.status in TERMINAL_TASK_STATUSES:
+            return processing_task
 
-    if not processing_task.finished_at:
-        processing_task.finished_at = now
-        update_fields.append("finished_at")
+        now = timezone.now()
+        update_fields = ["status", "cancel_requested_at", "updated_at"]
+        processing_task.status = BackgroundTaskStatus.CANCELLED
+        processing_task.cancel_requested_at = now
 
-    processing_task.save(update_fields=update_fields)
+        if not processing_task.finished_at:
+            processing_task.finished_at = now
+            update_fields.append("finished_at")
+
+        processing_task.save(update_fields=update_fields)
+        cleanup_cancelled_task_artifacts(processing_task)
 
     if processing_task.celery_task_id:
         AsyncResult(processing_task.celery_task_id).revoke(
