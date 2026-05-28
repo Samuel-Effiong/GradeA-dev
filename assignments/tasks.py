@@ -2,6 +2,7 @@ import logging
 
 from celery import shared_task, states
 from django.conf import settings
+from django.db import transaction
 from django.template.loader import render_to_string
 from django.utils import timezone
 
@@ -15,11 +16,15 @@ from students.models import BatchUploadSession, BatchUploadType, StudentSubmissi
 from students.serializers import StudentSubmissionSerializer
 from students.services import grade_engine, upload_answers_engine
 from students.task_tracking import (
+    cleanup_cancelled_task_artifacts,
     ensure_task_not_cancelled,
+    get_processing_task_by_id,
+    lock_processing_task_for_final_save,
     mark_processing_task_cancelled,
     mark_processing_task_failure,
     mark_processing_task_started,
     mark_processing_task_success,
+    merge_task_meta,
     update_processing_task,
 )
 from users.models import CustomUser, UserTypes
@@ -225,6 +230,8 @@ def extract_assignment_background_task(
         mark_processing_task_cancelled(
             processing_task_id, meta={"step": "Assignment extraction cancelled"}
         )
+        processing_task = get_processing_task_by_id(processing_task_id)
+        cleanup_cancelled_task_artifacts(processing_task)
         raise
     except Exception:
         mark_processing_task_failure(
@@ -297,6 +304,8 @@ def update_assignment_background_task(
         mark_processing_task_cancelled(
             processing_task_id, meta={"step": "Assignment re-extraction cancelled"}
         )
+        processing_task = get_processing_task_by_id(processing_task_id)
+        cleanup_cancelled_task_artifacts(processing_task)
         raise
     except Exception:
         mark_processing_task_failure(
@@ -690,10 +699,21 @@ def upload_assignment_async(
 
         # self.update_state(state="PROGRESS", meta={"step": "Saving assignments"})
         update_processing_task(processing_task_id, meta={"step": "Saving assignment"})
+        with transaction.atomic():
+            processing_task = lock_processing_task_for_final_save(processing_task_id)
+            serializer = AssignmentSerializer(data=assignment_questions)
+            serializer.is_valid(raise_exception=True)
+            assignment = serializer.save()
+
+            if processing_task:
+                processing_task.assignment = assignment
+                processing_task.meta = merge_task_meta(
+                    processing_task.meta,
+                    {"assignment_id": str(assignment.id)},
+                )
+                processing_task.save(update_fields=["assignment", "meta", "updated_at"])
+
         ensure_task_not_cancelled(processing_task_id)
-        serializer = AssignmentSerializer(data=assignment_questions)
-        serializer.is_valid(raise_exception=True)
-        assignment = serializer.save()
 
         session = BatchUploadSession.objects.get(id=session_id)
         session.update_result(
@@ -722,6 +742,8 @@ def upload_assignment_async(
             processing_task_id,
             meta={"step": "Assignment upload cancelled", "file_name": file_name},
         )
+        processing_task = get_processing_task_by_id(processing_task_id)
+        cleanup_cancelled_task_artifacts(processing_task)
         session = BatchUploadSession.objects.get(id=session_id)
         session.update_result(file_name, "CANCELLED", error=str(exc))
         raise

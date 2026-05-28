@@ -9,6 +9,7 @@ from typing import Any
 
 import fitz
 from django.core.files.uploadedfile import SimpleUploadedFile, UploadedFile
+from django.db import transaction
 from django.utils import timezone
 from lxml import html
 from prosemirror.model import DOMParser, Schema
@@ -18,7 +19,10 @@ from rest_framework.exceptions import ParseError
 
 from ai_processor.services import ai_processor, pdf_service
 from ai_processor.tools import encode_image
-from students.task_tracking import ensure_task_not_cancelled
+from students.task_tracking import (
+    ensure_task_not_cancelled,
+    lock_processing_task_for_final_save,
+)
 
 from .serializers import AssignmentListSerializer, AssignmentSerializer
 
@@ -637,12 +641,13 @@ class AssignmentProcessingService:
             processing_task_id=processing_task_id,
         )
 
-        ensure_task_not_cancelled(processing_task_id)
-        serializer = AssignmentSerializer(
-            assignment, data=assignment_data, partial=True
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+        with transaction.atomic():
+            lock_processing_task_for_final_save(processing_task_id)
+            serializer = AssignmentSerializer(
+                assignment, data=assignment_data, partial=True
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
 
         return assignment
 

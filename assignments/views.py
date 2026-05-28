@@ -656,7 +656,16 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             file_name = getattr(uploaded_file, "name", "unknown_file")
 
             if not isinstance(uploaded_file, UploadedFile):
-                failed.append({"file_name": file_name, "error": "Invalid file upload."})
+                failed.append(
+                    {
+                        "file_name": file_name,
+                        "error": (
+                            "The uploaded file appears to be malformed or corrupted. "
+                            "Please ensure it is a valid, readable file and "
+                            "try uploading again."
+                        ),
+                    }
+                )
                 continue
 
             content = AssignmentProcessingService.prepare_ai_content(
@@ -808,7 +817,13 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         tasks_data = []
         for uploaded_file in files:
             if not isinstance(uploaded_file, UploadedFile):
-                raise ParseError("Invalid file upload.")
+                raise ParseError(
+                    (
+                        "The uploaded file appears to be malformed or corrupted. "
+                        "Please ensure it is a valid, readable file and try "
+                        "uploading again."
+                    )
+                )
 
             prompt_text = """
             Analyze the image of an educational assignment and return a JSON
