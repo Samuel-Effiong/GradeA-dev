@@ -23,7 +23,7 @@ class ConcurrencySerializer(serializers.Serializer):
 class StudentAssignmentListSerializer(serializers.Serializer):
     course = serializers.CharField()
     teacher = serializers.CharField()
-    assignment = serializers.UUIDField(source="id", read_only=True)
+    assignment = serializers.UUIDField()
     title = serializers.CharField()
     due_date = serializers.DateTimeField()
     submission_date = serializers.DateTimeField()
