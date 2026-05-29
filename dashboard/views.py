@@ -2617,7 +2617,7 @@ class StudentAdminDashboardView(viewsets.ViewSet):
                 stats = {
                     "course": a.course.name,
                     "teacher": a.course.teacher.get_full_name(),
-                    "assignment": str(a.id),
+                    "assignment_id": str(a.id),
                     "title": a.title,
                     "due_date": a.due_date,
                     "submission_date": submission_date,
