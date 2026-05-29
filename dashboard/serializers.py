@@ -2,7 +2,8 @@ from django.contrib.humanize.templatetags.humanize import naturaltime
 from rest_framework import serializers
 
 from ai_processor.models import ChatMessage, ChatSession
-from assignments.models import Assignment
+
+# from assignments.models import Assignment
 
 
 class PeakTimeSerializer(serializers.Serializer):
@@ -19,32 +20,34 @@ class ConcurrencySerializer(serializers.Serializer):
     peak_time_of_day = PeakTimeSerializer(allow_null=True, required=False)
 
 
-class StudentAssignmentListSerializer(serializers.ModelSerializer):
+class StudentAssignmentListSerializer(serializers.Serializer):
     course = serializers.CharField()
     teacher = serializers.CharField()
     assignment = serializers.UUIDField(source="id", read_only=True)
+    title = serializers.CharField()
+    due_date = serializers.DateTimeField()
+    submission_date = serializers.DateTimeField()
     score = serializers.IntegerField()
     score_percentage = serializers.FloatField(read_only=True)
     total_score = serializers.IntegerField()
-    submission_date = serializers.DateTimeField()
     feedback = serializers.CharField()
     submission_status = serializers.CharField(max_length=30)
 
-    class Meta:
-        model = Assignment
-        fields = [
-            "course",
-            "teacher",
-            "assignment",
-            "title",
-            "due_date",
-            "submission_date",
-            "score",
-            "score_percentage",
-            "total_score",
-            "feedback",
-            "submission_status",
-        ]
+    # class Meta:
+    #     model = Assignment
+    #     fields = [
+    #         "course",
+    #         "teacher",
+    #         "assignment",
+    #         "title",
+    #         "due_date",
+    #         "submission_date",
+    #         "score",
+    #         "score_percentage",
+    #         "total_score",
+    #         "feedback",
+    #         "submission_status",
+    #     ]
 
 
 class AssignmentPerformanceSerializer(serializers.Serializer):
