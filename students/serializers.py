@@ -347,13 +347,146 @@ class StudentSubmissionFormattedGradeAsyncSerializer(serializers.Serializer):
     message = serializers.CharField(read_only=True)
 
 
+def get_grade_details(percentage):
+    """
+    Returns (letter_grade, gpa, remark) for a given percentage score.
+
+    Grading scale:
+      A+  97-100  4.0  Excellent
+      A   93-96   4.0  Excellent
+      A-  90-92   3.7  Very Good
+      B+  87-89   3.3  Good
+      B   83-86   3.0  Good
+      B-  80-82   2.7  Satisfactory
+      C+  77-79   2.3  Satisfactory
+      C   73-76   2.0  Pass
+      C-  70-72   1.7  Pass
+      D+  67-69   1.3  Poor
+      D   63-66   1.0  Poor
+      D-  60-62   0.7  Marginal Pass
+      F   0-59    0.0  Fail
+    """
+    if percentage is None:
+        return None, None, None
+    pct = float(percentage)
+    if pct >= 97:
+        return "A+", 4.0, "Excellent"
+    elif pct >= 93:
+        return "A", 4.0, "Excellent"
+    elif pct >= 90:
+        return "A-", 3.7, "Very Good"
+    elif pct >= 87:
+        return "B+", 3.3, "Good"
+    elif pct >= 83:
+        return "B", 3.0, "Good"
+    elif pct >= 80:
+        return "B-", 2.7, "Satisfactory"
+    elif pct >= 77:
+        return "C+", 2.3, "Satisfactory"
+    elif pct >= 73:
+        return "C", 2.0, "Pass"
+    elif pct >= 70:
+        return "C-", 1.7, "Pass"
+    elif pct >= 67:
+        return "D+", 1.3, "Poor"
+    elif pct >= 63:
+        return "D", 1.0, "Poor"
+    elif pct >= 60:
+        return "D-", 0.7, "Marginal Pass"
+    else:
+        return "F", 0.0, "Fail"
+
+
 class StudentListSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(source="get_full_name", read_only=True)
     enrolled_courses = serializers.SerializerMethodField()
+    course_description = serializers.SerializerMethodField()
+    teacher = serializers.SerializerMethodField()
+    grade = serializers.SerializerMethodField()
+    total_assignments_in_course = serializers.SerializerMethodField()
+    total_assignments_submitted = serializers.SerializerMethodField()
+    percentage_of_submission = serializers.SerializerMethodField()
 
     class Meta:
         model = CustomUser
-        fields = ["id", "full_name", "email", "enrolled_courses"]
+        fields = [
+            "id",
+            "full_name",
+            "email",
+            "enrolled_courses",
+            "course_description",
+            "teacher",
+            "grade",
+            "total_assignments_in_course",
+            "total_assignments_submitted",
+            "percentage_of_submission",
+        ]
+
+    def _get_relevant_course(self, obj):
+        request = self.context.get("request")
+        if request:
+            course_id = request.query_params.get("enrollments__course")
+            if course_id:
+                enrollment = obj.enrollments.filter(course_id=course_id).first()
+                if enrollment:
+                    return enrollment.course
+
+            # fallback: first course taught by the authenticated user if teacher
+            if (
+                hasattr(request.user, "user_type")
+                and request.user.user_type == "TEACHER"
+            ):
+                enrollment = obj.enrollments.filter(
+                    course__teacher=request.user
+                ).first()
+                if enrollment:
+                    return enrollment.course
+
+        enrollment = obj.enrollments.first()
+        return enrollment.course if enrollment else None
 
     def get_enrolled_courses(self, obj):
         return obj.enrollments.values_list("course__name", flat=True)
+
+    def get_course_description(self, obj):
+        course = self._get_relevant_course(obj)
+        return course.description if course else None
+
+    def get_teacher(self, obj):
+        course = self._get_relevant_course(obj)
+        if course and course.teacher:
+            return f"{course.teacher.first_name} {course.teacher.last_name}"
+        return None
+
+    def get_grade(self, obj):
+        course = self._get_relevant_course(obj)
+        if course:
+            enrollment = obj.enrollments.filter(course=course).first()
+            if enrollment and enrollment.final_grade is not None:
+                letter, gpa, remark = get_grade_details(enrollment.final_grade)
+                return {
+                    "letter_grade": letter,
+                    "gpa": gpa,
+                    "remark": remark,
+                    "percentage": enrollment.final_grade,
+                }
+        return None
+
+    def get_total_assignments_in_course(self, obj):
+        course = self._get_relevant_course(obj)
+        if course:
+            return course.assignments.count()
+        return 0
+
+    def get_total_assignments_submitted(self, obj):
+        course = self._get_relevant_course(obj)
+        if course:
+            return obj.submissions.filter(assignment__course=course).count()
+        return 0
+
+    def get_percentage_of_submission(self, obj):
+        total = self.get_total_assignments_in_course(obj)
+        if total == 0:
+            return 0.0
+        submitted = self.get_total_assignments_submitted(obj)
+        return round((submitted / total) * 100, 2)
