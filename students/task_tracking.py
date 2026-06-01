@@ -262,10 +262,8 @@ def cleanup_cancelled_task_artifacts(processing_task):
 
 def cancel_processing_task(processing_task):
     with transaction.atomic():
-        processing_task = (
-            BackgroundProcessingTask.objects.select_for_update()
-            .select_related("assignment")
-            .get(id=processing_task.id)
+        processing_task = BackgroundProcessingTask.objects.select_for_update().get(
+            id=processing_task.id
         )
 
         if processing_task.status in TERMINAL_TASK_STATUSES:
