@@ -2378,8 +2378,6 @@ class StudentAdminDashboardView(viewsets.ViewSet):
         ],
         responses={200: CourseAnalyticsSerializer},
     )
-    # @method_decorator(cache_page(60 * 5, key_prefix="studentadmin:dashboard:summary"))
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(
         detail=False,
         methods=["get"],
@@ -2569,16 +2567,6 @@ class StudentAdminDashboardView(viewsets.ViewSet):
         - Status tracking (Submitted, Late, etc.)
         - etc
         """,
-        # parameters=[
-        #     OpenApiParameter(
-        #         name="course_id",
-        #         type=OpenApiTypes.UUID,
-        #         location=OpenApiParameter.PATH,
-        #         description=_(
-        #             "The unique identifier (UUID) of the course to retrieve assignments for"
-        #         ),
-        #     )
-        # ],
         responses={200: StudentAssignmentListSerializer(many=True)},
     )
     @action(
@@ -2595,7 +2583,7 @@ class StudentAdminDashboardView(viewsets.ViewSet):
 
             # Filter assignments for student's course
             assignments = Assignment.objects.filter(
-                submissions__student=student
+                course__enrollments__student=student
             ).order_by("-created_at")
             submissions = StudentSubmission.objects.filter(
                 student=student, assignment__in=assignments
@@ -2607,11 +2595,22 @@ class StudentAdminDashboardView(viewsets.ViewSet):
             for a in assignments:
                 s = submissions_map.get(a.id)
 
-                submission_status = (
-                    None
-                    if not s
-                    else "SUBMITTED" if s and not s.graded_at else "GRADED"
-                )
+                if not s:
+                    if a.due_date and a.due_date < timezone.now():
+                        submission_status = "OVERDUE"
+                    else:
+                        submission_status = "NOT SUBMITTED"
+                else:
+                    if s.graded_at:
+                        submission_status = "GRADED"
+                    else:
+                        submission_status = "SUBMITTED"
+
+                # submission_status = (
+                #     "OVERDUE" if a.due_date and a.due_date < timezone.now() else "NOT SUBMITTED"
+                #     if not s
+                #     else "SUBMITTED" if s and not s.graded_at else "GRADED"
+                # )
                 submission_date = a.submissions.first().submission_date if s else None
 
                 stats = {

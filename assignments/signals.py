@@ -7,7 +7,7 @@ from django.dispatch import receiver
 from django.utils import timezone
 from django_celery_beat.models import ClockedSchedule, PeriodicTask
 
-from assignments.models import Assignment, AssignmentStatus
+from assignments.models import Assignment, AssignmentGenerationSession, AssignmentStatus
 
 ASSIGNMENT_DUE_REMINDER_OFFSETS = (24, 1)
 
@@ -65,6 +65,13 @@ def clear_assignment_cache(sender, instance, **kwargs):
         "courses:*",
         "assignments:*",
         "studentsubmissions:*",
+    )
+
+
+@receiver([post_save, post_delete], sender=AssignmentGenerationSession)
+def clear_assignment_generation_session_cache(sender, instance, **kwargs):
+    delete_cache_patterns(
+        "*assignmentgenerationsession*",
     )
 
 

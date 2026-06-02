@@ -406,6 +406,7 @@ class StudentListSerializer(serializers.ModelSerializer):
     total_assignments_in_course = serializers.SerializerMethodField()
     total_assignments_submitted = serializers.SerializerMethodField()
     percentage_of_submission = serializers.SerializerMethodField()
+    email = serializers.SerializerMethodField()
 
     class Meta:
         model = CustomUser
@@ -421,6 +422,11 @@ class StudentListSerializer(serializers.ModelSerializer):
             "total_assignments_submitted",
             "percentage_of_submission",
         ]
+
+    def get_email(self, obj):
+        if obj.email and str(obj.email).endswith("@student.local"):
+            return None
+        return obj.email
 
     def _get_relevant_course(self, obj):
         request = self.context.get("request")
