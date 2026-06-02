@@ -41,6 +41,7 @@ from rest_framework.response import Response
 # from ai_processor.services import ai_processor
 from assignments.serializers import TaskInfoSerializer
 from AutoGrader.tasks import send_email_task
+from students.models import StudentSubmission
 from students.serializers import StudentListSerializer
 from users.mixins import UserCacheMixin
 from users.models import CustomUser, UserTypes
@@ -67,6 +68,7 @@ from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
     ExpiredTokenSerializer,
     SchoolSerializer,
     SessionSerializer,
+    StudentCourseDetailSerializer,
     StudentCourseSerializer,
     TopicSerializer,
 )
@@ -1643,15 +1645,27 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 ).distinct()
             return CustomUser.objects.none()
 
+        queryset = StudentCourse.objects.select_related(
+            "student", "course"
+        ).prefetch_related(
+            "course__assignments",
+            Prefetch(
+                "student__submissions",
+                queryset=StudentSubmission.objects.all().select_related("assignment"),
+            ),
+        )
+
         if user.user_type == UserTypes.TEACHER:
-            return StudentCourse.objects.filter(course__teacher=user)
+            return queryset.filter(course__teacher=user).distinct()
         elif user.user_type == UserTypes.STUDENT:
-            return StudentCourse.objects.filter(student=user)
+            return queryset.filter(student=user)
         return StudentCourse.objects.none()
 
     def get_serializer_class(self):
         if self.action == "my_students":
             return StudentListSerializer
+        if self.action in ["retrieve"]:
+            return StudentCourseDetailSerializer
         return super().get_serializer_class()
 
     def filter_queryset(self, queryset):

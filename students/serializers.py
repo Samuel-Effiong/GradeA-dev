@@ -4,6 +4,7 @@ from rest_framework import serializers
 from users.models import CustomUser
 
 from .models import StudentSubmission
+from .services import get_grade_details
 
 
 class StudentSerializer(serializers.ModelSerializer):
@@ -347,54 +348,54 @@ class StudentSubmissionFormattedGradeAsyncSerializer(serializers.Serializer):
     message = serializers.CharField(read_only=True)
 
 
-def get_grade_details(percentage):
-    """
-    Returns (letter_grade, gpa, remark) for a given percentage score.
+# def get_grade_details(percentage):
+#     """
+#     Returns (letter_grade, gpa, remark) for a given percentage score.
 
-    Grading scale:
-      A+  97-100  4.0  Excellent
-      A   93-96   4.0  Excellent
-      A-  90-92   3.7  Very Good
-      B+  87-89   3.3  Good
-      B   83-86   3.0  Good
-      B-  80-82   2.7  Satisfactory
-      C+  77-79   2.3  Satisfactory
-      C   73-76   2.0  Pass
-      C-  70-72   1.7  Pass
-      D+  67-69   1.3  Poor
-      D   63-66   1.0  Poor
-      D-  60-62   0.7  Marginal Pass
-      F   0-59    0.0  Fail
-    """
-    if percentage is None:
-        return None, None, None
-    pct = float(percentage)
-    if pct >= 97:
-        return "A+", 4.0, "Excellent"
-    elif pct >= 93:
-        return "A", 4.0, "Excellent"
-    elif pct >= 90:
-        return "A-", 3.7, "Very Good"
-    elif pct >= 87:
-        return "B+", 3.3, "Good"
-    elif pct >= 83:
-        return "B", 3.0, "Good"
-    elif pct >= 80:
-        return "B-", 2.7, "Satisfactory"
-    elif pct >= 77:
-        return "C+", 2.3, "Satisfactory"
-    elif pct >= 73:
-        return "C", 2.0, "Pass"
-    elif pct >= 70:
-        return "C-", 1.7, "Pass"
-    elif pct >= 67:
-        return "D+", 1.3, "Poor"
-    elif pct >= 63:
-        return "D", 1.0, "Poor"
-    elif pct >= 60:
-        return "D-", 0.7, "Marginal Pass"
-    else:
-        return "F", 0.0, "Fail"
+#     Grading scale:
+#       A+  97-100  4.0  Excellent
+#       A   93-96   4.0  Excellent
+#       A-  90-92   3.7  Very Good
+#       B+  87-89   3.3  Good
+#       B   83-86   3.0  Good
+#       B-  80-82   2.7  Satisfactory
+#       C+  77-79   2.3  Satisfactory
+#       C   73-76   2.0  Pass
+#       C-  70-72   1.7  Pass
+#       D+  67-69   1.3  Poor
+#       D   63-66   1.0  Poor
+#       D-  60-62   0.7  Marginal Pass
+#       F   0-59    0.0  Fail
+#     """
+#     if percentage is None:
+#         return None, None, None
+#     pct = float(percentage)
+#     if pct >= 97:
+#         return "A+", 4.0, "Excellent"
+#     elif pct >= 93:
+#         return "A", 4.0, "Excellent"
+#     elif pct >= 90:
+#         return "A-", 3.7, "Very Good"
+#     elif pct >= 87:
+#         return "B+", 3.3, "Good"
+#     elif pct >= 83:
+#         return "B", 3.0, "Good"
+#     elif pct >= 80:
+#         return "B-", 2.7, "Satisfactory"
+#     elif pct >= 77:
+#         return "C+", 2.3, "Satisfactory"
+#     elif pct >= 73:
+#         return "C", 2.0, "Pass"
+#     elif pct >= 70:
+#         return "C-", 1.7, "Pass"
+#     elif pct >= 67:
+#         return "D+", 1.3, "Poor"
+#     elif pct >= 63:
+#         return "D", 1.0, "Poor"
+#     elif pct >= 60:
+#         return "D-", 0.7, "Marginal Pass"
+#     else:
+#         return "F", 0.0, "Fail"
 
 
 class StudentListSerializer(serializers.ModelSerializer):
