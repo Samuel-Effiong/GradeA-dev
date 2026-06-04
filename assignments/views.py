@@ -262,6 +262,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
+    generation_history_message_limit = 12
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
@@ -969,6 +970,104 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         assignment_data["raw_input"] = json.dumps(raw_input)
         return assignment_data
 
+    def _compact_assignment_generation_snapshot(self, snapshot):
+        if not isinstance(snapshot, dict):
+            return None
+
+        top_level_fields = [
+            "title",
+            "instructions",
+            "total_points",
+            "question_count",
+            "assignment_type",
+            "status",
+            "due_date",
+            "auto_grade_on_due_date",
+            "potential_issues",
+            "extraction_confidence",
+        ]
+        question_fields = [
+            "question_number",
+            "question_text",
+            "question_type",
+            "points",
+            "blooms_level",
+            "options",
+            "rubric",
+            "model_answer",
+            "additional_notes",
+        ]
+
+        compact_snapshot = {
+            field: snapshot[field]
+            for field in top_level_fields
+            if field in snapshot and snapshot[field] not in [None, ""]
+        }
+
+        questions = snapshot.get("questions")
+        if isinstance(questions, list):
+            compact_snapshot["questions"] = [
+                {
+                    field: question[field]
+                    for field in question_fields
+                    if isinstance(question, dict)
+                    and field in question
+                    and question[field] not in [None, ""]
+                }
+                for question in questions
+                if isinstance(question, dict)
+            ]
+
+        return compact_snapshot
+
+    def _build_assignment_generation_chat_history(self, generation_session):
+        previous_messages = list(
+            generation_session.messages.order_by("-created_at")[
+                : self.generation_history_message_limit
+            ]
+        )
+        chat_history = []
+
+        for message in reversed(previous_messages):
+            if message.role == AssignmentGenerationRole.USER:
+                chat_history.append(
+                    {
+                        "role": "user",
+                        "content": f"Previous teacher message:\n{message.content}",
+                    }
+                )
+                continue
+
+            if message.role != AssignmentGenerationRole.ASSISTANT:
+                continue
+
+            metadata = message.metadata or {}
+            assistant_context = {
+                "assistant_reply": metadata.get("reply", ""),
+            }
+            compact_snapshot = self._compact_assignment_generation_snapshot(
+                message.assignment_snapshot
+            )
+
+            if compact_snapshot:
+                assistant_context["assignment_draft"] = compact_snapshot
+
+            if not assistant_context["assistant_reply"] and not compact_snapshot:
+                continue
+
+            chat_history.append(
+                {
+                    "role": "assistant",
+                    "content": (
+                        "Previous assistant response from this session. "
+                        "This is compact semantic context, not editor JSON:\n"
+                        f"{json.dumps(assistant_context, ensure_ascii=False)}"
+                    ),
+                }
+            )
+
+        return chat_history
+
     @extend_schema(
         tags=["Assignments"],
         summary="Generate an AI assignment draft based on user prompts",
@@ -1041,6 +1140,10 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                         title=prompt[:80],
                     )
 
+                chat_history = self._build_assignment_generation_chat_history(
+                    generation_session
+                )
+
                 user_message = AssignmentGenerationMessage.objects.create(
                     session=generation_session,
                     role=AssignmentGenerationRole.USER,
@@ -1049,7 +1152,10 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
                 generated_assignment = (
                     ai_processor.generate_assignment_from_prompt_with_retry(
-                        request.user, prompt, max_retries=3
+                        request.user,
+                        prompt,
+                        max_retries=3,
+                        chat_history=chat_history,
                     )
                 )
 
@@ -1119,7 +1225,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         with transaction.atomic():
             draft_message = get_object_or_404(
                 AssignmentGenerationMessage.objects.select_for_update()
-                .select_related("assignment", "session__course", "session__user")
+                .select_related("session__course", "session__user")
                 .filter(
                     id=message_id,
                     session__user=request.user,
@@ -1128,7 +1234,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 )
             )
 
-            if draft_message.assignment:
+            if draft_message.assignment_id:
                 serializer = AssignmentListSerializer(draft_message.assignment)
                 return Response(serializer.data, status=status.HTTP_200_OK)
 

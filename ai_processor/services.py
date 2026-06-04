@@ -1869,10 +1869,24 @@ Do not include any explanatory text before or after the JSON
 
         raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
 
-    def generate_assignment_from_prompt(self, user, prompt):
+    def generate_assignment_from_prompt(self, user, prompt, chat_history=None):
         """Generate an assignment based on the given prompt and chat history."""
         system_prompt = GENERATE_ASSIGNMENT_PROMPT
         messages = [{"role": "system", "content": system_prompt}]
+
+        if chat_history:
+            messages.append(
+                {
+                    "role": "system",
+                    "content": (
+                        "The following messages are prior context from the same "
+                        "assignment-generation session. Use them to understand "
+                        "references and refinement requests, but treat the latest "
+                        "teacher instruction as the current task."
+                    ),
+                }
+            )
+            messages.extend(chat_history)
 
         user_prompt = f"""
 Now, respond to the following teacher's instruction using the rules above
@@ -1883,8 +1897,6 @@ Now, respond to the following teacher's instruction using the rules above
 
         """
 
-        # if chat_history:
-        #     messages.extend(chat_history)
         messages.append({"role": "user", "content": user_prompt})
         # messages.append({"role": "user", "content": json_structure})
 
@@ -1958,7 +1970,7 @@ Now, respond to the following teacher's instruction using the rules above
         return json_data
 
     def generate_assignment_from_prompt_with_retry(
-        self, user, prompt, max_retries: int = 3
+        self, user, prompt, max_retries: int = 3, chat_history=None
     ):
         """
         Retry wrapper for generate_assignment_from_prompt
@@ -1968,7 +1980,9 @@ Now, respond to the following teacher's instruction using the rules above
 
         for attempt in range(max_retries):
             try:
-                return self.generate_assignment_from_prompt(user, prompt)
+                return self.generate_assignment_from_prompt(
+                    user, prompt, chat_history=chat_history
+                )
             except Exception as e:
                 last_error = e
                 logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
