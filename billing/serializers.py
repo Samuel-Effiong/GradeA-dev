@@ -56,7 +56,7 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
             "tier",
             "interval",
             "product_id",
-            "stripe_price_id",
+            "price_id",
             "price_cents",
             "monthly_credits" "carry_over_percent",
             "carry_over_max",
