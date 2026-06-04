@@ -57,7 +57,7 @@ with open("ai_processor/ASSIGNMENT_EXTRACTION_PROMPT_4_PROSE.txt", "r") as file:
     ASSIGNMENT_EXTRACTION_PROMPT = file.read()
 
 with open(
-    "ai_processor/ASSIGNMENT_EXTRACTION_PROMPT_FROM_UPLOADS_HTML.txt", "r"
+    "ai_processor/ASSIGNMENT_EXTRACTION_PROMPT_FROM_UPLOADS_HTML_2.txt", "r"
 ) as file:
     ASSIGNMENT_EXTRACTION_PROMPT_FROM_UPLOADS = file.read()
 
