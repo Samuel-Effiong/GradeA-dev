@@ -22,6 +22,17 @@ from .models import (
 from .services import SubscriptionService
 
 
+class PlanFeatureSerializer(serializers.Serializer):
+    """
+    Serializes a PlanFeatureInclusion into the shape the frontend expects:
+    { key, label, included }
+    """
+
+    key = serializers.CharField(source="feature.key")
+    label = serializers.CharField(source="feature.label")
+    included = serializers.BooleanField()
+
+
 class SubscriptionPlanSerializer(serializers.ModelSerializer):
     """
     Serializer for the SubscriptionPlan model.
@@ -32,14 +43,22 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
     display_carry_over_max = serializers.ReadOnlyField()
     display_overage_block_size = serializers.ReadOnlyField()
 
+    price_id = serializers.CharField(source="stripe_price_id", read_only=True)
+
     class Meta:
         model = SubscriptionPlan
         fields = [
             "id",
             "name",
             "display_name",
-            "monthly_credits",
-            "carry_over_percent",
+            "tagline",
+            "category",
+            "tier",
+            "interval",
+            "product_id",
+            "stripe_price_id",
+            "price_cents",
+            "monthly_credits" "carry_over_percent",
             "carry_over_max",
             "carry_over_expiry_months",
             "overage_block_size",
@@ -56,6 +75,11 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
             "carry_over_max": {"write_only": True},
             "overage_block_size": {"write_only": True},
         }
+
+    def get_features(self, obj) -> list:
+        # Relies on prefetch_related("feature_inclusions__feature")
+        inclusions = obj.feature_inclusions.all()
+        return PlanFeatureSerializer(inclusions, many=True).data
 
     @extend_schema_field(int)
     def get_display_monthly_credits(self, obj) -> int:

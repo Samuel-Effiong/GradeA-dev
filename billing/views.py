@@ -143,7 +143,9 @@ class SubscriptionPlanViewSet(viewsets.ModelViewSet):
     - CREATE / UPDATE / DELETE: Restricted to Super Admins.
     """
 
-    queryset = SubscriptionPlan.objects.all()
+    queryset = SubscriptionPlan.objects.prefetch_related(
+        "feature_inclusions__feature"
+    ).filter(is_active=True)
     serializer_class = SubscriptionPlanSerializer
     permission_classes = [IsAuthenticated, IsNotStudent]
     http_method_names = ["get", "head", "post", "patch", "delete", "options"]

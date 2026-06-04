@@ -23,6 +23,131 @@ class PlanType(models.TextChoices):
     BETA = "BETA", _("Beta")
 
 
+class PlanCategory(models.TextChoices):
+    INDIVIDUAL = "INDIVIDUAL", _("Individual")
+    LICENSE = "LICENSE", _("License")
+
+
+class PlanTier(models.TextChoices):
+    STANDARD = "STANDARD", _("Standard")
+    PRO = "PRO", _("Pro")
+    POWER = "POWER", _("Power")
+    BETA = "BETA", _("Beta")
+    CUSTOM = "CUSTOM", _("Custom")
+
+
+class BillingInterval(models.TextChoices):
+    MONTHLY = "MONTHLY", _("Monthly")
+    ANNUAL = "ANNUAL", _("Annual")
+
+
+class PlanHighlight(models.TextChoices):
+    """
+    Highlights for a plan
+    """
+
+    BEST_VALUE = "BEST_VALUE", _("Best Value")
+    MOST_POPULAR = "GREAT_VALUE", _("Great Value")
+
+
+class PlanFeatureKey(models.TextChoices):
+    ADVANCED_COURSE_ANALYTICS = "ADVANCED_COURSE_ANALYTICS", _(
+        "Advanced Course Analytics"
+    )
+    ADVANCED_ASSIGNMENT_ANALYTICS = "ADVANCED_ASSIGNMENT_ANALYTICS", _(
+        "Advanced Assignment Analytics"
+    )
+    AI_PROMPT_ASSIGNMENT_CREATION = "AI_PROMPT_ASSIGNMENT_CREATION", _(
+        "AI Prompt-Based Assignment Creation"
+    )
+    AI_PROMPT_ANALYTICS_SUMMARY = "AI_PROMPT_ANALYTICS_SUMMARY", _(
+        "AI Prompt-Based Analytics Summarization"
+    )
+    PRE_SCHEDULED_GRADING = "PRE_SCHEDULED_GRADING", _("Pre-Scheduled Grading")
+    ADVANCED_STUDENT_ANALYTICS = "ADVANCED_STUDENT_ANALYTICS", _(
+        "Advanced Student Analytics/Insights"
+    )
+    AI_EMAIL_FEEDBACK = "AI_EMAIL_FEEDBACK", _(
+        "Optional AI Email Feedback for Assignments"
+    )
+    CREDIT_ROLLOVER_25 = "CREDIT_ROLLOVER_25", _("25% AI Credit Rollover")
+    # Display-only / catalogue labels
+    UNLIMITED_COURSES = "UNLIMITED_COURSES", _("Unlimited Courses (Archivable)")
+    INVITE_STUDENTS_UPLOAD = "INVITE_STUDENTS_UPLOAD", _("Invite Students to Upload")
+    BATCH_GRADING = "BATCH_GRADING", _("Batch Grading/Uploading")
+    BASIC_INSIGHTS = "BASIC_INSIGHTS", _("Basic Course/Insights")
+    ADMIN_MANAGED_BILLING = "ADMIN_MANAGED_BILLING", _("Admin-Managed Billing")
+    SHARED_CREDIT_POOL = "SHARED_CREDIT_POOL", _("Shared Credit Pool")
+    DEDICATED_SUPPORT = "DEDICATED_SUPPORT", _("Dedicated Support")
+
+
+class PlanFeature(models.Model):
+    """
+    Master catalogue of every feature that can appear on a plan card.
+    One row per feature key — label lives here, not on the plan.
+    """
+
+    key = models.CharField(
+        max_length=60,
+        choices=PlanFeatureKey.choices,
+        unique=True,
+        primary_key=True,  # key IS the identity, no surrogate needed
+    )
+    label = models.CharField(
+        max_length=200,
+        help_text="Human-readable label shown on the pricing page",
+    )
+    is_gating_feature = models.BooleanField(
+        default=False,
+        help_text=(
+            "True = used in code to gate access to a feature. "
+            "False = display-only catalogue label."
+        ),
+    )
+
+    class Meta:
+        ordering = ["key"]
+
+    def __str__(self):
+        return f"{self.key}: {self.label}"
+
+
+class PlanFeatureInclusion(models.Model):
+    """
+    Through table for the SubscriptionPlan ↔ PlanFeature M2M.
+
+    Stores whether a feature is included on a plan AND the display
+    order so the pricing page renders features in a consistent sequence.
+    """
+
+    plan = models.ForeignKey(
+        "SubscriptionPlan",
+        on_delete=models.CASCADE,
+        related_name="feature_inclusions",
+    )
+    feature = models.ForeignKey(
+        PlanFeature,
+        on_delete=models.PROTECT,  # never silently delete a feature from all plans
+        related_name="plan_inclusions",
+    )
+    included = models.BooleanField(
+        default=False,
+        help_text="Whether this feature is available on this plan",
+    )
+    display_order = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Controls render order on the pricing page card",
+    )
+
+    class Meta:
+        unique_together = [("plan", "feature")]
+        ordering = ["plan", "display_order"]
+
+    def __str__(self):
+        status = "✓" if self.included else "✗"
+        return f"{self.plan.display_name} {status} {self.feature.key}"
+
+
 class SubscriptionPlan(models.Model):
     """
     ```python
@@ -39,6 +164,7 @@ class SubscriptionPlan(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
+    # --- Identity ---
     name = models.CharField(
         max_length=20,
         choices=PlanType.choices,
@@ -48,36 +174,115 @@ class SubscriptionPlan(models.Model):
     display_name = models.CharField(
         max_length=100, null=True, blank=True, help_text="Name of the plan"
     )
-
-    monthly_credits = models.PositiveIntegerField(
-        default=0, help_text="Number of credits granted each month"
+    tagline = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Short phrase describing the plan",
     )
+
+    # --- Categorization ---
+    category = models.CharField(
+        max_length=20,
+        choices=PlanCategory.choices,
+        default=PlanCategory.INDIVIDUAL,
+    )
+    tier = models.CharField(
+        max_length=20,
+        choices=PlanTier.choices,
+        default=PlanTier.STANDARD,
+    )
+
+    interval = models.CharField(
+        max_length=20,
+        choices=BillingInterval.choices,
+        default=BillingInterval.MONTHLY,
+    )
+
+    # --- Stripe ---
+    product_id = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text="Stripe Product ID (prod_xxx). Internal reference only.n",
+    )
+
+    stripe_price_id = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text="Stripe Price ID (price_xxx). Sent to frontend as `price_id`.",
+    )
+
+    # --- Pricing ---
+    price_cents = models.PositiveIntegerField(
+        default=0,
+        help_text="Monthly or annual price in USD cents (e.g. 2499 = $24.99)",
+    )
+
+    # --- Credits ---
+    monthly_credits = models.PositiveIntegerField(
+        default=0,
+        null=True,
+        blank=True,
+        help_text=(
+            "Raw credits granted per cycle (display value × 1000). "
+            "Null for Custom/contact-sales plans."
+        ),
+    )
+
+    # --- Rollover ---
 
     carry_over_percent = models.DecimalField(
         max_digits=5,
         decimal_places=2,
-        help_text="Percentage of unused credits to carry over to the next month",
-    )
-    carry_over_max = models.PositiveIntegerField(
         default=0,
-        help_text="Maximum number of credits that can be carried over to the next month",
-    )
-    carry_over_expiry_months = models.PositiveSmallIntegerField(
-        default=0, help_text="Number of months credits can be carried over"
+        help_text="Percentage of unused credits to carry over (e.g. 25.00 for 25%)",
     )
 
-    overage_block_size = models.PositiveIntegerField(
-        default=0, help_text="Number of credits to add when overage is detected"
+    carry_over_max = models.PositiveIntegerField(
+        default=0,
+        help_text="Maximum raw credits that can be carried over (display value × 1000)",
     )
-    overage_block_price = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        default=0.00,
-        help_text="Price of each overage block",
+
+    carry_over_expiry_months = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="How many months carry-over credits remain valid",
+    )
+
+    # --- Overage ---
+    overage_block_size = models.PositiveIntegerField(
+        default=0,
+        help_text="Raw credits per overage block (display value × 1000, e.g. 5_000_000 = 5K)",
+    )
+    overage_block_size = models.PositiveIntegerField(
+        default=0,
+        help_text="Price per overage block in USD cents (e.g. 400 = $4.00)",
     )
 
     max_overage_blocks = models.PositiveSmallIntegerField(
-        default=0, help_text="Maximum number of overage blocks to add"
+        default=0,
+        help_text="Maximum overage blocks a user can purchase per cycle",
+    )
+
+    # --- Features ---
+    features = models.ManyToManyField(
+        PlanFeature,
+        through="PlanFeatureInclusion",
+        related_name="plans",
+    )
+
+    # --- Display ---
+
+    highlight = models.CharField(
+        max_length=20,
+        choices=PlanHighlight.choices,
+        null=True,
+        blank=True,
+        help_text="Optional badge shown on the plan card (BEST_VALUE or GREAT_VALUE)",
+    )
+    is_contact_sales = models.BooleanField(
+        default=False,
+        help_text="If true, frontend shows 'Contact sales' instead of a checkout CTA",
     )
 
     is_active = models.BooleanField(
@@ -85,13 +290,15 @@ class SubscriptionPlan(models.Model):
     )
 
     class Meta:
-        ordering = ["name"]
+        ordering = ["category", "tier"]
 
     def __str__(self):
         return self.name
 
     @property
-    def display_monthly_credits(self):
+    def display_monthly_credits(self) -> int | None:
+        if self.monthly_credits is None:
+            return None
         return self.monthly_credits // CONVERSION_FACTOR
 
     @property
