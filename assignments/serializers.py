@@ -278,6 +278,64 @@ class AssignmentListSerializer(serializers.ModelSerializer):
         )
 
 
+class AssignmentListStudentSerializer(serializers.ModelSerializer):
+    status = serializers.SerializerMethodField()
+    score = serializers.SerializerMethodField()
+    grade_letter = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Assignment
+        fields = [
+            "id",
+            "title",
+            "course",
+            "topic",
+            "due_date",
+            "status",
+            "score",
+            "grade_letter",
+        ]
+
+    def _get_submission(self, obj):
+        request = self.context.get("request")
+        if (
+            request
+            and hasattr(request.user, "user_type")
+            and request.user.user_type == UserTypes.STUDENT
+        ):
+            return obj.submissions.filter(student=request.user).first()
+        return None
+
+    def get_status(self, obj):
+        "To check if student submitted for this assignment"
+        submission = self._get_submission(obj)
+        if submission:
+            return "Submitted"
+
+        if obj.due_date and obj.due_date < timezone.now():
+            return "Overdue"
+
+        return "Pending"
+
+    def get_score(self, obj):
+        submission = self._get_submission(obj)
+        if submission:
+            if submission.score is not None:
+                return float(submission.score)
+            elif submission.ai_score is not None:
+                return float(submission.ai_score)
+        return None
+
+    def get_grade_letter(self, obj):
+        submission = self._get_submission(obj)
+        if submission and submission.score_percentage is not None:
+            from students.services import get_grade_details
+
+            grade_details = get_grade_details(submission.score_percentage)
+            return grade_details.get("letter_grade")
+        return None
+
+
 class AssignmentDetailSerializer(serializers.ModelSerializer):
     student_submissions = serializers.SerializerMethodField()
     raw_input = serializers.SerializerMethodField()
@@ -421,6 +479,29 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
         return bool(
             obj.scheduled_grading_at and obj.scheduled_grading_at > timezone.now()
         )
+
+
+class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
+    performance_summary = serializers.SerializerMethodField()
+    answers = serializers.SerializerMethodField()
+
+    class Meta(AssignmentListStudentSerializer.Meta):
+        fields = AssignmentListStudentSerializer.Meta.fields + [
+            "performance_summary",
+            "answers",
+        ]
+
+    def get_performance_summary(self, obj):
+        submission = self._get_submission(obj)
+        if submission:
+            return submission.feedback or submission.ai_feedback
+        return None
+
+    def get_answers(self, obj):
+        submission = self._get_submission(obj)
+        if submission:
+            return submission.answers
+        return None
 
 
 class GeneratedAssignmentSerializer(serializers.Serializer):

@@ -440,6 +440,9 @@ SPECTACULAR_SETTINGS = {
         "defaultModelExpandDepth": -1,
         # "docExpansion": "none",
     },
+    "EXTENSIONS": {
+        "polymorphic_assignment": "assignments.schema.PolymorphicAssignmentExtension",
+    },
 }
 
 # EMAIL_BACKEND = "anymail.backends.sendinblue.EmailBackend"

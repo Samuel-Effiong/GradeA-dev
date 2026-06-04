@@ -298,7 +298,7 @@ class StudentCourseDetailSerializer(StudentCourseSerializer):
                 {
                     "id": assignment.id,
                     "title": assignment.title,
-                    "description": assignment.instructions,
+                    "instructions": assignment.instructions,
                     "total_points": assignment.total_points,
                     "due_date": assignment.due_date,
                     "status": status,

@@ -55,9 +55,11 @@ from .models import (  # Rubric
 from .serializers import (  # RubricSerializer,; AssignmentGradeAllSubmissionsSerializer,
     AssignmentCreateResponseSerializer,
     AssignmentDetailSerializer,
+    AssignmentDetailStudentSerializer,
     AssignmentGenerationSessionDetailSerializer,
     AssignmentGenerationSessionSerializer,
     AssignmentListSerializer,
+    AssignmentListStudentSerializer,
     AssignmentSerializer,
     AssignmentTextSerializer,
     BatchUploadResponseSerializer,
@@ -86,25 +88,54 @@ from .tasks import (  # grade_all_submissions,
     list=extend_schema(
         tags=["Assignments"],
         summary="List all assignments",
-        description="Retrieve a paginated list of all assignments in the system.",
-        parameters=[
-            OpenApiParameter(
-                name="page",
-                type=OpenApiTypes.INT,
-                location=OpenApiParameter.QUERY,
-                description="Page number for pagination",
+        responses={
+            200: AssignmentListSerializer(many=True),  # Use the standard serializer
+        },
+        examples=[
+            OpenApiExample(
+                "Teacher List View",
+                value=[
+                    {
+                        "id": f"{uuid.uuid4()}",
+                        "course": "Dummy Course",
+                        "topic": "Dummy Topic",
+                        "title": "Dummy Assignment",
+                        "instructions": "Dummy Instructions",
+                        "total_points": 100,
+                        "question_count": 1,
+                        "assignment_type": "ESSAY",
+                        "status": "PENDING",
+                        "created_at": timezone.now(),
+                        "due_date": timezone.now(),
+                        "auto_grade_on_due_date": False,
+                        "extraction_confidence": 100,
+                        "submission_count": 4,
+                        "scheduled_grading_at": None,
+                        "grading_task_name": None,
+                        "is_grading_scheduled": False,
+                    }
+                ],
+                response_only=True,
+                status_codes=[200],
             ),
-            OpenApiParameter(
-                name="page_size",
-                type=OpenApiTypes.INT,
-                location=OpenApiParameter.QUERY,
-                description="Number of results per page",
+            OpenApiExample(
+                "Student List View",
+                value=[
+                    {
+                        "id": f"{uuid.uuid4()}",
+                        "title": "Dummy Assignment",
+                        "course": None,
+                        "topic": None,
+                        "status": "PENDING",
+                        "due_date": timezone.now(),
+                        "score": 95,
+                        "grade_letter": "A+",
+                    }
+                ],
+                response_only=True,
+                status_codes=[200],
             ),
         ],
-        responses={
-            200: AssignmentListSerializer(many=True),
-            500: OpenApiResponse(description="Internal Server Error"),
-        },
     ),
     create=extend_schema(
         tags=["Assignments"],
@@ -128,12 +159,62 @@ from .tasks import (  # grade_all_submissions,
     retrieve=extend_schema(
         tags=["Assignments"],
         summary="Retrieve an assignment",
-        description="Retrieve detailed information about a specific assignment by its ID.",
         responses={
-            200: AssignmentDetailSerializer,
-            404: OpenApiResponse(description="Assignment not found"),
-            500: OpenApiResponse(description="Internal Server Error"),
+            200: AssignmentDetailSerializer,  # Use the standard serializer
         },
+        examples=[
+            OpenApiExample(
+                "Teacher Detail View",
+                value={
+                    "id": f"{uuid.uuid4()}",
+                    "title": "Dummy Assignment",
+                    "course": None,
+                    "topic": None,
+                    "status": "PENDING",
+                    "raw_input": "Dummy Content",
+                    "created_at": timezone.now(),
+                    "due_date": timezone.now(),
+                    "auto_grade_on_due_date": True,
+                    "extraction_confidence": 90,
+                    "assignment_type": "ESSAY",
+                    "total_points": 100,
+                    "question_count": 1,
+                    "student_submissions": [],
+                    "scheduled_grading_at": None,
+                    "grading_task_name": None,
+                    "is_grading_scheduled": False,
+                },
+                response_only=True,
+                status_codes=[200],
+            ),
+            OpenApiExample(
+                "Student Detail View",
+                value={
+                    "id": f"{uuid.uuid4()}",
+                    "title": "Dummy Assignment",
+                    "course": None,
+                    "topic": None,
+                    "status": "PENDING",
+                    "due_date": timezone.now(),
+                    "score": 95,
+                    "grade_letter": "A+",
+                    "performance_summary": "Great job on this assignment!",
+                    "answers": [
+                        {
+                            "question_text": "What is the capital of France?",
+                            "answer": "Paris",
+                            "correct_answer": "Paris",
+                            "score": 10,
+                            "feedback": "Correct!",
+                            "is_correct": True,
+                            "confidence": 100,
+                        }
+                    ],
+                },
+                response_only=True,
+                status_codes=[200],
+            ),
+        ],
     ),
     partial_update=extend_schema(
         tags=["Assignments"],
@@ -200,9 +281,16 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             return Assignment.objects.none()
 
     def get_serializer_class(self):
+        user = self.request.user
+        is_student = hasattr(user, "user_type") and user.user_type == UserTypes.STUDENT
+
         if self.action == "list":
+            if is_student:
+                return AssignmentListStudentSerializer
             return AssignmentListSerializer
         if self.action == "retrieve":
+            if is_student:
+                return AssignmentDetailStudentSerializer
             return AssignmentDetailSerializer
         if self.request.method in ["POST", "PUT", "PATCH"]:
             return AssignmentTextSerializer

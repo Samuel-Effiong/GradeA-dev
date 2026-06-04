@@ -368,28 +368,28 @@ def get_grade_details(percentage):
     """
     pct = float(percentage)
     if pct >= 97:
-        return "A+", 4.0, "Excellent"
+        return {"letter_grade": "A+", "gpa": 4.0, "remark": "Excellent"}
     elif pct >= 93:
-        return "A", 4.0, "Excellent"
+        return {"letter_grade": "A", "gpa": 4.0, "remark": "Excellent"}
     elif pct >= 90:
-        return "A-", 3.7, "Very Good"
+        return {"letter_grade": "A-", "gpa": 3.7, "remark": "Very Good"}
     elif pct >= 87:
-        return "B+", 3.3, "Good"
+        return {"letter_grade": "B+", "gpa": 3.3, "remark": "Good"}
     elif pct >= 83:
-        return "B", 3.0, "Good"
+        return {"letter_grade": "B", "gpa": 3.0, "remark": "Good"}
     elif pct >= 80:
-        return "B-", 2.7, "Satisfactory"
+        return {"letter_grade": "B-", "gpa": 2.7, "remark": "Satisfactory"}
     elif pct >= 77:
-        return "C+", 2.3, "Satisfactory"
+        return {"letter_grade": "C+", "gpa": 2.3, "remark": "Satisfactory"}
     elif pct >= 73:
-        return "C", 2.0, "Pass"
+        return {"letter_grade": "C", "gpa": 2.0, "remark": "Pass"}
     elif pct >= 70:
-        return "C-", 1.7, "Pass"
+        return {"letter_grade": "C-", "gpa": 1.7, "remark": "Pass"}
     elif pct >= 67:
-        return "D+", 1.3, "Poor"
+        return {"letter_grade": "D+", "gpa": 1.3, "remark": "Poor"}
     elif pct >= 63:
-        return "D", 1.0, "Poor"
+        return {"letter_grade": "D", "gpa": 1.0, "remark": "Poor"}
     elif pct >= 60:
-        return "D-", 0.7, "Marginal Pass"
+        return {"letter_grade": "D-", "gpa": 0.7, "remark": "Marginal Pass"}
     else:
-        return "F", 0.0, "Fail"
+        return {"letter_grade": "F", "gpa": 0.0, "remark": "Fail"}
