@@ -346,6 +346,12 @@ class UserSubscription(models.Model):
         help_text="End date of the current billing cycle"
     )
 
+    # trial_end = models.DateTimeField(
+    #     null=True,
+    #     blank=True,
+    #     help_text="End date of the trial period"
+    # )
+
     auto_renew = models.BooleanField(
         default=True, help_text="Whether the subscription auto-renews"
     )

@@ -101,6 +101,9 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
     Serializer for the UserSubscription model.
     """
 
+    category = serializers.CharField(source="plan.category", read_only=True)
+    tier = serializers.CharField(source="plan.tier", read_only=True)
+
     def validate(self, attrs):
         user = attrs.get("user")
         plan = attrs.get("plan")
@@ -118,6 +121,8 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
             "id",
             "user",
             "plan",
+            "category",
+            "tier",
             "is_active",
             "billing_cycle_start",
             "billing_cycle_end",
