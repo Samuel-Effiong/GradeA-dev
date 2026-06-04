@@ -254,7 +254,7 @@ class SubscriptionPlan(models.Model):
         default=0,
         help_text="Raw credits per overage block (display value × 1000, e.g. 5_000_000 = 5K)",
     )
-    overage_block_size = models.PositiveIntegerField(
+    overage_block_price = models.PositiveIntegerField(
         default=0,
         help_text="Price per overage block in USD cents (e.g. 400 = $4.00)",
     )
