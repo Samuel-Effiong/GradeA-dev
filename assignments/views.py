@@ -65,6 +65,7 @@ from .serializers import (  # RubricSerializer,; AssignmentGradeAllSubmissionsSe
     BatchUploadResponseSerializer,
     GeneratedAssignmentSerializer,
     PublishAllGradesResponseSerializer,
+    SaveGeneratedAssignmentDraftSerializer,
     ScheduledGradingResponseSerializer,
     ScheduleGradingSerializer,
 )
@@ -953,10 +954,29 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         serializer = BatchUploadResponseSerializer(data)
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
 
+    def _build_generated_assignment_draft(self, generated_assignment, course):
+        assignment_data = {
+            **generated_assignment,
+            "course": str(course.id),
+            "ai_generated": True,
+        }
+        assignment_html = AssignmentProcessingService.format_assignment_standard_html(
+            assignment_data
+        )
+        raw_input = AssignmentProcessingService.html_to_prosemirror_json(
+            assignment_html
+        )
+        assignment_data["raw_input"] = json.dumps(raw_input)
+        return assignment_data
+
     @extend_schema(
         tags=["Assignments"],
-        summary="Generate an assignment based on user prompts",
-        description="""Create a new assignment based on user prompts.
+        summary="Generate an AI assignment draft based on user prompts",
+        description="""Create an AI-generated assignment draft based on user prompts.
+
+        This does not create an Assignment record. The generated content is saved
+        as an assignment-generation message draft and can be persisted later with
+        the save-generated-draft endpoint.
 
         Request fields:
         - `prompt` (required): the teacher instruction sent to the AI
@@ -991,10 +1011,11 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
     )
     def generate_assignment_from_prompt(self, request, course_id, *args, **kwargs):
         """
-        Generate a new assignment based on text prompts.
+        Generate a new assignment draft based on text prompts.
 
-        This endpoint accepts a text prompt and generates an assignment with questions
-        and answers using AI processing.
+        This endpoint accepts a text prompt and generates assignment content with
+        questions and answers using AI processing. The generated assignment is kept
+        as an AI draft in the generation session until the teacher explicitly saves it.
         """
 
         # course = Course.objects.filter(id=course_id)
@@ -1032,45 +1053,33 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     )
                 )
 
-                assignment_data = {
-                    **generated_assignment,
-                    "course": str(course.id),
-                    "ai_generated": True,
-                }
-                assignment_html = (
-                    AssignmentProcessingService.format_assignment_standard_html(
-                        assignment_data
-                    )
-                )
-                raw_input = AssignmentProcessingService.html_to_prosemirror_json(
-                    assignment_html
+                assignment_data = self._build_generated_assignment_draft(
+                    generated_assignment, course
                 )
 
-                assignment_data["raw_input"] = json.dumps(raw_input)
-
-                serializer = AssignmentSerializer(data=assignment_data)
-                serializer.is_valid(raise_exception=True)
-                assignment = serializer.save()
+                draft_serializer = AssignmentSerializer(data=assignment_data)
+                draft_serializer.is_valid(raise_exception=True)
 
                 assistant_message = AssignmentGenerationMessage.objects.create(
                     session=generation_session,
                     role=AssignmentGenerationRole.ASSISTANT,
                     content=assignment_data.get("raw_input", ""),
-                    assignment=assignment,
                     assignment_snapshot=assignment_data,
                     metadata={
                         "source": "generate_assignment_from_prompt",
                         "user_message_id": str(user_message.id),
-                        "reply": generated_assignment["self_assessment"],
+                        "reply": generated_assignment.get("self_assessment", ""),
+                        "draft_status": "AI_DRAFT",
                     },
                 )
 
             data = {
-                "content": assignment.raw_input,
-                "reply": generated_assignment["self_assessment"],
-                "assignment_id": str(assignment.id),
+                "content": assignment_data.get("raw_input", ""),
+                "reply": generated_assignment.get("self_assessment", ""),
+                "assignment_id": None,
                 "session_id": str(generation_session.id),
                 "message_id": str(assistant_message.id),
+                "is_draft": True,
             }
 
             return Response(data, status=status.HTTP_201_CREATED)
@@ -1078,6 +1087,104 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    @extend_schema(
+        tags=["Assignments"],
+        summary="Save an AI-generated assignment draft",
+        description="""Persist an AI-generated draft as a real Assignment.
+
+        Use the `message_id` returned from the generate endpoint. This endpoint is
+        idempotent: if the draft was already saved, it returns the existing
+        Assignment instead of creating a duplicate.
+        """,
+        request=SaveGeneratedAssignmentDraftSerializer,
+        responses={
+            201: AssignmentListSerializer,
+            200: AssignmentListSerializer,
+            400: OpenApiResponse(description="Invalid or non-assignment draft"),
+            404: OpenApiResponse(description="Draft not found"),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["POST"],
+        url_path=r"generated-drafts/(?P<message_id>[-\w]+)/save",
+        url_name="save-generated-draft",
+    )
+    def save_generated_assignment_draft(self, request, message_id, *args, **kwargs):
+        """
+        Save a generated assistant message draft as a real Assignment.
+        """
+
+        with transaction.atomic():
+            draft_message = get_object_or_404(
+                AssignmentGenerationMessage.objects.select_for_update()
+                .select_related("assignment", "session__course", "session__user")
+                .filter(
+                    id=message_id,
+                    session__user=request.user,
+                    session__course__teacher=request.user,
+                    role=AssignmentGenerationRole.ASSISTANT,
+                )
+            )
+
+            if draft_message.assignment:
+                serializer = AssignmentListSerializer(draft_message.assignment)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+
+            metadata = draft_message.metadata or {}
+            if metadata.get("draft_status") != "AI_DRAFT":
+                raise ParseError("This message is not an unsaved AI assignment draft.")
+
+            if not draft_message.assignment_snapshot:
+                raise ParseError("Draft assignment content is missing.")
+
+            course = draft_message.session.course
+            save_serializer = SaveGeneratedAssignmentDraftSerializer(
+                data=request.data,
+                context={"course": course},
+            )
+            save_serializer.is_valid(raise_exception=True)
+
+            assignment_data = dict(draft_message.assignment_snapshot)
+            assignment_data["course"] = str(course.id)
+
+            for field, value in save_serializer.validated_data.items():
+                if field == "topic":
+                    assignment_data[field] = str(value.id) if value else None
+                elif field == "due_date":
+                    assignment_data[field] = value.isoformat() if value else None
+                else:
+                    assignment_data[field] = value
+
+            assignment_html = (
+                AssignmentProcessingService.format_assignment_standard_html(
+                    assignment_data
+                )
+            )
+            raw_input = AssignmentProcessingService.html_to_prosemirror_json(
+                assignment_html
+            )
+            assignment_data["raw_input"] = json.dumps(raw_input)
+
+            assignment_serializer = AssignmentSerializer(data=assignment_data)
+            assignment_serializer.is_valid(raise_exception=True)
+            assignment = assignment_serializer.save()
+
+            draft_message.assignment = assignment
+            draft_message.assignment_snapshot = assignment_data
+            draft_message.metadata = {
+                **metadata,
+                "draft_status": "SAVED",
+                "assignment_id": str(assignment.id),
+                "saved_at": timezone.now().isoformat(),
+            }
+            draft_message.save(
+                update_fields=["assignment", "assignment_snapshot", "metadata"]
+            )
+
+        serializer = AssignmentListSerializer(assignment)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @extend_schema(
         tags=["Assignments"],

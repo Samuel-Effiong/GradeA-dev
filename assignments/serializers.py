@@ -510,6 +510,37 @@ class GeneratedAssignmentSerializer(serializers.Serializer):
     assignment_id = serializers.UUIDField(required=False, allow_null=True)
     session_id = serializers.UUIDField(required=False, allow_null=True)
     message_id = serializers.UUIDField(required=False, allow_null=True)
+    is_draft = serializers.BooleanField(required=False)
+
+
+class SaveGeneratedAssignmentDraftSerializer(serializers.Serializer):
+    title = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    topic = serializers.PrimaryKeyRelatedField(
+        queryset=Topic.objects.all(), required=False, allow_null=True
+    )
+    status = serializers.ChoiceField(
+        choices=AssignmentStatus.choices,
+        required=False,
+        default=AssignmentStatus.DRAFT,
+    )
+    due_date = serializers.DateTimeField(required=False, allow_null=True)
+    auto_grade_on_due_date = serializers.BooleanField(required=False)
+
+    def validate_due_date(self, value):
+        if value and value < timezone.now():
+            raise serializers.ValidationError("Due date cannot be in the past.")
+        return value
+
+    def validate(self, data):
+        course = self.context.get("course")
+        topic = data.get("topic")
+
+        if topic and course and topic.course != course:
+            raise serializers.ValidationError(
+                "Topic must belong to the selected course."
+            )
+
+        return data
 
 
 class ScoringLevelSerializer(serializers.Serializer):
