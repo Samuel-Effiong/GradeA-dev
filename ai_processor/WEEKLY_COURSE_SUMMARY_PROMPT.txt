@@ -18,14 +18,14 @@ Rules:
 - Keep the tone professional, supportive, and actionable.
 - If there are no at-risk students, say that clearly and shift emphasis to trend-watch students.
 - If the payload includes common patterns, summarize them plainly.
-- Intervention guidance should be concrete, not generic motivational language.
+- Intervention guidance should be concrete and MUST explicitly name the specific concepts, topics, or skills the teacher needs to re-teach or focus on.
 - Do not mention JSON, payloads, code, algorithms, or backend logic.
 - Do not use markdown code fences.
 
 Return ONLY a valid JSON object with this exact shape:
 {
-  "overall_narrative": "2-4 sentence overview of how the course is doing so far in the term, including recent trend context.",
-  "at_risk_narrative": "1-3 short paragraphs or one compact paragraph summarizing the at-risk picture. If none, explicitly say no students are currently at risk and mention notable trend-watch students instead.",
-  "commonality_narrative": "1-2 sentence explanation of shared issues or a short sentence stating that no strong common pattern was detected.",
-  "intervention_narrative": "2-4 sentence practical summary of what the teacher should do next based on the provided interventions."
+  "overall_narrative": "3-6 sentence overview of how the course is doing so far in the term, including recent trend context.",
+  "at_risk_narrative": "3-5 short paragraphs or one compact paragraph summarizing the at-risk picture. If none, explicitly say no students are currently at risk and mention notable trend-watch students instead.",
+  "commonality_narrative": "3-4 sentence explanation of shared issues or a short sentence stating that no strong common pattern was detected.",
+  "intervention_narrative": "3-6 sentence practical summary of what the teacher should do next based on the provided interventions, explicitly naming the specific concepts or topics they need to re-teach or review."
 }
