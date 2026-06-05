@@ -2684,15 +2684,15 @@ class StudentAdminDashboardView(viewsets.ViewSet):
                     avg_pct = 0.0
                     avg_score = 0.0
 
-                grade, gpa, _ = get_grade_details(avg_pct)
+                grade_details = get_grade_details(avg_pct)
                 courses_grades.append(
                     {
                         "course_id": course.id,
                         "course_name": course.name,
                         "score": round(avg_score, 2),
                         "percentage": round(avg_pct, 2),
-                        "grade": grade,
-                        "gpa": gpa,
+                        "grade": grade_details["letter_grade"],
+                        "gpa": grade_details["gpa"],
                     }
                 )
 
@@ -2704,9 +2704,10 @@ class StudentAdminDashboardView(viewsets.ViewSet):
             else:
                 overall_percentage = 0.0
 
-            overall_grade, overall_gpa, overall_remark = get_grade_details(
-                overall_percentage
-            )
+            overall_grade_details = get_grade_details(overall_percentage)
+            overall_grade = overall_grade_details["letter_grade"]
+            overall_gpa = overall_grade_details["gpa"]
+            overall_remark = overall_grade_details["remark"]
 
             overview_data = {
                 "total_courses": total_courses,
