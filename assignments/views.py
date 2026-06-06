@@ -1202,6 +1202,9 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         Use the `message_id` returned from the generate endpoint. This endpoint is
         idempotent: if the draft was already saved, it returns the existing
         Assignment instead of creating a duplicate.
+
+        The fields in the body are all optional, if omitted, the AI will use the
+        values from the generated assignment or you can change them here
         """,
         request=SaveGeneratedAssignmentDraftSerializer,
         responses={
