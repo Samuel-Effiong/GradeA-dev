@@ -2195,7 +2195,7 @@ Now, respond to the following teacher's instruction using the rules above
         elif role == UserTypes.SCHOOL_ADMIN:
             system_prompt_file = "ai_processor/SCHOOLADMIN_CUSTOM_PROMPT.txt"
         elif role == UserTypes.TEACHER:
-            system_prompt_file = "ai_processor/TEACHER_CUSTOM_PROMPT.txt"
+            system_prompt_file = "ai_processor/TEACHER_CUSTOM_PROMPT_2.txt"
         elif role == UserTypes.STUDENT:
             system_prompt_file = "ai_processor/STUDENT_CUSTOM_PROMPT.txt"
         else:
