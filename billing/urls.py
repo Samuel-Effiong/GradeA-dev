@@ -1,5 +1,6 @@
 from rest_framework.routers import DefaultRouter
 
+from .license_views import LicenseSubscriptionViewSet, SchoolCreditAllocationViewSet
 from .views import (
     BetaAnalyticViewSet,
     BetaAnaylicChartViewSet,
@@ -10,7 +11,7 @@ from .views import (
     CreditWalletViewSet,
     SubscriptionManagementViewSet,
     SubscriptionPlanViewSet,
-    UserSubscriptionViewSet,
+    UserSubscriptionViewSet
 )
 from .views_admin_credits import AdminCreditManagementViewSet
 
@@ -20,6 +21,16 @@ router.register(
 )
 router.register(
     r"user-subscriptions", UserSubscriptionViewSet, basename="user-subscription"
+)
+router.register(
+    r"license-subscriptions",
+    LicenseSubscriptionViewSet,
+    basename="license-subscription",
+)
+router.register(
+    r"school-credit-allocations",
+    SchoolCreditAllocationViewSet,
+    basename="school-credit-allocation",
 )
 router.register(r"credit-wallets", CreditWalletViewSet, basename="credit-wallet")
 router.register(r"credit-buckets", CreditBucketViewSet, basename="credit-bucket")

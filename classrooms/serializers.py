@@ -203,7 +203,8 @@ class StudentCourseSerializer(serializers.ModelSerializer):
     course_description = serializers.CharField(
         source="course.description", read_only=True
     )
-    course_title = serializers.CharField(source="course.title", read_only=True)
+    course_title = serializers.CharField(source="course.name", read_only=True)
+    teacher = serializers.SerializerMethodField()
     total_no_of_assignment = serializers.SerializerMethodField()
     total_assignment_submitted = serializers.SerializerMethodField()
     submitted_assignment_percentage = serializers.SerializerMethodField()
@@ -217,6 +218,7 @@ class StudentCourseSerializer(serializers.ModelSerializer):
             "course",
             "course_title",
             "course_description",
+            "teacher",
             "total_no_of_assignment",
             "total_assignment_submitted",
             "submitted_assignment_percentage",
@@ -227,6 +229,9 @@ class StudentCourseSerializer(serializers.ModelSerializer):
             "grade_letter",
         ]
         read_only_fields = ["id", "created_at"]
+
+    def get_teacher(self, obj):
+        return obj.course.teacher.get_full_name()
 
     def validate_final_grade(self, value):
         """Validate that final_grade is between 0 and 100."""

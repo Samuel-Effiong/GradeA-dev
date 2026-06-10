@@ -24,8 +24,6 @@ from students.task_tracking import (
     lock_processing_task_for_final_save,
 )
 
-from .serializers import AssignmentListSerializer, AssignmentSerializer
-
 # from docutils.transforms.universal import Validate
 
 # from ai_processor.services import ai_processor
@@ -605,18 +603,6 @@ class AssignmentProcessingService:
 
         return assignment_questions
 
-        # serializer = AssignmentSerializer(
-        #     assignment, data=assignment_questions, partial=True
-        # )
-        # serializer.is_valid(raise_exception=True)
-        # serializer.save()
-        #
-        # serializer = AssignmentListSerializer(assignment)
-        #
-        # print("Assignment saved successfully")
-        #
-        # return serializer
-
     @classmethod
     def update_assignment_from_extraction(
         cls,
@@ -630,6 +616,8 @@ class AssignmentProcessingService:
         upload=False,
         processing_task_id=None,
     ):
+        from .serializers import AssignmentSerializer
+
         assignment_data = cls.extract_assignment_data(
             user,
             content,
@@ -653,6 +641,8 @@ class AssignmentProcessingService:
 
     @classmethod
     def extract_assignment(cls, user, assignment, content):
+        from .serializers import AssignmentListSerializer
+
         updated_assignment = cls.update_assignment_from_extraction(
             user, assignment, content, keep_existing_title=True
         )

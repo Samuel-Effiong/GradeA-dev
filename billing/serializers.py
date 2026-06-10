@@ -16,6 +16,9 @@ from .models import (
     CreditLedger,
     CreditUsageLog,
     CreditWallet,
+    LicenseSubscription,
+    PlanCategory,
+    SchoolCreditAllocation,
     SubscriptionPlan,
     UserSubscription,
 )
@@ -104,6 +107,8 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
 
     category = serializers.CharField(source="plan.category", read_only=True)
     tier = serializers.CharField(source="plan.tier", read_only=True)
+    subscription_type = serializers.SerializerMethodField(read_only=True)
+    is_under_license = serializers.SerializerMethodField(read_only=True)
 
     def validate(self, attrs):
         user = attrs.get("user")
@@ -124,6 +129,8 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
             "plan",
             "category",
             "tier",
+            "subscription_type",
+            "is_under_license",
             "is_active",
             "billing_cycle_start",
             "billing_cycle_end",
@@ -137,11 +144,21 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
             "is_active",
             "billing_cycle_start",
             "billing_cycle_end",
+            "subscription_type",
+            "is_under_license",
         ]
 
         extra_kwargs = {
             "is_active": {"required": False},
         }
+
+    def get_subscription_type(self, obj):
+        """Returns 'INDIVIDUAL' for UserSubscription (as opposed to 'LICENSE')."""
+        return "INDIVIDUAL"
+
+    def get_is_under_license(self, obj):
+        """Returns False for UserSubscription (these are individual subscriptions)."""
+        return False
 
     def create(self, validated_data):
         # Delegate all business logic to the Service Layer
@@ -834,3 +851,134 @@ class BetaProfileSerializer(serializers.ModelSerializer):
             return 0.0
         percentage = (obj.total_credits_used / obj.initial_beta_credits) * 100
         return round(percentage, 2)
+
+
+class SchoolCreditAllocationSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the SchoolCreditAllocation model.
+
+    Represents a teacher's individual credit allocation under a LicenseSubscription.
+    Each teacher gets independent credit tracking and consumption.
+    """
+
+    user_email = serializers.CharField(source="user.email", read_only=True)
+    user_full_name = serializers.CharField(source="user.get_full_name", read_only=True)
+    display_monthly_allocation = serializers.IntegerField(read_only=True)
+    license_school_name = serializers.CharField(
+        source="license_subscription.school.name", read_only=True
+    )
+    license_plan_name = serializers.CharField(
+        source="license_subscription.plan.display_name", read_only=True
+    )
+
+    class Meta:
+        model = SchoolCreditAllocation
+        fields = [
+            "id",
+            "license_subscription",
+            "user",
+            "user_email",
+            "user_full_name",
+            "monthly_allocation",
+            "display_monthly_allocation",
+            "license_school_name",
+            "license_plan_name",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "created_at",
+            "updated_at",
+            "display_monthly_allocation",
+            "user_email",
+            "user_full_name",
+            "license_school_name",
+            "license_plan_name",
+        ]
+
+    def to_representation(self, instance):
+        """Customize output representation."""
+        ret = super().to_representation(instance)
+        # Return the raw monthly_allocation in the response
+        ret["monthly_allocation"] = instance.monthly_allocation
+        return ret
+
+
+class LicenseSubscriptionSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the LicenseSubscription model.
+
+    Represents a school/institutional subscription for multiple teachers.
+    Each teacher gets an independent credit allocation but cannot modify billing.
+    """
+
+    teacher_count = serializers.IntegerField(read_only=True)
+    school_name = serializers.CharField(source="school.name", read_only=True)
+    plan_name = serializers.CharField(source="plan.display_name", read_only=True)
+    plan_category = serializers.CharField(source="plan.category", read_only=True)
+    admin_email = serializers.CharField(source="admin_user.email", read_only=True)
+    monthly_credits = serializers.IntegerField(
+        source="plan.monthly_credits", read_only=True
+    )
+    display_monthly_credits = serializers.IntegerField(
+        source="plan.display_monthly_credits", read_only=True
+    )
+    allocations = SchoolCreditAllocationSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = LicenseSubscription
+        fields = [
+            "id",
+            "school",
+            "school_name",
+            "admin_user",
+            "admin_email",
+            "plan",
+            "plan_name",
+            "plan_category",
+            "monthly_credits",
+            "display_monthly_credits",
+            "billing_cycle_start",
+            "billing_cycle_end",
+            "is_active",
+            "auto_renew",
+            "stripe_subscription_id",
+            "teacher_count",
+            "allocations",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "created_at",
+            "updated_at",
+            "teacher_count",
+            "school_name",
+            "plan_name",
+            "plan_category",
+            "admin_email",
+            "monthly_credits",
+            "display_monthly_credits",
+            "allocations",
+        ]
+
+    def validate_plan(self, value):
+        """
+        Validate that the selected plan is a LICENSE category plan.
+        """
+        if value.category != PlanCategory.LICENSE:
+            raise serializers.ValidationError(
+                f"License subscriptions require a LICENSE plan, not {value.category}."
+            )
+        return value
+
+    def to_representation(self, instance):
+        """Customize output representation."""
+        ret = super().to_representation(instance)
+        # Include active allocations count
+        ret["active_teacher_count"] = instance.allocations.filter(
+            is_active=True
+        ).count()
+        return ret

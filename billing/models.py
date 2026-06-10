@@ -20,7 +20,8 @@ class PlanType(models.TextChoices):
     STANDARD = "STANDARD", _("Standard")
     PRO = "PRO", _("Pro")
     POWER = "POWER", _("Power")
-    BETA = "BETA", _("Beta")
+    BETA = "BETA", _("Beta")  # Internal only, not in spec
+    CUSTOM = "CUSTOM", _("Custom")
 
 
 class PlanCategory(models.TextChoices):
@@ -515,7 +516,7 @@ class CreditWallet(models.Model):
         is_overage = models.Case(
             models.When(bucket_type=CreditBucketType.OVERAGE, then=models.Value(1)),
             default=models.Value(0),
-            output_fields=models.IntegerField(),
+            output_field=models.IntegerField(),
         )
 
         buckets = (
@@ -601,6 +602,7 @@ class CreditBucketType(models.TextChoices):
     CARRY_OVER = "CARRY_OVER", _("Carry Over")
     OVERAGE = "OVERAGE", _("Overage")
     MANUAL_GRANT = "MANUAL_GRANT", _("Manual Grant")
+    TRIAL = "TRIAL", _("Trial")
 
 
 class CreditBucket(models.Model):
@@ -711,6 +713,7 @@ class CreditLedgerType(models.TextChoices):
     GRANT = "GRANT", _("Grant")
     EXPIRE = "EXPIRE", _("Expire")
     PURCHASE = "PURCHASE", _("Purchase")
+    PLAN_CHANGE = "PLAN_CHANGE", _("Plan Change")
 
 
 class CreditLedger(models.Model):
@@ -862,3 +865,188 @@ class BetaProfile(models.Model):
             f"Beta Profile for {self.user.email} "
             f"(Score: {self.conversion_probability})"
         )
+
+
+class LicenseSubscription(models.Model):
+    """
+    Represents a school/institutional subscription for multiple teachers.
+
+    A License subscription is created at the school level and managed by a school admin.
+    Teachers under this license get individual credit allocations but cannot modify
+    their billing. The license handles one Stripe subscription for the entire school.
+
+    Key differences from UserSubscription:
+    - One License can serve multiple teachers
+    - Teachers do not control billing (read-only)
+    - Each teacher gets an individual SchoolCreditAllocation
+    - School admin manages upgrades/downgrades/cancellation
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    # --- School & Admin ---
+    school = models.ForeignKey(
+        "classrooms.School",
+        on_delete=models.CASCADE,
+        related_name="license_subscriptions",
+        help_text="School that owns this license",
+    )
+    admin_user = models.ForeignKey(
+        "users.CustomUser",
+        on_delete=models.PROTECT,
+        related_name="managed_license_subscriptions",
+        help_text="Admin user who manages this license (typically school admin)",
+    )
+
+    # --- Plan & Billing ---
+    plan = models.ForeignKey(
+        "SubscriptionPlan",
+        on_delete=models.PROTECT,
+        related_name="license_subscriptions",
+        help_text="License plan (must have category=LICENSE)",
+    )
+
+    class ContractMonths(models.IntegerChoices):
+        ONE = 1, _("1 Month")
+        NINE = 9, _("9 Months")
+        TEN = 10, _("10 Months")
+        TWELVE = 12, _("12 Months")
+
+    contract_months = models.PositiveSmallIntegerField(
+        choices=ContractMonths.choices,
+        default=ContractMonths.TWELVE,
+        help_text=(
+            "Contract duration in months. Schools can choose 9, 10, or 12 month "
+            "billing periods. This determines how far ahead billing_cycle_end is set "
+            "on creation and each renewal."
+        ),
+    )
+
+    max_seats = models.PositiveSmallIntegerField(
+        default=0,
+        help_text=(
+            "Maximum number of teacher seats allowed under this license. "
+            "0 = unlimited (e.g. for Custom contracts). Enforced on enrollment."
+        ),
+    )
+
+    billing_cycle_start = models.DateTimeField(
+        help_text="Start date of the current billing cycle"
+    )
+    billing_cycle_end = models.DateTimeField(
+        help_text="End date of the current billing cycle"
+    )
+
+    # --- Status ---
+    is_active = models.BooleanField(
+        default=True, help_text="Whether the license subscription is active"
+    )
+    auto_renew = models.BooleanField(
+        default=True, help_text="Whether the license auto-renews at cycle end"
+    )
+
+    # --- Stripe Integration ---
+    stripe_subscription_id = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text="Stripe subscription ID for this license (one per school)",
+    )
+
+    # --- Timestamps ---
+    created_at = models.DateTimeField(
+        auto_now_add=True, help_text="Date and time when the license was created"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True, help_text="Date and time when the license was last updated"
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "License Subscription"
+        verbose_name_plural = "License Subscriptions"
+
+    def __str__(self):
+        return f"{self.school.name} - {self.plan.display_name or self.plan.name}"
+
+    @property
+    def teacher_count(self):
+        """Returns number of active teachers enrolled under this license."""
+        return self.allocations.filter(is_active=True).count()
+
+    @property
+    def seats_remaining(self) -> int | None:
+        """
+        Returns the number of remaining enrollable seats.
+        Returns None if max_seats=0 (unlimited).
+        """
+        if self.max_seats == 0:
+            return None  # unlimited
+        return max(0, self.max_seats - self.teacher_count)
+
+
+class SchoolCreditAllocation(models.Model):
+    """
+    Represents an individual teacher's credit allocation under a LicenseSubscription.
+
+    Each teacher under a license gets their own SchoolCreditAllocation, which defines:
+    - Which license they belong to
+    - Their monthly credit allocation (independent from other teachers)
+    - Their associated CreditWallet (where credits are actually stored)
+
+    This is the bridge between LicenseSubscription and individual teacher CreditWallets.
+    It ensures each teacher has independent credit tracking and consumption.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    # --- License & Teacher ---
+    license_subscription = models.ForeignKey(
+        LicenseSubscription,
+        on_delete=models.CASCADE,
+        related_name="allocations",
+        help_text="License subscription this allocation belongs to",
+    )
+    user = models.ForeignKey(
+        "users.CustomUser",
+        on_delete=models.CASCADE,
+        related_name="school_credit_allocations",
+        help_text="Teacher enrolled under this license",
+    )
+
+    # --- Allocation ---
+    monthly_allocation = models.PositiveIntegerField(
+        help_text="Raw monthly credit allocation for this teacher (display value × 1000)",
+    )
+
+    # --- Status ---
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Whether this teacher is actively enrolled under the license",
+    )
+
+    # --- Timestamps ---
+    created_at = models.DateTimeField(
+        auto_now_add=True, help_text="Date and time when the allocation was created"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True, help_text="Date and time when the allocation was last updated"
+    )
+
+    class Meta:
+        unique_together = [("license_subscription", "user")]
+        ordering = ["created_at"]
+        verbose_name = "School Credit Allocation"
+        verbose_name_plural = "School Credit Allocations"
+        indexes = [
+            models.Index(fields=["license_subscription", "is_active"]),
+            models.Index(fields=["user", "is_active"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user.email} under {self.license_subscription.school.name}"
+
+    @property
+    def display_monthly_allocation(self) -> int:
+        """Returns display value (raw value / 1000)"""
+        return self.monthly_allocation // CONVERSION_FACTOR

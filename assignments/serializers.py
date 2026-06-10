@@ -8,6 +8,7 @@ from rest_framework.exceptions import ParseError
 
 from classrooms.models import Course, StudentCourse, Topic
 from students.models import StudentSubmission
+from students.serializers import StudentSubmissionSerializer
 from users.models import UserTypes
 
 from .models import (  # Rubric
@@ -282,6 +283,7 @@ class AssignmentListStudentSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     score = serializers.SerializerMethodField()
     grade_letter = serializers.SerializerMethodField()
+    course_title = serializers.CharField(source="course.name", read_only=True)
 
     class Meta:
         model = Assignment
@@ -289,10 +291,12 @@ class AssignmentListStudentSerializer(serializers.ModelSerializer):
             "id",
             "title",
             "course",
+            "course_title",
             "topic",
             "due_date",
             "status",
             "score",
+            "total_points",
             "grade_letter",
         ]
 
@@ -483,12 +487,16 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
 
 class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
     performance_summary = serializers.SerializerMethodField()
-    answers = serializers.SerializerMethodField()
+    raw_input = serializers.SerializerMethodField()
+    # answers = serializers.SerializerMethodField()
+    # submissions = serializers.SerializerMethodField()
 
     class Meta(AssignmentListStudentSerializer.Meta):
         fields = AssignmentListStudentSerializer.Meta.fields + [
             "performance_summary",
-            "answers",
+            "raw_input",
+            # "answers",
+            # "submissions",
         ]
 
     def get_performance_summary(self, obj):
@@ -497,11 +505,15 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
             return submission.feedback or submission.ai_feedback
         return None
 
-    def get_answers(self, obj):
+    def get_raw_input(self, obj):
         submission = self._get_submission(obj)
         if submission:
-            return submission.answers
+            return submission.raw_input
         return None
+
+    def get_submission(self, obj):
+        submission = self._get_submission(obj)
+        return StudentSubmissionSerializer(submission).data
 
 
 class GeneratedAssignmentSerializer(serializers.Serializer):
