@@ -326,8 +326,8 @@ class AssignmentListStudentSerializer(serializers.ModelSerializer):
         if submission:
             if submission.score is not None:
                 return float(submission.score)
-            elif submission.ai_score is not None:
-                return float(submission.ai_score)
+            # elif submission.ai_score is not None:
+            #     return float(submission.ai_score)
         return None
 
     def get_grade_letter(self, obj):

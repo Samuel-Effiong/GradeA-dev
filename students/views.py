@@ -68,6 +68,7 @@ from .models import (
 from .serializers import (
     StudentListSerializer,
     StudentSubmissionDetailSerializer,
+    StudentSubmissionDetailStudentVersionSerializer,
     StudentSubmissionFormattedGradeAsyncSerializer,
     StudentSubmissionGradeAsyncSerializer,
     StudentSubmissionGradeUpdateSerializer,
@@ -216,6 +217,8 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if self.action == "list":
             return StudentSubmissionListSerializer
         elif self.action == "retrieve":
+            if self.request.user.user_type == UserTypes.STUDENT:
+                return StudentSubmissionDetailStudentVersionSerializer
             return StudentSubmissionDetailSerializer
         return StudentSubmissionSerializer
 
