@@ -496,7 +496,8 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
     class Meta(AssignmentListStudentSerializer.Meta):
         fields = AssignmentListStudentSerializer.Meta.fields + [
             "performance_summary",
-            "student_submission_id" "raw_input",
+            "student_submission_id",
+            "raw_input",
             "assignment_raw_input",
             # "answers",
             # "submissions",
