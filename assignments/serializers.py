@@ -487,14 +487,17 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
 
 class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
     performance_summary = serializers.SerializerMethodField()
+    student_submission_id = serializers.SerializerMethodField()
     raw_input = serializers.SerializerMethodField()
+    assignment_raw_input = serializers.SerializerMethodField()
     # answers = serializers.SerializerMethodField()
     # submissions = serializers.SerializerMethodField()
 
     class Meta(AssignmentListStudentSerializer.Meta):
         fields = AssignmentListStudentSerializer.Meta.fields + [
             "performance_summary",
-            "raw_input",
+            "student_submission_id" "raw_input",
+            "assignment_raw_input",
             # "answers",
             # "submissions",
         ]
@@ -505,6 +508,10 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
             return submission.feedback or submission.ai_feedback
         return None
 
+    def get_student_submission_id(self, obj):
+        submission = self._get_submission(obj)
+        return str(submission.id) if submission else None
+
     def get_raw_input(self, obj):
         submission = self._get_submission(obj)
         if submission:
@@ -514,6 +521,34 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
     def get_submission(self, obj):
         submission = self._get_submission(obj)
         return StudentSubmissionSerializer(submission).data
+
+    def get_assignment_raw_input(self, obj):
+        """
+        Return the full raw_input for teachers.
+        For students, regenerate the ProseMirror JSON from the structured
+        questions data with rubric and model answer excluded — so the hidden
+        content is determined at generation time rather than by fragile
+        post-processing of the stored JSON.
+        """
+
+        # Import here to avoid circular imports at module level
+        from .services import AssignmentProcessingService
+
+        if not obj.questions:
+            return obj.raw_input
+
+        data = {
+            "title": obj.title,
+            "instructions": obj.instructions,
+            "total_points": obj.total_points,
+            "due_date": obj.due_date.isoformat() if obj.due_date else None,
+            "questions": obj.questions,
+        }
+        student_html = AssignmentProcessingService.format_assignment_standard_html(
+            data, include_rubric=False
+        )
+        pm_json = AssignmentProcessingService.html_to_prosemirror_json(student_html)
+        return json.dumps(pm_json)
 
 
 class GeneratedAssignmentSerializer(serializers.Serializer):

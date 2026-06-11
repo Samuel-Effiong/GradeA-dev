@@ -110,6 +110,9 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
     subscription_type = serializers.SerializerMethodField(read_only=True)
     is_under_license = serializers.SerializerMethodField(read_only=True)
 
+    trial_days_remaining = serializers.SerializerMethodField(read_only=True)
+    trial_credits_remaining = serializers.SerializerMethodField(read_only=True)
+
     def validate(self, attrs):
         user = attrs.get("user")
         plan = attrs.get("plan")
@@ -132,6 +135,10 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
             "subscription_type",
             "is_under_license",
             "is_active",
+            "is_trail",
+            "trail_end",
+            "trail_days_remaining",
+            "trial_credits_remaining",
             "billing_cycle_start",
             "billing_cycle_end",
             "auto_renew",
@@ -142,6 +149,10 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "is_active",
+            "is_trail",
+            "trail_end",
+            "trail_days_remaining",
+            "trial_credits_remaining",
             "billing_cycle_start",
             "billing_cycle_end",
             "subscription_type",
@@ -160,11 +171,120 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
         """Returns False for UserSubscription (these are individual subscriptions)."""
         return False
 
+    def get_trail_days_remaining(self, obj) -> int | None:
+        """
+        How many whole days remain in the trial.
+        Returns None for non-trial subscriptions
+        REturns 0 if trial has technically ended (shold not occur for active subs,
+        but defensive against race conditions).
+        """
+
+        if not obj.is_trial or not obj.trial_end:
+            return None
+
+        delta = obj.trial_end - timezone.now()
+
+        return max(0, delta.days)
+
+    def get_trial_credits_remaining(self, obj) -> int | None:
+        """
+        Remaining display credits in the TRIAL bucket.
+        Returns None for non-trial subscriptions.
+        Queries the wallet — uses select_related on wallet if available.
+        """
+        if not obj.is_trial:
+            return None
+        try:
+            wallet = obj.user.credit_wallet
+        except Exception:
+            return 0
+        trial_bucket = wallet.buckets.filter(
+            bucket_type=CreditBucketType.TRIAL,
+        ).first()
+        if not trial_bucket:
+            return 0
+        from .models import CONVERSION_FACTOR
+
+        return trial_bucket.remaining_credits // CONVERSION_FACTOR
+
     def create(self, validated_data):
         # Delegate all business logic to the Service Layer
         return SubscriptionService.activate_subscription(
             user=validated_data["user"], plan=validated_data["plan"]
         )
+
+
+class FreeTrialStatusSerializer(serializers.Serializer):
+    """
+    Read-only serializer returned by the start_trial and convert_trial endpoints.
+
+    Gives the frontend everything it needs to render:
+    - The Trial countdown widget
+    - The Credit progress bar
+    - The "Upgrade now" CTA with correct plan context
+    """
+
+    subscription_id = serializers.UUIDField(source="id")
+    plan_id = serializers.UUIDField(source="plan.id")
+    plan_name = serializers.CharField(source="plan.display_name")
+    plan_tier = serializers.CharField(source="plan.tier")
+
+    is_trial = serializers.BooleanField()
+    trial_end = serializers.DateTimeField()
+    trial_days_remaining = serializers.SerializerMethodField()
+
+    # Credit state
+    trial_credits_total = serializers.SerializerMethodField()
+    trial_credits_used = serializers.SerializerMethodField()
+    trial_credits_remaining = serializers.SerializerMethodField()
+
+    # Subscription billing markers (trial's billing_cycle mirrors trial window)
+    billing_cycle_start = serializers.DateTimeField()
+    billing_cycle_end = serializers.DateTimeField()
+
+    is_active = serializers.BooleanField()
+
+    def get_trial_days_remaining(self, obj) -> int:
+        if not obj.trial_end:
+            return 0
+        delta = obj.trial_end - timezone.now()
+        return max(0, delta.days)
+
+    def _get_trial_bucket(self, obj):
+        """Helper: fetch the TRIAL bucket for this subscription (cached on obj)."""
+        if not hasattr(obj, "_trial_bucket_cache"):
+            try:
+                wallet = obj.user.credit_wallet
+                obj._trial_bucket_cache = wallet.buckets.filter(
+                    bucket_type=CreditBucketType.TRIAL,
+                ).first()
+            except Exception:
+                obj._trial_bucket_cache = None
+        return obj._trial_bucket_cache
+
+    def get_trial_credits_total(self, obj) -> int:
+        from .models import CONVERSION_FACTOR
+
+        bucket = self._get_trial_bucket(obj)
+        if not bucket:
+            return 0
+        return bucket.total_credits // CONVERSION_FACTOR
+
+    def get_trial_credits_used(self, obj) -> int:
+        from .models import CONVERSION_FACTOR
+
+        bucket = self._get_trial_bucket(obj)
+        if not bucket:
+            return 0
+        return bucket.used_credits // CONVERSION_FACTOR
+
+    def get_trial_credits_remaining(self, obj) -> int:
+        from .models import CONVERSION_FACTOR
+
+        bucket = self._get_trial_bucket(obj)
+        if not bucket:
+            return 0
+        return bucket.remaining_credits // CONVERSION_FACTOR
 
 
 class CreditBucketSerializer(serializers.ModelSerializer):

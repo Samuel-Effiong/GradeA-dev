@@ -14,6 +14,7 @@ from .models import (  # CreditUsageLog,; SubscriptionPlan,
     CreditLedgerType,
     CreditUsageLog,
     CreditWallet,
+    PlanCategory,
     PlanType,
     UserSubscription,
 )
@@ -22,6 +23,10 @@ logger = logging.getLogger(__name__)
 
 
 class SubscriptionService:
+
+    TRIAL_CREDITS_DISPLAY = 5_000  # User facing value
+    TRIAL_CREDITS_RAW = 5_000 * 1_000
+    TRIAL_DURATION_DAYS = 14
 
     @staticmethod
     @transaction.atomic
@@ -294,6 +299,325 @@ class SubscriptionService:
         bucket.is_processed = True
         bucket.save(update_fields=["used_credits", "is_processed", "updated_at"])
         return unused_amount
+
+    @staticmethod
+    @transaction.atomic
+    def activate_free_trial(user, plan):
+        """
+        Starts a free trial for an INDIVIDUAL Plan
+
+        Rules enforced:
+        - One trial ever per user, across all time (checks historical subscriptions)
+        - Only INDIVIDUAL category plans are eligible: LICENSE plans have no trial
+        - User must not already have an active subscription of any kind
+        - Grants exactly 5,000 display credits (5,000,000 raw) in a TRIAL bucket
+            that expires at trial_end (14 days from activation)
+        - The subscription is marked is_trail=True and trial_end is set
+        - No carry-over rollover is applied when a trial ends - Trial credits
+          simply expire; any unused amount is logged with EXPIRE ledger entry
+
+
+        Args:
+            user (CustomUser): The user starting the trial.
+            plan (SubscriptionPlan): The plan to trial. Must be INDIVIDUAL category.
+
+        Returns:
+            UserSubscription: The newly created trial subscription.
+
+        Raises:
+            ValueError: If the user has already used a trial, if the plan is not
+                        INDIVIDUAL category, or if the user has an active subscription.
+        """
+
+        # Guard 1 - only INDIVIDUAL plans have a free trial
+        if plan.category != PlanCategory.INDIVIDUAL:
+            raise ValueError(
+                f"Free trials are only available for INDIVIDUAL plans. "
+                f"not {plan.category}."
+            )
+
+        # Guard 2 - one trial per user, ever (check entire subscription history)
+        already_trailled = UserSubscription.objects.filter(
+            user=user, is_trial=True
+        ).exists()
+
+        if already_trailled:
+            raise ValueError(
+                "This account has already used it free trial. "
+                "Please subscribe to a paid plan"
+            )
+
+        # Guard 3 - must not have an active subscription already
+        active_sub = UserSubscription.objects.filter(user=user, is_active=True).first()
+
+        if active_sub:
+            raise ValueError(
+                "Cannot start a free trial while an active subscription exists. "
+                "Cancel the current subscription first"
+            )
+
+        now = timezone.now()
+        trial_end = now + relativedelta(days=SubscriptionService.TRIAL_DURATION_DAYS)
+
+        # Create the trial subscription.
+        # Billing_cycle_end matches trial_end - the "billing cycle" for a trial
+        # is the trial window itself. Celery's renewal pipeline reads billing_cycle_end
+        # to decide when to act, so this keeps trial expiry in the same pipeline
+        subscription = UserSubscription.objects.create(
+            user=user,
+            plan=plan,
+            is_active=True,
+            is_trial=True,
+            trial_end=trial_end,
+            billing_cycle_start=now,
+            billing_cycle_end=trial_end,
+            auto_renew=False,
+        )
+
+        # Ensure wallet exists
+        wallet, _ = CreditWallet.objects.get_or_create(user=user)
+
+        # Reset overage counter for this new cycle
+        wallet.overage_blocks_used = 0
+        wallet.save(update_fields=["overage_blocks_used"])
+
+        # Create the TRIAL credit bucket
+        trial_bucket = CreditBucket.objects.create(
+            wallet=wallet,
+            bucket_type=CreditBucketType.TRIAL,
+            total_credits=SubscriptionService.TRIAL_CREDITS_RAW,
+            used_credits=0,
+            expires_at=trial_end,
+        )
+
+        # Immutable audit ledger entry
+        CreditLedger.objects.create(
+            wallet=wallet,
+            bucket=trial_bucket,
+            ledger_type=CreditLedgerType.GRANT,
+            amount=SubscriptionService.TRIAL_CREDITS_RAW,
+            reference=f"Free trial activation for {plan.display_name or plan.name}",
+            metadata={
+                "grant_type": "FREE TRIAL",
+                "display_amount": SubscriptionService.TRIAL_CREDITS_DISPLAY,
+                "raw_amount": SubscriptionService.TRIAL_CREDITS_RAW,
+                "trial_duration_days": SubscriptionService.TRIAL_DURATION_DAYS,
+                "trial_end": trial_end.isoformat(),
+                "subscription_id": str(subscription.id),
+            },
+        )
+
+        logger.info(
+            "Free trial activated for user %s on plan %s. "
+            "Trial ends %s. Subscription ID: %s. Credits: %d display (%d raw).",
+            user.email,
+            plan.name,
+            trial_end.isoformat(),
+            subscription.id,
+            SubscriptionService.TRIAL_CREDITS_DISPLAY,
+            SubscriptionService.TRIAL_CREDITS_RAW,
+        )
+
+        return subscription
+
+    @staticmethod
+    @transaction.atomic
+    def expire_trial(user_subscription):
+        """
+        Called by Celery when a trial subscription's billing_cycle_end (=trail_end)
+        has passed and the user has NOT converted to a paid plan
+
+        What this does:
+        1. Expires any remaining TRIAL bucket credits (logs EXPIRE ledger entry)
+        2. Marks the subscription is_active=False, is_trial=False.
+        3. Does NOT create a new subscription - The user returns to having no sub.
+
+        The user can still sign up for a paid plan after this - activate_subscription()
+        handles users with no current subscription cleanly.
+
+        Args:
+            user_subscription (UserSubscription): The expired trial subscription
+
+        Raises:
+            ValueError: If the suscription is not a trial, or if the trial has not yet ended
+        """
+
+        if not user_subscription.is_trial:
+            raise ValueError(
+                f"Subscription {user_subscription.id} is not a trail subscription"
+            )
+
+        now = timezone.now()
+
+        if user_subscription.trial_end and user_subscription.trial_end > now:
+            raise ValueError(
+                f"Trial for subscription {user_subscription.id} has not ended yet. "
+                f"Trail end: {user_subscription.trial_end}"
+            )
+
+        user = user_subscription.user
+
+        # Expire any remaining TRIAL bucket
+        wallet = user.credit_wallet
+        trial_bucket = (
+            wallet.buckets.select_for_update()
+            .filter(bucket_type=CreditBucketType.TRIAL)
+            .first()
+        )
+
+        if trial_bucket:
+            unused = trial_bucket.remaining_credits
+            if unused > 0:
+                CreditLedger.objects.create(
+                    user=user,
+                    bucket=trial_bucket,
+                    ledger_type=CreditLedgerType.EXPIRE,
+                    amount=unused,
+                    reference="Free trial expired - unused trial credits forfeited.",
+                    metadata={
+                        "expired_amount": unused,
+                        "total_at_start": trial_bucket.total_credits,
+                        "used_before_expiration": trial_bucket.used_credits,
+                        "trial_end": (
+                            user_subscription.trial_end.isoformat()
+                            if user_subscription.trial_end
+                            else None
+                        ),
+                        "subscription_id": str(user_subscription.id),
+                    },
+                )
+
+            # Mark the bucket itself a processed/expired
+            trial_bucket.expires_at = now
+            trial_bucket.is_processed = True
+            trial_bucket.save(update_fields=["is_active", "is_trial", "updated_at"])
+
+        # Deactivate the subscription
+        user_subscription.is_active = False
+        user_subscription.is_trial = False
+        user_subscription.save(update_fields=["is_active", "is_trial", "updated_at"])
+
+        logger.info(
+            "Free trial expired for user %s (subscription %s). "
+            "Unused credits forfeited.",
+            user.email,
+            user_subscription.id,
+        )
+
+    @staticmethod
+    @transaction.atomic
+    def convert_trial_to_paid(user, new_plan):
+        """
+        Converts an active free trial into a full paid subscription.
+
+        This is the "upgrade from trial" action — triggered by the user choosing a
+        paid plan before or during their trial. It is also the intended path called
+        when a user clicks "Subscribe" from within the trial experience.
+
+        What this does:
+        1. Validates there is an active trial to convert.
+        2. Expires the TRIAL bucket immediately — trial credits do NOT carry over
+           into the paid plan (spec: trial is a separate, bounded experience).
+        3. Calls activate_subscription() for the paid plan, which handles:
+           - Deactivating the trial subscription
+           - Creating the new paid subscription
+           - Granting the first monthly credit bucket
+           - Resetting overage counter
+        4. Logs the conversion event in the ledger for analytics.
+
+        Args:
+            user (CustomUser): The user converting from trial.
+            new_plan (SubscriptionPlan): The paid plan to activate. Must be INDIVIDUAL.
+
+        Returns:
+            UserSubscription: The new paid subscription.
+
+        Raises:
+            ValueError: If the user has no active trial, or if new_plan is not
+                        INDIVIDUAL category.
+        """
+        from .models import PlanCategory  # local import
+
+        if new_plan.category != PlanCategory.INDIVIDUAL:
+            raise ValueError(
+                f"Cannot convert trial to a {new_plan.category} plan. "
+                f"Only INDIVIDUAL plans are supported via this flow."
+            )
+
+        # Fetch the active trial subscription under lock
+        trial_sub = (
+            UserSubscription.objects.select_for_update()
+            .filter(user=user, is_active=True, is_trial=True)
+            .first()
+        )
+
+        if not trial_sub:
+            raise ValueError(
+                f"User {user.email} does not have an active free trial to convert."
+            )
+
+        now = timezone.now()
+        wallet = user.credit_wallet
+
+        # Expire the TRIAL bucket immediately — trial credits do not transfer
+        trial_bucket = (
+            wallet.buckets.select_for_update()
+            .filter(
+                bucket_type=CreditBucketType.TRIAL,
+                expires_at__gt=now,  # still live
+            )
+            .first()
+        )
+        if trial_bucket:
+            unused = trial_bucket.remaining_credits
+            if unused > 0:
+                CreditLedger.objects.create(
+                    user=user,
+                    bucket=trial_bucket,
+                    ledger_type=CreditLedgerType.EXPIRE,
+                    amount=unused,
+                    reference=(
+                        f"Trial credits forfeited on conversion to paid plan "
+                        f"{new_plan.display_name or new_plan.name}."
+                    ),
+                    metadata={
+                        "expired_amount": unused,
+                        "conversion_plan": new_plan.name,
+                        "subscription_id": str(trial_sub.id),
+                        "converted_at": now.isoformat(),
+                    },
+                )
+            # Expire the bucket so activate_subscription's cleanup logic
+            # does not find a live MONTHLY bucket and attempt rollover.
+            # (TRIAL bucket_type is excluded from the MONTHLY cleanup in
+            # activate_subscription, so this is belt-and-suspenders.)
+            trial_bucket.expires_at = now
+            trial_bucket.is_processed = True
+            trial_bucket.save(
+                update_fields=["expires_at", "is_processed", "updated_at"]
+            )
+
+        logger.info(
+            "Converting trial subscription %s for user %s to paid plan %s.",
+            trial_sub.id,
+            user.email,
+            new_plan.name,
+        )
+
+        # activate_subscription deactivates the trial sub (via the
+        # "deactivate existing active subscriptions" step) and creates the
+        # new paid subscription + monthly credit bucket.
+        new_subscription = SubscriptionService.activate_subscription(user, new_plan)
+
+        logger.info(
+            "Trial-to-paid conversion complete for user %s. "
+            "New subscription ID: %s. Plan: %s.",
+            user.email,
+            new_subscription.id,
+            new_plan.name,
+        )
+
+        return new_subscription
 
     @staticmethod
     @transaction.atomic

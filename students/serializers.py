@@ -60,12 +60,15 @@ class StudentSubmissionSerializer(serializers.ModelSerializer):
             "student_name",
             "assignment",
             "assignment_title",
-            "answers",
+            # "answers",
             "score",
+            "max_points",
             "feedback",
             "submission_date",
             "graded_at",
             "grading_confidence",
+            "raw_input",
+            "formatted_grade",
         ]
 
         read_only_fields = [
@@ -76,6 +79,8 @@ class StudentSubmissionSerializer(serializers.ModelSerializer):
             "assignment_title",
             "grade_at",
             "grading_confidence",
+            "raw_input",
+            "formatted_grade",
         ]
 
     def get_student_name(self, obj) -> str:

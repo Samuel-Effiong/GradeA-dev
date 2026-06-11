@@ -6,7 +6,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
-# from assignments.models import AssignmentStatus
+from assignments.models import AssignmentStatus
 from assignments.serializers import AssignmentListSerializer  # , AssignmentSerializer
 from students.serializers import StudentSerializer
 from students.services import get_grade_details
@@ -273,7 +273,11 @@ class StudentCourseDetailSerializer(StudentCourseSerializer):
 
     def get_assignments(self, obj):
         # Access pre-fetched assignments from the course
-        assignments = obj.course.assignments.all()
+        # from assignment.models import AssignmentStatus
+
+        assignments = obj.course.assignments.all().filter(
+            status=AssignmentStatus.PUBLISHED
+        )
 
         # Filter pre-fetched submissions for this specific student
 

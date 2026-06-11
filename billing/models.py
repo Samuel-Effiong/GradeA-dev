@@ -347,11 +347,23 @@ class UserSubscription(models.Model):
         help_text="End date of the current billing cycle"
     )
 
-    # trial_end = models.DateTimeField(
-    #     null=True,
-    #     blank=True,
-    #     help_text="End date of the trial period"
-    # )
+    is_trial = models.BooleanField(
+        default=False,
+        help_text=(
+            "True while this subscription is in its free trial period ",
+            "Flipped to False on trial expiry or paid conversion",
+        ),
+    )
+
+    trial_end = models.DateTimeField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text=(
+            "Datetime when the free trial expires. Null for non-trial subscriptions. "
+            "Celery checks this field nightly to trigger expiry cleanup"
+        ),
+    )
 
     auto_renew = models.BooleanField(
         default=True, help_text="Whether the subscription auto-renews"
@@ -496,6 +508,7 @@ class CreditWallet(models.Model):
 
         consumable_types = [
             CreditBucketType.CARRY_OVER,
+            CreditBucketType.TRIAL,
             CreditBucketType.MONTHLY,
             CreditBucketType.MANUAL_GRANT,
             CreditBucketType.OVERAGE,
@@ -503,12 +516,13 @@ class CreditWallet(models.Model):
 
         type_priority = models.Case(
             models.When(bucket_type=CreditBucketType.CARRY_OVER, then=models.Value(0)),
-            models.When(bucket_type=CreditBucketType.MONTHLY, then=models.Value(1)),
+            models.When(bucket_type=CreditBucketType.TRIAL, then=models.Value(1)),
+            models.When(bucket_type=CreditBucketType.MONTHLY, then=models.Value(2)),
             models.When(
-                bucket_type=CreditBucketType.MANUAL_GRANT, then=models.Value(2)
+                bucket_type=CreditBucketType.MANUAL_GRANT, then=models.Value(3)
             ),
-            models.When(bucket_type=CreditBucketType.OVERAGE, then=models.Value(3)),
-            default=models.Value(4),
+            models.When(bucket_type=CreditBucketType.OVERAGE, then=models.Value(4)),
+            default=models.Value(5),
             output_field=models.IntegerField(),
         )
 
@@ -602,7 +616,7 @@ class CreditBucketType(models.TextChoices):
     CARRY_OVER = "CARRY_OVER", _("Carry Over")
     OVERAGE = "OVERAGE", _("Overage")
     MANUAL_GRANT = "MANUAL_GRANT", _("Manual Grant")
-    TRIAL = "TRIAL", _("Trial")
+    TRIAL = "TRIAL", _("Free Trial")
 
 
 class CreditBucket(models.Model):

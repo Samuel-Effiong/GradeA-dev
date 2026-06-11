@@ -21,8 +21,9 @@ from drf_spectacular.utils import (
     OpenApiTypes,
     extend_schema,
     extend_schema_view,
+    inline_serializer,
 )
-from rest_framework import status, viewsets
+from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 
 # from rest_framework.exceptions import ParseError
@@ -66,6 +67,7 @@ from .serializers import (  # SubscriptionSerializer,; BetaUsageTrendSerializer,
     CreditWalletSummarySerializer,
     DailyTimeSeriesSerializer,
     FeatureConsumptionTimeSeriesSerializer,
+    FreeTrialStatusSerializer,
     IntentSignalResponseSerializer,
     OverageStatusSerializer,
     PeakUsageHourSerializer,
@@ -712,6 +714,156 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
             },
             status=status.HTTP_200_OK,
         )
+
+    @extend_schema(
+        tags=["Subscription"],
+        summary="Start a free trial",
+        description="""
+        Activates a 14-day free trial for the authenticated user on the specified plan.
+
+        **Rules:**
+        - Only available for INDIVIDUAL category plans.
+        - One trial per user, ever — this endpoint returns 409 if already used.
+        - User must not have an active subscription.
+        - Grants **5,000 AI credits** valid for the 14-day trial window.
+        - Trial does not auto-renew. User must call `/convert-trial/` to upgrade.
+
+        **Request body:**
+        ```json
+        { "plan": "<plan_uuid>" }
+        ```
+        """,
+        request=inline_serializer(
+            name="StartTrialRequest",
+            fields={"plan": serializers.UUIDField()},
+        ),
+        responses={
+            201: OpenApiResponse(
+                response=FreeTrialStatusSerializer,
+                description="Trial activated successfully.",
+            ),
+            400: OpenApiResponse(
+                description="Validation error — plan not found, wrong category, or user has active subscription."
+            ),
+            409: OpenApiResponse(
+                description="Conflict — user has already used their free trial."
+            ),
+        },
+    )
+    @action(
+        detail=False, methods=["POST"], url_path="start-trial", url_name="start-trial"
+    )
+    def start_trial(self, request, *args, **kwargs):
+        plan_id = request.data.get("plan")
+
+        if not plan_id:
+            return Response(
+                {"detail": "The 'plan' field is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
+        except SubscriptionPlan.DoesNotExist:
+            return Response(
+                {"detail": "Plan not found or is not active"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        try:
+            trial_sub = SubscriptionService.activate_free_trial(
+                user=request.user, plan=plan
+            )
+        except ValueError as exc:
+            error_msg = str(exc)
+            # Distinguish "already trialled" (409) from other validation errors (400)
+            if "already used its free trial" in error_msg:
+                return Response(
+                    {"detail": error_msg},
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            return Response(
+                {"detail", error_msg},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = FreeTrialStatusSerializer(trial_sub)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @extend_schema(
+        tags=["Subscription"],
+        summary="Convert free trial to paid subscription",
+        description="""
+        Upgrades an active free trial to a full paid subscription.
+
+        **What happens:**
+        - Remaining trial credits are immediately forfeited (no carry-over).
+        - The trial subscription is deactivated.
+        - A new paid subscription is created with a fresh monthly credit allocation.
+        - The new billing cycle starts from the moment of conversion.
+
+        **Request body:**
+        ```json
+        { "plan": "<plan_uuid>" }
+        ```
+
+        The plan can be the same plan the trial was on, or any other INDIVIDUAL plan
+        (e.g. trialling Standard Grader but converting to Pro Grader).
+        """,
+        request=inline_serializer(
+            name="ConvertTrialRequest",
+            fields={"plan": serializers.UUIDField()},
+        ),
+        responses={
+            200: OpenApiResponse(
+                response=UserSubscriptionSerializer,
+                description="Conversion successful. Returns the new paid subscription.",
+            ),
+            400: OpenApiResponse(
+                description="Validation error — no active trial, or plan is not INDIVIDUAL."
+            ),
+            404: OpenApiResponse(description="Plan not found."),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["POST"],
+        url_path="convert-trial",
+        url_name="convert-trial",
+    )
+    def convert_trial(self, request, *args, **kwargs):
+        """
+        POST /api/billing/subscriptions/convert-trial/
+        Body: { "plan": "<uuid>" }
+        """
+        plan_id = request.data.get("plan")
+        if not plan_id:
+            return Response(
+                {"detail": "The 'plan' field is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
+        except SubscriptionPlan.DoesNotExist:
+            return Response(
+                {"detail": "Plan not found or is not active."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        try:
+            new_sub = SubscriptionService.convert_trial_to_paid(
+                user=request.user, plan=plan
+            )
+        except ValueError as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = self.get_serializer(new_sub)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(
         tags=["Subscription"],
