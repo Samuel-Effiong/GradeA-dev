@@ -323,7 +323,7 @@ class AssignmentListStudentSerializer(serializers.ModelSerializer):
 
     def get_score(self, obj):
         submission = self._get_submission(obj)
-        if submission:
+        if submission and submission.is_published:
             if submission.score is not None:
                 return float(submission.score)
             # elif submission.ai_score is not None:
@@ -332,7 +332,11 @@ class AssignmentListStudentSerializer(serializers.ModelSerializer):
 
     def get_grade_letter(self, obj):
         submission = self._get_submission(obj)
-        if submission and submission.score_percentage is not None:
+        if (
+            submission
+            and submission.is_published
+            and submission.score_percentage is not None
+        ):
             from students.services import get_grade_details
 
             grade_details = get_grade_details(submission.score_percentage)
@@ -505,7 +509,7 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
 
     def get_performance_summary(self, obj):
         submission = self._get_submission(obj)
-        if submission:
+        if submission and submission.is_published:
             return submission.feedback or submission.ai_feedback
         return None
 

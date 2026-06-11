@@ -186,7 +186,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
             submission.save(update_fields=["raw_input"])
 
-        serializer = StudentSubmissionDetailSerializer(
+        serializer = StudentSubmissionDetailStudentVersionSerializer(
             submission, context=self.get_serializer_context()
         )
         data = serializer.data
