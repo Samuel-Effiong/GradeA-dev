@@ -17,7 +17,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from classrooms.models import School
-from classrooms.permissions import IsNotStudent # IsSuperAdmin
+from classrooms.permissions import IsNotStudent  # IsSuperAdmin
 from users.models import CustomUser, UserTypes
 
 from .license_service import LicenseSubscriptionService
@@ -213,6 +213,7 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+    @extend_schema(tags=["License Subscriptions"])
     @action(detail=True, methods=["post"])
     def add_teachers(self, request, pk=None):
         """
@@ -253,6 +254,7 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+    @extend_schema(tags=["License Subscriptions"])
     @action(detail=True, methods=["post"])
     def remove_teachers(self, request, pk=None):
         """
@@ -300,6 +302,7 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK,
         )
 
+    @extend_schema(tags=["License Subscriptions"])
     @action(detail=True, methods=["post"])
     def process_renewal(self, request, pk=None):
         """
@@ -333,6 +336,7 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+    @extend_schema(tags=["License Subscriptions"])
     @action(detail=True, methods=["get"])
     def renewal_info(self, request, pk=None):
         """
@@ -350,7 +354,7 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
         """
         license_sub = self.get_object()
 
-        from datetime import timedelta
+        # from datetime import timedelta
 
         from django.utils import timezone
 

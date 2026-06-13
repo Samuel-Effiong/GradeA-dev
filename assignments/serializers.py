@@ -492,7 +492,7 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
 class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
     performance_summary = serializers.SerializerMethodField()
     student_submission_id = serializers.SerializerMethodField()
-    raw_input = serializers.SerializerMethodField()
+    student_submission_raw_input = serializers.SerializerMethodField()
     assignment_raw_input = serializers.SerializerMethodField()
     # answers = serializers.SerializerMethodField()
     # submissions = serializers.SerializerMethodField()
@@ -501,10 +501,8 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
         fields = AssignmentListStudentSerializer.Meta.fields + [
             "performance_summary",
             "student_submission_id",
-            "raw_input",
+            "student_submission_raw_input",
             "assignment_raw_input",
-            # "answers",
-            # "submissions",
         ]
 
     def get_performance_summary(self, obj):
@@ -517,7 +515,7 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
         submission = self._get_submission(obj)
         return str(submission.id) if submission else None
 
-    def get_raw_input(self, obj):
+    def get_student_submission_raw_input(self, obj):
         submission = self._get_submission(obj)
         if submission:
             return submission.raw_input

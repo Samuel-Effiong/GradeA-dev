@@ -30,3 +30,7 @@ def encode_image(uploaded_file=None, image_byte=None):
     elif image_byte is not None:
         byte = image_byte
     return base64.b64encode(byte).decode()
+
+
+def safe_sort_key(x):
+    return int(x) if str(x).isdigit() else str(x)

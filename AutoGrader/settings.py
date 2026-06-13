@@ -271,6 +271,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "billing.tasks.process_subscription_renewals",
         "schedule": 60 * 60,
     },
+    "run-license-subscription-renewal-status": {
+        "task": "billing.tasks.process_subscription_renewals",
+        "schedule": 60 * 60,
+    },
     "reconcile-expired-buckets-midnight": {
         "task": "billing.tasks.cleanup_expired_credit_buckets",
         "schedule": crontab(minute=0, hour=0),
