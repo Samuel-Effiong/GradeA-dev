@@ -2,6 +2,7 @@ import secrets
 
 from django.core.validators import MinLengthValidator
 from django.db import transaction
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
@@ -294,9 +295,14 @@ class StudentCourseDetailSerializer(StudentCourseSerializer):
 
             # Logic: status and score
             if not submission:
-                status = "PENDING"
+                now = timezone.now()
+
+                if assignment.due_date < now:
+                    status = "OVERDUE"
+                else:
+                    status = "PENDING"
                 score = None
-            elif submission.graded_at:
+            elif submission.graded_at and submission.is_published:
                 status = "GRADED"
                 score = submission.score
             else:
