@@ -16,18 +16,23 @@ Key principles:
 """
 
 import logging
+from datetime import timedelta
 from typing import List, Optional
 
 from dateutil.relativedelta import relativedelta
+from django.conf import settings
 from django.db import transaction
+
 # from django.db.models import F, Q
 from django.utils import timezone
 
+from AutoGrader.tasks import send_email_task
 from classrooms.models import School
-from users.models import CustomUser
+from users.models import CustomUser, RegistrationMethod, UserTypes
+from users.services import otp_manager
+from users.utils import is_business_email
 
-from .models import (
-    # CONVERSION_FACTOR,
+from .models import (  # CONVERSION_FACTOR,; UserSubscription,
     CreditBucket,
     CreditBucketType,
     CreditLedger,
@@ -35,15 +40,20 @@ from .models import (
     CreditWallet,
     LicenseSubscription,
     PlanCategory,
+    PlanTier,
     SchoolCreditAllocation,
     SubscriptionPlan,
-    # UserSubscription,
-    PlanTier,
 )
 
-
-
 logger = logging.getLogger(__name__)
+
+
+class IndividualSubscriptionConflictError(Exception):
+    """Raised when a teacher has an active individual subscription and cannot
+    be added to a license
+    """
+
+    pass
 
 
 class LicenseSubscriptionService:
@@ -95,7 +105,7 @@ class LicenseSubscriptionService:
         """
         # Check if user is school admin and belongs to the school
         if admin_user.user_type == "STUDENT":
-            raise ValueError(f"Student users cannot manage license subscriptions.")
+            raise ValueError("Student users cannot manage license subscriptions.")
 
         # Optionally check if admin_user is associated with the school
         if admin_user.school and admin_user.school != school:
@@ -110,7 +120,7 @@ class LicenseSubscriptionService:
         school: School,
         plan: SubscriptionPlan,
         admin_user: CustomUser,
-        teacher_ids: Optional[List[str]] = None,
+        teacher_emails: Optional[List[str]] = None,
         contract_months: int = 12,
         max_seats: int = 0,
     ) -> LicenseSubscription:
@@ -131,7 +141,7 @@ class LicenseSubscriptionService:
             school: School receiving the license
             plan: LICENSE category plan
             admin_user: User managing the license
-            teacher_ids: Optional list of teacher UUIDs to enroll immediately
+            teacher_emails: Optional list of teacher emails to enroll immediately
             contract_months: Billing period length (9, 10, or 12). Default 12.
             max_seats: Maximum number of teacher seats (0 = unlimited). Default 0.
 
@@ -154,10 +164,10 @@ class LicenseSubscriptionService:
         if max_seats < 0:
             raise ValueError("max_seats must be 0 (unlimited) or a positive integer.")
 
-        # Validate that initial teachers don't exceed the seat cap
-        if max_seats > 0 and teacher_ids and len(teacher_ids) > max_seats:
+        # Validate that initial teachers emails don't exceed the seat cap
+        if max_seats > 0 and teacher_emails and len(teacher_emails) > max_seats:
             raise ValueError(
-                f"Cannot enroll {len(teacher_ids)} teachers: license max_seats is {max_seats}."
+                f"Cannot enroll {len(teacher_emails)} teachers: license max_seats is {max_seats}."
             )
 
         now = timezone.now()
@@ -205,10 +215,12 @@ class LicenseSubscriptionService:
         )
 
         # 4. Enroll teachers if provided
-        if teacher_ids:
-            for teacher_id in teacher_ids:
+        if teacher_emails:
+            for email in teacher_emails:
                 try:
-                    teacher = CustomUser.objects.get(id=teacher_id)
+                    teacher = LicenseSubscriptionService._get_or_invite_teacher(
+                        email, school, admin_user, raise_on_conflict=True
+                    )
                     LicenseSubscriptionService._enroll_teacher_internal(
                         license_sub, teacher
                     )
@@ -216,13 +228,13 @@ class LicenseSubscriptionService:
                     logger.error(
                         "Teacher with ID %s not found. Skipping enrollment "
                         "in license %s.",
-                        teacher_id,
+                        email,
                         license_sub.id,
                     )
                 except Exception as e:
                     logger.error(
                         "Failed to enroll teacher %s in license %s: %s",
-                        teacher_id,
+                        email,
                         license_sub.id,
                         str(e),
                     )
@@ -234,6 +246,148 @@ class LicenseSubscriptionService:
         )
 
         return license_sub
+
+    @staticmethod
+    def _get_or_invite_teacher(
+        email: str,
+        school: School,
+        admin_user: CustomUser,
+        raise_on_conflict: bool = False,
+    ) -> CustomUser:
+        """
+        Find an existing teacher by email, or create an inactive teacher account
+        and send an activation email
+
+        Raises ValueError if email is invalid, teacher belongs to a different school,
+        or the email is already used by a non-teacher account
+        """
+
+        email = email.strip().lower()
+        if not email:
+            raise ValueError("Teacher email is required")
+
+        # 1. Business email validation
+        if not is_business_email(email):
+            error_msg = f"Email {email} is not a business email. Only business emails are allowed."
+
+            if raise_on_conflict:
+                raise ValueError(error_msg)
+            logger.warning(error_msg)
+
+            return None
+
+        # Check if user with this email already exists
+        user = CustomUser.objects.filter(email=email).first()
+
+        if user:
+            # 2. Validate user type
+            if user.user_type != UserTypes.TEACHER:
+                error_msg = f"Email {email} already belongs to a {user.user_type} account, not a teacher."
+
+                if raise_on_conflict:
+                    raise ValueError(error_msg)
+                logger.warning(error_msg)
+                return None
+
+            # 3. Check for active individua subscription
+            has_individual_sub = user.subscriptions.filter(is_active=True).exists()
+
+            if has_individual_sub:
+                error_msg = (
+                    f"Teacher {email} has an active individual subscription. "
+                    "Individual subscriptions cannot be converted to a license. "
+                    "Please cancel the individual subscription first."
+                )
+
+                if raise_on_conflict:
+                    raise IndividualSubscriptionConflictError(error_msg)
+                logger.warning(error_msg)
+                return None
+
+            # 4. School validation
+            if user.school and user.school != school:
+                error_msg = (
+                    f"Teacher {email!r} already belongs to school {user.school.name!r}. "
+                    f"Cannot enroll under {school.name!r}."
+                )
+
+                if raise_on_conflict:
+                    raise ValueError(error_msg)
+                logger.warning(error_msg)
+                return None
+
+            # 5. If user exists but inactive, ensure that they have a valid activation token
+            if not user.is_active:
+                if (
+                    not user.activation_token
+                    or user.activation_expires < timezone.now()
+                ):
+                    user.activation_token = otp_manager.generate_otp()
+                    user.activation_expires = timezone.now() + timedelta(days=7)
+                    user.save(update_fields=["activation_token", "activation_expires"])
+
+                    # Re-send invitation email
+                    LicenseSubscriptionService._send_teacher_invitation(
+                        user, school, admin_user
+                    )
+
+            return user
+
+        # Create new teacher account (inactive)
+        activation_token = otp_manager.generate_otp()
+        user = CustomUser.objects.create(
+            email=email,
+            user_type=UserTypes.TEACHER,
+            school=school,
+            is_active=False,
+            registration_method=RegistrationMethod.EMAIL,
+            activation_token=activation_token,
+            activation_expires=timezone.now() + timedelta(days=7),
+        )
+
+        # Set a dummy unusable password (they will set it via activation)
+        user.set_unusable_password()
+        user.save()
+
+        # Send invitation email
+        LicenseSubscriptionService._send_teacher_invitation(user, school, admin_user)
+        return user
+
+    @staticmethod
+    def _send_teacher_invitation(
+        teacher: CustomUser, school: School, admin_user: CustomUser
+    ):
+        """
+        Send activation email to a newly invited teacher
+        """
+
+        frontend_domain = settings.FRONTEND_DOMAIN
+        activation_link = (
+            f"https://{frontend_domain}/register/teacher?"
+            f"token={teacher.activation_token}&email={teacher.email}"
+        )
+
+        merge_data = {
+            "title": f"You have been added to {school.name} as a teacher",
+            "name": teacher.get_full_name() or "Teacher",
+            "top_content": (
+                f"{admin_user.get_full_name()} has invited you to teach at {school.name}.\n\n"
+                "Complete your registration to set up your password and start using Grade A+."
+            ),
+            "bottom_content": "This invitation link expires in 7 days.",
+            "activation_url": activation_link,
+            "current_year": timezone.now().year,
+            "support_email": settings.SUPPORT_EMAIL,
+        }
+        send_email_task.delay(
+            subject=f"Invitation to teach at {school.name}",
+            message="",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[teacher.email],
+            html_message=None,
+            template_id="ynrw7gy0ye2l2k8e",  # reuse student template or create new one
+            merge_data=merge_data,
+        )
 
     @staticmethod
     def _enroll_teacher_internal(
@@ -290,8 +444,8 @@ class LicenseSubscriptionService:
             seats_remaining = license_sub.seats_remaining
             if seats_remaining is not None and seats_remaining <= 0:
                 raise ValueError(
-                    f"License {license_sub.id} for school '{license_sub.school.name}' "
-                    f"has reached its seat limit of {license_sub.max_seats}. "
+                    f"License {license_sub.id!r} for school {license_sub.school.name!r} "
+                    f"has reached its seat limit of {license_sub.max_seats!r}. "
                     f"Upgrade the license or remove an existing teacher to enroll a new one."
                 )
 
@@ -331,17 +485,15 @@ class LicenseSubscriptionService:
             logger.info("Created CreditWallet for teacher %s", teacher.email)
 
         # 4. Check for and handle existing INDIVIDUAL subscriptions
-        active_individual_sub = teacher.subscriptions.filter(is_active=True).first()
+        active_individual_sub = teacher.subscriptions.filter(is_active=True).exists()
         if active_individual_sub:
-            logger.info(
-                "Deactivating teacher %s's INDIVIDUAL subscription %s "
-                "as they are now under LICENSE subscription %s",
-                teacher.email,
-                active_individual_sub.id,
-                license_sub.id,
+            error_msg = (
+                f"Teacher {teacher.email} has an active individual subscription. "
+                "Individual subscriptions cannot be converted to a license. "
+                "Please cancel the individual subscription first."
             )
-            active_individual_sub.is_active = False
-            active_individual_sub.save(update_fields=["is_active", "updated_at"])
+            logger.warning(error_msg)
+            raise IndividualSubscriptionConflictError(error_msg)
 
         # 5. Handle existing MONTHLY bucket (from previous subscription or license)
         existing_monthly = wallet.buckets.filter(
@@ -449,7 +601,7 @@ class LicenseSubscriptionService:
     @transaction.atomic
     def add_teacher_to_license(
         license_sub: LicenseSubscription,
-        teacher: CustomUser,
+        teacher_email: str,
     ) -> SchoolCreditAllocation:
         """
         Adds a teacher to an existing License subscription.
@@ -469,20 +621,27 @@ class LicenseSubscriptionService:
                 f"Cannot add teachers to inactive license subscription {license_sub.id}"
             )
 
+        teacher = LicenseSubscriptionService._get_or_invite_teacher(
+            teacher_email,
+            license_sub.school,
+            license_sub.admin_user,
+            raise_on_conflict=True,
+        )
+
         return LicenseSubscriptionService._enroll_teacher_internal(license_sub, teacher)
 
     @staticmethod
     @transaction.atomic
     def add_teachers_batch(
         license_sub: LicenseSubscription,
-        teacher_ids: List[str],
+        teacher_emails: List[str],
     ) -> dict:
         """
         Adds multiple teachers to a License subscription in a single transaction.
 
         Args:
             license_sub: License subscription
-            teacher_ids: List of teacher UUIDs
+            teacher_emails: List of teacher emails
 
         Returns:
             dict: {
@@ -496,39 +655,43 @@ class LicenseSubscriptionService:
                 f"Cannot add teachers to inactive license subscription {license_sub.id}"
             )
 
-        results = {
-            "successful": 0,
-            "failed": 0,
-            "errors": [],
-        }
+        results = {"successful": 0, "failed": 0, "errors": []}
 
-        for teacher_id in teacher_ids:
+        for email in teacher_emails:
             try:
-                teacher = CustomUser.objects.get(id=teacher_id)
+                teacher = LicenseSubscriptionService._get_or_invite_teacher(
+                    email,
+                    license_sub.school,
+                    license_sub.admin_user,
+                    raise_on_conflict=False,  # Do not raise, return None on conflict
+                )
+
+                if teacher is None:
+                    # Confict aready logged inside _get_or_invite_teacher
+                    results["failed"] += 1
+                    results["errors"].append(
+                        {
+                            "teacher_email": email,
+                            "error": "Individual subscription conflict or invalid email domain.",
+                        }
+                    )
+                    continue
+
+                # Enroll the teacher
                 LicenseSubscriptionService._enroll_teacher_internal(
                     license_sub, teacher
                 )
                 results["successful"] += 1
-            except CustomUser.DoesNotExist:
-                results["failed"] += 1
-                results["errors"].append(
-                    {
-                        "teacher_id": teacher_id,
-                        "error": "Teacher not found",
-                    }
-                )
-                logger.error("Teacher %s not found", teacher_id)
+
             except Exception as e:
                 results["failed"] += 1
                 results["errors"].append(
                     {
-                        "teacher_id": teacher_id,
+                        "teacher_email": email,
                         "error": str(e),
                     }
                 )
-                logger.error(
-                    "Failed to add teacher %s to license: %s", teacher_id, str(e)
-                )
+                logger.error("Failed to add teacher %s to license: %s", email, str(e))
 
         logger.info(
             "Batch added teachers to license %s: %d successful, %d failed",

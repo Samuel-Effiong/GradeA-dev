@@ -502,3 +502,28 @@ FIELD_ENCRYPTION_KEY = env.str("FIELD_ENCRYPTION_KEY", "")
 STRIPE_PUBLIC_KEY = env.str("STRIPE_PUBLIC_KEY")
 STRIPE_SECRET_KEY = env.str("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = env.str("STRIPE_WEBHOOK_SECRET")
+
+ALLOWED_BUSINESS_EMAIL_DOMAINS = None
+DISALLOWED_EMAIL_DOMAINS = [
+    "gmail.com",
+    "yahoo.com",
+    "hotmail.com",
+    "outlook.com",
+    "aol.com",
+    "icloud.com",
+    "mail.com",
+    "protonmail.com",
+    "zoho.com",
+    "yandex.com",
+    "live.com",
+    "msn.com",
+    "qq.com",
+    "163.com",
+    "mail.ru",
+    "inbox.lv",
+    "rediffmail.com",
+    "lycos.com",
+    "gmx.com",
+    "fastmail.com",
+    "hushmail.com",
+]

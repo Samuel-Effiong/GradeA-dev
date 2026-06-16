@@ -4,6 +4,30 @@ import hashlib
 from cryptography.fernet import Fernet
 from django.conf import settings
 
+DEFAULT_DISALLOWED_DOMAINS = [
+    "gmail.com",
+    "yahoo.com",
+    "hotmail.com",
+    "outlook.com",
+    "aol.com",
+    "icloud.com",
+    "mail.com",
+    "protonmail.com",
+    "zoho.com",
+    "yandex.com",
+    "live.com",
+    "msn.com",
+    "qq.com",
+    "163.com",
+    "mail.ru",
+    "inbox.lv",
+    "rediffmail.com",
+    "lycos.com",
+    "gmx.com",
+    "fastmail.com",
+    "hushmail.com",
+]
+
 
 def get_cipher():
     """Derives a valid Fernet key from the Django SECRET_KEY."""
@@ -24,3 +48,14 @@ def decrypt_token(encrypted_token: str) -> str:
     if not encrypted_token:
         return encrypted_token
     return get_cipher().decrypt(encrypted_token.encode()).decode()
+
+
+def is_business_email(email: str) -> bool:
+    """Return True if email domain is not in the disallowed list."""
+
+    domain = email.split("@")[-1].lower()
+    disallowed = getattr(
+        settings, "DISALLOWED_EMAIL_DOMAINS", DEFAULT_DISALLOWED_DOMAINS
+    )
+
+    return domain not in disallowed

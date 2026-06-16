@@ -165,7 +165,7 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
         school_id = request.data.get("school")
         admin_user_id = request.data.get("admin_user")
         plan_id = request.data.get("plan")
-        teacher_ids = request.data.get("teacher_ids", [])
+        teacher_emails = request.data.get("teacher_emails", [])
 
         # Validate inputs
         if not all([school_id, admin_user_id, plan_id]):
@@ -201,7 +201,7 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
                     school=school,
                     plan=plan,
                     admin_user=admin_user,
-                    teacher_ids=teacher_ids if teacher_ids else None,
+                    teacher_emails=teacher_emails if teacher_emails else None,
                 )
 
             serializer = self.get_serializer(license_sub)
@@ -232,18 +232,18 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
         }
         """
         license_sub = self.get_object()
-        teacher_ids = request.data.get("teacher_ids", [])
+        teacher_emails = request.data.get("teacher_emails", [])
 
-        if not teacher_ids:
+        if not teacher_emails:
             return Response(
-                {"error": "teacher_ids is required"},
+                {"error": "teacher_emails is required"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         try:
             with transaction.atomic():
                 results = LicenseSubscriptionService.add_teachers_batch(
-                    license_sub, teacher_ids
+                    license_sub, teacher_emails
                 )
 
             return Response(results, status=status.HTTP_200_OK)

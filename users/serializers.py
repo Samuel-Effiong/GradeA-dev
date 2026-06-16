@@ -12,6 +12,7 @@ from users.models import (
     CustomUser,
     RegistrationMethod,
     Settings,
+    UserTypes,
     Waitlist,
 )
 from users.services import send_user_activation_email
@@ -101,6 +102,50 @@ class CustomUserSerializer(serializers.ModelSerializer):
 
     def get_is_system_generated_email(self, obj) -> bool:
         return bool(obj.email and str(obj.email).endswith("@student.local"))
+
+    def validate(self, attrs):
+        from users.utils import is_business_email
+
+        # Determine user_type and email for this operation
+        user_type = attrs.get("user_type")
+        if not user_type and self.instance:
+            user_type = self.instance.user_type
+        elif not user_type:
+            user_type = UserTypes.TEACHER
+
+        email = attrs.get("email")
+        if not email and self.instance:
+            email = self.instance.email
+
+        is_creating = self.instance is None
+        email_changed = self.instance and self.instance.email != email
+
+        # Enforce email domain rules on account creation or when changing their email
+        if email and (is_creating or email_changed):
+            if user_type == UserTypes.TEACHER:
+                # Teachers (individual track) MUST use personal email
+                if is_business_email(email):
+                    raise serializers.ValidationError(
+                        {
+                            "email": (
+                                "Business emails are not allowed for individual teacher accounts. "
+                                "Please use a personal email address or use the License subscription track."
+                            )
+                        }
+                    )
+            elif user_type == UserTypes.SCHOOL_ADMIN:
+                # School admins MUST use business email
+                if not is_business_email(email):
+                    raise serializers.ValidationError(
+                        {
+                            "email": (
+                                "Personal emails are not allowed for school admin accounts. "
+                                "Please use a business email address."
+                            )
+                        }
+                    )
+
+        return attrs
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

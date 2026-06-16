@@ -203,7 +203,12 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
     @action(detail=False, methods=["post"], url_path="admin", url_name="admin")
     def admin(self, request, *args, **kwargs):
         """Make a User the admin of a school"""
-        serializer = CustomUserSerializer(data=request.data)
+        # Ensure user_type is set to SCHOOL_ADMIN
+        data = request.data.copy()
+        # if 'user_type' not in data:
+        data["user_type"] = UserTypes.SCHOOL_ADMIN
+
+        serializer = CustomUserSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
 

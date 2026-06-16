@@ -1046,6 +1046,12 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
         source="plan.display_monthly_credits", read_only=True
     )
     allocations = SchoolCreditAllocationSerializer(many=True, read_only=True)
+    teacher_emails = serializers.ListField(
+        child=serializers.EmailField(),
+        write_only=True,
+        required=False,
+        help_text="List of teacher emails to enroll in the license.",
+    )
 
     class Meta:
         model = LicenseSubscription
@@ -1067,6 +1073,7 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
             "stripe_subscription_id",
             "teacher_count",
             "allocations",
+            "teacher_emails",
             "created_at",
             "updated_at",
         ]

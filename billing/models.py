@@ -22,6 +22,9 @@ class PlanType(models.TextChoices):
     POWER = "POWER", _("Power")
     BETA = "BETA", _("Beta")  # Internal only, not in spec
     CUSTOM = "CUSTOM", _("Custom")
+    STANDARD_ANNUAL = "STANDARD_ANNUAL", _("Standard Annual")
+    PRO_ANNUAL = "PRO_ANNUAL", _("Pro Annual")
+    POWER_ANNUAL = "POWER_ANNUAL", _("Power Annual")
 
 
 class PlanCategory(models.TextChoices):
