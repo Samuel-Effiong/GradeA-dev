@@ -1,5 +1,7 @@
+import time
 from datetime import timedelta
 
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Case, F, Q, Sum, Value, When
 from django.db.models.aggregates import Avg, Count
@@ -14,16 +16,15 @@ from django.utils.dateparse import parse_datetime
 from django_filters.rest_framework import DjangoFilterBackend
 
 # from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import (
+from drf_spectacular.utils import (  # inline_serializer,
     OpenApiExample,
     OpenApiParameter,
     OpenApiResponse,
     OpenApiTypes,
     extend_schema,
     extend_schema_view,
-    inline_serializer,
 )
-from rest_framework import serializers, status, viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 
 # from rest_framework.exceptions import ParseError
@@ -41,17 +42,21 @@ from dashboard.serializers import (
 )
 from users.models import UserTypes
 
+from .imports import stripe
 from .models import (
     BetaProfile,
+    BillingInterval,
     CreditBucket,
     CreditBucketType,
     CreditLedger,
     CreditUsageLog,
     CreditWallet,
+    PlanCategory,
+    PlanTier,
     SubscriptionPlan,
     UserSubscription,
 )
-from .serializers import (  # SubscriptionSerializer,; BetaUsageTrendSerializer,
+from .serializers import (  # SubscriptionSerializer,; BetaUsageTrendSerializer,; FreeTrialStatusSerializer,
     BetaCohortStatsSerializer,
     BetaFeatureMixSerializer,
     BetaProfileSerializer,
@@ -67,7 +72,6 @@ from .serializers import (  # SubscriptionSerializer,; BetaUsageTrendSerializer,
     CreditWalletSummarySerializer,
     DailyTimeSeriesSerializer,
     FeatureConsumptionTimeSeriesSerializer,
-    FreeTrialStatusSerializer,
     IntentSignalResponseSerializer,
     OverageStatusSerializer,
     PeakUsageHourSerializer,
@@ -78,6 +82,19 @@ from .serializers import (  # SubscriptionSerializer,; BetaUsageTrendSerializer,
     WeeklyGrowthSerializer,
 )
 from .services import AnalyticsService, SubscriptionService
+from .stripe_service import (  # StripeSubscriptionMutationService,
+    StripeCheckoutService,
+    StripeOverageService,
+)
+from .stripe_view_schemas import (
+    CANCEL_SCHEMA,
+    CHECKOUT_SCHEMA,
+    CONVERT_TRIAL_SCHEMA,
+    DOWNGRADE_SCHEMA,
+    PURCHASE_OVERAGE_SCHEMA,
+    START_TRIAL_SCHEMA,
+    UPGRADE_SCHEMA,
+)
 
 # from rest_framework.generics import GenericAPIView
 
@@ -163,6 +180,56 @@ class SubscriptionPlanViewSet(viewsets.ModelViewSet):
         else:
             permission_classes = [IsAuthenticated, IsNotStudent]
         return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        user = self.request.user
+
+        # Super admins see all plans (for admin panel)
+        if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:
+            return queryset
+
+        # Everyone else only sees INDIVIDUAL plans
+        return queryset.filter(category=PlanCategory.INDIVIDUAL)
+
+    @extend_schema(
+        tags=["Subscription Plans"],
+        summary="Create a custom license plan",
+        description="Super admin only. Creates a new LICENSE plan with arbitrary credit/rollover/overage settings.",
+        request=SubscriptionPlanSerializer,
+        responses={201: SubscriptionPlanSerializer},
+    )
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="create-custom-license",
+        permission_classes=[IsAuthenticated, IsSuperAdmin],
+    )
+    def create_custom_license(self, request):
+        """
+        Create a custom license plan (category=LICENSE, tier=CUSTOM)
+        All fields are requkred except those with defaults
+        """
+
+        data = request.data.copy()
+
+        # Force category and tier
+        data["category"] = PlanCategory.LICENSE
+        data["tier"] = PlanTier.CUSTOM
+
+        # Ensure interval is MONTHLY (licenses are monthly)
+        data["interval"] = BillingInterval.MONTHLY
+
+        # Optionally generate a unique name if not provided
+        if "name" not in data or not data["name"]:
+            # Generate a name licke "CUSTOM_LICENSE_<timestamp>"
+            data["name"] = f"CUSTOM_LICENSE_{int(time.time())}"
+
+        serializer = SubscriptionPlanSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 @extend_schema_view(
@@ -568,37 +635,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
         serializer = self.get_serializer(user_subscription)
         return Response(serializer.data)
 
-    @extend_schema(
-        tags=["Subscription"],
-        summary="Cancel a subscription",
-        description="Cancel an existing subscription for the user.",
-        responses={
-            200: OpenApiResponse(
-                description="Subscription cancelled successfully",
-                examples=[
-                    OpenApiExample(
-                        name="Subscription cancelled successfully",
-                        value={
-                            "status": "cancelled",
-                            "message": "Subscription will not renew at the end of the current billing cycle",
-                        },
-                    )
-                ],
-            ),
-            404: OpenApiResponse(
-                description="No active subscription found to cancel",
-                examples=[
-                    OpenApiExample(
-                        name="No active subscription found to cancel",
-                        value={
-                            "status": "inactive",
-                            "message": "No active subscription found to cancel",
-                        },
-                    )
-                ],
-            ),
-        },
-    )
+    @CANCEL_SCHEMA
     @action(detail=False, methods=["POST"])
     def cancel(self, request, *args, **kwargs):
         user_subscription = self.get_queryset().first()
@@ -614,6 +651,11 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
         user_subscription.auto_renew = False
         user_subscription.save(update_fields=["auto_renew", "updated_at"])
 
+        if user_subscription.stripe_subscription_id:
+            stripe.Subscription.modify(
+                user_subscription.stripe_subscription_id, cancel_at_period_end=True
+            )
+
         return Response(
             {
                 "status": "cancelled",
@@ -622,27 +664,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
             status=status.HTTP_200_OK,
         )
 
-    @extend_schema(
-        tags=["Subscription"],
-        summary="Upgrade a subscription",
-        description="Upgrade an existing subscription for the user.",
-        request=UserSubscriptionSerializer,
-        responses={
-            200: OpenApiResponse(response=UserSubscriptionSerializer),
-            404: OpenApiResponse(
-                description="No active subscription found to upgrade",
-                examples=[
-                    OpenApiExample(
-                        name="No active subscription found to upgrade",
-                        value={
-                            "status": "inactive",
-                            "message": "No active subscription found to upgrade",
-                        },
-                    )
-                ],
-            ),
-        },
-    )
+    @UPGRADE_SCHEMA
     @action(detail=False, methods=["POST"])
     def upgrade(self, request, *args, **kwargs):
         plan_id = request.data.get("plan")
@@ -661,37 +683,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
         serializer = self.get_serializer(new_sub)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @extend_schema(
-        tags=["Subscription"],
-        summary="Downgrade a subscription",
-        description="Downgrade an existing subscription for the user.",
-        responses={
-            200: OpenApiResponse(
-                description="Downgrade scheduled successfully",
-                examples=[
-                    OpenApiExample(
-                        name="Downgrade scheduled successfully",
-                        value={
-                            "status": "scheduled",
-                            "message": "Downgrade scheduled for the end of the current billing cycle",
-                        },
-                    )
-                ],
-            ),
-            404: OpenApiResponse(
-                description="No active subscription found to downgrade",
-                examples=[
-                    OpenApiExample(
-                        name="No active subscription found to downgrade",
-                        value={
-                            "status": "inactive",
-                            "message": "No active subscription found to downgrade",
-                        },
-                    )
-                ],
-            ),
-        },
-    )
+    @DOWNGRADE_SCHEMA
     @action(detail=False, methods=["POST"])
     def downgrade(self, request, *args, **kwargs):
         plan_id = request.data.get("plan_id")
@@ -715,41 +707,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
             status=status.HTTP_200_OK,
         )
 
-    @extend_schema(
-        tags=["Subscription"],
-        summary="Start a free trial",
-        description="""
-        Activates a 14-day free trial for the authenticated user on the specified plan.
-
-        **Rules:**
-        - Only available for INDIVIDUAL category plans.
-        - One trial per user, ever — this endpoint returns 409 if already used.
-        - User must not have an active subscription.
-        - Grants **5,000 AI credits** valid for the 14-day trial window.
-        - Trial does not auto-renew. User must call `/convert-trial/` to upgrade.
-
-        **Request body:**
-        ```json
-        { "plan": "<plan_uuid>" }
-        ```
-        """,
-        request=inline_serializer(
-            name="StartTrialRequest",
-            fields={"plan": serializers.UUIDField()},
-        ),
-        responses={
-            201: OpenApiResponse(
-                response=FreeTrialStatusSerializer,
-                description="Trial activated successfully.",
-            ),
-            400: OpenApiResponse(
-                description="Validation error — plan not found, wrong category, or user has active subscription."
-            ),
-            409: OpenApiResponse(
-                description="Conflict — user has already used their free trial."
-            ),
-        },
-    )
+    @START_TRIAL_SCHEMA
     @action(
         detail=False, methods=["POST"], url_path="start-trial", url_name="start-trial"
     )
@@ -770,62 +728,91 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+        success_url = (
+            request.data.get("success_url")
+            or f"https://{settings.FRONTEND_DOMAIN}/billing/trial-success"
+        )
+        cancel_url = (
+            request.data.get("cancel_url")
+            or f"https://{settings.FRONTEND_DOMAIN}/billing/trial-cancelled"
+        )
+
         try:
-            trial_sub = SubscriptionService.activate_free_trial(
-                user=request.user, plan=plan
+            session = StripeCheckoutService.create_individual_trial_session(
+                user=request.user,
+                plan=plan,
+                success_url=success_url,
+                cancel_url=cancel_url,
             )
         except ValueError as exc:
             error_msg = str(exc)
-            # Distinguish "already trialled" (409) from other validation errors (400)
-            if "already used its free trial" in error_msg:
-                return Response(
-                    {"detail": error_msg},
-                    status=status.HTTP_409_CONFLICT,
-                )
 
+            status_code = (
+                status.HTTP_409_CONFLICT
+                if "already used it's free trial" in error_msg
+                else status.HTTP_400_BAD_REQUEST
+            )
             return Response(
-                {"detail", error_msg},
-                status=status.HTTP_400_BAD_REQUEST,
+                {"detail": error_msg},
+                status=status_code,
             )
 
-        serializer = FreeTrialStatusSerializer(trial_sub)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response({"checkout_url", session.url}, status=status.HTTP_201_CREATED)
 
-    @extend_schema(
-        tags=["Subscription"],
-        summary="Convert free trial to paid subscription",
-        description="""
-        Upgrades an active free trial to a full paid subscription.
+    @CHECKOUT_SCHEMA
+    @action(detail=False, methods=["POST"], url_path="checkout")
+    def checkout(self, request, *args, **kwargs):
+        plan_id = request.data.get("plan")
+        if not plan_id:
+            return Response(
+                {"detail": "The 'plan' field is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
+        except SubscriptionPlan.DoesNotExist:
+            return Response(
+                {"detail": "Plan not found or is not active."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
-        **What happens:**
-        - Remaining trial credits are immediately forfeited (no carry-over).
-        - The trial subscription is deactivated.
-        - A new paid subscription is created with a fresh monthly credit allocation.
-        - The new billing cycle starts from the moment of conversion.
+        success_url = (
+            request.data.get("success_url")
+            or f"https://{settings.FRONTEND_DOMAIN}/billing/success"
+        )
+        cancel_url = (
+            request.data.get("cancel_url")
+            or f"https://{settings.FRONTEND_DOMAIN}/billing/cancelled"
+        )
 
-        **Request body:**
-        ```json
-        { "plan": "<plan_uuid>" }
-        ```
+        try:
+            session = StripeCheckoutService.create_individual_subscribe_session(
+                user=request.user,
+                plan=plan,
+                success_url=success_url,
+                cancel_url=cancel_url,
+            )
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
-        The plan can be the same plan the trial was on, or any other INDIVIDUAL plan
-        (e.g. trialling Standard Grader but converting to Pro Grader).
-        """,
-        request=inline_serializer(
-            name="ConvertTrialRequest",
-            fields={"plan": serializers.UUIDField()},
-        ),
-        responses={
-            200: OpenApiResponse(
-                response=UserSubscriptionSerializer,
-                description="Conversion successful. Returns the new paid subscription.",
-            ),
-            400: OpenApiResponse(
-                description="Validation error — no active trial, or plan is not INDIVIDUAL."
-            ),
-            404: OpenApiResponse(description="Plan not found."),
-        },
-    )
+        return Response({"checkout_url": session.url}, status=status.HTTP_200_OK)
+
+    @PURCHASE_OVERAGE_SCHEMA
+    @action(detail=False, methods=["POST"], url_path="credits/overage/purchase")
+    def purchase_overage(self, request, *args, **kwargs):
+        try:
+            result = StripeOverageService.purchase_overage_block(request.user)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        if result["status"] == "requires_action":
+            return Response(result, status=status.HTTP_200_OK)
+        return Response(
+            CreditBucketSerializer(result["bucket"]).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    @CONVERT_TRIAL_SCHEMA
     @action(
         detail=False,
         methods=["POST"],

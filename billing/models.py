@@ -16,7 +16,17 @@ from .errors import InsufficientCreditsError
 CONVERSION_FACTOR = 1000
 
 
+class StripeSubscriptionStatus(models.TextChoices):
+    TRIALING = "TRIALING", _("Trialing")
+    ACTIVE = "ACTIVE", _("Active")
+    PAST_DUE = "PAST_DUE", _("Past Due")
+    CANCELED = "CANCELED", _("Canceled")
+    INCOMPLETE = "INCOMPLETE", _("Incomplete")
+    UNPAID = "UNPAID", _("Unpaid")
+
+
 class PlanType(models.TextChoices):
+    # Individual
     STANDARD = "STANDARD", _("Standard")
     PRO = "PRO", _("Pro")
     POWER = "POWER", _("Power")
@@ -25,6 +35,13 @@ class PlanType(models.TextChoices):
     STANDARD_ANNUAL = "STANDARD_ANNUAL", _("Standard Annual")
     PRO_ANNUAL = "PRO_ANNUAL", _("Pro Annual")
     POWER_ANNUAL = "POWER_ANNUAL", _("Power Annual")
+
+    # License
+    PRO_LICENSE = "PRO_LICENSE", _("Pro License")
+    POWER_LICENSE = "POWER_LICENSE", _("Power License")
+    CUSTOM_LICENSE_STARTER = "CUSTOM_LICENSE_STARTER", _("Custom License Starter")
+    CUSTOM_LICENSE_MID = "CUSTOM_LICENSE_MID", _("Custom License Mid")
+    CUSTOM_LICENSE_HIGH = "CUSTOM_LICENSE_HIGH", _("Custom License High")
 
 
 class PlanCategory(models.TextChoices):
@@ -170,7 +187,7 @@ class SubscriptionPlan(models.Model):
 
     # --- Identity ---
     name = models.CharField(
-        max_length=20,
+        max_length=100,
         choices=PlanType.choices,
         unique=True,
         help_text="Unique code for the plan",
@@ -379,6 +396,16 @@ class UserSubscription(models.Model):
         related_name="user_pending_subscriptions",
     )
 
+    stripe_subscription_id = models.CharField(
+        max_length=255, null=True, blank=True, db_index=True
+    )
+    stripe_customer_id = models.CharField(
+        max_length=255, null=True, blank=True, db_index=True
+    )
+    stripe_status = models.CharField(
+        max_length=20, choices=StripeSubscriptionStatus.choices, null=True, blank=True
+    )
+
     created_at = models.DateTimeField(
         auto_now_add=True, help_text="Date and time when the subscription was created"
     )
@@ -432,6 +459,10 @@ class CreditWallet(models.Model):
     )
     updated_at = models.DateTimeField(
         auto_now=True, help_text="Date and time when the credit wallet was last updated"
+    )
+
+    stripe_customer_id = models.CharField(
+        max_length=255, null=True, blank=True, db_index=True
     )
 
     class Meta:
@@ -884,6 +915,13 @@ class BetaProfile(models.Model):
         )
 
 
+class ContractMonths(models.IntegerChoices):
+    ONE = 1, _("1 Month")
+    NINE = 9, _("9 Months")
+    TEN = 10, _("10 Months")
+    TWELVE = 12, _("12 Months")
+
+
 class LicenseSubscription(models.Model):
     """
     Represents a school/institutional subscription for multiple teachers.
@@ -922,12 +960,6 @@ class LicenseSubscription(models.Model):
         related_name="license_subscriptions",
         help_text="License plan (must have category=LICENSE)",
     )
-
-    class ContractMonths(models.IntegerChoices):
-        ONE = 1, _("1 Month")
-        NINE = 9, _("9 Months")
-        TEN = 10, _("10 Months")
-        TWELVE = 12, _("12 Months")
 
     contract_months = models.PositiveSmallIntegerField(
         choices=ContractMonths.choices,
@@ -968,6 +1000,23 @@ class LicenseSubscription(models.Model):
         null=True,
         blank=True,
         help_text="Stripe subscription ID for this license (one per school)",
+    )
+    stripe_status = models.CharField(
+        max_length=20, choices=StripeSubscriptionStatus.choices, null=True, blank=True
+    )
+
+    custom_price_cents = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="Negotiated monthly price for this license, overriding the plan's default price. Set by super admin.",
+    )
+
+    total_credits_consumed = models.PositiveIntegerField(
+        default=0,
+        help_text=(
+            "Total raw credits consumed by all teachers under this "
+            "license in the current billing cycle. Used for global cap enforcement."
+        ),
     )
 
     # --- Timestamps ---
@@ -1067,3 +1116,18 @@ class SchoolCreditAllocation(models.Model):
     def display_monthly_allocation(self) -> int:
         """Returns display value (raw value / 1000)"""
         return self.monthly_allocation // CONVERSION_FACTOR
+
+
+class StripeEvent(models.Model):
+    """Idempotency ledger for Stripe webhook events - see billing/webhooks.py"""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    stripe_event_id = models.CharField(
+        max_length=255, null=True, blank=True, db_index=True
+    )
+    event_type = models.CharField(max_length=100)
+    payload = models.JSONField(null=True, blank=True)
+    processed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-processed_at"]

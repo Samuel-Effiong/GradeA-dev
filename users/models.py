@@ -124,6 +124,8 @@ class CustomUser(AbstractUser):
         default=RegistrationMethod.EMAIL,
     )
 
+    # stripe_customer_id = models.CharField(max_length=255, null=True, blank=True, db_index=True)
+
     def get_full_name(self):
         """
         Return the first_name plus the middle_name plus the last_name, with a space in between.
@@ -168,7 +170,7 @@ class CustomUser(AbstractUser):
         Returns:
             Union[UserSubscription, LicenseSubscription, None]
         """
-        from billing.models import LicenseSubscription, UserSubscription
+        # from billing.models import LicenseSubscription, UserSubscription
 
         # Check if user is under an active License
         if self.is_teacher():

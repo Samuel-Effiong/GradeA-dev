@@ -21,7 +21,7 @@ from typing import List, Optional
 
 from dateutil.relativedelta import relativedelta
 from django.conf import settings
-from django.db import transaction
+from django.db import models, transaction
 
 # from django.db.models import F, Q
 from django.utils import timezone
@@ -32,6 +32,7 @@ from users.models import CustomUser, RegistrationMethod, UserTypes
 from users.services import otp_manager
 from users.utils import is_business_email
 
+from .context import clear_license_invitation_context, set_license_invitation_context
 from .models import (  # CONVERSION_FACTOR,; UserSubscription,
     CreditBucket,
     CreditBucketType,
@@ -123,6 +124,9 @@ class LicenseSubscriptionService:
         teacher_emails: Optional[List[str]] = None,
         contract_months: int = 12,
         max_seats: int = 0,
+        custom_price_cents: Optional[int] = None,
+        is_active: bool = True,
+        auto_renew: bool = True,
     ) -> LicenseSubscription:
         """
         Creates a new License subscription for a school.
@@ -199,7 +203,9 @@ class LicenseSubscriptionService:
             billing_cycle_start=now,
             billing_cycle_end=billing_end,
             is_active=True,
-            auto_renew=True,
+            auto_renew=auto_renew,
+            custom_price_cents=custom_price_cents,
+            total_credits_consumed=0,
         )
 
         logger.info(
@@ -248,6 +254,7 @@ class LicenseSubscriptionService:
         return license_sub
 
     @staticmethod
+    @transaction.atomic
     def _get_or_invite_teacher(
         email: str,
         school: School,
@@ -333,21 +340,25 @@ class LicenseSubscriptionService:
 
             return user
 
-        # Create new teacher account (inactive)
         activation_token = otp_manager.generate_otp()
-        user = CustomUser.objects.create(
-            email=email,
-            user_type=UserTypes.TEACHER,
-            school=school,
-            is_active=False,
-            registration_method=RegistrationMethod.EMAIL,
-            activation_token=activation_token,
-            activation_expires=timezone.now() + timedelta(days=7),
-        )
+        try:
+            # Create new teacher account (inactive)
+            set_license_invitation_context(True)
+            user = CustomUser.objects.create(
+                email=email,
+                user_type=UserTypes.TEACHER,
+                school=school,
+                is_active=False,
+                registration_method=RegistrationMethod.EMAIL,
+                activation_token=activation_token,
+                activation_expires=timezone.now() + timedelta(days=7),
+            )
 
-        # Set a dummy unusable password (they will set it via activation)
-        user.set_unusable_password()
-        user.save()
+            # Set a dummy unusable password (they will set it via activation)
+            user.set_unusable_password()
+            user.save()
+        finally:
+            clear_license_invitation_context()
 
         # Send invitation email
         LicenseSubscriptionService._send_teacher_invitation(user, school, admin_user)
@@ -399,9 +410,11 @@ class LicenseSubscriptionService:
         Handles:
         1. Creating SchoolCreditAllocation
         2. Ensuring CreditWallet exists
-        3. Creating MONTHLY bucket
-        4. Deactivating conflicting INDIVIDUAL subscriptions
-        5. Audit logging
+        3. Computing capped grant based on global consumption cap
+        4. Creating MONTHLY bucket (capped amount)
+        5. Deactivating conflicting INDIVIDUAL subscriptions
+        6. Rollover from previous MONTHLY bucket if transitioning
+        7. Audit logging
 
         Args:
             license_sub: License to enroll teacher into
@@ -556,39 +569,65 @@ class LicenseSubscriptionService:
                 teacher.email,
             )
 
+        # Compute the grant amount based on remaining global budget
+        max_seats = license_sub.max_seats
+
+        if max_seats == 0:
+            # Unlimited seats - no cap, grant full allocation
+            grant_amount = allocation.monthly_allocation
+
+        else:
+            total_budget = max_seats * license_sub.plan.monthly_credits
+            consumed = license_sub.total_credits_consumed
+            remaining_budget = total_budget - consumed
+
+            if remaining_budget <= 0:
+                # No budget left - no credits to grant
+                grant_amount = 0
+
+            else:
+                grant_amount = min(allocation.monthly_allocation, remaining_budget)
+
         # 6. Create new MONTHLY bucket for the license allocation
         monthly_bucket = CreditBucket.objects.create(
             wallet=wallet,
             bucket_type=CreditBucketType.MONTHLY,
-            total_credits=allocation.monthly_allocation,
+            total_credits=grant_amount,
             used_credits=0,
             expires_at=license_sub.billing_cycle_end,
         )
 
-        # 7. Create audit ledger entry
+        # 7. Create audit ledger entry with the actual grant amount
+        is_capped = grant_amount < allocation.monthly_allocation
         CreditLedger.objects.create(
             user=teacher,
             bucket=monthly_bucket,
             ledger_type=CreditLedgerType.GRANT,
-            amount=allocation.monthly_allocation,
+            amount=grant_amount,
             reference=(
-                f"Initial allocation for LICENSE subscription {license_sub.id} "
+                f"Allocation for LICENSE subscription {license_sub.id} "
                 f"({license_sub.plan.display_name or license_sub.plan.name})"
+                f"{' (capped)' if is_capped else ''}"
             ),
             metadata={
                 "license_subscription_id": str(license_sub.id),
                 "school_id": str(license_sub.school.id),
                 "allocation_id": str(allocation.id),
                 "teacher_email": teacher.email,
+                "global_budget": total_budget if max_seats != 0 else None,
+                "consumed_before": consumed if max_seats != 0 else None,
+                "grant_amount": grant_amount,
+                "is_capped": is_capped,
             },
         )
 
         logger.info(
             "Created MONTHLY credit bucket with %d credits for teacher %s "
-            "under license %s",
-            allocation.monthly_allocation,
+            "under license %s (capped=%s)",
+            grant_amount,
             teacher.email,
             license_sub.id,
+            is_capped,
         )
 
         # 8. Reset overage blocks (if transitioning from individual)
@@ -711,20 +750,26 @@ class LicenseSubscriptionService:
         """
         Removes a teacher from a License subscription.
 
-        The allocation is marked inactive but not deleted (for audit trail).
+        1. Marks the SchoolCreditAllocation as inactive.
+        2. Expires all active credit buckets (MONTHLY, CARRY_OVER, OVERAGE, etc.)
+           so the teacher cannot use them.
+        3. Logs the operation.
 
-        Args:
-            license_sub: License subscription
-            teacher: Teacher to remove
-
-        Raises:
-            ValueError: If allocation doesn't exist
+        The teacher's wallet and historical buckets remain for audit purposes.
+        If the teacher later re‑enrolls (via license or individual subscription),
+        new buckets will be created.
         """
-        allocation = SchoolCreditAllocation.objects.filter(
-            license_subscription=license_sub,
-            user=teacher,
-            is_active=True,
-        ).first()
+
+        # Lock the allocation row to prevent race conditions
+        allocation = (
+            SchoolCreditAllocation.objects.filter(
+                license_subscription=license_sub,
+                user=teacher,
+                is_active=True,
+            )
+            .select_for_update()
+            .first()
+        )
 
         if not allocation:
             raise ValueError(
@@ -732,13 +777,23 @@ class LicenseSubscriptionService:
                 f"license {license_sub.id}"
             )
 
+        # 1. Deactivate allocation
         allocation.is_active = False
         allocation.save(update_fields=["is_active", "updated_at"])
 
+        # 2. Expire all active credit buckets for this teacher
+        wallet = teacher.credit_wallet
+        now = timezone.now()
+
+        expired_count = wallet.buckets.filter(
+            models.Q(expires_at__isnull=True) | models.Q(expires_at__gt=now)
+        ).update(expires_at=now)
+
         logger.info(
-            "Removed teacher %s from license %s",
+            "Removed teacher %s from license %s" "Expired %d credit buckets.",
             teacher.email,
             license_sub.id,
+            expired_count,
         )
 
     @staticmethod
@@ -913,6 +968,9 @@ class LicenseSubscriptionService:
             license_sub.save(
                 update_fields=["billing_cycle_start", "billing_cycle_end", "updated_at"]
             )
+
+            license_sub.total_credits_consumed = 0
+            license_sub.save(update_fields=["total_credits_consumed", "updated_at"])
         else:
             # No teacher could be renewed – deactivate the license to avoid endless retries
             logger.error(

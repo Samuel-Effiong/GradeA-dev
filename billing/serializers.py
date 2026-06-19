@@ -8,6 +8,7 @@ from rest_framework import serializers
 
 from users.models import CustomUser
 
+from .license_service import LicenseSubscriptionService
 from .models import (
     CONVERSION_FACTOR,
     BetaProfile,
@@ -60,6 +61,7 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
             "interval",
             "product_id",
             "price_id",
+            "stripe_price_id",
             "price_cents",
             "monthly_credits",
             "carry_over_percent",
@@ -78,6 +80,8 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
             "monthly_credits": {"write_only": True},
             "carry_over_max": {"write_only": True},
             "overage_block_size": {"write_only": True},
+            "stripe_price_id": {"write_only": True},
+            "product_id": {"write_only": True},
         }
 
     def get_features(self, obj) -> list:
@@ -1052,28 +1056,39 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
         required=False,
         help_text="List of teacher emails to enroll in the license.",
     )
+    custom_price_cents = serializers.IntegerField(required=False, allow_null=True)
 
     class Meta:
         model = LicenseSubscription
         fields = [
+            # Identifiers
             "id",
             "school",
-            "school_name",
             "admin_user",
-            "admin_email",
             "plan",
+            # Read-only display
+            "school_name",
+            "admin_email",
             "plan_name",
             "plan_category",
             "monthly_credits",
             "display_monthly_credits",
+            # Billing / Contract
+            "contract_months",
+            "max_seats",
             "billing_cycle_start",
             "billing_cycle_end",
             "is_active",
             "auto_renew",
             "stripe_subscription_id",
+            "custom_price_cents",
+            # Statistics
             "teacher_count",
             "allocations",
+            # "active_teacher_count",
+            # Write only
             "teacher_emails",
+            # Timestamps
             "created_at",
             "updated_at",
         ]
@@ -1089,7 +1104,19 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
             "monthly_credits",
             "display_monthly_credits",
             "allocations",
+            "billing_cycle_start",
+            "billing_cycle_end",
         ]
+
+        extra_kwargs = {
+            "school": {"write_only": True},
+            "admin_user": {"write_only": True},
+            "plan": {"write_only": True},
+            "contract_months": {"write_only": True},
+            "max_seats": {"write_only": True},
+            "is_active": {"required": False},
+            "auto_renew": {"required": False},
+        }
 
     def validate_plan(self, value):
         """
@@ -1109,3 +1136,75 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
             is_active=True
         ).count()
         return ret
+
+    def validate_contract_months(self, value):
+        if value not in (1, 9, 10, 12):
+            raise serializers.ValidationError(
+                "Contract months must be 1, 9, 10, or 12."
+            )
+        return value
+
+    def validate_max_seats(self, value):
+        if value < 0:
+            raise serializers.ValidationError(
+                "max_seats mus be 0 (unlimited) or a positive integer."
+            )
+        return value
+
+    def create(self, validated_data):
+        """
+        Create a new license subscription using the service layer.
+        teacher_emails is extracted and passed to the service.
+        """
+        teacher_emails = validated_data.pop("teacher_emails", [])
+        custom_price_cents = validated_data.pop("custom_price_cents", None)
+
+        # The service expects these as arguments
+        school = validated_data.pop("school")
+        plan = validated_data.pop("plan")
+        admin_user = validated_data.pop("admin_user")
+        contract_months = validated_data.pop("contract_months", 12)
+        max_seats = validated_data.pop("max_seats", 0)
+
+        # Any remaining validated_data should be passed (e.g., is_active, auto_renew)
+        # but we can ignore them because the service sets defaults.
+        # However, we support passing is_active/auto_renew if needed (though not typical).
+        # We'll pass them as kwargs to the service if present.
+        extra_kwargs = {
+            k: v for k, v in validated_data.items() if k in ["is_active", "auto_renew"]
+        }
+
+        license_sub = LicenseSubscriptionService.create_license_subscription(
+            school=school,
+            plan=plan,
+            admin_user=admin_user,
+            teacher_emails=teacher_emails,
+            contract_months=contract_months,
+            max_seats=max_seats,
+            custom_price_cents=custom_price_cents,
+            **extra_kwargs,
+        )
+
+        return license_sub
+
+    def update(self, instance, validated_data):
+        """
+        Partial update support for simple fields.
+        We do not support changing the plan, school, or admin via this endpoint.
+        Those operations are handled by dedicated actions.
+        """
+        # Allowed to update: is_active, auto_renew, custom_price_cents
+        instance.is_active = validated_data.get("is_active", instance.is_active)
+        instance.auto_renew = validated_data.get("auto_renew", instance.auto_renew)
+        instance.custom_price_cents = validated_data.get(
+            "custom_price_cents", instance.custom_price_cents
+        )
+        instance.save(
+            update_fields=[
+                "is_active",
+                "auto_renew",
+                "custom_price_cents",
+                "updated_at",
+            ]
+        )
+        return instance

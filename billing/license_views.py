@@ -6,6 +6,7 @@ This module provides RESTful API endpoints for managing institutional
 and subscription lifecycle operations.
 """
 
+from django.conf import settings
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -17,12 +18,20 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from classrooms.models import School
-from classrooms.permissions import IsNotStudent  # IsSuperAdmin
+from classrooms.permissions import IsNotStudent, IsSuperAdmin
 from users.models import CustomUser, UserTypes
 
 from .license_service import LicenseSubscriptionService
-from .models import LicenseSubscription, SchoolCreditAllocation, SubscriptionPlan
+from .models import LicenseSubscription, SchoolCreditAllocation  # , SubscriptionPlan
 from .serializers import LicenseSubscriptionSerializer, SchoolCreditAllocationSerializer
+from .stripe_service import StripeCheckoutService
+from .stripe_view_schemas import (
+    ADD_TEACHERS_SCHEMA,
+    LICENSE_CREATE_SCHEMA,
+    PROCESS_RENEWAL_SCHEMA,
+    REMOVE_TEACHERS_SCHEMA,
+    RENEWAL_INFO_SCHEMA,
+)
 
 
 class IsSchoolAdminOrSuperAdmin(IsAuthenticated):
@@ -127,6 +136,14 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
 
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
+    def get_permissions(self):
+        if self.action in ["add_teachers", "remove_teachers", "list", "retrieve"]:
+            permission_classes = [IsSchoolAdminOrSuperAdmin]
+        else:
+            permission_classes = [IsSuperAdmin]
+
+        return [permission() for permission in permission_classes]
+
     def get_queryset(self):
         """
         Filter licenses based on user role:
@@ -150,6 +167,7 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
 
         return queryset
 
+    @LICENSE_CREATE_SCHEMA
     def create(self, request, *args, **kwargs):
         """
         Create a new license subscription.
@@ -162,58 +180,38 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
             "teacher_ids": [<user_id>, ...] (optional)
         }
         """
-        school_id = request.data.get("school")
-        admin_user_id = request.data.get("admin_user")
-        plan_id = request.data.get("plan")
-        teacher_emails = request.data.get("teacher_emails", [])
 
-        # Validate inputs
-        if not all([school_id, admin_user_id, plan_id]):
-            return Response(
-                {"error": "school, admin_user, and plan are required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
 
-        # Get objects
-        school = get_object_or_404(School, id=school_id)
-        admin_user = get_object_or_404(CustomUser, id=admin_user_id)
-        plan = get_object_or_404(SubscriptionPlan, id=plan_id)
-
-        # Check permission to manage this school
-        if not (
-            request.user.is_superuser
-            and request.user.user_type == UserTypes.SUPER_ADMIN
-        ):
-            if request.user.user_type != UserTypes.SCHOOL_ADMIN:
-                return Response(
-                    {"error": "Only school admins can create licenses"},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-            if not school.admins.filter(id=request.user.id).exists():
-                return Response(
-                    {"error": "You are not an admin for this school"},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
+        success_url = (
+            request.data.get("success_url")
+            or f"https://{settings.FRONTEND_DOMAIN}/billing/license-success"
+        )
+        cancel_url = (
+            request.data.get("cancel_url")
+            or f"https://{settings.FRONTEND_DOMAIN}/billing/license-cancelled"
+        )
 
         try:
-            with transaction.atomic():
-                license_sub = LicenseSubscriptionService.create_license_subscription(
-                    school=school,
-                    plan=plan,
-                    admin_user=admin_user,
-                    teacher_emails=teacher_emails if teacher_emails else None,
-                )
-
-            serializer = self.get_serializer(license_sub)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-        except Exception as e:
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_400_BAD_REQUEST,
+            session = StripeCheckoutService.create_license_session(
+                school=data["school"],
+                plan=data["plan"],
+                admin_user=data["admin_user"],
+                contract_months=data.get("contract_months", 12),
+                max_seats=data.get("max_seats", 0),
+                teacher_emails=data.get("teacher_emails", []),
+                custom_price_cents=data.get("custom_price_cents"),
+                success_url=success_url,
+                cancel_url=cancel_url,
             )
+        except ValueError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
-    @extend_schema(tags=["License Subscriptions"])
+        return Response({"checkout_url": session.url}, status=status.HTTP_200_OK)
+
+    @ADD_TEACHERS_SCHEMA
     @action(detail=True, methods=["post"])
     def add_teachers(self, request, pk=None):
         """
@@ -254,7 +252,7 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-    @extend_schema(tags=["License Subscriptions"])
+    @REMOVE_TEACHERS_SCHEMA
     @action(detail=True, methods=["post"])
     def remove_teachers(self, request, pk=None):
         """
@@ -302,7 +300,7 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK,
         )
 
-    @extend_schema(tags=["License Subscriptions"])
+    @PROCESS_RENEWAL_SCHEMA
     @action(detail=True, methods=["post"])
     def process_renewal(self, request, pk=None):
         """
@@ -336,7 +334,7 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-    @extend_schema(tags=["License Subscriptions"])
+    @RENEWAL_INFO_SCHEMA
     @action(detail=True, methods=["get"])
     def renewal_info(self, request, pk=None):
         """
@@ -367,6 +365,7 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
                 "days_until_renewal": max(0, days_until),
                 "auto_renew": license_sub.auto_renew,
                 "is_active": license_sub.is_active,
+                "stripe_status": license_sub.stripe_status,
                 "teacher_count": license_sub.teacher_count,
                 "active_teacher_count": license_sub.allocations.filter(
                     is_active=True

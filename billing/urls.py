@@ -1,3 +1,4 @@
+from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from .license_views import LicenseSubscriptionViewSet, SchoolCreditAllocationViewSet
@@ -11,9 +12,10 @@ from .views import (
     CreditWalletViewSet,
     SubscriptionManagementViewSet,
     SubscriptionPlanViewSet,
-    UserSubscriptionViewSet
+    UserSubscriptionViewSet,
 )
 from .views_admin_credits import AdminCreditManagementViewSet
+from .webhooks import stripe_webhook
 
 router = DefaultRouter(trailing_slash=False)
 router.register(
@@ -47,4 +49,10 @@ router.register(
     r"admin/credits", AdminCreditManagementViewSet, basename="admin-credits"
 )
 
-urlpatterns = router.urls
+urlpatterns = [
+    path("stripe/webhook/", stripe_webhook, name="stripe-webhook"),
+]
+
+urlpatterns = router.urls + [
+    path("stripe/webhook/", stripe_webhook, name="stripe-webhook"),
+]

@@ -186,9 +186,15 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
             submission.save(update_fields=["raw_input"])
 
-        serializer = StudentSubmissionDetailStudentVersionSerializer(
-            submission, context=self.get_serializer_context()
-        )
+        if request.user.user_type == UserTypes.STUDENT:
+            serializer = StudentSubmissionDetailStudentVersionSerializer(
+                submission, context=self.get_serializer_context()
+            )
+        else:
+            serializer = StudentSubmissionDetailSerializer(
+                submission, context=self.get_serializer_context()
+            )
+
         data = serializer.data
         cache.set(cache_key, data, getattr(settings, "CACHE_TTL", 60 * 5))
 

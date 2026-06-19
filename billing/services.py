@@ -222,6 +222,7 @@ class SubscriptionService:
     @staticmethod
     @transaction.atomic
     def purchase_overage_block(wallet):
+        # FIXME: Delete later, actual implementation in StripeOverageService
         """
         Logic to charge the user and inject a new Overage Bucket
         """
@@ -662,6 +663,140 @@ class SubscriptionService:
         usage_logs.update(is_refunded=True)
 
         return total_refunded
+
+    @staticmethod
+    @transaction.atomic
+    def grant_overage_bucket(wallet, user_sub, stripe_payment_intent_id=None):
+        """Shared by the legacy auto-purchase path and the new Stripe-confirmed
+        purchase paths (StripeOverageService + the payment_intent.uscceeded webhook fallback)
+        so the bucket/ledger logic only lives in one place.
+        """
+
+        plan = user_sub.plan
+        new_bucket = CreditBucket.objects.create(
+            wallet=wallet,
+            bucket_type=CreditBucketType.OVERAGE,
+            total_credits=plan.overage_block_size,
+            used_credits=0,
+            expires_at=user_sub.billing_cycle_end,
+        )
+
+        wallet.overage_block_used += 1
+        wallet.save(update_fields=["overage_block_used", "updated_at"])
+
+        CreditLedger.objects.create(
+            user=wallet.user,
+            bucket=new_bucket,
+            ledger_type=CreditLedgerType.PURCHASE,
+            amount=plan.overage_block_size,
+            reference=f"Overage Block #{wallet.overage_blocks_used} purchased",
+            metadata={
+                "price_charged": str(plan.overage_block_price),
+                "stripe_payment_intent_id": stripe_payment_intent_id,
+            },
+        )
+
+        return new_bucket
+
+    @staticmethod
+    @transaction.atomic
+    def finalize_trial_conversion_via_stripe(trial_sub):
+        """
+        Called from invoice.payment_succeeded when a Stripe trial's first real
+        charge succeeds (billing_reason=subscription_cycle, previous status was
+        trialing). Unlike convert_trial_to_paid (user manually upgrades mid-trial,
+        possibly to a different plan), the Stripe subscription here is unchanged —
+        only its status moved trialing -> active — so we update the SAME
+        UserSubscription row in place rather than deactivating + creating a new one.
+        """
+
+        if not trial_sub.is_trial:
+            logger.warning(
+                "finalize_trial_conversion_via_stripe called on non-trial subscription %s. Ignoring.",
+                trial_sub.id,
+            )
+
+            return trial_sub
+
+        user = trial_sub.user
+        plan = trial_sub.plan
+
+        now = timezone.now()
+        billing_end = now + relativedelta(months=1)
+        wallet = user.credit_wallet
+
+        trial_bucket = (
+            wallet.buckets.select_for_update()
+            .filter(bucket_type=CreditBucketType.TRIAL, expires_at__gt=now)
+            .first()
+        )
+
+        if trial_bucket:
+            unused = trial_bucket.remaining_credits
+
+            if unused > 0:
+                CreditLedger.objects.create(
+                    user=user,
+                    bucket=trial_bucket,
+                    ledger_type=CreditLedgerType.EXPIRE,
+                    amount=unused,
+                    reference="Trial credits forfeited - Trial converted to paid via Stripe.",
+                    metadata={
+                        "expired_amount": unused,
+                        "subscription_id": str(trial_sub.id),
+                    },
+                )
+
+            trial_bucket.expires_at = now
+            trial_bucket.is_processed = True
+            trial_bucket.save(
+                update_fields=["expires_at", "is_processed", "updated_at"]
+            )
+
+        trial_sub.is_trial = False
+        trial_sub.trial_end = None
+
+        trial_sub.billing_cycle_start = now
+        trial_sub.billing_cycle_end = billing_end
+        trial_sub.save(
+            update_fields=[
+                "is_trial",
+                "trial_end",
+                "billing_cycle_start",
+                "billing_cycle_end",
+                "updated_at",
+            ]
+        )
+
+        wallet.overage_block_used = 0
+        wallet.save(update_fields=["overage_blocks_used", "updated_at"])
+
+        bucket = CreditBucket.objects.create(
+            wallet=wallet,
+            bucket_type=CreditBucketType.MONTHLY,
+            total_credits=plan.monthly_credits,
+            used_credits=0,
+            expires_at=billing_end,
+        )
+
+        CreditLedger.objects.create(
+            user=user,
+            bucket=bucket,
+            ledger_type=CreditLedgerType.GRANT,
+            amount=plan.monthly_credits,
+            reference=f"Trial converted to paid via Stripe for {plan.display_name or plan.name}",
+            metadata={
+                "subscription_id": str(trial_sub.id),
+                "grant_type": "TRIAL_TO_PAID_STRIPE",
+            },
+        )
+
+        logger.info(
+            "Trial converted to paid via Stripe for user %s (subscription %s).",
+            user.email,
+            trial_sub.id,
+        )
+        return trial_sub
 
 
 class ManualCreditService:

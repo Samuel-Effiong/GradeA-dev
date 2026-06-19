@@ -99,18 +99,21 @@ def cleanup_expired_users():
             expired_members.append(member_str)
 
         # Batch remove the expired users from the set
-        if expired_members:
-            cache.srem("online_users_set", *expired_members)
+    if expired_members:
+        cache.srem("online_users_set", *expired_members)
 
-        return len(expired_members)
+    return len(expired_members)
 
 
 def get_current_concurrent_users():
 
-    keys = cache.keys("active_user*")
-    all_active_data = cache.get_many(keys)
+    # keys = cache.keys("active_user*")
+    # all_active_data = cache.get_many(keys)
 
-    return len(all_active_data)
+    # return len(all_active_data)
+
+    members = cache.smembers("online_users_set")
+    return len(members) if members else 0
 
 
 def base_queryset(start=None, end=None):

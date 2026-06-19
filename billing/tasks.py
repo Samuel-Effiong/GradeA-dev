@@ -30,6 +30,8 @@ from .services import SubscriptionService
 
 logger = logging.getLogger(__name__)
 
+from .imports import stripe
+
 
 @shared_task(bind=True, max_retries=0)
 def process_subscription_renewals(self):
@@ -175,8 +177,15 @@ def process_license_renewals(self):
                 # School admin set auto_renew=False — deactivate.
                 # Teachers' existing credit buckets will expire naturally;
                 # cleanup_expired_credit_buckets will log the EXPIRE entries.
+
+                if license_sub.stripe_subscription_id:
+                    stripe.Subscription.modify(
+                        license_sub.stripe_subscription_id, cancel_at_period_end=True
+                    )
+
                 license_sub.is_active = False
                 license_sub.save(update_fields=["is_active", "updated_at"])
+
                 deactivated_count += 1
                 logger.info(
                     "Deactivated license %s for school '%s' (auto_renew=False).",

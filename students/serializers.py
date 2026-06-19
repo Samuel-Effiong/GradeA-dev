@@ -60,7 +60,7 @@ class StudentSubmissionSerializer(serializers.ModelSerializer):
             "student_name",
             "assignment",
             "assignment_title",
-            # "answers",
+            "answers",
             "score",
             "max_points",
             "feedback",
@@ -295,15 +295,9 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
         return "SUBMITTED"
 
     def get_grade_status(self, obj):
-        if obj.graded_at is None:
-            return "NOT GRADED"
-        else:
+        if obj.graded_at and obj.is_published:
             return "GRADED"
-        # if obj.was_regraded and obj.regraded_at:
-        #     return "REGRADED"
-        # if obj.graded_at:
-        #     return "GRADED"
-        # return "NOT GRADED"
+        return "NOT GRADED"
 
     def get_is_grading_scheduled(self, obj) -> bool:
         return bool(
@@ -398,17 +392,15 @@ class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerialize
         return "SUBMITTED"
 
     def get_grade_status(self, obj):
-        if obj.graded_at is None:
-            return "NOT GRADED"
-        else:
+        if obj.graded_at and obj.is_published:
             return "GRADED"
+        return "NOT GRADED"
 
     def get_grade_letter(self, obj):
-        submission = obj
-        if submission and submission.score_percentage is not None:
+        if obj and obj.score_percentage is not None and obj.is_published:
             from students.services import get_grade_details
 
-            grade_details = get_grade_details(submission.score_percentage)
+            grade_details = get_grade_details(obj.score_percentage)
             return grade_details.get("letter_grade")
         return None
 
