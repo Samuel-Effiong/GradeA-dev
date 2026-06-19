@@ -242,7 +242,6 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             "create",
             "upload_answers",
             "upload_answers_async",
-            "partial_update",
             "update",
         ]:
             # These are student actions that (mostly) consume AI credits

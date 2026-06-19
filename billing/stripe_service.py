@@ -105,13 +105,6 @@ class StripeCheckoutService:
             customer=customer_id,
             mode="subscription",
             line_items=[{"price": plan.stripe_price_id, "quantity": 1}],
-            subscription_data={
-                # Without this, customer.invoice_settings.default_payment_method
-                # stays null after checkout, and overage block purchases
-                # (which charge that default payment method) would have
-                # nothing to charge.
-                "payment_settings": {"save_default_payment_method": "on_subscription"},
-            },
             success_url=success_url,
             cancel_url=cancel_url,
             metadata={
@@ -164,7 +157,6 @@ class StripeCheckoutService:
                 "trial_settings": {
                     "end_behavior": {"missing_payment_method": "cancel"},
                 },
-                "payment_settings": {"save_default_payment_method": "on_subscription"},
             },
             payment_method_collection="always",
             success_url=success_url,
@@ -239,9 +231,9 @@ class StripeCheckoutService:
         session_kwargs = dict(
             mode="subscription",
             line_items=[line_item],
-            subscription_data={
-                "payment_settings": {"save_default_payment_method": "on_subscription"},
-            },
+            # subscription_data={
+            #     "payment_settings": {"save_default_payment_method": "on_subscription"},
+            # },
             success_url=success_url,
             cancel_url=cancel_url,
             metadata={
@@ -373,10 +365,22 @@ class StripeOverageService:
         if not wallet.stripe_customer_id:
             raise ValueError("No Stripe customer on file for this user.")
 
-        customer = stripe.Customer.retrieve(wallet.stripe_customer_id)
-        default_pm = (customer.get("invoice_settings") or {}).get(
-            "default_payment_method"
-        )
+        # Checkout (subscription mode) saves the card as the SUBSCRIPTION's
+        # default_payment_method, not the Customer's invoice_settings —
+        # those are two different fields. Check the subscription first;
+        # only fall back to the customer-level default if the subscription
+        # doesn't have one set (e.g. it was set manually some other way).
+        default_pm = None
+        if user_sub.stripe_subscription_id:
+            stripe_sub = stripe.Subscription.retrieve(user_sub.stripe_subscription_id)
+            default_pm = stripe_sub.get("default_payment_method")
+
+        if not default_pm:
+            customer = stripe.Customer.retrieve(wallet.stripe_customer_id)
+            default_pm = (customer.get("invoice_settings") or {}).get(
+                "default_payment_method"
+            )
+
         if not default_pm:
             raise ValueError(
                 "No default payment method on file. Add a card before "
