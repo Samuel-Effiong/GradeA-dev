@@ -373,6 +373,8 @@ class UserSubscription(models.Model):
             "True while this subscription is in its free trial period ",
             "Flipped to False on trial expiry or paid conversion",
         ),
+        null=True,
+        blank=True,
     )
 
     trial_end = models.DateTimeField(
@@ -411,6 +413,20 @@ class UserSubscription(models.Model):
     )
     updated_at = models.DateTimeField(
         auto_now=True, help_text="Date and time when the subscription was last updated"
+    )
+
+    next_credit_grant_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text=(
+            "When the current MONTHLY credit bucket expires and the next one "
+            "is due. For MONTHLY-interval plans this always coincides with "
+            "billing_cycle_end. For ANNUAL-interval plans it's independent — "
+            "Stripe only bills once a year, but credits still refresh monthly, "
+            "so this tracks the monthly refresh clock separately from the "
+            "yearly billing/contract clock."
+        ),
     )
 
     class Meta:

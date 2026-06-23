@@ -15,7 +15,7 @@ from .views import (
     UserSubscriptionViewSet,
 )
 from .views_admin_credits import AdminCreditManagementViewSet
-from .webhooks import stripe_webhook
+from .webhooks import stripe_webhook, thin_webhook
 
 router = DefaultRouter(trailing_slash=False)
 router.register(
@@ -49,10 +49,8 @@ router.register(
     r"admin/credits", AdminCreditManagementViewSet, basename="admin-credits"
 )
 
-urlpatterns = [
-    path("stripe/webhook/", stripe_webhook, name="stripe-webhook"),
-]
 
 urlpatterns = router.urls + [
-    path("stripe/webhook/", stripe_webhook, name="stripe-webhook"),
+    path("stripe/webhooks", stripe_webhook, name="stripe-webhook"),
+    path("stripe/webhooks/thin", thin_webhook, name="stripe-webhook-thin"),
 ]

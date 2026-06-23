@@ -260,7 +260,7 @@ class LicenseSubscriptionService:
         school: School,
         admin_user: CustomUser,
         raise_on_conflict: bool = False,
-    ) -> CustomUser:
+    ) -> CustomUser | None:
         """
         Find an existing teacher by email, or create an inactive teacher account
         and send an activation email

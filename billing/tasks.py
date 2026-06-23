@@ -24,13 +24,12 @@ import logging
 from celery import shared_task
 from django.utils import timezone
 
+from .imports import stripe
 from .license_service import LicenseSubscriptionService
-from .models import CreditBucket, LicenseSubscription, UserSubscription
+from .models import BillingInterval, CreditBucket, LicenseSubscription, UserSubscription
 from .services import SubscriptionService
 
 logger = logging.getLogger(__name__)
-
-from .imports import stripe
 
 
 @shared_task(bind=True, max_retries=0)
@@ -264,6 +263,57 @@ def cleanup_expired_credit_buckets(self):
         f"{total_expired_count} buckets processed, "
         f"{total_value_lost} raw credits expired, "
         f"{failed_count} failed."
+    )
+    logger.info(summary)
+    return summary
+
+
+@shared_task(bind=True, max_retries=0)
+def process_annual_plan_credit_grants(self):
+    """
+    For ANNUAL-interval individual plans only: grants the next month's
+    MONTHLY credit bucket mid-cycle, since Stripe only bills once a year
+    but credits still refresh monthly. Separate from
+    process_subscription_renewals, which handles the actual once-a-year
+    billing-cycle renewal (rollover into a new UserSubscription row, plan
+    changes, Stripe price sync) for ALL plans including annual ones —
+    that still happens correctly at billing_cycle_end regardless of this task.
+
+    Eligibility: active, non-trial subscriptions on an ANNUAL plan where
+    next_credit_grant_at has passed but billing_cycle_end has NOT yet
+    passed. Once billing_cycle_end passes, it's the real annual renewal's
+    job instead — this task explicitly excludes those to avoid overlap.
+    """
+    now = timezone.now()
+
+    due_subs = UserSubscription.objects.filter(
+        is_active=True,
+        is_trial=False,
+        plan__interval=BillingInterval.ANNUAL,
+        next_credit_grant_at__lte=now,
+        billing_cycle_end__gt=now,
+    ).select_related("user", "plan")
+
+    granted_count = 0
+    failed_count = 0
+
+    for sub in due_subs:
+        try:
+            SubscriptionService.process_mid_cycle_credit_grant(sub)
+            granted_count += 1
+        except Exception as exc:
+            failed_count += 1
+            logger.error(
+                "Failed mid-cycle credit grant for subscription %s (user %s): %s",
+                sub.id,
+                sub.user.email,
+                str(exc),
+                exc_info=True,
+            )
+
+    summary = (
+        f"Annual plan mid-cycle credit grants: "
+        f"{granted_count} granted, {failed_count} failed."
     )
     logger.info(summary)
     return summary

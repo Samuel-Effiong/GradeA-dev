@@ -228,15 +228,12 @@ class StripeCheckoutService:
             .first()
         )
 
-        session_kwargs = dict(
-            mode="subscription",
-            line_items=[line_item],
-            # subscription_data={
-            #     "payment_settings": {"save_default_payment_method": "on_subscription"},
-            # },
-            success_url=success_url,
-            cancel_url=cancel_url,
-            metadata={
+        session_kwargs = {
+            "mode": "subscription",
+            "line_items": [line_item],
+            "success_url": success_url,
+            "cancel_url": cancel_url,
+            "metadata": {
                 "flow": "license_create",
                 "school_id": str(school.id),
                 "plan_id": str(plan.id),
@@ -248,7 +245,7 @@ class StripeCheckoutService:
                     str(custom_price_cents) if custom_price_cents else ""
                 ),
             },
-        )
+        }
         if existing_license:
             session_kwargs["customer"] = existing_license.stripe_customer_id
         else:
@@ -267,47 +264,171 @@ class StripeSubscriptionMutationService:
     @staticmethod
     def change_plan(user_sub, new_plan, proration_behavior="always_invoice"):
         """
-        Upgrades an existing paid subscription immediately. Downgrades
-        should keep using SubscriptionService.schedule_downgrade() (deferred
-        to cycle end) — sync_price() is what actually applies the Stripe-side
-        price change for those, at renewal time.
+        Upgrades an existing paid subscription immediately via
+        Stripe.Subscription.modify(). No Checkout redirect is needed since
+        the customer's card is already on file.
+
+        With proration_behavior="always_invoice", Stripe immediately
+        creates and attempts to pay an invoice for the prorated difference
+        as part of the modify() call. Credits for the new plan are granted
+        ONLY if that invoice actually gets paid — otherwise the Stripe
+        subscription item is reverted back to the old price, so Stripe and
+        the app never disagree about which plan the user is actually
+        paying for.
+
+        Known limitation: if the proration charge requires 3D Secure
+        authentication (payment_intent.status == "requires_action"), this
+        method reverts the change and raises rather than completing the
+        3DS flow inline. The user needs to retry after re-authenticating
+        their payment method. Threading a requires_action response through
+        this synchronous call would mean granting credits from a webhook
+        instead, which risks double-granting against the synchronous
+        success path below — deliberately avoided in favour of a simpler,
+        always-consistent state machine. Worth revisiting if 3DS declines
+        turn out to be common for your customer base.
+
+        Downgrades should keep using SubscriptionService.schedule_downgrade()
+        (deferred to cycle end) — sync_price() applies the Stripe-side price
+        change for those, at renewal time, not this method.
         """
         if not user_sub.stripe_subscription_id:
-            raise ValueError("This subscription has no associated Stripe subscription.")
+            raise ValueError(
+                "This subscription has no associated Stripe subscription. "
+                "(it may have been granted manually). Contact support to upgrade."
+            )
         if not new_plan.stripe_price_id:
             raise ValueError(f"Plan {new_plan.name} has no stripe_price_id configured.")
 
-        stripe_sub = stripe.Subscription.retrieve(user_sub.stripe_subscription_id)
+        old_plan = user_sub.plan
+        stripe_subscription_id = user_sub.stripe_subscription_id
+
+        try:
+            stripe_sub = stripe.Subscription.retrieve(user_sub.stripe_subscription_id)
+        except stripe.error.StripeError as exc:
+            raise ValueError(
+                f"Could not retrieve Stripe subscription: {getattr(exc, 'user_message', None) or str(exc)}"
+            ) from exc
+
         item_id = stripe_sub["items"]["data"][0]["id"]
+        old_price_id = stripe_sub["items"]["data"][0]["price"]["id"]
 
-        stripe.Subscription.modify(
-            user_sub.stripe_subscription_id,
-            items=[{"id": item_id, "price": new_plan.stripe_price_id}],
-            proration_behavior=proration_behavior,
-        )
+        try:
+            stripe.Subscription.modify(
+                user_sub.stripe_subscription_id,
+                items=[{"id": item_id, "price": new_plan.stripe_price_id}],
+                proration_behavior=proration_behavior,
+            )
+        except stripe.error.CardError as exc:
+            # Declined synchronously during the modify call itself - rare
+            # since the decline usually surfaces on the resulting invoice
+            # instead, but Stripe can reject some cards immediately
 
-        # With always_invoice, Stripe immediately creates and charges an
-        # invoice for the prorated amount. We wait to confirm it actually
-        # succeeded before granting credits — unlike create_prorations where
-        # the charge is deferred and we were granting credits optimistically.
-        stripe_sub_refreshed = stripe.Subscription.retrieve(
-            user_sub.stripe_subscription_id
-        )
-        if stripe_sub_refreshed.get("latest_invoice"):
-            invoice = stripe.Invoice.retrieve(stripe_sub_refreshed["latest_invoice"])
+            raise ValueError(
+                f"Card declined: {getattr(exc, 'user_message', None) or str(exc)}"
+            ) from exc
+        except stripe.error.StripeError as exc:
+            raise ValueError(
+                f"Stripe error while upgrading: {getattr(exc, 'user_message', None) or str(exc)}"
+            ) from exc
+
+        # Re-retrieve to see the invoice Stripe generated as a side effect
+        # of the price change. Only present when proration_behavior
+        # actually creates one — e.g. no invoice is generated if the two
+        # plans happen to be priced identically.
+        stripe_sub_refreshed = stripe.Subscription.retrieve(stripe_subscription_id)
+        latest_invoice_id = stripe_sub_refreshed.get("latest_invoice")
+
+        if latest_invoice_id:
+            invoice = stripe.Invoice.retrieve(
+                latest_invoice_id, expand=["payment_intent"]
+            )
+
             if invoice.get("status") != "paid":
+                # Payment didn't go through — declined, requires 3DS, etc.
+                # Revert the subscription item so Stripe stops billing a
+                # price the user never actually paid for, then raise.
+                # Credits are NOT granted past this point.
+
+                StripeSubscriptionMutationService._revert_to_previous_price(
+                    stripe_subscription_id, item_id, old_price_id, invoice
+                )
+
+                payment_intent = invoice.get("payment_intent")
+
+                pi_status = (
+                    payment_intent.get("status")
+                    if isinstance(payment_intent, dict)
+                    else None
+                )
+
+                if pi_status == "requires_action":
+                    raise ValueError(
+                        "Upgrade payment requires additional authentication "
+                        "(3D Secure) that can't be completed automatically here. "
+                        "Please update your payment method and try again. "
+                        "Your plan has not been changed."
+                    )
+
                 raise ValueError(
                     f"Upgrade payment failed (invoice status: {invoice['status']}). "
                     "Plan has not been changed."
                 )
 
+        # Payment succeeded (or no proration invoice was needed at all) —
+        # grant credits for the new plan now
         updated_sub = SubscriptionService.activate_subscription(user_sub.user, new_plan)
         updated_sub.stripe_subscription_id = user_sub.stripe_subscription_id
         updated_sub.stripe_status = StripeSubscriptionStatus.ACTIVE
         updated_sub.save(
             update_fields=["stripe_subscription_id", "stripe_status", "updated_at"]
         )
+
+        logger.info(
+            "Upgraded subscription for user %s: %s -> %s (Stripe subscription %s).",
+            user_sub.user.email,
+            old_plan.name,
+            new_plan.name,
+            stripe_subscription_id,
+        )
         return updated_sub
+
+    @staticmethod
+    def _revert_to_previous_price(
+        stripe_subscription_id, item_id, old_price_id, invoice
+    ):
+        """
+        Best-effort rollback when a proration invoice didn't get paid: puts
+        the Stripe subscription item back on the old price and voids the
+        unpaid invoice so it doesn't linger as a dangling charge attempt.
+        Logs (rather than raises) on failure here — the caller is already
+        mid-error-handling for the original payment failure, and a failed
+        rollback shouldn't mask that with a different exception. It does
+        mean rare rollback failures need manual reconciliation in Stripe.
+        """
+
+        try:
+            stripe.Subscription.modify(
+                stripe_subscription_id,
+                items=[{"id": item_id, "price": old_price_id}],
+                proration_behavior="none",
+            )
+        except stripe.error.StripeError:
+            logger.exception(
+                "Failed to revert subscription %s to its previous price %s "
+                "after a failed upgrade payment. Manual reconciliation needed.",
+                stripe_subscription_id,
+                old_price_id,
+            )
+
+        try:
+            if invoice.get("status") == "open":
+                stripe.Invoice.void_invoice(invoice["id"])
+        except stripe.error.StripeError:
+            logger.exception(
+                "Failed to void unpaid upgrade invoice %s for subscription %s.",
+                invoice.get("id"),
+                stripe_subscription_id,
+            )
 
     @staticmethod
     def sync_price(user_sub, stripe_subscription_id, proration_behavior="none"):
@@ -351,7 +472,7 @@ class StripeOverageService:
         an on-session charge, so there's no off_session decline risk to
         design around, unlike an automatic background top-up would have.
         """
-        wallet = user.credit_wallet
+        wallet = CreditWallet.objects.select_for_update().get(user=user)
         user_sub = (
             user.subscriptions.filter(is_active=True).select_related("plan").first()
         )

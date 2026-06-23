@@ -272,7 +272,11 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": 60 * 60,
     },
     "run-license-subscription-renewal-status": {
-        "task": "billing.tasks.process_subscription_renewals",
+        "task": "billing.tasks.process_license_renewals",
+        "schedule": 60 * 60,
+    },
+    "run-annual-plan-credit-grants": {
+        "task": "billing.tasks.process_annual_plan_credit_grants",
         "schedule": 60 * 60,
     },
     "reconcile-expired-buckets-midnight": {
@@ -526,4 +530,5 @@ DISALLOWED_EMAIL_DOMAINS = [
     "gmx.com",
     "fastmail.com",
     "hushmail.com",
+    "yopmail.com",
 ]

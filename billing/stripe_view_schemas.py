@@ -206,13 +206,16 @@ fires. Poll `GET /subscription/me` after redirect to confirm activation.
             ),
             "success_url": serializers.URLField(
                 required=False,
-                help_text="Redirect URL after card is saved. Defaults to FRONTEND_DOMAIN/billing/trial-success.",
+                help_text=(
+                    "Redirect URL after card is saved. Defaults to "
+                    "FRONTEND_DOMAIN/billing/trial-success."
+                ),
             ),
             "cancel_url": serializers.URLField(
                 required=False,
                 help_text=(
-                    "Redirect URL if user abandons checkout. "
-                    "Defaults to FRONTEND_DOMAIN/billing/trial-cancelled."
+                    "Redirect URL if user abandons checkout. Defaults to "
+                    "FRONTEND_DOMAIN/billing/trial-cancelled."
                 ),
             ),
         },
@@ -391,35 +394,47 @@ UPGRADE_SCHEMA = extend_schema(
     tags=["Subscription — Stripe"],
     summary="Immediately upgrade an existing paid subscription to a higher plan",
     description="""
-Upgrades an **existing active paid subscription** to a higher plan
-immediately, via `Stripe.Subscription.modify()`. No Checkout redirect is
-needed because the customer's card is already on file.
+Upgrades an **existing active paid subscription** to a higher-priced plan
+immediately, via `Stripe.Subscription.modify()` with
+`proration_behavior=always_invoice`. No Checkout redirect is needed because
+the customer's card is already on file.
 
 **What happens**
-- Stripe modifies the subscription item to the new plan's `stripe_price_id`
-  with `proration_behavior=create_prorations` — the user is charged a
-  prorated amount for the remainder of the current billing period.
-- `SubscriptionService.activate_subscription()` is called immediately
-  (without waiting for a webhook) because the card is already verified.
-  Credits for the new plan are granted right away.
+1. Stripe modifies the subscription item to the new plan's `stripe_price_id`.
+2. `always_invoice` makes Stripe immediately create **and attempt to pay**
+   an invoice for the prorated difference, synchronously, as part of this
+   request.
+3. Credits are granted **only if that invoice is actually paid.** If the
+   charge is declined or requires further authentication (3D Secure), the
+   subscription item is reverted back to the old price and the unpaid
+   invoice is voided — Stripe and your account never disagree about which
+   plan you're actually paying for.
 
-**When to use this vs. `/checkout/`**
+**3D Secure limitation**
+If the proration charge requires 3DS authentication, this endpoint reverts
+the change and returns a `400` rather than completing authentication
+inline. Update your payment method (e.g. via Checkout for a fresh card) and
+retry.
+
+**When to use this vs. other endpoints**
 
 | Situation | Correct endpoint |
 |---|---|
-| User has **no** active subscription | `/checkout/` |
-| User **has** an active paid subscription → higher plan | `/upgrade/` |
-| User wants a **lower** plan | `/downgrade/` |
+| No active subscription yet | `/checkout/` |
+| Active paid subscription → **higher**-priced plan | `/upgrade/` |
+| Active paid subscription → **lower**-priced plan | `/downgrade/` |
+| Currently on a free trial | `/convert-trial/` |
 
-**Note on trials**
-Do not call this on a `is_trial=True` subscription. Use `/convert-trial/`
-for that path instead.
+**Validation order** (each returns a specific, actionable message):
+no active subscription → on a trial → already on this plan → target plan
+is actually cheaper (use downgrade) → subscription has no
+`stripe_subscription_id` (manually-granted subscriptions need support).
 """,
     request=inline_serializer(
         name="UpgradeRequest",
         fields={
             "plan": serializers.UUIDField(
-                help_text="UUID of the higher-tier INDIVIDUAL plan to switch to."
+                help_text="UUID of the higher-priced INDIVIDUAL plan to switch to."
             )
         },
     ),
@@ -437,7 +452,7 @@ for that path instead.
                     "stripe_status": serializers.CharField(),
                 },
             ),
-            description="Upgrade applied. Returns the updated subscription.",
+            description="Upgrade payment succeeded. Returns the new subscription with credits already granted.",
             examples=[
                 OpenApiExample(
                     "Upgrade successful",
@@ -456,13 +471,54 @@ for that path instead.
         ),
         400: OpenApiResponse(
             description=(
-                "Validation error. Possible reasons:\n"
-                "- User has no active subscription (use `/checkout/`)\n"
-                "- Subscription has no `stripe_subscription_id` (legacy row)\n"
-                "- Plan has no `stripe_price_id`"
+                "Request rejected, or payment failed and was reverted. "
+                "Possible reasons:\n"
+                "- `plan` field missing\n"
+                "- Plan is not `INDIVIDUAL` category\n"
+                "- No active subscription (use `/checkout/`)\n"
+                "- Currently on a free trial (use `/convert-trial/`)\n"
+                "- Already on the requested plan\n"
+                "- Requested plan is cheaper (use `/downgrade/`)\n"
+                "- Subscription has no linked Stripe subscription (contact support)\n"
+                "- Card declined on the proration charge — plan was reverted\n"
+                "- Charge requires 3D Secure authentication — plan was reverted"
             ),
+            examples=[
+                OpenApiExample(
+                    "Wrong direction",
+                    value={
+                        "detail": (
+                            "That plan is cheaper than your current plan. "
+                            "Use /subscription/downgrade/ instead."
+                        )
+                    },
+                    response_only=True,
+                ),
+                OpenApiExample(
+                    "Card declined",
+                    value={
+                        "detail": (
+                            "Upgrade payment failed (invoice status: open). "
+                            "Your plan has not been changed."
+                        )
+                    },
+                    response_only=True,
+                ),
+                OpenApiExample(
+                    "3DS required",
+                    value={
+                        "detail": (
+                            "Upgrade payment requires additional authentication "
+                            "(3D Secure) that can't be completed automatically here. "
+                            "Please update your payment method and try again. "
+                            "Your plan has not been changed."
+                        )
+                    },
+                    response_only=True,
+                ),
+            ],
         ),
-        404: OpenApiResponse(description="Plan not found."),
+        404: OpenApiResponse(description="Plan not found or is not active."),
     },
 )
 
@@ -626,7 +682,7 @@ is no automatic top-up.
 |---|---|---|
 | `succeeded` | Charge confirmed, bucket granted immediately | Show updated balance |
 | `requires_action` | 3DS / bank authentication needed | Redirect user to Stripe's auth
-   URL using the returned `client_secret` via Stripe.js |
+    URL using the returned `client_secret` via Stripe.js |
 
 **After `requires_action`**
 Use the `client_secret` with `stripe.confirmPaymentIntent()` (Stripe.js).
@@ -813,7 +869,10 @@ until that subscription is cancelled.
             ),
             "success_url": serializers.URLField(
                 required=False,
-                help_text="Redirect URL after payment. Defaults to FRONTEND_DOMAIN/billing/license-success.",
+                help_text=(
+                    "Redirect URL after payment. Defaults to "
+                    "FRONTEND_DOMAIN/billing/license-success."
+                ),
             ),
             "cancel_url": serializers.URLField(
                 required=False,

@@ -8,6 +8,7 @@ from django.utils import timezone
 from .models import (  # CreditUsageLog,; SubscriptionPlan,
     CONVERSION_FACTOR,
     BetaProfile,
+    BillingInterval,
     CreditBucket,
     CreditBucketType,
     CreditLedger,
@@ -29,6 +30,13 @@ class SubscriptionService:
     TRIAL_DURATION_DAYS = 14
 
     @staticmethod
+    def _billing_period_delta(plan):
+
+        if plan.interval == BillingInterval.ANNUAL:
+            return relativedelta(years=1)
+        return relativedelta(months=1)
+
+    @staticmethod
     @transaction.atomic
     def activate_subscription(user, plan):
         """
@@ -40,13 +48,26 @@ class SubscriptionService:
         3. Initializing wallet
         4. Crediting credits
         5. Auditing
+
+        billing_cycle_end tracks the REAL billing/contract cycle (matches
+        whatever Stripe is actually charging on — 1 month or 1 year).
+        monthly_bucket_expiry tracks when the current credit bucket runs out,
+        which for ANNUAL plans is intentionally shorter than billing_cycle_end
+        — credits still refresh monthly even though Stripe only bills yearly.
+        For MONTHLY plans these two dates are always the same value.
         """
 
         if plan.name == PlanType.BETA and not user.is_beta_eligible():
             raise ValueError("The Beta plan is restricted to teacher accounts.")
 
         now = timezone.now()
-        billing_end = now + relativedelta(months=1)
+        billing_end = now + SubscriptionService._billing_period_delta(plan)
+
+        monthly_bucket_expiry = (
+            now + relativedelta(months=1)
+            if plan.interval == BillingInterval.ANNUAL
+            else billing_end
+        )
 
         # 1. Deactivate any existing active subscriptions
         UserSubscription.objects.filter(user=user, is_active=True).update(
@@ -117,7 +138,7 @@ class SubscriptionService:
             bucket_type=CreditBucketType.MONTHLY,
             total_credits=plan.monthly_credits,
             used_credits=0,
-            expires_at=billing_end,
+            expires_at=monthly_bucket_expiry,
         )
 
         # 6 Create immutable audit ledger
@@ -131,6 +152,108 @@ class SubscriptionService:
         )
 
         return subscription
+
+    @staticmethod
+    @transaction.atomic
+    def process_mid_cycle_credit_grant(user_subscription):
+        """
+        For ANNUAL-interval plans only. Stripe bills once a year, but credits
+        still refresh monthly throughout that year. This grants the next
+        month's MONTHLY bucket WITHOUT creating a new UserSubscription row,
+        without touching Stripe, and without resolving pending_plan — none of
+        that happens until the real annual renewal at billing_cycle_end.
+        Rollover of unused credits between months follows the same
+        carry_over_percent/carry_over_max rules as a normal full renewal.
+        """
+        plan = user_subscription.plan
+        if plan.interval != BillingInterval.ANNUAL:
+            raise ValueError(
+                f"process_mid_cycle_credit_grant called on a {plan.interval} "
+                "plan; only ANNUAL plans use mid-cycle credit grants."
+            )
+
+        user = user_subscription.user
+        now = timezone.now()
+        wallet = user.credit_wallet
+
+        old_monthly = (
+            wallet.buckets.select_for_update()
+            .filter(bucket_type=CreditBucketType.MONTHLY)
+            .first()
+        )
+
+        if old_monthly:
+            unused = old_monthly.remaining_credits
+            if unused > 0:
+                rollover_amount = min(
+                    int(unused * (plan.carry_over_percent / 100)), plan.carry_over_max
+                )
+                if rollover_amount > 0:
+                    expiry = now + relativedelta(
+                        months=1 * plan.carry_over_expiry_months
+                    )
+                    carry_bucket = CreditBucket.objects.create(
+                        wallet=wallet,
+                        bucket_type=CreditBucketType.CARRY_OVER,
+                        total_credits=rollover_amount,
+                        used_credits=0,
+                        expires_at=expiry,
+                    )
+                    CreditLedger.objects.create(
+                        user=user,
+                        bucket=carry_bucket,
+                        ledger_type=CreditLedgerType.GRANT,
+                        amount=rollover_amount,
+                        reference=f"Mid-cycle rollover within annual plan {plan.name}",
+                        metadata={
+                            "previous_unused": unused,
+                            "subscription_id": str(user_subscription.id),
+                        },
+                    )
+            old_monthly.expires_at = now
+            old_monthly.save(update_fields=["expires_at", "updated_at"])
+
+        next_grant_at = now + relativedelta(months=1)
+        # Never let the bucket outlive the actual annual contract — in the
+        # final partial month, cap it at billing_cycle_end so the real
+        # annual renewal (rollover + possible plan change + Stripe price
+        # sync) takes over cleanly instead of overlapping with this grant.
+        bucket_expiry = min(next_grant_at, user_subscription.billing_cycle_end)
+
+        new_bucket = CreditBucket.objects.create(
+            wallet=wallet,
+            bucket_type=CreditBucketType.MONTHLY,
+            total_credits=plan.monthly_credits,
+            used_credits=0,
+            expires_at=bucket_expiry,
+        )
+        CreditLedger.objects.create(
+            user=user,
+            bucket=new_bucket,
+            ledger_type=CreditLedgerType.GRANT,
+            amount=plan.monthly_credits,
+            reference=f"Mid-cycle monthly credit grant for annual plan {plan.display_name or plan.name}",
+            metadata={
+                "subscription_id": str(user_subscription.id),
+                "grant_type": "ANNUAL_MID_CYCLE",
+            },
+        )
+
+        wallet.overage_blocks_used = 0
+        wallet.save(update_fields=["overage_blocks_used", "updated_at"])
+
+        user_subscription.next_credit_grant_at = bucket_expiry
+        user_subscription.save(update_fields=["next_credit_grant_at", "updated_at"])
+
+        logger.info(
+            "Mid-cycle credit grant for annual subscription %s (user %s): "
+            "%d credits, next grant at %s.",
+            user_subscription.id,
+            user.email,
+            plan.monthly_credits,
+            bucket_expiry,
+        )
+        return user_subscription
 
     @staticmethod
     @transaction.atomic
@@ -221,61 +344,6 @@ class SubscriptionService:
 
     @staticmethod
     @transaction.atomic
-    def purchase_overage_block(wallet):
-        # FIXME: Delete later, actual implementation in StripeOverageService
-        """
-        Logic to charge the user and inject a new Overage Bucket
-        """
-
-        user_sub = (
-            wallet.user.subscriptions.filter(is_active=True)
-            .select_related("plan")
-            .first()
-        )
-        if not user_sub:
-            return False
-
-        plan = user_sub.plan
-
-        # 1. Check if user has reached their maximum allowed blocks
-        if wallet.overage_blocks_used >= plan.max_overage_blocks:
-            return False
-
-        # 2. Trigger Payment (placeholder)
-        # In production: result = StripService.charge(wallet.user, plan.overage_block_price)
-        payment_success = True
-
-        if not payment_success:
-            return False
-
-        # 3. Create the OVERAGE bucket
-        # Overage blocks usually expire at the end of the current billing cyce
-        new_bucket = CreditBucket.objects.create(
-            wallet=wallet,
-            bucket_type=CreditBucketType.OVERAGE,
-            total_credits=plan.overage_block_size,
-            used_credits=0,
-            expires_at=user_sub.billing_cycle_end,
-        )
-
-        # 4. Increment the counter pon the wallet
-        wallet.overage_blocks_used += 1
-        wallet.save(update_fields=["overage_blocks_used"])
-
-        # 5. Log the purchase in the Ledger
-        CreditLedger.objects.create(
-            user=wallet.user,
-            bucket=new_bucket,
-            ledger_type=CreditLedgerType.PURCHASE,
-            amount=plan.overage_block_size,
-            reference=f"Auto Overage Block #{wallet.overage_blocks_used} purchased",
-            metadata={"price_charged": str(plan.overage_block_price)},
-        )
-
-        return True
-
-    @staticmethod
-    @transaction.atomic
     def expire_bucket(bucket):
         """
         Formalizes the loss of credits due to expiration
@@ -312,10 +380,10 @@ class SubscriptionService:
         - Only INDIVIDUAL-category plans are eligible; LICENSE plans have no trial.
         - User must not already have an active subscription of any kind.
         - Grants exactly 5,000 display credits (5,000,000 raw) in a TRIAL bucket
-          that expires at trial_end (14 days from activation).
+        that expires at trial_end (14 days from activation).
         - The subscription is marked is_trial=True and trial_end is set.
         - No carry-over rollover is applied when a trial ends — trial credits
-          simply expire; any unused amount is logged with EXPIRE ledger entry.
+        simply expire; any unused amount is logged with EXPIRE ledger entry.
 
         Args:
             user (CustomUser): The user starting the trial.
@@ -518,12 +586,12 @@ class SubscriptionService:
         What this does:
         1. Validates there is an active trial to convert.
         2. Expires the TRIAL bucket immediately — trial credits do NOT carry over
-           into the paid plan (spec: trial is a separate, bounded experience).
+        into the paid plan (spec: trial is a separate, bounded experience).
         3. Calls activate_subscription() for the paid plan, which handles:
-           - Deactivating the trial subscription
-           - Creating the new paid subscription
-           - Granting the first monthly credit bucket
-           - Resetting overage counter
+        - Deactivating the trial subscription
+        - Creating the new paid subscription
+        - Granting the first monthly credit bucket
+        - Resetting overage counter
         4. Logs the conversion event in the ledger for analytics.
 
         Args:
@@ -681,8 +749,8 @@ class SubscriptionService:
             expires_at=user_sub.billing_cycle_end,
         )
 
-        wallet.overage_block_used += 1
-        wallet.save(update_fields=["overage_block_used", "updated_at"])
+        wallet.overage_blocks_used += 1
+        wallet.save(update_fields=["overage_blocks_used", "updated_at"])
 
         CreditLedger.objects.create(
             user=wallet.user,

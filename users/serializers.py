@@ -29,6 +29,7 @@ class SettingsSerializer(serializers.ModelSerializer):
             "notify_weekly_summary",
             "notify_assignment_due_reminder",
             "notify_grading_complete",
+            "notify_new_assignment_posted",
         ]
 
     read_only_fields = ["id", "user"]

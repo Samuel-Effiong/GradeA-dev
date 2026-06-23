@@ -1,3 +1,4 @@
+import logging
 import time
 from datetime import timedelta
 
@@ -85,6 +86,7 @@ from .services import AnalyticsService, SubscriptionService
 from .stripe_service import (  # StripeSubscriptionMutationService,
     StripeCheckoutService,
     StripeOverageService,
+    StripeSubscriptionMutationService,
 )
 from .stripe_view_schemas import (
     CANCEL_SCHEMA,
@@ -95,6 +97,8 @@ from .stripe_view_schemas import (
     START_TRIAL_SCHEMA,
     UPGRADE_SCHEMA,
 )
+
+logger = logging.getLogger(__name__)
 
 # from rest_framework.generics import GenericAPIView
 
@@ -667,20 +671,112 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
     @UPGRADE_SCHEMA
     @action(detail=False, methods=["POST"])
     def upgrade(self, request, *args, **kwargs):
+        """
+        Upgrade the user's active individual subscription to a new plan immediately.
+        The user must have an active subscription and a valid Stripe subscription ID.
+        """
         plan_id = request.data.get("plan")
+
+        if not plan_id:
+            return Response(
+                {"detail": "The 'plan' field is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         try:
             new_plan = SubscriptionPlan.objects.get(id=plan_id)
         except SubscriptionPlan.DoesNotExist:
             return Response(
-                {"status": "error", "message": "Plan not found"},
+                {"detail": "Plan not found or is not active."},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        # Upgrade is usually immediate. We call our Service Layer
-        new_sub = SubscriptionService.activate_subscription(request.user, new_plan)
+        # Only individual plans can be upgradd via this endpoint
+        if new_plan.category != PlanCategory.INDIVIDUAL:
+            return Response(
+                {"detail": f"Plan {new_plan.name} is not an INDIVIDUAL plan."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        serializer = self.get_serializer(new_sub)
+        user_sub = self.get_queryset().filter(user=request.user, is_active=True).first()
+        if not user_sub:
+            return Response(
+                {"status": "error", "message": "No active subscription found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # select_for_update() is held for the duration of the Stripe call below
+        # (deliberate, not an oversight) — low-frequency, single-user action,
+        # and holding the lock across the network round-trip is what stops two
+        # rapid double-clicks from both passing validation and both hitting Stripe.
+
+        with transaction.atomic():
+            current_sub = (
+                UserSubscription.objects.select_for_update()
+                .filter(user=request.user, is_active=True)
+                .first()
+            )
+
+            if not current_sub:
+                return Response(
+                    {
+                        "detail": "No active subscription found. Use /subscription/checkout/ to subscribe."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if current_sub.is_trial:
+                return Response(
+                    {
+                        "detail": "You're on a free trial. Use /subscription/convert-trial/ instead."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if current_sub.plan_id == new_plan.id:
+                return Response(
+                    {"detail": "You are already on this plan."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # if new_plan.price_cents < current_sub.plan.price_cents:
+            #     return Response(
+            #         {"detail": "That plan is cheaper than your current plan. Use /subscription/downgrade/ instead."},
+            #         status=status.HTTP_400_BAD_REQUEST,
+            #     )
+
+        # Ensure the subscription has a Stripe reference
+        if not user_sub.stripe_subscription_id:
+            return Response(
+                {
+                    "detail": "This subscription is not linked to Stripe; cannot upgrade."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            # Perform the upgrade via Stripe and local service layer
+            updated_sub = StripeSubscriptionMutationService.change_plan(
+                user_sub, new_plan, proration_behavior="always_invoice"
+            )
+        except ValueError as exc:
+            # Catch specific errors from the service (e.g., payment failed, invalid plan)
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception:
+            # Catch any unexpected errors (e.g., Stripe API errors)
+            logger.exception(
+                "Unexpected error during upgrade for user %s", request.user.email
+            )
+
+            return Response(
+                {"detail": "An unexpected error occurred. Please try again later."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        serializer = self.get_serializer(updated_sub)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @DOWNGRADE_SCHEMA

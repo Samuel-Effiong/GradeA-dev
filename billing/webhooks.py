@@ -41,6 +41,8 @@ def stripe_webhook(request):
     payload = request.body
     sig_header = request.META.get("HTTP_STRIPE_SIGNATURE", "")
 
+    print("webhook linked successfully")
+
     try:
         event = stripe.Webhook.construct_event(
             payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
@@ -89,6 +91,74 @@ def stripe_webhook(request):
         StripeEvent.objects.filter(stripe_event_id=event["id"]).delete()
         logger.exception(
             "Stripe webhook: error processing event %s (%s).",
+            event["id"],
+            event_type,
+        )
+        return HttpResponse(status=500)
+
+    return HttpResponse(status=200)
+
+
+@csrf_exempt
+@require_POST
+def thin_webhook(request):
+    payload = request.body
+    sig_header = request.META.get("HTTP_STRIPE_SIGNATURE", "")
+
+    try:
+        # Verify the signature
+        thin_notification = stripe.Webhook.construct_event(
+            payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError:
+        logger.warning("Stripe thin webhook: invalid payload.")
+        return HttpResponseBadRequest("Invalid payload")
+    except stripe.error.SignatureVerificationError:
+        logger.warning("Stripe thin webhook: signature verification failed.")
+        return HttpResponseBadRequest("Invalid signature")
+
+    event_id = thin_notification["id"]
+
+    # Fetch the full event from Stripe API using the ID
+    try:
+        event = stripe.Event.retrieve(event_id)
+    except Exception:
+        logger.exception("Stripe thin webhook: failed to retrieve event %s", event_id)
+        return HttpResponseBadRequest("Failed to retrieve event")
+
+    # Idempotency: record the event id BEFORE processing
+    _, created = StripeEvent.objects.get_or_create(
+        stripe_event_id=event["id"],
+        defaults={"event_type": event["type"], "payload": event["data"]},
+    )
+    if not created:
+        logger.info(
+            "Stripe thin webhook: duplicate delivery of event %s, skipping.",
+            event["id"],
+        )
+        return HttpResponse(status=200)
+
+    event_type = event["type"]
+    data_object = event["data"]["object"]
+
+    try:
+        if event_type == "checkout.session.completed":
+            StripeWebhookHandler.handle_checkout_completed(data_object)
+        elif event_type == "invoice.payment_succeeded":
+            StripeWebhookHandler.handle_invoice_payment_succeeded(data_object)
+        elif event_type == "invoice.payment_failed":
+            StripeWebhookHandler.handle_invoice_payment_failed(data_object)
+        elif event_type == "customer.subscription.deleted":
+            StripeWebhookHandler.handle_subscription_deleted(data_object)
+        elif event_type == "payment_intent.succeeded":
+            StripeWebhookHandler.handle_payment_intent_succeeded(data_object)
+        else:
+            logger.debug("Stripe thin webhook: unhandled event type %s.", event_type)
+    except Exception:
+        # On processing failure, remove the record to allow retry
+        StripeEvent.objects.filter(stripe_event_id=event["id"]).delete()
+        logger.exception(
+            "Stripe thin webhook: error processing event %s (%s).",
             event["id"],
             event_type,
         )

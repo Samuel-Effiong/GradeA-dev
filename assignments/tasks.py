@@ -939,3 +939,77 @@ def send_assignment_due_reminder(assignment_id, hours_before):
         import traceback
 
         return f"Error: {str(e)} {traceback.format_exc()}"
+
+
+@shared_task(name="assignments.tasks.send_new_assignment_posted_notification")
+def send_new_assignment_posted_notification(assignment_id):
+    try:
+        assignment = Assignment.objects.select_related(
+            "course", "course__teacher", "topic"
+        ).get(id=assignment_id)
+
+        if assignment.status != AssignmentStatus.PUBLISHED:
+            return "Assignment is not published."
+
+        students = (
+            CustomUser.objects.filter(
+                user_type=UserTypes.STUDENT,
+                enrollments__course=assignment.course,
+                enrollments__enrollment_status=EnrollmentStatusType.ENROLLED,
+                settings__notify_new_assignment_posted=True,
+            )
+            .exclude(email__isnull=True)
+            .exclude(email="")
+            .exclude(email__iendswith="@student.local")
+            .distinct()
+        )
+
+        due_date_display = (
+            timezone.localtime(assignment.due_date).strftime("%B %d, %Y at %I:%M %p")
+            if assignment.due_date
+            else "No due date set"
+        )
+        notifications_sent = 0
+
+        for student in students:
+            try:
+                html_message = render_to_string(
+                    "email/new_assignment_posted.html",
+                    {
+                        "student": student,
+                        "assignment": assignment,
+                        "course": assignment.course,
+                        "teacher": assignment.course.teacher,
+                        "due_date_display": due_date_display,
+                    },
+                )
+
+                send_email_task.delay(
+                    subject=(
+                        f"New assignment posted: "
+                        f"{assignment.title or assignment.course.name}"
+                    ),
+                    message=(
+                        f"A new assignment, {assignment.title or 'Untitled Assignment'}, "
+                        f"has been posted for {assignment.course.name}. "
+                        f"Due date: {due_date_display}."
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[student.email],
+                    html_message=html_message,
+                )
+                notifications_sent += 1
+            except Exception:
+                logger.exception(
+                    "Failed to queue new assignment notification for student",
+                    extra={
+                        "assignment_id": str(assignment.id),
+                        "student_id": str(student.id),
+                    },
+                )
+
+        return f"Queued {notifications_sent} new assignment notification email(s)."
+    except Exception as e:
+        import traceback
+
+        return f"Error: {str(e)} {traceback.format_exc()}"

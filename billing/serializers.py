@@ -175,7 +175,7 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
         """Returns False for UserSubscription (these are individual subscriptions)."""
         return False
 
-    def get_trail_days_remaining(self, obj) -> int | None:
+    def get_trial_days_remaining(self, obj) -> int | None:
         """
         How many whole days remain in the trial.
         Returns None for non-trial subscriptions

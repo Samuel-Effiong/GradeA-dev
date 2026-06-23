@@ -270,6 +270,78 @@ def notify_teacher_of_student_submission(submission):
         )
 
 
+def notify_student_of_graded_submission(submission, *, is_update=False):
+    student = submission.student
+
+    if (
+        not student
+        or not student.email
+        or student.email.lower().endswith("@student.local")
+        or not submission.is_published
+    ):
+        return
+
+    try:
+        student_settings = student.settings
+    except ObjectDoesNotExist:
+        return
+
+    if not student_settings or not student_settings.notify_grading_complete:
+        return
+
+    assignment = submission.assignment
+    course = assignment.course
+    grade_details = (
+        get_grade_details(submission.score_percentage)
+        if submission.score_percentage is not None
+        else None
+    )
+    score_display = (
+        f"{submission.score_percentage}%"
+        if submission.score_percentage is not None
+        else "Grade available"
+    )
+
+    context = {
+        "student": student,
+        "assignment": assignment,
+        "course": course,
+        "submission": submission,
+        "grade_details": grade_details,
+        "score_display": score_display,
+        "is_update": is_update,
+    }
+    message = (
+        f"Your grade for {assignment.title or 'an assignment'} in "
+        f"{course.name} is now available: {score_display}."
+    )
+
+    try:
+        html_content = render_to_string(
+            "email/assignment_graded_notification.html", context=context
+        )
+
+        send_email_task.delay(
+            subject=(
+                f"{'Updated grade' if is_update else 'Assignment graded'}: "
+                f"{assignment.title or course.name}"
+            ),
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[student.email],
+            html_message=html_content,
+        )
+    except Exception:
+        logger.exception(
+            "Failed to queue graded assignment notification",
+            extra={
+                "submission_id": str(submission.id),
+                "assignment_id": str(assignment.id),
+                "student_id": str(student.id),
+            },
+        )
+
+
 def upload_answers_engine(
     assignment,
     content,

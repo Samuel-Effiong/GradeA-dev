@@ -288,6 +288,7 @@ class Settings(models.Model):
     notify_weekly_summary = models.BooleanField(default=False)
     notify_assignment_due_reminder = models.BooleanField(default=False)
     notify_grading_complete = models.BooleanField(default=False)
+    notify_new_assignment_posted = models.BooleanField(default=False)
 
 
 class UserActivity(models.Model):

@@ -2,6 +2,7 @@ import json
 from datetime import timedelta
 
 from django.core.cache import cache
+from django.db import transaction
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -54,6 +55,25 @@ def sync_assignment_due_reminder_tasks(instance):
         )
 
 
+def queue_new_assignment_posted_notification(instance, created):
+    previous_status = getattr(instance, "_previous_status", None)
+    was_just_published = instance.status == AssignmentStatus.PUBLISHED and (
+        created or previous_status != AssignmentStatus.PUBLISHED
+    )
+
+    if not was_just_published:
+        return
+
+    assignment_id = str(instance.id)
+
+    def enqueue_notification():
+        from assignments.tasks import send_new_assignment_posted_notification
+
+        send_new_assignment_posted_notification.delay(assignment_id)
+
+    transaction.on_commit(enqueue_notification)
+
+
 @receiver([post_save, post_delete], sender=Assignment)
 def clear_assignment_cache(sender, instance, **kwargs):
     delete_cache_patterns(
@@ -79,6 +99,7 @@ def clear_assignment_generation_session_cache(sender, instance, **kwargs):
 def schedule_auto_grading(sender, instance, created, **kwargs):
     task_name = f"auto-grade-assignment-{instance.id}"
     sync_assignment_due_reminder_tasks(instance)
+    queue_new_assignment_posted_notification(instance, created)
 
     if not instance.due_date or not instance.auto_grade_on_due_date:
         PeriodicTask.objects.filter(name=task_name).delete()
@@ -102,9 +123,12 @@ def schedule_auto_grading(sender, instance, created, **kwargs):
 
 @receiver(pre_save, sender=Assignment)
 def handle_due_date_removal(sender, instance, **kwargs):
+    instance._previous_status = None
+
     if instance.id:
         try:
             old_instance = Assignment.objects.get(id=instance.id)
+            instance._previous_status = old_instance.status
             if (
                 old_instance.auto_grade_on_due_date
                 and not instance.auto_grade_on_due_date
