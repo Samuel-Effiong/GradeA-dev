@@ -12,10 +12,9 @@ profile.
 from datetime import timedelta
 
 from celery.result import AsyncResult
-
-# from django.core.mail import send_mail
 from django.conf import settings
 from django.core.cache import cache
+from django.core.mail import send_mail
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -821,7 +820,7 @@ The Grade A+ Team
 Need help? Contact us at {settings.SUPPORT_EMAIL}
 """
 
-        send_email_task.delay(
+        send_mail(
             subject="Your Grade A+ password change code",
             message=message,
             from_email=settings.DEFAULT_FROM_EMAIL,

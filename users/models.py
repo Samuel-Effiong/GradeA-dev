@@ -284,11 +284,17 @@ class Settings(models.Model):
     )
 
     # Email Notifications
-    notify_student_submission = models.BooleanField(default=False)
-    notify_weekly_summary = models.BooleanField(default=False)
-    notify_assignment_due_reminder = models.BooleanField(default=False)
-    notify_grading_complete = models.BooleanField(default=False)
-    notify_new_assignment_posted = models.BooleanField(default=False)
+    notify_student_submission = models.BooleanField(
+        default=False, null=True, blank=True
+    )
+    notify_weekly_summary = models.BooleanField(default=False, null=True, blank=True)
+    notify_assignment_due_reminder = models.BooleanField(
+        default=False, null=True, blank=True
+    )
+    notify_grading_complete = models.BooleanField(default=False, null=True, blank=True)
+    notify_new_assignment_posted = models.BooleanField(
+        default=False, null=True, blank=True
+    )
 
 
 class UserActivity(models.Model):

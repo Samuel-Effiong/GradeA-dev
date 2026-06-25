@@ -523,12 +523,11 @@ class StripeOverageService:
         )
 
         if intent.status == "succeeded":
-            return {
-                "status": "succeeded",
-                "bucket": SubscriptionService.grant_overage_bucket(
-                    wallet, user_sub, intent.id
-                ),
-            }
+            # Grant the overage bucket atomically
+            bucket = SubscriptionService.grant_overage_bucket(
+                wallet, user_sub, intent.id
+            )
+            return {"status": "succeeded", "bucket": bucket}
 
         if intent.status == "requires_action":
             # 3DS or similar. The bucket is granted by the

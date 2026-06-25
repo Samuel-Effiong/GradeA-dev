@@ -749,8 +749,12 @@ class SubscriptionService:
             expires_at=user_sub.billing_cycle_end,
         )
 
-        wallet.overage_blocks_used += 1
-        wallet.save(update_fields=["overage_blocks_used", "updated_at"])
+        CreditWallet.objects.filter(pk=wallet.pk).update(
+            overage_blocks_used=F("overage_blocks_used") + 1
+        )
+
+        # Refresh the instance to get the updated value for logging
+        wallet.refresh_from_db()
 
         CreditLedger.objects.create(
             user=wallet.user,
