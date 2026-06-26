@@ -263,10 +263,10 @@ WEEKLY_COURSE_SUMMARY_MINUTE = env.int("WEEKLY_COURSE_SUMMARY_MINUTE", default=0
 
 # Celery Beat Schedule
 CELERY_BEAT_SCHEDULE = {
-    # "record-concurrent-users-every-minute": {
-    #     "task": "dashboard.tasks.record_concurrent_users",
-    #     "schedule": 60.0,
-    # },
+    "record-concurrent-users-every-minute": {
+        "task": "dashboard.tasks.record_concurrent_users",
+        "schedule": 60.0,
+    },
     "run-subscription-renewal-status": {
         "task": "billing.tasks.process_subscription_renewals",
         "schedule": crontab(minute=0, hour=0),
