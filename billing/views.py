@@ -719,17 +719,13 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
 
             if not current_sub:
                 return Response(
-                    {
-                        "detail": "No active subscription found. Use /subscription/checkout/ to subscribe."
-                    },
+                    {"detail": "No active subscription found"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
             if current_sub.is_trial:
                 return Response(
-                    {
-                        "detail": "You're on a free trial. Use /subscription/convert-trial/ instead."
-                    },
+                    {"detail": "You're on a free trial."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -739,11 +735,11 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # if new_plan.price_cents < current_sub.plan.price_cents:
-            #     return Response(
-            #         {"detail": "That plan is cheaper than your current plan. Use /subscription/downgrade/ instead."},
-            #         status=status.HTTP_400_BAD_REQUEST,
-            #     )
+            if new_plan.price_cents < current_sub.plan.price_cents:
+                return Response(
+                    {"detail": "That plan is cheaper than your current plan."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         # Ensure the subscription has a Stripe reference
         if not user_sub.stripe_subscription_id:

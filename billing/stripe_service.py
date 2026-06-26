@@ -711,7 +711,18 @@ class StripeWebhookHandler:
             # process_rollover_and_renewal) creates a NEW UserSubscription
             # row and deactivates this one — the Stripe subscription id has
             # to be re-attached to the new row, not this (now inactive) one.
-            updated_sub = SubscriptionService.process_rollover_and_renewal(user_sub)
+
+            if user_sub.billing_cycle_end > timezone.now():
+                # Already renewed (likely by Celery). Just update status and sync price
+
+                user_sub.stripe_status = StripeSubscriptionStatus.ACTIVE
+                user_sub.save(update_fields=["stripe_status", "updated_at"])
+                StripeSubscriptionMutationService.sync_price(
+                    user_sub, stripe_subscription_id
+                )
+                return
+
+                updated_sub = SubscriptionService.process_rollover_and_renewal(user_sub)
             # If schedule_downgrade() (or an upgrade) set a different plan
             # than what Stripe is currently billing, sync it now — this
             # invoice was correctly billed at the old price, so the change
