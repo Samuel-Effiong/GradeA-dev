@@ -8,6 +8,7 @@ from rest_framework.exceptions import ParseError
 
 from classrooms.models import Course, StudentCourse, Topic
 from students.models import StudentSubmission
+from students.serializers import StudentSubmissionSerializer
 from users.models import UserTypes
 
 from .models import (  # Rubric
@@ -122,13 +123,13 @@ class AssignmentSerializer(serializers.ModelSerializer):
         }
 
     def validate_total_points(self, value: int | float) -> int | float:
-        if value <= 0:
-            raise serializers.ValidationError("Total points must be greater than 0")
+        # if value <= 0:
+        #     raise serializers.ValidationError("Total points must be greater than 0")
         return value
 
     def validate_question_count(self, value: int) -> int:
-        if value <= 0:
-            raise serializers.ValidationError("Question count must be greater than 0")
+        # if value <= 0:
+        #     raise serializers.ValidationError("Question count must be greater than 0")
         return value
 
     def validate(self, data):
@@ -278,6 +279,72 @@ class AssignmentListSerializer(serializers.ModelSerializer):
         )
 
 
+class AssignmentListStudentSerializer(serializers.ModelSerializer):
+    status = serializers.SerializerMethodField()
+    score = serializers.SerializerMethodField()
+    grade_letter = serializers.SerializerMethodField()
+    course_title = serializers.CharField(source="course.name", read_only=True)
+
+    class Meta:
+        model = Assignment
+        fields = [
+            "id",
+            "title",
+            "course",
+            "course_title",
+            "topic",
+            "due_date",
+            "status",
+            "score",
+            "total_points",
+            "grade_letter",
+        ]
+
+    def _get_submission(self, obj):
+        request = self.context.get("request")
+        if (
+            request
+            and hasattr(request.user, "user_type")
+            and request.user.user_type == UserTypes.STUDENT
+        ):
+            return obj.submissions.filter(student=request.user).first()
+        return None
+
+    def get_status(self, obj):
+        "To check if student submitted for this assignment"
+        submission = self._get_submission(obj)
+        if submission and not submission.graded_at:
+            return "SUBMITTED"
+        elif submission and submission.graded_at and submission.is_published:
+            return "GRADED"
+        if obj.due_date and obj.due_date < timezone.now():
+            return "OVERDUE"
+
+        return "PENDING"
+
+    def get_score(self, obj):
+        submission = self._get_submission(obj)
+        if submission and submission.is_published:
+            if submission.score is not None:
+                return float(submission.score)
+            # elif submission.ai_score is not None:
+            #     return float(submission.ai_score)
+        return None
+
+    def get_grade_letter(self, obj):
+        submission = self._get_submission(obj)
+        if (
+            submission
+            and submission.is_published
+            and submission.score_percentage is not None
+        ):
+            from students.services import get_grade_details
+
+            grade_details = get_grade_details(submission.score_percentage)
+            return grade_details.get("letter_grade")
+        return None
+
+
 class AssignmentDetailSerializer(serializers.ModelSerializer):
     student_submissions = serializers.SerializerMethodField()
     raw_input = serializers.SerializerMethodField()
@@ -423,12 +490,108 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
         )
 
 
+class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
+    performance_summary = serializers.SerializerMethodField()
+    student_submission_id = serializers.SerializerMethodField()
+    student_submission_raw_input = serializers.SerializerMethodField()
+    assignment_raw_input = serializers.SerializerMethodField()
+    # answers = serializers.SerializerMethodField()
+    # submissions = serializers.SerializerMethodField()
+
+    class Meta(AssignmentListStudentSerializer.Meta):
+        fields = AssignmentListStudentSerializer.Meta.fields + [
+            "performance_summary",
+            "student_submission_id",
+            "student_submission_raw_input",
+            "assignment_raw_input",
+        ]
+
+    def get_performance_summary(self, obj):
+        submission = self._get_submission(obj)
+        if submission and submission.is_published:
+            return submission.feedback or submission.ai_feedback
+        return None
+
+    def get_student_submission_id(self, obj):
+        submission = self._get_submission(obj)
+        return str(submission.id) if submission else None
+
+    def get_student_submission_raw_input(self, obj):
+        submission = self._get_submission(obj)
+        if submission:
+            return submission.raw_input
+        return None
+
+    def get_submission(self, obj):
+        submission = self._get_submission(obj)
+        return StudentSubmissionSerializer(submission).data
+
+    def get_assignment_raw_input(self, obj):
+        """
+        Return the full raw_input for teachers.
+        For students, regenerate the ProseMirror JSON from the structured
+        questions data with rubric and model answer excluded — so the hidden
+        content is determined at generation time rather than by fragile
+        post-processing of the stored JSON.
+        """
+
+        # Import here to avoid circular imports at module level
+        from .services import AssignmentProcessingService
+
+        if not obj.questions:
+            return obj.raw_input
+
+        data = {
+            "title": obj.title,
+            "instructions": obj.instructions,
+            "total_points": obj.total_points,
+            "due_date": obj.due_date.isoformat() if obj.due_date else None,
+            "questions": obj.questions,
+        }
+        student_html = AssignmentProcessingService.format_assignment_standard_html(
+            data, include_rubric=False
+        )
+        pm_json = AssignmentProcessingService.html_to_prosemirror_json(student_html)
+        return json.dumps(pm_json)
+
+
 class GeneratedAssignmentSerializer(serializers.Serializer):
     content = serializers.CharField()
     reply = serializers.CharField()
     assignment_id = serializers.UUIDField(required=False, allow_null=True)
     session_id = serializers.UUIDField(required=False, allow_null=True)
     message_id = serializers.UUIDField(required=False, allow_null=True)
+    is_draft = serializers.BooleanField(required=False)
+
+
+class SaveGeneratedAssignmentDraftSerializer(serializers.Serializer):
+    title = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    topic = serializers.PrimaryKeyRelatedField(
+        queryset=Topic.objects.all(), required=False, allow_null=True
+    )
+    status = serializers.ChoiceField(
+        choices=AssignmentStatus.choices,
+        required=False,
+        default=AssignmentStatus.DRAFT,
+    )
+    due_date = serializers.DateTimeField(required=False, allow_null=True)
+    auto_grade_on_due_date = serializers.BooleanField(required=False)
+
+    def validate_due_date(self, value):
+        if value and value < timezone.now():
+            raise serializers.ValidationError("Due date cannot be in the past.")
+        return value
+
+    def validate(self, data):
+        course = self.context.get("course")
+        topic = data.get("topic")
+
+        if topic and course and topic.course != course:
+            raise serializers.ValidationError(
+                "Topic must belong to the selected course."
+            )
+
+        return data
 
 
 class ScoringLevelSerializer(serializers.Serializer):

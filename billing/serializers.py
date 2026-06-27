@@ -8,6 +8,7 @@ from rest_framework import serializers
 
 from users.models import CustomUser
 
+from .license_service import LicenseSubscriptionService
 from .models import (
     CONVERSION_FACTOR,
     BetaProfile,
@@ -16,10 +17,24 @@ from .models import (
     CreditLedger,
     CreditUsageLog,
     CreditWallet,
+    LicenseSubscription,
+    PlanCategory,
+    SchoolCreditAllocation,
     SubscriptionPlan,
     UserSubscription,
 )
 from .services import SubscriptionService
+
+
+class PlanFeatureSerializer(serializers.Serializer):
+    """
+    Serializes a PlanFeatureInclusion into the shape the frontend expects:
+    { key, label, included }
+    """
+
+    key = serializers.CharField(source="feature.key")
+    label = serializers.CharField(source="feature.label")
+    included = serializers.BooleanField()
 
 
 class SubscriptionPlanSerializer(serializers.ModelSerializer):
@@ -32,12 +47,22 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
     display_carry_over_max = serializers.ReadOnlyField()
     display_overage_block_size = serializers.ReadOnlyField()
 
+    price_id = serializers.CharField(source="stripe_price_id", read_only=True)
+
     class Meta:
         model = SubscriptionPlan
         fields = [
             "id",
             "name",
             "display_name",
+            "tagline",
+            "category",
+            "tier",
+            "interval",
+            "product_id",
+            "price_id",
+            "stripe_price_id",
+            "price_cents",
             "monthly_credits",
             "carry_over_percent",
             "carry_over_max",
@@ -55,7 +80,14 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
             "monthly_credits": {"write_only": True},
             "carry_over_max": {"write_only": True},
             "overage_block_size": {"write_only": True},
+            "stripe_price_id": {"write_only": True},
+            "product_id": {"write_only": True},
         }
+
+    def get_features(self, obj) -> list:
+        # Relies on prefetch_related("feature_inclusions__feature")
+        inclusions = obj.feature_inclusions.all()
+        return PlanFeatureSerializer(inclusions, many=True).data
 
     @extend_schema_field(int)
     def get_display_monthly_credits(self, obj) -> int:
@@ -77,6 +109,14 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
     Serializer for the UserSubscription model.
     """
 
+    category = serializers.CharField(source="plan.category", read_only=True)
+    tier = serializers.CharField(source="plan.tier", read_only=True)
+    subscription_type = serializers.SerializerMethodField(read_only=True)
+    is_under_license = serializers.SerializerMethodField(read_only=True)
+
+    trial_days_remaining = serializers.SerializerMethodField(read_only=True)
+    trial_credits_remaining = serializers.SerializerMethodField(read_only=True)
+
     def validate(self, attrs):
         user = attrs.get("user")
         plan = attrs.get("plan")
@@ -94,7 +134,15 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
             "id",
             "user",
             "plan",
+            "category",
+            "tier",
+            "subscription_type",
+            "is_under_license",
             "is_active",
+            "is_trial",
+            "trial_end",
+            "trial_days_remaining",
+            "trial_credits_remaining",
             "billing_cycle_start",
             "billing_cycle_end",
             "auto_renew",
@@ -105,19 +153,142 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "is_active",
+            "is_trail",
+            "trail_end",
+            "trail_days_remaining",
+            "trial_credits_remaining",
             "billing_cycle_start",
             "billing_cycle_end",
+            "subscription_type",
+            "is_under_license",
         ]
 
         extra_kwargs = {
             "is_active": {"required": False},
         }
 
+    def get_subscription_type(self, obj):
+        """Returns 'INDIVIDUAL' for UserSubscription (as opposed to 'LICENSE')."""
+        return "INDIVIDUAL"
+
+    def get_is_under_license(self, obj):
+        """Returns False for UserSubscription (these are individual subscriptions)."""
+        return False
+
+    def get_trial_days_remaining(self, obj) -> int | None:
+        """
+        How many whole days remain in the trial.
+        Returns None for non-trial subscriptions
+        REturns 0 if trial has technically ended (shold not occur for active subs,
+        but defensive against race conditions).
+        """
+
+        if not obj.is_trial or not obj.trial_end:
+            return None
+
+        delta = obj.trial_end - timezone.now()
+
+        return max(0, delta.days)
+
+    def get_trial_credits_remaining(self, obj) -> int | None:
+        """
+        Remaining display credits in the TRIAL bucket.
+        Returns None for non-trial subscriptions.
+        Queries the wallet — uses select_related on wallet if available.
+        """
+        if not obj.is_trial:
+            return None
+        try:
+            wallet = obj.user.credit_wallet
+        except Exception:
+            return 0
+        trial_bucket = wallet.buckets.filter(
+            bucket_type=CreditBucketType.TRIAL,
+        ).first()
+        if not trial_bucket:
+            return 0
+        from .models import CONVERSION_FACTOR
+
+        return trial_bucket.remaining_credits // CONVERSION_FACTOR
+
     def create(self, validated_data):
         # Delegate all business logic to the Service Layer
         return SubscriptionService.activate_subscription(
             user=validated_data["user"], plan=validated_data["plan"]
         )
+
+
+class FreeTrialStatusSerializer(serializers.Serializer):
+    """
+    Read-only serializer returned by the start_trial and convert_trial endpoints.
+
+    Gives the frontend everything it needs to render:
+    - The Trial countdown widget
+    - The Credit progress bar
+    - The "Upgrade now" CTA with correct plan context
+    """
+
+    subscription_id = serializers.UUIDField(source="id")
+    plan_id = serializers.UUIDField(source="plan.id")
+    plan_name = serializers.CharField(source="plan.display_name")
+    plan_tier = serializers.CharField(source="plan.tier")
+
+    is_trial = serializers.BooleanField()
+    trial_end = serializers.DateTimeField()
+    trial_days_remaining = serializers.SerializerMethodField()
+
+    # Credit state
+    trial_credits_total = serializers.SerializerMethodField()
+    trial_credits_used = serializers.SerializerMethodField()
+    trial_credits_remaining = serializers.SerializerMethodField()
+
+    # Subscription billing markers (trial's billing_cycle mirrors trial window)
+    billing_cycle_start = serializers.DateTimeField()
+    billing_cycle_end = serializers.DateTimeField()
+
+    is_active = serializers.BooleanField()
+
+    def get_trial_days_remaining(self, obj) -> int:
+        if not obj.trial_end:
+            return 0
+        delta = obj.trial_end - timezone.now()
+        return max(0, delta.days)
+
+    def _get_trial_bucket(self, obj):
+        """Helper: fetch the TRIAL bucket for this subscription (cached on obj)."""
+        if not hasattr(obj, "_trial_bucket_cache"):
+            try:
+                wallet = obj.user.credit_wallet
+                obj._trial_bucket_cache = wallet.buckets.filter(
+                    bucket_type=CreditBucketType.TRIAL,
+                ).first()
+            except Exception:
+                obj._trial_bucket_cache = None
+        return obj._trial_bucket_cache
+
+    def get_trial_credits_total(self, obj) -> int:
+        from .models import CONVERSION_FACTOR
+
+        bucket = self._get_trial_bucket(obj)
+        if not bucket:
+            return 0
+        return bucket.total_credits // CONVERSION_FACTOR
+
+    def get_trial_credits_used(self, obj) -> int:
+        from .models import CONVERSION_FACTOR
+
+        bucket = self._get_trial_bucket(obj)
+        if not bucket:
+            return 0
+        return bucket.used_credits // CONVERSION_FACTOR
+
+    def get_trial_credits_remaining(self, obj) -> int:
+        from .models import CONVERSION_FACTOR
+
+        bucket = self._get_trial_bucket(obj)
+        if not bucket:
+            return 0
+        return bucket.remaining_credits // CONVERSION_FACTOR
 
 
 class CreditBucketSerializer(serializers.ModelSerializer):
@@ -804,3 +975,236 @@ class BetaProfileSerializer(serializers.ModelSerializer):
             return 0.0
         percentage = (obj.total_credits_used / obj.initial_beta_credits) * 100
         return round(percentage, 2)
+
+
+class SchoolCreditAllocationSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the SchoolCreditAllocation model.
+
+    Represents a teacher's individual credit allocation under a LicenseSubscription.
+    Each teacher gets independent credit tracking and consumption.
+    """
+
+    user_email = serializers.CharField(source="user.email", read_only=True)
+    user_full_name = serializers.CharField(source="user.get_full_name", read_only=True)
+    display_monthly_allocation = serializers.IntegerField(read_only=True)
+    license_school_name = serializers.CharField(
+        source="license_subscription.school.name", read_only=True
+    )
+    license_plan_name = serializers.CharField(
+        source="license_subscription.plan.display_name", read_only=True
+    )
+
+    class Meta:
+        model = SchoolCreditAllocation
+        fields = [
+            "id",
+            "license_subscription",
+            "user",
+            "user_email",
+            "user_full_name",
+            "monthly_allocation",
+            "display_monthly_allocation",
+            "license_school_name",
+            "license_plan_name",
+            "is_active",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "created_at",
+            "updated_at",
+            "display_monthly_allocation",
+            "user_email",
+            "user_full_name",
+            "license_school_name",
+            "license_plan_name",
+        ]
+
+    def to_representation(self, instance):
+        """Customize output representation."""
+        ret = super().to_representation(instance)
+        # Return the raw monthly_allocation in the response
+        ret["monthly_allocation"] = instance.monthly_allocation
+        return ret
+
+
+class LicenseSubscriptionSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the LicenseSubscription model.
+
+    Represents a school/institutional subscription for multiple teachers.
+    Each teacher gets an independent credit allocation but cannot modify billing.
+    """
+
+    teacher_count = serializers.IntegerField(read_only=True)
+    school_name = serializers.CharField(source="school.name", read_only=True)
+    plan_name = serializers.CharField(source="plan.display_name", read_only=True)
+    plan_category = serializers.CharField(source="plan.category", read_only=True)
+    admin_email = serializers.CharField(source="admin_user.email", read_only=True)
+    monthly_credits = serializers.IntegerField(
+        source="plan.monthly_credits", read_only=True
+    )
+    display_monthly_credits = serializers.IntegerField(
+        source="plan.display_monthly_credits", read_only=True
+    )
+    allocations = SchoolCreditAllocationSerializer(many=True, read_only=True)
+    teacher_emails = serializers.ListField(
+        child=serializers.EmailField(),
+        write_only=True,
+        required=False,
+        help_text="List of teacher emails to enroll in the license.",
+    )
+    custom_price_cents = serializers.IntegerField(required=False, allow_null=True)
+
+    class Meta:
+        model = LicenseSubscription
+        fields = [
+            # Identifiers
+            "id",
+            "school",
+            "admin_user",
+            "plan",
+            # Read-only display
+            "school_name",
+            "admin_email",
+            "plan_name",
+            "plan_category",
+            "monthly_credits",
+            "display_monthly_credits",
+            # Billing / Contract
+            "contract_months",
+            "max_seats",
+            "billing_cycle_start",
+            "billing_cycle_end",
+            "is_active",
+            "auto_renew",
+            "stripe_subscription_id",
+            "custom_price_cents",
+            # Statistics
+            "teacher_count",
+            "allocations",
+            # "active_teacher_count",
+            # Write only
+            "teacher_emails",
+            # Timestamps
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "created_at",
+            "updated_at",
+            "teacher_count",
+            "school_name",
+            "plan_name",
+            "plan_category",
+            "admin_email",
+            "monthly_credits",
+            "display_monthly_credits",
+            "allocations",
+            "billing_cycle_start",
+            "billing_cycle_end",
+        ]
+
+        extra_kwargs = {
+            "school": {"write_only": True},
+            "admin_user": {"write_only": True},
+            "plan": {"write_only": True},
+            "contract_months": {"write_only": True},
+            "max_seats": {"write_only": True},
+            "is_active": {"required": False},
+            "auto_renew": {"required": False},
+        }
+
+    def validate_plan(self, value):
+        """
+        Validate that the selected plan is a LICENSE category plan.
+        """
+        if value.category != PlanCategory.LICENSE:
+            raise serializers.ValidationError(
+                f"License subscriptions require a LICENSE plan, not {value.category}."
+            )
+        return value
+
+    def to_representation(self, instance):
+        """Customize output representation."""
+        ret = super().to_representation(instance)
+        # Include active allocations count
+        ret["active_teacher_count"] = instance.allocations.filter(
+            is_active=True
+        ).count()
+        return ret
+
+    def validate_contract_months(self, value):
+        if value not in (1, 9, 10, 12):
+            raise serializers.ValidationError(
+                "Contract months must be 1, 9, 10, or 12."
+            )
+        return value
+
+    def validate_max_seats(self, value):
+        if value < 0:
+            raise serializers.ValidationError(
+                "max_seats mus be 0 (unlimited) or a positive integer."
+            )
+        return value
+
+    def create(self, validated_data):
+        """
+        Create a new license subscription using the service layer.
+        teacher_emails is extracted and passed to the service.
+        """
+        teacher_emails = validated_data.pop("teacher_emails", [])
+        custom_price_cents = validated_data.pop("custom_price_cents", None)
+
+        # The service expects these as arguments
+        school = validated_data.pop("school")
+        plan = validated_data.pop("plan")
+        admin_user = validated_data.pop("admin_user")
+        contract_months = validated_data.pop("contract_months", 12)
+        max_seats = validated_data.pop("max_seats", 0)
+
+        # Any remaining validated_data should be passed (e.g., is_active, auto_renew)
+        # but we can ignore them because the service sets defaults.
+        # However, we support passing is_active/auto_renew if needed (though not typical).
+        # We'll pass them as kwargs to the service if present.
+        extra_kwargs = {
+            k: v for k, v in validated_data.items() if k in ["is_active", "auto_renew"]
+        }
+
+        license_sub = LicenseSubscriptionService.create_license_subscription(
+            school=school,
+            plan=plan,
+            admin_user=admin_user,
+            teacher_emails=teacher_emails,
+            contract_months=contract_months,
+            max_seats=max_seats,
+            custom_price_cents=custom_price_cents,
+            **extra_kwargs,
+        )
+
+        return license_sub
+
+    def update(self, instance, validated_data):
+        """
+        Partial update support for simple fields.
+        We do not support changing the plan, school, or admin via this endpoint.
+        Those operations are handled by dedicated actions.
+        """
+        # Allowed to update: is_active, auto_renew, custom_price_cents
+        instance.is_active = validated_data.get("is_active", instance.is_active)
+        instance.auto_renew = validated_data.get("auto_renew", instance.auto_renew)
+        instance.custom_price_cents = validated_data.get(
+            "custom_price_cents", instance.custom_price_cents
+        )
+        instance.save(
+            update_fields=[
+                "is_active",
+                "auto_renew",
+                "custom_price_cents",
+                "updated_at",
+            ]
+        )
+        return instance

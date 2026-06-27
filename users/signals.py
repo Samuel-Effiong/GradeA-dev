@@ -2,6 +2,7 @@ from django.core.cache import cache
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
+from billing.context import get_license_invitation_context
 from billing.models import BetaProfile, CreditWallet, PlanType, SubscriptionPlan
 from billing.services import SubscriptionService
 from users.models import CustomUser, Settings
@@ -31,6 +32,9 @@ def create_settings(sender, instance, created, **kwargs):
     CreditWallet.objects.get_or_create(user=instance)
 
     if created and instance.is_beta_eligible():
+        if get_license_invitation_context():
+            return
+
         beta_plan = SubscriptionPlan.objects.filter(name=PlanType.BETA).first()
 
         if beta_plan:

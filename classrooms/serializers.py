@@ -2,13 +2,15 @@ import secrets
 
 from django.core.validators import MinLengthValidator
 from django.db import transaction
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
-# from assignments.models import AssignmentStatus
+from assignments.models import AssignmentStatus
 from assignments.serializers import AssignmentListSerializer  # , AssignmentSerializer
 from students.serializers import StudentSerializer
+from students.services import get_grade_details
 from users.models import CustomUser, UserTypes
 
 from .models import (
@@ -199,18 +201,38 @@ class CourseSerializer(serializers.ModelSerializer):
 class StudentCourseSerializer(serializers.ModelSerializer):
     """Serializer for the StudentSection model."""
 
+    course_description = serializers.CharField(
+        source="course.description", read_only=True
+    )
+    course_title = serializers.CharField(source="course.name", read_only=True)
+    teacher = serializers.SerializerMethodField()
+    total_no_of_assignment = serializers.SerializerMethodField()
+    total_assignment_submitted = serializers.SerializerMethodField()
+    submitted_assignment_percentage = serializers.SerializerMethodField()
+    grade_letter = serializers.SerializerMethodField()
+
     class Meta:
         model = StudentCourse
         fields = [
             "id",
             "student",
             "course",
+            "course_title",
+            "course_description",
+            "teacher",
+            "total_no_of_assignment",
+            "total_assignment_submitted",
+            "submitted_assignment_percentage",
             "created_at",
             "enrollment_status",
             "withdrawal_date",
             "final_grade",
+            "grade_letter",
         ]
         read_only_fields = ["id", "created_at"]
+
+    def get_teacher(self, obj):
+        return obj.course.teacher.get_full_name()
 
     def validate_final_grade(self, value):
         """Validate that final_grade is between 0 and 100."""
@@ -225,6 +247,81 @@ class StudentCourseSerializer(serializers.ModelSerializer):
                 "Participation score must be between 0 and 100."
             )
         return value
+
+    def get_total_no_of_assignment(self, obj):
+        return obj.course.assignments.count()
+
+    def get_total_assignment_submitted(self, obj):
+        return obj.course.assignments.filter(submissions__student=obj.student).count()
+
+    def get_submitted_assignment_percentage(self, obj):
+        if obj.course.assignments.count():
+            return (
+                obj.course.assignments.filter(submissions__student=obj.student).count()
+                / obj.course.assignments.count()
+            ) * 100
+        return 0
+
+    def get_grade_letter(self, obj):
+        return get_grade_details(obj.final_grade) if obj.final_grade else None
+
+
+class StudentCourseDetailSerializer(StudentCourseSerializer):
+    assignments = serializers.SerializerMethodField()
+
+    class Meta(StudentCourseSerializer.Meta):
+        fields = StudentCourseSerializer.Meta.fields + ["assignments"]
+
+    def get_assignments(self, obj):
+        # Access pre-fetched assignments from the course
+        # from assignment.models import AssignmentStatus
+
+        assignments = obj.course.assignments.all().filter(
+            status=AssignmentStatus.PUBLISHED
+        )
+
+        # Filter pre-fetched submissions for this specific student
+
+        submissions = {
+            s.assignment_id: s
+            for s in obj.student.submissions.all()
+            if s.assignment.course_id == obj.course_id
+        }
+
+        result = []
+
+        for assignment in assignments:
+            submission = submissions.get(assignment.id)
+
+            # Logic: status and score
+            if not submission:
+                now = timezone.now()
+
+                if assignment.due_date < now:
+                    status = "OVERDUE"
+                else:
+                    status = "PENDING"
+                score = None
+            elif submission.graded_at and submission.is_published:
+                status = "GRADED"
+                score = submission.score
+            else:
+                status = "SUBMITTED"
+                score = None
+
+            result.append(
+                {
+                    "id": assignment.id,
+                    "title": assignment.title,
+                    "instructions": assignment.instructions,
+                    "total_points": assignment.total_points,
+                    "due_date": assignment.due_date,
+                    "status": status,
+                    "score": score,
+                }
+            )
+
+        return result
 
 
 class AddStudentToCourseSerializer(serializers.Serializer):

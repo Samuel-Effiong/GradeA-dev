@@ -59,6 +59,7 @@ from dashboard.serializers import (
 
 # from dashboard.services import analyze_question_difficulty
 from students.models import StudentSubmission
+from students.services import get_grade_details
 from users.models import CustomUser, UserTypes
 from users.services import (
     get_peak_concurrent_users,
@@ -2301,54 +2302,6 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         return Response(serializer.data)
 
 
-def get_grade_details(percentage):
-    """
-    Returns (letter_grade, gpa, remark) for a given percentage score.
-
-    Grading scale:
-      A+  97-100  4.0  Excellent
-      A   93-96   4.0  Excellent
-      A-  90-92   3.7  Very Good
-      B+  87-89   3.3  Good
-      B   83-86   3.0  Good
-      B-  80-82   2.7  Satisfactory
-      C+  77-79   2.3  Satisfactory
-      C   73-76   2.0  Pass
-      C-  70-72   1.7  Pass
-      D+  67-69   1.3  Poor
-      D   63-66   1.0  Poor
-      D-  60-62   0.7  Marginal Pass
-      F   0-59    0.0  Fail
-    """
-    pct = float(percentage)
-    if pct >= 97:
-        return "A+", 4.0, "Excellent"
-    elif pct >= 93:
-        return "A", 4.0, "Excellent"
-    elif pct >= 90:
-        return "A-", 3.7, "Very Good"
-    elif pct >= 87:
-        return "B+", 3.3, "Good"
-    elif pct >= 83:
-        return "B", 3.0, "Good"
-    elif pct >= 80:
-        return "B-", 2.7, "Satisfactory"
-    elif pct >= 77:
-        return "C+", 2.3, "Satisfactory"
-    elif pct >= 73:
-        return "C", 2.0, "Pass"
-    elif pct >= 70:
-        return "C-", 1.7, "Pass"
-    elif pct >= 67:
-        return "D+", 1.3, "Poor"
-    elif pct >= 63:
-        return "D", 1.0, "Poor"
-    elif pct >= 60:
-        return "D-", 0.7, "Marginal Pass"
-    else:
-        return "F", 0.0, "Fail"
-
-
 class StudentAdminDashboardView(viewsets.ViewSet):
     permission_classes = [IsStudent]
     # http_method_names = ["get", "options", "head"]
@@ -2378,8 +2331,6 @@ class StudentAdminDashboardView(viewsets.ViewSet):
         ],
         responses={200: CourseAnalyticsSerializer},
     )
-    # @method_decorator(cache_page(60 * 5, key_prefix="studentadmin:dashboard:summary"))
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(
         detail=False,
         methods=["get"],
@@ -2569,16 +2520,6 @@ class StudentAdminDashboardView(viewsets.ViewSet):
         - Status tracking (Submitted, Late, etc.)
         - etc
         """,
-        # parameters=[
-        #     OpenApiParameter(
-        #         name="course_id",
-        #         type=OpenApiTypes.UUID,
-        #         location=OpenApiParameter.PATH,
-        #         description=_(
-        #             "The unique identifier (UUID) of the course to retrieve assignments for"
-        #         ),
-        #     )
-        # ],
         responses={200: StudentAssignmentListSerializer(many=True)},
     )
     @action(
@@ -2595,7 +2536,7 @@ class StudentAdminDashboardView(viewsets.ViewSet):
 
             # Filter assignments for student's course
             assignments = Assignment.objects.filter(
-                submissions__student=student
+                course__enrollments__student=student
             ).order_by("-created_at")
             submissions = StudentSubmission.objects.filter(
                 student=student, assignment__in=assignments
@@ -2607,11 +2548,22 @@ class StudentAdminDashboardView(viewsets.ViewSet):
             for a in assignments:
                 s = submissions_map.get(a.id)
 
-                submission_status = (
-                    None
-                    if not s
-                    else "SUBMITTED" if s and not s.graded_at else "GRADED"
-                )
+                if not s:
+                    if a.due_date and a.due_date < timezone.now():
+                        submission_status = "OVERDUE"
+                    else:
+                        submission_status = "NOT SUBMITTED"
+                else:
+                    if s.graded_at:
+                        submission_status = "GRADED"
+                    else:
+                        submission_status = "SUBMITTED"
+
+                # submission_status = (
+                #     "OVERDUE" if a.due_date and a.due_date < timezone.now() else "NOT SUBMITTED"
+                #     if not s
+                #     else "SUBMITTED" if s and not s.graded_at else "GRADED"
+                # )
                 submission_date = a.submissions.first().submission_date if s else None
 
                 stats = {
@@ -2732,15 +2684,15 @@ class StudentAdminDashboardView(viewsets.ViewSet):
                     avg_pct = 0.0
                     avg_score = 0.0
 
-                grade, gpa, _ = get_grade_details(avg_pct)
+                grade_details = get_grade_details(avg_pct)
                 courses_grades.append(
                     {
                         "course_id": course.id,
                         "course_name": course.name,
                         "score": round(avg_score, 2),
                         "percentage": round(avg_pct, 2),
-                        "grade": grade,
-                        "gpa": gpa,
+                        "grade": grade_details["letter_grade"],
+                        "gpa": grade_details["gpa"],
                     }
                 )
 
@@ -2752,9 +2704,10 @@ class StudentAdminDashboardView(viewsets.ViewSet):
             else:
                 overall_percentage = 0.0
 
-            overall_grade, overall_gpa, overall_remark = get_grade_details(
-                overall_percentage
-            )
+            overall_grade_details = get_grade_details(overall_percentage)
+            overall_grade = overall_grade_details["letter_grade"]
+            overall_gpa = overall_grade_details["gpa"]
+            overall_remark = overall_grade_details["remark"]
 
             overview_data = {
                 "total_courses": total_courses,

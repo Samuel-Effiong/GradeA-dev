@@ -8,8 +8,8 @@ from django.utils import timezone
 from ai_processor.services import ai_processor
 from AutoGrader.tasks import send_email_task
 from classrooms.models import Course
-from dashboard.services import WeeklyCourseSummaryService
-from users.models import ConcurrentUserSnapshot
+from dashboard.services import StudentWeeklySummaryService, WeeklyCourseSummaryService
+from users.models import ConcurrentUserSnapshot, CustomUser, UserTypes
 from users.services import cleanup_expired_users, get_current_concurrent_users
 
 logger = logging.getLogger(__name__)
@@ -116,6 +116,71 @@ def send_weekly_course_summaries(self):
     )
 
 
+@shared_task(bind=True)
+def send_weekly_student_summaries(self):
+    service = StudentWeeklySummaryService()
+    as_of = timezone.now()
+
+    eligible_students = (
+        CustomUser.objects.filter(
+            user_type=UserTypes.STUDENT,
+            email__isnull=False,
+            settings__notify_weekly_summary=True,
+            enrollments__course__is_active=True,
+            enrollments__enrollment_status="ENROLLED",
+        )
+        .exclude(email="")
+        .exclude(email__iendswith="@student.local")
+        .distinct()
+    )
+
+    emails_queued = 0
+    students_processed = 0
+    students_skipped = 0
+
+    for student in eligible_students:
+        try:
+            summary = service.build_student_summary(student, as_of=as_of)
+            context = {
+                "student": student,
+                "summary": summary,
+                "overall": summary["overall"],
+                "course_summaries": summary["course_summaries"],
+                "recent_grades": summary["recent_grades"],
+                "upcoming_deadlines": summary["upcoming_deadlines"],
+                "overdue_assignments": summary["overdue_assignments"],
+                "pending_without_due_dates": summary["pending_without_due_dates"],
+                "new_assignments": summary["new_assignments"],
+            }
+
+            html_message = render_to_string(
+                "email/weekly_student_summary.html",
+                context=context,
+            )
+            text_message = _build_plaintext_student_summary(summary)
+
+            send_email_task.delay(
+                subject="Your weekly grade and deadline summary",
+                message=text_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[student.email],
+                html_message=html_message,
+            )
+            emails_queued += 1
+            students_processed += 1
+        except Exception:
+            students_skipped += 1
+            logger.exception(
+                "Failed to queue weekly student summary email",
+                extra={"student_id": str(student.id)},
+            )
+
+    return (
+        f"Queued {emails_queued} weekly student summary email(s). "
+        f"Processed {students_processed} student(s), skipped {students_skipped}."
+    )
+
+
 def _build_plaintext_summary(course, summary):
     overall = summary["overall"]
     at_risk_students = summary["at_risk_students"]
@@ -194,5 +259,85 @@ def _build_plaintext_summary(course, summary):
     elif ai_narrative.get("intervention_narrative"):
         lines.append("Suggested interventions:")
         lines.append(ai_narrative["intervention_narrative"])
+
+    return "\n".join(lines)
+
+
+def _build_plaintext_student_summary(summary):
+    overall = summary["overall"]
+    average_grade = (
+        f"{overall['average_grade']}% ({overall['letter_grade']})"
+        if overall["average_grade"] is not None
+        else "No published grades yet"
+    )
+
+    lines = [
+        f"Weekly summary for {summary['student']['name']}",
+        "",
+        "Overall progress:",
+        f"- Active courses: {overall['course_count']}",
+        f"- Published assignments: {overall['published_assignment_count']}",
+        f"- Submitted assignments: {overall['submitted_assignment_count']}",
+        f"- Graded assignments: {overall['graded_assignment_count']}",
+        f"- Pending assignments: {overall['pending_assignment_count']}",
+        f"- Overdue assignments: {overall['overdue_assignment_count']}",
+        f"- Current average: {average_grade}",
+        "",
+        "Course breakdown:",
+    ]
+
+    for course in summary["course_summaries"]:
+        course_average = (
+            f"{course['average_grade']}% ({course['letter_grade']})"
+            if course["average_grade"] is not None
+            else "No published grades"
+        )
+        lines.append(
+            f"- {course['course_name']}: {course['submitted_assignment_count']}/"
+            f"{course['published_assignment_count']} submitted, "
+            f"{course['pending_assignment_count']} pending, average {course_average}"
+        )
+
+    lines.extend(["", "Recent grades:"])
+    if summary["recent_grades"]:
+        for grade in summary["recent_grades"]:
+            lines.append(
+                f"- {grade['course_name']} - {grade['assignment_title']}: "
+                f"{grade['score_percentage']}% ({grade['letter_grade']})"
+            )
+    else:
+        lines.append("- No newly published grades this week.")
+
+    lines.extend(["", "Upcoming deadlines:"])
+    if summary["upcoming_deadlines"]:
+        for assignment in summary["upcoming_deadlines"]:
+            due_date = timezone.localtime(assignment["due_date"]).strftime(
+                "%B %d, %Y at %I:%M %p"
+            )
+            lines.append(
+                f"- {assignment['course_name']} - "
+                f"{assignment['assignment_title'] or 'Untitled Assignment'}: {due_date}"
+            )
+    else:
+        lines.append("- No upcoming deadlines in the next two weeks.")
+
+    if summary["overdue_assignments"]:
+        lines.extend(["", "Overdue assignments:"])
+        for assignment in summary["overdue_assignments"]:
+            due_date = timezone.localtime(assignment["due_date"]).strftime(
+                "%B %d, %Y at %I:%M %p"
+            )
+            lines.append(
+                f"- {assignment['course_name']} - "
+                f"{assignment['assignment_title'] or 'Untitled Assignment'}: {due_date}"
+            )
+
+    if summary["pending_without_due_dates"]:
+        lines.extend(["", "Pending assignments without due dates:"])
+        for assignment in summary["pending_without_due_dates"]:
+            lines.append(
+                f"- {assignment['course_name']} - "
+                f"{assignment['assignment_title'] or 'Untitled Assignment'}"
+            )
 
     return "\n".join(lines)

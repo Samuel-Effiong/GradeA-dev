@@ -28,6 +28,8 @@ from classrooms.models import StudentCourse
 from students.task_tracking import ensure_task_not_cancelled
 from users.models import UserTypes
 
+from .tools import safe_sort_key
+
 # from billing.services import SubscriptionService
 
 # from PIL import Image
@@ -57,7 +59,7 @@ with open("ai_processor/ASSIGNMENT_EXTRACTION_PROMPT_4_PROSE.txt", "r") as file:
     ASSIGNMENT_EXTRACTION_PROMPT = file.read()
 
 with open(
-    "ai_processor/ASSIGNMENT_EXTRACTION_PROMPT_FROM_UPLOADS_HTML.txt", "r"
+    "ai_processor/ASSIGNMENT_EXTRACTION_PROMPT_FROM_UPLOADS_HTML_2.txt", "r"
 ) as file:
     ASSIGNMENT_EXTRACTION_PROMPT_FROM_UPLOADS = file.read()
 
@@ -153,8 +155,8 @@ class AIProcessor:
         tool_schemas=None,
         respond_format=True,
     ):
-        main_model = "x-ai/grok-4.1-fast"
-        sub_models = ["openai/gpt-5-nano", "google/gemini-3-flash-preview"]
+        main_model = "x-ai/grok-4.3"
+        sub_models = ["deepseek/deepseek-v4-pro", "openai/gpt-5.4-nano"]
 
         if tool_schemas:
             response = self.client.chat.completions.create(
@@ -316,10 +318,8 @@ EXTRACTED TEXT:
 IMPORTANT: Return only valid JSON matching the required structure.
 Do not include any explanatory text before or after the JSON
 """
-        # content = self.__generate_text(system_prompt, user_prompt)
 
         try:
-            # response = self.__ai_model(system_prompt, user_prompt)
 
             response = self.execute_graded_task(
                 user=user,
@@ -341,8 +341,6 @@ Do not include any explanatory text before or after the JSON
             raise Exception(f"Error decoding JSON: {str(e)}") from Exception
 
         return json_data
-
-        # return self.__generate_text(system_prompt, user_prompt)
 
     def extract_assignment_image(
         self, user, content, upload=False, processing_task_id=None
@@ -864,7 +862,8 @@ Do not include any explanatory text before or after the JSON
 
         if already_found_question_numbers:
             found_str = ". ".join(
-                str(n) for n in sorted(already_found_question_numbers)
+                str(n)
+                for n in sorted(already_found_question_numbers, key=safe_sort_key)
             )
             note_lines += [
                 "The following question answers were already extracted from previous "
@@ -1164,7 +1163,8 @@ Do not include any explanatory text before or after the JSON
 
         # Build the final merged answer list sorted by question number
         merged_answers = [
-            found_answers[q_num] for q_num in sorted(found_answers.keys())
+            found_answers[q_num]
+            for q_num in sorted(found_answers.keys(), key=safe_sort_key)
         ]
 
         # Derive confidence from answer quality across the merged result:
@@ -1210,10 +1210,6 @@ IMPORTANT: Return only valid JSON matching the required structure.
 Do not include any explanatory text before or after the JSON
 
 """
-        # return self.__generate_text(system_prompt, user_prompt)
-
-        # content = self.__generate_text(system_prompt, user_prompt)
-        # content = self.__ai_model(system_prompt, user_prompt)
 
         response = self.execute_graded_task(
             user=user,
@@ -1869,10 +1865,24 @@ Do not include any explanatory text before or after the JSON
 
         raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
 
-    def generate_assignment_from_prompt(self, user, prompt):
+    def generate_assignment_from_prompt(self, user, prompt, chat_history=None):
         """Generate an assignment based on the given prompt and chat history."""
         system_prompt = GENERATE_ASSIGNMENT_PROMPT
         messages = [{"role": "system", "content": system_prompt}]
+
+        if chat_history:
+            messages.append(
+                {
+                    "role": "system",
+                    "content": (
+                        "The following messages are prior context from the same "
+                        "assignment-generation session. Use them to understand "
+                        "references and refinement requests, but treat the latest "
+                        "teacher instruction as the current task."
+                    ),
+                }
+            )
+            messages.extend(chat_history)
 
         user_prompt = f"""
 Now, respond to the following teacher's instruction using the rules above
@@ -1883,8 +1893,6 @@ Now, respond to the following teacher's instruction using the rules above
 
         """
 
-        # if chat_history:
-        #     messages.extend(chat_history)
         messages.append({"role": "user", "content": user_prompt})
         # messages.append({"role": "user", "content": json_structure})
 
@@ -1945,8 +1953,6 @@ Now, respond to the following teacher's instruction using the rules above
         else:
             content = message.content
 
-        # content = self.__generate_text(messages=messages)
-
         print(f"Received response of length {len(content)}")
 
         try:
@@ -1958,7 +1964,7 @@ Now, respond to the following teacher's instruction using the rules above
         return json_data
 
     def generate_assignment_from_prompt_with_retry(
-        self, user, prompt, max_retries: int = 3
+        self, user, prompt, max_retries: int = 3, chat_history=None
     ):
         """
         Retry wrapper for generate_assignment_from_prompt
@@ -1968,7 +1974,9 @@ Now, respond to the following teacher's instruction using the rules above
 
         for attempt in range(max_retries):
             try:
-                return self.generate_assignment_from_prompt(user, prompt)
+                return self.generate_assignment_from_prompt(
+                    user, prompt, chat_history=chat_history
+                )
             except Exception as e:
                 last_error = e
                 logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
@@ -2181,7 +2189,7 @@ Now, respond to the following teacher's instruction using the rules above
         elif role == UserTypes.SCHOOL_ADMIN:
             system_prompt_file = "ai_processor/SCHOOLADMIN_CUSTOM_PROMPT.txt"
         elif role == UserTypes.TEACHER:
-            system_prompt_file = "ai_processor/TEACHER_CUSTOM_PROMPT.txt"
+            system_prompt_file = "ai_processor/TEACHER_CUSTOM_PROMPT_2.txt"
         elif role == UserTypes.STUDENT:
             system_prompt_file = "ai_processor/STUDENT_CUSTOM_PROMPT.txt"
         else:

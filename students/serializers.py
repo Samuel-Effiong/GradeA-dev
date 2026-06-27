@@ -4,6 +4,7 @@ from rest_framework import serializers
 from users.models import CustomUser
 
 from .models import StudentSubmission
+from .services import get_grade_details
 
 
 class StudentSerializer(serializers.ModelSerializer):
@@ -61,10 +62,13 @@ class StudentSubmissionSerializer(serializers.ModelSerializer):
             "assignment_title",
             "answers",
             "score",
+            "max_points",
             "feedback",
             "submission_date",
             "graded_at",
             "grading_confidence",
+            "raw_input",
+            "formatted_grade",
         ]
 
         read_only_fields = [
@@ -75,6 +79,8 @@ class StudentSubmissionSerializer(serializers.ModelSerializer):
             "assignment_title",
             "grade_at",
             "grading_confidence",
+            "raw_input",
+            "formatted_grade",
         ]
 
     def get_student_name(self, obj) -> str:
@@ -193,7 +199,7 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(source="student.get_full_name", read_only=True)
     first_name = serializers.CharField(source="student.first_name", read_only=True)
     last_name = serializers.CharField(source="student.last_name", read_only=True)
-    # email = serializers.EmailField(source="student.email", read_only=True)
+    email = serializers.EmailField(source="student.email", read_only=True)
     is_grading_scheduled = serializers.SerializerMethodField()
     submission_status = serializers.SerializerMethodField()
     email = serializers.SerializerMethodField()
@@ -289,20 +295,125 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
         return "SUBMITTED"
 
     def get_grade_status(self, obj):
-        if obj.graded_at is None:
-            return "NOT GRADED"
-        else:
+        if obj.graded_at and obj.is_published:
             return "GRADED"
-        # if obj.was_regraded and obj.regraded_at:
-        #     return "REGRADED"
-        # if obj.graded_at:
-        #     return "GRADED"
-        # return "NOT GRADED"
+        return "NOT GRADED"
 
     def get_is_grading_scheduled(self, obj) -> bool:
         return bool(
             obj.scheduled_grading_at and obj.scheduled_grading_at > timezone.now()
         )
+
+
+class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerializer):
+    score = serializers.SerializerMethodField()
+    score_percentage = serializers.SerializerMethodField()
+    formatted_grade = serializers.SerializerMethodField()
+    submission_status = serializers.SerializerMethodField()
+    max_points = serializers.IntegerField(
+        source="assignment.total_points", read_only=True
+    )
+    grade_status = serializers.SerializerMethodField()
+
+    assignment_title = serializers.CharField(source="assignment__title", read_only=True)
+    assignment_due_date = serializers.CharField(
+        source="assignment__due_date", read_only=True
+    )
+    # assignment_status = serializers.SerializerMethodField()
+
+    course_title = serializers.CharField(
+        source="assignment__course__title", read_only=True
+    )
+
+    grade_letter = serializers.SerializerMethodField()
+    feedback = serializers.SerializerMethodField()
+
+    class Meta:
+        model = StudentSubmission
+        fields = [
+            "id",
+            "assignment",
+            "assignment_title",
+            "assignment_due_date",
+            # "assignment_status",
+            "course_title",
+            "submission_status",
+            "score",
+            "max_points",
+            "score_percentage",
+            "grade_status",
+            "submission_date",
+            "raw_input",
+            "formatted_grade",
+            "grade_letter",
+            "feedback",
+            "is_published",
+        ]
+
+        read_only_fields = [
+            "assignment",
+            "assignment_title",
+            "assignment_due_date",
+            # "assignment_status",
+            "course_title",
+            "submission_status",
+            "raw_input",
+            "score",
+            "grade_status",
+            "formatted_grade",
+            "max_points",
+            "score_percentage",
+            "feedback",
+        ]
+
+    def get_feedback(self, obj):
+        if obj.is_published:
+            return obj.feedback
+
+    def get_score(self, obj):
+        request = self.context.get("request")
+        if request and request.user.user_type == "STUDENT" and not obj.is_published:
+            return None
+        return obj.score
+
+    def get_score_percentage(self, obj):
+        request = self.context.get("request")
+        if request and request.user.user_type == "STUDENT" and not obj.is_published:
+            return None
+        return obj.score_percentage
+
+    def get_formatted_grade(self, obj):
+        request = self.context.get("request")
+        if request and request.user.user_type == "STUDENT" and not obj.is_published:
+            return None
+        return obj.formatted_grade
+
+    def get_submission_status(self, obj):
+        return "SUBMITTED"
+
+    def get_grade_status(self, obj):
+        if obj.graded_at and obj.is_published:
+            return "GRADED"
+        return "NOT GRADED"
+
+    def get_grade_letter(self, obj):
+        if obj and obj.score_percentage is not None and obj.is_published:
+            from students.services import get_grade_details
+
+            grade_details = get_grade_details(obj.score_percentage)
+            return grade_details.get("letter_grade")
+        return None
+
+    # def get_assignment_status(self, obj):
+    #     "To check if student submitted for this assignment"
+    #     # submission = self._get_submission(obj)
+    #     if obj:
+    #         return "Submitted"
+
+    #     if obj.assignment.due_date and obj.assignment.due_date < timezone.now():
+    #         return "Overdue"
+
+    #     return "Pending"
 
 
 class StudentSubmissionGradeUpdateSerializer(serializers.ModelSerializer):
@@ -347,56 +458,6 @@ class StudentSubmissionFormattedGradeAsyncSerializer(serializers.Serializer):
     message = serializers.CharField(read_only=True)
 
 
-def get_grade_details(percentage):
-    """
-    Returns (letter_grade, gpa, remark) for a given percentage score.
-
-    Grading scale:
-      A+  97-100  4.0  Excellent
-      A   93-96   4.0  Excellent
-      A-  90-92   3.7  Very Good
-      B+  87-89   3.3  Good
-      B   83-86   3.0  Good
-      B-  80-82   2.7  Satisfactory
-      C+  77-79   2.3  Satisfactory
-      C   73-76   2.0  Pass
-      C-  70-72   1.7  Pass
-      D+  67-69   1.3  Poor
-      D   63-66   1.0  Poor
-      D-  60-62   0.7  Marginal Pass
-      F   0-59    0.0  Fail
-    """
-    if percentage is None:
-        return None, None, None
-    pct = float(percentage)
-    if pct >= 97:
-        return "A+", 4.0, "Excellent"
-    elif pct >= 93:
-        return "A", 4.0, "Excellent"
-    elif pct >= 90:
-        return "A-", 3.7, "Very Good"
-    elif pct >= 87:
-        return "B+", 3.3, "Good"
-    elif pct >= 83:
-        return "B", 3.0, "Good"
-    elif pct >= 80:
-        return "B-", 2.7, "Satisfactory"
-    elif pct >= 77:
-        return "C+", 2.3, "Satisfactory"
-    elif pct >= 73:
-        return "C", 2.0, "Pass"
-    elif pct >= 70:
-        return "C-", 1.7, "Pass"
-    elif pct >= 67:
-        return "D+", 1.3, "Poor"
-    elif pct >= 63:
-        return "D", 1.0, "Poor"
-    elif pct >= 60:
-        return "D-", 0.7, "Marginal Pass"
-    else:
-        return "F", 0.0, "Fail"
-
-
 class StudentListSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(source="get_full_name", read_only=True)
     enrolled_courses = serializers.SerializerMethodField()
@@ -406,6 +467,7 @@ class StudentListSerializer(serializers.ModelSerializer):
     total_assignments_in_course = serializers.SerializerMethodField()
     total_assignments_submitted = serializers.SerializerMethodField()
     percentage_of_submission = serializers.SerializerMethodField()
+    email = serializers.SerializerMethodField()
 
     class Meta:
         model = CustomUser
@@ -421,6 +483,11 @@ class StudentListSerializer(serializers.ModelSerializer):
             "total_assignments_submitted",
             "percentage_of_submission",
         ]
+
+    def get_email(self, obj):
+        if obj.email and str(obj.email).endswith("@student.local"):
+            return None
+        return obj.email
 
     def _get_relevant_course(self, obj):
         request = self.context.get("request")

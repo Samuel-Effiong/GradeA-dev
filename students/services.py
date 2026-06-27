@@ -270,6 +270,78 @@ def notify_teacher_of_student_submission(submission):
         )
 
 
+def notify_student_of_graded_submission(submission, *, is_update=False):
+    student = submission.student
+
+    if (
+        not student
+        or not student.email
+        or student.email.lower().endswith("@student.local")
+        or not submission.is_published
+    ):
+        return
+
+    try:
+        student_settings = student.settings
+    except ObjectDoesNotExist:
+        return
+
+    if not student_settings or not student_settings.notify_grading_complete:
+        return
+
+    assignment = submission.assignment
+    course = assignment.course
+    grade_details = (
+        get_grade_details(submission.score_percentage)
+        if submission.score_percentage is not None
+        else None
+    )
+    score_display = (
+        f"{submission.score_percentage}%"
+        if submission.score_percentage is not None
+        else "Grade available"
+    )
+
+    context = {
+        "student": student,
+        "assignment": assignment,
+        "course": course,
+        "submission": submission,
+        "grade_details": grade_details,
+        "score_display": score_display,
+        "is_update": is_update,
+    }
+    message = (
+        f"Your grade for {assignment.title or 'an assignment'} in "
+        f"{course.name} is now available: {score_display}."
+    )
+
+    try:
+        html_content = render_to_string(
+            "email/assignment_graded_notification.html", context=context
+        )
+
+        send_email_task.delay(
+            subject=(
+                f"{'Updated grade' if is_update else 'Assignment graded'}: "
+                f"{assignment.title or course.name}"
+            ),
+            message=message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[student.email],
+            html_message=html_content,
+        )
+    except Exception:
+        logger.exception(
+            "Failed to queue graded assignment notification",
+            extra={
+                "submission_id": str(submission.id),
+                "assignment_id": str(assignment.id),
+                "student_id": str(student.id),
+            },
+        )
+
+
 def upload_answers_engine(
     assignment,
     content,
@@ -345,3 +417,51 @@ def upload_answers_engine(
             notify_teacher_of_student_submission(submission)
 
     return submission
+
+
+def get_grade_details(percentage):
+    """
+    Returns (letter_grade, gpa, remark) for a given percentage score.
+
+    Grading scale:
+      A+  97-100  4.0  Excellent
+      A   93-96   4.0  Excellent
+      A-  90-92   3.7  Very Good
+      B+  87-89   3.3  Good
+      B   83-86   3.0  Good
+      B-  80-82   2.7  Satisfactory
+      C+  77-79   2.3  Satisfactory
+      C   73-76   2.0  Pass
+      C-  70-72   1.7  Pass
+      D+  67-69   1.3  Poor
+      D   63-66   1.0  Poor
+      D-  60-62   0.7  Marginal Pass
+      F   0-59    0.0  Fail
+    """
+    pct = float(percentage)
+    if pct >= 97:
+        return {"letter_grade": "A+", "gpa": 4.0, "remark": "Excellent"}
+    elif pct >= 93:
+        return {"letter_grade": "A", "gpa": 4.0, "remark": "Excellent"}
+    elif pct >= 90:
+        return {"letter_grade": "A-", "gpa": 3.7, "remark": "Very Good"}
+    elif pct >= 87:
+        return {"letter_grade": "B+", "gpa": 3.3, "remark": "Good"}
+    elif pct >= 83:
+        return {"letter_grade": "B", "gpa": 3.0, "remark": "Good"}
+    elif pct >= 80:
+        return {"letter_grade": "B-", "gpa": 2.7, "remark": "Satisfactory"}
+    elif pct >= 77:
+        return {"letter_grade": "C+", "gpa": 2.3, "remark": "Satisfactory"}
+    elif pct >= 73:
+        return {"letter_grade": "C", "gpa": 2.0, "remark": "Pass"}
+    elif pct >= 70:
+        return {"letter_grade": "C-", "gpa": 1.7, "remark": "Pass"}
+    elif pct >= 67:
+        return {"letter_grade": "D+", "gpa": 1.3, "remark": "Poor"}
+    elif pct >= 63:
+        return {"letter_grade": "D", "gpa": 1.0, "remark": "Poor"}
+    elif pct >= 60:
+        return {"letter_grade": "D-", "gpa": 0.7, "remark": "Marginal Pass"}
+    else:
+        return {"letter_grade": "F", "gpa": 0.0, "remark": "Fail"}

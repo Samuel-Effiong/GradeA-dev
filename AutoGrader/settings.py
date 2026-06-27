@@ -269,24 +269,36 @@ CELERY_BEAT_SCHEDULE = {
     },
     "run-subscription-renewal-status": {
         "task": "billing.tasks.process_subscription_renewals",
-        "schedule": 60 * 60,
+        "schedule": crontab(minute=0, hour=0),
+    },
+    "run-license-subscription-renewal-status": {
+        "task": "billing.tasks.process_license_renewals",
+        "schedule": crontab(minute=0, hour=0),
+    },
+    "run-annual-plan-credit-grants": {
+        "task": "billing.tasks.process_annual_plan_credit_grants",
+        "schedule": crontab(minute=0, hour=2),
     },
     "reconcile-expired-buckets-midnight": {
         "task": "billing.tasks.cleanup_expired_credit_buckets",
-        "schedule": crontab(minute=0, hour=0),
+        "schedule": crontab(minute=0, hour=4),
     },
     "send-weekly-course-summaries": {
-        "task": "dashboard.tasks.send_weekly_course_summaries",
+        "task": "dashboard.tasksLe.send_weekly_course_summaries",
         "schedule": crontab(
             minute=WEEKLY_COURSE_SUMMARY_MINUTE,
             hour=WEEKLY_COURSE_SUMMARY_HOUR,
             day_of_week=WEEKLY_COURSE_SUMMARY_DAY_OF_WEEK,
         ),
     },
-    # "send-email-task": {
-    #     "task": "AutoGrader.tasks.send_email_task",
-    #     "schedule": 60.0,
-    # }
+    "send-weekly-student-summaries": {
+        "task": "dashboard.tasks.send_weekly_student_summaries",
+        "schedule": crontab(
+            minute=WEEKLY_COURSE_SUMMARY_MINUTE,
+            hour=WEEKLY_COURSE_SUMMARY_HOUR,
+            day_of_week=WEEKLY_COURSE_SUMMARY_DAY_OF_WEEK,
+        ),
+    },
 }
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
@@ -440,6 +452,9 @@ SPECTACULAR_SETTINGS = {
         "defaultModelExpandDepth": -1,
         # "docExpansion": "none",
     },
+    "EXTENSIONS": {
+        "polymorphic_assignment": "assignments.schema.PolymorphicAssignmentExtension",
+    },
 }
 
 # EMAIL_BACKEND = "anymail.backends.sendinblue.EmailBackend"
@@ -492,6 +507,38 @@ GOOGLE_REDIRECT_URI = env.str("GOOGLE_REDIRECT_URI")
 
 FIELD_ENCRYPTION_KEY = env.str("FIELD_ENCRYPTION_KEY", "")
 
-STRIPE_PUBLIC_KEY = env.str("STRIPE_PUBLIC_KEY")
-STRIPE_SECRET_KEY = env.str("STRIPE_SECRET_KEY")
-STRIPE_WEBHOOK_SECRET = env.str("STRIPE_WEBHOOK_SECRET")
+if ENVIRONMENT == "prod":
+    STRIPE_PUBLIC_KEY = env.str("STRIPE_PUBLIC_KEY")
+    STRIPE_SECRET_KEY = env.str("STRIPE_SECRET_KEY")
+    STRIPE_WEBHOOK_SECRET = env.str("STRIPE_WEBHOOK_SECRET")
+else:
+    STRIPE_PUBLIC_KEY = env.str("LOCAL_STRIPE_PUBLIC_KEY")
+    STRIPE_SECRET_KEY = env.str("LOCAL_STRIPE_SECRET_KEY")
+    STRIPE_WEBHOOK_SECRET = env.str("LOCAL_STRIPE_WEBHOOK_SECRET")
+
+
+ALLOWED_BUSINESS_EMAIL_DOMAINS = None
+DISALLOWED_EMAIL_DOMAINS = [
+    "gmail.com",
+    "yahoo.com",
+    "hotmail.com",
+    "outlook.com",
+    "aol.com",
+    "icloud.com",
+    "mail.com",
+    "protonmail.com",
+    "zoho.com",
+    "yandex.com",
+    "live.com",
+    "msn.com",
+    "qq.com",
+    "163.com",
+    "mail.ru",
+    "inbox.lv",
+    "rediffmail.com",
+    "lycos.com",
+    "gmx.com",
+    "fastmail.com",
+    "hushmail.com",
+    "yopmail.com",
+]

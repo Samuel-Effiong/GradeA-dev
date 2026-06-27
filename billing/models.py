@@ -16,11 +16,157 @@ from .errors import InsufficientCreditsError
 CONVERSION_FACTOR = 1000
 
 
+class StripeSubscriptionStatus(models.TextChoices):
+    TRIALING = "TRIALING", _("Trialing")
+    ACTIVE = "ACTIVE", _("Active")
+    PAST_DUE = "PAST_DUE", _("Past Due")
+    CANCELED = "CANCELED", _("Canceled")
+    INCOMPLETE = "INCOMPLETE", _("Incomplete")
+    UNPAID = "UNPAID", _("Unpaid")
+
+
 class PlanType(models.TextChoices):
+    # Individual
+    STANDARD = "STANDARD", _("Standard")
+    PRO = "PRO", _("Pro")
+    POWER = "POWER", _("Power")
+    BETA = "BETA", _("Beta")  # Internal only, not in spec
+    CUSTOM = "CUSTOM", _("Custom")
+    STANDARD_ANNUAL = "STANDARD_ANNUAL", _("Standard Annual")
+    PRO_ANNUAL = "PRO_ANNUAL", _("Pro Annual")
+    POWER_ANNUAL = "POWER_ANNUAL", _("Power Annual")
+
+    # License
+    PRO_LICENSE = "PRO_LICENSE", _("Pro License")
+    POWER_LICENSE = "POWER_LICENSE", _("Power License")
+    CUSTOM_LICENSE_STARTER = "CUSTOM_LICENSE_STARTER", _("Custom License Starter")
+    CUSTOM_LICENSE_MID = "CUSTOM_LICENSE_MID", _("Custom License Mid")
+    CUSTOM_LICENSE_HIGH = "CUSTOM_LICENSE_HIGH", _("Custom License High")
+
+
+class PlanCategory(models.TextChoices):
+    INDIVIDUAL = "INDIVIDUAL", _("Individual")
+    LICENSE = "LICENSE", _("License")
+
+
+class PlanTier(models.TextChoices):
     STANDARD = "STANDARD", _("Standard")
     PRO = "PRO", _("Pro")
     POWER = "POWER", _("Power")
     BETA = "BETA", _("Beta")
+    CUSTOM = "CUSTOM", _("Custom")
+
+
+class BillingInterval(models.TextChoices):
+    MONTHLY = "MONTHLY", _("Monthly")
+    ANNUAL = "ANNUAL", _("Annual")
+
+
+class PlanHighlight(models.TextChoices):
+    """
+    Highlights for a plan
+    """
+
+    BEST_VALUE = "BEST_VALUE", _("Best Value")
+    MOST_POPULAR = "GREAT_VALUE", _("Great Value")
+
+
+class PlanFeatureKey(models.TextChoices):
+    ADVANCED_COURSE_ANALYTICS = "ADVANCED_COURSE_ANALYTICS", _(
+        "Advanced Course Analytics"
+    )
+    ADVANCED_ASSIGNMENT_ANALYTICS = "ADVANCED_ASSIGNMENT_ANALYTICS", _(
+        "Advanced Assignment Analytics"
+    )
+    AI_PROMPT_ASSIGNMENT_CREATION = "AI_PROMPT_ASSIGNMENT_CREATION", _(
+        "AI Prompt-Based Assignment Creation"
+    )
+    AI_PROMPT_ANALYTICS_SUMMARY = "AI_PROMPT_ANALYTICS_SUMMARY", _(
+        "AI Prompt-Based Analytics Summarization"
+    )
+    PRE_SCHEDULED_GRADING = "PRE_SCHEDULED_GRADING", _("Pre-Scheduled Grading")
+    ADVANCED_STUDENT_ANALYTICS = "ADVANCED_STUDENT_ANALYTICS", _(
+        "Advanced Student Analytics/Insights"
+    )
+    AI_EMAIL_FEEDBACK = "AI_EMAIL_FEEDBACK", _(
+        "Optional AI Email Feedback for Assignments"
+    )
+    CREDIT_ROLLOVER_25 = "CREDIT_ROLLOVER_25", _("25% AI Credit Rollover")
+    # Display-only / catalogue labels
+    UNLIMITED_COURSES = "UNLIMITED_COURSES", _("Unlimited Courses (Archivable)")
+    INVITE_STUDENTS_UPLOAD = "INVITE_STUDENTS_UPLOAD", _("Invite Students to Upload")
+    BATCH_GRADING = "BATCH_GRADING", _("Batch Grading/Uploading")
+    BASIC_INSIGHTS = "BASIC_INSIGHTS", _("Basic Course/Insights")
+    ADMIN_MANAGED_BILLING = "ADMIN_MANAGED_BILLING", _("Admin-Managed Billing")
+    SHARED_CREDIT_POOL = "SHARED_CREDIT_POOL", _("Shared Credit Pool")
+    DEDICATED_SUPPORT = "DEDICATED_SUPPORT", _("Dedicated Support")
+
+
+class PlanFeature(models.Model):
+    """
+    Master catalogue of every feature that can appear on a plan card.
+    One row per feature key — label lives here, not on the plan.
+    """
+
+    key = models.CharField(
+        max_length=60,
+        choices=PlanFeatureKey.choices,
+        unique=True,
+        primary_key=True,  # key IS the identity, no surrogate needed
+    )
+    label = models.CharField(
+        max_length=200,
+        help_text="Human-readable label shown on the pricing page",
+    )
+    is_gating_feature = models.BooleanField(
+        default=False,
+        help_text=(
+            "True = used in code to gate access to a feature. "
+            "False = display-only catalogue label."
+        ),
+    )
+
+    class Meta:
+        ordering = ["key"]
+
+    def __str__(self):
+        return f"{self.key}: {self.label}"
+
+
+class PlanFeatureInclusion(models.Model):
+    """
+    Through table for the SubscriptionPlan ↔ PlanFeature M2M.
+
+    Stores whether a feature is included on a plan AND the display
+    order so the pricing page renders features in a consistent sequence.
+    """
+
+    plan = models.ForeignKey(
+        "SubscriptionPlan",
+        on_delete=models.CASCADE,
+        related_name="feature_inclusions",
+    )
+    feature = models.ForeignKey(
+        PlanFeature,
+        on_delete=models.PROTECT,  # never silently delete a feature from all plans
+        related_name="plan_inclusions",
+    )
+    included = models.BooleanField(
+        default=False,
+        help_text="Whether this feature is available on this plan",
+    )
+    display_order = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Controls render order on the pricing page card",
+    )
+
+    class Meta:
+        unique_together = [("plan", "feature")]
+        ordering = ["plan", "display_order"]
+
+    def __str__(self):
+        status = "✓" if self.included else "✗"
+        return f"{self.plan.display_name} {status} {self.feature.key}"
 
 
 class SubscriptionPlan(models.Model):
@@ -39,8 +185,9 @@ class SubscriptionPlan(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
+    # --- Identity ---
     name = models.CharField(
-        max_length=20,
+        max_length=100,
         choices=PlanType.choices,
         unique=True,
         help_text="Unique code for the plan",
@@ -48,36 +195,115 @@ class SubscriptionPlan(models.Model):
     display_name = models.CharField(
         max_length=100, null=True, blank=True, help_text="Name of the plan"
     )
-
-    monthly_credits = models.PositiveIntegerField(
-        default=0, help_text="Number of credits granted each month"
+    tagline = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Short phrase describing the plan",
     )
+
+    # --- Categorization ---
+    category = models.CharField(
+        max_length=20,
+        choices=PlanCategory.choices,
+        default=PlanCategory.INDIVIDUAL,
+    )
+    tier = models.CharField(
+        max_length=20,
+        choices=PlanTier.choices,
+        default=PlanTier.STANDARD,
+    )
+
+    interval = models.CharField(
+        max_length=20,
+        choices=BillingInterval.choices,
+        default=BillingInterval.MONTHLY,
+    )
+
+    # --- Stripe ---
+    product_id = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text="Stripe Product ID (prod_xxx). Internal reference only.n",
+    )
+
+    stripe_price_id = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text="Stripe Price ID (price_xxx). Sent to frontend as `price_id`.",
+    )
+
+    # --- Pricing ---
+    price_cents = models.PositiveIntegerField(
+        default=0,
+        help_text="Monthly or annual price in USD cents (e.g. 2499 = $24.99)",
+    )
+
+    # --- Credits ---
+    monthly_credits = models.PositiveIntegerField(
+        default=0,
+        null=True,
+        blank=True,
+        help_text=(
+            "Raw credits granted per cycle (display value × 1000). "
+            "Null for Custom/contact-sales plans."
+        ),
+    )
+
+    # --- Rollover ---
 
     carry_over_percent = models.DecimalField(
         max_digits=5,
         decimal_places=2,
-        help_text="Percentage of unused credits to carry over to the next month",
-    )
-    carry_over_max = models.PositiveIntegerField(
         default=0,
-        help_text="Maximum number of credits that can be carried over to the next month",
-    )
-    carry_over_expiry_months = models.PositiveSmallIntegerField(
-        default=0, help_text="Number of months credits can be carried over"
+        help_text="Percentage of unused credits to carry over (e.g. 25.00 for 25%)",
     )
 
-    overage_block_size = models.PositiveIntegerField(
-        default=0, help_text="Number of credits to add when overage is detected"
+    carry_over_max = models.PositiveIntegerField(
+        default=0,
+        help_text="Maximum raw credits that can be carried over (display value × 1000)",
     )
-    overage_block_price = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        default=0.00,
-        help_text="Price of each overage block",
+
+    carry_over_expiry_months = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="How many months carry-over credits remain valid",
+    )
+
+    # --- Overage ---
+    overage_block_size = models.PositiveIntegerField(
+        default=0,
+        help_text="Raw credits per overage block (display value × 1000, e.g. 5_000_000 = 5K)",
+    )
+    overage_block_price = models.PositiveIntegerField(
+        default=0,
+        help_text="Price per overage block in USD cents (e.g. 400 = $4.00)",
     )
 
     max_overage_blocks = models.PositiveSmallIntegerField(
-        default=0, help_text="Maximum number of overage blocks to add"
+        default=0,
+        help_text="Maximum overage blocks a user can purchase per cycle",
+    )
+
+    # --- Features ---
+    features = models.ManyToManyField(
+        PlanFeature,
+        through="PlanFeatureInclusion",
+        related_name="plans",
+    )
+
+    # --- Display ---
+
+    highlight = models.CharField(
+        max_length=20,
+        choices=PlanHighlight.choices,
+        null=True,
+        blank=True,
+        help_text="Optional badge shown on the plan card (BEST_VALUE or GREAT_VALUE)",
+    )
+    is_contact_sales = models.BooleanField(
+        default=False,
+        help_text="If true, frontend shows 'Contact sales' instead of a checkout CTA",
     )
 
     is_active = models.BooleanField(
@@ -85,13 +311,15 @@ class SubscriptionPlan(models.Model):
     )
 
     class Meta:
-        ordering = ["name"]
+        ordering = ["category", "tier"]
 
     def __str__(self):
         return self.name
 
     @property
-    def display_monthly_credits(self):
+    def display_monthly_credits(self) -> int | None:
+        if self.monthly_credits is None:
+            return None
         return self.monthly_credits // CONVERSION_FACTOR
 
     @property
@@ -139,6 +367,26 @@ class UserSubscription(models.Model):
         help_text="End date of the current billing cycle"
     )
 
+    is_trial = models.BooleanField(
+        default=False,
+        help_text=(
+            "True while this subscription is in its free trial period ",
+            "Flipped to False on trial expiry or paid conversion",
+        ),
+        null=True,
+        blank=True,
+    )
+
+    trial_end = models.DateTimeField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text=(
+            "Datetime when the free trial expires. Null for non-trial subscriptions. "
+            "Celery checks this field nightly to trigger expiry cleanup"
+        ),
+    )
+
     auto_renew = models.BooleanField(
         default=True, help_text="Whether the subscription auto-renews"
     )
@@ -150,11 +398,35 @@ class UserSubscription(models.Model):
         related_name="user_pending_subscriptions",
     )
 
+    stripe_subscription_id = models.CharField(
+        max_length=255, null=True, blank=True, db_index=True
+    )
+    stripe_customer_id = models.CharField(
+        max_length=255, null=True, blank=True, db_index=True
+    )
+    stripe_status = models.CharField(
+        max_length=20, choices=StripeSubscriptionStatus.choices, null=True, blank=True
+    )
+
     created_at = models.DateTimeField(
         auto_now_add=True, help_text="Date and time when the subscription was created"
     )
     updated_at = models.DateTimeField(
         auto_now=True, help_text="Date and time when the subscription was last updated"
+    )
+
+    next_credit_grant_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text=(
+            "When the current MONTHLY credit bucket expires and the next one "
+            "is due. For MONTHLY-interval plans this always coincides with "
+            "billing_cycle_end. For ANNUAL-interval plans it's independent — "
+            "Stripe only bills once a year, but credits still refresh monthly, "
+            "so this tracks the monthly refresh clock separately from the "
+            "yearly billing/contract clock."
+        ),
     )
 
     class Meta:
@@ -203,6 +475,10 @@ class CreditWallet(models.Model):
     )
     updated_at = models.DateTimeField(
         auto_now=True, help_text="Date and time when the credit wallet was last updated"
+    )
+
+    stripe_customer_id = models.CharField(
+        max_length=255, null=True, blank=True, db_index=True
     )
 
     class Meta:
@@ -282,6 +558,7 @@ class CreditWallet(models.Model):
 
         consumable_types = [
             CreditBucketType.CARRY_OVER,
+            CreditBucketType.TRIAL,
             CreditBucketType.MONTHLY,
             CreditBucketType.MANUAL_GRANT,
             CreditBucketType.OVERAGE,
@@ -289,12 +566,13 @@ class CreditWallet(models.Model):
 
         type_priority = models.Case(
             models.When(bucket_type=CreditBucketType.CARRY_OVER, then=models.Value(0)),
-            models.When(bucket_type=CreditBucketType.MONTHLY, then=models.Value(1)),
+            models.When(bucket_type=CreditBucketType.TRIAL, then=models.Value(1)),
+            models.When(bucket_type=CreditBucketType.MONTHLY, then=models.Value(2)),
             models.When(
-                bucket_type=CreditBucketType.MANUAL_GRANT, then=models.Value(2)
+                bucket_type=CreditBucketType.MANUAL_GRANT, then=models.Value(3)
             ),
-            models.When(bucket_type=CreditBucketType.OVERAGE, then=models.Value(3)),
-            default=models.Value(4),
+            models.When(bucket_type=CreditBucketType.OVERAGE, then=models.Value(4)),
+            default=models.Value(5),
             output_field=models.IntegerField(),
         )
 
@@ -302,7 +580,7 @@ class CreditWallet(models.Model):
         is_overage = models.Case(
             models.When(bucket_type=CreditBucketType.OVERAGE, then=models.Value(1)),
             default=models.Value(0),
-            output_fields=models.IntegerField(),
+            output_field=models.IntegerField(),
         )
 
         buckets = (
@@ -388,6 +666,7 @@ class CreditBucketType(models.TextChoices):
     CARRY_OVER = "CARRY_OVER", _("Carry Over")
     OVERAGE = "OVERAGE", _("Overage")
     MANUAL_GRANT = "MANUAL_GRANT", _("Manual Grant")
+    TRIAL = "TRIAL", _("Free Trial")
 
 
 class CreditBucket(models.Model):
@@ -498,6 +777,7 @@ class CreditLedgerType(models.TextChoices):
     GRANT = "GRANT", _("Grant")
     EXPIRE = "EXPIRE", _("Expire")
     PURCHASE = "PURCHASE", _("Purchase")
+    PLAN_CHANGE = "PLAN_CHANGE", _("Plan Change")
 
 
 class CreditLedger(models.Model):
@@ -649,3 +929,221 @@ class BetaProfile(models.Model):
             f"Beta Profile for {self.user.email} "
             f"(Score: {self.conversion_probability})"
         )
+
+
+class ContractMonths(models.IntegerChoices):
+    ONE = 1, _("1 Month")
+    NINE = 9, _("9 Months")
+    TEN = 10, _("10 Months")
+    TWELVE = 12, _("12 Months")
+
+
+class LicenseSubscription(models.Model):
+    """
+    Represents a school/institutional subscription for multiple teachers.
+
+    A License subscription is created at the school level and managed by a school admin.
+    Teachers under this license get individual credit allocations but cannot modify
+    their billing. The license handles one Stripe subscription for the entire school.
+
+    Key differences from UserSubscription:
+    - One License can serve multiple teachers
+    - Teachers do not control billing (read-only)
+    - Each teacher gets an individual SchoolCreditAllocation
+    - School admin manages upgrades/downgrades/cancellation
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    # --- School & Admin ---
+    school = models.ForeignKey(
+        "classrooms.School",
+        on_delete=models.CASCADE,
+        related_name="license_subscriptions",
+        help_text="School that owns this license",
+    )
+    admin_user = models.ForeignKey(
+        "users.CustomUser",
+        on_delete=models.PROTECT,
+        related_name="managed_license_subscriptions",
+        help_text="Admin user who manages this license (typically school admin)",
+    )
+
+    # --- Plan & Billing ---
+    plan = models.ForeignKey(
+        "SubscriptionPlan",
+        on_delete=models.PROTECT,
+        related_name="license_subscriptions",
+        help_text="License plan (must have category=LICENSE)",
+    )
+
+    contract_months = models.PositiveSmallIntegerField(
+        choices=ContractMonths.choices,
+        default=ContractMonths.TWELVE,
+        help_text=(
+            "Contract duration in months. Schools can choose 9, 10, or 12 month "
+            "billing periods. This determines how far ahead billing_cycle_end is set "
+            "on creation and each renewal."
+        ),
+    )
+
+    max_seats = models.PositiveSmallIntegerField(
+        default=0,
+        help_text=(
+            "Maximum number of teacher seats allowed under this license. "
+            "0 = unlimited (e.g. for Custom contracts). Enforced on enrollment."
+        ),
+    )
+
+    billing_cycle_start = models.DateTimeField(
+        help_text="Start date of the current billing cycle"
+    )
+    billing_cycle_end = models.DateTimeField(
+        help_text="End date of the current billing cycle"
+    )
+
+    # --- Status ---
+    is_active = models.BooleanField(
+        default=True, help_text="Whether the license subscription is active"
+    )
+    auto_renew = models.BooleanField(
+        default=True, help_text="Whether the license auto-renews at cycle end"
+    )
+
+    # --- Stripe Integration ---
+    stripe_subscription_id = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text="Stripe subscription ID for this license (one per school)",
+    )
+    stripe_status = models.CharField(
+        max_length=20, choices=StripeSubscriptionStatus.choices, null=True, blank=True
+    )
+
+    custom_price_cents = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="Negotiated monthly price for this license, overriding the plan's default price. Set by super admin.",
+    )
+
+    total_credits_consumed = models.PositiveIntegerField(
+        default=0,
+        help_text=(
+            "Total raw credits consumed by all teachers under this "
+            "license in the current billing cycle. Used for global cap enforcement."
+        ),
+    )
+
+    # --- Timestamps ---
+    created_at = models.DateTimeField(
+        auto_now_add=True, help_text="Date and time when the license was created"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True, help_text="Date and time when the license was last updated"
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "License Subscription"
+        verbose_name_plural = "License Subscriptions"
+
+    def __str__(self):
+        return f"{self.school.name} - {self.plan.display_name or self.plan.name}"
+
+    @property
+    def teacher_count(self):
+        """Returns number of active teachers enrolled under this license."""
+        return self.allocations.filter(is_active=True).count()
+
+    @property
+    def seats_remaining(self) -> int | None:
+        """
+        Returns the number of remaining enrollable seats.
+        Returns None if max_seats=0 (unlimited).
+        """
+        if self.max_seats == 0:
+            return None  # unlimited
+        return max(0, self.max_seats - self.teacher_count)
+
+
+class SchoolCreditAllocation(models.Model):
+    """
+    Represents an individual teacher's credit allocation under a LicenseSubscription.
+
+    Each teacher under a license gets their own SchoolCreditAllocation, which defines:
+    - Which license they belong to
+    - Their monthly credit allocation (independent from other teachers)
+    - Their associated CreditWallet (where credits are actually stored)
+
+    This is the bridge between LicenseSubscription and individual teacher CreditWallets.
+    It ensures each teacher has independent credit tracking and consumption.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    # --- License & Teacher ---
+    license_subscription = models.ForeignKey(
+        LicenseSubscription,
+        on_delete=models.CASCADE,
+        related_name="allocations",
+        help_text="License subscription this allocation belongs to",
+    )
+    user = models.ForeignKey(
+        "users.CustomUser",
+        on_delete=models.CASCADE,
+        related_name="school_credit_allocations",
+        help_text="Teacher enrolled under this license",
+    )
+
+    # --- Allocation ---
+    monthly_allocation = models.PositiveIntegerField(
+        help_text="Raw monthly credit allocation for this teacher (display value × 1000)",
+    )
+
+    # --- Status ---
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Whether this teacher is actively enrolled under the license",
+    )
+
+    # --- Timestamps ---
+    created_at = models.DateTimeField(
+        auto_now_add=True, help_text="Date and time when the allocation was created"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True, help_text="Date and time when the allocation was last updated"
+    )
+
+    class Meta:
+        unique_together = [("license_subscription", "user")]
+        ordering = ["created_at"]
+        verbose_name = "School Credit Allocation"
+        verbose_name_plural = "School Credit Allocations"
+        indexes = [
+            models.Index(fields=["license_subscription", "is_active"]),
+            models.Index(fields=["user", "is_active"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user.email} under {self.license_subscription.school.name}"
+
+    @property
+    def display_monthly_allocation(self) -> int:
+        """Returns display value (raw value / 1000)"""
+        return self.monthly_allocation // CONVERSION_FACTOR
+
+
+class StripeEvent(models.Model):
+    """Idempotency ledger for Stripe webhook events - see billing/webhooks.py"""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    stripe_event_id = models.CharField(
+        max_length=255, null=True, blank=True, db_index=True
+    )
+    event_type = models.CharField(max_length=100)
+    payload = models.JSONField(null=True, blank=True)
+    processed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-processed_at"]

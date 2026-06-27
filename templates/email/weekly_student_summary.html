@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .container {
+            font-family: Arial, sans-serif;
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #0f766e;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px;
+        }
+        .content {
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .section {
+            margin: 24px 0;
+        }
+        .details {
+            background-color: #f0fdfa;
+            border-left: 4px solid #0f766e;
+            padding: 15px;
+            margin: 12px 0;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border-bottom: 1px solid #d1d5db;
+            padding: 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Your Weekly Summary</h1>
+        </div>
+
+        <div class="content">
+            <p>Dear {{ student.get_full_name }},</p>
+
+            <p>
+                Here is your weekly progress summary across your active courses.
+                This digest covers the last {{ summary.window_days }} days and
+                deadlines coming up in the next {{ summary.upcoming_days }} days.
+            </p>
+
+            <div class="details">
+                <h3>Overall Progress</h3>
+                <ul>
+                    <li><strong>Active Courses:</strong> {{ overall.course_count }}</li>
+                    <li><strong>Published Assignments:</strong> {{ overall.published_assignment_count }}</li>
+                    <li><strong>Submitted Assignments:</strong> {{ overall.submitted_assignment_count }}</li>
+                    <li><strong>Pending Assignments:</strong> {{ overall.pending_assignment_count }}</li>
+                    <li><strong>Overdue Assignments:</strong> {{ overall.overdue_assignment_count }}</li>
+                    <li>
+                        <strong>Current Average:</strong>
+                        {% if overall.average_grade != None %}
+                            {{ overall.average_grade }}%{% if overall.letter_grade %} ({{ overall.letter_grade }}){% endif %}
+                        {% else %}
+                            No published grades yet
+                        {% endif %}
+                    </li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h3>Course Breakdown</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Course</th>
+                            <th>Submitted</th>
+                            <th>Pending</th>
+                            <th>Average</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for course in course_summaries %}
+                            <tr>
+                                <td>{{ course.course_name }}</td>
+                                <td>{{ course.submitted_assignment_count }}/{{ course.published_assignment_count }}</td>
+                                <td>{{ course.pending_assignment_count }}</td>
+                                <td>
+                                    {% if course.average_grade != None %}
+                                        {{ course.average_grade }}%{% if course.letter_grade %} ({{ course.letter_grade }}){% endif %}
+                                    {% else %}
+                                        No published grades
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="section">
+                <h3>Recent Grades</h3>
+                {% if recent_grades %}
+                    <ul>
+                        {% for grade in recent_grades %}
+                            <li>
+                                <strong>{{ grade.course_name }}:</strong>
+                                {{ grade.assignment_title|default:"Untitled Assignment" }}
+                                - {{ grade.score_percentage }}%{% if grade.letter_grade %} ({{ grade.letter_grade }}){% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No newly published grades this week.</p>
+                {% endif %}
+            </div>
+
+            <div class="section">
+                <h3>Upcoming Deadlines</h3>
+                {% if upcoming_deadlines %}
+                    <ul>
+                        {% for assignment in upcoming_deadlines %}
+                            <li>
+                                <strong>{{ assignment.course_name }}:</strong>
+                                {{ assignment.assignment_title|default:"Untitled Assignment" }}
+                                - due {{ assignment.due_date|date:"F j, Y, g:i a" }}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No upcoming deadlines in the next {{ summary.upcoming_days }} days.</p>
+                {% endif %}
+            </div>
+
+            {% if overdue_assignments %}
+                <div class="section">
+                    <h3>Overdue Assignments</h3>
+                    <ul>
+                        {% for assignment in overdue_assignments %}
+                            <li>
+                                <strong>{{ assignment.course_name }}:</strong>
+                                {{ assignment.assignment_title|default:"Untitled Assignment" }}
+                                - due {{ assignment.due_date|date:"F j, Y, g:i a" }}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+
+            {% if pending_without_due_dates %}
+                <div class="section">
+                    <h3>Pending Assignments Without Due Dates</h3>
+                    <ul>
+                        {% for assignment in pending_without_due_dates %}
+                            <li>
+                                <strong>{{ assignment.course_name }}:</strong>
+                                {{ assignment.assignment_title|default:"Untitled Assignment" }}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+
+            <p>Best regards,<br>GradeA+ Team</p>
+        </div>
+    </div>
+</body>
+</html>

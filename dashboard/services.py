@@ -40,6 +40,244 @@ class DashboardService:
         pass
 
 
+class StudentWeeklySummaryService:
+    WINDOW_DAYS = 7
+    UPCOMING_DAYS = 14
+
+    def build_student_summary(self, student, *, as_of=None):
+        as_of = as_of or timezone.now()
+        recent_start = as_of - timedelta(days=self.WINDOW_DAYS)
+        upcoming_end = as_of + timedelta(days=self.UPCOMING_DAYS)
+
+        enrollments = list(
+            StudentCourse.objects.filter(
+                student=student,
+                enrollment_status=EnrollmentStatusType.ENROLLED,
+                course__is_active=True,
+            ).select_related("course", "course__session", "course__teacher")
+        )
+        courses = [enrollment.course for enrollment in enrollments]
+
+        assignments = list(
+            Assignment.objects.filter(
+                course__in=courses,
+                status=AssignmentStatus.PUBLISHED,
+            )
+            .select_related("course", "topic")
+            .order_by("due_date", "created_at", "title")
+        )
+
+        submissions = list(
+            StudentSubmission.objects.filter(
+                student=student,
+                assignment__in=assignments,
+            )
+            .select_related("assignment", "assignment__course", "assignment__topic")
+            .order_by("-graded_at", "-submission_date")
+        )
+        submissions_by_assignment = {
+            submission.assignment_id: submission for submission in submissions
+        }
+
+        visible_graded_submissions = [
+            submission
+            for submission in submissions
+            if submission.is_published and submission.score_percentage is not None
+        ]
+        recent_graded_submissions = [
+            submission
+            for submission in visible_graded_submissions
+            if submission.graded_at and recent_start <= submission.graded_at <= as_of
+        ]
+
+        pending_assignments = [
+            assignment
+            for assignment in assignments
+            if assignment.id not in submissions_by_assignment
+        ]
+        upcoming_deadlines = [
+            assignment
+            for assignment in pending_assignments
+            if assignment.due_date and as_of <= assignment.due_date <= upcoming_end
+        ]
+        overdue_assignments = [
+            assignment
+            for assignment in pending_assignments
+            if assignment.due_date and assignment.due_date < as_of
+        ]
+        pending_without_due_dates = [
+            assignment
+            for assignment in pending_assignments
+            if assignment.due_date is None
+        ]
+        new_assignments = [
+            assignment
+            for assignment in assignments
+            if recent_start <= assignment.created_at <= as_of
+        ]
+
+        overall_average = self._average_score(visible_graded_submissions)
+        course_summaries = [
+            self._build_course_summary(
+                course=course,
+                assignments=assignments,
+                submissions_by_assignment=submissions_by_assignment,
+                as_of=as_of,
+            )
+            for course in courses
+        ]
+
+        return {
+            "student": {
+                "id": student.id,
+                "name": student.get_full_name(),
+                "email": student.email,
+            },
+            "generated_at": as_of,
+            "window_days": self.WINDOW_DAYS,
+            "upcoming_days": self.UPCOMING_DAYS,
+            "overall": {
+                "course_count": len(courses),
+                "published_assignment_count": len(assignments),
+                "submitted_assignment_count": len(submissions_by_assignment),
+                "graded_assignment_count": len(visible_graded_submissions),
+                "pending_assignment_count": len(pending_assignments),
+                "overdue_assignment_count": len(overdue_assignments),
+                "upcoming_deadline_count": len(upcoming_deadlines),
+                "average_grade": overall_average,
+                "letter_grade": self._letter_grade(overall_average),
+            },
+            "course_summaries": course_summaries,
+            "recent_grades": [
+                self._serialize_submission(submission)
+                for submission in recent_graded_submissions[:10]
+            ],
+            "upcoming_deadlines": [
+                self._serialize_assignment(assignment)
+                for assignment in upcoming_deadlines[:10]
+            ],
+            "overdue_assignments": [
+                self._serialize_assignment(assignment)
+                for assignment in overdue_assignments[:10]
+            ],
+            "pending_without_due_dates": [
+                self._serialize_assignment(assignment)
+                for assignment in pending_without_due_dates[:10]
+            ],
+            "new_assignments": [
+                self._serialize_assignment(assignment)
+                for assignment in new_assignments[:10]
+            ],
+        }
+
+    def _build_course_summary(
+        self, *, course, assignments, submissions_by_assignment, as_of
+    ):
+        course_assignments = [
+            assignment
+            for assignment in assignments
+            if assignment.course_id == course.id
+        ]
+        course_submissions = [
+            submissions_by_assignment[assignment.id]
+            for assignment in course_assignments
+            if assignment.id in submissions_by_assignment
+        ]
+        visible_graded_submissions = [
+            submission
+            for submission in course_submissions
+            if submission.is_published and submission.score_percentage is not None
+        ]
+        pending_assignments = [
+            assignment
+            for assignment in course_assignments
+            if assignment.id not in submissions_by_assignment
+        ]
+        upcoming_deadlines = [
+            assignment
+            for assignment in pending_assignments
+            if assignment.due_date and assignment.due_date >= as_of
+        ]
+        overdue_assignments = [
+            assignment
+            for assignment in pending_assignments
+            if assignment.due_date and assignment.due_date < as_of
+        ]
+        average_grade = self._average_score(visible_graded_submissions)
+
+        return {
+            "course_id": course.id,
+            "course_name": course.name,
+            "session_name": course.session.name if course.session else None,
+            "teacher_name": course.teacher.get_full_name() if course.teacher else None,
+            "published_assignment_count": len(course_assignments),
+            "submitted_assignment_count": len(course_submissions),
+            "graded_assignment_count": len(visible_graded_submissions),
+            "pending_assignment_count": len(pending_assignments),
+            "upcoming_deadline_count": len(upcoming_deadlines),
+            "overdue_assignment_count": len(overdue_assignments),
+            "average_grade": average_grade,
+            "letter_grade": self._letter_grade(average_grade),
+        }
+
+    def _serialize_submission(self, submission):
+        score = float(submission.score_percentage)
+        return {
+            "assignment_id": submission.assignment_id,
+            "assignment_title": submission.assignment.title,
+            "course_name": submission.assignment.course.name,
+            "score_percentage": round(score, 2),
+            "letter_grade": self._letter_grade(score),
+            "graded_at": submission.graded_at,
+        }
+
+    def _serialize_assignment(self, assignment):
+        return {
+            "assignment_id": assignment.id,
+            "assignment_title": assignment.title,
+            "course_name": assignment.course.name,
+            "due_date": assignment.due_date,
+            "created_at": assignment.created_at,
+        }
+
+    def _average_score(self, submissions):
+        scores = [
+            float(submission.score_percentage)
+            for submission in submissions
+            if submission.score_percentage is not None
+        ]
+        return round(sum(scores) / len(scores), 2) if scores else None
+
+    def _letter_grade(self, percentage):
+        if percentage is None:
+            return None
+        if percentage >= 97:
+            return "A+"
+        if percentage >= 93:
+            return "A"
+        if percentage >= 90:
+            return "A-"
+        if percentage >= 87:
+            return "B+"
+        if percentage >= 83:
+            return "B"
+        if percentage >= 80:
+            return "B-"
+        if percentage >= 77:
+            return "C+"
+        if percentage >= 73:
+            return "C"
+        if percentage >= 70:
+            return "C-"
+        if percentage >= 67:
+            return "D+"
+        if percentage >= 63:
+            return "D"
+        if percentage >= 60:
+            return "D-"
+        return "F"
+
+
 class WeeklyCourseSummaryService:
     WINDOW_DAYS = 7
     TREND_SCORE_WINDOW = 3

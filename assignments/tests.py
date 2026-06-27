@@ -2,15 +2,146 @@ from datetime import timedelta
 from unittest.mock import patch
 
 from django.test import TestCase
+from django.urls import reverse
 from django.utils import timezone
 from django_celery_beat.models import PeriodicTask
+from rest_framework import status
+from rest_framework.test import APITestCase
 
-from assignments.models import Assignment, AssignmentStatus
+from assignments.models import (
+    Assignment,
+    AssignmentGenerationMessage,
+    AssignmentGenerationRole,
+    AssignmentStatus,
+)
 from assignments.signals import assignment_due_reminder_task_name
 from assignments.tasks import send_assignment_due_reminder
 from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
 from students.models import StudentSubmission
 from users.models import CustomUser, UserTypes
+
+
+def generated_assignment_payload():
+    return {
+        "title": "<h1>Cell Biology Quiz</h1>",
+        "instructions": "<p>Answer every question.</p>",
+        "total_points": 10,
+        "question_count": 1,
+        "assignment_type": "OBJECTIVE",
+        "questions": [
+            {
+                "question_number": 1,
+                "question_text": "<p>What is the powerhouse of the cell?</p>",
+                "question_type": "OBJECTIVE",
+                "question_image": "",
+                "points": 10,
+                "blooms_level": "Remember",
+                "options": [
+                    "<p>Mitochondria</p>",
+                    "<p>Nucleus</p>",
+                    "<p>Ribosome</p>",
+                ],
+                "rubric": [],
+                "model_answer": "<p>Mitochondria</p>",
+            }
+        ],
+        "potential_issues": [],
+        "self_assessment": "<p>I created a focused objective check.</p>",
+        "extraction_confidence": 95,
+    }
+
+
+class AssignmentGenerationDraftAPITest(APITestCase):
+    def setUp(self):
+        self.teacher = CustomUser.objects.create_user(
+            email="teacher-draft@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            first_name="Draft",
+            last_name="Teacher",
+        )
+        self.session = Session.objects.create(
+            name="Draft Session", teacher=self.teacher
+        )
+        self.course = Course.objects.create(
+            name="Draft Course",
+            teacher=self.teacher,
+            session=self.session,
+        )
+        self.client.force_authenticate(user=self.teacher)
+
+    @patch("assignments.views.ai_processor.generate_assignment_from_prompt_with_retry")
+    def test_generated_assignment_is_saved_as_draft_not_assignment(
+        self, mock_generate_assignment
+    ):
+        mock_generate_assignment.return_value = generated_assignment_payload()
+
+        response = self.client.post(
+            reverse("assignment-generate", kwargs={"course_id": self.course.id}),
+            {"prompt": "Create a one-question biology quiz."},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIsNone(response.data["assignment_id"])
+        self.assertTrue(response.data["is_draft"])
+        self.assertEqual(Assignment.objects.count(), 0)
+
+        assistant_message = AssignmentGenerationMessage.objects.get(
+            id=response.data["message_id"]
+        )
+        self.assertEqual(assistant_message.role, AssignmentGenerationRole.ASSISTANT)
+        self.assertIsNone(assistant_message.assignment)
+        self.assertEqual(assistant_message.metadata["draft_status"], "AI_DRAFT")
+        self.assertEqual(
+            assistant_message.assignment_snapshot["title"],
+            generated_assignment_payload()["title"],
+        )
+
+    @patch("assignments.views.ai_processor.generate_assignment_from_prompt_with_retry")
+    def test_generated_draft_is_only_persisted_when_saved(
+        self, mock_generate_assignment
+    ):
+        mock_generate_assignment.return_value = generated_assignment_payload()
+
+        generate_response = self.client.post(
+            reverse("assignment-generate", kwargs={"course_id": self.course.id}),
+            {"prompt": "Create a one-question biology quiz."},
+            format="json",
+        )
+        message_id = generate_response.data["message_id"]
+
+        save_response = self.client.post(
+            reverse(
+                "assignment-save-generated-draft",
+                kwargs={"message_id": message_id},
+            ),
+            {"status": AssignmentStatus.DRAFT},
+            format="json",
+        )
+
+        self.assertEqual(save_response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Assignment.objects.count(), 1)
+        assignment = Assignment.objects.get()
+        self.assertEqual(str(assignment.id), save_response.data["id"])
+        self.assertEqual(assignment.course, self.course)
+        self.assertEqual(assignment.status, AssignmentStatus.DRAFT)
+
+        assistant_message = AssignmentGenerationMessage.objects.get(id=message_id)
+        self.assertEqual(assistant_message.assignment, assignment)
+        self.assertEqual(assistant_message.metadata["draft_status"], "SAVED")
+
+        second_save_response = self.client.post(
+            reverse(
+                "assignment-save-generated-draft",
+                kwargs={"message_id": message_id},
+            ),
+            {},
+            format="json",
+        )
+
+        self.assertEqual(second_save_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(Assignment.objects.count(), 1)
 
 
 class AssignmentDueReminderSchedulingTest(TestCase):

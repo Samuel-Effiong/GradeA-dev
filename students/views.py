@@ -68,6 +68,7 @@ from .models import (
 from .serializers import (
     StudentListSerializer,
     StudentSubmissionDetailSerializer,
+    StudentSubmissionDetailStudentVersionSerializer,
     StudentSubmissionFormattedGradeAsyncSerializer,
     StudentSubmissionGradeAsyncSerializer,
     StudentSubmissionGradeUpdateSerializer,
@@ -77,7 +78,12 @@ from .serializers import (
     StudentSubmissionUpdateSerializer,
     StudentSubmissionUploadAsyncSerializer,
 )
-from .services import grade_engine, student_submission_to_html, upload_answers_engine
+from .services import (
+    grade_engine,
+    notify_student_of_graded_submission,
+    student_submission_to_html,
+    upload_answers_engine,
+)
 from .task_tracking import create_processing_task, launch_processing_task
 
 # from openai.types import Batch
@@ -185,9 +191,15 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
             submission.save(update_fields=["raw_input"])
 
-        serializer = StudentSubmissionDetailSerializer(
-            submission, context=self.get_serializer_context()
-        )
+        if request.user.user_type == UserTypes.STUDENT:
+            serializer = StudentSubmissionDetailStudentVersionSerializer(
+                submission, context=self.get_serializer_context()
+            )
+        else:
+            serializer = StudentSubmissionDetailSerializer(
+                submission, context=self.get_serializer_context()
+            )
+
         data = serializer.data
         cache.set(cache_key, data, getattr(settings, "CACHE_TTL", 60 * 5))
 
@@ -216,6 +228,8 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if self.action == "list":
             return StudentSubmissionListSerializer
         elif self.action == "retrieve":
+            if self.request.user.user_type == UserTypes.STUDENT:
+                return StudentSubmissionDetailStudentVersionSerializer
             return StudentSubmissionDetailSerializer
         return StudentSubmissionSerializer
 
@@ -233,7 +247,6 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             "create",
             "upload_answers",
             "upload_answers_async",
-            "partial_update",
             "update",
         ]:
             # These are student actions that (mostly) consume AI credits
@@ -767,6 +780,9 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             ]
         )
 
+        if submission.is_published:
+            notify_student_of_graded_submission(submission, is_update=True)
+
         assignment = submission.assignment
         user_prompt = f"""
         Student Name: {submission.student.get_full_name()}
@@ -953,6 +969,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     )
     def publish_grade(self, request, pk=None):
         submission = self.get_object()
+        was_published = submission.is_published
 
         if not submission.graded_at and submission.score is None:
             return Response(
@@ -962,6 +979,9 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         submission.is_published = True
         submission.save(update_fields=["is_published"])
+
+        if not was_published:
+            notify_student_of_graded_submission(submission)
 
         serializer = StudentSubmissionDetailSerializer(
             submission, context=self.get_serializer_context()

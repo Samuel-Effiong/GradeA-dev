@@ -124,6 +124,8 @@ class CustomUser(AbstractUser):
         default=RegistrationMethod.EMAIL,
     )
 
+    # stripe_customer_id = models.CharField(max_length=255, null=True, blank=True, db_index=True)
+
     def get_full_name(self):
         """
         Return the first_name plus the middle_name plus the last_name, with a space in between.
@@ -156,6 +158,90 @@ class CustomUser(AbstractUser):
     def is_beta_eligible(self):
         """Beta access is restricted to teacher accounts."""
         return self.user_type == UserTypes.TEACHER
+
+    def get_active_subscription(self):
+        """
+        Unified method to get the user's active subscription, handling both types.
+
+        For INDIVIDUAL subscriptions: Returns the user's active UserSubscription
+        For LICENSE subscriptions: Returns the active LicenseSubscription via SchoolCreditAllocation
+        For users with no subscription: Returns None
+
+        Returns:
+            Union[UserSubscription, LicenseSubscription, None]
+        """
+        # from billing.models import LicenseSubscription, UserSubscription
+
+        # Check if user is under an active License
+        if self.is_teacher():
+            active_allocation = (
+                self.school_credit_allocations.select_related("license_subscription")
+                .filter(
+                    is_active=True,
+                    license_subscription__is_active=True,
+                )
+                .first()
+            )
+            if active_allocation:
+                return active_allocation.license_subscription
+
+        # Check for personal UserSubscription
+        active_subscription = self.subscriptions.filter(is_active=True).first()
+        return active_subscription
+
+    @property
+    def subscription_type(self):
+        """
+        Returns the subscription type for this user.
+
+        Returns:
+            str: "LICENSE", "INDIVIDUAL", or None
+        """
+        subscription = self.get_active_subscription()
+        if subscription is None:
+            return None
+
+        from billing.models import LicenseSubscription
+
+        if isinstance(subscription, LicenseSubscription):
+            return "LICENSE"
+        return "INDIVIDUAL"
+
+    def is_under_license(self):
+        """
+        Checks if user is currently enrolled under a school license.
+
+        Returns:
+            bool: True if user is under active license, False otherwise
+        """
+        return self.subscription_type == "LICENSE"
+
+    def get_teacher_monthly_allocation(self):
+        """
+        Gets the monthly credit allocation for this teacher.
+
+        For INDIVIDUAL: Returns plan's monthly_credits
+        For LICENSE: Returns SchoolCreditAllocation's monthly_allocation
+        For no subscription: Returns 0
+
+        Returns:
+            int: Raw credits (display value × 1000), or 0 if no subscription
+        """
+        subscription = self.get_active_subscription()
+        if subscription is None:
+            return 0
+
+        from billing.models import LicenseSubscription
+
+        if isinstance(subscription, LicenseSubscription):
+            # User is under License, get their allocation
+            allocation = self.school_credit_allocations.filter(
+                license_subscription=subscription, is_active=True
+            ).first()
+            return allocation.monthly_allocation if allocation else 0
+
+        # User has INDIVIDUAL subscription
+        return subscription.plan.monthly_credits or 0
 
     def renew_activation_token(self):
         """Renew the activation token and extend expiration."""
@@ -198,10 +284,17 @@ class Settings(models.Model):
     )
 
     # Email Notifications
-    notify_student_submission = models.BooleanField(default=False)
-    notify_weekly_summary = models.BooleanField(default=False)
-    notify_assignment_due_reminder = models.BooleanField(default=False)
-    notify_grading_complete = models.BooleanField(default=False)
+    notify_student_submission = models.BooleanField(
+        default=False, null=True, blank=True
+    )
+    notify_weekly_summary = models.BooleanField(default=False, null=True, blank=True)
+    notify_assignment_due_reminder = models.BooleanField(
+        default=False, null=True, blank=True
+    )
+    notify_grading_complete = models.BooleanField(default=False, null=True, blank=True)
+    notify_new_assignment_posted = models.BooleanField(
+        default=False, null=True, blank=True
+    )
 
 
 class UserActivity(models.Model):
