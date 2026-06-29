@@ -123,13 +123,13 @@ class AssignmentSerializer(serializers.ModelSerializer):
         }
 
     def validate_total_points(self, value: int | float) -> int | float:
-        # if value <= 0:
-        #     raise serializers.ValidationError("Total points must be greater than 0")
+        if value <= 0:
+            raise serializers.ValidationError("Total points must be greater than 0")
         return value
 
     def validate_question_count(self, value: int) -> int:
-        # if value <= 0:
-        #     raise serializers.ValidationError("Question count must be greater than 0")
+        if value <= 0:
+            raise serializers.ValidationError("Question count must be greater than 0")
         return value
 
     def validate(self, data):
