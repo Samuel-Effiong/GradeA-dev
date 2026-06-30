@@ -699,7 +699,19 @@ class StripeWebhookHandler:
             # further to do here for either.
             return
 
+        now = timezone.now()
         stripe_subscription_id = user_sub.stripe_subscription_id
+
+        # Idempotency guard: if already renewed (billing_cycle_end > now), just update status
+        if user_sub.billing_cycle_end > now:
+            user_sub.stripe_status = StripeSubscriptionStatus.ACTIVE
+            user_sub.save(update_fields=["stripe_status", "updated_at"])
+
+            # Ensure the Stripe price is in sync (if a pending plan exist)
+            StripeSubscriptionMutationService.sync_price(
+                user_sub, stripe_subscription_id
+            )
+            return
 
         if user_sub.is_trial:
             # Trial just ended and the first real charge succeeded.
@@ -712,17 +724,7 @@ class StripeWebhookHandler:
             # row and deactivates this one — the Stripe subscription id has
             # to be re-attached to the new row, not this (now inactive) one.
 
-            if user_sub.billing_cycle_end > timezone.now():
-                # Already renewed (likely by Celery). Just update status and sync price
-
-                user_sub.stripe_status = StripeSubscriptionStatus.ACTIVE
-                user_sub.save(update_fields=["stripe_status", "updated_at"])
-                StripeSubscriptionMutationService.sync_price(
-                    user_sub, stripe_subscription_id
-                )
-                return
-
-                updated_sub = SubscriptionService.process_rollover_and_renewal(user_sub)
+            updated_sub = SubscriptionService.process_rollover_and_renewal(user_sub)
             # If schedule_downgrade() (or an upgrade) set a different plan
             # than what Stripe is currently billing, sync it now — this
             # invoice was correctly billed at the old price, so the change

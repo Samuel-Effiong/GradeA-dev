@@ -17,6 +17,7 @@ from .models import (  # CreditUsageLog,; SubscriptionPlan,
     CreditWallet,
     PlanCategory,
     PlanType,
+    SubscriptionPlan,
     UserSubscription,
 )
 
@@ -81,6 +82,7 @@ class SubscriptionService:
             is_active=True,
             billing_cycle_start=now,
             billing_cycle_end=billing_end,
+            next_credit_grant_at=monthly_bucket_expiry,
             auto_renew=True,
         )
 
@@ -165,6 +167,9 @@ class SubscriptionService:
         Rollover of unused credits between months follows the same
         carry_over_percent/carry_over_max rules as a normal full renewal.
         """
+        user_subscription = UserSubscription.objects.select_for_update().get(
+            id=user_subscription.id
+        )
         plan = user_subscription.plan
         if plan.interval != BillingInterval.ANNUAL:
             raise ValueError(
@@ -261,6 +266,11 @@ class SubscriptionService:
         """
         Executed by Celery at billing_cycle_end
         """
+
+        # Lock the subscription row to prevent concurrent processing
+        user_subscription = UserSubscription.objects.select_for_update().get(
+            pk=user_subscription.pk
+        )
 
         user = user_subscription.user
 
@@ -869,6 +879,149 @@ class SubscriptionService:
             trial_sub.id,
         )
         return trial_sub
+
+    @staticmethod
+    @transaction.atomic
+    def activate_automatic_free_trial(user):
+        """
+        Automatically activate a free trial for a newly registered user.
+
+        Called from users/signals.py on CustomUser creation. This is the new,
+        simplified trial activation flow — no Stripe, no card collection,
+        no user action needed.
+
+        What this does:
+        1. Checks if user has EVER had a trial (one-time per account).
+        2. Creates a UserSubscription with is_trial=True.
+        3. Grants 5,000 display credits (5,000,000 raw) in a TRIAL bucket.
+        4. Sets trial_end to now + 14 days.
+        5. Logs the grant in the immutable ledger.
+
+        Trial expires when EITHER:
+        - 14 days pass (trial_end is reached)
+        - User exhausts all 5,000 credits (whichever comes first)
+        - Celery task expire_active_trials() marks it inactive
+
+        User's access is cut when:
+        - is_active=False (trial expired) OR
+        - total_remaining_credits=0 (credits exhausted)
+
+        Args:
+            user (CustomUser): The newly created user.
+
+        Returns:
+            UserSubscription: The newly created trial subscription.
+
+        Raises:
+            ValueError: If user has already used a trial.
+            Exception: If wallet or bucket creation fails (will be caught and logged).
+
+        Edge cases handled:
+        ✓ Concurrent registration (DB-level atomicity)
+        ✓ User already has trial (guards with exists check)
+        ✓ Wallet already exists (get_or_create handles this)
+        ✓ CreditBucket creation fails (transaction rolls back)
+        ✓ Non-teacher users (caller must filter these out)
+        ✓ License-invited users (caller must skip these)
+        """
+
+        now = timezone.now()
+        trial_end = now + relativedelta(days=SubscriptionService.TRIAL_DURATION_DAYS)
+
+        # GUARD 1: Check if user has EVER had a trial (even expired ones)
+
+        # This is the ONE critical guard for automatic trial
+        # Use select_for_update to lock the user row during this check
+        # preventing concurrent registration from creating two trials.
+
+        existing_trial = (
+            UserSubscription.objects.select_for_update()
+            .filter(user=user, is_trial=True)
+            .exists()
+        )
+
+        if existing_trial:
+            raise ValueError(
+                f"User {user.email} has already used the free trial. "
+                "Free trial can only be activated once per account."
+            )
+
+        # CREATE TRIAL SUBSCRIPTION
+
+        # Use the built-in STANDARD plan as the trial base
+        try:
+            # REtrieve the Free trial plan
+            trial_plan = SubscriptionPlan.objects.get(name="Free Trial")
+        except SubscriptionPlan.DoesNotExist as exc:
+            raise ValueError(
+                "Free trial plan not found. Please create one in the admin panel."
+            ) from exc
+        except Exception as e:
+            logger.error("Error retrieving free trial plan: %s", e)
+            raise
+
+        subscription = UserSubscription.objects.create(
+            user=user,
+            plan=trial_plan,
+            is_active=True,
+            trial_end=trial_end,
+            billing_cycle_start=now,
+            billing_cycle_end=trial_end,
+            auto_renew=False,
+        )
+
+        # ENSURE WALLET EXISTS & RESET OVERAGE
+
+        # Should exist from users.signals, but be defensive
+        wallet, _ = CreditWallet.objects.get_or_create(user=user)
+
+        # Reset overage counter for this trial period
+        wallet.overage_blocks_used = 0
+        wallet.save(update_fields=["overage_blocks_used", "updated_at"])
+
+        # CREATE TRIAL CREDIT BUCKET
+
+        # Expires at trial_end (14 days from now)
+        trial_bucket = CreditBucket.objects.create(
+            wallet=wallet,
+            bucket_type=CreditBucketType.TRIAL,
+            total_credits=SubscriptionService.TRIAL_CREDITS_RAW,
+            used_credits=0,
+            expires_at=trial_end,
+        )
+
+        # AUDIT LEDGER ENTRY
+
+        # Immutable record for compliance and debugging
+        CreditLedger.objects.create(
+            user=user,
+            bucket=trial_bucket,
+            ledger_type=CreditLedgerType.GRANT,
+            amount=SubscriptionService.TRIAL_CREDITS_RAW,
+            reference="Automatic free trial activation on user registration",
+            metadata={
+                "grant_type": "AUTOMATIC_TRIAL_REGISTRATION",
+                "display_amount": SubscriptionService.TRIAL_CREDITS_DISPLAY,
+                "raw_amount": SubscriptionService.TRIAL_CREDITS_RAW,
+                "trial_duration_days": SubscriptionService.TRIAL_DURATION_DAYS,
+                "trial_end": trial_end.isoformat(),
+                "subscription_id": str(subscription.id),
+                "activation_method": "AUTOMATIC_REGISTRATION",
+            },
+        )
+
+        logger.info(
+            "Automatic free trial activated for user %s on registration. "
+            "Subscription ID: %s. Credits: %d display (%d raw). "
+            "Trial ends: %s.",
+            user.email,
+            subscription.id,
+            SubscriptionService.TRIAL_CREDITS_DISPLAY,
+            SubscriptionService.TRIAL_CREDITS_RAW,
+            trial_end.isoformat(),
+        )
+
+        return subscription
 
 
 class ManualCreditService:

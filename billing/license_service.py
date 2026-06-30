@@ -17,9 +17,9 @@ Key principles:
 
 import logging
 from datetime import timedelta
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
-from dateutil.relativedelta import relativedelta
+from dateutil.relativedelta import relativedelta  # type: ignore
 from django.conf import settings
 from django.db import models, transaction
 
@@ -296,7 +296,7 @@ class LicenseSubscriptionService:
                 logger.warning(error_msg)
                 return None
 
-            # 3. Check for active individua subscription
+            # 3. Check for active individual subscription
             has_individual_sub = user.subscriptions.filter(is_active=True).exists()
 
             if has_individual_sub:
@@ -694,7 +694,7 @@ class LicenseSubscriptionService:
                 f"Cannot add teachers to inactive license subscription {license_sub.id}"
             )
 
-        results = {"successful": 0, "failed": 0, "errors": []}
+        results: Dict[str, Any] = {"successful": 0, "failed": 0, "errors": []}
 
         for email in teacher_emails:
             try:
