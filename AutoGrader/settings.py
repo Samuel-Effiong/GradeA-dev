@@ -267,10 +267,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "dashboard.tasks.record_concurrent_users",
         "schedule": 60.0,
     },
-    "process-subscription-renewals": {
-        "task": "billing.tasks.process_subscription_renewals",
-        "schedule": crontab(minute=0, hour=0),
-    },
+    # "reconcile-trial-expiration": {
+    #     "task": "billing.tasks.process_subscription_renewals",
+    #     "schedule": crontab(minute=0, hour=0),
+    # },
     "process-license-renewals": {
         "task": "billing.tasks.process_license_renewals",
         "schedule": crontab(minute=0, hour=0),

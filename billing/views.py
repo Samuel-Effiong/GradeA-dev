@@ -88,13 +88,12 @@ from .stripe_service import (  # StripeSubscriptionMutationService,
     StripeOverageService,
     StripeSubscriptionMutationService,
 )
-from .stripe_view_schemas import (
+from .stripe_view_schemas import (  # START_TRIAL_SCHEMA,
     CANCEL_SCHEMA,
     CHECKOUT_SCHEMA,
     CONVERT_TRIAL_SCHEMA,
     DOWNGRADE_SCHEMA,
     PURCHASE_OVERAGE_SCHEMA,
-    START_TRIAL_SCHEMA,
     UPGRADE_SCHEMA,
 )
 
@@ -799,57 +798,57 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
             status=status.HTTP_200_OK,
         )
 
-    @START_TRIAL_SCHEMA
-    @action(
-        detail=False, methods=["POST"], url_path="start-trial", url_name="start-trial"
-    )
-    def start_trial(self, request, *args, **kwargs):
-        plan_id = request.data.get("plan")
+    # @START_TRIAL_SCHEMA
+    # @action(
+    #     detail=False, methods=["POST"], url_path="start-trial", url_name="start-trial"
+    # )
+    # def start_trial(self, request, *args, **kwargs):
+    #     plan_id = request.data.get("plan")
 
-        if not plan_id:
-            return Response(
-                {"detail": "The 'plan' field is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+    #     if not plan_id:
+    #         return Response(
+    #             {"detail": "The 'plan' field is required."},
+    #             status=status.HTTP_400_BAD_REQUEST,
+    #         )
 
-        try:
-            plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
-        except SubscriptionPlan.DoesNotExist:
-            return Response(
-                {"detail": "Plan not found or is not active"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+    #     try:
+    #         plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
+    #     except SubscriptionPlan.DoesNotExist:
+    #         return Response(
+    #             {"detail": "Plan not found or is not active"},
+    #             status=status.HTTP_404_NOT_FOUND,
+    #         )
 
-        success_url = (
-            request.data.get("success_url")
-            or f"https://{settings.FRONTEND_DOMAIN}/billing/trial-success"
-        )
-        cancel_url = (
-            request.data.get("cancel_url")
-            or f"https://{settings.FRONTEND_DOMAIN}/billing/trial-cancelled"
-        )
+    #     success_url = (
+    #         request.data.get("success_url")
+    #         or f"https://{settings.FRONTEND_DOMAIN}/billing/trial-success"
+    #     )
+    #     cancel_url = (
+    #         request.data.get("cancel_url")
+    #         or f"https://{settings.FRONTEND_DOMAIN}/billing/trial-cancelled"
+    #     )
 
-        try:
-            session = StripeCheckoutService.create_individual_trial_session(
-                user=request.user,
-                plan=plan,
-                success_url=success_url,
-                cancel_url=cancel_url,
-            )
-        except ValueError as exc:
-            error_msg = str(exc)
+    #     try:
+    #         session = StripeCheckoutService.create_individual_trial_session(
+    #             user=request.user,
+    #             plan=plan,
+    #             success_url=success_url,
+    #             cancel_url=cancel_url,
+    #         )
+    #     except ValueError as exc:
+    #         error_msg = str(exc)
 
-            status_code = (
-                status.HTTP_409_CONFLICT
-                if "already used it's free trial" in error_msg
-                else status.HTTP_400_BAD_REQUEST
-            )
-            return Response(
-                {"detail": error_msg},
-                status=status_code,
-            )
+    #         status_code = (
+    #             status.HTTP_409_CONFLICT
+    #             if "already used it's free trial" in error_msg
+    #             else status.HTTP_400_BAD_REQUEST
+    #         )
+    #         return Response(
+    #             {"detail": error_msg},
+    #             status=status_code,
+    #         )
 
-        return Response({"checkout_url", session.url}, status=status.HTTP_201_CREATED)
+    #     return Response({"checkout_url", session.url}, status=status.HTTP_201_CREATED)
 
     @CHECKOUT_SCHEMA
     @action(detail=False, methods=["POST"], url_path="checkout")
@@ -916,6 +915,9 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
         POST /api/billing/subscriptions/convert-trial/
         Body: { "plan": "<uuid>" }
         """
+
+        # FIXME: Delete this, replacement is convert_trial_to_paid_checkout
+
         plan_id = request.data.get("plan")
         if not plan_id:
             return Response(
@@ -933,7 +935,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
 
         try:
             new_sub = SubscriptionService.convert_trial_to_paid(
-                user=request.user, plan=plan
+                user=request.user, new_plan=plan
             )
         except ValueError as exc:
             return Response(
@@ -943,6 +945,112 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
 
         serializer = self.get_serializer(new_sub)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        tags=["Subscription"],
+        summary="Convert trial to paid (Stripe Checkout)",
+        description=(
+            "Mid-cycle or end-of-trial upgrade: redirect to Stripe Checkout to collect payment. "
+            "User must have an active free trial. "
+            "Payment must succeed for plan to be activated. "
+            "Trial credits are forfeited on conversion (not carried over)."
+        ),
+        request=OpenApiTypes.OBJECT,  # { "plan": "<uuid>" }
+        responses={
+            200: OpenApiResponse(
+                description="Checkout session created. Return checkout_url to frontend.",
+                examples=[
+                    OpenApiExample(
+                        "Checkout session",
+                        value={"checkout_url": "https://checkout.stripe.com/..."},
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                description="User has no active trial, or plan is invalid"
+            ),
+            404: OpenApiResponse(description="Plan not found"),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["POST"],
+        url_path="convert-trial-to-paid",
+        url_name="convert-trial-to-paid",
+    )
+    def convert_trial_to_paid_checkout(self, request, *args, **kwargs):
+        """
+        Initiates a trial→paid conversion via Stripe Checkout.
+
+        User MUST have active trial (is_trial=True, is_active=True).
+        Payment MUST succeed before plan is activated locally.
+
+        Request body: { "plan": "<plan_uuid>" }
+
+        Response: { "checkout_url": "https://checkout.stripe.com/..." }
+        """
+
+        plan_id = request.data.get("plan")
+        if not plan_id:
+            return Response(
+                {"detail": "The 'plan' field is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Fetch and validate the plan
+        try:
+            new_plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
+        except SubscriptionPlan.DoesNotExist:
+            return Response(
+                {"detail": "Plan not found or is not active."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Validate plan is INDIVIDUAL (should be, but defensive)
+        if new_plan.category != PlanCategory.INDIVIDUAL:
+            return Response(
+                {"detail": f"Plan {new_plan.name} is not an INDIVIDUAL plan."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Build redirect URLs
+        success_url = (
+            request.data.get("success_url")
+            or f"https://{settings.FRONTEND_DOMAIN}/billing/trial-conversion-success"
+        )
+        cancel_url = (
+            request.data.get("cancel_url")
+            or f"https://{settings.FRONTEND_DOMAIN}/billing/trial-conversion-cancelled"
+        )
+
+        # Attempt to create checkout session
+        try:
+            session = StripeCheckoutService.create_trial_to_paid_session(
+                user=request.user,
+                new_plan=new_plan,
+                success_url=success_url,
+                cancel_url=cancel_url,
+            )
+        except ValueError as exc:
+            # User doesn't have active trial, or trial expired, etc.
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception:
+            logger.exception(
+                "Unexpected error creating trial-to-paid checkout for user %s",
+                request.user.email,
+            )
+            return Response(
+                {"detail": "An unexpected error occurred. Please try again later."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        return Response(
+            {"checkout_url": session.url},
+            status=status.HTTP_200_OK,
+        )
 
     @extend_schema(
         tags=["Subscription"],

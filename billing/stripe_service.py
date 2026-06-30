@@ -253,6 +253,72 @@ class StripeCheckoutService:
 
         return stripe.checkout.Session.create(**session_kwargs)
 
+    @staticmethod
+    def create_trial_to_paid_session(user, new_plan, success_url, cancel_url):
+        # GUARD 1: User must have active trial (is_active=True and is_trial=True)
+        trial_sub = (
+            UserSubscription.objects.select_for_update()
+            .filter(user=user, is_active=True, is_trial=True)
+            .first()
+        )
+
+        if not trial_sub:
+            raise ValueError(
+                f"User {user.email} does not have an active free trial to convert."
+            )
+
+        # GUARD 2: Trial must not have ended
+        now = timezone.now()
+        if trial_sub.trial_end and trial_sub.trial_end <= now:
+            raise ValueError(
+                f"Trial has already ended (trial_end: {trial_sub.trial_end}). "
+                "User must sign up for a new subscription instead."
+            )
+
+        # GUARD 3: Plan must be INDIVIDUAL category
+        if new_plan.category != PlanCategory.INDIVIDUAL:
+            raise ValueError(
+                f"Plan {new_plan.name} is {new_plan.category}, not INDIVIDUAL. "
+                "Only individual plans are supported for trial conversion."
+            )
+
+        # GUARD 4: Plan must have Stripe price configured
+        if not new_plan.stripe_price_id:
+            raise ValueError(
+                f"Plan {new_plan.name} has no stripe_price_id configured. "
+                "Cannot create checkout session."
+            )
+
+        # Get or create the Stripe customer (reuse existing if present)
+        customer_id = StripeCustomerService.get_or_create_customer(user)
+
+        # Create the checkout session
+        # Metadata round-trips through Stripe to webhook handler
+        session = stripe.checkout.Session.create(
+            customer=customer_id,
+            mode="subscription",
+            line_items=[{"price": new_plan.stripe_price_id, "quantity": 1}],
+            sucess_url=success_url,
+            cancel_url=cancel_url,
+            metadata={
+                "flow": "trial_to_paid",  # Webhook dispatch key
+                "user_id": str(user.id),
+                "trial_subscription_id": str(trial_sub.id),  # The EXISTING trial sub
+                "new_plan_id": str(new_plan.id),  # The plan being converted to
+            },
+        )
+
+        logger.info(
+            "Created trial-to-paid checkout session for user %s. "
+            "Trial subscription: %s, New plan: %s, Checkout session: %s",
+            user.email,
+            trial_sub.id,
+            new_plan.name,
+            session.id,
+        )
+
+        return session
+
 
 class StripeSubscriptionMutationService:
     """
@@ -559,6 +625,8 @@ class StripeWebhookHandler:
             StripeWebhookHandler._handle_individual_subscribe(session, metadata)
         elif flow == "individual_trial":
             StripeWebhookHandler._handle_individual_trial(session, metadata)
+        elif flow == "trial_to_paid":
+            StripeWebhookHandler._handle_trial_to_paid(session, metadata)
         elif flow == "license_create":
             StripeWebhookHandler._handle_license_create(session, metadata)
         else:
@@ -638,6 +706,81 @@ class StripeWebhookHandler:
             "Stripe checkout completed: license created for school %s, plan %s.",
             school.name,
             plan.name,
+        )
+
+    @staticmethod
+    def _handle_trial_to_paid(session, metadata):
+        """
+        Webhook handler for checkout.session.completed (flow='trial_to_paid').
+
+        Called after a trial user successfully completes Stripe checkout to
+        upgrade to a paid plan.
+
+        Conversion happens ONLY if:
+        - trial_sub still exists and is_trial=True, is_active=True
+        - new_plan exists and is valid
+        - This is the ONLY place credits are granted for this flow
+        """
+
+        try:
+            user = CustomUser.objects.get(id=metadata["user_id"])
+            trial_sub = UserSubscription.objects.select_for_update().get(
+                id=metadata["trial_subscription_id"]
+            )
+            new_plan = SubscriptionPlan.objects.get(id=metadata["new_plan_id"])
+        except (
+            CustomUser.DoesNotExist,
+            UserSubscription.DoesNotExist,
+            SubscriptionPlan.DoesNotExist,
+        ) as exc:
+            logger.error(
+                "trial_to_paid checkout: missing database record. "
+                "user_id=%s, trial_sub_id=%s, plan_id=%s. Error: %s",
+                metadata.get("user_id"),
+                metadata.get("trial_subscription_id"),
+                metadata.get("new_plan_id"),
+                str(exc),
+            )
+            raise
+
+        # GUARD: Ensure trial_sub is still active and in trial state
+        # (user could have manually expired it via API or Celery task)
+        if not trial_sub.is_trial or not trial_sub.is_active:
+            logger.warning(
+                "trial_to_paid checkout: trial subscription %s for user %s is no longer active/trial. "
+                "Skipping conversion. (is_trial=%s, is_active=%s)",
+                trial_sub.id,
+                user.email,
+                trial_sub.is_trial,
+                trial_sub.is_active,
+            )
+            return
+
+        # Extract Stripe subscription ID from session
+        stripe_subscription_id = session.get("subscription")
+        if not stripe_subscription_id:
+            logger.error(
+                "trial_to_paid checkout: session %s has no subscription ID. "
+                "Cannot attach to trial_sub %s. This should not happen.",
+                session.get("id"),
+                trial_sub.id,
+            )
+            raise ValueError("Checkout session missing subscription ID")
+
+        # Finalize the conversion
+        SubscriptionService.finalize_trial_to_paid_conversion(
+            trial_sub=trial_sub,
+            new_plan=new_plan,
+            stripe_subscription_id=stripe_subscription_id,
+        )
+
+        logger.info(
+            "Stripe checkout completed: trial-to-paid conversion for user %s. "
+            "Trial subscription: %s, New plan: %s, Stripe subscription: %s",
+            user.email,
+            trial_sub.id,
+            new_plan.name,
+            stripe_subscription_id,
         )
 
     # ------------------------------------------------------------------

@@ -16,7 +16,9 @@ from .models import (  # CreditUsageLog,; SubscriptionPlan,
     CreditUsageLog,
     CreditWallet,
     PlanCategory,
+    PlanTier,
     PlanType,
+    StripeSubscriptionStatus,
     SubscriptionPlan,
     UserSubscription,
 )
@@ -586,6 +588,8 @@ class SubscriptionService:
     @staticmethod
     @transaction.atomic
     def convert_trial_to_paid(user, new_plan):
+        # FIXME: DELETE THIS TOO, REDUNDANT, it does not charge from stripe
+
         """
         Converts an active free trial into a full paid subscription.
 
@@ -882,6 +886,166 @@ class SubscriptionService:
 
     @staticmethod
     @transaction.atomic
+    def finalize_trial_to_paid_conversion(trial_sub, new_plan, stripe_subscription_id):
+        """
+        Called from webhook (checkout.session.completed with flow='trial_to_paid')
+        to finalize a mid-cycle trial→paid upgrade after Stripe payment succeeds.
+
+        This method:
+        1. Expires the existing TRIAL credit bucket
+        2. Updates the trial_sub.plan to the new_plan (KEY BUG FIX)
+        3. Flags trial_sub as no longer trial (is_trial=False)
+        4. Grants new MONTHLY bucket with new_plan's credits
+        5. Attaches Stripe subscription ID to the same trial_sub row
+
+        Unlike finalize_trial_conversion_via_stripe() (which is for auto-charge
+        after 14 days), this is for ACTIVE user upgrade mid-trial with explicit
+        plan change.
+
+        Args:
+            trial_sub: The UserSubscription with is_trial=True, is_active=True
+            new_plan: The SubscriptionPlan user is converting to
+            stripe_subscription_id: The Stripe subscription ID from checkout
+
+        Returns:
+            The updated trial_sub (same row, modified in place)
+
+        Raises:
+            ValueError: If trial_sub is not active, or if bucket creation fails
+        """
+
+        # GUARD: Ensure this is actually a trial subscription
+        if not trial_sub.is_trial or not trial_sub.is_active:
+            raise ValueError(
+                f"Subscription {trial_sub.id} is not an active trial. "
+                "Cannot finalize trial-to-paid conversion."
+            )
+
+        user = trial_sub.user
+        now = timezone.now()
+
+        # Calculate the new billing cycle end
+        # Since user is converting mid-trial, give them a full month from now
+        billing_cycle_end = now + relativedelta(months=1)
+
+        wallet = user.credit_wallet
+
+        # --- STEP 1: Expire the existing TRIAL bucket ---
+        trial_bucket = (
+            wallet.buckets.select_for_update()
+            .filter(bucket_type=CreditBucketType.TRIAL, expires_at__gt=now)
+            .first()
+        )
+
+        if trial_bucket:
+            unused = trial_bucket.remaining_credits
+
+            # Log unused trial credits as forfeited (they don't carry over)
+            if unused > 0:
+                CreditLedger.objects.create(
+                    user=user,
+                    bucket=trial_bucket,
+                    ledger_type=CreditLedgerType.EXPIRE,
+                    amount=unused,
+                    reference=(
+                        f"Trial credits forfeited on mid-cycle upgrade to "
+                        f"{new_plan.display_name or new_plan.name}"
+                    ),
+                    metadata={
+                        "expired_amount": unused,
+                        "trial_subscription_id": str(trial_sub.id),
+                        "new_plan_id": str(new_plan.id),
+                        "conversion_type": "MID_CYCLE_PAID_UPGRADE",
+                    },
+                )
+
+            # Mark the trial bucket as expired (no longer available for use)
+            trial_bucket.expires_at = now
+            trial_bucket.is_processed = True
+            trial_bucket.save(
+                update_fields=["expires_at", "is_processed", "updated_at"]
+            )
+
+            logger.info(
+                "Expired TRIAL bucket %s for user %s (forfeited %d credits)",
+                trial_bucket.id,
+                user.email,
+                unused,
+            )
+
+        # --- STEP 2: Update the trial subscription to mark it as no longer trial ---
+
+        trial_sub.is_trial = False
+        trial_sub.trial_end = None  # Clear the trial expiry date
+        trial_sub.plan = (
+            new_plan  # ← BUG FIX: Was missing in finalize_trial_conversion_via_stripe
+        )
+        trial_sub.billing_cycle_start = now
+        trial_sub.billing_cycle_end = billing_cycle_end
+        trial_sub.stripe_subscription_id = stripe_subscription_id  # Attach Stripe ID
+        trial_sub.stripe_status = StripeSubscriptionStatus.ACTIVE
+
+        trial_sub.save(
+            update_fields=[
+                "is_trial",
+                "trial_end",
+                "plan",
+                "billing_cycle_start",
+                "billing_cycle_end",
+                "stripe_subscription_id",
+                "stripe_status",
+                "updated_at",
+            ]
+        )
+
+        # --- STEP 3: Reset overage counter for the new cycle ---
+        wallet.overage_blocks_used = 0
+        wallet.save(update_fields=["overage_blocks_used", "updated_at"])
+
+        # --- STEP 4: Create MONTHLY bucket with new plan's credits ---
+        monthly_bucket = CreditBucket.objects.create(
+            wallet=wallet,
+            bucket_type=CreditBucketType.MONTHLY,
+            total_credits=new_plan.monthly_credits,
+            used_credits=0,
+            expires_at=billing_cycle_end,
+        )
+
+        # --- STEP 5: Audit ledger entry ---
+        CreditLedger.objects.create(
+            user=user,
+            bucket=monthly_bucket,
+            ledger_type=CreditLedgerType.GRANT,
+            amount=new_plan.monthly_credits,
+            reference=(
+                f"Mid-cycle trial-to-paid conversion to "
+                f"{new_plan.display_name or new_plan.name}. "
+                f"Stripe subscription {stripe_subscription_id}"
+            ),
+            metadata={
+                "subscription_id": str(trial_sub.id),
+                "plan_id": str(new_plan.id),
+                "grant_type": "TRIAL_TO_PAID_MID_CYCLE",
+                "stripe_subscription_id": stripe_subscription_id,
+                "trial_forfeited": True,  # Signal that trial credits were not carried over
+            },
+        )
+
+        logger.info(
+            "Finalized trial-to-paid conversion for user %s. "
+            "Trial subscription %s upgraded to plan %s. "
+            "Granted %d credits. Stripe subscription: %s",
+            user.email,
+            trial_sub.id,
+            new_plan.name,
+            new_plan.monthly_credits,
+            stripe_subscription_id,
+        )
+
+        return trial_sub
+
+    @staticmethod
+    @transaction.atomic
     def activate_automatic_free_trial(user):
         """
         Automatically activate a free trial for a newly registered user.
@@ -951,7 +1115,9 @@ class SubscriptionService:
         # Use the built-in STANDARD plan as the trial base
         try:
             # REtrieve the Free trial plan
-            trial_plan = SubscriptionPlan.objects.get(name="Free Trial")
+            trial_plan = SubscriptionPlan.objects.get(
+                tier=PlanTier.TRIAL, category=PlanCategory.INDIVIDUAL
+            )
         except SubscriptionPlan.DoesNotExist as exc:
             raise ValueError(
                 "Free trial plan not found. Please create one in the admin panel."
@@ -964,6 +1130,7 @@ class SubscriptionService:
             user=user,
             plan=trial_plan,
             is_active=True,
+            is_trial=True,
             trial_end=trial_end,
             billing_cycle_start=now,
             billing_cycle_end=trial_end,

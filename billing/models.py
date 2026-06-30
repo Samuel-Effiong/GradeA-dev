@@ -35,6 +35,7 @@ class PlanType(models.TextChoices):
     STANDARD_ANNUAL = "STANDARD_ANNUAL", _("Standard Annual")
     PRO_ANNUAL = "PRO_ANNUAL", _("Pro Annual")
     POWER_ANNUAL = "POWER_ANNUAL", _("Power Annual")
+    TRIAL = "TRIAL", _("Trial")
 
     # License
     PRO_LICENSE = "PRO_LICENSE", _("Pro License")
@@ -55,11 +56,13 @@ class PlanTier(models.TextChoices):
     POWER = "POWER", _("Power")
     BETA = "BETA", _("Beta")
     CUSTOM = "CUSTOM", _("Custom")
+    TRIAL = "TRIAL", _("Trial")
 
 
 class BillingInterval(models.TextChoices):
     MONTHLY = "MONTHLY", _("Monthly")
     ANNUAL = "ANNUAL", _("Annual")
+    NONE = "NONE", _("None")
 
 
 class PlanHighlight(models.TextChoices):
