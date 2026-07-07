@@ -9,10 +9,15 @@ from rest_framework.validators import UniqueTogetherValidator
 
 from assignments.models import AssignmentStatus
 from assignments.serializers import AssignmentListSerializer  # , AssignmentSerializer
+from billing.context import (
+    clear_license_invitation_context,
+    set_license_invitation_context,
+)
 from students.serializers import StudentSerializer
 from students.services import get_grade_details
 from users.models import CustomUser, UserTypes
 from users.serializers import CustomUserSerializer
+from users.services import send_user_activation_email
 
 from .models import (
     Course,
@@ -568,8 +573,17 @@ class SchoolWithAdminSerializer(serializers.Serializer):
                 "school": school,
             }
 
-            # Use CustomUserManager to create user
-            user = CustomUser.objects.create_user(**admin_data)
+            # 3. Create the admin user while skipping free trial
+
+            try:
+                # Set license context so the post_save signal skips trial activation
+                set_license_invitation_context(True)
+                user = CustomUser.objects.create_user(**admin_data)
+            finally:
+                clear_license_invitation_context()
+
+            # 4. Send activation email (generates token and sends email)
+            send_user_activation_email(user)
 
             # Return both
             return {

@@ -221,7 +221,7 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         summary="Create a School and its Admin in one request",
         description="Create both a School and a School Admin user atomically.",
         request=SchoolWithAdminSerializer,
-        responses={201: SchoolWithAdminSerializer},
+        responses={201: SchoolWithAdminResponseSerializer},
     )
     @action(detail=False, methods=["post"], permission_classes=[IsSuperAdmin])
     def create_with_admin(self, request, *args, **kwargs):

@@ -126,8 +126,9 @@ def create_default_settings_and_wallet(sender, instance, created, **kwargs):
     if not user.is_beta_eligible():
         logger.info(
             "Skipping automatic trial for user %s "
-            "(created via license invitation context).",
+            "(user type '%s' is not eligible for individual trials).",
             user.email,
+            user.user_type,
         )
         return
 
