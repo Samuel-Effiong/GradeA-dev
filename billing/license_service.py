@@ -22,6 +22,7 @@ from typing import Any, Dict, List, Optional
 from dateutil.relativedelta import relativedelta  # type: ignore
 from django.conf import settings
 from django.db import models, transaction
+from django.db.models import F
 
 # from django.db.models import F, Q
 from django.utils import timezone
@@ -33,12 +34,17 @@ from users.services import otp_manager
 from users.utils import is_business_email
 
 from .context import clear_license_invitation_context, set_license_invitation_context
+from .imports import stripe
 from .models import (  # CONVERSION_FACTOR,; UserSubscription,
+    CONVERSION_FACTOR,
     CreditBucket,
     CreditBucketType,
     CreditLedger,
     CreditLedgerType,
     CreditWallet,
+    LicenseBillingMethod,
+    LicenseBillingRecord,
+    LicenseBillingRecordType,
     LicenseSubscription,
     PlanCategory,
     PlanTier,
@@ -116,6 +122,91 @@ class LicenseSubscriptionService:
             )
 
     @staticmethod
+    def _rollover_and_grant_monthly_bucket(
+        teacher: CustomUser,
+        wallet: CreditWallet,
+        plan: SubscriptionPlan,
+        grant_amount: int,
+        new_expiry,
+        now,
+        reference: str,
+        metadata: dict,
+    ) -> CreditBucket:
+        """
+        Expires whichever MONTHLY bucket is CURRENTLY ACTIVE for the teacher
+        (rolling over its unused balance per `plan`'s carry_over rules), then
+        creates a fresh MONTHLY bucket with `grant_amount` credits expiring
+        at `new_expiry`.
+
+        Deliberately looks up the bucket by "currently active"
+        (expires_at IS NULL OR expires_at > now) rather than "already
+        expired" (expires_at <= now). The latter is only safe when the
+        caller is guaranteed to run AFTER the natural cycle end (true for
+        the Stripe/Celery renewal path) — it is NOT safe for a superadmin
+        renewing an offline license EARLY, where the current bucket is
+        still live. Using the expired-only filter there would silently
+        skip rollover and leave the teacher holding both the old live
+        bucket and a new one simultaneously (a double-grant). This version
+        is safe for both callers.
+        """
+        current_bucket = (
+            wallet.buckets.select_for_update()
+            .filter(bucket_type=CreditBucketType.MONTHLY, is_processed=False)
+            .order_by("-created_at")
+            .first()
+        )
+
+        if current_bucket:
+            unused = max(0, current_bucket.total_credits - current_bucket.used_credits)
+            if unused > 0:
+                rollover_amount = min(
+                    int(unused * (plan.carry_over_percent / 100)),
+                    plan.carry_over_max,
+                )
+                if rollover_amount > 0:
+                    expiry = now + relativedelta(
+                        months=1 * plan.carry_over_expiry_months
+                    )
+                    carry_bucket = CreditBucket.objects.create(
+                        wallet=wallet,
+                        bucket_type=CreditBucketType.CARRY_OVER,
+                        total_credits=rollover_amount,
+                        used_credits=0,
+                        expires_at=expiry,
+                    )
+                    CreditLedger.objects.create(
+                        user=teacher,
+                        bucket=carry_bucket,
+                        ledger_type=CreditLedgerType.GRANT,
+                        amount=rollover_amount,
+                        reference=f"Rollover — {reference}",
+                        metadata={**metadata, "previous_unused": unused},
+                    )
+
+            current_bucket.expires_at = now
+            current_bucket.is_processed = True
+            current_bucket.save(
+                update_fields=["expires_at", "is_processed", "updated_at"]
+            )
+
+        new_bucket = CreditBucket.objects.create(
+            wallet=wallet,
+            bucket_type=CreditBucketType.MONTHLY,
+            total_credits=grant_amount,
+            used_credits=0,
+            expires_at=new_expiry,
+        )
+        CreditLedger.objects.create(
+            user=teacher,
+            bucket=new_bucket,
+            ledger_type=CreditLedgerType.GRANT,
+            amount=grant_amount,
+            reference=reference,
+            metadata=metadata,
+        )
+        return new_bucket
+
+    @staticmethod
     @transaction.atomic
     def create_license_subscription(
         school: School,
@@ -127,6 +218,7 @@ class LicenseSubscriptionService:
         custom_price_cents: Optional[int] = None,
         is_active: bool = True,
         auto_renew: bool = True,
+        billing_method: str = LicenseBillingMethod.STRIPE,
     ) -> LicenseSubscription:
         """
         Creates a new License subscription for a school.
@@ -160,13 +252,13 @@ class LicenseSubscriptionService:
         LicenseSubscriptionService.validate_license_plan(plan)
         LicenseSubscriptionService.validate_admin_user(admin_user, school)
 
-        if contract_months not in (1, 9, 10, 12):
-            raise ValueError(
-                f"contract_months must be 9, 10, or 12. Got: {contract_months}"
-            )
+        # if contract_months not in (1, 9, 10, 12):
+        #     raise ValueError(
+        #         f"contract_months must be 9, 10, or 12. Got: {contract_months}"
+        #     )
 
-        if max_seats < 0:
-            raise ValueError("max_seats must be 0 (unlimited) or a positive integer.")
+        if max_seats <= 0:
+            raise ValueError("max_seats must be a positive integer")
 
         # Validate that initial teachers emails don't exceed the seat cap
         if max_seats > 0 and teacher_emails and len(teacher_emails) > max_seats:
@@ -206,6 +298,7 @@ class LicenseSubscriptionService:
             auto_renew=auto_renew,
             custom_price_cents=custom_price_cents,
             total_credits_consumed=0,
+            billing_method=billing_method,
         )
 
         logger.info(
@@ -437,6 +530,17 @@ class LicenseSubscriptionService:
                 f"{license_sub.school.name}. Cannot enroll."
             )
 
+        # 4. Check for and handle existing INDIVIDUAL subscriptions
+        active_individual_sub = teacher.subscriptions.filter(is_active=True).exists()
+        if active_individual_sub:
+            error_msg = (
+                f"Teacher {teacher.email} has an active individual subscription. "
+                "Individual subscriptions cannot be converted to a license. "
+                "Please cancel the individual subscription first."
+            )
+            logger.warning(error_msg)
+            raise IndividualSubscriptionConflictError(error_msg)
+
         now = timezone.now()
 
         # 1. Check if teacher is already enrolled
@@ -496,17 +600,6 @@ class LicenseSubscriptionService:
         wallet, wallet_created = CreditWallet.objects.get_or_create(user=teacher)
         if wallet_created:
             logger.info("Created CreditWallet for teacher %s", teacher.email)
-
-        # 4. Check for and handle existing INDIVIDUAL subscriptions
-        active_individual_sub = teacher.subscriptions.filter(is_active=True).exists()
-        if active_individual_sub:
-            error_msg = (
-                f"Teacher {teacher.email} has an active individual subscription. "
-                "Individual subscriptions cannot be converted to a license. "
-                "Please cancel the individual subscription first."
-            )
-            logger.warning(error_msg)
-            raise IndividualSubscriptionConflictError(error_msg)
 
         # 5. Handle existing MONTHLY bucket (from previous subscription or license)
         existing_monthly = wallet.buckets.filter(
@@ -588,13 +681,21 @@ class LicenseSubscriptionService:
             else:
                 grant_amount = min(allocation.monthly_allocation, remaining_budget)
 
+        now = timezone.now()
+
+        # Set the first refresh date to exactly one month from now
+        next_refresh = now + relativedelta(months=1)
+
+        allocation.next_credit_grant_at = next_refresh
+        allocation.save(update_fields=["next_credit_grant_at", "updated_at"])
+
         # 6. Create new MONTHLY bucket for the license allocation
         monthly_bucket = CreditBucket.objects.create(
             wallet=wallet,
             bucket_type=CreditBucketType.MONTHLY,
             total_credits=grant_amount,
             used_credits=0,
-            expires_at=license_sub.billing_cycle_end,
+            expires_at=next_refresh,
         )
 
         # 7. Create audit ledger entry with the actual grant amount
@@ -660,6 +761,23 @@ class LicenseSubscriptionService:
                 f"Cannot add teachers to inactive license subscription {license_sub.id}"
             )
 
+        # Lock license row
+        license_sub = LicenseSubscription.objects.select_for_update().get(
+            pk=license_sub.pk
+        )
+
+        # Check if already active
+        user = CustomUser.objects.filter(email=teacher_email).first()
+        if user and license_sub.allocations.filter(user=user, is_active=True).exists():
+            raise ValueError(
+                f"Teacher {teacher_email} is already active under this license."
+            )
+
+        # Check seats
+        seats_remaining = license_sub.seats_remaining
+        if seats_remaining is not None and seats_remaining <= 0:
+            raise ValueError("No seats remaining to add a new teacher.")
+
         teacher = LicenseSubscriptionService._get_or_invite_teacher(
             teacher_email,
             license_sub.school,
@@ -694,9 +812,38 @@ class LicenseSubscriptionService:
                 f"Cannot add teachers to inactive license subscription {license_sub.id}"
             )
 
-        results: Dict[str, Any] = {"successful": 0, "failed": 0, "errors": []}
+        # Lock License row to prevent concurrent modification
+        license_sub = LicenseSubscription.objects.select_for_update().get(
+            pk=license_sub.pk
+        )
+
+        # Get active teacher IDs under this license
+        active_teacher_ids = set(
+            license_sub.allocations.filter(is_active=True).values_list(
+                "user_id", flat=True
+            )
+        )
+
+        # Determine which emails are NOT already active
+        new_teacher_emails = []
 
         for email in teacher_emails:
+            user = CustomUser.objects.filter(email=email).first()
+            if user and user.id in active_teacher_ids:
+                # Already active - skip (they won't consume a seat)
+                continue
+            new_teacher_emails.append(email)
+
+        # Check seats
+        seats_remaining = license_sub.seats_remaining
+        if seats_remaining is not None and len(new_teacher_emails) > seats_remaining:
+            raise ValueError(
+                f"Not enough seats available. Need {len(new_teacher_emails)}, only {seats_remaining} remaining."
+            )
+
+        results: Dict[str, Any] = {"successful": 0, "failed": 0, "errors": []}
+
+        for email in new_teacher_emails:
             try:
                 teacher = LicenseSubscriptionService._get_or_invite_teacher(
                     email,
@@ -864,73 +1011,13 @@ class LicenseSubscriptionService:
                     teacher = allocation.user
                     wallet = teacher.credit_wallet
 
-                    # 1. Get the current MONTHLY bucket
-                    old_monthly = wallet.buckets.filter(
-                        bucket_type=CreditBucketType.MONTHLY,
-                        expires_at__lte=now,  # Should be expired by now
-                    ).first()
-
-                    if old_monthly:
-                        unused = old_monthly.remaining_credits
-
-                        if unused > 0:
-                            # Apply rollover
-                            rollover_amount = min(
-                                int(
-                                    unused * (license_sub.plan.carry_over_percent / 100)
-                                ),
-                                license_sub.plan.carry_over_max,
-                            )
-
-                            if rollover_amount > 0:
-                                expiry = renewal_start + relativedelta(
-                                    months=license_sub.plan.carry_over_expiry_months
-                                )
-                                carry_bucket = CreditBucket.objects.create(
-                                    wallet=wallet,
-                                    bucket_type=CreditBucketType.CARRY_OVER,
-                                    total_credits=rollover_amount,
-                                    used_credits=0,
-                                    expires_at=expiry,
-                                )
-
-                                CreditLedger.objects.create(
-                                    user=teacher,
-                                    bucket=carry_bucket,
-                                    ledger_type=CreditLedgerType.GRANT,
-                                    amount=rollover_amount,
-                                    reference=(
-                                        f"Rollover from LICENSE cycle renewal "
-                                        f"(license {license_sub.id})"
-                                    ),
-                                    metadata={
-                                        "previous_unused": unused,
-                                        "rollover_percent": str(
-                                            license_sub.plan.carry_over_percent
-                                        ),
-                                        "license_id": str(license_sub.id),
-                                    },
-                                )
-
-                        # Expire the old bucket
-                        old_monthly.expires_at = renewal_start
-                        old_monthly.save(update_fields=["expires_at", "updated_at"])
-
-                    # 2. Create new MONTHLY bucket using the allocation's monthly_allocation
-                    # (already updated by update_license_plan if plan changed)
-                    new_monthly = CreditBucket.objects.create(
+                    LicenseSubscriptionService._rollover_and_grant_monthly_bucket(
+                        teacher=teacher,
                         wallet=wallet,
-                        bucket_type=CreditBucketType.MONTHLY,
-                        total_credits=allocation.monthly_allocation,
-                        used_credits=0,
-                        expires_at=renewal_end,
-                    )
-
-                    CreditLedger.objects.create(
-                        user=teacher,
-                        bucket=new_monthly,
-                        ledger_type=CreditLedgerType.GRANT,
-                        amount=allocation.monthly_allocation,
+                        plan=license_sub.plan,
+                        grant_amount=allocation.monthly_allocation,
+                        new_expiry=now + relativedelta(months=1),
+                        now=now,
                         reference=(
                             f"Renewal allocation for LICENSE subscription {license_sub.id} "
                             f"(cycle {renewal_start} to {renewal_end})"
@@ -943,14 +1030,17 @@ class LicenseSubscriptionService:
                         },
                     )
 
-                    # 3. Reset overage blocks
+                    allocation.next_credit_grant_at = now + relativedelta(months=1)
+                    allocation.save(
+                        update_fields=["next_credit_grant_at", "updated_at"]
+                    )
+
                     wallet.overage_blocks_used = 0
                     wallet.save(update_fields=["overage_blocks_used", "updated_at"])
 
                     renewal_count += 1
 
                 except Exception as e:
-                    # Log the error but do not raise – allow other teachers to renew
                     logger.error(
                         "Failed to renew credits for teacher %s under license %s: %s",
                         allocation.user.email,
@@ -958,7 +1048,6 @@ class LicenseSubscriptionService:
                         str(e),
                     )
                     failed_teachers.append(allocation.user.email)
-                    # The inner transaction.atomic() will rollback only this teacher's changes
 
         # 4. Update license cycle dates only if at least one teacher renewed successfully
         # (or you may choose to update even if all failed, but that would be odd)
@@ -1123,3 +1212,748 @@ class LicenseSubscriptionService:
             "billing_cycle_end": license_sub.billing_cycle_end,
             "is_auto_renew": license_sub.auto_renew,
         }
+
+    @staticmethod
+    @transaction.atomic
+    def change_license_plan(
+        license_sub: LicenseSubscription,
+        new_plan: SubscriptionPlan,
+        custom_price_cents: Optional[int] = None,
+        remove_custom_price: bool = False,
+        performed_by: Optional[CustomUser] = None,
+    ) -> LicenseSubscription:
+        # Lock license
+        license_sub = LicenseSubscription.objects.select_for_update().get(
+            pk=license_sub.pk
+        )
+
+        old_plan = license_sub.plan
+        old_effective_price = license_sub.custom_price_cents or old_plan.price_cents
+
+        # Determine new effective price and whether we are using a custom price
+        if remove_custom_price:
+            # Remove custom price; use plan default
+            new_effective_price = new_plan.price_cents
+            new_custom_price_cents = None
+        elif custom_price_cents is not None:
+            # Use provided custom price
+            new_effective_price = custom_price_cents
+            new_custom_price_cents = custom_price_cents
+        else:
+            # Keep existing custom setting (if any) or use plan default
+            if license_sub.custom_price_cents is not None:
+                new_effective_price = license_sub.custom_price_cents
+                new_custom_price_cents = license_sub.custom_price_cents
+            else:
+                new_effective_price = new_plan.price_cents
+                new_custom_price_cents = None
+
+        # If the effective price is unchanged and plan is same, maybe skip? But we still need to update plan if changed.
+        if old_plan.id == new_plan.id and old_effective_price == new_effective_price:
+            raise ValueError("License is already on this plan with the same price.")
+
+        # Update local license plan and custom price
+        license_sub.plan = new_plan
+        license_sub.custom_price_cents = new_custom_price_cents
+        license_sub.save(update_fields=["plan", "custom_price_cents", "updated_at"])
+
+        # Update allocations
+        active_allocations = license_sub.allocations.filter(is_active=True)
+        for allocation in active_allocations:
+            allocation.monthly_allocation = new_plan.monthly_credits
+            allocation.save(update_fields=["monthly_allocation", "updated_at"])
+
+            # Log plan change in ledger
+            CreditLedger.objects.create(
+                user=allocation.user,
+                bucket=None,
+                ledger_type=CreditLedgerType.PLAN_CHANGE,
+                amount=0,
+                reference=f"License plan changed from {old_plan.name} to {new_plan.name}",
+                metadata={
+                    "license_subscription_id": str(license_sub.id),
+                    "old_plan": old_plan.name,
+                    "new_plan": new_plan.name,
+                    "old_monthly_allocation": old_plan.monthly_credits,
+                    "new_monthly_allocation": new_plan.monthly_credits,
+                    "old_custom_price_cents": license_sub.custom_price_cents,  # after update? careful
+                    "new_custom_price_cents": new_custom_price_cents,
+                    "old_effective_price": int(old_effective_price),
+                    "new_effective_price": int(new_effective_price),
+                },
+            )
+
+        # Sync to Stripe ONLY if this license is actually Stripe-billed.
+        # Offline licenses record the change for accounting instead
+
+        if license_sub.billing_method == LicenseBillingMethod.STRIPE:
+            # Call Stripe to change price
+            try:
+                from .stripe_service import StripeSubscriptionMutationService
+
+                StripeSubscriptionMutationService.change_license_price(
+                    license_sub, new_plan, new_custom_price_cents
+                )
+            except ValueError as e:
+                raise ValueError(f"Stripe price change failed: {e}") from e
+        else:
+            LicenseBillingRecord.objects.create(
+                license_subscription=license_sub,
+                record_type=LicenseBillingRecordType.PLAN_CHANGE_OFFLINE,
+                amount_paid_cents=new_custom_price_cents,
+                notes=(
+                    f"Plan changed from {old_plan.name} to {new_plan.name} "
+                    "(offline license — adjust the school's invoice accordingly)."
+                ),
+                performed_by=performed_by,
+            )
+
+        logger.info(
+            "License %s plan changed from %s to %s. Custom price: %s. Allocations updated: %d.",
+            license_sub.id,
+            old_plan.name,
+            new_plan.name,
+            new_custom_price_cents,
+            active_allocations.count(),
+        )
+
+        return license_sub
+
+    @staticmethod
+    @transaction.atomic
+    def update_seats(
+        license_sub: LicenseSubscription,
+        new_max_seats: int,
+        performed_by: Optional[CustomUser] = None,
+    ) -> LicenseSubscription:
+        """
+        Update the maximum number of seats for a license.
+        Validates that new_max_seats >= current active teacher count.
+        Updates Stripe subscription quantity with appropriate proration.
+        """
+        if new_max_seats <= 0:
+            raise ValueError("max_seats must be a positive integer.")
+
+        # Lock license row
+        license_sub = LicenseSubscription.objects.select_for_update().get(
+            pk=license_sub.pk
+        )
+
+        # Get active teacher count
+        active_teacher_count = license_sub.allocations.filter(is_active=True).count()
+
+        if new_max_seats < active_teacher_count:
+            raise ValueError(
+                f"Cannot reduce max_seats to {new_max_seats} because there are {active_teacher_count} active teachers. "
+                "Remove some teachers first."
+            )
+
+        if new_max_seats == license_sub.max_seats:
+            raise ValueError("License already has this many seats.")
+
+        old_seats = license_sub.max_seats
+        is_increase = new_max_seats > old_seats
+        proration_behavior = "always_invoice" if is_increase else "none"
+
+        # Update Stripe subscription quantity
+        if license_sub.stripe_subscription_id:
+            try:
+                # Retrieve subscription item ID
+                stripe_sub = stripe.Subscription.retrieve(
+                    license_sub.stripe_subscription_id
+                )
+                items = stripe_sub.get("items", {}).get("data", [])
+                if not items:
+                    raise ValueError("Stripe subscription has no items.")
+                item_id = items[0]["id"]
+
+                # Update quantity
+                stripe.Subscription.modify(
+                    license_sub.stripe_subscription_id,
+                    items=[{"id": item_id, "quantity": new_max_seats}],
+                    proration_behavior=proration_behavior,
+                )
+
+                # For always_invoice, verify invoice paid
+                if proration_behavior == "always_invoice":
+                    stripe_sub_refreshed = stripe.Subscription.retrieve(
+                        license_sub.stripe_subscription_id
+                    )
+                    latest_invoice_id = stripe_sub_refreshed.get("latest_invoice")
+                    if latest_invoice_id:
+                        invoice = stripe.Invoice.retrieve(
+                            latest_invoice_id, expand=["payment_intent"]
+                        )
+                        if invoice.get("status") != "paid":
+                            # Revert quantity
+                            stripe.Subscription.modify(
+                                license_sub.stripe_subscription_id,
+                                items=[{"id": item_id, "quantity": old_seats}],
+                                proration_behavior="none",
+                            )
+                            raise ValueError(
+                                f"Seat increase payment failed (invoice status: {invoice['status']}). "
+                                "Seats have not been increased."
+                            )
+            except stripe.error.StripeError as exc:
+                raise ValueError(f"Stripe error while updating seats: {exc}") from exc
+
+        # Update local max_seats
+        license_sub.max_seats = new_max_seats
+        license_sub.save(update_fields=["max_seats", "updated_at"])
+
+        if license_sub.billing_method == LicenseBillingMethod.OFFLINE:
+            LicenseBillingRecord.objects.create(
+                license_subscription=license_sub,
+                record_type=LicenseBillingRecordType.SEATS_CHANGE_OFFLINE,
+                notes=(
+                    f"Seats changed {old_seats} -> {new_max_seats} "
+                    "(offline license — adjust invoicing accordingly)."
+                ),
+                performed_by=performed_by,
+            )
+
+        # Log the change
+        logger.info(
+            "License %s seats updated: %d -> %d (proration: %s)",
+            license_sub.id,
+            old_seats,
+            new_max_seats,
+            proration_behavior,
+        )
+
+        return license_sub
+
+    @staticmethod
+    @transaction.atomic
+    def purchase_teacher_overage(
+        license_sub: LicenseSubscription,
+        admin_user: CustomUser,
+        total_blocks: int,
+        allocations: dict,  # {tearcher_id: number_of_blocks}
+    ) -> dict:
+        """
+        Purchase overage blocks for individual teachers under a license.
+
+        Args:
+            license_sub: The active license.
+            admin_user: The school admin making the purchase (must match license.admin_user).
+            total_blocks: Total number of 5K credit blocks purchased.
+            allocations: Mapping of teacher UUID -> number of blocks allocated.
+
+        Returns:
+            dict: {
+                'payment_intent_id': str,
+                'total_blocks': int,
+                'allocations': [{teacher_id, teacher_email, blocks, credits_granted}]
+            }
+
+        Raises:
+            ValueError: For validation errors.
+            stripe.error.StripeError: For payment failures.
+        """
+
+        # 1. Validate license is active
+        if not license_sub.is_active:
+            raise ValueError("License is not active")
+
+        # 2. Validate admin is the license admin
+        if license_sub.admin_user != admin_user:
+            raise ValueError("Only the license admin can purchase overage")
+
+        # 3. Validate total blocks
+        if total_blocks <= 0:
+            raise ValueError("Allocations cannot be empty.")
+
+        # 4. Validate allocations
+        if not allocations:
+            raise ValueError("Allocations cannot be empty")
+
+        # 5. Ensure sum of allocated blocks equals total_blocks
+        allocated_sum = sum(allocations.values())
+
+        if allocated_sum != total_blocks:
+            raise ValueError(
+                f"Allocated blocks ({allocated_sum}) do not match total_blocks ({total_blocks})."
+            )
+
+        # 6. Validate each teacher is active under the license
+        teacher_ids = list(allocations.keys())
+        active_teachers = SchoolCreditAllocation.objects.filter(
+            license_subscription=license_sub,
+            user_id__in=teacher_ids,
+            is_active=True,
+        ).select_related("user", "user__credit_wallet")
+
+        found_teacher_ids = set(str(alloc.user_id) for alloc in active_teachers)
+        requested_ids = set(str(tid) for tid in teacher_ids)
+        missing = requested_ids - found_teacher_ids
+        if missing:
+            raise ValueError(
+                f"Teachers not active under this license: {', '.join(missing)}"
+            )
+
+        # 7. Build mapping from teacher_id to allocation object
+        teacher_alloc_map = {str(alloc.user_id): alloc for alloc in active_teachers}
+
+        # 8. Check that all teachers have a CreditWallet (should exist)
+        for teacher_id in teacher_ids:
+            alloc = teacher_alloc_map[str(teacher_id)]
+            if not hasattr(alloc.user, "credit_wallet"):
+                # This should not happen if the teacher has been enrolled, but defensive
+                raise ValueError(f"Teacher {alloc.user.email} has no credit wallet.")
+
+        # 9. Calculate total price from plan's overage_block_price
+        plan = license_sub.plan
+        if not plan.overage_block_price or plan.overage_block_price <= 0:
+            raise ValueError("Plan has no overage pricing configured.")
+        total_price_cents = int(total_blocks * plan.overage_block_price)
+
+        # 10. Charge Stripe payment
+        if not license_sub.stripe_customer_id:
+            raise ValueError(
+                "No payment method on file for this license. Add a card via "
+                "setup-payment-method before purchasing overage credits."
+            )
+
+        default_pm = None
+        if license_sub.stripe_subscription_id:
+            try:
+                stripe_sub = stripe.Subscription.retrieve(
+                    license_sub.stripe_subscription_id
+                )
+                default_pm = stripe_sub.get("default_payment_method")
+            except stripe.error.StripeError:
+                pass  # fail through to the customer-level lookup
+
+        if not default_pm:
+            customer = stripe.Customer.retrieve(license_sub.stripe_customer_id)
+            default_pm = (customer.get("invoice_settings") or {}).get(
+                "default_payment_method"
+            )
+
+        if not default_pm:
+            raise ValueError(
+                "No default payment method on file. Please add a payment method "
+                "via setup-payment-method first."
+            )
+
+        # if not license_sub.stripe_customer_id:
+        #     raise ValueError("License has no Stripe customer ID.")
+        # if not license_sub.stripe_subscription_id:
+        #     raise ValueError("License has no Stripe subscription ID.")
+
+        # # Retrieve subscription to get default payment method
+        # try:
+        #     stripe_sub = stripe.Subscription.retrieve(
+        #         license_sub.stripe_subscription_id
+        #     )
+        # except stripe.error.StripeError as exc:
+        #     raise ValueError(f"Could not retrieve Stripe subscription: {exc}") from exc
+
+        # default_pm = stripe_sub.get("default_payment_method")
+        # if not default_pm:
+        #     # Fallback to customer default invoice payment method
+        #     customer = stripe.Customer.retrieve(license_sub.stripe_customer_id)
+        #     default_pm = (customer.get("invoice_settings") or {}).get(
+        #         "default_payment_method"
+        #     )
+
+        # if not default_pm:
+        #     raise ValueError(
+        #         "No default payment method on file. Please add a payment method."
+        #     )
+
+        # Create PaymentIntent
+        try:
+            intent = stripe.PaymentIntent.create(
+                amount=total_price_cents,
+                currency="usd",
+                customer=license_sub.stripe_customer_id,
+                payment_method=default_pm,
+                confirm=True,
+                automatic_payment_methods={"enabled": True, "allow_redirects": "never"},
+                metadata={
+                    "flow": "license_overage_purchase",
+                    "license_id": str(license_sub.id),
+                    "total_blocks": str(total_blocks),
+                    "admin_user_id": str(admin_user.id),
+                },
+            )
+        except stripe.error.StripeError as exc:
+            raise ValueError(f"Stripe payment failed: {exc}") from exc
+
+        if intent.status != "succeeded":
+            if intent.status == "requires_action":
+                # We set allow_redirects to never, so this shouldn't happen, but handle anyway.
+                raise ValueError(
+                    "Payment requires additional authentication. Please try again."
+                )
+            raise ValueError(f"Payment failed with status: {intent.status}")
+
+        # 11. Payment succeeded – grant overage buckets to each teacher
+        # now = timezone.now()
+        expiry = license_sub.billing_cycle_end  # overage credits expire at license end
+
+        granted_details = []
+        for teacher_id, blocks in allocations.items():
+            alloc = teacher_alloc_map[str(teacher_id)]
+            teacher = alloc.user
+            wallet = teacher.credit_wallet
+
+            # Calculate raw credits: blocks * overage_block_size
+            raw_credits = blocks * plan.overage_block_size
+
+            # Create OVERAGE bucket
+            bucket = CreditBucket.objects.create(
+                wallet=wallet,
+                bucket_type=CreditBucketType.OVERAGE,
+                total_credits=raw_credits,
+                used_credits=0,
+                expires_at=expiry,
+            )
+
+            # Update overage_blocks_used? We may not want to track overage_blocks_used for license teachers?
+            # The wallet.overage_blocks_used field is used for individual subscriptions;
+            # for license, we might not use it.
+            # However, we can increment it to keep track if needed.
+            # But the field is defined on CreditWallet, and we can use it.
+            # We'll increment it for consistency.
+            wallet.overage_blocks_used = F("overage_blocks_used") + blocks
+            wallet.save(update_fields=["overage_blocks_used", "updated_at"])
+
+            # Create ledger entry
+            CreditLedger.objects.create(
+                user=teacher,
+                bucket=bucket,
+                ledger_type=CreditLedgerType.PURCHASE,
+                amount=raw_credits,
+                reference=f"Overage purchase via license {license_sub.id}",
+                metadata={
+                    "license_id": str(license_sub.id),
+                    "admin_user_id": str(admin_user.id),
+                    "stripe_payment_intent_id": intent.id,
+                    "blocks_purchased": blocks,
+                    "display_credits": blocks
+                    * (plan.overage_block_size // CONVERSION_FACTOR),
+                },
+            )
+
+            granted_details.append(
+                {
+                    "teacher_id": str(teacher.id),
+                    "teacher_email": teacher.email,
+                    "blocks": blocks,
+                    "credits_granted": raw_credits,
+                }
+            )
+
+        logger.info(
+            "License %s overage purchase: %d blocks for %d teachers. PaymentIntent: %s",
+            license_sub.id,
+            total_blocks,
+            len(allocations),
+            intent.id,
+        )
+
+        return {
+            "payment_intent_id": intent.id,
+            "total_blocks": total_blocks,
+            "allocations": granted_details,
+        }
+
+    @staticmethod
+    @transaction.atomic
+    def _refresh_teacher_credits(allocation: SchoolCreditAllocation) -> None:
+        """
+        Refresh a teacher's monthly credits: expire current monthly bucket,
+        apply rollover, and create a new monthly bucket.
+        Called by the monthly refresh task.
+        """
+
+        teacher = allocation.user
+        wallet = teacher.credit_wallet
+        license_sub = allocation.license_subscription
+        # plan = license_sub.plan
+        now = timezone.now()
+        next_refresh = now + relativedelta(months=1)
+
+        LicenseSubscriptionService._rollover_and_grant_monthly_bucket(
+            teacher=teacher,
+            wallet=wallet,
+            plan=license_sub.plan,
+            grant_amount=allocation.monthly_allocation,
+            new_expiry=next_refresh,
+            now=now,
+            reference=f"Monthly grant for license {license_sub.id}",
+            metadata={
+                "license_id": str(license_sub.id),
+                "allocation_id": str(allocation.id),
+                "refresh_month": now.strftime("%Y-%m"),
+            },
+        )
+        # 3. Update allocation's next_credit_grant_at
+        allocation.next_credit_grant_at = next_refresh
+        allocation.save(update_fields=["next_credit_grant_at", "updated_at"])
+
+        logger.info(
+            "Refreshed monthly credits for teacher %s under license %s. Amount: %d, next refresh: %s",
+            teacher.email,
+            license_sub.id,
+            next_refresh,
+        )
+
+    @staticmethod
+    @transaction.atomic
+    def process_offline_renewal(
+        license_sub: LicenseSubscription,
+        performed_by: CustomUser,
+        new_billing_cycle_end,
+        amount_paid_cents: Optional[int] = None,
+        payment_reference: Optional[str] = None,
+        payment_method_label: Optional[str] = None,
+        notes: Optional[str] = None,
+    ) -> LicenseSubscription:
+        """
+        Superadmin-triggered renewal for an OFFLINE-billed license. No
+        idempotency early-return by design — unlike process_license_renewal
+        (which must not double-fire off a Stripe webhook + Celery race),
+        this is a deliberate human action and the superadmin may legitimately
+        renew early (school paid ahead) or "late" relative to the old cycle
+        end (paperwork lag). The row lock below only protects against a
+        genuine accidental double-click, not against intentional re-renewal.
+        """
+
+        if license_sub.billing_method != LicenseBillingMethod.OFFLINE:
+            raise ValueError(
+                f"License {license_sub.id} is billed via {license_sub.billing_method}, "
+                "not OFFLINE. Use the Stripe renewal path instead."
+            )
+
+        license_sub = LicenseSubscription.objects.select_for_update().get(
+            pk=license_sub.pk
+        )
+
+        if not license_sub.is_active:
+            raise ValueError("Cannot renew an inactive license. Reactivate it first.")
+
+        now = timezone.now()
+        if new_billing_cycle_end <= now:
+            raise ValueError("new_billing_cycle_end must be in the future.")
+
+        previous_cycle_end = license_sub.billing_cycle_end
+
+        active_allocations = list(
+            license_sub.allocations.filter(is_active=True).select_related(
+                "user__credit_wallet"
+            )
+        )
+
+        renewed_count = 0
+        failed_teachers = []
+
+        for allocation in active_allocations:
+            with transaction.atomic():
+                try:
+                    teacher = allocation.user
+                    wallet = teacher.credit_wallet
+
+                    LicenseSubscriptionService._rollover_and_grant_monthly_bucket(
+                        teacher=teacher,
+                        wallet=wallet,
+                        plan=license_sub.plan,
+                        grant_amount=allocation.monthly_allocation,
+                        new_expiry=now + relativedelta(months=1),
+                        now=now,
+                        reference=f"Offline renewal allocation for license {license_sub.id}",
+                        metadata={
+                            "license_subscription_id": str(license_sub.id),
+                            "allocation_id": str(allocation.id),
+                            "renewal_type": "OFFLINE",
+                        },
+                    )
+
+                    allocation.next_credit_grant_at = now + relativedelta(months=1)
+                    allocation.save(
+                        update_fields=["next_credit_grant_at", "updated_at"]
+                    )
+
+                    wallet.overage_blocks_used = 0
+                    wallet.save(update_fields=["overage_blocks_used", "updated_at"])
+
+                    renewed_count += 1
+                except Exception as e:
+                    logger.error(
+                        "Offline renewal: failed to refresh credits for teacher %s "
+                        "under license %s: %s",
+                        allocation.user.email,
+                        license_sub.id,
+                        str(e),
+                    )
+                    failed_teachers.append(allocation.user.email)
+
+        license_sub.billing_cycle_start = now
+        license_sub.billing_cycle_end = new_billing_cycle_end
+        license_sub.total_credits_consumed = 0
+        license_sub.save(
+            update_fields=[
+                "billing_cycle_start",
+                "billing_cycle_end",
+                "total_credits_consumed",
+                "updated_at",
+            ]
+        )
+
+        LicenseBillingRecord.objects.create(
+            license_subscription=license_sub,
+            record_type=LicenseBillingRecordType.RENEWED_OFFLINE,
+            amount_paid_cents=amount_paid_cents,
+            payment_reference=payment_reference,
+            payment_method_label=payment_method_label,
+            notes=notes,
+            previous_billing_cycle_end=previous_cycle_end,
+            new_billing_cycle_end=new_billing_cycle_end,
+            performed_by=performed_by,
+        )
+
+        logger.info(
+            "Offline renewal for license %s by %s: %d teacher(s) refreshed, "
+            "%d failed. Cycle: %s -> %s.",
+            license_sub.id,
+            performed_by.email if performed_by else "unknown",
+            renewed_count,
+            len(failed_teachers),
+            previous_cycle_end,
+            new_billing_cycle_end,
+        )
+
+        return license_sub
+
+    @staticmethod
+    @transaction.atomic
+    def convert_license_to_offline(
+        license_sub: LicenseSubscription,
+        performed_by: CustomUser,
+        notes: Optional[str] = None,
+    ) -> LicenseSubscription:
+
+        license_sub = LicenseSubscription.objects.select_for_update().get(
+            pk=license_sub.pk
+        )
+
+        if license_sub.billing_method == LicenseBillingMethod.OFFLINE:
+            raise ValueError("License is already billed offline.")
+
+        if license_sub.stripe_subscription_id:
+            try:
+                stripe.Subscription.delete(license_sub.stripe_subscription_id)
+            except stripe.error.StripeError as exc:
+                raise ValueError(
+                    f"Failed to cancel Stripe subscription: {exc}"
+                ) from exc
+
+        license_sub.billing_method = LicenseBillingMethod.OFFLINE
+        license_sub.stripe_subscription_id = None
+        license_sub.stripe_status = None
+        license_sub.save(
+            update_fields=[
+                "billing_method",
+                "stripe_subscription_id",
+                "stripe_status",
+                "updated_at",
+            ]
+        )
+
+        LicenseBillingRecord.objects.create(
+            license_subscription=license_sub,
+            record_type=LicenseBillingRecordType.CONVERTED_TO_OFFLINE,
+            notes=notes,
+            performed_by=performed_by,
+        )
+
+        logger.info(
+            "License %s converted from STRIPE to OFFLINE billing by %s.",
+            license_sub.id,
+            performed_by.email if performed_by else "unknown",
+        )
+
+        return license_sub
+
+    @staticmethod
+    @transaction.atomic
+    def grant_manual_teacher_overage(
+        license_sub: LicenseSubscription,
+        teacher: CustomUser,
+        blocks: int,
+        performed_by: CustomUser,
+        amount_paid_cents: Optional[int] = None,
+        payment_reference: Optional[str] = None,
+        payment_method_label: Optional[str] = None,
+        notes: Optional[str] = None,
+    ) -> CreditBucket:
+        if blocks <= 0:
+            raise ValueError("blocks must be a positive integer.")
+
+        allocation = (
+            SchoolCreditAllocation.objects.select_for_update()
+            .filter(license_subscription=license_sub, user=teacher, is_active=True)
+            .first()
+        )
+        if not allocation:
+            raise ValueError(
+                f"{teacher.email} is not actively enrolled under this license."
+            )
+
+        plan = license_sub.plan
+        wallet, _ = CreditWallet.objects.get_or_create(user=teacher)
+        raw_credits = blocks * plan.overage_block_size
+        expiry = license_sub.billing_cycle_end
+
+        bucket = CreditBucket.objects.create(
+            wallet=wallet,
+            bucket_type=CreditBucketType.OVERAGE,
+            total_credits=raw_credits,
+            used_credits=0,
+            expires_at=expiry,
+        )
+
+        CreditWallet.objects.filter(pk=wallet.pk).update(
+            overage_blocks_used=F("overage_blocks_used") + blocks
+        )
+
+        CreditLedger.objects.create(
+            user=teacher,
+            bucket=bucket,
+            ledger_type=CreditLedgerType.GRANT,
+            amount=raw_credits,
+            reference=f"Manual overage grant ({blocks} block(s)) — license {license_sub.id}",
+            metadata={
+                "license_id": str(license_sub.id),
+                "blocks": blocks,
+                "granted_by": performed_by.email if performed_by else None,
+                "manual": True,
+            },
+        )
+
+        LicenseBillingRecord.objects.create(
+            license_subscription=license_sub,
+            record_type=LicenseBillingRecordType.MANUAL_OVERAGE_GRANT,
+            amount_paid_cents=amount_paid_cents,
+            payment_reference=payment_reference,
+            payment_method_label=payment_method_label,
+            notes=notes
+            or f"{blocks} overage block(s) manually granted to {teacher.email}.",
+            performed_by=performed_by,
+        )
+
+        logger.info(
+            "Manually granted %d overage block(s) (%d raw credits) to %s under "
+            "license %s by %s.",
+            blocks,
+            raw_credits,
+            teacher.email,
+            license_sub.id,
+            performed_by.email if performed_by else "unknown",
+        )
+
+        return bucket

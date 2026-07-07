@@ -165,59 +165,27 @@ webhook — not when this endpoint is called.
 # 2. start_trial
 # POST /api/v1/subscription/start-trial
 # ---------------------------------------------------------------------------
-START_TRIAL_SCHEMA = extend_schema(
+CONVERT_TRIAL_TO_PAID_SCHEMA = extend_schema(
     tags=["Subscription — Stripe"],
-    summary="Start a 14-day free trial (card required upfront)",
+    summary="Convert an active free trial to a paid subscription mid-trial",
     description="""
-Creates a Stripe Checkout Session for a **14-day free trial**. A valid card
-is collected upfront (`payment_method_collection=always`) but is **not
-charged** until the trial ends. If the card is declined at trial end, the
-trial expires automatically and no subscription is created.
+Upgrades an **active free trial** to a full paid subscription before the
+14-day trial ends. Use this when the user decides to pay early rather than
+waiting for the trial to expire at day 14 or credit exhaustion.
 
-**What happens during the trial**
-- Stripe creates a subscription in `trialing` status.
-- On `checkout.session.completed`, the webhook activates the local
-  `UserSubscription(is_trial=True)` and grants **5,000 trial credits**
-  valid for 14 days.
-- At day 14, Stripe attempts the first real charge:
-  - **Card succeeds** → `invoice.payment_succeeded` fires → trial credits
-    expire, first monthly credit bucket is granted, `is_trial` flips to
-    `False`.
-  - **Card fails** → `invoice.payment_failed` fires → trial expires,
-    no subscription created (same as natural trial expiry).
-
-**Rules**
-- One trial per user account, ever. Returns `409` if already used.
-- Only `INDIVIDUAL` category plans are eligible.
-- User must not already have an active subscription.
-- Plan must have `stripe_price_id` configured.
-
-**⚠️ Breaking change from pre-Stripe behaviour**
-Previously this endpoint returned a `FreeTrialStatusSerializer` payload and
-activated the trial synchronously. It now returns a `checkout_url` — the
-trial is not active until the user completes Stripe Checkout and the webhook
-fires. Poll `GET /subscription/me` after redirect to confirm activation.
+**What happens**
+- Remaining trial credits are immediately forfeited (trial is a bounded
+  experience — no carry-over to the paid plan).
 """,
     request=inline_serializer(
-        name="StartTrialRequest",
+        name="ConvertTrialRequest",
         fields={
             "plan": serializers.UUIDField(
-                help_text="UUID of the INDIVIDUAL plan to trial."
-            ),
-            "success_url": serializers.URLField(
-                required=False,
                 help_text=(
-                    "Redirect URL after card is saved. Defaults to "
-                    "FRONTEND_DOMAIN/billing/trial-success."
-                ),
-            ),
-            "cancel_url": serializers.URLField(
-                required=False,
-                help_text=(
-                    "Redirect URL if user abandons checkout. Defaults to "
-                    "FRONTEND_DOMAIN/billing/trial-cancelled."
-                ),
-            ),
+                    "UUID of the INDIVIDUAL plan to activate. Can be the same "
+                    "plan the trial is on, or a different INDIVIDUAL plan."
+                )
+            )
         },
     ),
     responses={
@@ -289,26 +257,11 @@ CONVERT_TRIAL_SCHEMA = extend_schema(
     description="""
 Upgrades an **active free trial** to a full paid subscription before the
 14-day trial ends. Use this when the user decides to pay early rather than
-waiting for the trial to auto-convert at day 14.
+waiting for the trial to expire at day 14 or credit exhaustion.
 
 **What happens**
 - Remaining trial credits are immediately forfeited (trial is a bounded
   experience — no carry-over to the paid plan).
-- The trial `UserSubscription` is deactivated.
-- `SubscriptionService.activate_subscription()` creates a new paid
-  `UserSubscription` and grants the first monthly credit bucket.
-- The Stripe subscription transitions from `trialing` to `active`
-  immediately (charge happens now, not at day 14).
-- The new billing cycle starts from the moment of conversion.
-
-**Difference from natural trial end**
-Natural trial end (day 14) is handled automatically by the
-`invoice.payment_succeeded` webhook — you do **not** call this endpoint for
-that. This endpoint is only for the user-initiated "pay now" action.
-
-**Plan flexibility**
-The `plan` in the request can differ from the plan the trial was on.
-For example: trialled Standard Grader, now upgrading directly to Pro Grader.
 """,
     request=inline_serializer(
         name="ConvertTrialRequest",
@@ -839,8 +792,7 @@ until that subscription is cancelled.
             "plan": serializers.UUIDField(
                 help_text="UUID of a LICENSE-category plan. Must not be contact-sales."
             ),
-            "contract_months": serializers.ChoiceField(
-                choices=[1, 9, 10, 12],
+            "contract_months": serializers.IntegerField(
                 default=12,
                 help_text="Contract duration. Determines how far ahead billing_cycle_end is set.",
             ),
@@ -915,7 +867,7 @@ until that subscription is cancelled.
                 "Validation error. Possible reasons:\n"
                 "- Plan is `is_contact_sales=true` (manual setup required)\n"
                 "- Plan is not `LICENSE` category\n"
-                "- `contract_months` not in (1, 9, 10, 12)\n"
+                "- `contract_months` < 1\n"
                 "- `teacher_emails` exceeds `max_seats`\n"
                 "- Admin user not authorized for this school"
             ),

@@ -91,7 +91,7 @@ def flatten_errors(data) -> str:
                     _collect(value)
                 else:
                     # Turn snake_case / CamelCase field names into readable labels
-                    label = field.replace("_", " ").capitalize()
+                    label = str(field).replace("_", " ").capitalize()
                     _collect(value, prefix=f"{label}: ")
 
     _collect(data)

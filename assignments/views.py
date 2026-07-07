@@ -32,6 +32,7 @@ from rest_framework.response import Response
 
 from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor  # pdf_service
+from billing.access_control import require_ai_access
 
 # from ai_processor.tools import encode_image
 from classrooms.models import Course, Topic
@@ -360,6 +361,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             500: OpenApiResponse(description="Internal server error"),
         },
     )
+    @require_ai_access
     @action(
         detail=False, methods=["post"], url_path="create-async", url_name="create-async"
     )
@@ -522,6 +524,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             404: OpenApiResponse(description="Assignment not found"),
         },
     )
+    @require_ai_access
     @action(
         detail=True,
         methods=["patch"],
@@ -686,6 +689,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             },
         },
     )
+    @require_ai_access
     @action(
         detail=False,
         methods=["POST"],
@@ -855,6 +859,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             },
         },
     )
+    @require_ai_access
     @action(
         detail=False,
         methods=["POST"],
@@ -1098,6 +1103,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             ),
         },
     )
+    @require_ai_access
     @action(
         detail=False,
         methods=["POST"],
@@ -1210,6 +1216,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             404: OpenApiResponse(description="Draft not found"),
         },
     )
+    @require_ai_access
     @action(
         detail=False,
         methods=["POST"],
@@ -1301,6 +1308,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
         },
     )
+    @require_ai_access
     @action(
         detail=True,
         methods=["POST"],
@@ -1365,6 +1373,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         request=ScheduleGradingSerializer,
         responses={200: ScheduledGradingResponseSerializer},
     )
+    @require_ai_access
     @action(
         detail=True,
         methods=["POST"],

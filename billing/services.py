@@ -284,11 +284,16 @@ class SubscriptionService:
 
         wallet = user.credit_wallet
         old_monthly_bucket = (
-            wallet.buckets.select_for_update().filter(bucket_type="MONTHLY").first()
+            wallet.buckets.select_for_update()
+            .filter(bucket_type="MONTHLY", is_processed=False)
+            .order_by("-created_at")
+            .first()
         )
 
         if old_monthly_bucket:
-            unused_credits = old_monthly_bucket.remaining_credits
+            unused_credits = max(
+                0, old_monthly_bucket.total_credits - old_monthly_bucket.used_credits
+            )
 
             if unused_credits > 0:
                 # Calculate CARRY_OVER based on new plan rutes
@@ -329,7 +334,10 @@ class SubscriptionService:
 
             # Retire the Old Bucket
             old_monthly_bucket.expires_at = now
-            old_monthly_bucket.save(update_fields=["expires_at", "updated_at"])
+            old_monthly_bucket.is_processed = True
+            old_monthly_bucket.save(
+                update_fields=["expires_at", "is_processed", "updated_at"]
+            )
 
         # Trigger the new activation
         return SubscriptionService.activate_subscription(user, target_plan)
@@ -360,7 +368,8 @@ class SubscriptionService:
         """
         Formalizes the loss of credits due to expiration
         """
-        unused_amount = bucket.remaining_credits
+        bucket = CreditBucket.objects.select_for_update().get(pk=bucket.pk)
+        unused_amount = max(0, bucket.total_credits - bucket.used_credits)
 
         if unused_amount > 0:
             # Create the `EXPIRE' ledger entry to balance the books
@@ -378,7 +387,7 @@ class SubscriptionService:
             )
 
         bucket.is_processed = True
-        bucket.save(update_fields=["used_credits", "is_processed", "updated_at"])
+        bucket.save(update_fields=["is_processed", "updated_at"])
         return unused_amount
 
     @staticmethod
@@ -748,19 +757,22 @@ class SubscriptionService:
 
     @staticmethod
     @transaction.atomic
-    def grant_overage_bucket(wallet, user_sub, stripe_payment_intent_id=None):
+    def grant_overage_bucket(wallet, plan, expires_at, stripe_payment_intent_id=None):
         """Shared by the legacy auto-purchase path and the new Stripe-confirmed
         purchase paths (StripeOverageService + the payment_intent.uscceeded webhook fallback)
         so the bucket/ledger logic only lives in one place.
         """
 
-        plan = user_sub.plan
+        # expires_at = user_sub.next_credit_grant_a or user_sub.billing_cycle_end
+
+        # plan = user_sub.plan
+
         new_bucket = CreditBucket.objects.create(
             wallet=wallet,
             bucket_type=CreditBucketType.OVERAGE,
             total_credits=plan.overage_block_size,
             used_credits=0,
-            expires_at=user_sub.billing_cycle_end,
+            expires_at=expires_at,
         )
 
         CreditWallet.objects.filter(pk=wallet.pk).update(
@@ -925,8 +937,18 @@ class SubscriptionService:
         now = timezone.now()
 
         # Calculate the new billing cycle end
-        # Since user is converting mid-trial, give them a full month from now
-        billing_cycle_end = now + relativedelta(months=1)
+        # This handles both MONTHLY and ANNUAL plans
+        billing_cycle_end = now + SubscriptionService._billing_period_delta(new_plan)
+
+        # Monthly bucket always expires at 1 month from now (even for annual plans)
+        # For ANNUAL plans, next_credit_grant_at = now + 1 month
+        # Credits refresh monthly but Stripe charges yearly
+
+        monthly_bucket_expiry = (
+            now + relativedelta(months=1)
+            if new_plan.interval == BillingInterval.ANNUAL
+            else billing_cycle_end
+        )
 
         wallet = user.credit_wallet
 
@@ -977,11 +999,10 @@ class SubscriptionService:
 
         trial_sub.is_trial = False
         trial_sub.trial_end = None  # Clear the trial expiry date
-        trial_sub.plan = (
-            new_plan  # ← BUG FIX: Was missing in finalize_trial_conversion_via_stripe
-        )
+        trial_sub.plan = new_plan
         trial_sub.billing_cycle_start = now
         trial_sub.billing_cycle_end = billing_cycle_end
+        trial_sub.next_credit_grant_at = monthly_bucket_expiry
         trial_sub.stripe_subscription_id = stripe_subscription_id  # Attach Stripe ID
         trial_sub.stripe_status = StripeSubscriptionStatus.ACTIVE
 
@@ -1008,7 +1029,7 @@ class SubscriptionService:
             bucket_type=CreditBucketType.MONTHLY,
             total_credits=new_plan.monthly_credits,
             used_credits=0,
-            expires_at=billing_cycle_end,
+            expires_at=monthly_bucket_expiry,
         )
 
         # --- STEP 5: Audit ledger entry ---
@@ -1025,23 +1046,30 @@ class SubscriptionService:
             metadata={
                 "subscription_id": str(trial_sub.id),
                 "plan_id": str(new_plan.id),
+                "plan_interval": new_plan.interval,  # ← TRACK INTERVAL
                 "grant_type": "TRIAL_TO_PAID_MID_CYCLE",
                 "stripe_subscription_id": stripe_subscription_id,
                 "trial_forfeited": True,  # Signal that trial credits were not carried over
+                "billing_cycle_end": billing_cycle_end.isoformat(),
+                "next_credit_grant_at": monthly_bucket_expiry.isoformat(),
             },
         )
 
         logger.info(
             "Finalized trial-to-paid conversion for user %s. "
-            "Trial subscription %s upgraded to plan %s. "
-            "Granted %d credits. Stripe subscription: %s",
+            "Trial subscription %s upgraded to plan %s (interval: %s). "
+            "Granted %d credits. Billing cycle: %s → %s. "
+            "Next credit grant: %s. Stripe subscription: %s",
             user.email,
             trial_sub.id,
             new_plan.name,
+            new_plan.interval,  # ← LOG INTERVAL
             new_plan.monthly_credits,
+            now.isoformat(),
+            billing_cycle_end.isoformat(),
+            monthly_bucket_expiry.isoformat(),
             stripe_subscription_id,
         )
-
         return trial_sub
 
     @staticmethod

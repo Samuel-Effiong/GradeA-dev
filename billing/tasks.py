@@ -31,7 +31,9 @@ from .models import (
     BillingInterval,
     CreditBucket,
     CreditWallet,
+    LicenseBillingMethod,
     LicenseSubscription,
+    SchoolCreditAllocation,
     StripeSubscriptionStatus,
     UserSubscription,
 )
@@ -88,86 +90,121 @@ def process_subscription_renewals(self):
 @shared_task(bind=True, max_retries=0)
 def process_license_renewals(self):
     """
-    Process renewals for all active LicenseSubscriptions whose
-    billing_cycle_end has passed.
-
-    Routing logic per license:
-    - auto_renew=True  → call LicenseSubscriptionService.process_license_renewal()
-                         which handles per-teacher rollover and new MONTHLY bucket
-                         creation inside per-teacher savepoints.
-    - auto_renew=False → deactivate the license. Teachers keep their current
-                         credits until cleanup_expired_credit_buckets runs.
-
-    Intentionally isolated from process_subscription_renewals to keep the
-    two billing pipelines independently observable and independently
-    schedulable (license contracts are 9/10/12-month, not monthly).
-
-    Returns a summary string consumed by Celery Beat's result backend.
+    Daily fallback for license renewals.
+    - For auto_renew=True: checks Stripe invoice status; if paid, renews.
+    - For auto_renew=False: deactivates and cancels Stripe subscription.
     """
     now = timezone.now()
 
     # Only fetch licenses whose cycle has genuinely ended.
     # select_related("school", "plan") prevents N+1 on logging and validation
     # inside process_license_renewal.
-    expired_licenses = LicenseSubscription.objects.filter(
-        is_active=True,
-        billing_cycle_end__lte=now,
-    ).select_related("school", "plan", "admin_user")
+    expired_licenses = (
+        LicenseSubscription.objects.filter(
+            is_active=True,
+            billing_cycle_end__lte=now,
+        )
+        .exclude(billing_method=LicenseBillingMethod.OFFLINE)
+        .select_related("school", "plan")
+    )
 
     renewed_count = 0
     deactivated_count = 0
+    skipped_not_paid = 0
     failed_count = 0
 
     for license_sub in expired_licenses:
         try:
-            if license_sub.auto_renew:
-                # process_license_renewal() is fully atomic at the license level,
-                # with per-teacher inner savepoints so one teacher's failure does
-                # not rollback credits already written for other teachers.
-                LicenseSubscriptionService.process_license_renewal(license_sub)
-                renewed_count += 1
-                logger.info(
-                    "Renewed license %s for school '%s' (plan: %s).",
-                    license_sub.id,
-                    license_sub.school.name,
-                    license_sub.plan.name,
-                )
-
-            else:
-                # School admin set auto_renew=False — deactivate.
-                # Teachers' existing credit buckets will expire naturally;
-                # cleanup_expired_credit_buckets will log the EXPIRE entries.
-
+            # 1. Handle non-auto-renew: deactivate and cancel Stripe subscription
+            if not license_sub.auto_renew:
+                # Admin opted out - deactivate and cancel Stripe subscription
                 if license_sub.stripe_subscription_id:
-                    stripe.Subscription.modify(
-                        license_sub.stripe_subscription_id, cancel_at_period_end=True
-                    )
+                    try:
+                        stripe.Subscription.modify(
+                            license_sub.stripe_subscription_id,
+                            cancel_at_period_end=True,
+                        )
+                    except stripe.error.StripeError as exc:
+                        logger.warning(
+                            "Failed to cancel Stripe subscription for license %s: %s",
+                            license_sub.id,
+                            str(exc),
+                        )
 
                 license_sub.is_active = False
                 license_sub.save(update_fields=["is_active", "updated_at"])
-
                 deactivated_count += 1
                 logger.info(
-                    "Deactivated license %s for school '%s' (auto_renew=False).",
+                    "License %s deactivated (auto_renew=False).",
                     license_sub.id,
-                    license_sub.school.name,
                 )
+                continue
+
+            # 2. Auto_renew enabled - must verify payment before renewal
+            if not license_sub.stripe_subscription_id:
+                # Fallback: no Stripe reference - renew anyway? Better to skip and alert
+                logger.warning(
+                    "License %s has no stripe_subscription_id; skipping renewal.",
+                    license_sub.id,
+                )
+                continue
+
+            # Fetch Stripe subscription and latest invoice
+            stripe_sub = stripe.Subscription.retrieve(
+                license_sub.stripe_subscription_id
+            )
+
+            latest_invoice_id = stripe_sub.get("latest_invoice")
+            if not latest_invoice_id:
+                continue
+
+            invoice = stripe.Invoice.retrieve(latest_invoice_id)
+            if invoice["status"] != "paid":
+                # Payment not confirmed - update status and skip
+                license_sub.stripe_status = StripeSubscriptionStatus.PAST_DUE
+                license_sub.save(update_fields=["stripe_status", "updated_at"])
+                skipped_not_paid += 1
+                logger.info(
+                    "License %s skipped: invoice %s status %s.",
+                    license_sub.id,
+                    invoice["id"],
+                    invoice["status"],
+                )
+                continue
+
+            # 3. Payment confirmed - but has renewal already happened?
+            # The webhook should have done it, but if not, do it here
+            # process_license_renewal is idempotent; it will skip if already renewed
+
+            with transaction.atomic():
+                locked_license = LicenseSubscription.objects.select_for_update().get(
+                    pk=license_sub.pk
+                )
+
+                # Idempotency: if already renewed, skip
+                if locked_license.billing_cycle_end > now:
+                    logger.info(
+                        "License %s already renewed; skipping reconciliation.",
+                        locked_license.id,
+                    )
+                    continue
+                LicenseSubscriptionService.process_license_renewal(locked_license)
+                renewed_count += 1
 
         except Exception as exc:
             failed_count += 1
             logger.error(
-                "Failed to process license renewal %s for school '%s': %s",
+                "Failed to process license %s: %s",
                 license_sub.id,
-                license_sub.school.name,
                 str(exc),
                 exc_info=True,
             )
-            # Continue — one bad license must not block the rest.
 
     summary = (
         f"License subscriptions processed: "
-        f"{renewed_count} renewed, "
+        f"{renewed_count} renewed (fallback), "
         f"{deactivated_count} deactivated, "
+        f"{skipped_not_paid} skipped (not paid), "
         f"{failed_count} failed."
     )
     logger.info(summary)
@@ -522,6 +559,71 @@ def expire_active_trials(self):
         f"{expired_by_time_count} expired (14-day limit), "
         f"{expired_by_credits_count} expired (credits exhausted), "
         f"{skipped_still_valid} still valid, "
+        f"{failed_count} failed."
+    )
+    logger.info(summary)
+    return summary
+
+
+@shared_task(bind=True, max_retries=0)
+def process_license_monthly_credit_refreshes(self):
+    """
+    Monthly credit refresh for teachers under active licenses.
+    For each active SchoolCreditAllocation with next_credit_grant_at <= now,
+    expires the current monthly bucket, applies rollover, and grants a new monthly bucket.
+    """
+    now = timezone.now()
+
+    # Get all active allocations that need a refresh, within active licenses.
+    due_allocations = SchoolCreditAllocation.objects.filter(
+        is_active=True,
+        next_credit_grant_at__lte=now,
+        license_subscription__is_active=True,
+        license_subscription__billing_cycle_end__gt=now,
+    ).select_related("license_subscription", "user", "license_subscription__plan")
+
+    refreshed_count = 0
+    # skipped_no_bucket = 0
+    failed_count = 0
+
+    for allocation in due_allocations:
+        try:
+            with transaction.atomic():
+                # Lock the allocation and license rows
+                locked_allocation = (
+                    SchoolCreditAllocation.objects.select_for_update().get(
+                        pk=allocation.pk
+                    )
+                )
+
+                # Re-check conditions
+                if not locked_allocation.is_active:
+                    continue
+
+                license_sub = locked_allocation.license_subscription
+                if not license_sub.is_active or license_sub.billing_cycle_end <= now:
+                    continue
+
+                # Check if next_credit_grant_at is still due (avoid race)
+                if locked_allocation.next_credit_grant_at > now:
+                    continue
+
+                # Perform the refresh
+                LicenseSubscriptionService._refresh_teacher_credits(locked_allocation)
+                refreshed_count += 1
+
+        except Exception as exc:
+            failed_count += 1
+            logger.error(
+                "Failed to refresh credits for allocation %s: %s",
+                allocation.id,
+                str(exc),
+                exc_info=True,
+            )
+
+    summary = (
+        f"License credit refresh completed: "
+        f"{refreshed_count} refreshed, "
         f"{failed_count} failed."
     )
     logger.info(summary)

@@ -1,5 +1,6 @@
 import math
 import uuid
+from decimal import Decimal
 
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -103,6 +104,21 @@ class PlanFeatureKey(models.TextChoices):
     ADMIN_MANAGED_BILLING = "ADMIN_MANAGED_BILLING", _("Admin-Managed Billing")
     SHARED_CREDIT_POOL = "SHARED_CREDIT_POOL", _("Shared Credit Pool")
     DEDICATED_SUPPORT = "DEDICATED_SUPPORT", _("Dedicated Support")
+
+
+class LicenseBillingMethod(models.TextChoices):
+    STRIPE = "STRIPE", _("Stripe")
+    OFFLINE = "OFFLINE", _("Offline / Manually Billed")
+
+
+class LicenseBillingRecordType(models.TextChoices):
+    CREATED_OFFLINE = "CREATED_OFFLINE", _("Created (Offline)")
+    RENEWED_OFFLINE = "RENEWED_OFFLINE", _("Renewed (Offline)")
+    PLAN_CHANGE_OFFLINE = "PLAN_CHANGE_OFFLINE", _("Plan Changed (Offline)")
+    SEATS_CHANGE_OFFLINE = "SEATS_CHANGE_OFFLINE", _("Seats Changed (Offline)")
+    CONVERTED_TO_STRIPE = "CONVERTED_TO_STRIPE", _("Converted to Stripe")
+    CONVERTED_TO_OFFLINE = "CONVERTED_TO_OFFLINE", _("Converted to Offline")
+    MANUAL_OVERAGE_GRANT = "MANUAL_OVERAGE_GRANT", _("Manual Overage Grant")
 
 
 class PlanFeature(models.Model):
@@ -238,9 +254,11 @@ class SubscriptionPlan(models.Model):
     )
 
     # --- Pricing ---
-    price_cents = models.PositiveIntegerField(
-        default=0,
-        help_text="Monthly or annual price in USD cents (e.g. 2499 = $24.99)",
+    price_cents = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        help_text="Price in USD (e.g. 24.99)",
     )
 
     # --- Credits ---
@@ -278,8 +296,15 @@ class SubscriptionPlan(models.Model):
         default=0,
         help_text="Raw credits per overage block (display value × 1000, e.g. 5_000_000 = 5K)",
     )
-    overage_block_price = models.PositiveIntegerField(
-        default=0,
+    # overage_block_price = models.PositiveIntegerField(
+    #     default=0,
+    #     help_text="Price per overage block in USD cents (e.g. 400 = $4.00)",
+    # )
+
+    overage_block_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("0.00"),
         help_text="Price per overage block in USD cents (e.g. 400 = $4.00)",
     )
 
@@ -934,13 +959,6 @@ class BetaProfile(models.Model):
         )
 
 
-class ContractMonths(models.IntegerChoices):
-    ONE = 1, _("1 Month")
-    NINE = 9, _("9 Months")
-    TEN = 10, _("10 Months")
-    TWELVE = 12, _("12 Months")
-
-
 class LicenseSubscription(models.Model):
     """
     Represents a school/institutional subscription for multiple teachers.
@@ -981,8 +999,7 @@ class LicenseSubscription(models.Model):
     )
 
     contract_months = models.PositiveSmallIntegerField(
-        choices=ContractMonths.choices,
-        default=ContractMonths.TWELVE,
+        default=12,
         help_text=(
             "Contract duration in months. Schools can choose 9, 10, or 12 month "
             "billing periods. This determines how far ahead billing_cycle_end is set "
@@ -990,8 +1007,8 @@ class LicenseSubscription(models.Model):
         ),
     )
 
-    max_seats = models.PositiveSmallIntegerField(
-        default=0,
+    max_seats = models.PositiveIntegerField(
+        default=1,
         help_text=(
             "Maximum number of teacher seats allowed under this license. "
             "0 = unlimited (e.g. for Custom contracts). Enforced on enrollment."
@@ -1020,11 +1037,27 @@ class LicenseSubscription(models.Model):
         blank=True,
         help_text="Stripe subscription ID for this license (one per school)",
     )
+
+    stripe_customer_id = models.CharField(
+        max_length=255, null=True, blank=True, db_index=True
+    )
+
     stripe_status = models.CharField(
         max_length=20, choices=StripeSubscriptionStatus.choices, null=True, blank=True
     )
 
-    custom_price_cents = models.PositiveSmallIntegerField(
+    billing_method = models.CharField(
+        max_length=20,
+        choices=LicenseBillingMethod.choices,
+        default=LicenseBillingMethod.STRIPE,
+        help_text=(
+            "STRIPE = billed automatically via a Stripe subscription. "
+            "OFFLINE = manually billed/renewed by a superadmin outside the platform "
+            "(wire transfer, PO, etc). Convertible in either direction."
+        ),
+    )
+
+    custom_price_cents = models.IntegerField(
         null=True,
         blank=True,
         help_text="Negotiated monthly price for this license, overriding the plan's default price. Set by super admin.",
@@ -1068,6 +1101,68 @@ class LicenseSubscription(models.Model):
         if self.max_seats == 0:
             return None  # unlimited
         return max(0, self.max_seats - self.teacher_count)
+
+
+class LicenseBillingRecord(models.Model):
+    """
+    Immutable accounting trail for anything billing-relevant that happens
+    to a LicenseSubscription outside a normal Stripe invoice — offline
+    creation, offline renewal, offline plan/seat changes, billing-method
+    conversions, and manual overage grants. Mirrors how CreditLedger is an
+    immutable audit trail for wallet-level events; this is the license-level
+    equivalent for events that never touch Stripe (or that need a
+    superadmin's payment reference recorded even when Stripe was involved,
+    e.g. a manual overage comp).
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    license_subscription = models.ForeignKey(
+        LicenseSubscription,
+        on_delete=models.CASCADE,
+        related_name="billing_records",
+    )
+    record_type = models.CharField(
+        max_length=30, choices=LicenseBillingRecordType.choices
+    )
+
+    # Accounting detail — all optional since not every record type involves
+    # a specific payment (e.g. CONVERTED_TO_OFFLINE has no amount).
+    amount_paid_cents = models.IntegerField(null=True, blank=True)
+    payment_reference = models.CharField(
+        max_length=250,
+        null=True,
+        blank=True,
+        help_text="Invoice #, PO #, wire confirmation, check #, etc.",
+    )
+    payment_method_label = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text="e.g. 'Wire transfer', 'Check', 'PO #4471'",
+    )
+    notes = models.TextField(null=True, blank=True)
+
+    # Only populated for RENEWED_OFFLINE
+    previous_billing_cycle_end = models.DateTimeField(null=True, blank=True)
+    new_billing_cycle_end = models.DateTimeField(null=True, blank=True)
+
+    performed_by = models.ForeignKey(
+        "users.CustomUser",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="license_billing_actions",
+        help_text="The superadmin who performed this action. Null if system/webhook-initiated.",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["license_subscription", "record_type"]),
+        ]
 
 
 class SchoolCreditAllocation(models.Model):
@@ -1116,6 +1211,12 @@ class SchoolCreditAllocation(models.Model):
     )
     updated_at = models.DateTimeField(
         auto_now=True, help_text="Date and time when the allocation was last updated"
+    )
+
+    next_credit_grant_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the next monthly credit refresh is due for this teacher under the license",
     )
 
     class Meta:

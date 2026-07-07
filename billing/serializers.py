@@ -17,6 +17,8 @@ from .models import (
     CreditLedger,
     CreditUsageLog,
     CreditWallet,
+    LicenseBillingMethod,
+    LicenseBillingRecord,
     LicenseSubscription,
     PlanCategory,
     SchoolCreditAllocation,
@@ -524,14 +526,8 @@ class UsageSummarySerializer(serializers.Serializer):
 
 
 class OverageStatusSerializer(serializers.ModelSerializer):
-    max_blocks = serializers.IntegerField(
-        source="user.subscriptions.filter(is_active=True).first.plan.max_overage_blocks",
-        read_only=True,
-    )
-    block_size = serializers.IntegerField(
-        source="user.subscriptions.filter(is_active=True).first.plan.overage_block_size",
-        read_only=True,
-    )
+    max_blocks = serializers.SerializerMethodField()
+    block_size = serializers.SerializerMethodField()
     block_remaining = serializers.SerializerMethodField()
     current_overage_balance = serializers.SerializerMethodField()
 
@@ -545,8 +541,24 @@ class OverageStatusSerializer(serializers.ModelSerializer):
             "current_overage_balance",
         ]
 
+    def _get_active_plan(self, obj):
+        if not hasattr(obj, "_active_individual_plan_cache"):
+            user_sub = (
+                obj.user.subscriptions.filter(is_active=True)
+                .select_related("plan")
+                .first()
+            )
+            obj._active_individual_plan_cache = user_sub.plan if user_sub else None
+        return obj._active_individual_plan_cache
+
+    def get_block_size(self, obj) -> int:
+        plan = self._get_active_plan(obj)
+        return plan.overage_block_size if plan else 0
+
     def get_block_remaining(self, obj) -> int:
-        plan = obj.user.subscriptions.filter(is_active=True).first().plan
+        plan = self._get_active_plan(obj)
+        if not plan:
+            return 0
         return max(0, plan.max_overage_blocks - obj.overage_blocks_used)
 
     def get_current_overage_balance(self, obj) -> int:
@@ -1058,6 +1070,15 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
     )
     custom_price_cents = serializers.IntegerField(required=False, allow_null=True)
 
+    billing_method = serializers.ChoiceField(
+        choices=LicenseBillingMethod.choices,
+        required=False,
+        default=LicenseBillingMethod.STRIPE,
+        help_text="STRIPE (default) or OFFLINE. Changed only via the dedicated "
+        "convert-to-stripe / convert-to-offline actions after creation, never "
+        "via a plain PATCH — see LicenseSubscriptionSerializer.update().",
+    )
+
     class Meta:
         model = LicenseSubscription
         fields = [
@@ -1081,6 +1102,7 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
             "is_active",
             "auto_renew",
             "stripe_subscription_id",
+            "billing_method",
             "custom_price_cents",
             # Statistics
             "teacher_count",
@@ -1138,17 +1160,13 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
         return ret
 
     def validate_contract_months(self, value):
-        if value not in (1, 9, 10, 12):
-            raise serializers.ValidationError(
-                "Contract months must be 1, 9, 10, or 12."
-            )
+        if value < 1:
+            raise serializers.ValidationError("Contract months must be at least 1.")
         return value
 
     def validate_max_seats(self, value):
-        if value < 0:
-            raise serializers.ValidationError(
-                "max_seats mus be 0 (unlimited) or a positive integer."
-            )
+        if value <= 0:
+            raise serializers.ValidationError("max_seats must be a positive integer.")
         return value
 
     def create(self, validated_data):
@@ -1158,6 +1176,9 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
         """
         teacher_emails = validated_data.pop("teacher_emails", [])
         custom_price_cents = validated_data.pop("custom_price_cents", None)
+        billing_method = validated_data.pop(
+            "billing_method", LicenseBillingMethod.STRIPE
+        )
 
         # The service expects these as arguments
         school = validated_data.pop("school")
@@ -1182,6 +1203,7 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
             contract_months=contract_months,
             max_seats=max_seats,
             custom_price_cents=custom_price_cents,
+            billing_method=billing_method,
             **extra_kwargs,
         )
 
@@ -1208,3 +1230,80 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
             ]
         )
         return instance
+
+
+class UpdateLicenseSeatsSerializer(serializers.Serializer):
+    max_seats = serializers.IntegerField(
+        min_value=1, help_text="The new maximum number of teacher seats"
+    )
+
+
+class ChangeLicensePlanSerializer(serializers.Serializer):
+    plan = serializers.PrimaryKeyRelatedField(
+        queryset=SubscriptionPlan.objects.filter(category=PlanCategory.LICENSE),
+        required=True,
+    )
+    custom_price_cents = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        min_value=0,
+        help_text="Optional custom price in cents. Set to null to remove custom price.",
+    )
+
+
+class LicenseBillingRecordSerializer(serializers.ModelSerializer):
+    performed_by_email = serializers.EmailField(
+        source="performed_by.email", read_only=True, allow_null=True
+    )
+
+    class Meta:
+        model = LicenseBillingRecord
+        fields = [
+            "id",
+            "license_subscription",
+            "record_type",
+            "amount_paid_cents",
+            "payment_reference",
+            "payment_method_label",
+            "notes",
+            "previous_billing_cycle_end",
+            "new_billing_cycle_end",
+            "performed_by_email",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+
+class OfflineLicenseRenewalSerializer(serializers.Serializer):
+    new_billing_cycle_end = serializers.DateTimeField(
+        help_text="Exact new billing_cycle_end for this license."
+    )
+    amount_paid_cents = serializers.IntegerField(
+        required=False, allow_null=True, min_value=0
+    )
+    payment_reference = serializers.CharField(
+        required=False, allow_null=True, allow_blank=True, max_length=200
+    )
+    payment_method_label = serializers.CharField(
+        required=False, allow_null=True, allow_blank=True, max_length=100
+    )
+    notes = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+
+
+class ManualTeacherOverageGrantSerializer(serializers.Serializer):
+    teacher_id = serializers.UUIDField()
+    blocks = serializers.IntegerField(min_value=1)
+    amount_paid_cents = serializers.IntegerField(
+        required=False, allow_null=True, min_value=0
+    )
+    payment_reference = serializers.CharField(
+        required=False, allow_null=True, allow_blank=True, max_length=200
+    )
+    payment_method_label = serializers.CharField(
+        required=False, allow_null=True, allow_blank=True, max_length=100
+    )
+    notes = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+
+
+class ConvertToOfflineSerializer(serializers.Serializer):
+    notes = serializers.CharField(required=False, allow_null=True, allow_blank=True)

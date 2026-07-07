@@ -279,13 +279,17 @@ CELERY_BEAT_SCHEDULE = {
         "task": "billing.tasks.process_annual_plan_credit_grants",
         "schedule": crontab(minute=0, hour=2),
     },
+    "process-license-monthly-credit-refreshes": {
+        "task": "billing.tasks.process_license_monthly_credit_refreshes",
+        "schedule": crontab(minute=0, hour=3),
+    },
     "reconcile-subscriptions-daily": {
         "task": "billing.tasks.reconcile_subscription_renewals",
-        "schedule": crontab(minute=0, hour=3),
+        "schedule": crontab(minute=0, hour=4),
     },
     "cleanup-expired-credit-buckets": {
         "task": "billing.tasks.cleanup_expired_credit_buckets",
-        "schedule": crontab(minute=0, hour=4),
+        "schedule": crontab(minute=0, hour=5),
     },
     "expire-active-trials": {
         "task": "billing.tasks.expire_active_trials",
@@ -548,5 +552,5 @@ DISALLOWED_EMAIL_DOMAINS = [
     "gmx.com",
     "fastmail.com",
     "hushmail.com",
-    "yopmail.com",
+    # "yopmail.com",
 ]

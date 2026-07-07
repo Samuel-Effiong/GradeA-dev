@@ -4,7 +4,7 @@ from django.core.cache import cache
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
-# from billing.context import get_license_invitation_context
+from billing.context import get_license_invitation_context
 from billing.models import CreditWallet
 
 # from billing.models import BetaProfile, CreditWallet # PlanType, # SubscriptionPlan
@@ -127,6 +127,13 @@ def create_default_settings_and_wallet(sender, instance, created, **kwargs):
         logger.info(
             "Skipping automatic trial for user %s "
             "(created via license invitation context).",
+            user.email,
+        )
+        return
+
+    if get_license_invitation_context():
+        logger.info(
+            "Skipping automatic trial for user %s (created during license invitation).",
             user.email,
         )
         return

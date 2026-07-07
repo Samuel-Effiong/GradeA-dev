@@ -29,10 +29,12 @@ Classes:
 """
 
 import logging
+from typing import Optional
 
 # from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 
 from classrooms.models import School
 from users.models import CustomUser
@@ -42,6 +44,9 @@ from .license_service import LicenseSubscriptionService
 from .models import (  # CreditBucket,; CreditBucketType,; CreditLedgerType,
     CreditLedger,
     CreditWallet,
+    LicenseBillingMethod,
+    LicenseBillingRecord,
+    LicenseBillingRecordType,
     LicenseSubscription,
     PlanCategory,
     StripeSubscriptionStatus,
@@ -70,6 +75,52 @@ class StripeCustomerService:
         wallet.stripe_customer_id = customer.id
         wallet.save(update_fields=["stripe_customer_id", "updated_at"])
         return customer.id
+
+    @staticmethod
+    def get_or_create_license_customer(license_sub, admin_user=None) -> str:
+        """
+        License-level equivalent of get_or_create_customer. Used both by
+        offline-license overage purchases (lazily, on first attempt) and by
+        the offline->Stripe conversion flow, which reuses whatever customer
+        object overage purchases may have already created.
+        """
+
+        if license_sub.stripe_customer_id:
+            return license_sub.stripe_customer_id
+
+        contact = admin_user or license_sub.admin_user
+        customer = stripe.Customer.create(
+            email=contact.email,
+            name=license_sub.school.name,
+            metadata={
+                "license_id": str(license_sub.id),
+                "school_id": str(license_sub.school.id),
+            },
+        )
+        license_sub.stripe_customer_id = customer.id
+        license_sub.save(update_fields=["stripe_customer_id", "updated_at"])
+        return customer.id
+
+    @staticmethod
+    def create_license_setup_intent(license_sub, admin_user):
+        """
+        Lets a school admin add a card to their license's Stripe customer
+        WITHOUT a subscription driving it (no subscription exists yet for
+        an offline license). The resulting default payment method is set
+        via the setup_intent.succeeded webhook, not synchronously here —
+        consistent with this codebase's rule that local/Stripe-side state
+        changes should be webhook-confirmed rather than assumed from a
+        client-reported success.
+        """
+        customer_id = StripeCustomerService.get_or_create_license_customer(
+            license_sub, admin_user
+        )
+        return stripe.SetupIntent.create(
+            customer=customer_id,
+            payment_method_types=["card"],
+            usage="off_session",
+            metadata={"license_id": str(license_sub.id)},
+        )
 
 
 class StripeCheckoutService:
@@ -208,15 +259,18 @@ class StripeCheckoutService:
                 "price_data": {
                     "currency": "usd",
                     "product": plan.product_id,
-                    "recurring": {"interval": "month"},
-                    "unit_amount": custom_price_cents,
+                    "recurring": {
+                        "interval": "month",
+                        "interval_count": contract_months,
+                    },
+                    "unit_amount": custom_price_cents * contract_months,
                 },
-                "quantity": 1,
+                "quantity": max_seats,
             }
         else:
             if not plan.stripe_price_id:
                 raise ValueError(f"Plan {plan.name} has no stripe_price_id configured.")
-            line_item = {"price": plan.stripe_price_id, "quantity": 1}
+            line_item = {"price": plan.stripe_price_id, "quantity": max_seats}
 
         # Reuse the school's existing Stripe customer if they've billed
         # before (e.g. recreating a license after a prior cancellation).
@@ -254,6 +308,7 @@ class StripeCheckoutService:
         return stripe.checkout.Session.create(**session_kwargs)
 
     @staticmethod
+    @transaction.atomic
     def create_trial_to_paid_session(user, new_plan, success_url, cancel_url):
         # GUARD 1: User must have active trial (is_active=True and is_trial=True)
         trial_sub = (
@@ -298,7 +353,7 @@ class StripeCheckoutService:
             customer=customer_id,
             mode="subscription",
             line_items=[{"price": new_plan.stripe_price_id, "quantity": 1}],
-            sucess_url=success_url,
+            success_url=success_url,
             cancel_url=cancel_url,
             metadata={
                 "flow": "trial_to_paid",  # Webhook dispatch key
@@ -317,6 +372,96 @@ class StripeCheckoutService:
             session.id,
         )
 
+        return session
+
+    @staticmethod
+    def create_license_conversion_session(
+        license_sub, initiated_by, success_url, cancel_url
+    ):
+        """
+        Converts an OFFLINE license to Stripe billing. Anchors Stripe's
+        billing cycle to the license's EXISTING billing_cycle_end
+        (proration_behavior='none') so the school is not double-charged
+        for time it already paid for offline — the first real Stripe
+        invoice fires at the old cycle end, not today.
+
+        Requires billing_cycle_end to still be in the future: Stripe
+        requires billing_cycle_anchor to be a future timestamp. If the
+        existing cycle has already lapsed, renew offline first (or decide
+        to bill immediately by choosing a different anchor — not handled
+        here).
+        """
+        if license_sub.billing_method != LicenseBillingMethod.OFFLINE:
+            raise ValueError("License is not offline; nothing to convert.")
+
+        plan = license_sub.plan
+        if plan.is_contact_sales:
+            raise ValueError(
+                f"Plan {plan.name} is contact-sales only and must be set up "
+                "manually in Stripe."
+            )
+
+        now = timezone.now()
+        if license_sub.billing_cycle_end <= now:
+            raise ValueError(
+                "This license's current billing cycle has already ended. "
+                "Renew it offline first, then convert to Stripe so the new "
+                "cycle end can be used as the billing anchor."
+            )
+
+        customer_id = StripeCustomerService.get_or_create_license_customer(
+            license_sub, license_sub.admin_user
+        )
+
+        if license_sub.custom_price_cents:
+            line_item = {
+                "price_data": {
+                    "currency": "usd",
+                    "product": plan.product_id,
+                    "recurring": {
+                        "interval": "month",
+                        "interval_count": license_sub.contract_months,
+                    },
+                    "unit_amount": int(
+                        license_sub.custom_price_cents * license_sub.contract_months
+                    ),
+                },
+                "quantity": license_sub.max_seats,
+            }
+        else:
+            if not plan.stripe_price_id:
+                raise ValueError(f"Plan {plan.name} has no stripe_price_id configured.")
+            line_item = {
+                "price": plan.stripe_price_id,
+                "quantity": license_sub.max_seats,
+            }
+
+        anchor_timestamp = int(license_sub.billing_cycle_end.timestamp())
+
+        session = stripe.checkout.Session.create(
+            customer=customer_id,
+            mode="subscription",
+            line_items=[line_item],
+            subscription_data={
+                "billing_cycle_anchor": anchor_timestamp,
+                "proration_behavior": "none",
+            },
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata={
+                "flow": "license_convert_to_stripe",
+                "license_id": str(license_sub.id),
+                "initiated_by_user_id": str(initiated_by.id) if initiated_by else "",
+            },
+        )
+
+        logger.info(
+            "Created license conversion checkout session for license %s "
+            "(anchor: %s). Checkout session: %s",
+            license_sub.id,
+            license_sub.billing_cycle_end.isoformat(),
+            session.id,
+        )
         return session
 
 
@@ -459,6 +604,173 @@ class StripeSubscriptionMutationService:
         return updated_sub
 
     @staticmethod
+    def change_license_price(
+        license_sub: LicenseSubscription,
+        new_plan: SubscriptionPlan,
+        new_custom_price_cents: Optional[int] = None,
+    ) -> str:
+        """
+        Update the Stripe subscription price for a license.
+        Uses smart proration: always_invoice for upgrades, none for downgrades.
+
+        Args:
+            license_sub: The license subscription.
+            new_plan: The target plan (must have product_id and either stripe_price_id
+                    or a custom price will be created).
+            new_custom_price_cents: If provided, overrides the plan's default price for
+                                    this license. If None, uses the plan's default stripe_price_id.
+
+        Returns:
+            str: The Stripe subscription ID (unchanged).
+
+        Raises:
+            ValueError: If Stripe update fails, payment fails, or invalid inputs.
+        """
+        if not license_sub.stripe_subscription_id:
+            raise ValueError("License has no Stripe subscription ID.")
+
+        # Determine old effective price (cents)
+        old_price_cents = license_sub.custom_price_cents or license_sub.plan.price_cents
+
+        # Determine new effective price
+        if new_custom_price_cents is not None:
+            new_price_cents = new_custom_price_cents
+        else:
+            # If no custom price, we must have stripe_price_id on the plan
+            if not new_plan.stripe_price_id:
+                raise ValueError(
+                    f"Plan {new_plan.name} has no stripe_price_id and no custom price provided."
+                )
+            new_price_cents = new_plan.price_cents
+
+        # If prices are identical, we can skip Stripe modification
+        if old_price_cents == new_price_cents:
+            logger.info(
+                "License %s price unchanged (%d cents), skipping Stripe update.",
+                license_sub.id,
+                old_price_cents,
+            )
+            return license_sub.stripe_subscription_id
+
+        # Determine proration behavior
+        if new_price_cents > old_price_cents:
+            proration_behavior = "always_invoice"  # upgrade
+        else:
+            proration_behavior = "none"  # downgrade
+
+        # Get subscription item ID
+        try:
+            stripe_sub = stripe.Subscription.retrieve(
+                license_sub.stripe_subscription_id
+            )
+        except stripe.error.StripeError as exc:
+            raise ValueError(f"Could not retrieve Stripe subscription: {exc}") from exc
+
+        items = stripe_sub.get("items", {}).get("data", [])
+        if not items:
+            raise ValueError("Stripe subscription has no items.")
+        item_id = items[0]["id"]
+
+        # Capture old price ID before modification
+        old_price_id = items[0]["price"]["id"]
+
+        # Determine the price ID to use
+        if new_custom_price_cents is not None:
+            # Create a custom Price for this license
+            try:
+                new_price_id = StripePriceService.create_custom_price(
+                    product_id=new_plan.product_id,
+                    unit_amount=int(
+                        new_custom_price_cents * license_sub.contract_months
+                    ),
+                    interval_count=license_sub.contract_months,  # Deepseek
+                )
+            except ValueError as exc:
+                raise ValueError(f"Custom price creation failed: {exc}") from exc
+        else:
+            if license_sub.contract_months == 1:
+                if not new_plan.stripe_price_id:
+                    raise ValueError(f"Plan {new_plan.name} has no stripe_price_id")
+                new_price_id = new_plan.stripe_price_id
+            else:
+                new_price_id = StripePriceService.create_custom_price(
+                    product_id=new_plan.product_id,
+                    unit_amount=int(new_plan.price_cents * license_sub.contract_months),
+                    interval_count=license_sub.contract_months,
+                )
+
+        # Perform the subscription modification
+        try:
+            stripe.Subscription.modify(
+                license_sub.stripe_subscription_id,
+                items=[{"id": item_id, "price": new_price_id}],
+                proration_behavior=proration_behavior,
+            )
+        except stripe.error.CardError as exc:
+            raise ValueError(f"Card declined: {exc}") from exc
+        except stripe.error.StripeError as exc:
+            raise ValueError(f"Stripe error: {exc}") from exc
+
+        # For always_invoice, verify the invoice was paid
+        if proration_behavior == "always_invoice":
+            stripe_sub_refreshed = stripe.Subscription.retrieve(
+                license_sub.stripe_subscription_id
+            )
+            latest_invoice_id = stripe_sub_refreshed.get("latest_invoice")
+            if latest_invoice_id:
+                invoice = stripe.Invoice.retrieve(
+                    latest_invoice_id, expand=["payment_intent"]
+                )
+                if invoice.get("status") != "paid":
+                    payment_intent = invoice.get("payment_intent")
+                    pi_status = (
+                        payment_intent.get("status")
+                        if isinstance(payment_intent, dict)
+                        else None
+                    )
+                    if pi_status == "requires_action":
+                        # Revert the price back to old to be safe
+                        # StripeSubscriptionMutationService._revert_license_price(
+                        #     license_sub.stripe_subscription_id,
+                        #     item_id,
+                        #     old_price_cents,
+                        #     license_sub.plan.product_id,
+                        #     license_sub.custom_price_cents is not None,
+                        # )
+                        raise ValueError(
+                            "Upgrade payment requires additional authentication (3D Secure). "
+                            "Please update your payment method and retry."
+                        )
+                    # Revert and raise
+                    # StripeSubscriptionMutationService._revert_license_price(
+                    #     license_sub.stripe_subscription_id,
+                    #     item_id,
+                    #     old_price_cents,
+                    #     license_sub.plan.product_id,
+                    #     license_sub.custom_price_cents is not None,
+                    # )
+
+                    stripe.Subscription.modify(
+                        license_sub.stripe_subscription_id,
+                        items=[{"id": item_id, "price": old_price_id}],
+                        proration_behavior="none",
+                    )
+
+                    raise ValueError(
+                        f"Upgrade payment failed (invoice status: {invoice['status']}). "
+                        "Plan has not been changed."
+                    )
+
+        logger.info(
+            "License %s Stripe price updated: %d cents -> %d cents (proration: %s)",
+            license_sub.id,
+            old_price_cents,
+            new_price_cents,
+            proration_behavior,
+        )
+        return license_sub.stripe_subscription_id
+
+    @staticmethod
     def _revert_to_previous_price(
         stripe_subscription_id, item_id, old_price_id, invoice
     ):
@@ -531,6 +843,7 @@ class StripeOverageService:
     """Explicit, user-confirmed overage block purchases."""
 
     @staticmethod
+    @transaction.atomic
     def purchase_overage_block(user):
         """
         Charges the customer's default payment method synchronously via a
@@ -538,25 +851,26 @@ class StripeOverageService:
         an on-session charge, so there's no off_session decline risk to
         design around, unlike an automatic background top-up would have.
         """
-        wallet = CreditWallet.objects.select_for_update().get(user=user)
+        wallet, _ = CreditWallet.objects.get_or_create(user=user)
+        wallet = CreditWallet.objects.select_for_update().get(pk=wallet.pk)
+
         user_sub = (
             user.subscriptions.filter(is_active=True).select_related("plan").first()
         )
+        expires_at = user_sub.next_credit_grant_at or user_sub.billing_cycle_end
         if not user_sub:
             raise ValueError("No active subscription found.")
 
         plan = user_sub.plan
+        if plan.max_overage_blocks <= 0 or plan.overage_block_price <= 0:
+            raise ValueError("This plan does not support overage credit purchases.")
+
         if wallet.overage_blocks_used >= plan.max_overage_blocks:
             raise ValueError("Maximum overage blocks reached for this billing cycle.")
 
         if not wallet.stripe_customer_id:
             raise ValueError("No Stripe customer on file for this user.")
 
-        # Checkout (subscription mode) saves the card as the SUBSCRIPTION's
-        # default_payment_method, not the Customer's invoice_settings —
-        # those are two different fields. Check the subscription first;
-        # only fall back to the customer-level default if the subscription
-        # doesn't have one set (e.g. it was set manually some other way).
         default_pm = None
         if user_sub.stripe_subscription_id:
             stripe_sub = stripe.Subscription.retrieve(user_sub.stripe_subscription_id)
@@ -574,24 +888,40 @@ class StripeOverageService:
                 "purchasing overage credits."
             )
 
-        intent = stripe.PaymentIntent.create(
-            amount=plan.overage_block_price,
-            currency="usd",
-            customer=wallet.stripe_customer_id,
-            payment_method=default_pm,
-            confirm=True,
-            automatic_payment_methods={"enabled": True, "allow_redirects": "never"},
-            metadata={
-                "flow": "overage_block_purchase",
-                "user_id": str(user.id),
-                "wallet_id": str(wallet.id),
-            },
-        )
+        try:
+            intent = stripe.PaymentIntent.create(
+                amount=plan.overage_block_price,
+                currency="usd",
+                customer=wallet.stripe_customer_id,
+                payment_method=default_pm,
+                confirm=True,
+                automatic_payment_methods={"enabled": True, "allow_redirects": "never"},
+                metadata={
+                    "flow": "overage_block_purchase",
+                    "user_id": str(user.id),
+                    "wallet_id": str(wallet.id),
+                    "plan_id": str(plan.id),
+                    "user_subscription_id": str(user_sub.id),
+                    "overage_expires_at": expires_at.isoformat(),
+                },
+            )
+        except stripe.error.CardError as exc:
+            raise ValueError(
+                f"Card declined: {getattr(exc, 'user_message', None) or str(exc)}"
+            ) from exc
+        except stripe.error.StripeError as exc:
+            raise ValueError(
+                f"Stripe error while purchasing overage block: "
+                f"{getattr(exc, 'user_message', None) or str(exc)}"
+            ) from exc
 
         if intent.status == "succeeded":
             # Grant the overage bucket atomically
             bucket = SubscriptionService.grant_overage_bucket(
-                wallet, user_sub, intent.id
+                wallet=wallet,
+                plan=plan,
+                expires_at=expires_at,
+                stripe_payment_intent_id=intent.id,
             )
             return {"status": "succeeded", "bucket": bucket}
 
@@ -601,7 +931,36 @@ class StripeOverageService:
             # completes, not here.
             return {"status": "requires_action", "client_secret": intent.client_secret}
 
-        raise ValueError(f"Payment could not be completed (status: {intent.status}).")
+        last_error = intent.get("last_payment_error") or {}
+
+        raise ValueError(
+            f"Payment could not be completed (status: {intent.status})."
+            + (f" {last_error['message']}" if last_error.get("message") else "")
+        )
+
+
+class StripePriceService:
+    @staticmethod
+    def create_custom_price(
+        product_id: str, unit_amount: int, interval_count: int
+    ) -> str:
+        """
+        Create a new Price in Stripe for a custom amount with a specific interval count.
+        interval_count: number of months between billing cycles (e.g., 9, 10, 12).
+        """
+        try:
+            price = stripe.Price.create(
+                product=product_id,
+                unit_amount=unit_amount,
+                currency="usd",
+                recurring={
+                    "interval": "month",
+                    "interval_count": interval_count,
+                },
+            )
+            return price.id
+        except stripe.error.StripeError as exc:
+            raise ValueError(f"Failed to create custom price: {exc}") from exc
 
 
 class StripeWebhookHandler:
@@ -629,6 +988,8 @@ class StripeWebhookHandler:
             StripeWebhookHandler._handle_trial_to_paid(session, metadata)
         elif flow == "license_create":
             StripeWebhookHandler._handle_license_create(session, metadata)
+        elif flow == "license_convert_to_stripe":
+            StripeWebhookHandler._handle_license_convert_to_stripe(session, metadata)
         else:
             logger.warning(
                 "checkout.session.completed with unrecognized flow metadata: %r", flow
@@ -653,6 +1014,8 @@ class StripeWebhookHandler:
 
     @staticmethod
     def _handle_individual_trial(session, metadata):
+        # FIXME: ALso delete this, replacement is handle trial to paid
+
         user = CustomUser.objects.get(id=metadata["user_id"])
         plan = SubscriptionPlan.objects.get(id=metadata["plan_id"])
 
@@ -792,10 +1155,11 @@ class StripeWebhookHandler:
     def handle_invoice_payment_succeeded(invoice):
         stripe_subscription_id = invoice.get("subscription")
         if not stripe_subscription_id:
-            return  # one-off invoice item, not a subscription cycle
+            return
 
         billing_reason = invoice.get("billing_reason")
 
+        # First, try individual subscription
         user_sub = (
             UserSubscription.objects.filter(
                 stripe_subscription_id=stripe_subscription_id
@@ -809,6 +1173,7 @@ class StripeWebhookHandler:
             )
             return
 
+        # Then, try license subscription
         license_sub = (
             LicenseSubscription.objects.filter(
                 stripe_subscription_id=stripe_subscription_id
@@ -817,11 +1182,20 @@ class StripeWebhookHandler:
             .first()
         )
         if license_sub:
-            # Monthly charge succeeded — purely a payment-health signal.
-            # Per-teacher credit allocation/rollover for licenses is driven
-            # by billing_cycle_end/contract_months in
-            # process_license_renewals, NOT by every monthly Stripe
-            # invoice. Do not grant credits here.
+            if license_sub.billing_method == LicenseBillingMethod.OFFLINE:
+                logger.warning(
+                    "Stripe event for license %s ignored — license is now "
+                    "billed offline (stale event, should be rare since "
+                    "stripe_subscription_id is cleared on conversion).",
+                    license_sub.id,
+                )
+                return
+            # Only act on actual renewal invoices
+            if billing_reason == "subscription_cycle":
+                # Renew credits - idempotent; will skip if billing_cycle_end already in future
+                LicenseSubscriptionService.process_license_renewal(license_sub)
+
+            # Always update status to reflect Stripe's state
             license_sub.stripe_status = StripeSubscriptionStatus.ACTIVE
             license_sub.save(update_fields=["stripe_status", "updated_at"])
             logger.info("License %s monthly Stripe charge succeeded.", license_sub.id)
@@ -987,12 +1361,226 @@ class StripeWebhookHandler:
         if already_granted:
             return
 
-        user = CustomUser.objects.get(id=metadata["user_id"])
+        wallet_id = metadata.get("wallet_id")
+        plan_id = metadata.get("plan_id")
+        expires_at_raw = metadata.get("overage_expires_at")
+
+        if wallet_id and plan_id and expires_at_raw:
+            # --- Preferred path: grant details were snapshotted at
+            # purchase time, so there's no ambiguity regardless of what
+            # happened to the user's subscription in the meantime. ---
+
+            try:
+                wallet = CreditWallet.objects.select_related("user").get(id=wallet_id)
+            except CreditWallet.DoesNotExist:
+                logger.error(
+                    "Overage PaymentIntent %s references wallet %s which no "
+                    "longer exists — credits NOT granted. Needs manual "
+                    "reconciliation (refund or manual grant).",
+                    payment_intent["id"],
+                    wallet_id,
+                )
+                return
+
+            try:
+                SubscriptionPlan.objects.get(id=plan_id)
+            except SubscriptionPlan.DoesNotExist:
+                # SubscriptionPlan is on_delete=PROTECT everywhere it's
+                # referenced, so this should be effectively unreachable —
+                # guarded anyway since we're handling real money.
+                logger.error(
+                    "Overage PaymentIntent %s references plan %s which no "
+                    "longer exists — credits NOT granted. Needs manual "
+                    "reconciliation (refund or manual grant).",
+                    payment_intent["id"],
+                    plan_id,
+                )
+                return
+
+            expires_at = parse_datetime(expires_at_raw)
+            if expires_at is None:
+                logger.error(
+                    "Overage PaymentIntent %s has an unparseable "
+                    "overage_expires_at value %r — credits NOT granted. "
+                    "Needs manual reconciliation (refund or manual grant).",
+                    payment_intent["id"],
+                    expires_at_raw,
+                )
+                return
+
+        # --- Legacy fallback: PaymentIntents created before this
+        # metadata-snapshotting change went out won't have plan_id /
+        # overage_expires_at. Fall back to the old best-effort behavior —
+        # resolve from whatever subscription is active RIGHT NOW. This is
+        # the race-prone path being replaced; it should only ever fire for
+        # a short window during deploy, as old in-flight intents clear. ---
+        logger.warning(
+            "Overage PaymentIntent %s missing plan/expiry metadata (legacy "
+            "format, pre-dates purchase-time snapshotting). Falling back to "
+            "resolving from the user's current active subscription.",
+            payment_intent["id"],
+        )
+
+        user_id = metadata.get("user_id")
+        if not user_id:
+            logger.error(
+                "Overage PaymentIntent %s has no user_id in metadata at "
+                "all — credits NOT granted. Needs manual reconciliation.",
+                payment_intent["id"],
+            )
+            return
+
+        try:
+            user = CustomUser.objects.get(id=user_id)
+        except CustomUser.DoesNotExist:
+            logger.error(
+                "Overage PaymentIntent %s references user %s who no longer "
+                "exists — credits NOT granted. Needs manual reconciliation.",
+                payment_intent["id"],
+                user_id,
+            )
+            return
+
         wallet = user.credit_wallet
         user_sub = (
             user.subscriptions.filter(is_active=True).select_related("plan").first()
         )
-        if user_sub:
-            SubscriptionService.grant_overage_bucket(
-                wallet, user_sub, payment_intent["id"]
+        if not user_sub:
+            # This is the exact scenario the comment described: Stripe
+            # captured payment, but by the time we're here there's no
+            # active subscription to attribute the grant to, and no
+            # snapshotted metadata to fall back on either. There is no
+            # safe automatic remedy left at this point — surfacing it
+            # loudly is the correct behavior, not a gap to silently paper
+            # over with a guess.
+            logger.error(
+                "Overage PaymentIntent %s succeeded for user %s but they "
+                "have no active individual subscription and no snapshotted "
+                "plan metadata — credits NOT granted. Needs manual "
+                "reconciliation (refund or manual grant).",
+                payment_intent["id"],
+                user.email,
             )
+            return
+
+        SubscriptionService.grant_overage_bucket(
+            wallet=wallet,
+            plan=user_sub.plan,
+            expires_at=user_sub.next_credit_grant_at or user_sub.billing_cycle_end,
+            stripe_payment_intent_id=payment_intent["id"],
+        )
+
+    @staticmethod
+    def handle_payment_intent_failed(payment_intent):
+        """
+        No credits were ever granted for this PaymentIntent — grant only
+        happens on success — so there's nothing to roll back. This exists
+        purely for observability: logs the decline so support can see why
+        a user's overage purchase didn't complete (e.g. an abandoned or
+        failed 3DS challenge after purchase_overage_block returned
+        "requires_action").
+        """
+        metadata = payment_intent.get("metadata", {}) or {}
+        if metadata.get("flow") != "overage_block_purchase":
+            return
+
+        last_error = payment_intent.get("last_payment_error") or {}
+        logger.warning(
+            "Overage block purchase failed for user %s (PaymentIntent %s): %s",
+            metadata.get("user_id"),
+            payment_intent.get("id"),
+            last_error.get("message") or "unknown error",
+        )
+
+    @staticmethod
+    def _handle_license_convert_to_stripe(session, metadata):
+        license_sub = LicenseSubscription.objects.select_for_update().get(
+            id=metadata["license_id"]
+        )
+
+        if license_sub.billing_method != LicenseBillingMethod.OFFLINE:
+            logger.warning(
+                "license_convert_to_stripe webhook for license %s which is "
+                "already billing_method=%s. Ignoring (already converted, or "
+                "duplicate delivery already handled by StripeEvent idempotency).",
+                license_sub.id,
+                license_sub.billing_method,
+            )
+            return
+
+        license_sub.stripe_subscription_id = session["subscription"]
+        license_sub.stripe_customer_id = session["customer"]
+        license_sub.billing_method = LicenseBillingMethod.STRIPE
+        license_sub.stripe_status = StripeSubscriptionStatus.ACTIVE
+        license_sub.save(
+            update_fields=[
+                "stripe_subscription_id",
+                "stripe_customer_id",
+                "billing_method",
+                "stripe_status",
+                "updated_at",
+            ]
+        )
+
+        performed_by = None
+        initiated_by_id = metadata.get("initiated_by_user_id")
+        if initiated_by_id:
+            performed_by = CustomUser.objects.filter(id=initiated_by_id).first()
+
+        LicenseBillingRecord.objects.create(
+            license_subscription=license_sub,
+            record_type=LicenseBillingRecordType.CONVERTED_TO_STRIPE,
+            performed_by=performed_by,
+            notes=f"Converted to Stripe billing via checkout session {session['id']}.",
+        )
+
+        logger.info(
+            "License %s converted from OFFLINE to STRIPE billing (Stripe "
+            "subscription %s).",
+            license_sub.id,
+            session["subscription"],
+        )
+
+    @staticmethod
+    def handle_setup_intent_succeeded(setup_intent):
+        """
+        Attaches the newly-collected card as the customer's default invoice
+        payment method. This is what purchase_teacher_overage's
+        customer-level fallback reads from later. Deliberately webhook-driven
+        rather than done synchronously in a "confirm" endpoint, so we never
+        trust a client-supplied payment_method_id without Stripe having
+        actually confirmed the SetupIntent succeeded.
+        """
+        metadata = setup_intent.get("metadata", {}) or {}
+        license_id = metadata.get("license_id")
+        if not license_id:
+            return
+
+        payment_method_id = setup_intent.get("payment_method")
+        customer_id = setup_intent.get("customer")
+        if not payment_method_id or not customer_id:
+            logger.warning(
+                "setup_intent.succeeded for license %s missing payment_method "
+                "or customer on the event object.",
+                license_id,
+            )
+            return
+
+        try:
+            stripe.Customer.modify(
+                customer_id,
+                invoice_settings={"default_payment_method": payment_method_id},
+            )
+        except stripe.error.StripeError:
+            logger.exception(
+                "Failed to set default payment method for license %s " "(customer %s).",
+                license_id,
+                customer_id,
+            )
+            return
+
+        logger.info(
+            "Default payment method set for license %s (customer %s).",
+            license_id,
+            customer_id,
+        )

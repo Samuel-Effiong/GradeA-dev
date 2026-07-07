@@ -88,10 +88,10 @@ from .stripe_service import (  # StripeSubscriptionMutationService,
     StripeOverageService,
     StripeSubscriptionMutationService,
 )
-from .stripe_view_schemas import (  # START_TRIAL_SCHEMA,
+from .stripe_view_schemas import (  # START_TRIAL_SCHEMA,; CONVERT_TRIAL_SCHEMA,
     CANCEL_SCHEMA,
     CHECKOUT_SCHEMA,
-    CONVERT_TRIAL_SCHEMA,
+    CONVERT_TRIAL_TO_PAID_SCHEMA,
     DOWNGRADE_SCHEMA,
     PURCHASE_OVERAGE_SCHEMA,
     UPGRADE_SCHEMA,
@@ -181,6 +181,7 @@ class SubscriptionPlanViewSet(viewsets.ModelViewSet):
         if self.action in ["list", "retrieve"]:
             permission_classes = [IsAuthenticated]
         else:
+            # FIXME: Restrict creation of plan to superadmin only
             permission_classes = [IsAuthenticated, IsNotStudent]
         return [permission() for permission in permission_classes]
 
@@ -895,6 +896,15 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
             result = StripeOverageService.purchase_overage_block(request.user)
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception:
+            logger.exception(
+                "Unexpected error during overage purchase for user %s",
+                request.user.email,
+            )
+            return Response(
+                {"detail": "An unexpected error occurred. Please try again later."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         if result["status"] == "requires_action":
             return Response(result, status=status.HTTP_200_OK)
@@ -903,75 +913,50 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
             status=status.HTTP_201_CREATED,
         )
 
-    @CONVERT_TRIAL_SCHEMA
-    @action(
-        detail=False,
-        methods=["POST"],
-        url_path="convert-trial",
-        url_name="convert-trial",
-    )
-    def convert_trial(self, request, *args, **kwargs):
-        """
-        POST /api/billing/subscriptions/convert-trial/
-        Body: { "plan": "<uuid>" }
-        """
+    # @CONVERT_TRIAL_SCHEMA
+    # @action(
+    #     detail=False,
+    #     methods=["POST"],
+    #     url_path="convert-trial",
+    #     url_name="convert-trial",
+    # )
+    # def convert_trial(self, request, *args, **kwargs):
+    #     """
+    #     POST /api/billing/subscriptions/convert-trial/
+    #     Body: { "plan": "<uuid>" }
+    #     """
 
-        # FIXME: Delete this, replacement is convert_trial_to_paid_checkout
+    #     # FIXME: Delete this, replacement is convert_trial_to_paid_checkout
 
-        plan_id = request.data.get("plan")
-        if not plan_id:
-            return Response(
-                {"detail": "The 'plan' field is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+    #     plan_id = request.data.get("plan")
+    #     if not plan_id:
+    #         return Response(
+    #             {"detail": "The 'plan' field is required."},
+    #             status=status.HTTP_400_BAD_REQUEST,
+    #         )
 
-        try:
-            plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
-        except SubscriptionPlan.DoesNotExist:
-            return Response(
-                {"detail": "Plan not found or is not active."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+    #     try:
+    #         plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
+    #     except SubscriptionPlan.DoesNotExist:
+    #         return Response(
+    #             {"detail": "Plan not found or is not active."},
+    #             status=status.HTTP_404_NOT_FOUND,
+    #         )
 
-        try:
-            new_sub = SubscriptionService.convert_trial_to_paid(
-                user=request.user, new_plan=plan
-            )
-        except ValueError as exc:
-            return Response(
-                {"detail": str(exc)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+    #     try:
+    #         new_sub = SubscriptionService.convert_trial_to_paid(
+    #             user=request.user, new_plan=plan
+    #         )
+    #     except ValueError as exc:
+    #         return Response(
+    #             {"detail": str(exc)},
+    #             status=status.HTTP_400_BAD_REQUEST,
+    #         )
 
-        serializer = self.get_serializer(new_sub)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    #     serializer = self.get_serializer(new_sub)
+    #     return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @extend_schema(
-        tags=["Subscription"],
-        summary="Convert trial to paid (Stripe Checkout)",
-        description=(
-            "Mid-cycle or end-of-trial upgrade: redirect to Stripe Checkout to collect payment. "
-            "User must have an active free trial. "
-            "Payment must succeed for plan to be activated. "
-            "Trial credits are forfeited on conversion (not carried over)."
-        ),
-        request=OpenApiTypes.OBJECT,  # { "plan": "<uuid>" }
-        responses={
-            200: OpenApiResponse(
-                description="Checkout session created. Return checkout_url to frontend.",
-                examples=[
-                    OpenApiExample(
-                        "Checkout session",
-                        value={"checkout_url": "https://checkout.stripe.com/..."},
-                    )
-                ],
-            ),
-            400: OpenApiResponse(
-                description="User has no active trial, or plan is invalid"
-            ),
-            404: OpenApiResponse(description="Plan not found"),
-        },
-    )
+    @CONVERT_TRIAL_TO_PAID_SCHEMA
     @action(
         detail=False,
         methods=["POST"],

@@ -6,12 +6,20 @@ This module provides RESTful API endpoints for managing institutional
 and subscription lifecycle operations.
 """
 
+import logging
+
 from django.conf import settings
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from drf_spectacular.utils import extend_schema, extend_schema_view
-from rest_framework import status, viewsets
+from drf_spectacular.utils import (
+    OpenApiExample,
+    OpenApiResponse,
+    extend_schema,
+    extend_schema_view,
+    inline_serializer,
+)
+from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
@@ -21,10 +29,29 @@ from classrooms.models import School
 from classrooms.permissions import IsNotStudent, IsSuperAdmin
 from users.models import CustomUser, UserTypes
 
+from .imports import stripe
 from .license_service import LicenseSubscriptionService
-from .models import LicenseSubscription, SchoolCreditAllocation  # , SubscriptionPlan
-from .serializers import LicenseSubscriptionSerializer, SchoolCreditAllocationSerializer
-from .stripe_service import StripeCheckoutService
+from .models import (
+    LicenseBillingMethod,
+    LicenseBillingRecord,
+    LicenseBillingRecordType,
+    LicenseSubscription,
+    SchoolCreditAllocation,
+    SubscriptionPlan,
+)
+from .serializers import (
+    ChangeLicensePlanSerializer,
+    ConvertToOfflineSerializer,
+    CreditBucketSerializer,
+    LicenseBillingRecordSerializer,
+    LicenseSubscriptionSerializer,
+    ManualTeacherOverageGrantSerializer,
+    OfflineLicenseRenewalSerializer,
+    PlanCategory,
+    SchoolCreditAllocationSerializer,
+    UpdateLicenseSeatsSerializer,
+)
+from .stripe_service import StripeCheckoutService, StripeCustomerService
 from .stripe_view_schemas import (
     ADD_TEACHERS_SCHEMA,
     LICENSE_CREATE_SCHEMA,
@@ -32,6 +59,8 @@ from .stripe_view_schemas import (
     REMOVE_TEACHERS_SCHEMA,
     RENEWAL_INFO_SCHEMA,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class IsSchoolAdminOrSuperAdmin(IsAuthenticated):
@@ -137,7 +166,14 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_permissions(self):
-        if self.action in ["add_teachers", "remove_teachers", "list", "retrieve"]:
+        if self.action in [
+            "add_teachers",
+            "remove_teachers",
+            "list",
+            "retrieve",
+            "purchase_overage",
+            "setup_payment_method",
+        ]:
             permission_classes = [IsSchoolAdminOrSuperAdmin]
         else:
             permission_classes = [IsSuperAdmin]
@@ -184,6 +220,22 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
+
+        billing_method = data.get("billing_method") or LicenseBillingMethod.STRIPE
+
+        if billing_method == LicenseBillingMethod.OFFLINE:
+            license_sub = serializer.save()
+
+            LicenseBillingRecord.objects.create(
+                license_subcription=license_sub,
+                record_type=LicenseBillingRecordType.CREATED_OFFLINE,
+                amount_paid_cents=license_sub.custom_price_cents,
+                performed_by=request.user,
+                notes="License created via offline billing",
+            )
+
+            out_serializer = self.get_serializer(license_sub)
+            return Response(out_serializer.data, status=status.HTTP_201_CREATED)
 
         success_url = (
             request.data.get("success_url")
@@ -375,6 +427,495 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
                 ).data,
             }
         )
+
+    @extend_schema(
+        tags=["License Subscriptions"],
+        summary="Change license plan",
+        description=(
+            "Changes the subscription plan for a license.\n\n"
+            "**Behavior:**\n"
+            "- Changing to a higher-priced plan is immediately prorated and invoiced.\n"
+            "- Changing to a lower-priced plan applies without proration.\n"
+            "- `custom_price_cents` is optional.\n"
+            "- Omit `custom_price_cents` to keep the existing custom price.\n"
+            "- Set `custom_price_cents` to an integer to override the plan price.\n"
+            "- Set `custom_price_cents` to `null` to remove the custom price and use the plan's default price."
+        ),
+        request=ChangeLicensePlanSerializer,
+        responses={
+            200: LicenseSubscriptionSerializer,
+        },
+        examples=[
+            OpenApiExample(
+                "Keep existing custom price",
+                summary="Only change plan",
+                request_only=True,
+                value={"plan": "7d79f7a3-936d-4d9c-a37d-4cfb471cbb06"},
+            ),
+            OpenApiExample(
+                "Set custom price",
+                summary="Override plan price",
+                request_only=True,
+                value={
+                    "plan": "7d79f7a3-936d-4d9c-a37d-4cfb471cbb06",
+                    "custom_price_cents": 2499,
+                },
+            ),
+            OpenApiExample(
+                "Remove custom price",
+                summary="Revert to default plan price",
+                request_only=True,
+                value={
+                    "plan": "7d79f7a3-936d-4d9c-a37d-4cfb471cbb06",
+                    "custom_price_cents": None,
+                },
+            ),
+        ],
+    )
+    @action(detail=True, methods=["post"])
+    def change_plan(self, request, pk=None):
+        license_sub = self.get_object()
+
+        plan_id = request.data.get("plan")
+        if not plan_id:
+            return Response(
+                {"detail": "The 'plan' field is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            new_plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
+        except SubscriptionPlan.DoesNotExist:
+            return Response(
+                {"detail": "Plan not found or inactive."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if new_plan.category != PlanCategory.LICENSE:
+            return Response(
+                {"detail": "Selected plan is not a LICENSE plan."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Handle custom_price_cents
+        custom_price_cents = request.data.get("custom_price_cents")
+        remove_custom_price = False
+        if custom_price_cents is None:
+            # Check if the key was explicitly provided with null
+            if "custom_price_cents" in request.data:
+                # Explicitly null -> remove custom price
+                remove_custom_price = True
+            # else: not provided, keep existing
+        else:
+            try:
+                custom_price_cents = int(custom_price_cents)
+                if custom_price_cents < 0:
+                    raise ValueError
+            except (ValueError, TypeError):
+                return Response(
+                    {
+                        "detail": "custom_price_cents must be a non-negative integer or null."
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        try:
+            updated_license = LicenseSubscriptionService.change_license_plan(
+                license_sub,
+                new_plan,
+                custom_price_cents=(
+                    custom_price_cents if not remove_custom_price else None
+                ),
+                remove_custom_price=remove_custom_price,
+                performed_by=request.user,
+            )
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.exception("Unexpected error changing license plan: %s", e)
+            return Response(
+                {"detail": "An unexpected error occurred."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        serializer = self.get_serializer(updated_license)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        tags=["License Subscriptions"],
+        summary="Update maximum teacher seats",
+        description=(
+            "Updates the maximum number of teacher seats for the license.\n\n"
+            "- Increasing seats applies immediately and Stripe performs a prorated charge.\n"
+            "- Decreasing seats takes effect at the next billing cycle.\n"
+            "- The seat count cannot be reduced below the current number of active teachers."
+        ),
+        request=UpdateLicenseSeatsSerializer,
+        responses={
+            200: LicenseSubscriptionSerializer,
+        },
+    )
+    @action(detail=True, methods=["post"])
+    def update_seats(self, request, pk=None):
+        license_sub = self.get_object()
+        new_max_seats = request.data.get("max_seats")
+        if new_max_seats is None:
+            return Response(
+                {"detail": "The 'max_seats' field is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            new_max_seats = int(new_max_seats)
+            if new_max_seats <= 0:
+                raise ValueError
+        except (ValueError, TypeError):
+            return Response(
+                {"detail": "max_seats must be a positive integer."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            updated_license = LicenseSubscriptionService.update_seats(
+                license_sub, new_max_seats, performed_by=request.user
+            )
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.exception("Unexpected error updating seats: %s", e)
+            return Response(
+                {"detail": "An unexpected error occurred."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        serializer = self.get_serializer(updated_license)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        tags=["License Subscriptions"],
+        summary="Purchase teacher overage blocks",
+        description=(
+            "Purchase additional overage credit blocks for teachers under a license "
+            "subscription.\n\n"
+            "Each overage block grants **5,000 credits** to a teacher.\n\n"
+            "**Rules:**\n"
+            "- `total_blocks` must be greater than 0.\n"
+            "- `allocations` is a mapping of teacher UUIDs to the number of blocks "
+            "to allocate.\n"
+            "- The sum of all allocated blocks **must equal** `total_blocks`.\n"
+            "- The school's default payment method is charged for the purchase."
+        ),
+        request=inline_serializer(
+            name="PurchaseOverageRequest",
+            fields={
+                "total_blocks": serializers.IntegerField(
+                    min_value=1, help_text="Total number of overage blocks to purchase."
+                ),
+                "allocations": serializers.DictField(
+                    child=serializers.IntegerField(min_value=1),
+                    help_text=(
+                        "Mapping of teacher UUID to number of blocks to allocate."
+                    ),
+                ),
+            },
+        ),
+        responses={
+            200: OpenApiResponse(
+                response=inline_serializer(
+                    name="PurchaseOverageResponse",
+                    fields={
+                        "payment_intent_id": serializers.CharField(),
+                        "total_blocks": serializers.IntegerField(),
+                        "allocations": serializers.ListField(
+                            child=inline_serializer(
+                                name="TeacherAllocation",
+                                fields={
+                                    "teacher_id": serializers.UUIDField(),
+                                    "teacher_email": serializers.EmailField(),
+                                    "blocks": serializers.IntegerField(),
+                                    "credits_granted": serializers.IntegerField(),
+                                },
+                            )
+                        ),
+                    },
+                ),
+                description="Overage purchase completed successfully.",
+            ),
+            400: OpenApiResponse(
+                description=(
+                    "Validation failed. Possible reasons:\n"
+                    "- total_blocks is invalid\n"
+                    "- allocations is missing or malformed\n"
+                    "- allocated blocks do not equal total_blocks\n"
+                    "- payment failed"
+                )
+            ),
+            500: OpenApiResponse(description="Unexpected server error."),
+        },
+    )
+    @action(detail=True, methods=["post"])
+    def purchase_overage(self, request, pk=None):
+        license_sub = self.get_object()
+
+        total_blocks = request.data.get("total_blocks")
+        if total_blocks is None:
+            return Response(
+                {"detail": "The 'total_blocks' field is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            total_blocks = int(total_blocks)
+            if total_blocks <= 0:
+                raise ValueError
+        except (ValueError, TypeError):
+            return Response(
+                {"detail": "total_blocks must be a positive integer."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        allocations = request.data.get("allocations")
+        if not allocations:
+            return Response(
+                {"detail": "allocations is required and must be a non-empty object."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not isinstance(allocations, dict):
+            return Response(
+                {
+                    "detail": "allocations must be a dictionary mapping teacher IDs to block counts."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Convert keys to strings (UUIDs) and values to ints
+        try:
+            clean_allocations = {}
+            for teacher_id, blocks in allocations.items():
+                blocks_int = int(blocks)
+                if blocks_int <= 0:
+                    raise ValueError(
+                        f"Invalid block count for teacher {teacher_id}: {blocks}"
+                    )
+                clean_allocations[str(teacher_id)] = blocks_int
+        except (ValueError, TypeError) as e:
+            return Response(
+                {"detail": f"Invalid allocation format: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Ensure total blocks matches sum
+        allocated_sum = sum(clean_allocations.values())
+        if allocated_sum != total_blocks:
+            return Response(
+                {
+                    "detail": f"Sum of allocated blocks ({allocated_sum}) does not equal total_blocks ({total_blocks})."
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            result = LicenseSubscriptionService.purchase_teacher_overage(
+                license_sub=license_sub,
+                admin_user=request.user,
+                total_blocks=total_blocks,
+                allocations=clean_allocations,
+            )
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except stripe.error.StripeError as e:
+            logger.exception("Stripe error during license overage purchase: %s", e)
+            return Response(
+                {"detail": f"Payment failed: {e.user_message or str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception as e:
+            logger.exception("Unexpected error during license overage purchase: %s", e)
+            return Response(
+                {"detail": "An unexpected error occurred."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        return Response(result, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        tags=["License Subscriptions"],
+        summary="Renew an offline-billed license",
+        description=(
+            "Superadmin-only. Records that an OFFLINE license has been paid "
+            "for and renews it: rolls over unused credits for every active "
+            "teacher, grants a fresh monthly bucket per teacher, and sets a "
+            "new billing_cycle_end. There is no cap on renewing early or "
+            "'late' — this is a manual accounting action, not an automatic "
+            "one."
+        ),
+        request=OfflineLicenseRenewalSerializer,
+        responses={200: LicenseSubscriptionSerializer},
+    )
+    @action(detail=True, methods=["post"], url_path="renew-offline")
+    def renew_offline(self, request, pk=None):
+        license_sub = self.get_object()
+        serializer = OfflineLicenseRenewalSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        d = serializer.validated_data
+
+        try:
+            updated = LicenseSubscriptionService.process_offline_renewal(
+                license_sub,
+                performed_by=request.user,
+                new_billing_cycle_end=d["new_billing_cycle_end"],
+                amount_paid_cents=d.get("amount_paid_cents"),
+                payment_reference=d.get("payment_reference"),
+                payment_method_label=d.get("payment_method_label"),
+                notes=d.get("notes"),
+            )
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(self.get_serializer(updated).data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        tags=["License Subscriptions"],
+        summary="Convert an offline license to Stripe self-serve billing",
+        description=(
+            "Superadmin-only. Creates a Stripe Checkout session; the license "
+            "is only flipped to STRIPE billing once the checkout.session."
+            "completed webhook confirms payment — not on this call."
+        ),
+        responses={200: OpenApiResponse(description="Returns a checkout_url.")},
+    )
+    @action(detail=True, methods=["post"], url_path="convert-to-stripe")
+    def convert_to_stripe(self, request, pk=None):
+        license_sub = self.get_object()
+
+        success_url = (
+            request.data.get("success_url")
+            or f"https://{settings.FRONTEND_DOMAIN}/billing/license-conversion-success"
+        )
+        cancel_url = (
+            request.data.get("cancel_url")
+            or f"https://{settings.FRONTEND_DOMAIN}/billing/license-conversion-cancelled"
+        )
+
+        try:
+            session = StripeCheckoutService.create_license_conversion_session(
+                license_sub,
+                initiated_by=request.user,
+                success_url=success_url,
+                cancel_url=cancel_url,
+            )
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"checkout_url": session.url}, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        tags=["License Subscriptions"],
+        summary="Convert a Stripe-billed license to offline billing",
+        description=(
+            "Superadmin-only. Immediately cancels the Stripe subscription "
+            "(no automatic proration refund for unused time) and flips the "
+            "license to OFFLINE billing."
+        ),
+        request=ConvertToOfflineSerializer,
+        responses={200: LicenseSubscriptionSerializer},
+    )
+    @action(detail=True, methods=["post"], url_path="convert-to-offline")
+    def convert_to_offline(self, request, pk=None):
+        license_sub = self.get_object()
+        serializer = ConvertToOfflineSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            updated = LicenseSubscriptionService.convert_license_to_offline(
+                license_sub,
+                performed_by=request.user,
+                notes=serializer.validated_data.get("notes"),
+            )
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(self.get_serializer(updated).data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        tags=["License Subscriptions"],
+        summary="Manually grant overage credits to a teacher under this license",
+        description=(
+            "Superadmin-only. Works for both OFFLINE and STRIPE-billed "
+            "licenses — e.g. a goodwill comp, or an offline school's "
+            "negotiated extra overage paid for outside Stripe."
+        ),
+        request=ManualTeacherOverageGrantSerializer,
+        responses={201: CreditBucketSerializer},
+    )
+    @action(detail=True, methods=["post"], url_path="grant-teacher-overage")
+    def grant_teacher_overage(self, request, pk=None):
+        license_sub = self.get_object()
+        serializer = ManualTeacherOverageGrantSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        d = serializer.validated_data
+
+        teacher = get_object_or_404(CustomUser, id=d["teacher_id"])
+
+        try:
+            bucket = LicenseSubscriptionService.grant_manual_teacher_overage(
+                license_sub,
+                teacher,
+                d["blocks"],
+                performed_by=request.user,
+                amount_paid_cents=d.get("amount_paid_cents"),
+                payment_reference=d.get("payment_reference"),
+                payment_method_label=d.get("payment_method_label"),
+                notes=d.get("notes"),
+            )
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            CreditBucketSerializer(bucket).data, status=status.HTTP_201_CREATED
+        )
+
+    @extend_schema(
+        tags=["License Subscriptions"],
+        summary="Add a payment method for self-serve overage purchases",
+        description=(
+            "For school admins whose license is billed OFFLINE (no Stripe "
+            "subscription exists) but who want to self-serve purchase "
+            "overage via Stripe. Returns a SetupIntent client_secret for the "
+            "frontend to collect a card with Stripe Elements. This does NOT "
+            "change the license's billing_method — it only lets Stripe be "
+            "used for overage purchases."
+        ),
+        responses={200: OpenApiResponse(description="Returns a client_secret.")},
+    )
+    @action(detail=True, methods=["post"], url_path="setup-payment-method")
+    def setup_payment_method(self, request, pk=None):
+        license_sub = self.get_object()
+
+        try:
+            setup_intent = StripeCustomerService.create_license_setup_intent(
+                license_sub, request.user
+            )
+        except stripe.error.StripeError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(
+            {"client_secret": setup_intent.client_secret}, status=status.HTTP_200_OK
+        )
+
+    @extend_schema(
+        tags=["License Subscriptions"],
+        summary="Billing history for a license",
+        description=(
+            "Superadmin-only accounting trail: offline creation/renewals, "
+            "plan/seat changes, billing-method conversions, and manual "
+            "overage grants for this license."
+        ),
+        responses={200: LicenseBillingRecordSerializer(many=True)},
+    )
+    @action(detail=True, methods=["get"], url_path="billing-history")
+    def billing_history(self, request, pk=None):
+        license_sub = self.get_object()
+        records = license_sub.billing_records.all()
+        return Response(LicenseBillingRecordSerializer(records, many=True).data)
 
 
 @extend_schema_view(
