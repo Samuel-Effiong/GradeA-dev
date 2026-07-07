@@ -93,9 +93,12 @@ class SubscriptionService:
         wallet, _ = CreditWallet.objects.get_or_create(user=user)
 
         # --- The cleanup pahse (Handling existing credits for upgrades)
-        active_monthly = wallet.buckets.filter(
-            bucket_type=CreditBucketType.MONTHLY, expires_at__gt=now
-        ).first()
+        active_monthly = (
+            wallet.buckets.select_for_update()
+            .filter(bucket_type=CreditBucketType.MONTHLY, expires_at__gt=now)
+            .order_by("created_at")
+            .first()
+        )
 
         if active_monthly:
             unused = active_monthly.remaining_credits

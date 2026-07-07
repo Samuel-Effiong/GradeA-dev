@@ -229,8 +229,9 @@ class StudentCourseSerializer(serializers.ModelSerializer):
             "withdrawal_date",
             "final_grade",
             "grade_letter",
+            "auto_added",
         ]
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "created_at", "auto_added"]
 
     def get_teacher(self, obj):
         return obj.course.teacher.get_full_name()

@@ -301,10 +301,8 @@ class SubscriptionPlan(models.Model):
     #     help_text="Price per overage block in USD cents (e.g. 400 = $4.00)",
     # )
 
-    overage_block_price = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        default=Decimal("0.00"),
+    overage_block_price = models.IntegerField(
+        default=0,
         help_text="Price per overage block in USD cents (e.g. 400 = $4.00)",
     )
 
@@ -558,6 +556,9 @@ class CreditWallet(models.Model):
         Raises:
             InsufficientCreditsError: If total available credits are less than requested.
         """
+        # Lock CreditWallet row to serialize consumption requests
+        CreditWallet.objects.select_for_update().get(pk=self.pk)
+
         total_available = self.total_remaining_credits()
 
         while total_available < amount:
