@@ -554,4 +554,5 @@ DISALLOWED_EMAIL_DOMAINS = [
     "gmx.com",
     "fastmail.com",
     "hushmail.com",
+    "yopmail.com",
 ]
