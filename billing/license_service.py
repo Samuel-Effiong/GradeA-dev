@@ -416,6 +416,11 @@ class LicenseSubscriptionService:
                 logger.warning(error_msg)
                 return None
 
+            # Associate the teacher with the school if they don't have one
+            if not user.school:
+                user.school = school
+                user.save(update_fields=["school"])
+
             # 5. If user exists but inactive, ensure that they have a valid activation token
             if not user.is_active:
                 if (

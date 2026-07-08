@@ -195,7 +195,7 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
             # School admin: filter to their school(s)
             if self.request.user.user_type == UserTypes.SCHOOL_ADMIN:
                 # Get schools where user is admin
-                admin_schools = School.objects.filter(admins=self.request.user)
+                admin_schools = School.objects.filter(users=self.request.user)
                 queryset = queryset.filter(school__in=admin_schools)
             else:
                 # Other users should not see licenses
@@ -213,7 +213,8 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
             "school": <school_id>,
             "admin_user": <user_id>,
             "plan": <plan_id>,
-            "teacher_ids": [<user_id>, ...] (optional)
+            "teacher_ids": [<user_id>, ...] (optional),
+            "billing_method": "STRIPE" | "OFFLINE" (optional, default STRIPE)
         }
         """
 
@@ -224,17 +225,18 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
         billing_method = data.get("billing_method") or LicenseBillingMethod.STRIPE
 
         if billing_method == LicenseBillingMethod.OFFLINE:
-            license_sub = serializer.save()
+            with transaction.atomic():
+                license_sub = serializer.save()
 
-            LicenseBillingRecord.objects.create(
-                license_subcription=license_sub,
-                record_type=LicenseBillingRecordType.CREATED_OFFLINE,
-                amount_paid_cents=license_sub.custom_price_cents,
-                performed_by=request.user,
-                notes="License created via offline billing",
-            )
+                LicenseBillingRecord.objects.create(
+                    license_subscription=license_sub,
+                    record_type=LicenseBillingRecordType.CREATED_OFFLINE,
+                    amount_paid_cents=license_sub.custom_price_cents,
+                    performed_by=request.user,
+                    notes="License created via offline billing",
+                )
 
-            out_serializer = self.get_serializer(license_sub)
+                out_serializer = self.get_serializer(license_sub)
             return Response(out_serializer.data, status=status.HTTP_201_CREATED)
 
         success_url = (

@@ -57,7 +57,7 @@ def can_user_access_ai(user) -> Tuple[bool, Optional[str]]:
     active_sub = None
 
     try:
-        active_sub = user.subscription.filter(is_active=True).first()
+        active_sub = user.subscriptions.filter(is_active=True).first()
     except Exception as exc:
         logger.error(
             "Error fetching subscriptions for user %s: %s",
@@ -218,7 +218,7 @@ def require_ai_access(view_func=None):
             if not can_access:
                 logger.warning(
                     "AI access denied for user %s: %s",
-                    request.user.email if request.is_authenticated else "ANON",
+                    request.user.email if request.user.is_authenticated else "ANON",
                     reason,
                 )
 

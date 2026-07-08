@@ -45,6 +45,8 @@ from drf_spectacular.utils import (
 )
 from rest_framework import serializers
 
+from billing.serializers import LicenseSubscriptionSerializer
+
 # ===========================================================================
 # SubscriptionManagementViewSet — Stripe actions
 # ===========================================================================
@@ -833,12 +835,21 @@ until that subscription is cancelled.
                     "Defaults to FRONTEND_DOMAIN/billing/license-cancelled."
                 ),
             ),
+            "billing_method": serializers.ChoiceField(
+                choices=["STRIPE", "OFFLINE"],
+                required=False,
+                help_text="The billing method for this license. Defaults to STRIPE.",
+            ),
         },
     ),
     responses={
+        201: OpenApiResponse(
+            description=("License created immediately (OFFLINE billing method)."),
+            response=LicenseSubscriptionSerializer,
+        ),
         200: OpenApiResponse(
             description=(
-                "Checkout Session created. Redirect the school admin to "
+                "Checkout Session created (STRIPE billing method). Redirect the school admin to "
                 "`checkout_url`. The license does not exist yet — it is "
                 "created by the webhook after payment."
             ),

@@ -261,6 +261,8 @@ WEEKLY_COURSE_SUMMARY_DAY_OF_WEEK = env.str(
 WEEKLY_COURSE_SUMMARY_HOUR = env.int("WEEKLY_COURSE_SUMMARY_HOUR", default=7)
 WEEKLY_COURSE_SUMMARY_MINUTE = env.int("WEEKLY_COURSE_SUMMARY_MINUTE", default=0)
 
+USE_BETA_PLAN_ON_SIGNUP = env.bool("USE_BETA_PLAN_ON_SIGNUP", default=False)
+
 # Celery Beat Schedule
 CELERY_BEAT_SCHEDULE = {
     "record-concurrent-users-every-minute": {

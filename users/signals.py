@@ -1,13 +1,12 @@
 import logging
 
+from django.conf import settings
 from django.core.cache import cache
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
 from billing.context import get_license_invitation_context
-from billing.models import CreditWallet
-
-# from billing.models import BetaProfile, CreditWallet # PlanType, # SubscriptionPlan
+from billing.models import BetaProfile, CreditWallet, PlanType, SubscriptionPlan
 from billing.services import SubscriptionService
 from users.models import CustomUser, Settings
 
@@ -27,28 +26,6 @@ def clear_user_cache(sender, instance, **kwargs):
         cache.delete_pattern("*course*")
         cache.delete_pattern("*studentcourse*")
         cache.delete_pattern("*settings*")
-
-
-# @receiver(post_save, sender=CustomUser)
-# def create_settings(sender, instance, created, **kwargs):
-#     # Create default settings
-#     Settings.objects.get_or_create(user=instance)
-
-#     # Create empty wallet
-#     CreditWallet.objects.get_or_create(user=instance)
-
-#     if created and instance.is_beta_eligible():
-#         if get_license_invitation_context():
-#             return
-
-#         beta_plan = SubscriptionPlan.objects.filter(name=PlanType.BETA).first()
-
-#         if beta_plan:
-#             initial_credits = beta_plan.monthly_credits
-#             BetaProfile.objects.get_or_create(
-#                 user=instance, defaults={"initial_beta_credits": initial_credits}
-#             )
-#             SubscriptionService.activate_subscription(instance, beta_plan)
 
 
 @receiver(post_save, sender=CustomUser)
@@ -139,28 +116,60 @@ def create_default_settings_and_wallet(sender, instance, created, **kwargs):
         )
         return
 
-    # Attempt Trial Activation
+    # Check environment variable for which plan to use
+    use_beta_plan = settings.USE_BETA_PLAN_ON_SIGNUP
 
-    try:
-        SubscriptionService.activate_automatic_free_trial(user)
-        logger.info(
-            "✓ Automatic free trial successfully activated for user %s.",
-            user.email,
+    if use_beta_plan:
+        logger.debug(
+            "Activating Beta plan for user %s based on env variable", user.email
         )
-    except ValueError as exc:
-        # Validation error — log but don't fail registration
-        # This could happen if STANDARD plan doesn't exist
-        logger.warning(
-            "Cannot activate automatic trial for user %s (validation): %s",
-            user.email,
-            str(exc),
-        )
-    except Exception as exc:
-        # Unexpected error — log but don't fail registration
-        # Registration should succeed even if trial activation fails
-        logger.error(
-            "Failed to activate automatic trial for user %s: %s",
-            user.email,
-            str(exc),
-            exc_info=True,
-        )
+        beta_plan = SubscriptionPlan.objects.filter(name=PlanType.BETA).first()
+
+        if beta_plan:
+            initial_credits = beta_plan.monthly_credits
+            BetaProfile.objects.get_or_create(
+                user=user, defaults={"initial_beta_credits": initial_credits}
+            )
+            try:
+                SubscriptionService.activate_subscription(user, beta_plan)
+                logger.info(
+                    "✓ Beta plan successfully activated for user %s.", user.email
+                )
+            except Exception as exc:
+                logger.error(
+                    "Failed to activate beta plan for user %s: %s",
+                    user.email,
+                    str(exc),
+                    exc_info=True,
+                )
+        else:
+            logger.warning(
+                "BETA plan not found in database for user %s. Skipping activation.",
+                user.email,
+            )
+
+    else:
+        # Attempt Trial Activation
+        try:
+            SubscriptionService.activate_automatic_free_trial(user)
+            logger.info(
+                "✓ Automatic free trial successfully activated for user %s.",
+                user.email,
+            )
+        except ValueError as exc:
+            # Validation error — log but don't fail registration
+            # This could happen if STANDARD plan doesn't exist
+            logger.warning(
+                "Cannot activate automatic trial for user %s (validation): %s",
+                user.email,
+                str(exc),
+            )
+        except Exception as exc:
+            # Unexpected error — log but don't fail registration
+            # Registration should succeed even if trial activation fails
+            logger.error(
+                "Failed to activate automatic trial for user %s: %s",
+                user.email,
+                str(exc),
+                exc_info=True,
+            )
