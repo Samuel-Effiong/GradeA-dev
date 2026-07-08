@@ -16,7 +16,10 @@ from .models import (  # CreditUsageLog,; SubscriptionPlan,
     CreditUsageLog,
     CreditWallet,
     PlanCategory,
+    PlanTier,
     PlanType,
+    StripeSubscriptionStatus,
+    SubscriptionPlan,
     UserSubscription,
 )
 
@@ -81,6 +84,7 @@ class SubscriptionService:
             is_active=True,
             billing_cycle_start=now,
             billing_cycle_end=billing_end,
+            next_credit_grant_at=monthly_bucket_expiry,
             auto_renew=True,
         )
 
@@ -89,9 +93,12 @@ class SubscriptionService:
         wallet, _ = CreditWallet.objects.get_or_create(user=user)
 
         # --- The cleanup pahse (Handling existing credits for upgrades)
-        active_monthly = wallet.buckets.filter(
-            bucket_type=CreditBucketType.MONTHLY, expires_at__gt=now
-        ).first()
+        active_monthly = (
+            wallet.buckets.select_for_update()
+            .filter(bucket_type=CreditBucketType.MONTHLY, expires_at__gt=now)
+            .order_by("created_at")
+            .first()
+        )
 
         if active_monthly:
             unused = active_monthly.remaining_credits
@@ -165,6 +172,9 @@ class SubscriptionService:
         Rollover of unused credits between months follows the same
         carry_over_percent/carry_over_max rules as a normal full renewal.
         """
+        user_subscription = UserSubscription.objects.select_for_update().get(
+            id=user_subscription.id
+        )
         plan = user_subscription.plan
         if plan.interval != BillingInterval.ANNUAL:
             raise ValueError(
@@ -262,6 +272,11 @@ class SubscriptionService:
         Executed by Celery at billing_cycle_end
         """
 
+        # Lock the subscription row to prevent concurrent processing
+        user_subscription = UserSubscription.objects.select_for_update().get(
+            pk=user_subscription.pk
+        )
+
         user = user_subscription.user
 
         # If there's a pending plan, use it; otherwise, renew the current one
@@ -272,11 +287,16 @@ class SubscriptionService:
 
         wallet = user.credit_wallet
         old_monthly_bucket = (
-            wallet.buckets.select_for_update().filter(bucket_type="MONTHLY").first()
+            wallet.buckets.select_for_update()
+            .filter(bucket_type="MONTHLY", is_processed=False)
+            .order_by("-created_at")
+            .first()
         )
 
         if old_monthly_bucket:
-            unused_credits = old_monthly_bucket.remaining_credits
+            unused_credits = max(
+                0, old_monthly_bucket.total_credits - old_monthly_bucket.used_credits
+            )
 
             if unused_credits > 0:
                 # Calculate CARRY_OVER based on new plan rutes
@@ -317,7 +337,10 @@ class SubscriptionService:
 
             # Retire the Old Bucket
             old_monthly_bucket.expires_at = now
-            old_monthly_bucket.save(update_fields=["expires_at", "updated_at"])
+            old_monthly_bucket.is_processed = True
+            old_monthly_bucket.save(
+                update_fields=["expires_at", "is_processed", "updated_at"]
+            )
 
         # Trigger the new activation
         return SubscriptionService.activate_subscription(user, target_plan)
@@ -348,7 +371,8 @@ class SubscriptionService:
         """
         Formalizes the loss of credits due to expiration
         """
-        unused_amount = bucket.remaining_credits
+        bucket = CreditBucket.objects.select_for_update().get(pk=bucket.pk)
+        unused_amount = max(0, bucket.total_credits - bucket.used_credits)
 
         if unused_amount > 0:
             # Create the `EXPIRE' ledger entry to balance the books
@@ -366,7 +390,7 @@ class SubscriptionService:
             )
 
         bucket.is_processed = True
-        bucket.save(update_fields=["used_credits", "is_processed", "updated_at"])
+        bucket.save(update_fields=["is_processed", "updated_at"])
         return unused_amount
 
     @staticmethod
@@ -576,6 +600,8 @@ class SubscriptionService:
     @staticmethod
     @transaction.atomic
     def convert_trial_to_paid(user, new_plan):
+        # FIXME: DELETE THIS TOO, REDUNDANT, it does not charge from stripe
+
         """
         Converts an active free trial into a full paid subscription.
 
@@ -734,19 +760,22 @@ class SubscriptionService:
 
     @staticmethod
     @transaction.atomic
-    def grant_overage_bucket(wallet, user_sub, stripe_payment_intent_id=None):
+    def grant_overage_bucket(wallet, plan, expires_at, stripe_payment_intent_id=None):
         """Shared by the legacy auto-purchase path and the new Stripe-confirmed
         purchase paths (StripeOverageService + the payment_intent.uscceeded webhook fallback)
         so the bucket/ledger logic only lives in one place.
         """
 
-        plan = user_sub.plan
+        # expires_at = user_sub.next_credit_grant_a or user_sub.billing_cycle_end
+
+        # plan = user_sub.plan
+
         new_bucket = CreditBucket.objects.create(
             wallet=wallet,
             bucket_type=CreditBucketType.OVERAGE,
             total_credits=plan.overage_block_size,
             used_credits=0,
-            expires_at=user_sub.billing_cycle_end,
+            expires_at=expires_at,
         )
 
         CreditWallet.objects.filter(pk=wallet.pk).update(
@@ -869,6 +898,328 @@ class SubscriptionService:
             trial_sub.id,
         )
         return trial_sub
+
+    @staticmethod
+    @transaction.atomic
+    def finalize_trial_to_paid_conversion(trial_sub, new_plan, stripe_subscription_id):
+        """
+        Called from webhook (checkout.session.completed with flow='trial_to_paid')
+        to finalize a mid-cycle trial→paid upgrade after Stripe payment succeeds.
+
+        This method:
+        1. Expires the existing TRIAL credit bucket
+        2. Updates the trial_sub.plan to the new_plan (KEY BUG FIX)
+        3. Flags trial_sub as no longer trial (is_trial=False)
+        4. Grants new MONTHLY bucket with new_plan's credits
+        5. Attaches Stripe subscription ID to the same trial_sub row
+
+        Unlike finalize_trial_conversion_via_stripe() (which is for auto-charge
+        after 14 days), this is for ACTIVE user upgrade mid-trial with explicit
+        plan change.
+
+        Args:
+            trial_sub: The UserSubscription with is_trial=True, is_active=True
+            new_plan: The SubscriptionPlan user is converting to
+            stripe_subscription_id: The Stripe subscription ID from checkout
+
+        Returns:
+            The updated trial_sub (same row, modified in place)
+
+        Raises:
+            ValueError: If trial_sub is not active, or if bucket creation fails
+        """
+
+        # GUARD: Ensure this is actually a trial subscription
+        if not trial_sub.is_trial or not trial_sub.is_active:
+            raise ValueError(
+                f"Subscription {trial_sub.id} is not an active trial. "
+                "Cannot finalize trial-to-paid conversion."
+            )
+
+        user = trial_sub.user
+        now = timezone.now()
+
+        # Calculate the new billing cycle end
+        # This handles both MONTHLY and ANNUAL plans
+        billing_cycle_end = now + SubscriptionService._billing_period_delta(new_plan)
+
+        # Monthly bucket always expires at 1 month from now (even for annual plans)
+        # For ANNUAL plans, next_credit_grant_at = now + 1 month
+        # Credits refresh monthly but Stripe charges yearly
+
+        monthly_bucket_expiry = (
+            now + relativedelta(months=1)
+            if new_plan.interval == BillingInterval.ANNUAL
+            else billing_cycle_end
+        )
+
+        wallet = user.credit_wallet
+
+        # --- STEP 1: Expire the existing TRIAL bucket ---
+        trial_bucket = (
+            wallet.buckets.select_for_update()
+            .filter(bucket_type=CreditBucketType.TRIAL, expires_at__gt=now)
+            .first()
+        )
+
+        if trial_bucket:
+            unused = trial_bucket.remaining_credits
+
+            # Log unused trial credits as forfeited (they don't carry over)
+            if unused > 0:
+                CreditLedger.objects.create(
+                    user=user,
+                    bucket=trial_bucket,
+                    ledger_type=CreditLedgerType.EXPIRE,
+                    amount=unused,
+                    reference=(
+                        f"Trial credits forfeited on mid-cycle upgrade to "
+                        f"{new_plan.display_name or new_plan.name}"
+                    ),
+                    metadata={
+                        "expired_amount": unused,
+                        "trial_subscription_id": str(trial_sub.id),
+                        "new_plan_id": str(new_plan.id),
+                        "conversion_type": "MID_CYCLE_PAID_UPGRADE",
+                    },
+                )
+
+            # Mark the trial bucket as expired (no longer available for use)
+            trial_bucket.expires_at = now
+            trial_bucket.is_processed = True
+            trial_bucket.save(
+                update_fields=["expires_at", "is_processed", "updated_at"]
+            )
+
+            logger.info(
+                "Expired TRIAL bucket %s for user %s (forfeited %d credits)",
+                trial_bucket.id,
+                user.email,
+                unused,
+            )
+
+        # --- STEP 2: Update the trial subscription to mark it as no longer trial ---
+
+        trial_sub.is_trial = False
+        trial_sub.trial_end = None  # Clear the trial expiry date
+        trial_sub.plan = new_plan
+        trial_sub.billing_cycle_start = now
+        trial_sub.billing_cycle_end = billing_cycle_end
+        trial_sub.next_credit_grant_at = monthly_bucket_expiry
+        trial_sub.stripe_subscription_id = stripe_subscription_id  # Attach Stripe ID
+        trial_sub.stripe_status = StripeSubscriptionStatus.ACTIVE
+
+        trial_sub.save(
+            update_fields=[
+                "is_trial",
+                "trial_end",
+                "plan",
+                "billing_cycle_start",
+                "billing_cycle_end",
+                "stripe_subscription_id",
+                "stripe_status",
+                "updated_at",
+            ]
+        )
+
+        # --- STEP 3: Reset overage counter for the new cycle ---
+        wallet.overage_blocks_used = 0
+        wallet.save(update_fields=["overage_blocks_used", "updated_at"])
+
+        # --- STEP 4: Create MONTHLY bucket with new plan's credits ---
+        monthly_bucket = CreditBucket.objects.create(
+            wallet=wallet,
+            bucket_type=CreditBucketType.MONTHLY,
+            total_credits=new_plan.monthly_credits,
+            used_credits=0,
+            expires_at=monthly_bucket_expiry,
+        )
+
+        # --- STEP 5: Audit ledger entry ---
+        CreditLedger.objects.create(
+            user=user,
+            bucket=monthly_bucket,
+            ledger_type=CreditLedgerType.GRANT,
+            amount=new_plan.monthly_credits,
+            reference=(
+                f"Mid-cycle trial-to-paid conversion to "
+                f"{new_plan.display_name or new_plan.name}. "
+                f"Stripe subscription {stripe_subscription_id}"
+            ),
+            metadata={
+                "subscription_id": str(trial_sub.id),
+                "plan_id": str(new_plan.id),
+                "plan_interval": new_plan.interval,  # ← TRACK INTERVAL
+                "grant_type": "TRIAL_TO_PAID_MID_CYCLE",
+                "stripe_subscription_id": stripe_subscription_id,
+                "trial_forfeited": True,  # Signal that trial credits were not carried over
+                "billing_cycle_end": billing_cycle_end.isoformat(),
+                "next_credit_grant_at": monthly_bucket_expiry.isoformat(),
+            },
+        )
+
+        logger.info(
+            "Finalized trial-to-paid conversion for user %s. "
+            "Trial subscription %s upgraded to plan %s (interval: %s). "
+            "Granted %d credits. Billing cycle: %s → %s. "
+            "Next credit grant: %s. Stripe subscription: %s",
+            user.email,
+            trial_sub.id,
+            new_plan.name,
+            new_plan.interval,  # ← LOG INTERVAL
+            new_plan.monthly_credits,
+            now.isoformat(),
+            billing_cycle_end.isoformat(),
+            monthly_bucket_expiry.isoformat(),
+            stripe_subscription_id,
+        )
+        return trial_sub
+
+    @staticmethod
+    @transaction.atomic
+    def activate_automatic_free_trial(user):
+        """
+        Automatically activate a free trial for a newly registered user.
+
+        Called from users/signals.py on CustomUser creation. This is the new,
+        simplified trial activation flow — no Stripe, no card collection,
+        no user action needed.
+
+        What this does:
+        1. Checks if user has EVER had a trial (one-time per account).
+        2. Creates a UserSubscription with is_trial=True.
+        3. Grants 5,000 display credits (5,000,000 raw) in a TRIAL bucket.
+        4. Sets trial_end to now + 14 days.
+        5. Logs the grant in the immutable ledger.
+
+        Trial expires when EITHER:
+        - 14 days pass (trial_end is reached)
+        - User exhausts all 5,000 credits (whichever comes first)
+        - Celery task expire_active_trials() marks it inactive
+
+        User's access is cut when:
+        - is_active=False (trial expired) OR
+        - total_remaining_credits=0 (credits exhausted)
+
+        Args:
+            user (CustomUser): The newly created user.
+
+        Returns:
+            UserSubscription: The newly created trial subscription.
+
+        Raises:
+            ValueError: If user has already used a trial.
+            Exception: If wallet or bucket creation fails (will be caught and logged).
+
+        Edge cases handled:
+        ✓ Concurrent registration (DB-level atomicity)
+        ✓ User already has trial (guards with exists check)
+        ✓ Wallet already exists (get_or_create handles this)
+        ✓ CreditBucket creation fails (transaction rolls back)
+        ✓ Non-teacher users (caller must filter these out)
+        ✓ License-invited users (caller must skip these)
+        """
+
+        now = timezone.now()
+        trial_end = now + relativedelta(days=SubscriptionService.TRIAL_DURATION_DAYS)
+
+        # GUARD 1: Check if user has EVER had a trial (even expired ones)
+
+        # This is the ONE critical guard for automatic trial
+        # Use select_for_update to lock the user row during this check
+        # preventing concurrent registration from creating two trials.
+
+        existing_trial = (
+            UserSubscription.objects.select_for_update()
+            .filter(user=user, is_trial=True)
+            .exists()
+        )
+
+        if existing_trial:
+            raise ValueError(
+                f"User {user.email} has already used the free trial. "
+                "Free trial can only be activated once per account."
+            )
+
+        # CREATE TRIAL SUBSCRIPTION
+
+        # Use the built-in STANDARD plan as the trial base
+        try:
+            # REtrieve the Free trial plan
+            trial_plan = SubscriptionPlan.objects.get(
+                tier=PlanTier.TRIAL, category=PlanCategory.INDIVIDUAL
+            )
+        except SubscriptionPlan.DoesNotExist as exc:
+            raise ValueError(
+                "Free trial plan not found. Please create one in the admin panel."
+            ) from exc
+        except Exception as e:
+            logger.error("Error retrieving free trial plan: %s", e)
+            raise
+
+        subscription = UserSubscription.objects.create(
+            user=user,
+            plan=trial_plan,
+            is_active=True,
+            is_trial=True,
+            trial_end=trial_end,
+            billing_cycle_start=now,
+            billing_cycle_end=trial_end,
+            auto_renew=False,
+        )
+
+        # ENSURE WALLET EXISTS & RESET OVERAGE
+
+        # Should exist from users.signals, but be defensive
+        wallet, _ = CreditWallet.objects.get_or_create(user=user)
+
+        # Reset overage counter for this trial period
+        wallet.overage_blocks_used = 0
+        wallet.save(update_fields=["overage_blocks_used", "updated_at"])
+
+        # CREATE TRIAL CREDIT BUCKET
+
+        # Expires at trial_end (14 days from now)
+        trial_bucket = CreditBucket.objects.create(
+            wallet=wallet,
+            bucket_type=CreditBucketType.TRIAL,
+            total_credits=SubscriptionService.TRIAL_CREDITS_RAW,
+            used_credits=0,
+            expires_at=trial_end,
+        )
+
+        # AUDIT LEDGER ENTRY
+
+        # Immutable record for compliance and debugging
+        CreditLedger.objects.create(
+            user=user,
+            bucket=trial_bucket,
+            ledger_type=CreditLedgerType.GRANT,
+            amount=SubscriptionService.TRIAL_CREDITS_RAW,
+            reference="Automatic free trial activation on user registration",
+            metadata={
+                "grant_type": "AUTOMATIC_TRIAL_REGISTRATION",
+                "display_amount": SubscriptionService.TRIAL_CREDITS_DISPLAY,
+                "raw_amount": SubscriptionService.TRIAL_CREDITS_RAW,
+                "trial_duration_days": SubscriptionService.TRIAL_DURATION_DAYS,
+                "trial_end": trial_end.isoformat(),
+                "subscription_id": str(subscription.id),
+                "activation_method": "AUTOMATIC_REGISTRATION",
+            },
+        )
+
+        logger.info(
+            "Automatic free trial activated for user %s on registration. "
+            "Subscription ID: %s. Credits: %d display (%d raw). "
+            "Trial ends: %s.",
+            user.email,
+            subscription.id,
+            SubscriptionService.TRIAL_CREDITS_DISPLAY,
+            SubscriptionService.TRIAL_CREDITS_RAW,
+            trial_end.isoformat(),
+        )
+
+        return subscription
 
 
 class ManualCreditService:

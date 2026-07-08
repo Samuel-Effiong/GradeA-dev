@@ -261,30 +261,44 @@ WEEKLY_COURSE_SUMMARY_DAY_OF_WEEK = env.str(
 WEEKLY_COURSE_SUMMARY_HOUR = env.int("WEEKLY_COURSE_SUMMARY_HOUR", default=7)
 WEEKLY_COURSE_SUMMARY_MINUTE = env.int("WEEKLY_COURSE_SUMMARY_MINUTE", default=0)
 
+USE_BETA_PLAN_ON_SIGNUP = env.bool("USE_BETA_PLAN_ON_SIGNUP", default=False)
+
 # Celery Beat Schedule
 CELERY_BEAT_SCHEDULE = {
     "record-concurrent-users-every-minute": {
         "task": "dashboard.tasks.record_concurrent_users",
         "schedule": 60.0,
     },
-    "run-subscription-renewal-status": {
-        "task": "billing.tasks.process_subscription_renewals",
-        "schedule": crontab(minute=0, hour=0),
-    },
-    "run-license-subscription-renewal-status": {
+    # "reconcile-trial-expiration": {
+    #     "task": "billing.tasks.process_subscription_renewals",
+    #     "schedule": crontab(minute=0, hour=0),
+    # },
+    "process-license-renewals": {
         "task": "billing.tasks.process_license_renewals",
         "schedule": crontab(minute=0, hour=0),
     },
-    "run-annual-plan-credit-grants": {
+    "process-annual_plan-credit-grants": {
         "task": "billing.tasks.process_annual_plan_credit_grants",
         "schedule": crontab(minute=0, hour=2),
     },
-    "reconcile-expired-buckets-midnight": {
-        "task": "billing.tasks.cleanup_expired_credit_buckets",
+    "process-license-monthly-credit-refreshes": {
+        "task": "billing.tasks.process_license_monthly_credit_refreshes",
+        "schedule": crontab(minute=0, hour=3),
+    },
+    "reconcile-subscriptions-daily": {
+        "task": "billing.tasks.reconcile_subscription_renewals",
         "schedule": crontab(minute=0, hour=4),
     },
+    "cleanup-expired-credit-buckets": {
+        "task": "billing.tasks.cleanup_expired_credit_buckets",
+        "schedule": crontab(minute=0, hour=5),
+    },
+    "expire-active-trials": {
+        "task": "billing.tasks.expire_active_trials",
+        "schedule": crontab(minute=0, hour="*/6"),
+    },
     "send-weekly-course-summaries": {
-        "task": "dashboard.tasksLe.send_weekly_course_summaries",
+        "task": "dashboard.tasks.send_weekly_course_summaries",
         "schedule": crontab(
             minute=WEEKLY_COURSE_SUMMARY_MINUTE,
             hour=WEEKLY_COURSE_SUMMARY_HOUR,
@@ -540,5 +554,5 @@ DISALLOWED_EMAIL_DOMAINS = [
     "gmx.com",
     "fastmail.com",
     "hushmail.com",
-    "yopmail.com",
+    # "yopmail.com",
 ]

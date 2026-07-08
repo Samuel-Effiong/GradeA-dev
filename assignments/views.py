@@ -1,11 +1,13 @@
 import hashlib
 import json
+import re
 import uuid
+from io import BytesIO
 
 from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
 from django.db.models import Q
-from django.http import Http404
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django_celery_beat.models import ClockedSchedule, PeriodicTask
@@ -29,9 +31,11 @@ from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from weasyprint import HTML
 
 from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor  # pdf_service
+from billing.access_control import require_ai_access
 
 # from ai_processor.tools import encode_image
 from classrooms.models import Course, Topic
@@ -360,6 +364,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             500: OpenApiResponse(description="Internal server error"),
         },
     )
+    @require_ai_access
     @action(
         detail=False, methods=["post"], url_path="create-async", url_name="create-async"
     )
@@ -522,6 +527,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             404: OpenApiResponse(description="Assignment not found"),
         },
     )
+    @require_ai_access
     @action(
         detail=True,
         methods=["patch"],
@@ -686,6 +692,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             },
         },
     )
+    @require_ai_access
     @action(
         detail=False,
         methods=["POST"],
@@ -855,6 +862,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             },
         },
     )
+    @require_ai_access
     @action(
         detail=False,
         methods=["POST"],
@@ -1098,6 +1106,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             ),
         },
     )
+    @require_ai_access
     @action(
         detail=False,
         methods=["POST"],
@@ -1210,6 +1219,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             404: OpenApiResponse(description="Draft not found"),
         },
     )
+    @require_ai_access
     @action(
         detail=False,
         methods=["POST"],
@@ -1301,6 +1311,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
         },
     )
+    @require_ai_access
     @action(
         detail=True,
         methods=["POST"],
@@ -1365,6 +1376,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         request=ScheduleGradingSerializer,
         responses={200: ScheduledGradingResponseSerializer},
     )
+    @require_ai_access
     @action(
         detail=True,
         methods=["POST"],
@@ -1472,6 +1484,281 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         serializer = PublishAllGradesResponseSerializer(data)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        tags=["Assignments"],
+        summary="Download student version of assignment as PDF",
+        description=(
+            "Generates a beautifully formatted PDF of the assignment as seen by students. "
+            "Rubrics and model answers are excluded. Images (CDN/absolute URLs) are fully supported."
+        ),
+        responses={
+            200: OpenApiResponse(
+                description="PDF file",
+                response=OpenApiTypes.BINARY,
+            ),
+            400: OpenApiResponse(description="Assignment has no questions"),
+            404: OpenApiResponse(description="Assignment not found"),
+            500: OpenApiResponse(description="PDF generation failed"),
+        },
+    )
+    @action(detail=True, methods=["get"], url_path="download-pdf")
+    def download_pdf(self, request, pk=None):
+        assignment = self.get_object()
+
+        if not assignment.questions:
+            return Response(
+                {"error": "This assignment has no questions to display."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Prepare data for the student version (omit rubrics and model answers)
+        data = {
+            "title": assignment.title,
+            "instructions": assignment.instructions,
+            "total_points": assignment.total_points,
+            "due_date": (
+                assignment.due_date.isoformat() if assignment.due_date else None
+            ),
+            "questions": assignment.questions,
+        }
+
+        # Generate the assignment HTML without hidden teacher content
+        html_body = AssignmentProcessingService.format_assignment_standard_html(
+            data, include_rubric=False
+        )
+
+        # Extract course and teacher info
+        course_name = assignment.course.name if assignment.course else "Course"
+        teacher_name = (
+            assignment.course.teacher.get_full_name()
+            if assignment.course and assignment.course.teacher
+            else "Instructor"
+        )
+
+        due_date_str = (
+            assignment.due_date.strftime("%B %d, %Y at %I:%M %p")
+            if assignment.due_date
+            else "Not set"
+        )
+
+        # Build the full HTML with enhanced styling
+        full_html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>{assignment.title or 'Assignment'}</title>
+            <style>
+                /* --- Page setup --- */
+                @page {{
+                    size: A4;
+                    margin: 2.5cm 2cm 2cm 2cm;
+                    @top-center {{
+                        content: " {assignment.title or 'Assignment'} ";
+                        font-size: 10pt;
+                        color: #5d6d7e;
+                        border-bottom: 1px solid #d5d8dc;
+                        padding-bottom: 5px;
+                    }}
+                    @bottom-center {{
+                        content: "Page " counter(page) " of " counter(pages);
+                        font-size: 9pt;
+                        color: #5d6d7e;
+                        border-top: 1px solid #d5d8dc;
+                        padding-top: 5px;
+                    }}
+                }}
+
+                /* --- Global styles --- */
+                body {{
+                    font-family: 'Georgia', 'Times New Roman', serif;
+                    margin: 0;
+                    padding: 0;
+                    line-height: 1.7;
+                    color: #1c1e21;
+                    background: #ffffff;
+                }}
+
+                .container {{
+                    max-width: 100%;
+                }}
+
+                /* --- Title block --- */
+                .assignment-header {{
+                    text-align: center;
+                    margin-bottom: 30px;
+                    padding-bottom: 20px;
+                    border-bottom: 3px double #1a5276;
+                }}
+                .assignment-header .course-name {{
+                    font-size: 14pt;
+                    font-weight: 400;
+                    color: #5d6d7e;
+                    margin-bottom: 5px;
+                }}
+                .assignment-header .assignment-title {{
+                    font-size: 28pt;
+                    font-weight: 700;
+                    color: #1a5276;
+                    margin: 10px 0 5px 0;
+                    letter-spacing: -0.5px;
+                }}
+                .assignment-header .meta {{
+                    font-size: 12pt;
+                    color: #2c3e50;
+                    display: flex;
+                    justify-content: center;
+                    gap: 30px;
+                    flex-wrap: wrap;
+                    margin-top: 12px;
+                }}
+                .assignment-header .meta span {{
+                    background: #eaf2f8;
+                    padding: 4px 14px;
+                    border-radius: 20px;
+                    font-weight: 500;
+                }}
+
+                /* --- Instructions --- */
+                .instructions-box {{
+                    background: #f8f9fa;
+                    border-left: 6px solid #1a5276;
+                    padding: 18px 25px;
+                    margin-bottom: 35px;
+                    border-radius: 4px;
+                    font-size: 12.5pt;
+                }}
+                .instructions-box strong {{
+                    color: #1a5276;
+                }}
+
+                /* --- Questions --- */
+                .question-item {{
+                    background: #ffffff;
+                    border: 1px solid #e5e8eb;
+                    border-radius: 8px;
+                    padding: 20px 25px;
+                    margin-bottom: 28px;
+                    page-break-inside: avoid;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+                }}
+                .question-item .q-header {{
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: baseline;
+                    border-bottom: 1px dashed #d5d8dc;
+                    padding-bottom: 8px;
+                    margin-bottom: 14px;
+                }}
+                .question-item .q-number {{
+                    font-weight: 700;
+                    font-size: 14pt;
+                    color: #1a5276;
+                }}
+                .question-item .q-points {{
+                    font-weight: 500;
+                    font-size: 11pt;
+                    color: #5d6d7e;
+                    background: #eaf2f8;
+                    padding: 2px 12px;
+                    border-radius: 12px;
+                }}
+                .question-item .q-text {{
+                    font-size: 13pt;
+                    margin-bottom: 12px;
+                }}
+                .question-item .options {{
+                    padding-left: 25px;
+                    margin: 10px 0 5px 0;
+                }}
+                .question-item .options p {{
+                    margin: 4px 0;
+                    padding-left: 10px;
+                    border-left: 2px solid #d5d8dc;
+                }}
+                .question-item .options p:before {{
+                    content: "• ";
+                    color: #1a5276;
+                    font-weight: bold;
+                }}
+                /* Images */
+                .question-item img {{
+                    max-width: 100%;
+                    height: auto;
+                    display: block;
+                    margin: 12px 0;
+                    border: 1px solid #d5d8dc;
+                    border-radius: 4px;
+                }}
+                /* Tables (if any) */
+                table {{
+                    border-collapse: collapse;
+                    width: 100%;
+                    margin: 15px 0;
+                    font-size: 12pt;
+                }}
+                th, td {{
+                    border: 1px solid #aeb6bf;
+                    padding: 8px 12px;
+                    text-align: left;
+                    vertical-align: top;
+                }}
+                th {{
+                    background-color: #f0f3f5;
+                    font-weight: 600;
+                }}
+                /* Hide teacher-only content */
+                .rubric, .model-answer {{
+                    display: none !important;
+                }}
+                /* Lists */
+                ul, ol {{
+                    padding-left: 25px;
+                    margin: 10px 0;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <!-- Header Block -->
+                <div class="assignment-header">
+                    <div class="course-name">{course_name}</div>
+                    <div class="assignment-title">{assignment.title or 'Assignment'}</div>
+                    <div class="meta">
+                        <span>👨‍🏫 {teacher_name}</span>
+                        <span>📅 Due: {due_date_str}</span>
+                        <span>📊 Total Points: {assignment.total_points or 'N/A'}</span>
+                    </div>
+                </div>
+
+                <!-- Instructions -->
+                {f'<div class="instructions-box"><strong>📘 Instructions:</strong> {assignment.instructions}</div>' if assignment.instructions else ''}
+
+                <!-- Questions -->
+                {html_body}
+            </div>
+        </body>
+        </html>
+        """
+
+        try:
+            # WeasyPrint automatically handles absolute image URLs (CDN)
+            base_url = request.build_absolute_uri("/")
+            pdf_bytes = HTML(string=full_html, base_url=base_url).write_pdf()
+        except Exception as e:
+            return Response(
+                {"error": f"PDF generation failed: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        # Sanitise filename
+        safe_title = re.sub(r"[^\w\s-]", "", assignment.title or "assignment").strip()
+        filename = f"{safe_title}.pdf"
+
+        response = FileResponse(BytesIO(pdf_bytes), content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return response
 
 
 @extend_schema_view(

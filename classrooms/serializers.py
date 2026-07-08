@@ -9,9 +9,15 @@ from rest_framework.validators import UniqueTogetherValidator
 
 from assignments.models import AssignmentStatus
 from assignments.serializers import AssignmentListSerializer  # , AssignmentSerializer
+from billing.context import (
+    clear_license_invitation_context,
+    set_license_invitation_context,
+)
 from students.serializers import StudentSerializer
 from students.services import get_grade_details
 from users.models import CustomUser, UserTypes
+from users.serializers import CustomUserSerializer
+from users.services import send_user_activation_email
 
 from .models import (
     Course,
@@ -228,8 +234,9 @@ class StudentCourseSerializer(serializers.ModelSerializer):
             "withdrawal_date",
             "final_grade",
             "grade_letter",
+            "auto_added",
         ]
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "created_at", "auto_added"]
 
     def get_teacher(self, obj):
         return obj.course.teacher.get_full_name()
@@ -502,6 +509,97 @@ class SchoolSerializer(serializers.ModelSerializer):
         if not value.strip():
             raise serializers.ValidationError("School name cannot be empty.")
         return value
+
+
+class SchoolWithAdminSerializer(serializers.Serializer):
+    # School Fields
+    school_name = serializers.CharField(max_length=255)
+    school_address = serializers.CharField(required=False, allow_blank=True)
+    school_phone = serializers.CharField(required=False, allow_blank=True)
+    school_website = serializers.CharField(required=False, allow_blank=True)
+
+    # Admin Fields
+    admin_email = serializers.EmailField()
+    admin_first_name = serializers.CharField(max_length=150)
+    admin_last_name = serializers.CharField(max_length=150)
+    admin_middle_name = serializers.CharField(
+        max_length=150, required=False, allow_blank=True
+    )
+    admin_password = serializers.CharField(
+        write_only=True, style={"input_type": "password"}
+    )
+    admin_profile_image = serializers.ImageField(required=False, allow_null=True)
+
+    def validate_admin_email(self, value):
+        # Reuse the business email validation from CustomUserSerializer
+        from users.serializers import CustomUserSerializer
+
+        # Instantiate the serializer to call it validate_email method
+        return CustomUserSerializer().validate_email(value)
+
+    def validate(self, attrs):
+        # Ensure school name is unique (case-insensitive)
+        school_name = attrs.get("school_name")
+        if school_name and School.objects.filter(name__iexact=school_name).exists():
+            raise serializers.ValidationError("A school with this name already exists.")
+
+        # Ensure admin email is not already used by any user
+        if CustomUser.objects.filter(email__iexact=attrs.get("admin_email")).exists():
+            raise serializers.ValidationError(
+                "A user with this email address already exists."
+            )
+
+        return attrs
+
+    def create(self, validated_data):
+        with transaction.atomic():
+            # 1. Create School
+            school = School.objects.create(
+                name=validated_data["school_name"],
+                address=validated_data.get("school_address", ""),
+                phone=validated_data.get("school_phone", ""),
+                website=validated_data.get("school_website", ""),
+            )
+
+            # 2. Create Admin User
+            admin_data = {
+                "email": validated_data["admin_email"],
+                "first_name": validated_data["admin_first_name"],
+                "last_name": validated_data["admin_last_name"],
+                "middle_name": validated_data.get("admin_middle_name", ""),
+                "password": validated_data["admin_password"],
+                "profile_image": validated_data.get("admin_profile_image"),
+                "user_type": UserTypes.SCHOOL_ADMIN,
+                "school": school,
+            }
+
+            # 3. Create the admin user while skipping free trial
+
+            try:
+                # Set license context so the post_save signal skips trial activation
+                set_license_invitation_context(True)
+                user = CustomUser.objects.create_user(**admin_data)
+            finally:
+                clear_license_invitation_context()
+
+            # 4. Send activation email (generates token and sends email)
+            send_user_activation_email(user)
+
+            # Return both
+            return {
+                "school": school,
+                "admin": user,
+            }
+
+
+class SchoolWithAdminResponseSerializer(serializers.Serializer):
+    """Serializer for returning School and Admin after creation."""
+
+    school = SchoolSerializer()
+    admin = CustomUserSerializer()
+    message = serializers.CharField(
+        default="School and admin created successfully", read_only=True
+    )
 
 
 class CourseCategorySerializer(serializers.ModelSerializer):

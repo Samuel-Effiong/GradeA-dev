@@ -1,8 +1,13 @@
+import threading
+from datetime import timedelta
+
+from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from billing.context import clear_license_invitation_context
 from billing.models import PlanType, SubscriptionPlan, UserSubscription
 from users.models import CustomUser, UserTypes
 
@@ -173,3 +178,349 @@ class UserSubscriptionViewSetTests(APITestCase):
         }
         response = self.client.post(self.list_url, data)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class ConcurrentRegistrationTest(TestCase):
+    def test_concurrent_registration(self):
+        def create_user():
+            CustomUser.objects.create_user(
+                email="concurrent@test.com",
+                password="test",  # pragma: allowlist secret
+                user_type="TEACHER",
+            )
+
+        t1 = threading.Thread(target=create_user)
+        t2 = threading.Thread(target=create_user)
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
+
+        user = CustomUser.objects.get(email="concurrent@test.com")
+        trials = user.subscriptions.filter(is_trial=True)
+        assert trials.count() == 1, "Should have exactly one trial"
+
+    def test_trial_cannot_be_activated_twice(self):
+        user = CustomUser.objects.create_user(
+            email="double@test.com",
+            password="test",  # pragma: allowlist secret
+            user_type="TEACHER",
+        )
+        # User now has a trial (created by signal)
+
+        # Attempt to activate again
+        from billing.services import SubscriptionService
+
+        with self.assertRaises(ValueError) as cm:
+            SubscriptionService.activate_automatic_free_trial(user)
+
+        assert "already used" in str(cm.exception).lower()
+        # Verify still only one trial
+        assert user.subscriptions.filter(is_trial=True).count() == 1
+
+    def test_missing_standard_plan(self):
+        # Delete STANDARD plan
+        from billing.models import PlanType, SubscriptionPlan
+
+        SubscriptionPlan.objects.filter(name=PlanType.STANDARD).delete()
+
+        # Register user
+        user = CustomUser.objects.create_user(
+            email="noplan@test.com",
+            password="test",  # pragma: allowlist secret
+            user_type="TEACHER",
+        )
+
+        # User should exist but have no subscription
+        assert user.subscriptions.count() == 0
+
+        # Recreate plan
+        SubscriptionPlan.objects.create(
+            name=PlanType.STANDARD,
+            category="INDIVIDUAL",
+            # ... other fields
+        )
+
+        # Can now activate subscription
+        from billing.services import SubscriptionService
+
+        sub = SubscriptionService.activate_automatic_free_trial(user)
+        assert sub is not None
+
+    def test_trial_activation_with_existing_wallet(self):
+        user = CustomUser.objects.create_user(
+            email="wallet@test.com",
+            password="test",  # pragma: allowlist secret
+            user_type="TEACHER",
+        )
+
+        # After signal fires, user should have wallet
+        assert hasattr(user, "credit_wallet")
+        original_wallet_id = user.credit_wallet.id
+
+        # Manually trigger signal again (simulate retry)
+        from users.signals import create_default_settings_and_wallet
+
+        create_default_settings_and_wallet(
+            sender=CustomUser, instance=user, created=True
+        )
+
+        # Same wallet should be reused
+        user.refresh_from_db()
+        assert user.credit_wallet.id == original_wallet_id
+
+    def test_trial_bucket_creation_failure_rolls_back(self):
+        from unittest.mock import patch
+
+        from billing.models import CreditBucket
+
+        with patch.object(
+            CreditBucket.objects, "create", side_effect=Exception("DB error")
+        ):
+            user = CustomUser.objects.create_user(
+                email="fail@test.com",
+                password="test",  # pragma: allowlist secret
+                user_type="TEACHER",
+            )
+
+            # Signal caught the exception, user exists but no trial
+            assert user.subscriptions.count() == 0
+            # Wallet exists (created before error)
+            assert user.credit_wallet is not None
+
+    def test_student_does_not_get_trial(self):
+        student = CustomUser.objects.create_user(
+            email="student@test.com",
+            password="test",  # pragma: allowlist secret
+            user_type="STUDENT",
+        )
+
+        assert student.subscriptions.count() == 0
+        assert not student.is_beta_eligible()
+
+    def test_teacher_gets_trial(self):
+        teacher = CustomUser.objects.create_user(
+            email="teacher@test.com",
+            password="test",  # pragma: allowlist secret
+            user_type="TEACHER",
+        )
+
+        assert teacher.subscriptions.count() == 1
+        assert teacher.subscriptions.first().is_trial
+
+    def test_license_invited_user_does_not_get_trial(self):
+        from billing.context import set_license_invitation_context
+
+        set_license_invitation_context(True)
+        try:
+            user = CustomUser.objects.create_user(
+                email="invited@test.com",
+                password="test",  # pragma: allowlist secret
+                user_type="TEACHER",
+            )
+
+            # Should have no personal subscription (uses license)
+            # But should have wallet
+            assert user.subscriptions.count() == 0
+            assert user.credit_wallet is not None
+        finally:
+            clear_license_invitation_context()
+
+    def test_trial_expires_after_14_days(self):
+        from freezegun import freeze_time
+
+        user = CustomUser.objects.create_user(
+            email="expire@test.com",
+            password="test",  # pragma: allowlist secret
+            user_type="TEACHER",
+        )
+
+        trial = user.subscriptions.first()
+        assert trial.is_active
+
+        # Fast-forward 15 days
+        with freeze_time(trial.trial_end + timedelta(days=1)):
+            from billing.tasks import expire_active_trials
+
+            expire_active_trials()
+
+        # Refresh from DB
+        trial.refresh_from_db()
+        assert not trial.is_active
+
+        # Check ledger has EXPIRE entry
+        from billing.models import CreditLedgerType
+
+        ledger = trial.user.credit_ledgers.filter(
+            ledger_type=CreditLedgerType.EXPIRE
+        ).first()
+        assert ledger is not None
+
+    def test_trial_expires_when_credits_exhausted(self):
+        user = CustomUser.objects.create_user(
+            email="exhaust@test.com",
+            password="test",  # pragma: allowlist secret
+            user_type="TEACHER",
+        )
+
+        trial = user.subscriptions.first()
+        wallet = user.credit_wallet
+
+        # Consume all credits
+        from billing.errors import InsufficientCreditsError
+
+        try:
+            wallet.consume_credits(wallet.total_remaining_credits())
+        except InsufficientCreditsError:
+            pass  # Expected if there's a cap
+
+        # Exhaust remaining
+        bucket = wallet.buckets.filter(bucket_type="TRIAL").first()
+        bucket.used_credits = bucket.total_credits
+        bucket.save()
+
+        # Run expiry task
+        from billing.tasks import expire_active_trials
+
+        expire_active_trials()
+
+        # Trial should be inactive
+        trial.refresh_from_db()
+        assert not trial.is_active
+
+    def test_convert_trial_to_paid_mid_trial(self):
+        user = CustomUser.objects.create_user(
+            email="convert@test.com",
+            password="test",  # pragma: allowlist secret
+            user_type="TEACHER",
+        )
+
+        # User on trial
+        trial = user.subscriptions.filter(is_trial=True).first()
+        assert trial.is_active
+
+        # Get a paid plan
+        from billing.models import PlanType, SubscriptionPlan
+
+        paid_plan = SubscriptionPlan.objects.get(name=PlanType.PRO)
+
+        # Convert to paid
+        from billing.services import SubscriptionService
+
+        paid_sub = SubscriptionService.convert_trial_to_paid(user, paid_plan)
+
+        # Old trial is inactive
+        trial.refresh_from_db()
+        assert not trial.is_active
+
+        # New paid subscription is active
+        assert paid_sub.is_active
+        assert not paid_sub.is_trial
+
+    def test_expired_trial_task_handles_missing_wallet(self):
+        user = CustomUser.objects.create_user(
+            email="nowallet@test.com",
+            password="test",  # pragma: allowlist secret
+            user_type="TEACHER",
+        )
+
+        # Delete wallet (simulate corruption)
+        user.credit_wallet.delete()
+
+        # Task should not crash
+        from billing.tasks import expire_active_trials
+
+        result = expire_active_trials()
+
+        # Should mention failed count
+        assert "failed" in result.lower()
+
+    def test_concurrent_trial_expiration_and_conversion(self):
+        import threading
+
+        user = CustomUser.objects.create_user(
+            email="concurrent_expire@test.com",
+            password="test",  # pragma: allowlist secret
+            user_type="TEACHER",
+        )
+
+        paid_plan = SubscriptionPlan.objects.first()
+        errors = []
+
+        def expire():
+            try:
+                from billing.tasks import expire_active_trials
+
+                expire_active_trials()
+            except Exception as e:
+                errors.append(("expire", e))
+
+        def convert():
+            try:
+                from billing.services import SubscriptionService
+
+                SubscriptionService.convert_trial_to_paid(user, paid_plan)
+            except Exception as e:
+                errors.append(("convert", e))
+
+        t1 = threading.Thread(target=expire)
+        t2 = threading.Thread(target=convert)
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
+
+        # At most one operation should complete
+        # (or both complete, but subscription ends up in valid state)
+        user.refresh_from_db()
+        active_subs = user.subscriptions.filter(is_active=True).count()
+        assert active_subs in [0, 1]  # Either expired or converted
+
+    def test_settings_creation_failure_doesnt_block_trial(self):
+        from unittest.mock import patch
+
+        from users.models import Settings
+
+        with patch.object(
+            Settings.objects, "get_or_create", side_effect=Exception("DB error")
+        ):
+            user = CustomUser.objects.create_user(
+                email="nosettings@test.com",
+                password="test",  # pragma: allowlist secret
+                user_type="TEACHER",
+            )
+
+            # Trial should still be created
+            assert user.subscriptions.filter(is_trial=True).exists()
+
+    def test_deleted_user_has_no_trial_access(self):
+        user = CustomUser.objects.create_user(
+            email="delete@test.com",
+            password="test",  # pragma: allowlist secret
+            user_type="TEACHER",
+        )
+
+        # Deactivate user
+        user.is_active = False
+        user.save()
+
+        # Check access
+        from billing.access_control import can_user_access_ai
+
+        can_access, reason = can_user_access_ai(user)
+        assert not can_access
+        assert reason is not None and "inactive" in reason.lower()
+
+    # def test_celery_beat_task_configured(self):
+    #     from io import StringIO
+
+    #     from django.core.management import call_command
+
+    #     out = StringIO()
+    #     call_command("shell", stdout=out)
+    #     # Or: check celery_app.conf.beat_schedule dict directly
+
+    #     # Verify expire_active_trials is in schedule
+    #     from billing.tasks import expire_active_trials
+
+    #     # (This is mostly an ops/deployment verification)

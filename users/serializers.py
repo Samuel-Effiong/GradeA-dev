@@ -6,6 +6,8 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from billing.serializers import CreditWalletSummarySerializer
 from billing.services import AnalyticsService
 from classrooms.models import School
+
+# from students.task_context import get_session_context, get_task_context
 from users.exceptions import NotInBetaException
 from users.models import (
     BetaWhitelist,
@@ -254,6 +256,17 @@ class ChangePasswordSerializer(serializers.Serializer):
         return data
 
 
+class TaskContextSerializer(serializers.Serializer):
+    """Serializer for the context of a background task."""
+
+    resource_type = serializers.CharField(allow_null=True)
+    resource_id = serializers.CharField(allow_null=True)
+    action = serializers.CharField(allow_null=True)
+    additional_ids = serializers.DictField(
+        child=serializers.CharField(), allow_null=True
+    )
+
+
 class TaskStatusSerializer(serializers.Serializer):
     """
     Serializer for reflecting the status of a Celery task.
@@ -262,6 +275,49 @@ class TaskStatusSerializer(serializers.Serializer):
     task_id = serializers.UUIDField()
     status = serializers.CharField()
     meta = serializers.CharField(allow_null=True)
+
+    # Add context fields
+    resource_type = serializers.CharField(allow_null=True)
+    resource_id = serializers.CharField(allow_null=True)
+    action = serializers.CharField(allow_null=True)
+    additional_ids = serializers.DictField(
+        child=serializers.CharField(), allow_null=True
+    )
+
+
+class BatchSessionResultTaskEntrySerializer(serializers.Serializer):
+    """Per-task entry in a batch session results list."""
+
+    status = serializers.CharField()
+    file_name = serializers.CharField(allow_null=True)
+    task_id = serializers.CharField(allow_null=True)
+    error = serializers.CharField(allow_null=True)
+    # Add context for each task
+    context = TaskContextSerializer(allow_null=True)
+
+
+class BatchSessionResultSerializer(serializers.Serializer):
+    """Aggregated results for a batch session, now with context."""
+
+    progress = serializers.CharField()
+    percent = serializers.IntegerField()
+    is_complete = serializers.BooleanField()
+    success_count = serializers.IntegerField()
+    failure_count = serializers.IntegerField()
+    cancelled_count = serializers.IntegerField()
+    pending_count = serializers.IntegerField()
+    # Session-level context
+    resource_type = serializers.CharField(allow_null=True)
+    resource_id = serializers.CharField(allow_null=True)
+    action = serializers.CharField(allow_null=True)
+    additional_ids = serializers.DictField(
+        child=serializers.CharField(), allow_null=True
+    )
+    # Lists of entries
+    success_list = BatchSessionResultTaskEntrySerializer(many=True, allow_null=True)
+    failure_list = BatchSessionResultTaskEntrySerializer(many=True, allow_null=True)
+    cancelled_list = BatchSessionResultTaskEntrySerializer(many=True, allow_null=True)
+    pending_list = BatchSessionResultTaskEntrySerializer(many=True, allow_null=True)
 
 
 class TaskCancelSerializer(serializers.Serializer):
@@ -274,6 +330,17 @@ class BatchSessionCancelSerializer(serializers.Serializer):
     session_id = serializers.UUIDField()
     cancelled_count = serializers.IntegerField()
     message = serializers.CharField()
+
+
+class TaskContextSerializer(serializers.Serializer):
+    """Serializer for the context of a background task."""
+
+    resource_type = serializers.CharField(allow_null=True)
+    resource_id = serializers.CharField(allow_null=True)
+    action = serializers.CharField(allow_null=True)
+    additional_ids = serializers.DictField(
+        child=serializers.CharField(), allow_null=True
+    )
 
 
 class BetaWhitelistSerializer(serializers.ModelSerializer):

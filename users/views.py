@@ -59,6 +59,7 @@ from classrooms.models import EnrollmentStatusType, StudentCourse
 from classrooms.permissions import IsSuperAdmin
 from classrooms.serializers import StudentRegistrationCompletionSerializer
 from students.models import BackgroundTaskStatus, BatchUploadSession
+from students.task_context import get_session_context, get_task_context
 from students.task_tracking import (
     cancel_processing_task,
     get_processing_task,
@@ -75,8 +76,9 @@ from users.models import (
     UserTypes,
     Waitlist,
 )
-from users.serializers import (
+from users.serializers import (  # BatchSessionResultTaskEntrySerializer,; TaskContextSerializer,
     BatchSessionCancelSerializer,
+    BatchSessionResultSerializer,
     BetaWhitelistSerializer,
     ChangePasswordSerializer,
     CustomTokenObtainPairSerializer,
@@ -1461,13 +1463,68 @@ class TaskViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["get"], url_path="status/(?P<task_id>[^/.]+)")
     def task_status(self, request, task_id=None):
         """
-        Retrieve the status of a background task by its ID.
+        Retrieve the status of a background task by its ID, enriched with context.
         """
         processing_task = get_processing_task(task_id, requested_by=request.user)
-        data = self._serialize_task_status(task_id, processing_task=processing_task)
+        if processing_task:
+            normalize_processing_task_status(processing_task)
+            processing_task.refresh_from_db()
+            meta = dict(processing_task.meta or {})
+            if processing_task.error:
+                meta.setdefault("error", processing_task.error)
+            status_value = self._map_status(processing_task.status)
+
+            # Get context
+            context = get_task_context(processing_task)
+
+            data = {
+                "task_id": task_id,
+                "status": status_value,
+                "meta": str(meta) if meta else None,
+                "resource_type": context["resource_type"],
+                "resource_id": context["resource_id"],
+                "action": context["action"],
+                "additional_ids": context["additional_ids"],
+            }
+        else:
+            # Fallback to Celery AsyncResult (less context)
+            task = AsyncResult(task_id)
+            data = {
+                "task_id": task_id,
+                "status": self._map_celery_state(task.state),
+                "meta": str(task.info) if task.info else None,
+                "resource_type": None,
+                "resource_id": None,
+                "action": None,
+                "additional_ids": {},
+            }
 
         serializer = TaskStatusSerializer(data)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    # Helper methods (add inside TaskViewSet)
+    def _map_status(self, db_status):
+        """Map BackgroundTaskStatus to frontend-friendly status string."""
+        mapping = {
+            "PENDING": "processing",
+            "STARTED": "processing",
+            "SUCCESS": "completed",
+            "FAILURE": "failed",
+            "CANCELLED": "cancelled",
+        }
+        return mapping.get(db_status, "processing")
+
+    def _map_celery_state(self, state):
+        """Map Celery state to frontend-friendly status string."""
+        if state == "REVOKED":
+            return "cancelled"
+        if state == "SUCCESS":
+            return "completed"
+        if state == "FAILURE":
+            return "failed"
+        if state in ("PENDING", "STARTED", "RETRY"):
+            return "processing"
+        return "processing"
 
     @extend_schema(
         tags=["Tasks"],
@@ -1610,7 +1667,12 @@ class TaskViewSet(viewsets.ViewSet):
         )
 
         tracked_tasks = list(
-            session.processing_tasks.select_related("assignment", "submission").all()
+            session.processing_tasks.select_related(
+                "assignment",
+                "submission",
+                "submission__assignment",
+                "assignment__course",
+            ).all()
         )
 
         if tracked_tasks:
@@ -1623,18 +1685,16 @@ class TaskViewSet(viewsets.ViewSet):
                 normalize_processing_task_status(processing_task)
                 processing_task.refresh_from_db()
 
+                # Get context for this specific task
+                task_context = get_task_context(processing_task)
+
                 task_entry = {
                     "status": processing_task.status,
                     "file_name": processing_task.file_name,
                     "task_id": processing_task.celery_task_id,
                     "error": processing_task.error,
+                    "context": task_context,  # add context
                 }
-
-                if processing_task.assignment_id:
-                    task_entry["assignment_id"] = str(processing_task.assignment_id)
-
-                if processing_task.submission_id:
-                    task_entry["submission_id"] = str(processing_task.submission_id)
 
                 if processing_task.status == "SUCCESS":
                     success.append(task_entry)
@@ -1649,32 +1709,63 @@ class TaskViewSet(viewsets.ViewSet):
             total = session.total_files or len(tracked_tasks)
             percentage = (completed / total) * 100 if total > 0 else 0
 
-            return Response(
+            # Get session-level context
+            session_context = get_session_context(session)
+
+            data = {
+                "progress": f"{completed} / {total}",
+                "percent": round(percentage),
+                "is_complete": completed == total,
+                "success_count": len(success),
+                "failure_count": len(failures),
+                "cancelled_count": len(cancelled),
+                "pending_count": len(pending),
+                # Session-level context
+                "resource_type": session_context["resource_type"],
+                "resource_id": session_context["resource_id"],
+                "action": session_context["action"],
+                "additional_ids": session_context["additional_ids"],
+                # Lists
+                "success_list": success,
+                "failure_list": failures,
+                "cancelled_list": cancelled,
+                "pending_list": pending,
+            }
+        else:
+            # Fallback to session.results (legacy, for sessions without tracked tasks)
+            success = [r for r in session.results if r["status"] == "SUCCESS"]
+            failures = [r for r in session.results if r["status"] == "FAILED"]
+            # For legacy entries, we don't have context, so we set context to None
+            # We'll map them to a minimal entry
+            success_entries = [
                 {
-                    "progress": f"{completed} / {total}",
-                    "percent": round(percentage),
-                    "is_complete": completed == total,
-                    "success_count": len(success),
-                    "failure_count": len(failures),
-                    "cancelled_count": len(cancelled),
-                    "pending_count": len(pending),
-                    "success_list": success,
-                    "failure_list": failures,
-                    "cancelled_list": cancelled,
-                    "pending_list": pending,
+                    "status": r["status"],
+                    "file_name": r.get("file_name"),
+                    "task_id": None,
+                    "error": r.get("error"),
+                    "context": None,
                 }
-            )
+                for r in success
+            ]
+            failure_entries = [
+                {
+                    "status": r["status"],
+                    "file_name": r.get("file_name"),
+                    "task_id": None,
+                    "error": r.get("error"),
+                    "context": None,
+                }
+                for r in failures
+            ]
 
-        success = [r for r in session.results if r["status"] == "SUCCESS"]
-        failures = [r for r in session.results if r["status"] == "FAILED"]
+            completed = len(session.results)
+            total = session.total_files
+            percentage = (completed / total) * 100 if total > 0 else 0
 
-        completed = len(session.results)
-        total = session.total_files
+            # Still compute session context using the helper (which may use assignment/course)
+            session_context = get_session_context(session)
 
-        percentage = (completed / total) * 100 if total > 0 else 0
-
-        return Response(
-            {
+            data = {
                 "progress": f"{completed} / {total}",
                 "percent": round(percentage),
                 "is_complete": completed == total,
@@ -1682,12 +1773,20 @@ class TaskViewSet(viewsets.ViewSet):
                 "failure_count": len(failures),
                 "cancelled_count": 0,
                 "pending_count": max(total - completed, 0),
-                "success_list": success,
-                "failure_list": failures,
+                # Session-level context
+                "resource_type": session_context["resource_type"],
+                "resource_id": session_context["resource_id"],
+                "action": session_context["action"],
+                "additional_ids": session_context["additional_ids"],
+                "success_list": success_entries,
+                "failure_list": failure_entries,
                 "cancelled_list": [],
                 "pending_list": [],
             }
-        )
+
+        # Use the new serializer
+        serializer = BatchSessionResultSerializer(data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @extend_schema_view(

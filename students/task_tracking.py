@@ -58,7 +58,14 @@ def launch_processing_task(task_callable, processing_task, *args, **kwargs):
 
 
 def get_processing_task(task_id, requested_by=None):
-    queryset = BackgroundProcessingTask.objects.all()
+    queryset = BackgroundProcessingTask.objects.select_related(
+        "assignment",
+        "submission",
+        "batch_session",
+        "submission__assignment",
+        "assignment__course",
+        "submission__student",
+    )
     if requested_by is not None:
         queryset = queryset.filter(requested_by=requested_by)
     return queryset.filter(celery_task_id=str(task_id)).first()

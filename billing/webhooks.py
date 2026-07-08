@@ -81,6 +81,10 @@ def stripe_webhook(request):
             StripeWebhookHandler.handle_subscription_deleted(data_object)
         elif event_type == "payment_intent.succeeded":
             StripeWebhookHandler.handle_payment_intent_succeeded(data_object)
+        elif event_type == "paymen_intent.payment_failed":
+            StripeWebhookHandler.handle_payment_intent_failed(data_object)
+        elif event_type == "setup_intent.succeeded":
+            StripeWebhookHandler.handle_setup_intent_succeeded(data_object)
         else:
             logger.debug("Stripe webhook: unhandled event type %s.", event_type)
     except Exception:
@@ -152,6 +156,10 @@ def thin_webhook(request):
             StripeWebhookHandler.handle_subscription_deleted(data_object)
         elif event_type == "payment_intent.succeeded":
             StripeWebhookHandler.handle_payment_intent_succeeded(data_object)
+        elif event_type == "paymen_intent.payment_failed":
+            StripeWebhookHandler.handle_payment_intent_failed(data_object)
+        elif event_type == "setup_intent.succeeded":
+            StripeWebhookHandler.handle_setup_intent_succeeded(data_object)
         else:
             logger.debug("Stripe thin webhook: unhandled event type %s.", event_type)
     except Exception:

@@ -67,6 +67,8 @@ from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
     DirectAddStudentSerializer,
     ExpiredTokenSerializer,
     SchoolSerializer,
+    SchoolWithAdminResponseSerializer,
+    SchoolWithAdminSerializer,
     SessionSerializer,
     StudentCourseDetailSerializer,
     StudentCourseSerializer,
@@ -213,6 +215,28 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         serializer.save()
 
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        tags=["School"],
+        summary="Create a School and its Admin in one request",
+        description="Create both a School and a School Admin user atomically.",
+        request=SchoolWithAdminSerializer,
+        responses={201: SchoolWithAdminResponseSerializer},
+    )
+    @action(detail=False, methods=["post"], permission_classes=[IsSuperAdmin])
+    def create_with_admin(self, request, *args, **kwargs):
+        serializer = SchoolWithAdminSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        result = serializer.save()
+
+        response_data = {
+            "school": result["school"],
+            "admin": result["admin"],
+            "message": "School and admin created successfully",
+        }
+
+        response_serializer = SchoolWithAdminResponseSerializer(response_data)
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
 
 @extend_schema_view(
@@ -368,7 +392,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         email = serializer.validated_data["email"]
 
         """Onboard students to a section."""
-        course = self.get_object()
+        course = Course.objects.select_for_update().get(pk=self.kwargs["pk"])
 
         try:
             with transaction.atomic():
