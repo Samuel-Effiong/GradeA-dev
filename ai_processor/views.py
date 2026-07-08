@@ -15,7 +15,7 @@ class AIProcessorViewSet(GenericViewSet):
     @extend_schema(
         tags=["AI Processor"],
     )
-    @require_ai_access
+    # @require_ai_access
     @action(detail=False, methods=["post"])
     def generate_assignment_with_prompt(self, request):
         course_id = request.data.get("course_id")
