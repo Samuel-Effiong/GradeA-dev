@@ -1478,8 +1478,8 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         tags=["Assignments"],
         summary="Download student version of assignment as PDF",
         description=(
-            "Generates a beautifully formatted PDF of the assignment as seen by students. "
-            "Rubrics and model answers are excluded. Images (CDN/absolute URLs) are fully supported."
+            "Generates formatted PDF of the assignment as seen by students. "
+            "Rubrics and model answers are excluded."
         ),
         responses={
             200: OpenApiResponse(
