@@ -114,6 +114,7 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
 
     category = serializers.CharField(source="plan.category", read_only=True)
     tier = serializers.CharField(source="plan.tier", read_only=True)
+    interval = serializers.CharField(source="plan.interval", read_only=True)
     subscription_type = serializers.SerializerMethodField(read_only=True)
     is_under_license = serializers.SerializerMethodField(read_only=True)
 
@@ -139,6 +140,7 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
             "plan",
             "category",
             "tier",
+            "interval",
             "subscription_type",
             "is_under_license",
             "is_active",
