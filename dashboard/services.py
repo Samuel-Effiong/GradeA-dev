@@ -898,7 +898,7 @@ class WeeklyCourseSummaryService:
 
     def _calculate_grade_trend(self, recent_scores):
         if len(recent_scores) < 2:
-            return "INSUFFICIENT_DATA", 0.0
+            return "INSUFFICIENT DATA", 0.0
 
         first_score = recent_scores[0]
         last_score = recent_scores[-1]
@@ -912,7 +912,7 @@ class WeeklyCourseSummaryService:
 
     def _trend_from_values(self, previous_value, current_value, *, threshold):
         if previous_value is None and current_value is None:
-            return "INSUFFICIENT_DATA"
+            return "INSUFFICIENT DATA"
         if previous_value is None:
             return "IMPROVING" if current_value else "INSUFFICIENT_DATA"
         if current_value is None:

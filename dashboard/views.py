@@ -1712,7 +1712,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 scores = [float(s.score) for s in recent]
 
                 if len(scores) < 2:
-                    trend = "INSUFFICIENT_DATA"
+                    trend = "INSUFFICIENT DATA"
                 elif scores[-1] > scores[0]:
                     trend = "IMPROVING"
                 elif scores[-1] < scores[0]:
@@ -2101,7 +2101,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 scores = [float(s.score_percentage or 0) for s in recent]
 
                 if len(scores) < 2:
-                    trend = "INSUFFICIENT_DATA"
+                    trend = "INSUFFICIENT DATA"
                 elif scores[-1] > scores[0]:
                     trend = "IMPROVING"
                 elif scores[-1] < scores[0]:

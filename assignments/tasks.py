@@ -765,16 +765,29 @@ def upload_assignment_async(
 def grade_batch_async(
     self, user_id, assignment_id, batch_id=None, processing_task_id=None
 ):
-    submissions = StudentSubmission.objects.filter(assignment_id=assignment_id)
+    submissions = StudentSubmission.objects.filter(
+        assignment_id=assignment_id, graded_at__isnull=True
+    )
 
-    # Clear assignment-level scheduling info
+    # Clear assignment-level scheduling info and create BatchUploadSession if missing
     try:
         assignment = Assignment.objects.get(id=assignment_id)
         if assignment.scheduled_grading_at or assignment.grading_task_name:
             assignment.scheduled_grading_at = None
             assignment.grading_task_name = None
             assignment.save(update_fields=["scheduled_grading_at", "grading_task_name"])
-    except Assignment.DoesNotExist:
+
+        if not batch_id and submissions.exists():
+            user = CustomUser.objects.get(id=user_id)
+            session = BatchUploadSession.objects.create(
+                teacher=user,
+                course=assignment.course,
+                task_type=BatchUploadType.GRADE,
+                total_files=submissions.count(),
+            )
+            batch_id = str(session.id)
+    except Exception as e:
+        logger.error(f"Failed to clear scheduling info or create session: {e}")
         pass
 
     for submission in submissions:

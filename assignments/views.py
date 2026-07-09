@@ -35,7 +35,6 @@ from weasyprint import HTML
 
 from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor  # pdf_service
-from billing.access_control import require_ai_access
 
 # from ai_processor.tools import encode_image
 from classrooms.models import Course, Topic
@@ -80,6 +79,9 @@ from .tasks import (  # grade_all_submissions,
     update_assignment_background_task,
     upload_assignment_async,
 )
+
+# from billing.access_control import require_ai_access
+
 
 # from students.models import StudentSubmission
 
@@ -1393,18 +1395,6 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if scheduled_time <= timezone.now():
             raise ParseError("Scheduled time cannot be in the past")
 
-        submissions = assignment.submissions.all()
-
-        if not submissions.exists():
-            raise ParseError("No submissions to process")
-
-        session = BatchUploadSession.objects.create(
-            teacher=request.user,
-            course=assignment.course,
-            task_type=BatchUploadType.GRADE,
-            total_files=submissions.count(),
-        )
-
         # Cleanup existing task if it exists
         if assignment.grading_task_name:
             PeriodicTask.objects.filter(name=assignment.grading_task_name).delete()
@@ -1422,7 +1412,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             one_off=True,
             enabled=True,
             args=json.dumps([str(request.user.id), str(assignment.id)]),
-            kwargs=json.dumps({"batch_id": str(session.id)}),
+            kwargs=json.dumps({}),
         )
 
         assignment.scheduled_grading_at = scheduled_time
@@ -1430,11 +1420,10 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         assignment.save(update_fields=["scheduled_grading_at", "grading_task_name"])
 
         data = {
-            "session_id": session.id,
             "period_task_id": periodic_task.id,
             "task_name": periodic_task.name,
             "scheduled_time": scheduled_time,
-            "message": f"Batch grading scheduled for {submissions.count()} submissions",
+            "message": "Batch grading scheduled successfully",
         }
 
         serializer = ScheduledGradingResponseSerializer(data)
@@ -1757,7 +1746,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         filename = f"{safe_title}.pdf"
 
         response = FileResponse(BytesIO(pdf_bytes), content_type="application/pdf")
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+        response["Content-Disposition"] = f"attachment; filename={filename!r}"
         return response
 
 

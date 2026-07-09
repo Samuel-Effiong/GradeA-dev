@@ -31,6 +31,8 @@ Classes:
 import logging
 from typing import Optional
 
+from django.core.cache import cache
+
 # from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
@@ -130,6 +132,94 @@ class StripeCheckoutService:
     we never trust client-supplied data after redirect, only what Stripe
     echoes back on the confirmed event.
     """
+
+    @staticmethod
+    def create_individual_checkout_session(user, plan, success_url, cancel_url):
+        """
+        Single Checkout Session builder for every case where Stripe does NOT yet
+        have a chargeable subscription for this user, i.e. every situation where
+        automatic charging is impossible and the user must be redirected to enter
+        payment details:
+
+          - brand new user who has never subscribed (no UserSubscription row at
+            all, or a prior one that's since gone inactive)
+          - a currently active free trial — regardless of whether trial_end has
+            technically passed, since what matters here is whether the trial ROW
+            is still is_active=True (i.e. the nightly expiry cleanup hasn't run
+            yet). If it's still active, there's TRIAL-bucket state to finalize;
+            if it's already been cleaned up, there's nothing to finalize and this
+            behaves like a brand new signup.
+          - an active PAID subscription with no stripe_subscription_id on file
+            (e.g. a superadmin manual grant, or a Beta assignment) — locally
+            "paid", but Stripe has no subscription to charge automatically, so
+            it still has to go through checkout like a fresh signup.
+
+        Snapshots which trial subscription (if any) needs to be finalized into
+        Stripe metadata, so the webhook handler doesn't have to re-derive
+        "was there a trial" from scratch and risk resolving differently than
+        what was true at the moment the user clicked "subscribe" (e.g. if the
+        trial gets cleaned up by Celery in the few seconds between session
+        creation and the user completing payment on Stripe's page — see
+        _handle_individual_checkout for how that race is still handled safely
+        even so).
+
+        """
+        if plan.category != PlanCategory.INDIVIDUAL:
+            raise ValueError("Checkout is only valid for INDIVIDUAL plans.")
+        if not plan.stripe_price_id:
+            raise ValueError(f"Plan {plan.name} has no stripe_price_id configured.")
+
+        # Defensive guard: this method must never be used for a user who
+        # already has a chargeable Stripe subscription — that case belongs to
+        # StripeSubscriptionMutationService.change_plan() /
+        # SubscriptionService.schedule_downgrade() instead. This is a backstop
+        # in case something other than IndividualPlanChangeService.select_plan
+        # ever calls this directly; the routing decision itself is made there.
+        has_chargeable_subscription = (
+            UserSubscription.objects.filter(user=user, is_active=True, is_trial=False)
+            .exclude(stripe_subscription_id__isnull=True)
+            .exclude(stripe_subscription_id="")
+            .exists()
+        )
+        if has_chargeable_subscription:
+            raise ValueError(
+                "User already has a chargeable active subscription. Use the "
+                "upgrade/downgrade flow instead of checkout."
+            )
+
+        customer_id = StripeCustomerService.get_or_create_customer(user)
+
+        # Only an *active* trial is eligible for in-place finalize at webhook
+        # time. Anything else (no trial at all, or one that already expired
+        # and was cleaned up) results in a fresh activation instead — see
+        # _handle_individual_checkout.
+        trial_sub = UserSubscription.objects.filter(
+            user=user, is_active=True, is_trial=True
+        ).first()
+
+        session = stripe.checkout.Session.create(
+            customer=customer_id,
+            mode="subscription",
+            line_items=[{"price": plan.stripe_price_id, "quantity": 1}],
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata={
+                "flow": "individual_checkout",
+                "user_id": str(user.id),
+                "plan_id": str(plan.id),
+                "trial_subscription_id": str(trial_sub.id) if trial_sub else "",
+            },
+        )
+
+        logger.info(
+            "Created unified individual checkout session for user %s -> plan %s "
+            "(trial_subscription_id=%s). Checkout session: %s.",
+            user.email,
+            plan.name,
+            trial_sub.id if trial_sub else None,
+            session.id,
+        )
+        return session
 
     @staticmethod
     def create_individual_subscribe_session(user, plan, success_url, cancel_url):
@@ -963,6 +1053,173 @@ class StripePriceService:
             raise ValueError(f"Failed to create custom price: {exc}") from exc
 
 
+class IndividualPlanChangeService:
+
+    _LOCK_TIMEOUT_SECONDS = 30
+
+    @staticmethod
+    def select_plan(user, target_plan, success_url=None, cancel_url=None):
+        """
+        Args:
+            user (CustomUser): The user selecting a plan.
+            target_plan (SubscriptionPlan): The plan being selected. Must
+                already be validated as INDIVIDUAL / active / self-serve —
+                see SelectIndividualPlanSerializer, which is expected to be
+                the caller.
+            success_url (str | None): Required only if the resolved action
+                turns out to be "checkout".
+            cancel_url (str | None): Required only if the resolved action
+                turns out to be "checkout".
+
+        Returns:
+            dict: matches PlanChangeResultSerializer's shape. See that
+                serializer's docstring for the exact fields per `action`.
+
+        Raises:
+            ValueError: For any business-rule rejection (already on this
+                plan, payment issue blocking changes, lock contention,
+                missing success/cancel URLs when checkout is required, or
+                a Stripe-side failure surfaced from change_plan()). The view
+                is expected to catch ValueError and turn it into a 400.
+        """
+        lock_key = f"billing:planchange:{user.id}"
+        if not cache.add(
+            lock_key, "1", timeout=IndividualPlanChangeService._LOCK_TIMEOUT_SECONDS
+        ):
+            raise ValueError(
+                "A plan change is already being processed for your account. "
+                "Please wait a moment and try again."
+            )
+
+        try:
+            branch, current_sub = IndividualPlanChangeService._determine_branch(
+                user, target_plan
+            )
+
+            if branch == "cancel_downgrade":
+                updated_sub = SubscriptionService.cancel_scheduled_downgrade(user)
+                return {
+                    "action": "downgrade_cancelled",
+                    "message": (
+                        f"Scheduled downgrade cancelled. You'll stay on "
+                        f"{updated_sub.plan.display_name or updated_sub.plan.name}."
+                    ),
+                    "subscription": updated_sub,
+                }
+
+            if branch == "downgrade":
+                updated_sub = SubscriptionService.schedule_downgrade(user, target_plan)
+                return {
+                    "action": "downgrade_scheduled",
+                    "message": (
+                        f"You'll move to "
+                        f"{target_plan.display_name or target_plan.name} on "
+                        f"{updated_sub.billing_cycle_end.date().isoformat()}. "
+                        f"You keep your current plan and credits until then."
+                    ),
+                    "pending_plan": target_plan,
+                    "effective_date": updated_sub.billing_cycle_end,
+                }
+
+            if branch == "checkout":
+                if not success_url or not cancel_url:
+                    raise ValueError(
+                        "success_url and cancel_url are required to start checkout."
+                    )
+                session = StripeCheckoutService.create_individual_checkout_session(
+                    user=user,
+                    plan=target_plan,
+                    success_url=success_url,
+                    cancel_url=cancel_url,
+                )
+                return {
+                    "action": "checkout",
+                    "message": (
+                        "Redirecting to secure checkout to complete your "
+                        "subscription."
+                    ),
+                    "checkout_url": session.url,
+                    "checkout_session_id": session.id,
+                }
+
+            if branch == "upgrade":
+                # Re-fetch just before the Stripe call: we deliberately
+                # released the row lock when _determine_branch's transaction
+                # exited, so this guards against acting on a stale in-memory
+                # instance if anything changed in the interim (extremely
+                # unlikely given the cache lock, but cheap to be sure).
+                current_sub = UserSubscription.objects.select_related("plan").get(
+                    id=current_sub.id
+                )
+                updated_sub = StripeSubscriptionMutationService.change_plan(
+                    user_sub=current_sub, new_plan=target_plan
+                )
+                return {
+                    "action": "upgraded",
+                    "message": (
+                        f"You've been upgraded to "
+                        f"{target_plan.display_name or target_plan.name} and "
+                        f"charged the prorated difference immediately."
+                    ),
+                    "subscription": updated_sub,
+                }
+
+            raise AssertionError(f"Unreachable branch: {branch!r}")  # pragma: no cover
+        finally:
+            cache.delete(lock_key)
+
+    @staticmethod
+    def _determine_branch(user, target_plan):
+        """
+        Read-only decision step, run under a row lock on the user's active
+        subscription (if any) so concurrent calls for the same user serialize
+        on the decision itself. Performs NO mutation and NO external calls —
+        both of those happen afterward, outside this transaction, in
+        select_plan(). See the class docstring's CONCURRENCY section for why.
+
+        Returns:
+            tuple[str, UserSubscription | None]: (branch, current_sub) where
+                branch is one of "checkout", "upgrade", "downgrade",
+                "cancel_downgrade".
+
+        Raises:
+            ValueError: For business-rule rejections that stop here (past due,
+                already on this plan with nothing pending).
+        """
+        with transaction.atomic():
+            current_sub = (
+                UserSubscription.objects.select_for_update()
+                .filter(user=user, is_active=True)
+                .select_related("plan", "pending_plan")
+                .first()
+            )
+
+            if current_sub is None:
+                return "checkout", None
+
+            if current_sub.is_trial:
+                return "checkout", current_sub
+
+            if not current_sub.stripe_subscription_id:
+                return "checkout", current_sub
+
+            if current_sub.stripe_status == StripeSubscriptionStatus.PAST_DUE:
+                raise ValueError(
+                    "Your current subscription has a payment issue. Please "
+                    "update your payment method before changing plans."
+                )
+
+            if target_plan.id == current_sub.plan_id:
+                if current_sub.pending_plan_id:
+                    return "cancel_downgrade", current_sub
+                raise ValueError("You are already subscribed to this plan.")
+
+            if target_plan.price_cents >= current_sub.plan.price_cents:
+                return "upgrade", current_sub
+
+            return "downgrade", current_sub
+
+
 class StripeWebhookHandler:
     """
     What to do for each Stripe event type. Called from webhooks.py, which
@@ -980,7 +1237,9 @@ class StripeWebhookHandler:
         metadata = session.get("metadata", {}) or {}
         flow = metadata.get("flow")
 
-        if flow == "individual_subscribe":
+        if flow == "individual_checkout":
+            StripeWebhookHandler._handle_individual_checkout(session, metadata)
+        elif flow == "individual_subscribe":
             StripeWebhookHandler._handle_individual_subscribe(session, metadata)
         elif flow == "individual_trial":
             StripeWebhookHandler._handle_individual_trial(session, metadata)
@@ -994,6 +1253,65 @@ class StripeWebhookHandler:
             logger.warning(
                 "checkout.session.completed with unrecognized flow metadata: %r", flow
             )
+
+    @staticmethod
+    def _handle_individual_checkout(session, metadata):
+        user = CustomUser.objects.get(id=metadata["user_id"])
+        plan = SubscriptionPlan.objects.get(id=metadata["plan_id"])
+        trial_subscription_id = metadata.get("trial_subscription_id") or None
+
+        trial_sub = None
+        if trial_subscription_id:
+            trial_sub = (
+                UserSubscription.objects.select_for_update()
+                .filter(id=trial_subscription_id, is_active=True, is_trial=True)
+                .first()
+            )
+
+        if trial_sub:
+            SubscriptionService.finalize_trial_to_paid_conversion(
+                trial_sub=trial_sub,
+                new_plan=plan,
+                stripe_subscription_id=session["subscription"],
+            )
+            logger.info(
+                "Checkout completed: trial %s finalized to paid plan %s for "
+                "user %s. Stripe subscription: %s.",
+                trial_sub.id,
+                plan.name,
+                user.email,
+                session["subscription"],
+            )
+            return
+
+        already_active_same_plan = UserSubscription.objects.filter(
+            user=user,
+            is_active=True,
+            plan=plan,
+            stripe_subscription_id=session["subscription"],
+        ).exists()
+        if already_active_same_plan:
+            logger.info(
+                "individual_checkout webhook for user %s already applied "
+                "(duplicate delivery for session %s) — skipping.",
+                user.email,
+                session["id"],
+            )
+            return
+
+        subscription = SubscriptionService.activate_subscription(user, plan)
+        subscription.stripe_subscription_id = session["subscription"]
+        subscription.stripe_status = StripeSubscriptionStatus.ACTIVE
+        subscription.save(
+            update_fields=["stripe_subscription_id", "stripe_status", "updated_at"]
+        )
+        logger.info(
+            "Checkout completed: fresh activation of plan %s for user %s "
+            "(no trial to finalize). Stripe subscription: %s.",
+            plan.name,
+            user.email,
+            session["subscription"],
+        )
 
     @staticmethod
     def _handle_individual_subscribe(session, metadata):

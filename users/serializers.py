@@ -123,6 +123,14 @@ class CustomUserSerializer(serializers.ModelSerializer):
         is_creating = self.instance is None
         email_changed = self.instance and self.instance.email != email
 
+        # Students are not allowed to change their names after registration
+        if not is_creating and user_type == UserTypes.STUDENT:
+            for field in ["first_name", "middle_name", "last_name"]:
+                if field in attrs and attrs.get(field) != getattr(self.instance, field):
+                    raise serializers.ValidationError(
+                        {field: "Students are not allowed to edit their name."}
+                    )
+
         # Enforce email domain rules on account creation or when changing their email
         if email and (is_creating or email_changed):
             if user_type == UserTypes.TEACHER:
@@ -330,17 +338,6 @@ class BatchSessionCancelSerializer(serializers.Serializer):
     session_id = serializers.UUIDField()
     cancelled_count = serializers.IntegerField()
     message = serializers.CharField()
-
-
-class TaskContextSerializer(serializers.Serializer):
-    """Serializer for the context of a background task."""
-
-    resource_type = serializers.CharField(allow_null=True)
-    resource_id = serializers.CharField(allow_null=True)
-    action = serializers.CharField(allow_null=True)
-    additional_ids = serializers.DictField(
-        child=serializers.CharField(), allow_null=True
-    )
 
 
 class BetaWhitelistSerializer(serializers.ModelSerializer):

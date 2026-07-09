@@ -21,6 +21,7 @@ from .models import (
     LicenseBillingRecord,
     LicenseSubscription,
     PlanCategory,
+    PlanType,
     SchoolCreditAllocation,
     SubscriptionPlan,
     UserSubscription,
@@ -218,6 +219,109 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
         return SubscriptionService.activate_subscription(
             user=validated_data["user"], plan=validated_data["plan"]
         )
+
+
+class MySubscriptionSerializer(UserSubscriptionSerializer):
+    """
+    Extended serializer for the /subscription/me endpoint.
+    Adds renewal info, plan display details, and credit wallet summary.
+    """
+
+    # Renewal fields (some already in base, we override to ensure they appear)
+    next_renewal_date = serializers.DateTimeField(
+        source="billing_cycle_end", read_only=True
+    )
+    days_until_renewal = serializers.SerializerMethodField()
+    stripe_status = serializers.CharField(read_only=True)  # added from model
+
+    # Plan display details (not in base)
+    plan_display_name = serializers.CharField(
+        source="plan.display_name", read_only=True
+    )
+    monthly_credits_display = serializers.SerializerMethodField()
+
+    # Credit wallet summary
+    current_balance_display = serializers.SerializerMethodField()
+    credit_percentage_remaining = serializers.SerializerMethodField()
+    monthly_credit_total_display = serializers.SerializerMethodField()
+    monthly_credit_remaining_display = serializers.SerializerMethodField()
+
+    class Meta(UserSubscriptionSerializer.Meta):
+        fields = UserSubscriptionSerializer.Meta.fields + [
+            "next_renewal_date",
+            "days_until_renewal",
+            "stripe_status",
+            "plan_display_name",
+            "monthly_credits_display",
+            "current_balance_display",
+            "credit_percentage_remaining",
+            "monthly_credit_total_display",
+            "monthly_credit_remaining_display",
+        ]
+        read_only_fields = UserSubscriptionSerializer.Meta.read_only_fields + [
+            "next_renewal_date",
+            "days_until_renewal",
+            "stripe_status",
+            "plan_display_name",
+            "monthly_credits_display",
+            "current_balance_display",
+            "credit_percentage_remaining",
+            "monthly_credit_total_display",
+            "monthly_credit_remaining_display",
+        ]
+
+    def get_days_until_renewal(self, obj):
+        now = timezone.now()
+        delta = obj.billing_cycle_end - now
+        return max(0, delta.days)
+
+    def get_monthly_credits_display(self, obj):
+        return obj.plan.display_monthly_credits
+
+    def get_current_balance_display(self, obj):
+        try:
+            wallet = obj.user.credit_wallet
+            return wallet.display_balance
+        except CreditWallet.DoesNotExist:
+            return 0
+
+    def get_credit_percentage_remaining(self, obj):
+        """
+        Percentage of the current month's credit budget remaining.
+        (Reuses the logic from CreditWalletSummarySerializer)
+        """
+        try:
+            wallet = obj.user.credit_wallet
+            now = timezone.now()
+            monthly_bucket = wallet.buckets.filter(
+                bucket_type=CreditBucketType.MONTHLY,
+                expires_at__gt=now,
+            ).first()
+            if not monthly_bucket:
+                return 0.0
+            total = obj.plan.monthly_credits or 1
+            remaining = monthly_bucket.remaining_credits
+            percentage = (remaining / total) * 100
+            return round(min(percentage, 100.0), 2)
+        except (CreditWallet.DoesNotExist, AttributeError):
+            return 0.0
+
+    def get_monthly_credit_total_display(self, obj):
+        return obj.plan.display_monthly_credits
+
+    def get_monthly_credit_remaining_display(self, obj):
+        try:
+            wallet = obj.user.credit_wallet
+            now = timezone.now()
+            monthly_bucket = wallet.buckets.filter(
+                bucket_type=CreditBucketType.MONTHLY,
+                expires_at__gt=now,
+            ).first()
+            if not monthly_bucket:
+                return 0
+            return monthly_bucket.remaining_credits // CONVERSION_FACTOR
+        except CreditWallet.DoesNotExist:
+            return 0
 
 
 class FreeTrialStatusSerializer(serializers.Serializer):
@@ -1307,3 +1411,102 @@ class ManualTeacherOverageGrantSerializer(serializers.Serializer):
 
 class ConvertToOfflineSerializer(serializers.Serializer):
     notes = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+
+
+class SelectIndividualPlanSerializer(serializers.Serializer):
+
+    plan_id = serializers.UUIDField(
+        help_text="UUID of the SubscriptionPlan the user wants to move to."
+    )
+    success_url = serializers.URLField(
+        help_text=(
+            "Where Stripe Checkout should redirect on success. Only used if the "
+            "backend determines a checkout redirect is needed (trial user, or no "
+            "existing chargeable subscription); ignored for immediate "
+            "upgrades and scheduled downgrades."
+        )
+    )
+    cancel_url = serializers.URLField(
+        help_text=(
+            "Where Stripe Checkout should redirect if the user backs out. "
+            "Same conditional-use note as success_url."
+        )
+    )
+
+    def validate_plan_id(self, value):
+        """
+        Resolves and returns the SubscriptionPlan instance itself (not the raw
+        UUID) so the view can use `serializer.validated_data["plan_id"]` directly
+        — same convention already used by ManualCreditTopUpSerializer.validate_user_id
+        elsewhere in this file.
+        """
+        try:
+            plan = SubscriptionPlan.objects.get(id=value)
+        except SubscriptionPlan.DoesNotExist as exc:
+            raise serializers.ValidationError(
+                f"No plan found with id {value!r}."
+            ) from exc
+
+        if plan.category != PlanCategory.INDIVIDUAL:
+            raise serializers.ValidationError(
+                "This endpoint only supports INDIVIDUAL plans. Institutional "
+                "(school/license) billing is managed separately by school admins."
+            )
+
+        # TRIAL is granted automatically on registration, never user-selectable.
+        # BETA / CUSTOM are assigned out-of-band (internal eligibility rules /
+        # negotiated contracts) and must never be reachable through self-serve
+        # plan selection.
+        if plan.name in (PlanType.TRIAL, PlanType.BETA, PlanType.CUSTOM):
+            raise serializers.ValidationError(
+                f"The {plan.get_name_display()} plan cannot be selected directly."
+            )
+
+        # if plan.is_contact_sales:
+        #     raise serializers.ValidationError(
+        #         "This plan requires contacting our sales team and can't be "
+        #         "selected directly."
+        #     )
+
+        if not plan.is_active:
+            raise serializers.ValidationError(
+                "This plan is no longer available for new selections."
+            )
+
+        if not plan.stripe_price_id:
+            raise serializers.ValidationError(
+                "This plan isn't fully configured for billing yet. Please "
+                "contact support."
+            )
+
+        return plan
+
+    def validate(self, attrs):
+        if attrs["success_url"] == attrs["cancel_url"]:
+            # Not strictly harmful, but almost certainly a frontend mistake —
+            # catch it early rather than silently sending the user to the same
+            # page regardless of whether checkout succeeded or was cancelled.
+            raise serializers.ValidationError(
+                {"cancel_url": "success_url and cancel_url should not be identical."}
+            )
+        return attrs
+
+
+class PlanChangeResultSerializer(serializers.Serializer):
+    action = serializers.ChoiceField(
+        choices=["checkout", "upgraded", "downgrade_scheduled", "downgrade_cancelled"]
+    )
+    message = serializers.CharField(
+        help_text="Human-readable summary of what happened, safe to show directly to the user."
+    )
+
+    # action == "checkout"
+    checkout_url = serializers.URLField(required=False, allow_null=True)
+    checkout_session_id = serializers.CharField(required=False, allow_null=True)
+
+    # action == "upgraded" | "downgrade_cancelled"
+    subscription = UserSubscriptionSerializer(required=False, allow_null=True)
+
+    # action == "downgrade_scheduled"
+    pending_plan = SubscriptionPlanSerializer(required=False, allow_null=True)
+    effective_date = serializers.DateTimeField(required=False, allow_null=True)

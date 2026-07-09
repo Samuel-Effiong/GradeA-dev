@@ -27,6 +27,7 @@ from drf_spectacular.utils import (  # inline_serializer,
 )
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 
 # from rest_framework.exceptions import ParseError
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -74,8 +75,11 @@ from .serializers import (  # SubscriptionSerializer,; BetaUsageTrendSerializer,
     DailyTimeSeriesSerializer,
     FeatureConsumptionTimeSeriesSerializer,
     IntentSignalResponseSerializer,
+    MySubscriptionSerializer,
     OverageStatusSerializer,
     PeakUsageHourSerializer,
+    PlanChangeResultSerializer,
+    SelectIndividualPlanSerializer,
     SubscriptionPlanSerializer,
     UsageQuintileResponseSerializer,
     UsageSummarySerializer,
@@ -84,6 +88,7 @@ from .serializers import (  # SubscriptionSerializer,; BetaUsageTrendSerializer,
 )
 from .services import AnalyticsService, SubscriptionService
 from .stripe_service import (  # StripeSubscriptionMutationService,
+    IndividualPlanChangeService,
     StripeCheckoutService,
     StripeOverageService,
     StripeSubscriptionMutationService,
@@ -544,7 +549,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
         summary="Get my subscription",
         description="Get my subscription.",
         responses={
-            200: OpenApiResponse(response=UserSubscriptionSerializer),
+            200: OpenApiResponse(response=MySubscriptionSerializer),
             404: OpenApiResponse(
                 description="No active subscription found",
                 examples=[
@@ -568,7 +573,9 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                 {"detail": "No active subscription found"},
                 status=status.HTTP_404_NOT_FOUND,
             )
-        serializer = self.get_serializer(subscription)
+        serializer = MySubscriptionSerializer(
+            subscription, context={"request": request}
+        )
         return Response(serializer.data)
 
     @extend_schema(
@@ -799,58 +806,6 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
             status=status.HTTP_200_OK,
         )
 
-    # @START_TRIAL_SCHEMA
-    # @action(
-    #     detail=False, methods=["POST"], url_path="start-trial", url_name="start-trial"
-    # )
-    # def start_trial(self, request, *args, **kwargs):
-    #     plan_id = request.data.get("plan")
-
-    #     if not plan_id:
-    #         return Response(
-    #             {"detail": "The 'plan' field is required."},
-    #             status=status.HTTP_400_BAD_REQUEST,
-    #         )
-
-    #     try:
-    #         plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
-    #     except SubscriptionPlan.DoesNotExist:
-    #         return Response(
-    #             {"detail": "Plan not found or is not active"},
-    #             status=status.HTTP_404_NOT_FOUND,
-    #         )
-
-    #     success_url = (
-    #         request.data.get("success_url")
-    #         or f"https://{settings.FRONTEND_DOMAIN}/billing/trial-success"
-    #     )
-    #     cancel_url = (
-    #         request.data.get("cancel_url")
-    #         or f"https://{settings.FRONTEND_DOMAIN}/billing/trial-cancelled"
-    #     )
-
-    #     try:
-    #         session = StripeCheckoutService.create_individual_trial_session(
-    #             user=request.user,
-    #             plan=plan,
-    #             success_url=success_url,
-    #             cancel_url=cancel_url,
-    #         )
-    #     except ValueError as exc:
-    #         error_msg = str(exc)
-
-    #         status_code = (
-    #             status.HTTP_409_CONFLICT
-    #             if "already used it's free trial" in error_msg
-    #             else status.HTTP_400_BAD_REQUEST
-    #         )
-    #         return Response(
-    #             {"detail": error_msg},
-    #             status=status_code,
-    #         )
-
-    #     return Response({"checkout_url", session.url}, status=status.HTTP_201_CREATED)
-
     @CHECKOUT_SCHEMA
     @action(detail=False, methods=["POST"], url_path="checkout")
     def checkout(self, request, *args, **kwargs):
@@ -888,6 +843,50 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response({"checkout_url": session.url}, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        tags=["Subscription — Stripe"],
+        summary="Select an individual subscription plan",
+        description=(
+            "Single endpoint for moving from the free trial to a paid plan, "
+            "or for upgrading/downgrading an existing paid plan."
+        ),
+        request=SelectIndividualPlanSerializer,
+        responses={
+            200: OpenApiResponse(
+                response=PlanChangeResultSerializer,
+                description="Plan change resolved — see `action` for which outcome occurred.",
+            ),
+            400: OpenApiResponse(
+                description=(
+                    "Invalid plan selection, or a business-rule rejection "
+                    "(e.g. already on this plan, payment issue needs "
+                    "resolving first, a plan change is already in progress)."
+                )
+            ),
+        },
+    )
+    @action(detail=False, methods=["POST"], url_path="select-plan")
+    def select_plan(self, request, *args, **kwargs):
+        serializer = SelectIndividualPlanSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        target_plan = serializer.validated_data["plan_id"]  # resolved instance
+        success_url = serializer.validated_data["success_url"]
+        cancel_url = serializer.validated_data["cancel_url"]
+
+        try:
+            result = IndividualPlanChangeService.select_plan(
+                user=request.user,
+                target_plan=target_plan,
+                success_url=success_url,
+                cancel_url=cancel_url,
+            )
+        except ValueError as exc:
+            raise ValidationError({"detail": str(exc)}) from exc
+
+        response_serializer = PlanChangeResultSerializer(result)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
 
     @PURCHASE_OVERAGE_SCHEMA
     @action(detail=False, methods=["POST"], url_path="credits/overage/purchase")

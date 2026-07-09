@@ -354,16 +354,67 @@ class SubscriptionService:
         current_sub = (
             UserSubscription.objects.select_for_update()
             .filter(user=user, is_active=True)
+            .select_related("plan")
             .first()
         )
 
         if not current_sub:
             raise ValueError("No active subscription to downgrade.")
 
-        # 2. Disable auto-renew and store the target plan
-        current_sub.auto_renew = False
         current_sub.pending_plan = new_plan
-        current_sub.save(update_fields=["auto_renew", "pending_plan"])
+        current_sub.save(update_fields=["pending_plan", "updated_at"])
+
+        logger.info(
+            "Downgrade scheduled for user %s: %s -> %s, effective %s.",
+            user.email,
+            current_sub.plan.name,
+            new_plan.name,
+            current_sub.billing_cycle_end.isoformat(),
+        )
+        return current_sub
+
+    @staticmethod
+    @transaction.atomic
+    def cancel_scheduled_downgrade(user):
+        """
+        Clears a previously-scheduled downgrade (pending_plan) so the
+        subscription simply renews onto its current plan as normal.
+
+        Idempotent: if nothing is pending, this is a harmless no-op that still
+        returns the current subscription (does NOT raise) — callers that just
+        want to guarantee "no downgrade pending" after calling this don't need
+        to special-case "there wasn't one to begin with".
+
+        Args:
+            user (CustomUser): The user cancelling their scheduled downgrade.
+
+        Returns:
+            UserSubscription: The updated subscription, with pending_plan=None.
+
+        Raises:
+            ValueError: If the user has no active subscription at all.
+        """
+        current_sub = (
+            UserSubscription.objects.select_for_update()
+            .filter(user=user, is_active=True)
+            .select_related("plan", "pending_plan")
+            .first()
+        )
+
+        if not current_sub:
+            raise ValueError("No active subscription found.")
+
+        if current_sub.pending_plan_id:
+            previous_pending = current_sub.pending_plan
+            current_sub.pending_plan = None
+            current_sub.save(update_fields=["pending_plan", "updated_at"])
+            logger.info(
+                "Cancelled scheduled downgrade for user %s (was pending -> %s).",
+                user.email,
+                previous_pending.name if previous_pending else "unknown",
+            )
+
+        return current_sub
 
     @staticmethod
     @transaction.atomic
