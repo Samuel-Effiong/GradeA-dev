@@ -1444,7 +1444,11 @@ class TaskViewSet(viewsets.ViewSet):
                         value={
                             "task_id": "9f7e4a19-b299-41b4-9829-b5490e93c523",
                             "status": "completed",
-                            "meta": "{'status': 'Completed', 'assignment_id': '055eb99a-d9af-4671-ac94-38133376e942'}",
+                            "meta": "{'status': 'Completed'}",
+                            "resource_type": "assignment",
+                            "resource_id": "055eb99a-d9af-4671-ac94-38133376e942",
+                            "action": "grade",
+                            "additional_ids": {},
                         },
                     ),
                     OpenApiExample(
@@ -1453,6 +1457,10 @@ class TaskViewSet(viewsets.ViewSet):
                             "task_id": "9f7e4a19-b299-41b4-9829-b5490e93c523",
                             "status": "processing",
                             "meta": "{'current': 0, 'total': 10, 'percent': 0, 'step': 'Initializing'}",
+                            "resource_type": "assignment",
+                            "resource_id": "055eb99a-d9af-4671-ac94-38133376e942",
+                            "action": "grade",
+                            "additional_ids": {},
                         },
                     ),
                 ],
@@ -1535,7 +1543,19 @@ class TaskViewSet(viewsets.ViewSet):
             "and any remaining pipeline steps will refuse to save results."
         ),
         responses={
-            200: OpenApiResponse(response=TaskCancelSerializer),
+            200: OpenApiResponse(
+                response=TaskCancelSerializer,
+                examples=[
+                    OpenApiExample(
+                        "Task Cancellation",
+                        value={
+                            "task_id": "9f7e4a19-b299-41b4-9829-b5490e93c523",
+                            "status": "cancelled",
+                            "message": "Background task cancellation requested successfully.",
+                        },
+                    )
+                ],
+            ),
             404: OpenApiResponse(description="Tracked task not found"),
         },
     )
@@ -1564,7 +1584,19 @@ class TaskViewSet(viewsets.ViewSet):
             "owned by the authenticated teacher."
         ),
         responses={
-            200: OpenApiResponse(response=BatchSessionCancelSerializer),
+            200: OpenApiResponse(
+                response=BatchSessionCancelSerializer,
+                examples=[
+                    OpenApiExample(
+                        "Session Cancellation",
+                        value={
+                            "session_id": "550e8400-e29b-41d4-a716-446655440000",
+                            "cancelled_count": 5,
+                            "message": "Batch session cancellation requested successfully.",
+                        },
+                    )
+                ],
+            ),
             404: OpenApiResponse(description="Session not found"),
         },
     )
@@ -1608,47 +1640,103 @@ class TaskViewSet(viewsets.ViewSet):
 
             This endpoint returns the progress of the background tasks, indicating how many
             files have been processed and the overall completion status. It provides lists of
-            successfully processed submissions and those that failed.
+            successfully processed submissions, failures, cancellations, and pending tasks.
             """,
         responses={
             200: OpenApiResponse(
                 description="Session results retrieved successfully.",
-                response=OpenApiTypes.OBJECT,
+                response=BatchSessionResultSerializer,
                 examples=[
                     OpenApiExample(
                         "In Progress",
                         value={
-                            "progress": "2 / 3",
+                            "progress": "2 / 4",
+                            "percent": 50,
                             "is_complete": False,
                             "success_count": 2,
                             "failure_count": 0,
+                            "cancelled_count": 0,
+                            "pending_count": 2,
+                            "resource_type": "assignment",
+                            "resource_id": "055eb99a-d9af-4671-ac94-38133376e942",
+                            "action": "grade",
+                            "additional_ids": {},
                             "success_list": [
                                 {
                                     "status": "SUCCESS",
                                     "file_name": "student_a.pdf",
-                                    "submission_id": "b2c3d4e5",
+                                    "task_id": "b2c3d4e5",
+                                    "error": None,
+                                    "context": {
+                                        "resource_type": "submission",
+                                        "resource_id": "4321",
+                                        "action": "grade",
+                                        "additional_ids": {},
+                                    },
                                 },
                             ],
                             "failure_list": [],
+                            "cancelled_list": [],
+                            "pending_list": [
+                                {
+                                    "status": "PENDING",
+                                    "file_name": "student_b.pdf",
+                                    "task_id": "b2c3d4e6",
+                                    "error": None,
+                                    "context": {
+                                        "resource_type": "submission",
+                                        "resource_id": "4322",
+                                        "action": "grade",
+                                        "additional_ids": {},
+                                    },
+                                }
+                            ],
                         },
                     ),
                     OpenApiExample(
                         "Completed with failures",
                         value={
                             "progress": "3 / 3",
+                            "percent": 100,
                             "is_complete": True,
                             "success_count": 2,
                             "failure_count": 1,
+                            "cancelled_count": 0,
+                            "pending_count": 0,
+                            "resource_type": "assignment",
+                            "resource_id": "055eb99a-d9af-4671-ac94-38133376e942",
+                            "action": "grade",
+                            "additional_ids": {},
                             "success_list": [
-                                {"status": "SUCCESS", "file_name": "student_a.pdf"},
+                                {
+                                    "status": "SUCCESS",
+                                    "file_name": "student_a.pdf",
+                                    "task_id": "b2c3d4e5",
+                                    "error": None,
+                                    "context": {
+                                        "resource_type": "submission",
+                                        "resource_id": "4321",
+                                        "action": "grade",
+                                        "additional_ids": {},
+                                    },
+                                },
                             ],
                             "failure_list": [
                                 {
-                                    "status": "FAILED",
+                                    "status": "FAILURE",
                                     "file_name": "unknown_file.pdf",
+                                    "task_id": "b2c3d4e7",
                                     "error": "Could not identify or associate a student with this paper",
+                                    "context": {
+                                        "resource_type": "submission",
+                                        "resource_id": None,
+                                        "action": "grade",
+                                        "additional_ids": {},
+                                    },
                                 }
                             ],
+                            "cancelled_list": [],
+                            "pending_list": [],
                         },
                     ),
                 ],

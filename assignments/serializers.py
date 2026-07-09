@@ -49,7 +49,7 @@ class QuestionSerializer(serializers.Serializer):
     question_number = serializers.IntegerField(required=True)
     question_text = serializers.CharField(required=True)
     question_type = serializers.CharField(required=True)
-    question_image = serializers.CharField(required=True, allow_blank=True)
+    question_image = serializers.CharField(required=False, allow_blank=True)
     points = serializers.FloatField(required=True)
     blooms_level = serializers.CharField(required=False, allow_blank=True)
     options = serializers.ListField(
