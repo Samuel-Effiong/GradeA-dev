@@ -354,39 +354,39 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK,
         )
 
-    @PROCESS_RENEWAL_SCHEMA
-    @action(detail=True, methods=["post"])
-    def process_renewal(self, request, pk=None):
-        """
-        Manually trigger license renewal (normally done monthly by Celery).
+    # @PROCESS_RENEWAL_SCHEMA
+    # @action(detail=True, methods=["post"])
+    # def process_renewal(self, request, pk=None):
+    #     """
+    #     Manually trigger license renewal (normally done monthly by Celery).
 
-        This should only be called by super admins and is primarily for testing.
-        """
-        if not (
-            request.user.is_superuser
-            and request.user.user_type == UserTypes.SUPER_ADMIN
-        ):
-            return Response(
-                {"error": "Only super admins can manually process renewals"},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+    #     This should only be called by super admins and is primarily for testing.
+    #     """
+    #     if not (
+    #         request.user.is_superuser
+    #         and request.user.user_type == UserTypes.SUPER_ADMIN
+    #     ):
+    #         return Response(
+    #             {"error": "Only super admins can manually process renewals"},
+    #             status=status.HTTP_403_FORBIDDEN,
+    #         )
 
-        license_sub = self.get_object()
+    #     license_sub = self.get_object()
 
-        try:
-            with transaction.atomic():
-                LicenseSubscriptionService.process_license_renewal(license_sub)
+    #     try:
+    #         with transaction.atomic():
+    #             LicenseSubscriptionService.process_license_renewal(license_sub)
 
-            return Response(
-                {"status": "Renewal processed successfully"},
-                status=status.HTTP_200_OK,
-            )
+    #         return Response(
+    #             {"status": "Renewal processed successfully"},
+    #             status=status.HTTP_200_OK,
+    #         )
 
-        except Exception as e:
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+    #     except Exception as e:
+    #         return Response(
+    #             {"error": str(e)},
+    #             status=status.HTTP_400_BAD_REQUEST,
+    #         )
 
     @RENEWAL_INFO_SCHEMA
     @action(detail=True, methods=["get"])

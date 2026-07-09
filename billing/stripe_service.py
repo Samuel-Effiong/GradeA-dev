@@ -1169,6 +1169,7 @@ class IndividualPlanChangeService:
             cache.delete(lock_key)
 
     @staticmethod
+    @transaction.atomic
     def _determine_branch(user, target_plan):
         """
         Read-only decision step, run under a row lock on the user's active
@@ -1186,38 +1187,37 @@ class IndividualPlanChangeService:
             ValueError: For business-rule rejections that stop here (past due,
                 already on this plan with nothing pending).
         """
-        with transaction.atomic():
-            current_sub = (
-                UserSubscription.objects.select_for_update()
-                .filter(user=user, is_active=True)
-                .select_related("plan", "pending_plan")
-                .first()
+        current_sub = (
+            UserSubscription.objects.select_for_update()
+            .filter(user=user, is_active=True)
+            .select_related("plan")
+            .first()
+        )
+
+        if current_sub is None:
+            return "checkout", None
+
+        if current_sub.is_trial:
+            return "checkout", current_sub
+
+        if not current_sub.stripe_subscription_id:
+            return "checkout", current_sub
+
+        if current_sub.stripe_status == StripeSubscriptionStatus.PAST_DUE:
+            raise ValueError(
+                "Your current subscription has a payment issue. Please "
+                "update your payment method before changing plans."
             )
 
-            if current_sub is None:
-                return "checkout", None
+        if target_plan.id == current_sub.plan_id:
+            if current_sub.pending_plan_id:
+                return "cancel_downgrade", current_sub
+            raise ValueError("You are already subscribed to this plan.")
 
-            if current_sub.is_trial:
-                return "checkout", current_sub
+        if target_plan.price_cents >= current_sub.plan.price_cents:
+            return "upgrade", current_sub
 
-            if not current_sub.stripe_subscription_id:
-                return "checkout", current_sub
-
-            if current_sub.stripe_status == StripeSubscriptionStatus.PAST_DUE:
-                raise ValueError(
-                    "Your current subscription has a payment issue. Please "
-                    "update your payment method before changing plans."
-                )
-
-            if target_plan.id == current_sub.plan_id:
-                if current_sub.pending_plan_id:
-                    return "cancel_downgrade", current_sub
-                raise ValueError("You are already subscribed to this plan.")
-
-            if target_plan.price_cents >= current_sub.plan.price_cents:
-                return "upgrade", current_sub
-
-            return "downgrade", current_sub
+        return "downgrade", current_sub
 
 
 class StripeWebhookHandler:
