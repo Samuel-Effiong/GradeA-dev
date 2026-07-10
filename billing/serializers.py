@@ -245,7 +245,7 @@ class MySubscriptionSerializer(UserSubscriptionSerializer):
     # Credit wallet summary
     current_balance_display = serializers.SerializerMethodField()
     credit_percentage_remaining = serializers.SerializerMethodField()
-    monthly_credit_total_display = serializers.SerializerMethodField()
+    # monthly_credit_total_display = serializers.SerializerMethodField()
     monthly_credit_remaining_display = serializers.SerializerMethodField()
 
     class Meta(UserSubscriptionSerializer.Meta):
@@ -257,7 +257,7 @@ class MySubscriptionSerializer(UserSubscriptionSerializer):
             "monthly_credits_display",
             "current_balance_display",
             "credit_percentage_remaining",
-            "monthly_credit_total_display",
+            # "monthly_credit_total_display",
             "monthly_credit_remaining_display",
         ]
         read_only_fields = UserSubscriptionSerializer.Meta.read_only_fields + [
@@ -268,7 +268,7 @@ class MySubscriptionSerializer(UserSubscriptionSerializer):
             "monthly_credits_display",
             "current_balance_display",
             "credit_percentage_remaining",
-            "monthly_credit_total_display",
+            # "monthly_credit_total_display",
             "monthly_credit_remaining_display",
         ]
 
@@ -308,8 +308,8 @@ class MySubscriptionSerializer(UserSubscriptionSerializer):
         except (CreditWallet.DoesNotExist, AttributeError):
             return 0.0
 
-    def get_monthly_credit_total_display(self, obj):
-        return obj.plan.display_monthly_credits
+    # def get_monthly_credit_total_display(self, obj):
+    #     return obj.plan.display_monthly_credits
 
     def get_monthly_credit_remaining_display(self, obj):
         try:

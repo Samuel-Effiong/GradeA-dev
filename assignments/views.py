@@ -26,7 +26,12 @@ from drf_spectacular.utils import (
 )
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotFound, ParseError, ValidationError
+from rest_framework.exceptions import (
+    NotFound,
+    ParseError,
+    PermissionDenied,
+    ValidationError,
+)
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
@@ -1476,17 +1481,34 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
     @extend_schema(
         tags=["Assignments"],
-        summary="Download student version of assignment as PDF",
+        summary="Download assignment as PDF",
         description=(
-            "Generates formatted PDF of the assignment as seen by students. "
-            "Rubrics and model answers are excluded."
+            "Generates a formatted PDF of the assignment. "
+            "By default (no query param), the student version is returned (rubrics and model answers omitted). "
+            "Add `?view=teacher` to get the teacher version (includes all content). "
+            "Teacher version is restricted to the course teacher only."
         ),
+        parameters=[
+            OpenApiParameter(
+                name="view",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    'Set to "teacher" to get the teacher-facing version. ' 
+                    'Omit or use any other value for student version.'
+                ),
+                required=False,
+                default="student",
+                enum=["teacher", "student"],
+            )
+        ],
         responses={
             200: OpenApiResponse(
                 description="PDF file",
                 response=OpenApiTypes.BINARY,
             ),
             400: OpenApiResponse(description="Assignment has no questions"),
+            403: OpenApiResponse(description="Forbidden (teacher version only)"),
             404: OpenApiResponse(description="Assignment not found"),
             500: OpenApiResponse(description="PDF generation failed"),
         },
@@ -1501,7 +1523,26 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Prepare data for the student version (omit rubrics and model answers)
+        # Determine which view to render
+        view_param = request.query_params.get("view", "student").lower().strip()
+        include_rubric = view_param == "teacher"
+
+        # Permission enforcement for teacher view
+        if include_rubric:
+            # Only the teacher who owns the course can see the teacher viersion
+            if assignment.course.teacher != request.user:
+                raise PermissionDenied(
+                    "Only the course teacher can download the teacher version."
+                )
+        else:
+            # Student-facing version: Student can only download published assignments
+            if request.user.user_type == UserTypes.STUDENT:
+                if assignment.status != AssignmentStatus.PUBLISHED:
+                    raise PermissionDenied(
+                        "You can only download published assignments."
+                    )
+
+        # Prepare data for the assignment (common to both views)
         data = {
             "title": assignment.title,
             "instructions": assignment.instructions,
@@ -1514,7 +1555,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         # Generate the assignment HTML without hidden teacher content
         html_body = AssignmentProcessingService.format_assignment_standard_html(
-            data, include_rubric=False
+            data, include_rubric=include_rubric
         )
 
         # Extract course and teacher info
