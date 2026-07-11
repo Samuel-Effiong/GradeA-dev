@@ -31,31 +31,29 @@ from users.models import CustomUser, UserTypes
 
 from .imports import stripe
 from .license_service import LicenseSubscriptionService
-from .models import (
+from .models import (  # SubscriptionPlan,
     LicenseBillingMethod,
     LicenseBillingRecord,
     LicenseBillingRecordType,
     LicenseSubscription,
     SchoolCreditAllocation,
-    SubscriptionPlan,
 )
-from .serializers import (
+from .serializers import (  # PlanCategory,
     ChangeLicensePlanSerializer,
     ConvertToOfflineSerializer,
     CreditBucketSerializer,
     LicenseBillingRecordSerializer,
+    LicensePlanChangeResultSerializer,
     LicenseSubscriptionSerializer,
     ManualTeacherOverageGrantSerializer,
     OfflineLicenseRenewalSerializer,
-    PlanCategory,
     SchoolCreditAllocationSerializer,
     UpdateLicenseSeatsSerializer,
 )
 from .stripe_service import StripeCheckoutService, StripeCustomerService
-from .stripe_view_schemas import (
+from .stripe_view_schemas import (  # PROCESS_RENEWAL_SCHEMA,
     ADD_TEACHERS_SCHEMA,
     LICENSE_CREATE_SCHEMA,
-    PROCESS_RENEWAL_SCHEMA,
     REMOVE_TEACHERS_SCHEMA,
     RENEWAL_INFO_SCHEMA,
 )
@@ -356,37 +354,37 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
 
     # @PROCESS_RENEWAL_SCHEMA
     # @action(detail=True, methods=["post"])
-    # def process_renewal(self, request, pk=None):
-    #     """
-    #     Manually trigger license renewal (normally done monthly by Celery).
+    def process_renewal(self, request, pk=None):
+        """
+        Manually trigger license renewal (normally done monthly by Celery).
 
-    #     This should only be called by super admins and is primarily for testing.
-    #     """
-    #     if not (
-    #         request.user.is_superuser
-    #         and request.user.user_type == UserTypes.SUPER_ADMIN
-    #     ):
-    #         return Response(
-    #             {"error": "Only super admins can manually process renewals"},
-    #             status=status.HTTP_403_FORBIDDEN,
-    #         )
+        This should only be called by super admins and is primarily for testing.
+        """
+        if not (
+            request.user.is_superuser
+            and request.user.user_type == UserTypes.SUPER_ADMIN
+        ):
+            return Response(
+                {"error": "Only super admins can manually process renewals"},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
-    #     license_sub = self.get_object()
+        license_sub = self.get_object()
 
-    #     try:
-    #         with transaction.atomic():
-    #             LicenseSubscriptionService.process_license_renewal(license_sub)
+        try:
+            with transaction.atomic():
+                LicenseSubscriptionService.process_license_renewal(license_sub)
 
-    #         return Response(
-    #             {"status": "Renewal processed successfully"},
-    #             status=status.HTTP_200_OK,
-    #         )
+            return Response(
+                {"status": "Renewal processed successfully"},
+                status=status.HTTP_200_OK,
+            )
 
-    #     except Exception as e:
-    #         return Response(
-    #             {"error": str(e)},
-    #             status=status.HTTP_400_BAD_REQUEST,
-    #         )
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     @RENEWAL_INFO_SCHEMA
     @action(detail=True, methods=["get"])
@@ -434,19 +432,29 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
         tags=["License Subscriptions"],
         summary="Change license plan",
         description=(
-            "Changes the subscription plan for a license.\n\n"
+            "Single endpoint for changing an existing license's plan, for "
+            "BOTH billing methods (STRIPE and OFFLINE) — the caller never "
+            "needs to know or send which one the license is on.\n\n"
             "**Behavior:**\n"
-            "- Changing to a higher-priced plan is immediately prorated and invoiced.\n"
-            "- Changing to a lower-priced plan applies without proration.\n"
-            "- `custom_price_cents` is optional.\n"
-            "- Omit `custom_price_cents` to keep the existing custom price.\n"
-            "- Set `custom_price_cents` to an integer to override the plan price.\n"
-            "- Set `custom_price_cents` to `null` to remove the custom price and use the plan's default price."
+            "- STRIPE, price increase -> charged immediately (prorated).\n"
+            "- STRIPE, price decrease -> plan/allocations updated now; the "
+            "lower price applies starting the NEXT Stripe invoice (no "
+            "refund for the current cycle).\n"
+            "- STRIPE, price unchanged -> plan swapped locally, nothing "
+            "charged or deferred.\n"
+            "- OFFLINE, either direction -> no Stripe call; a billing "
+            "record is logged and the school's invoice/contract must be "
+            "adjusted manually.\n\n"
+            "In every case the change applies immediately at the local "
+            "(plan + teacher allocation) level — see the response `action` "
+            "field to know exactly which of the above happened.\n\n"
+            "`custom_price_cents` is optional. Omit it to keep the "
+            "existing custom price (if any). Set it to an integer to "
+            "override the plan price. Set it to `null` to remove the "
+            "custom price and use the plan's default."
         ),
         request=ChangeLicensePlanSerializer,
-        responses={
-            200: LicenseSubscriptionSerializer,
-        },
+        responses={200: LicensePlanChangeResultSerializer},
         examples=[
             OpenApiExample(
                 "Keep existing custom price",
@@ -472,62 +480,81 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
                     "custom_price_cents": None,
                 },
             ),
+            OpenApiExample(
+                "STRIPE upgrade response",
+                summary="Charged immediately",
+                response_only=True,
+                value={
+                    "action": "charged",
+                    "message": (
+                        "License upgraded to Power License. The school was "
+                        "charged the prorated difference immediately."
+                    ),
+                    "license": {"...": "LicenseSubscriptionSerializer fields"},
+                },
+            ),
+            OpenApiExample(
+                "OFFLINE response",
+                summary="Recorded for manual invoicing",
+                response_only=True,
+                value={
+                    "action": "recorded_offline",
+                    "message": (
+                        "License moved to Pro License. This license is "
+                        "billed offline, so no Stripe charge was made. A "
+                        "billing record was logged — remember to adjust "
+                        "the school's invoice or contract to match the new "
+                        "price separately."
+                    ),
+                    "license": {"...": "LicenseSubscriptionSerializer fields"},
+                },
+            ),
         ],
     )
     @action(detail=True, methods=["post"])
     def change_plan(self, request, pk=None):
         license_sub = self.get_object()
 
-        plan_id = request.data.get("plan")
-        if not plan_id:
-            return Response(
-                {"detail": "The 'plan' field is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        serializer = ChangeLicensePlanSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        new_plan = serializer.validated_data["plan"]
 
-        try:
-            new_plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
-        except SubscriptionPlan.DoesNotExist:
-            return Response(
-                {"detail": "Plan not found or inactive."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+        # # plan_id = request.data.get("plan")
+        # # if not plan_id:
+        # #     return Response(
+        # #         {"detail": "The 'plan' field is required."},
+        # #         status=status.HTTP_400_BAD_REQUEST,
+        # #     )
 
-        if new_plan.category != PlanCategory.LICENSE:
-            return Response(
-                {"detail": "Selected plan is not a LICENSE plan."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        # # try:
+        # #     new_plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
+        # # except SubscriptionPlan.DoesNotExist:
+        # #     return Response(
+        # #         {"detail": "Plan not found or inactive."},
+        # #         status=status.HTTP_404_NOT_FOUND,
+        # #     )
+
+        # if new_plan.category != PlanCategory.LICENSE:
+        #     return Response(
+        #         {"detail": "Selected plan is not a LICENSE plan."},
+        #         status=status.HTTP_400_BAD_REQUEST,
+        #     )
 
         # Handle custom_price_cents
-        custom_price_cents = request.data.get("custom_price_cents")
-        remove_custom_price = False
-        if custom_price_cents is None:
-            # Check if the key was explicitly provided with null
-            if "custom_price_cents" in request.data:
-                # Explicitly null -> remove custom price
-                remove_custom_price = True
-            # else: not provided, keep existing
+        if "custom_price_cents" in serializer.validated_data:
+            remove_custom_price = (
+                serializer.validated_data["custom_price_cents"] is None
+            )
+            custom_price_cents = serializer.validated_data["custom_price_cents"]
         else:
-            try:
-                custom_price_cents = int(custom_price_cents)
-                if custom_price_cents < 0:
-                    raise ValueError
-            except (ValueError, TypeError):
-                return Response(
-                    {
-                        "detail": "custom_price_cents must be a non-negative integer or null."
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+            remove_custom_price = False
+            custom_price_cents = None
 
         try:
-            updated_license = LicenseSubscriptionService.change_license_plan(
+            result = LicenseSubscriptionService.select_plan(
                 license_sub,
                 new_plan,
-                custom_price_cents=(
-                    custom_price_cents if not remove_custom_price else None
-                ),
+                custom_price_cents=custom_price_cents,
                 remove_custom_price=remove_custom_price,
                 performed_by=request.user,
             )
@@ -540,8 +567,10 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        serializer = self.get_serializer(updated_license)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(
+            LicensePlanChangeResultSerializer(result).data,
+            status=status.HTTP_200_OK,
+        )
 
     @extend_schema(
         tags=["License Subscriptions"],

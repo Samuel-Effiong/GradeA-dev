@@ -144,6 +144,7 @@ from .tasks import (  # grade_all_submissions,
                         "score": 95,
                         "total_points": 100,
                         "grade_letter": "A+",
+                        "remaining_attempts": 2,
                     }
                 ],
                 response_only=True,
@@ -214,6 +215,7 @@ from .tasks import (  # grade_all_submissions,
                     "score": 95,
                     "total_points": 100,
                     "grade_letter": "A+",
+                    "remaining_attempts": 2,
                     "student_submission_id": f"{uuid.uuid4()}",
                     "performance_summary": "Great job on this assignment!",
                     "assignment_raw_input": {},
@@ -1494,8 +1496,8 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
                 description=(
-                    'Set to "teacher" to get the teacher-facing version. ' 
-                    'Omit or use any other value for student version.'
+                    'Set to "teacher" to get the teacher-facing version. '
+                    "Omit or use any other value for student version."
                 ),
                 required=False,
                 default="student",

@@ -369,9 +369,7 @@ def upload_answers_engine(
 
         if is_proxy_upload:
             identified_name = student_submission.get("student_name")
-
             if not identified_name:
-
                 raise CannotAssociateStudentError(
                     "Student name cannot be found in the submission"
                 )
@@ -392,6 +390,18 @@ def upload_answers_engine(
                     "Student not among the enrolled students in the course"
                 )
 
+        # Submission limit enforcement
+        # Only apply to student uploading for themselves
+        if request_user.user_type == UserTypes.STUDENT and not is_proxy_upload:
+            existing_submission = StudentSubmission.objects.filter(
+                assignment=assignment, student=target_student
+            ).first()
+
+            if existing_submission and existing_submission.attempt_count >= 3:
+                raise ValueError(
+                    "You have reached the maximum of 3 submissions for this assignment"
+                )
+
         # Handle duplicates
         submission, created = StudentSubmission.objects.get_or_create(
             assignment=assignment,
@@ -403,6 +413,10 @@ def upload_answers_engine(
             # If it already exists, update the answers
             ensure_task_not_cancelled(processing_task_id)
             submission.answers = student_submission.get("answers", submission.answers)
+
+            # Increment attempt count only if student slf-upload (not proxy)
+            if request_user.user_type == UserTypes.STUDENT and not is_proxy_upload:
+                submission.attempt_count += 1
             submission.save()
 
         ensure_task_not_cancelled(processing_task_id)

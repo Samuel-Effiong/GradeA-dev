@@ -121,6 +121,10 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
     trial_days_remaining = serializers.SerializerMethodField(read_only=True)
     trial_credits_remaining = serializers.SerializerMethodField(read_only=True)
 
+    pending_plan = SubscriptionPlanSerializer(read_only=True, allow_null=True)
+    pending_plan_effective_date = serializers.SerializerMethodField(read_only=True)
+    has_pending_downgrade = serializers.SerializerMethodField(read_only=True)
+
     def validate(self, attrs):
         user = attrs.get("user")
         plan = attrs.get("plan")
@@ -151,6 +155,9 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
             "billing_cycle_start",
             "billing_cycle_end",
             "auto_renew",
+            "pending_plan",
+            "pending_plan_effective_date",
+            "has_pending_downgrade",
             "created_at",
             "updated_at",
         ]
@@ -158,14 +165,15 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "is_active",
-            "is_trail",
-            "trail_end",
-            "trail_days_remaining",
+            "is_trial",
+            "trial_end",
+            "trial_days_remaining",
             "trial_credits_remaining",
             "billing_cycle_start",
             "billing_cycle_end",
             "subscription_type",
             "is_under_license",
+            "pending_plan",
         ]
 
         extra_kwargs = {
@@ -221,6 +229,15 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
         return SubscriptionService.activate_subscription(
             user=validated_data["user"], plan=validated_data["plan"]
         )
+
+    @extend_schema_field(serializers.DateTimeField(allow_null=True))
+    def get_pending_plan_effective_date(self, obj):
+        if not obj.pending_plan_id:
+            return None
+        return obj.billing_cycle_end
+
+    def get_has_pending_downgrade(self, obj) -> bool:
+        return bool(obj.pending_plan_id)
 
 
 class MySubscriptionSerializer(UserSubscriptionSerializer):
@@ -1336,6 +1353,55 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
             ]
         )
         return instance
+
+
+class LicensePlanChangeResultSerializer(serializers.Serializer):
+    """
+    Output contract for the license plan-change endpoint
+    (POST /billing/license-subscriptions/{id}/change_plan/).
+
+    Mirrors the discriminated-response pattern used for the individual
+    plan-change endpoint (PlanChangeResultSerializer), adapted for the two
+    billing methods a license can be on:
+
+      action == "charged"
+          STRIPE billing, price increased — the school was charged the
+          prorated difference immediately.
+
+      action == "changed_deferred_billing"
+          STRIPE billing, price decreased — plan/allocations updated now,
+          but the lower price only applies starting the next Stripe
+          invoice (no refund for the current cycle).
+
+      action == "changed_no_billing_impact"
+          STRIPE billing, effective price unchanged — plan swapped locally,
+          nothing to charge or defer on Stripe's side.
+
+      action == "recorded_offline"
+          OFFLINE billing, either direction — no Stripe call was made; a
+          LicenseBillingRecord accounting note was logged and the school's
+          actual invoice/contract needs manual adjustment.
+
+    In every case, `license` reflects the already-applied result — unlike
+    the individual endpoint's "downgrade_scheduled" action, there is no
+    "nothing has happened yet, wait for a webhook" case here: license plan
+    changes apply immediately regardless of which action fired.
+    """
+
+    action = serializers.ChoiceField(
+        choices=[
+            "charged",
+            "changed_deferred_billing",
+            "changed_no_billing_impact",
+            "recorded_offline",
+        ]
+    )
+    message = serializers.CharField(
+        help_text="Human-readable summary of what happened, safe to show directly to the user."
+    )
+    license = LicenseSubscriptionSerializer(
+        help_text="The license subscription, reflecting the already-applied plan change."
+    )
 
 
 class UpdateLicenseSeatsSerializer(serializers.Serializer):

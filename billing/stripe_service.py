@@ -44,6 +44,8 @@ from users.models import CustomUser
 from .imports import stripe
 from .license_service import LicenseSubscriptionService
 from .models import (  # CreditBucket,; CreditBucketType,; CreditLedgerType,
+    PLAN_TIER_HIERARCHY,
+    BillingInterval,
     CreditLedger,
     CreditWallet,
     LicenseBillingMethod,
@@ -54,6 +56,7 @@ from .models import (  # CreditBucket,; CreditBucketType,; CreditLedgerType,
     StripeSubscriptionStatus,
     SubscriptionPlan,
     UserSubscription,
+    get_tier_rank,
 )
 from .services import SubscriptionService
 
@@ -1170,54 +1173,128 @@ class IndividualPlanChangeService:
 
     @staticmethod
     @transaction.atomic
+    @staticmethod
     def _determine_branch(user, target_plan):
         """
         Read-only decision step, run under a row lock on the user's active
-        subscription (if any) so concurrent calls for the same user serialize
-        on the decision itself. Performs NO mutation and NO external calls —
-        both of those happen afterward, outside this transaction, in
-        select_plan(). See the class docstring's CONCURRENCY section for why.
+        subscription (if any) so concurrent calls for the same user
+        serialize on the decision itself. Performs NO mutation and NO
+        external calls — both happen afterward, outside this transaction,
+        in select_plan(). See the class docstring's CONCURRENCY section for
+        why.
 
         Returns:
-            tuple[str, UserSubscription | None]: (branch, current_sub) where
-                branch is one of "checkout", "upgrade", "downgrade",
+            tuple[str, UserSubscription | None]: (branch, current_sub)
+                where branch is one of "checkout", "upgrade", "downgrade",
                 "cancel_downgrade".
 
         Raises:
-            ValueError: For business-rule rejections that stop here (past due,
-                already on this plan with nothing pending).
+            ValueError: For business-rule rejections that stop here — past
+                due, already on this plan with nothing pending, an unranked
+                (custom/contact-sales) tier on either side, or the absolute
+                annual-to-monthly guard.
         """
-        current_sub = (
-            UserSubscription.objects.select_for_update()
-            .filter(user=user, is_active=True)
-            .select_related("plan")
-            .first()
-        )
-
-        if current_sub is None:
-            return "checkout", None
-
-        if current_sub.is_trial:
-            return "checkout", current_sub
-
-        if not current_sub.stripe_subscription_id:
-            return "checkout", current_sub
-
-        if current_sub.stripe_status == StripeSubscriptionStatus.PAST_DUE:
-            raise ValueError(
-                "Your current subscription has a payment issue. Please "
-                "update your payment method before changing plans."
+        with transaction.atomic():
+            current_sub = (
+                UserSubscription.objects.select_for_update()
+                .filter(user=user, is_active=True)
+                .select_related("plan", "pending_plan")
+                .first()
             )
 
-        if target_plan.id == current_sub.plan_id:
-            if current_sub.pending_plan_id:
-                return "cancel_downgrade", current_sub
-            raise ValueError("You are already subscribed to this plan.")
+            if current_sub is None:
+                return "checkout", None
 
-        if target_plan.price_cents >= current_sub.plan.price_cents:
-            return "upgrade", current_sub
+            if current_sub.is_trial:
+                return "checkout", current_sub
 
-        return "downgrade", current_sub
+            if not current_sub.stripe_subscription_id:
+                return "checkout", current_sub
+
+            if current_sub.stripe_status == StripeSubscriptionStatus.PAST_DUE:
+                raise ValueError(
+                    "Your current subscription has a payment issue. Please "
+                    "update your payment method before changing plans."
+                )
+
+            if target_plan.id == current_sub.plan_id:
+                if current_sub.pending_plan_id:
+                    return "cancel_downgrade", current_sub
+                raise ValueError("You are already subscribed to this plan.")
+
+            # --- Tier-ranking eligibility guard ---------------------------
+            # Both sides must be part of the ranked hierarchy for a
+            # tier-based comparison to mean anything. In practice the
+            # target side is already excluded from ever being a
+            # custom/contact-sales tier by SelectIndividualPlanSerializer
+            # (which rejects TRIAL/BETA/CUSTOM plan names outright), and the
+            # current side can only reach here already carrying a
+            # stripe_subscription_id (checked above) — but a manually
+            # Stripe-dashboard-configured CUSTOM/contact-sales plan (see
+            # StripeCheckoutService.create_license_session's docstring for
+            # the license-side equivalent of this pattern) could still
+            # reach this point on the individual side, so this is a real
+            # guard, not pure defense-in-depth.
+            if current_sub.plan.tier not in PLAN_TIER_HIERARCHY:
+                raise ValueError(
+                    "Your current plan is a custom/contact-sales plan and "
+                    "can't be changed through self-serve plan selection. "
+                    "Please contact support."
+                )
+            if target_plan.tier not in PLAN_TIER_HIERARCHY:
+                raise ValueError(
+                    "This plan isn't available for direct self-serve "
+                    "switching right now. Please contact support."
+                )
+
+            # --- Absolute interval guard: ANNUAL -> MONTHLY is never
+            # allowed, regardless of tier or price. Must be checked BEFORE
+            # the tier comparison below and short-circuits it entirely —
+            # e.g. Standard (Annual) -> Power (Monthly) is blocked here even
+            # though Power outranks Standard, because it's the
+            # interval-crossing direction being blocked, not the tier
+            # movement.
+            if (
+                current_sub.plan.interval == BillingInterval.ANNUAL
+                and target_plan.interval == BillingInterval.MONTHLY
+            ):
+                raise ValueError(
+                    "Switching from an annual plan to a monthly plan isn't "
+                    "supported yet. You can move to a different annual "
+                    "plan, or wait until your current annual term ends."
+                )
+
+            # --- Tier-hierarchy classification (the real upgrade/downgrade
+            # decision). Tier — not price — defines "better": a discounted
+            # higher tier is still worth more than a full-price lower one.
+            current_rank = get_tier_rank(current_sub.plan.tier)
+            target_rank = get_tier_rank(target_plan.tier)
+
+            if target_rank > current_rank:
+                return "upgrade", current_sub
+
+            if target_rank < current_rank:
+                return "downgrade", current_sub
+
+            # Equal tier rank. The only INTENDED way to reach this with two
+            # distinct plans is a same-tier commitment change from monthly
+            # to annual (the reverse direction was already blocked above) —
+            # always treated as an upgrade, never price-dependent.
+            if (
+                current_sub.plan.interval == BillingInterval.MONTHLY
+                and target_plan.interval == BillingInterval.ANNUAL
+            ):
+                return "upgrade", current_sub
+
+            # Defensive fallback: same tier, some other interval combination
+            # (e.g. two distinct plan rows both MONTHLY, or either side
+            # using BillingInterval.NONE) that isn't the MONTHLY->ANNUAL
+            # case above. Not expected to occur in a well-formed catalog —
+            # falls back to price rather than silently guessing a
+            # direction.
+            if target_plan.price_cents >= current_sub.plan.price_cents:
+                return "upgrade", current_sub
+            return "downgrade", current_sub
 
 
 class StripeWebhookHandler:

@@ -114,6 +114,11 @@ class StudentSubmission(models.Model):
         help_text=_("The name of the Celery task handling the scheduled grading"),
     )
 
+    attempt_count = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Number of times the student has submitted this assignment.",
+    )
+
     class Meta:
         constraints = [
             models.UniqueConstraint(

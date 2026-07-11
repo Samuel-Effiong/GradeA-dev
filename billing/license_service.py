@@ -49,6 +49,7 @@ from .models import (  # CONVERSION_FACTOR,; UserSubscription,
     PlanCategory,
     PlanTier,
     SchoolCreditAllocation,
+    StripeSubscriptionStatus,
     SubscriptionPlan,
 )
 
@@ -69,6 +70,32 @@ class LicenseSubscriptionService:
 
     All operations are atomic and include comprehensive audit logging.
     """
+
+    def _resolve_effective_price(
+        self, license_sub, new_plan, custom_price_cents=None, remove_custom_price=False
+    ):
+        old_effective_price = (
+            license_sub.custom_price_cents or license_sub.plan.price_cents
+        )
+
+        if remove_custom_price:
+            # Remove custom price; use plan default
+            new_effective_price = new_plan.price_cents
+            new_custom_price_cents = None
+        elif custom_price_cents is not None:
+            # Use provided custom price
+            new_effective_price = custom_price_cents
+            new_custom_price_cents = custom_price_cents
+        else:
+            # Keep existing custom setting (if any) or use plan default
+            if license_sub.custom_price_cents is not None:
+                new_effective_price = license_sub.custom_price_cents
+                new_custom_price_cents = license_sub.custom_price_cents
+            else:
+                new_effective_price = new_plan.price_cents
+                new_custom_price_cents = None
+
+        return old_effective_price, new_effective_price, new_custom_price_cents
 
     @staticmethod
     def validate_license_plan(plan: SubscriptionPlan) -> None:
@@ -1233,25 +1260,11 @@ class LicenseSubscriptionService:
         )
 
         old_plan = license_sub.plan
-        old_effective_price = license_sub.custom_price_cents or old_plan.price_cents
-
-        # Determine new effective price and whether we are using a custom price
-        if remove_custom_price:
-            # Remove custom price; use plan default
-            new_effective_price = new_plan.price_cents
-            new_custom_price_cents = None
-        elif custom_price_cents is not None:
-            # Use provided custom price
-            new_effective_price = custom_price_cents
-            new_custom_price_cents = custom_price_cents
-        else:
-            # Keep existing custom setting (if any) or use plan default
-            if license_sub.custom_price_cents is not None:
-                new_effective_price = license_sub.custom_price_cents
-                new_custom_price_cents = license_sub.custom_price_cents
-            else:
-                new_effective_price = new_plan.price_cents
-                new_custom_price_cents = None
+        old_effective_price, new_effective_price, new_custom_price_cents = (
+            LicenseSubscriptionService._resolve_effective_price(
+                license_sub, new_plan, custom_price_cents, remove_custom_price
+            )
+        )
 
         # If the effective price is unchanged and plan is same, maybe skip? But we still need to update plan if changed.
         if old_plan.id == new_plan.id and old_effective_price == new_effective_price:
@@ -1962,3 +1975,97 @@ class LicenseSubscriptionService:
         )
 
         return bucket
+
+    @staticmethod
+    def select_plan(
+        license_sub,
+        new_plan,
+        custom_price_cents=None,
+        remove_custom_price=False,
+        performed_by=None,
+    ):
+        license_sub = LicenseSubscription.objects.select_related("plan").get(
+            pk=license_sub.pk
+        )
+
+        if not license_sub.is_active:
+            raise ValueError(
+                "Cannot change the plan of an inactive license. Reactivate it first"
+            )
+
+        if new_plan.category != PlanCategory.LICENSE:
+            raise ValueError(
+                f"License subscriptions require a LICENSE plan, not "
+                f"{new_plan.category}."
+            )
+
+        if not new_plan.is_active:
+            raise ValueError("This plan is no longer available for selection.")
+
+        if (
+            license_sub.billing_method == LicenseBillingMethod.STRIPE
+            and license_sub.stripe_status == StripeSubscriptionStatus.PAST_DUE
+        ):
+            raise ValueError(
+                "This license has a payment issue. Please resolve it (or "
+                "convert it to offline billing) before changing plans."
+            )
+
+        old_price, new_price, _ = LicenseSubscriptionService._resolve_effective_price(
+            license_sub, new_plan, custom_price_cents, remove_custom_price
+        )
+
+        updated_license = LicenseSubscriptionService.change_license_plan(
+            license_sub,
+            new_plan,
+            custom_price_cents=custom_price_cents,
+            remove_custom_price=remove_custom_price,
+            performed_by=performed_by,
+        )
+
+        display_name = new_plan.display_name or new_plan.name
+
+        if license_sub.billing_method == LicenseBillingMethod.OFFLINE:
+            action = "recorded_offline"
+            message = (
+                f"License moved to {display_name}. This license is billed "
+                f"offline, so no Stripe charge was made. A billing record "
+                f"was logged — remember to adjust the school's invoice or "
+                f"contract to match the new price separately."
+            )
+
+        elif new_price > old_price:
+            action = "charged"
+            message = (
+                f"License upgraded to {display_name}. The school was "
+                f"charged the prorated difference immediately."
+            )
+        elif new_price < old_price:
+            action = "changed_deferred_billing"
+            message = (
+                f"License moved to {display_name}. Teacher allocations were "
+                f"updated immediately, but the lower price won't be "
+                f"reflected on Stripe's bill until the next invoice — no "
+                f"refund is issued for the current cycle."
+            )
+        else:
+            action = "changed_no_billing_impact"
+            message = (
+                f"License moved to {display_name}. The price is unchanged, "
+                f"so no Stripe charge or billing adjustment was needed — "
+                f"only the plan and teacher allocations were updated."
+            )
+
+        logger.info(
+            "License %s plan change resolved to action=%s (%s -> %s, "
+            "billing_method=%s, old_price=%s, new_price=%s).",
+            license_sub.id,
+            action,
+            license_sub.plan.name,
+            new_plan.name,
+            license_sub.billing_method,
+            old_price,
+            new_price,
+        )
+
+        return {"action": action, "message": message, "license": updated_license}

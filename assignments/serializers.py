@@ -284,6 +284,7 @@ class AssignmentListStudentSerializer(serializers.ModelSerializer):
     score = serializers.SerializerMethodField()
     grade_letter = serializers.SerializerMethodField()
     course_title = serializers.CharField(source="course.name", read_only=True)
+    remaining_attempts = serializers.SerializerMethodField()
 
     class Meta:
         model = Assignment
@@ -298,6 +299,7 @@ class AssignmentListStudentSerializer(serializers.ModelSerializer):
             "score",
             "total_points",
             "grade_letter",
+            "remaining_attempts",
         ]
 
     def _get_submission(self, obj):
@@ -343,6 +345,12 @@ class AssignmentListStudentSerializer(serializers.ModelSerializer):
             grade_details = get_grade_details(submission.score_percentage)
             return grade_details.get("letter_grade")
         return None
+
+    def get_remaining_attempts(self, obj):
+        submission = self._get_submission(obj)
+        if submission:
+            return max(0, 3 - submission.attempt_count)
+        return 3
 
 
 class AssignmentDetailSerializer(serializers.ModelSerializer):
@@ -495,11 +503,13 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
     student_submission_id = serializers.SerializerMethodField()
     student_submission_raw_input = serializers.SerializerMethodField()
     assignment_raw_input = serializers.SerializerMethodField()
+    remaining_attempts = serializers.SerializerMethodField()
     # answers = serializers.SerializerMethodField()
     # submissions = serializers.SerializerMethodField()
 
     class Meta(AssignmentListStudentSerializer.Meta):
         fields = AssignmentListStudentSerializer.Meta.fields + [
+            # "remaining_attempts",
             "performance_summary",
             "student_submission_id",
             "student_submission_raw_input",
@@ -553,6 +563,12 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
         )
         pm_json = AssignmentProcessingService.html_to_prosemirror_json(student_html)
         return json.dumps(pm_json)
+
+    def get_remaining_attempts(self, obj):
+        submission = self._get_submission(obj)
+        if submission:
+            return max(0, 3 - submission.attempt_count)
+        return 3
 
 
 class GeneratedAssignmentSerializer(serializers.Serializer):

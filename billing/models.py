@@ -121,6 +121,30 @@ class LicenseBillingRecordType(models.TextChoices):
     MANUAL_OVERAGE_GRANT = "MANUAL_OVERAGE_GRANT", _("Manual Overage Grant")
 
 
+PLAN_TIER_HIERARCHY = [
+    PlanTier.STANDARD,
+    PlanTier.PRO,
+    PlanTier.POWER,
+]
+
+
+def get_tier_rank(tier):
+    """
+    Returns the position of `tier` in PLAN_TIER_HIERARCHY (0 = lowest value}.
+    A higher rank means a more valuable/featureful tier, indepedent of price
+    """
+
+    try:
+        return PLAN_TIER_HIERARCHY.index(tier)
+    except ValueError:
+        raise ValueError(
+            f"Tier {tier!r} is not part of PLAN_TIER_HIERARCHY and has no "
+            f"defined upgrade/downgrade ranking. Add it to "
+            f"PLAN_TIER_HIERARCHY in models.py if this tier should be "
+            f"comparable."
+        ) from None
+
+
 class PlanFeature(models.Model):
     """
     Master catalogue of every feature that can appear on a plan card.
