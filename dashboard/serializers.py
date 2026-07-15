@@ -550,8 +550,8 @@ class TeacherPerformanceDashboardSerializer(serializers.Serializer):
 
 class CoursePerformanceDashboardSerializer(serializers.ModelSerializer):
     teacher = serializers.CharField(source="teacher.get_full_name")
-    students = serializers.IntegerField()
-    assignments = serializers.IntegerField()
+    students = serializers.IntegerField(source="student_count")
+    assignments = serializers.IntegerField(source="assignment_count")
     avg_grade = serializers.FloatField(allow_null=True)
     distribution = serializers.SerializerMethodField()
 

@@ -1606,12 +1606,12 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
 
         # Annotations
         qs = qs.annotate(
-            students=Count(
+            student_count=Count(
                 "enrollments",
                 filter=~Q(enrollments__enrollment_status="WITHDRAWN"),
                 distinct=True,
             ),
-            assignments=Count("assignments", distinct=True),
+            assignment_count=Count("assignments", distinct=True),
             avg_grade=Avg(
                 "enrollments__final_grade",
                 filter=~Q(
@@ -1635,7 +1635,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                     f"grade_{grade}": Count(
                         "enrollments",
                         filter=condition
-                        & ~Q(enrollments__enrollment_status="WITHDRAWN"),
+                        & ~Q(enrollments__enrollment_status=EnrollmentStatusType.WITHDRAWN),
                     )
                 }
             )
@@ -1655,8 +1655,8 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         ordering_backend = filters.OrderingFilter()
         ordering_backend.ordering_fields = [
             "name",
-            "students",
-            "assignments",
+            "student_count",
+            "assignment_count",
             "avg_grade",
         ]
         qs = ordering_backend.filter_queryset(request, qs, view=self)
