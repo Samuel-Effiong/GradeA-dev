@@ -121,6 +121,12 @@ class LicenseBillingRecordType(models.TextChoices):
     MANUAL_OVERAGE_GRANT = "MANUAL_OVERAGE_GRANT", _("Manual Overage Grant")
 
 
+class PendingChangeType(models.TextChoices):
+    DOWNGRADE = "DOWNGRADE", _("Downgrade")
+    UPGRADE_DEFERRED = "UPGRADE_DEFERRED", _("Upgrade (deferred)")
+    LATERAL_DEFERRED = "LATERAL_DEFERRED", _("Interval change (deferred)")
+
+
 PLAN_TIER_HIERARCHY = [
     PlanTier.STANDARD,
     PlanTier.PRO,
@@ -446,6 +452,49 @@ class UserSubscription(models.Model):
         blank=True,
         on_delete=models.PROTECT,
         related_name="user_pending_subscriptions",
+    )
+
+    pending_change_type = models.CharField(
+        max_length=20,
+        choices=PendingChangeType.choices,
+        null=True,
+        blank=True,
+        help_text=(
+            "Why pending_plan is scheduled rather than applied "
+            "immediately. Null whenever pending_plan is null."
+        ),
+    )
+
+    pending_change_note = models.TextField(
+        null=True,
+        blank=True,
+        help_text=(
+            "Persisted, user-facing explanation of the scheduled "
+            "change, captured at schedule time so it stays stable "
+            "and accurate for the frontend to display on every "
+            "visit, independent of any later catalog/pricing "
+            "changes. Null whenever pending_plan is null."
+        ),
+    )
+
+    stripe_schedule_id = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text=(
+            "ID of the Stripe SubscriptionSchedule managing a deferred "
+            "plan change for this subscription, if any. Set whenever "
+            "pending_plan is scheduled (StripeSubscriptionScheduleService "
+            ".schedule_plan_change_on_stripe); cleared when the schedule "
+            "is released — either because the scheduled change was "
+            "cancelled, or because it was superseded by an immediate "
+            "change instead. May remain set even after a scheduled "
+            "change actually takes effect at renewal — Stripe schedules "
+            "with an open-ended final phase don't self-terminate, so the "
+            "same schedule is reused for the NEXT deferred change on this "
+            "subscription rather than creating a new one each time."
+        ),  # <-- NEW
     )
 
     stripe_subscription_id = models.CharField(

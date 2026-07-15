@@ -2,7 +2,7 @@ import logging
 import time
 from datetime import timedelta
 
-from django.conf import settings
+# from django.conf import settings
 from django.db import transaction
 from django.db.models import Case, F, Q, Sum, Value, When
 from django.db.models.aggregates import Avg, Count
@@ -87,19 +87,13 @@ from .serializers import (  # SubscriptionSerializer,; BetaUsageTrendSerializer,
     WeeklyGrowthSerializer,
 )
 from .services import AnalyticsService, SubscriptionService
-from .stripe_service import (  # StripeSubscriptionMutationService,
+from .stripe_service import (  # StripeSubscriptionMutationService,; StripeCheckoutService,
     IndividualPlanChangeService,
-    StripeCheckoutService,
     StripeOverageService,
-    StripeSubscriptionMutationService,
 )
-from .stripe_view_schemas import (  # START_TRIAL_SCHEMA,; CONVERT_TRIAL_SCHEMA,
+from .stripe_view_schemas import (  # START_TRIAL_SCHEMA,;; CONVERT_TRIAL_SCHEMA,;; CHECKOUT_SCHEMA,;; CONVERT_TRIAL_TO_PAID_SCHEMA,;; DOWNGRADE_SCHEMA,;; UPGRADE_SCHEMA,
     CANCEL_SCHEMA,
-    CHECKOUT_SCHEMA,
-    CONVERT_TRIAL_TO_PAID_SCHEMA,
-    DOWNGRADE_SCHEMA,
     PURCHASE_OVERAGE_SCHEMA,
-    UPGRADE_SCHEMA,
 )
 
 logger = logging.getLogger(__name__)
@@ -675,116 +669,116 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
             status=status.HTTP_200_OK,
         )
 
-    @UPGRADE_SCHEMA
-    @action(detail=False, methods=["POST"])
-    def upgrade(self, request, *args, **kwargs):
-        """
-        Upgrade the user's active individual subscription to a new plan immediately.
-        The user must have an active subscription and a valid Stripe subscription ID.
-        """
-        plan_id = request.data.get("plan")
+        # @UPGRADE_SCHEMA
+        # @action(detail=False, methods=["POST"])
+        # def upgrade(self, request, *args, **kwargs):
+        #     """
+        #     Upgrade the user's active individual subscription to a new plan immediately.
+        #     The user must have an active subscription and a valid Stripe subscription ID.
+        #     """
+        #     plan_id = request.data.get("plan")
 
-        if not plan_id:
-            return Response(
-                {"detail": "The 'plan' field is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        #     if not plan_id:
+        #         return Response(
+        #             {"detail": "The 'plan' field is required."},
+        #             status=status.HTTP_400_BAD_REQUEST,
+        #         )
 
-        try:
-            new_plan = SubscriptionPlan.objects.get(id=plan_id)
-        except SubscriptionPlan.DoesNotExist:
-            return Response(
-                {"detail": "Plan not found or is not active."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+        #     try:
+        #         new_plan = SubscriptionPlan.objects.get(id=plan_id)
+        #     except SubscriptionPlan.DoesNotExist:
+        #         return Response(
+        #             {"detail": "Plan not found or is not active."},
+        #             status=status.HTTP_404_NOT_FOUND,
+        #         )
 
-        # Only individual plans can be upgradd via this endpoint
-        if new_plan.category != PlanCategory.INDIVIDUAL:
-            return Response(
-                {"detail": f"Plan {new_plan.name} is not an INDIVIDUAL plan."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        #     # Only individual plans can be upgradd via this endpoint
+        #     if new_plan.category != PlanCategory.INDIVIDUAL:
+        #         return Response(
+        #             {"detail": f"Plan {new_plan.name} is not an INDIVIDUAL plan."},
+        #             status=status.HTTP_400_BAD_REQUEST,
+        #         )
 
-        user_sub = self.get_queryset().filter(user=request.user, is_active=True).first()
-        if not user_sub:
-            return Response(
-                {"status": "error", "message": "No active subscription found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+        #     user_sub = self.get_queryset().filter(user=request.user, is_active=True).first()
+        #     if not user_sub:
+        #         return Response(
+        #             {"status": "error", "message": "No active subscription found"},
+        #             status=status.HTTP_404_NOT_FOUND,
+        #         )
 
-        # select_for_update() is held for the duration of the Stripe call below
-        # (deliberate, not an oversight) — low-frequency, single-user action,
-        # and holding the lock across the network round-trip is what stops two
-        # rapid double-clicks from both passing validation and both hitting Stripe.
+        #     # select_for_update() is held for the duration of the Stripe call below
+        #     # (deliberate, not an oversight) — low-frequency, single-user action,
+        #     # and holding the lock across the network round-trip is what stops two
+        #     # rapid double-clicks from both passing validation and both hitting Stripe.
 
-        with transaction.atomic():
-            current_sub = (
-                UserSubscription.objects.select_for_update()
-                .filter(user=request.user, is_active=True)
-                .first()
-            )
+        #     with transaction.atomic():
+        #         current_sub = (
+        #             UserSubscription.objects.select_for_update()
+        #             .filter(user=request.user, is_active=True)
+        #             .first()
+        #         )
 
-            if not current_sub:
-                return Response(
-                    {"detail": "No active subscription found"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+        #         if not current_sub:
+        #             return Response(
+        #                 {"detail": "No active subscription found"},
+        #                 status=status.HTTP_400_BAD_REQUEST,
+        #             )
 
-            if current_sub.is_trial:
-                return Response(
-                    {"detail": "You're on a free trial."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+        #         if current_sub.is_trial:
+        #             return Response(
+        #                 {"detail": "You're on a free trial."},
+        #                 status=status.HTTP_400_BAD_REQUEST,
+        #             )
 
-            if current_sub.plan_id == new_plan.id:
-                return Response(
-                    {"detail": "You are already on this plan."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+        #         if current_sub.plan_id == new_plan.id:
+        #             return Response(
+        #                 {"detail": "You are already on this plan."},
+        #                 status=status.HTTP_400_BAD_REQUEST,
+        #             )
 
-            if new_plan.price_cents < current_sub.plan.price_cents:
-                return Response(
-                    {"detail": "That plan is cheaper than your current plan."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+        #         if new_plan.price_cents < current_sub.plan.price_cents:
+        #             return Response(
+        #                 {"detail": "That plan is cheaper than your current plan."},
+        #                 status=status.HTTP_400_BAD_REQUEST,
+        #             )
 
-        # Ensure the subscription has a Stripe reference
-        if not user_sub.stripe_subscription_id:
-            return Response(
-                {
-                    "detail": "This subscription is not linked to Stripe; cannot upgrade."
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        #     # Ensure the subscription has a Stripe reference
+        #     if not user_sub.stripe_subscription_id:
+        #         return Response(
+        #             {
+        #                 "detail": "This subscription is not linked to Stripe; cannot upgrade."
+        #             },
+        #             status=status.HTTP_400_BAD_REQUEST,
+        #         )
 
-        try:
-            # Perform the upgrade via Stripe and local service layer
-            updated_sub = StripeSubscriptionMutationService.change_plan(
-                user_sub, new_plan, proration_behavior="always_invoice"
-            )
-        except ValueError as exc:
-            # Catch specific errors from the service (e.g., payment failed, invalid plan)
-            return Response(
-                {"detail": str(exc)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        except Exception:
-            # Catch any unexpected errors (e.g., Stripe API errors)
-            logger.exception(
-                "Unexpected error during upgrade for user %s", request.user.email
-            )
+        #     try:
+        #         # Perform the upgrade via Stripe and local service layer
+        #         updated_sub = StripeSubscriptionMutationService.change_plan(
+        #             user_sub, new_plan, proration_behavior="always_invoice"
+        #         )
+        #     except ValueError as exc:
+        #         # Catch specific errors from the service (e.g., payment failed, invalid plan)
+        #         return Response(
+        #             {"detail": str(exc)},
+        #             status=status.HTTP_400_BAD_REQUEST,
+        #         )
+        #     except Exception:
+        #         # Catch any unexpected errors (e.g., Stripe API errors)
+        #         logger.exception(
+        #             "Unexpected error during upgrade for user %s", request.user.email
+        #         )
 
-            return Response(
-                {"detail": "An unexpected error occurred. Please try again later."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        #         return Response(
+        #             {"detail": "An unexpected error occurred. Please try again later."},
+        #             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        #         )
 
-        serializer = self.get_serializer(updated_sub)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        #     serializer = self.get_serializer(updated_sub)
+        #     return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @DOWNGRADE_SCHEMA
-    @action(detail=False, methods=["POST"])
-    def downgrade(self, request, *args, **kwargs):
+        # @DOWNGRADE_SCHEMA
+        # @action(detail=False, methods=["POST"])
+        # def downgrade(self, request, *args, **kwargs):
         plan_id = request.data.get("plan_id")
 
         try:
@@ -806,43 +800,43 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
             status=status.HTTP_200_OK,
         )
 
-    @CHECKOUT_SCHEMA
-    @action(detail=False, methods=["POST"], url_path="checkout")
-    def checkout(self, request, *args, **kwargs):
-        plan_id = request.data.get("plan")
-        if not plan_id:
-            return Response(
-                {"detail": "The 'plan' field is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        try:
-            plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
-        except SubscriptionPlan.DoesNotExist:
-            return Response(
-                {"detail": "Plan not found or is not active."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+    # @CHECKOUT_SCHEMA
+    # @action(detail=False, methods=["POST"], url_path="checkout")
+    # def checkout(self, request, *args, **kwargs):
+    #     plan_id = request.data.get("plan")
+    #     if not plan_id:
+    #         return Response(
+    #             {"detail": "The 'plan' field is required."},
+    #             status=status.HTTP_400_BAD_REQUEST,
+    #         )
+    #     try:
+    #         plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
+    #     except SubscriptionPlan.DoesNotExist:
+    #         return Response(
+    #             {"detail": "Plan not found or is not active."},
+    #             status=status.HTTP_404_NOT_FOUND,
+    #         )
 
-        success_url = (
-            request.data.get("success_url")
-            or f"https://{settings.FRONTEND_DOMAIN}/billing/success"
-        )
-        cancel_url = (
-            request.data.get("cancel_url")
-            or f"https://{settings.FRONTEND_DOMAIN}/billing/cancelled"
-        )
+    #     success_url = (
+    #         request.data.get("success_url")
+    #         or f"https://{settings.FRONTEND_DOMAIN}/billing/success"
+    #     )
+    #     cancel_url = (
+    #         request.data.get("cancel_url")
+    #         or f"https://{settings.FRONTEND_DOMAIN}/billing/cancelled"
+    #     )
 
-        try:
-            session = StripeCheckoutService.create_individual_subscribe_session(
-                user=request.user,
-                plan=plan,
-                success_url=success_url,
-                cancel_url=cancel_url,
-            )
-        except ValueError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+    #     try:
+    #         session = StripeCheckoutService.create_individual_subscribe_session(
+    #             user=request.user,
+    #             plan=plan,
+    #             success_url=success_url,
+    #             cancel_url=cancel_url,
+    #         )
+    #     except ValueError as exc:
+    #         return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response({"checkout_url": session.url}, status=status.HTTP_200_OK)
+    #     return Response({"checkout_url": session.url}, status=status.HTTP_200_OK)
 
     @extend_schema(
         tags=["Subscription — Stripe"],
@@ -955,86 +949,86 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
     #     serializer = self.get_serializer(new_sub)
     #     return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @CONVERT_TRIAL_TO_PAID_SCHEMA
-    @action(
-        detail=False,
-        methods=["POST"],
-        url_path="convert-trial-to-paid",
-        url_name="convert-trial-to-paid",
-    )
-    def convert_trial_to_paid_checkout(self, request, *args, **kwargs):
-        """
-        Initiates a trial→paid conversion via Stripe Checkout.
+    # @CONVERT_TRIAL_TO_PAID_SCHEMA
+    # @action(
+    #     detail=False,
+    #     methods=["POST"],
+    #     url_path="convert-trial-to-paid",
+    #     url_name="convert-trial-to-paid",
+    # )
+    # def convert_trial_to_paid_checkout(self, request, *args, **kwargs):
+    #     """
+    #     Initiates a trial→paid conversion via Stripe Checkout.
 
-        User MUST have active trial (is_trial=True, is_active=True).
-        Payment MUST succeed before plan is activated locally.
+    #     User MUST have active trial (is_trial=True, is_active=True).
+    #     Payment MUST succeed before plan is activated locally.
 
-        Request body: { "plan": "<plan_uuid>" }
+    #     Request body: { "plan": "<plan_uuid>" }
 
-        Response: { "checkout_url": "https://checkout.stripe.com/..." }
-        """
+    #     Response: { "checkout_url": "https://checkout.stripe.com/..." }
+    #     """
 
-        plan_id = request.data.get("plan")
-        if not plan_id:
-            return Response(
-                {"detail": "The 'plan' field is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+    #     plan_id = request.data.get("plan")
+    #     if not plan_id:
+    #         return Response(
+    #             {"detail": "The 'plan' field is required."},
+    #             status=status.HTTP_400_BAD_REQUEST,
+    #         )
 
-        # Fetch and validate the plan
-        try:
-            new_plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
-        except SubscriptionPlan.DoesNotExist:
-            return Response(
-                {"detail": "Plan not found or is not active."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+    #     # Fetch and validate the plan
+    #     try:
+    #         new_plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
+    #     except SubscriptionPlan.DoesNotExist:
+    #         return Response(
+    #             {"detail": "Plan not found or is not active."},
+    #             status=status.HTTP_404_NOT_FOUND,
+    #         )
 
-        # Validate plan is INDIVIDUAL (should be, but defensive)
-        if new_plan.category != PlanCategory.INDIVIDUAL:
-            return Response(
-                {"detail": f"Plan {new_plan.name} is not an INDIVIDUAL plan."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+    #     # Validate plan is INDIVIDUAL (should be, but defensive)
+    #     if new_plan.category != PlanCategory.INDIVIDUAL:
+    #         return Response(
+    #             {"detail": f"Plan {new_plan.name} is not an INDIVIDUAL plan."},
+    #             status=status.HTTP_400_BAD_REQUEST,
+    #         )
 
-        # Build redirect URLs
-        success_url = (
-            request.data.get("success_url")
-            or f"https://{settings.FRONTEND_DOMAIN}/billing/trial-conversion-success"
-        )
-        cancel_url = (
-            request.data.get("cancel_url")
-            or f"https://{settings.FRONTEND_DOMAIN}/billing/trial-conversion-cancelled"
-        )
+    #     # Build redirect URLs
+    #     success_url = (
+    #         request.data.get("success_url")
+    #         or f"https://{settings.FRONTEND_DOMAIN}/billing/trial-conversion-success"
+    #     )
+    #     cancel_url = (
+    #         request.data.get("cancel_url")
+    #         or f"https://{settings.FRONTEND_DOMAIN}/billing/trial-conversion-cancelled"
+    #     )
 
-        # Attempt to create checkout session
-        try:
-            session = StripeCheckoutService.create_trial_to_paid_session(
-                user=request.user,
-                new_plan=new_plan,
-                success_url=success_url,
-                cancel_url=cancel_url,
-            )
-        except ValueError as exc:
-            # User doesn't have active trial, or trial expired, etc.
-            return Response(
-                {"detail": str(exc)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        except Exception:
-            logger.exception(
-                "Unexpected error creating trial-to-paid checkout for user %s",
-                request.user.email,
-            )
-            return Response(
-                {"detail": "An unexpected error occurred. Please try again later."},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+    #     # Attempt to create checkout session
+    #     try:
+    #         session = StripeCheckoutService.create_trial_to_paid_session(
+    #             user=request.user,
+    #             new_plan=new_plan,
+    #             success_url=success_url,
+    #             cancel_url=cancel_url,
+    #         )
+    #     except ValueError as exc:
+    #         # User doesn't have active trial, or trial expired, etc.
+    #         return Response(
+    #             {"detail": str(exc)},
+    #             status=status.HTTP_400_BAD_REQUEST,
+    #         )
+    #     except Exception:
+    #         logger.exception(
+    #             "Unexpected error creating trial-to-paid checkout for user %s",
+    #             request.user.email,
+    #         )
+    #         return Response(
+    #             {"detail": "An unexpected error occurred. Please try again later."},
+    #             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    #         )
 
-        return Response(
-            {"checkout_url": session.url},
-            status=status.HTTP_200_OK,
-        )
+    #     return Response(
+    #         {"checkout_url": session.url},
+    #         status=status.HTTP_200_OK,
+    #     )
 
     @extend_schema(
         tags=["Subscription"],

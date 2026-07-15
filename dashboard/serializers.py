@@ -2,6 +2,8 @@ from django.contrib.humanize.templatetags.humanize import naturaltime
 from rest_framework import serializers
 
 from ai_processor.models import ChatMessage, ChatSession
+from assignments.models import Assignment
+from classrooms.models import Course
 
 # from assignments.models import Assignment
 
@@ -436,14 +438,79 @@ class SuperAdminStudentPerformanceSerializer(serializers.Serializer):
 
 
 class SchoolAdminSummarySerializer(serializers.Serializer):
-    """Serializer for school admin dashboard overview metrics"""
-
     school_name = serializers.CharField(read_only=True)
-    active_teachers = serializers.IntegerField(read_only=True)
-    active_students = serializers.IntegerField(read_only=True)
-    active_courses = serializers.IntegerField(read_only=True)
-    total_assignments = serializers.IntegerField(read_only=True)
-    total_submissions = serializers.IntegerField(read_only=True)
+
+    teachers = serializers.IntegerField(read_only=True)
+    students = serializers.IntegerField(read_only=True)
+
+    assignments_created = serializers.IntegerField(read_only=True)
+    assignments_graded = serializers.IntegerField(read_only=True)
+    assignments_graded_percentage = serializers.FloatField(read_only=True)
+
+    avg_turnaround_days = serializers.FloatField(
+        allow_null=True,
+        read_only=True,
+    )
+
+    ai_extraction_confidence = serializers.FloatField(read_only=True)
+    ai_grading_confidence = serializers.FloatField(read_only=True)
+
+    flagged_for_review_count = serializers.IntegerField(read_only=True)
+    flagged_for_review_percentage = serializers.FloatField(read_only=True)
+
+    at_risk_students = serializers.IntegerField(read_only=True)
+
+    avg_courses_per_teacher = serializers.FloatField(read_only=True)
+    avg_class_size = serializers.FloatField(read_only=True)
+    avg_assignments_per_course = serializers.FloatField(read_only=True)
+
+
+class AssignmentActivityOverTimeChartSerializer(serializers.Serializer):
+    """
+    Serializer for the Assignment Activity Over Time chart.
+    """
+
+    labels = serializers.ListField(
+        child=serializers.CharField(),
+        read_only=True,
+        help_text="Month labels (Jan-Dec).",
+    )
+
+    created = serializers.ListField(
+        child=serializers.IntegerField(),
+        read_only=True,
+        help_text="Number of assignments created for each month.",
+    )
+
+    graded = serializers.ListField(
+        child=serializers.IntegerField(),
+        read_only=True,
+        help_text="Number of assignments that had at least one graded submission in each month.",
+    )
+
+
+class CourseOverviewItemSerializer(serializers.Serializer):
+    """
+    Represents a single course in the overview chart.
+    """
+
+    name = serializers.CharField(read_only=True)
+    teachers = serializers.IntegerField(read_only=True)
+    avg_grade = serializers.FloatField(
+        allow_null=True,
+        read_only=True,
+    )
+
+
+class CourseOverviewChartSerializer(serializers.Serializer):
+    """
+    Response serializer for the Course Overview Chart endpoint.
+    """
+
+    courses = CourseOverviewItemSerializer(
+        many=True,
+        read_only=True,
+    )
 
 
 class SchoolAdminTeacherPerformanceSerializer(serializers.Serializer):
@@ -465,6 +532,59 @@ class SchoolAdminStudentPerformanceSerializer(serializers.Serializer):
     assignment_completion_rate = serializers.FloatField(read_only=True)
     grade_distribution = GradeDistributionSerializer(read_only=True)
     total_active_enrollments = serializers.IntegerField(read_only=True)
+
+
+class TeacherPerformanceDashboardSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    name = serializers.CharField()
+    email = serializers.EmailField()
+    courses = serializers.IntegerField()
+    students = serializers.IntegerField()
+    growth = serializers.FloatField(allow_null=True)
+    assignments_per_week = serializers.FloatField(allow_null=True)
+    turnaround = serializers.FloatField(allow_null=True)
+    ai_confidence = serializers.FloatField(allow_null=True)
+    rigor = serializers.FloatField(allow_null=True)
+    status = serializers.CharField()
+
+
+class CoursePerformanceDashboardSerializer(serializers.ModelSerializer):
+    teacher = serializers.CharField(source="teacher.get_full_name")
+    students = serializers.IntegerField()
+    assignments = serializers.IntegerField()
+    avg_grade = serializers.FloatField(allow_null=True)
+    distribution = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Course
+        fields = [
+            "id",
+            "name",
+            "teacher",
+            "students",
+            "assignments",
+            "avg_grade",
+            "distribution",
+        ]
+
+    def get_distribution(self, obj):
+        # Build distribution dict from annotated fields
+        grades = {}
+        for letter in ["A", "B", "C", "D", "F"]:
+            count = getattr(obj, f"grade_{letter}", 0)
+            if count:
+                grades[letter] = count
+        return grades
+
+
+class UnitPerformanceSerializer(serializers.ModelSerializer):
+    course_name = serializers.CharField(source="course.name")
+    mastery = serializers.FloatField()
+    avg_score = serializers.FloatField(allow_null=True)
+
+    class Meta:
+        model = Assignment
+        fields = ["id", "title", "course_name", "mastery", "avg_score"]
 
 
 class CustomAIPrompt(serializers.Serializer):

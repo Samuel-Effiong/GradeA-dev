@@ -52,6 +52,7 @@ from .models import (  # CreditBucket,; CreditBucketType,; CreditLedgerType,
     LicenseBillingRecord,
     LicenseBillingRecordType,
     LicenseSubscription,
+    PendingChangeType,
     PlanCategory,
     StripeSubscriptionStatus,
     SubscriptionPlan,
@@ -932,6 +933,216 @@ class StripeSubscriptionMutationService:
         )
 
 
+class StripeSubscriptionScheduleService:
+    """
+    Manages Stripe SubscriptionSchedules for deferred individual plan
+    changes — downgrades, deferred upgrades (annual -> monthly), and
+    lateral interval switches. This is what makes a "scheduled" change
+    actually enforced on Stripe's side, rather than only tracked locally
+    and reactively synced after Stripe has already billed the wrong price.
+    See the module-level patch notes above for the full incident this
+    fixes.
+    """
+
+    @staticmethod
+    def schedule_plan_change_on_stripe(user_sub, new_plan):
+        """
+        Creates (or updates, if one already exists) a two-phase
+        SubscriptionSchedule on `user_sub`'s Stripe subscription:
+
+          Phase 1: `user_sub.plan`'s price, from the schedule's original
+                   start date until `user_sub.billing_cycle_end`.
+          Phase 2: `new_plan`'s price, starting at `billing_cycle_end`,
+                   open-ended. `end_behavior="release"` means once this
+                   phase is reached, Stripe hands the subscription back to
+                   being a plain, directly-manageable Subscription — no
+                   further schedule involvement needed unless another
+                   change is scheduled later, which would reuse and update
+                   this same schedule again (see the "already scheduled"
+                   branch below).
+
+        Both phases use `proration_behavior="none"`: phase 1 is a no-op
+        continuation of what's already active (nothing to prorate), and
+        phase 2 begins exactly at a natural period boundary — a full fresh
+        period at the new price, not a partial/prorated one. This is
+        precisely the point of deferring in the first place: nothing ever
+        needs to be prorated, because the switch only ever happens at a
+        clean boundary.
+
+        Idempotent / re-callable: if `user_sub.stripe_schedule_id` is
+        already set (an earlier scheduled change is being replaced with a
+        different target), this UPDATES that existing schedule's phase 2
+        rather than creating a second, conflicting one — Stripe only
+        allows one active schedule per subscription, and attempting to
+        create a second would fail outright.
+
+        Args:
+            user_sub (UserSubscription): The current active subscription,
+                with `.plan` and `.billing_cycle_end` already correct (the
+                caller is expected to have this fresh, e.g. from
+                IndividualPlanChangeService._determine_branch's row lock).
+            new_plan (SubscriptionPlan): The plan to switch to at cycle end.
+
+        Returns:
+            str: The Stripe SubscriptionSchedule ID (new or existing/updated).
+
+        Raises:
+            ValueError: If `new_plan` has no stripe_price_id configured, or
+                if the Stripe API call fails for any other reason.
+        """
+        if not new_plan.stripe_price_id:
+            raise ValueError(f"Plan {new_plan.name} has no stripe_price_id configured.")
+
+        current_price_id = user_sub.plan.stripe_price_id
+        if not current_price_id:
+            raise ValueError(
+                f"Current plan {user_sub.plan.name} has no stripe_price_id "
+                f"configured — cannot build a schedule phase for it."
+            )
+
+        billing_cycle_end_ts = int(user_sub.billing_cycle_end.timestamp())
+
+        try:
+            if user_sub.stripe_schedule_id:
+                schedule = None
+                try:
+                    schedule = stripe.SubscriptionSchedule.retrieve(
+                        user_sub.stripe_schedule_id
+                    )
+                except stripe.error.InvalidRequestError:
+                    # Schedule no longer exists / invalid reference —
+                    # treat as "nothing to reuse", fall through to create
+                    # a fresh one below.
+                    schedule = None
+
+                if schedule and schedule.get("status") in ("not_started", "active"):
+                    phase_zero_start = schedule["phases"][0]["start_date"]
+                    stripe.SubscriptionSchedule.modify(
+                        user_sub.stripe_schedule_id,
+                        end_behavior="release",
+                        phases=[
+                            {
+                                "items": [{"price": current_price_id, "quantity": 1}],
+                                "start_date": phase_zero_start,
+                                "end_date": billing_cycle_end_ts,
+                                "proration_behavior": "none",
+                            },
+                            {
+                                "items": [
+                                    {"price": new_plan.stripe_price_id, "quantity": 1}
+                                ],
+                                "start_date": billing_cycle_end_ts,
+                                "proration_behavior": "none",
+                            },
+                        ],
+                    )
+                    logger.info(
+                        "Updated existing Stripe schedule %s for subscription "
+                        "%s: phase 2 now %s, effective %s.",
+                        user_sub.stripe_schedule_id,
+                        user_sub.id,
+                        new_plan.name,
+                        user_sub.billing_cycle_end.isoformat(),
+                    )
+                    return user_sub.stripe_schedule_id
+                # Existing reference is stale/terminal (released, completed,
+                # canceled, or gone) — fall through to create a fresh one.
+
+            schedule = stripe.SubscriptionSchedule.create(
+                from_subscription=user_sub.stripe_subscription_id
+            )
+            stripe.SubscriptionSchedule.modify(
+                schedule.id,
+                end_behavior="release",
+                phases=[
+                    {
+                        "items": [{"price": current_price_id, "quantity": 1}],
+                        "start_date": schedule["phases"][0]["start_date"],
+                        "end_date": billing_cycle_end_ts,
+                        "proration_behavior": "none",
+                    },
+                    {
+                        "items": [{"price": new_plan.stripe_price_id, "quantity": 1}],
+                        "start_date": billing_cycle_end_ts,
+                        "proration_behavior": "none",
+                    },
+                ],
+            )
+        except stripe.error.StripeError as exc:
+            raise ValueError(
+                f"Could not schedule the plan change on Stripe: "
+                f"{getattr(exc, 'user_message', None) or str(exc)}"
+            ) from exc
+
+        logger.info(
+            "Created new Stripe schedule %s for subscription %s: %s until "
+            "%s, then %s.",
+            schedule.id,
+            user_sub.id,
+            user_sub.plan.name,
+            user_sub.billing_cycle_end.isoformat(),
+            new_plan.name,
+        )
+        return schedule.id
+
+    @staticmethod
+    def release_schedule(user_sub):
+        """
+        Releases (cancels the scheduling of, without touching the
+        underlying subscription) any active Stripe SubscriptionSchedule
+        for `user_sub`. The subscription itself is left exactly as it
+        currently is — whatever plan/price phase 1 has it on right now —
+        so releasing correctly reverts "nothing changes, stay on your
+        current plan" when a scheduled change is cancelled, and correctly
+        clears the way for an immediate direct Subscription.modify() call
+        when a scheduled change is superseded by an immediate one instead
+        (Stripe explicitly documents that directly modifying a
+        schedule-managed subscription's items can conflict with the
+        schedule's own phase management, so this must always happen
+        BEFORE any direct modify()).
+
+        Safe/idempotent: does nothing if `user_sub.stripe_schedule_id` is
+        not set, and treats "already released/invalid" as a no-op rather
+        than an error — there's nothing left to release either way.
+
+        Args:
+            user_sub (UserSubscription): The subscription whose schedule
+                should be released.
+
+        Raises:
+            ValueError: If the Stripe API call fails for a reason other
+                than "already gone" (e.g. a genuine network/auth failure) —
+                callers should NOT proceed to clear local state if this
+                raises, so a failed release doesn't leave local state
+                claiming "cancelled" while Stripe still executes the old
+                transition.
+        """
+        if not user_sub.stripe_schedule_id:
+            return
+
+        try:
+            stripe.SubscriptionSchedule.release(user_sub.stripe_schedule_id)
+            logger.info(
+                "Released Stripe schedule %s for subscription %s.",
+                user_sub.stripe_schedule_id,
+                user_sub.id,
+            )
+        except stripe.error.InvalidRequestError as exc:
+            # Already released / completed / doesn't exist — nothing to do.
+            logger.info(
+                "Schedule %s for subscription %s already released or "
+                "invalid, nothing to release: %s",
+                user_sub.stripe_schedule_id,
+                user_sub.id,
+                exc,
+            )
+        except stripe.error.StripeError as exc:
+            raise ValueError(
+                f"Could not release the existing scheduled change on "
+                f"Stripe: {getattr(exc, 'user_message', None) or str(exc)}"
+            ) from exc
+
+
 class StripeOverageService:
     """Explicit, user-confirmed overage block purchases."""
 
@@ -1061,29 +1272,46 @@ class IndividualPlanChangeService:
     _LOCK_TIMEOUT_SECONDS = 30
 
     @staticmethod
+    def _find_recommended_annual_plan(target_plan):
+        """
+        For the "upgrade_scheduled" case: finds the ANNUAL plan at the same
+        tier as `target_plan` — the alternative that WOULD apply
+        immediately, since it doesn't cross annual -> monthly. Returns None
+        if no such plan exists in the catalog (e.g. a gap in plan setup) —
+        callers fall back to generic phrasing / omit the structured field
+        in that case, rather than erroring, since this is a "nice to have"
+        recommendation, not a hard requirement for the deferred upgrade
+        itself to proceed.
+        """
+        return (
+            SubscriptionPlan.objects.filter(
+                category=PlanCategory.INDIVIDUAL,
+                tier=target_plan.tier,
+                interval=BillingInterval.ANNUAL,
+                is_active=True,
+            )
+            .exclude(id=target_plan.id)
+            .first()
+        )
+
+    @staticmethod
     def select_plan(user, target_plan, success_url=None, cancel_url=None):
         """
         Args:
             user (CustomUser): The user selecting a plan.
-            target_plan (SubscriptionPlan): The plan being selected. Must
-                already be validated as INDIVIDUAL / active / self-serve —
-                see SelectIndividualPlanSerializer, which is expected to be
-                the caller.
+            target_plan (SubscriptionPlan): The plan being selected.
             success_url (str | None): Required only if the resolved action
                 turns out to be "checkout".
             cancel_url (str | None): Required only if the resolved action
                 turns out to be "checkout".
 
         Returns:
-            dict: matches PlanChangeResultSerializer's shape. See that
-                serializer's docstring for the exact fields per `action`.
+            dict: matches PlanChangeResultSerializer's shape.
 
         Raises:
-            ValueError: For any business-rule rejection (already on this
-                plan, payment issue blocking changes, lock contention,
-                missing success/cancel URLs when checkout is required, or
-                a Stripe-side failure surfaced from change_plan()). The view
-                is expected to catch ValueError and turn it into a 400.
+            ValueError: For any business-rule rejection, including a
+                failure to schedule/release the Stripe-side
+                SubscriptionSchedule for a deferred change.
         """
         lock_key = f"billing:planchange:{user.id}"
         if not cache.add(
@@ -1099,27 +1327,95 @@ class IndividualPlanChangeService:
                 user, target_plan
             )
 
-            if branch == "cancel_downgrade":
-                updated_sub = SubscriptionService.cancel_scheduled_downgrade(user)
+            if branch == "cancel_pending":
+                # Release Stripe's side FIRST. If this raises, we deliberately
+                # do NOT proceed to clear local state — otherwise the user
+                # would see "cancelled" while Stripe still executes the old
+                # scheduled transition at cycle end.
+                StripeSubscriptionScheduleService.release_schedule(current_sub)
+                updated_sub = SubscriptionService.cancel_scheduled_plan_change(user)
                 return {
-                    "action": "downgrade_cancelled",
+                    "action": "scheduled_change_cancelled",
                     "message": (
-                        f"Scheduled downgrade cancelled. You'll stay on "
+                        f"Scheduled change cancelled. You'll stay on "
                         f"{updated_sub.plan.display_name or updated_sub.plan.name}."
                     ),
                     "subscription": updated_sub,
                 }
 
             if branch == "downgrade":
-                updated_sub = SubscriptionService.schedule_downgrade(user, target_plan)
+                note = (
+                    f"You'll move to "
+                    f"{target_plan.display_name or target_plan.name} on "
+                    f"{current_sub.billing_cycle_end.date().isoformat()}. "
+                    f"You keep your current plan and credits until then."
+                )
+                schedule_id = (
+                    StripeSubscriptionScheduleService.schedule_plan_change_on_stripe(
+                        current_sub, target_plan
+                    )
+                )
+                updated_sub = SubscriptionService.schedule_plan_change(
+                    user,
+                    target_plan,
+                    PendingChangeType.DOWNGRADE,
+                    note,
+                    stripe_schedule_id=schedule_id,
+                )
                 return {
                     "action": "downgrade_scheduled",
-                    "message": (
-                        f"You'll move to "
-                        f"{target_plan.display_name or target_plan.name} on "
-                        f"{updated_sub.billing_cycle_end.date().isoformat()}. "
-                        f"You keep your current plan and credits until then."
-                    ),
+                    "message": note,
+                    "pending_plan": target_plan,
+                    "effective_date": updated_sub.billing_cycle_end,
+                }
+
+            if branch == "upgrade_scheduled":
+                recommended_annual = (
+                    IndividualPlanChangeService._find_recommended_annual_plan(
+                        target_plan
+                    )
+                )
+                note = IndividualPlanChangeService._build_deferred_upgrade_note(
+                    current_sub, target_plan, recommended_annual
+                )
+                schedule_id = (
+                    StripeSubscriptionScheduleService.schedule_plan_change_on_stripe(
+                        current_sub, target_plan
+                    )
+                )
+                updated_sub = SubscriptionService.schedule_plan_change(
+                    user,
+                    target_plan,
+                    PendingChangeType.UPGRADE_DEFERRED,
+                    note,
+                    stripe_schedule_id=schedule_id,
+                )
+                return {
+                    "action": "upgrade_scheduled",
+                    "message": note,
+                    "pending_plan": target_plan,
+                    "effective_date": updated_sub.billing_cycle_end,
+                }
+
+            if branch == "lateral_scheduled":
+                note = IndividualPlanChangeService._build_lateral_change_note(
+                    current_sub, target_plan
+                )
+                schedule_id = (
+                    StripeSubscriptionScheduleService.schedule_plan_change_on_stripe(
+                        current_sub, target_plan
+                    )
+                )
+                updated_sub = SubscriptionService.schedule_plan_change(
+                    user,
+                    target_plan,
+                    PendingChangeType.LATERAL_DEFERRED,
+                    note,
+                    stripe_schedule_id=schedule_id,
+                )
+                return {
+                    "action": "lateral_change_scheduled",
+                    "message": note,
                     "pending_plan": target_plan,
                     "effective_date": updated_sub.billing_cycle_end,
                 }
@@ -1146,14 +1442,19 @@ class IndividualPlanChangeService:
                 }
 
             if branch == "upgrade":
-                # Re-fetch just before the Stripe call: we deliberately
-                # released the row lock when _determine_branch's transaction
-                # exited, so this guards against acting on a stale in-memory
-                # instance if anything changed in the interim (extremely
-                # unlikely given the cache lock, but cheap to be sure).
                 current_sub = UserSubscription.objects.select_related("plan").get(
                     id=current_sub.id
                 )
+                if current_sub.stripe_schedule_id:
+                    # A deferred change was previously scheduled but the
+                    # user is now choosing an immediate one instead — the
+                    # schedule must be released before directly modifying
+                    # the subscription's price, or the two can conflict on
+                    # Stripe's side. activate_subscription() (called inside
+                    # change_plan()) deactivates this row and creates a
+                    # fresh one with stripe_schedule_id=None, so no local
+                    # cleanup is needed here beyond the release itself.
+                    StripeSubscriptionScheduleService.release_schedule(current_sub)
                 updated_sub = StripeSubscriptionMutationService.change_plan(
                     user_sub=current_sub, new_plan=target_plan
                 )
@@ -1172,33 +1473,31 @@ class IndividualPlanChangeService:
             cache.delete(lock_key)
 
     @staticmethod
-    @transaction.atomic
-    @staticmethod
     def _determine_branch(user, target_plan):
         """
         Read-only decision step, run under a row lock on the user's active
         subscription (if any) so concurrent calls for the same user
         serialize on the decision itself. Performs NO mutation and NO
-        external calls — both happen afterward, outside this transaction,
-        in select_plan(). See the class docstring's CONCURRENCY section for
-        why.
+        external calls — those happen afterward, outside this transaction,
+        in select_plan().
 
         Returns:
             tuple[str, UserSubscription | None]: (branch, current_sub)
                 where branch is one of "checkout", "upgrade", "downgrade",
-                "cancel_downgrade".
+                "upgrade_scheduled", "lateral_scheduled", "cancel_pending".
 
         Raises:
             ValueError: For business-rule rejections that stop here — past
-                due, already on this plan with nothing pending, an unranked
-                (custom/contact-sales) tier on either side, or the absolute
-                annual-to-monthly guard.
+                due, already on this plan with nothing pending, or an
+                unranked (custom/contact-sales) tier on either side.
+                Annual -> Monthly is deliberately NEVER a rejection here —
+                see the class docstring.
         """
         with transaction.atomic():
             current_sub = (
                 UserSubscription.objects.select_for_update()
                 .filter(user=user, is_active=True)
-                .select_related("plan", "pending_plan")
+                .select_related("plan")
                 .first()
             )
 
@@ -1219,22 +1518,9 @@ class IndividualPlanChangeService:
 
             if target_plan.id == current_sub.plan_id:
                 if current_sub.pending_plan_id:
-                    return "cancel_downgrade", current_sub
+                    return "cancel_pending", current_sub
                 raise ValueError("You are already subscribed to this plan.")
 
-            # --- Tier-ranking eligibility guard ---------------------------
-            # Both sides must be part of the ranked hierarchy for a
-            # tier-based comparison to mean anything. In practice the
-            # target side is already excluded from ever being a
-            # custom/contact-sales tier by SelectIndividualPlanSerializer
-            # (which rejects TRIAL/BETA/CUSTOM plan names outright), and the
-            # current side can only reach here already carrying a
-            # stripe_subscription_id (checked above) — but a manually
-            # Stripe-dashboard-configured CUSTOM/contact-sales plan (see
-            # StripeCheckoutService.create_license_session's docstring for
-            # the license-side equivalent of this pattern) could still
-            # reach this point on the individual side, so this is a real
-            # guard, not pure defense-in-depth.
             if current_sub.plan.tier not in PLAN_TIER_HIERARCHY:
                 raise ValueError(
                     "Your current plan is a custom/contact-sales plan and "
@@ -1247,54 +1533,115 @@ class IndividualPlanChangeService:
                     "switching right now. Please contact support."
                 )
 
-            # --- Absolute interval guard: ANNUAL -> MONTHLY is never
-            # allowed, regardless of tier or price. Must be checked BEFORE
-            # the tier comparison below and short-circuits it entirely —
-            # e.g. Standard (Annual) -> Power (Monthly) is blocked here even
-            # though Power outranks Standard, because it's the
-            # interval-crossing direction being blocked, not the tier
-            # movement.
-            if (
-                current_sub.plan.interval == BillingInterval.ANNUAL
-                and target_plan.interval == BillingInterval.MONTHLY
-            ):
-                raise ValueError(
-                    "Switching from an annual plan to a monthly plan isn't "
-                    "supported yet. You can move to a different annual "
-                    "plan, or wait until your current annual term ends."
-                )
-
-            # --- Tier-hierarchy classification (the real upgrade/downgrade
-            # decision). Tier — not price — defines "better": a discounted
-            # higher tier is still worth more than a full-price lower one.
             current_rank = get_tier_rank(current_sub.plan.tier)
             target_rank = get_tier_rank(target_plan.tier)
 
+            is_annual_to_monthly = (
+                current_sub.plan.interval == BillingInterval.ANNUAL
+                and target_plan.interval == BillingInterval.MONTHLY
+            )
+
             if target_rank > current_rank:
+                # Tier upgrade. Immediate UNLESS it crosses annual -> monthly,
+                # in which case it's forced to defer — see class docstring
+                # for why (Stripe's interval-crossing proration produces an
+                # unrefunded credit balance rather than a clean charge).
+                if is_annual_to_monthly:
+                    return "upgrade_scheduled", current_sub
                 return "upgrade", current_sub
 
             if target_rank < current_rank:
+                # Tier downgrade. Always deferred regardless of interval —
+                # this was already true before the annual->monthly
+                # correction and doesn't need special-casing here.
                 return "downgrade", current_sub
 
-            # Equal tier rank. The only INTENDED way to reach this with two
-            # distinct plans is a same-tier commitment change from monthly
-            # to annual (the reverse direction was already blocked above) —
-            # always treated as an upgrade, never price-dependent.
+            # Equal tier rank.
             if (
                 current_sub.plan.interval == BillingInterval.MONTHLY
                 and target_plan.interval == BillingInterval.ANNUAL
             ):
+                # Same-tier commitment increase: always immediate, never
+                # blocked or deferred in this direction.
                 return "upgrade", current_sub
 
+            if is_annual_to_monthly:
+                # Same tier, annual -> monthly: no tier change at all, but
+                # still has to wait for the current annual term to end.
+                return "lateral_scheduled", current_sub
+
             # Defensive fallback: same tier, some other interval combination
-            # (e.g. two distinct plan rows both MONTHLY, or either side
-            # using BillingInterval.NONE) that isn't the MONTHLY->ANNUAL
-            # case above. Not expected to occur in a well-formed catalog —
-            # falls back to price rather than silently guessing a
-            # direction.
+            # not covered above (e.g. BillingInterval.NONE on either side,
+            # or two distinct plan rows with identical tier+interval — a
+            # catalog configuration issue, not a normal user scenario).
             if target_plan.price_cents >= current_sub.plan.price_cents:
                 return "upgrade", current_sub
             return "downgrade", current_sub
+
+    @staticmethod
+    def _build_deferred_upgrade_note(current_sub, target_plan, recommended_annual):
+        """
+        Composes the persisted, user-facing explanation for the
+        "upgrade_scheduled" case: a genuine tier upgrade that can't apply
+        immediately because it crosses from an annual plan to a monthly
+        one. Explicitly tells the user their plan/features won't change
+        yet, and recommends `recommended_annual` (if one was found by
+        `_find_recommended_annual_plan`) as the immediate alternative.
+
+        Args:
+            current_sub (UserSubscription): The current active subscription.
+            target_plan (SubscriptionPlan): The higher-tier monthly plan
+                the user selected.
+            recommended_annual (SubscriptionPlan | None): The equivalent
+                annual plan at target_plan's tier, or None if the catalog
+                has no such plan.
+        """
+        effective_date = current_sub.billing_cycle_end.date().isoformat()
+        target_name = target_plan.display_name or target_plan.name
+
+        if recommended_annual:
+            recommendation_name = (
+                recommended_annual.display_name or recommended_annual.name
+            )
+            recommendation = (
+                f" If you'd like this to take effect right away, consider "
+                f"{recommendation_name} instead — switching within annual "
+                f"billing applies immediately."
+            )
+        else:
+            recommendation = (
+                " If you'd like this to take effect right away, consider "
+                "staying on an annual plan at your new tier — switching "
+                "within annual billing applies immediately."
+            )
+
+        return (
+            f"You've selected {target_name}, which is a higher tier than "
+            f"your current plan. Because you're currently on an annual "
+            f"plan, this change can't apply immediately — your plan and "
+            f"features will stay exactly as they are until your current "
+            f"annual term ends on {effective_date}, at which point you'll "
+            f"move to {target_name}." + recommendation
+        )
+
+    @staticmethod
+    def _build_lateral_change_note(current_sub, target_plan):
+        """
+        Composes the persisted, user-facing explanation for the
+        "lateral_scheduled" case: no tier change at all, just switching off
+        annual billing at the current tier. Still has to wait for the
+        current annual term to end.
+        """
+        effective_date = current_sub.billing_cycle_end.date().isoformat()
+        target_name = target_plan.display_name or target_plan.name
+
+        return (
+            f"You've selected {target_name}. This doesn't change your plan "
+            f"tier or features — it only switches your billing to monthly. "
+            f"Since you're currently on an annual term, it still can't "
+            f"take effect until that term ends on {effective_date}. Your "
+            f"plan and features stay exactly the same until then."
+        )
 
 
 class StripeWebhookHandler:
@@ -1603,16 +1950,25 @@ class StripeWebhookHandler:
 
     @staticmethod
     def _handle_individual_invoice_succeeded(user_sub, billing_reason):
-        if billing_reason != "subscription_cycle":
-            # subscription_create is already handled by
-            # checkout.session.completed; subscription_update (immediate
-            # upgrade proration) is handled synchronously in
-            # StripeSubscriptionMutationService.change_plan(). Nothing
-            # further to do here for either.
-            return
+        # if billing_reason != "subscription_cycle":
+        #     # subscription_create is already handled by
+        #     # checkout.session.completed; subscription_update (immediate
+        #     # upgrade proration) is handled synchronously in
+        #     # StripeSubscriptionMutationService.change_plan(). Nothing
+        #     # further to do here for either.
+        #     return
 
         now = timezone.now()
         stripe_subscription_id = user_sub.stripe_subscription_id
+
+        logger.debug(
+            "invoice.payment_succeeded for individual subscription %s "
+            "(billing_reason=%s, billing_cycle_end=%s, now=%s).",
+            user_sub.id,
+            billing_reason,
+            user_sub.billing_cycle_end.isoformat(),
+            now.isoformat(),
+        )
 
         # Idempotency guard: if already renewed (billing_cycle_end > now), just update status
         if user_sub.billing_cycle_end > now:
@@ -1637,6 +1993,10 @@ class StripeWebhookHandler:
             # to be re-attached to the new row, not this (now inactive) one.
 
             updated_sub = SubscriptionService.process_rollover_and_renewal(user_sub)
+
+            if user_sub.stripe_schedule_id:
+                updated_sub.stripe_schedule_id = user_sub.stripe_schedule_id
+
             # If schedule_downgrade() (or an upgrade) set a different plan
             # than what Stripe is currently billing, sync it now — this
             # invoice was correctly billed at the old price, so the change
@@ -1648,7 +2008,12 @@ class StripeWebhookHandler:
         updated_sub.stripe_subscription_id = stripe_subscription_id
         updated_sub.stripe_status = StripeSubscriptionStatus.ACTIVE
         updated_sub.save(
-            update_fields=["stripe_subscription_id", "stripe_status", "updated_at"]
+            update_fields=[
+                "stripe_subscription_id",
+                "stripe_status",
+                "stripe_schedule_id",
+                "updated_at",
+            ]
         )
 
     # ------------------------------------------------------------------

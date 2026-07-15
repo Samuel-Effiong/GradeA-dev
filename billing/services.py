@@ -347,7 +347,93 @@ class SubscriptionService:
 
     @staticmethod
     @transaction.atomic
-    def schedule_downgrade(user, new_plan):
+    def schedule_plan_change(user, new_plan, change_type, note, stripe_schedule_id):
+        """
+        Persists a plan change that's been scheduled to take effect at
+        billing_cycle_end. This is the LOCAL half of scheduling — the
+        Stripe-side half (creating/updating the actual
+        SubscriptionSchedule that makes Stripe bill the correct price at
+        the correct moment) must already have happened before this is
+        called; `stripe_schedule_id` is required specifically so that
+        can't be skipped.
+
+        `change_type` and `note` are persisted (not just returned in the
+        API response) so the frontend can show the user an accurate,
+        stable explanation on every subsequent visit — not only in the
+        one-time response to the request that scheduled it.
+
+        auto_renew is deliberately left untouched (stays True): the
+        subscription still renews, just onto `new_plan`.
+
+        Calling this again while something is already scheduled simply
+        overwrites all four fields with the new selection — the most
+        recent choice always wins.
+
+        Args:
+            user (CustomUser): The user requesting the change.
+            new_plan (SubscriptionPlan): The plan to switch to at cycle end.
+            change_type (str): One of PendingChangeType's values.
+            note (str): Persisted, user-facing explanation, already fully
+                composed by the caller.
+            stripe_schedule_id (str): The Stripe SubscriptionSchedule ID
+                already created/updated to enforce this change on Stripe's
+                side. Required — see module docstring for why.
+
+        Returns:
+            UserSubscription: The updated (still currently-active) subscription.
+
+        Raises:
+            ValueError: If the user has no active subscription, or if
+                stripe_schedule_id is falsy (defensive — this should never
+                happen given the type hint, but a silent local-only
+                schedule is exactly the bug this field exists to prevent).
+        """
+        if not stripe_schedule_id:
+            raise ValueError(
+                "stripe_schedule_id is required to schedule a plan change — "
+                "the Stripe-side schedule must be created before persisting "
+                "the pending change locally."
+            )
+
+        current_sub = (
+            UserSubscription.objects.select_for_update()
+            .filter(user=user, is_active=True)
+            .select_related("plan")
+            .first()
+        )
+
+        if not current_sub:
+            raise ValueError("No active subscription to schedule a change for.")
+
+        current_sub.pending_plan = new_plan
+        current_sub.pending_change_type = change_type
+        current_sub.pending_change_note = note
+        current_sub.stripe_schedule_id = stripe_schedule_id
+        current_sub.save(
+            update_fields=[
+                "pending_plan",
+                "pending_change_type",
+                "pending_change_note",
+                "stripe_schedule_id",
+                "updated_at",
+            ]
+        )
+
+        logger.info(
+            "Plan change scheduled for user %s: %s -> %s (type=%s, "
+            "stripe_schedule=%s), effective %s.",
+            user.email,
+            current_sub.plan.name,
+            new_plan.name,
+            change_type,
+            stripe_schedule_id,
+            current_sub.billing_cycle_end.isoformat(),
+        )
+        return current_sub
+
+        # @staticmethod
+        # @transaction.atomic
+        # def schedule_downgrade(user, new_plan):
         """Schedule a downgrade for the end of the billing cycle"""
 
         # 1. Find the currently active subscription
@@ -375,21 +461,28 @@ class SubscriptionService:
 
     @staticmethod
     @transaction.atomic
-    def cancel_scheduled_downgrade(user):
+    def cancel_scheduled_plan_change(user):
         """
-        Clears a previously-scheduled downgrade (pending_plan) so the
-        subscription simply renews onto its current plan as normal.
+        Clears ANY previously-scheduled plan change (downgrade, deferred
+        upgrade, or lateral interval switch) so the subscription simply
+        renews onto its current plan as normal.
 
-        Idempotent: if nothing is pending, this is a harmless no-op that still
-        returns the current subscription (does NOT raise) — callers that just
-        want to guarantee "no downgrade pending" after calling this don't need
-        to special-case "there wasn't one to begin with".
+        Pure local-DB operation — does NOT call Stripe. The caller MUST
+        release the Stripe-side SubscriptionSchedule (see
+        StripeSubscriptionScheduleService.release_schedule) BEFORE calling
+        this, so a failed Stripe call doesn't leave local state claiming
+        "cancelled" while Stripe still executes the old transition.
+
+        Idempotent: if nothing is scheduled, this is a harmless no-op that
+        still returns the current subscription rather than raising.
 
         Args:
-            user (CustomUser): The user cancelling their scheduled downgrade.
+            user (CustomUser): The user cancelling their scheduled change.
 
         Returns:
-            UserSubscription: The updated subscription, with pending_plan=None.
+            UserSubscription: The updated subscription, with pending_plan,
+                pending_change_type, pending_change_note, and
+                stripe_schedule_id all cleared.
 
         Raises:
             ValueError: If the user has no active subscription at all.
@@ -407,14 +500,68 @@ class SubscriptionService:
         if current_sub.pending_plan_id:
             previous_pending = current_sub.pending_plan
             current_sub.pending_plan = None
-            current_sub.save(update_fields=["pending_plan", "updated_at"])
+            current_sub.pending_change_type = None
+            current_sub.pending_change_note = None
+            current_sub.stripe_schedule_id = None
+            current_sub.save(
+                update_fields=[
+                    "pending_plan",
+                    "pending_change_type",
+                    "pending_change_note",
+                    "stripe_schedule_id",
+                    "updated_at",
+                ]
+            )
             logger.info(
-                "Cancelled scheduled downgrade for user %s (was pending -> %s).",
+                "Cancelled scheduled plan change for user %s (was pending " "-> %s).",
                 user.email,
                 previous_pending.name if previous_pending else "unknown",
             )
 
         return current_sub
+
+    # @staticmethod
+    # @transaction.atomic
+    # def cancel_scheduled_downgrade(user):
+    #     """
+    #     Clears a previously-scheduled downgrade (pending_plan) so the
+    #     subscription simply renews onto its current plan as normal.
+
+    #     Idempotent: if nothing is pending, this is a harmless no-op that still
+    #     returns the current subscription (does NOT raise) — callers that just
+    #     want to guarantee "no downgrade pending" after calling this don't need
+    #     to special-case "there wasn't one to begin with".
+
+    #     Args:
+    #         user (CustomUser): The user cancelling their scheduled downgrade.
+
+    #     Returns:
+    #         UserSubscription: The updated subscription, with pending_plan=None.
+
+    #     Raises:
+    #         ValueError: If the user has no active subscription at all.
+    #     """
+    #     current_sub = (
+    #         UserSubscription.objects.select_for_update()
+    #         .filter(user=user, is_active=True)
+    #         .select_related("plan", "pending_plan")
+    #         .first()
+    #     )
+
+    #     if not current_sub:
+    #         raise ValueError("No active subscription found.")
+
+    #     if current_sub.pending_plan_id:
+    #         previous_pending = current_sub.pending_plan
+    #         current_sub.pending_plan = None
+    #         current_sub.save(update_fields=["pending_plan", "updated_at"])
+    #         logger.info(
+    #             "Cancelled scheduled downgrade for user %s (was pending -> %s).",
+    #             user.email,
+    #             previous_pending.name if previous_pending else "unknown",
+    #         )
+
+    #     return current_sub
 
     @staticmethod
     @transaction.atomic

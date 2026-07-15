@@ -12,6 +12,7 @@ from .license_service import LicenseSubscriptionService
 from .models import (
     CONVERSION_FACTOR,
     BetaProfile,
+    BillingInterval,
     CreditBucket,
     CreditBucketType,
     CreditLedger,
@@ -20,6 +21,7 @@ from .models import (
     LicenseBillingMethod,
     LicenseBillingRecord,
     LicenseSubscription,
+    PendingChangeType,
     PlanCategory,
     PlanType,
     SchoolCreditAllocation,
@@ -123,7 +125,14 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
 
     pending_plan = SubscriptionPlanSerializer(read_only=True, allow_null=True)
     pending_plan_effective_date = serializers.SerializerMethodField(read_only=True)
-    has_pending_downgrade = serializers.SerializerMethodField(read_only=True)
+    pending_change_type = serializers.ChoiceField(
+        choices=PendingChangeType.choices, read_only=True, allow_null=True
+    )
+    pending_change_message = serializers.CharField(
+        source="pending_change_note", read_only=True, allow_null=True
+    )
+    has_pending_change = serializers.SerializerMethodField(read_only=True)
+    recommended_plan = serializers.SerializerMethodField(read_only=True)
 
     def validate(self, attrs):
         user = attrs.get("user")
@@ -157,7 +166,10 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
             "auto_renew",
             "pending_plan",
             "pending_plan_effective_date",
-            "has_pending_downgrade",
+            "pending_change_type",
+            "pending_change_message",
+            "recommended_plan",
+            "has_pending_change",
             "created_at",
             "updated_at",
         ]
@@ -174,6 +186,7 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
             "subscription_type",
             "is_under_license",
             "pending_plan",
+            "pending_change_type",
         ]
 
         extra_kwargs = {
@@ -236,8 +249,52 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
             return None
         return obj.billing_cycle_end
 
-    def get_has_pending_downgrade(self, obj) -> bool:
+    def get_has_pending_change(self, obj) -> bool:
+        """
+        Plain boolean convenience flag — True if ANY plan change is
+        currently scheduled (downgrade, deferred upgrade, or lateral
+        interval switch), not only a downgrade. Exists so the frontend can
+        gate a warning/confirmation dialog with a single boolean check
+        instead of null-checking pending_plan first.
+        """
         return bool(obj.pending_plan_id)
+
+    @extend_schema_field(SubscriptionPlanSerializer(allow_null=True))
+    def get_recommended_plan(self, obj):
+        """
+        Only populated when a deferred upgrade is pending
+        (pending_change_type == UPGRADE_DEFERRED) — the equivalent ANNUAL
+        plan at the pending plan's tier, i.e. the alternative that would
+        apply immediately instead of waiting for the current annual term
+        to end. Re-derived live from the current catalog on every read
+        (not persisted as its own field) so it stays accurate even if
+        plan availability changes after the change was originally
+        scheduled — see file 19's patch notes for why this is safe and
+        deliberate rather than an oversight.
+
+        Returns None for every other pending_change_type (a plain
+        downgrade or a lateral interval switch has no "annual
+        alternative" to recommend — see file 19's reasoning) and when
+        nothing is pending at all.
+        """
+        if obj.pending_change_type != PendingChangeType.UPGRADE_DEFERRED:
+            return None
+        if not obj.pending_plan_id:
+            return None
+
+        recommended = (
+            SubscriptionPlan.objects.filter(
+                category=PlanCategory.INDIVIDUAL,
+                tier=obj.pending_plan.tier,
+                interval=BillingInterval.ANNUAL,
+                is_active=True,
+            )
+            .exclude(id=obj.pending_plan_id)
+            .first()
+        )
+        if not recommended:
+            return None
+        return SubscriptionPlanSerializer(recommended).data
 
 
 class MySubscriptionSerializer(UserSubscriptionSerializer):
@@ -1578,3 +1635,4 @@ class PlanChangeResultSerializer(serializers.Serializer):
     # action == "downgrade_scheduled"
     pending_plan = SubscriptionPlanSerializer(required=False, allow_null=True)
     effective_date = serializers.DateTimeField(required=False, allow_null=True)
+    recommended_plan = SubscriptionPlanSerializer(required=False, allow_null=True)

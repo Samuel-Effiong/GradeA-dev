@@ -10,18 +10,22 @@ from django.db.models import (
     ExpressionWrapper,
     F,
     FloatField,
+    OuterRef,
     Prefetch,
     Q,
+    Subquery,
+    Sum,
     Value,
     Variance,
     When,
 )
-from django.db.models.functions import Cast
+from django.db.models.functions import Cast, Coalesce, ExtractMonth
 from django.utils import timezone
 from django.utils.text import gettext_lazy as _
+from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework import status, viewsets
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
+from rest_framework import filters, pagination, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
@@ -31,11 +35,21 @@ from ai_processor.services import AI_CONFIDENCE_THRESHOLD, ai_processor
 from assignments.models import Assignment, AssignmentStatus
 
 # from assignments.services import AssignmentProcessingService
-from classrooms.models import Course, School, Session, StudentCourse
+from classrooms.models import (
+    Course,
+    EnrollmentStatusType,
+    School,
+    Session,
+    StudentCourse,
+)
 from classrooms.permissions import IsSchoolAdmin, IsStudent, IsSuperAdmin, IsTeacher
-from dashboard.serializers import (
+from dashboard.serializers import (  # SchoolAdminTeacherPerformanceSerializer,
+    AssignmentActivityOverTimeChartSerializer,
     ConcurrencySerializer,
     CourseAnalyticsSerializer,
+    CourseOverviewChartSerializer,
+    CoursePerformanceDashboardSerializer,
+    CoursePerformanceSerializer,
     CustomAIPrompt,
     CustomAIReply,
     DashboardChatSessionSerializer,
@@ -45,7 +59,6 @@ from dashboard.serializers import (
     ScalingSignalsSerializer,
     SchoolAdminStudentPerformanceSerializer,
     SchoolAdminSummarySerializer,
-    SchoolAdminTeacherPerformanceSerializer,
     SchoolAnalyticsSerializer,
     StudentAssignmentListSerializer,
     StudentDashboardOverviewSerializer,
@@ -53,8 +66,10 @@ from dashboard.serializers import (
     TeacherAssignmentAnalyticsSerializer,
     TeacherCourseAnalyticsSerializer,
     TeacherDashboardOverviewSerializer,
+    TeacherPerformanceDashboardSerializer,
     TeacherPerformanceSerializer,
     TeacherStudentAnalyticsSerializer,
+    UnitPerformanceSerializer,
 )
 
 # from dashboard.services import analyze_question_difficulty
@@ -1089,6 +1104,14 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
     @action(detail=False, methods=["get"], url_path="dashboard/summary")
     def summary(self, request, *args, **kwargs):
         user = request.user
+        school = request.user.school
+
+        if not school:
+            return Response(
+                {"detail": "School admin must be associated with a school."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         cache_key = f"schooladmins:user_id__{user.id}:view__summary"
         data = cache.get(cache_key)
 
@@ -1119,26 +1142,139 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 user_type=UserTypes.STUDENT,
             ).count()
 
-            active_courses = Course.objects.filter(
-                teacher__school=school,
-                is_active=True,
-            ).count()
+            courses = Course.objects.filter(teacher__school=school, is_active=True)
+            courses_count = courses.count()
 
-            total_assignments = Assignment.objects.filter(
-                course__teacher__school=school
-            ).count()
+            assignments = Assignment.objects.filter(course__teacher__school=school)
+            assignments_created = assignments.count()
 
-            total_submissions = StudentSubmission.objects.filter(
+            # Assignments graded: att least one submission with graded_at not null
+            graded_assignments = (
+                assignments.filter(submissions__graded_at__isnull=False)
+                .distinct()
+                .count()
+            )
+            assignments_graded_percentage = (
+                (graded_assignments / assignments_created) * 100
+                if assignments_created > 0
+                else 0
+            )
+
+            avg_courses_per_teacher = round(
+                (courses_count / active_teachers) if active_teachers > 0 else 0, 1
+            )
+
+            avg_class_size = round(
+                (active_students / courses_count) if courses_count > 0 else 0, 1
+            )
+
+            assignments_per_course = round(
+                (assignments_created / courses_count) if courses_count > 0 else 0, 1
+            )
+
+            # Submissions for this school's assignments
+            submissions = StudentSubmission.objects.filter(
                 assignment__course__teacher__school=school
-            ).count()
+            )
+            graded_submissions = submissions.filter(graded_at__isnull=False)
+            total_graded_submissions = graded_submissions.count()
+
+            # Average turnaround (days) for graded submissions
+            # We compute average difference in days between submission_date and graded_at
+            avg_turnaround = graded_submissions.aggregate(
+                avg_days=Avg(
+                    ExpressionWrapper(
+                        F("graded_at") - F("submission_date"),
+                        output_field=DurationField(),
+                    )
+                )
+            )["avg_days"]
+
+            avg_turnaround_days = (
+                round(avg_turnaround.total_seconds() / 86400, 1)
+                if avg_turnaround
+                else None
+            )
+
+            # AI Extraction Confidence: average over assignments (or submissions). We'll average over assignments
+            avg_extraction_confidence = (
+                assignments.aggregate(avg_conf=Avg("extraction_confidence"))["avg_conf"]
+                or 0.0
+            )
+            avg_extraction_confidence = round(avg_extraction_confidence, 1)
+
+            avg_grading_confidence = (
+                graded_submissions.aggregate(avg_conf=Avg("grading_confidence"))[
+                    "avg_conf"
+                ]
+                or 0.0
+            )
+            avg_grading_confidence = round(avg_grading_confidence, 1)
+
+            # Flagged for review: submissions with grading_confidence < 70
+            flagged_threshold = 70
+            flagged_submissions = graded_submissions.filter(
+                grading_confidence__lt=flagged_threshold
+            )
+
+            flagged_count = flagged_submissions.count()
+            flagged_percentage = round(
+                (
+                    (flagged_count / total_graded_submissions * 100)
+                    if total_graded_submissions > 0
+                    else 0.0
+                ),
+                1,
+            )
+
+            # At-Risk Students: Student with average score_percentage < 60 across graded and published submissions
+            at_risk_threshold = 60
+            # Get all student in tthis school with submissions
+            student_in_school = CustomUser.objects.filter(
+                enrollments__course__teacher__school=school,
+                is_active=True,
+                user_type=UserTypes.STUDENT,
+            )
+
+            # We need to aggregate average score_percentage per student from their graded published submissions
+
+            student_avg = (
+                StudentSubmission.objects.filter(
+                    student=OuterRef("id"),
+                    is_published=True,
+                    graded_at__isnull=False,
+                    score_percentage__isnull=False,
+                    assignment__course__teacher__school=school,
+                )
+                .values("student")
+                .annotate(avg=Avg("score_percentage"))
+                .values("avg")
+            )
+
+            at_risk_students = (
+                student_in_school.annotate(avg_score=Subquery(student_avg[:1]))
+                .filter(avg_score__lt=at_risk_threshold)
+                .count()
+            )
 
             data = {
                 "school_name": school.name,
-                "active_teachers": active_teachers,
-                "active_students": active_students,
-                "active_courses": active_courses,
-                "total_assignments": total_assignments,
-                "total_submissions": total_submissions,
+                "teachers": active_teachers,
+                "students": active_students,
+                "assignments_created": assignments_created,
+                "assignments_graded": graded_assignments,
+                "assignments_graded_percentage": round(
+                    assignments_graded_percentage, 1
+                ),
+                "avg_turnaround_days": avg_turnaround_days,
+                "ai_extraction_confidence": avg_extraction_confidence,
+                "ai_grading_confidence": avg_grading_confidence,
+                "flagged_for_review_count": flagged_count,
+                "flagged_for_review_percentage": flagged_percentage,
+                "at_risk_students": at_risk_students,
+                "avg_courses_per_teacher": avg_courses_per_teacher,
+                "avg_class_size": avg_class_size,
+                "avg_assignment_per_course": assignments_per_course,
             }
 
             serializer = SchoolAdminSummarySerializer(data)
@@ -1147,98 +1283,511 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
             cache.set(cache_key, data, 60 * 15)
         return Response(data)
 
-    @extend_schema(
-        tags=["School Admin"],
-        summary="School Teachers Performance",
-        description="""
-        Retrieve performance and engagement metrics for all teachers within the school.
+    # @extend_schema(
+    #     tags=["School Admin"],
+    #     summary="School Teachers Performance",
+    #     description="""
+    #     Retrieve performance and engagement metrics for all teachers within the school.
 
-        Metrics for each teacher include:
-        - Basic identification (Teacher ID, Name).
-        - Course Load: Total number of courses assigned.
-        - Student Reach: Total number of unique students enrolled in their courses.
-        - Academic Performance: Average student performance (final grades) across all their courses.
-        - Engagement: Assignment completion rates (actual submissions vs. expected based on enrollments).
-        """,
-        responses={200: SchoolAdminTeacherPerformanceSerializer(many=True)},
-    )
-    # @method_decorator(cache_page(60 * 3, key_prefix="schooladmin:dashboard:teachers"))
-    # @method_decorator(vary_on_headers("Authorization"))
+    #     Metrics for each teacher include:
+    #     - Basic identification (Teacher ID, Name).
+    #     - Course Load: Total number of courses assigned.
+    #     - Student Reach: Total number of unique students enrolled in their courses.
+    #     - Academic Performance: Average student performance (final grades) across all their courses.
+    #     - Engagement: Assignment completion rates (actual submissions vs. expected based on enrollments).
+    #     """,
+    #     responses={200: SchoolAdminTeacherPerformanceSerializer(many=True)},
+    # )
+    # # @method_decorator(cache_page(60 * 3, key_prefix="schooladmin:dashboard:teachers"))
+    # # @method_decorator(vary_on_headers("Authorization"))
+    # @action(detail=False, methods=["get"], url_path="dashboard/teachers")
+    # def teachers(self, request, *args, **kwargs):
+    #     """
+    #     Returns performance metrics for all teachers in the admin's school:
+    #     - Number of courses per teacher
+    #     - Number of students per teacher
+    #     - Average student performance per teacher
+    #     - Assignment completion rates per teacher
+    #     """
+
+    #     user = request.user
+    #     cache_key = f"schooladmins:user_id__{user.id}:view__teachers"
+    #     data = cache.get(cache_key)
+
+    #     if data is None:
+    #         school = user.school
+
+    #         if not school:
+    #             return Response(
+    #                 {
+    #                     "detail": "User is not associated with any school",
+    #                 },
+    #                 status=400,
+    #             )
+
+    #         teacher_queryset = CustomUser.objects.filter(
+    #             school=school, user_type=UserTypes.TEACHER, is_active=True
+    #         ).annotate(
+    #             course_count=Count("courses", distinct=True),
+    #             student_count=Count("courses__enrollments__student", distinct=True),
+    #             average_grade=Avg("courses__enrollments__final_grade"),
+    #             actual_submissions=Count(
+    #                 "courses__assignments__submissions", distinct=True
+    #             ),
+    #         )
+
+    #         performance_data = []
+    #         for teacher in teacher_queryset:
+    #             stats = teacher.courses.aggregate(
+    #                 total_assignments=Count("assignments", distinct=True),
+    #                 total_enrollments=Count("enrollments", distinct=True),
+    #             )
+
+    #             expected_submissions = (stats["total_assignments"] or 0) * (
+    #                 stats["total_enrollments"] or 0
+    #             )
+
+    #             completion_rate = (
+    #                 (teacher.actual_submissions / expected_submissions * 100)
+    #                 if expected_submissions > 0
+    #                 else 0
+    #             )
+
+    #             performance_data.append(
+    #                 {
+    #                     "teacher_id": teacher.id,
+    #                     "teacher_name": f"{teacher.first_name} {teacher.last_name}",
+    #                     "number_of_courses": teacher.course_count,
+    #                     "number_of_students": teacher.student_count,
+    #                     "average_student_performance": round(
+    #                         float(teacher.average_grade or 0), 2
+    #                     ),
+    #                     "assignment_completion_rate": round(
+    #                         min(float(completion_rate), 100), 2
+    #                     ),
+    #                 }
+    #             )
+
+    #         serializer = SchoolAdminTeacherPerformanceSerializer(
+    #             performance_data, many=True
+    #         )
+    #         data = serializer.data
+
+    #         cache.set(cache_key, data, 60 * 15)
+    #     return Response(data)
+
     @action(detail=False, methods=["get"], url_path="dashboard/teachers")
-    def teachers(self, request, *args, **kwargs):
-        """
-        Returns performance metrics for all teachers in the admin's school:
-        - Number of courses per teacher
-        - Number of students per teacher
-        - Average student performance per teacher
-        - Assignment completion rates per teacher
-        """
+    def teacher_performance(self, request, *args, **kwargs):
+        school = request.user.school
+        if not school:
+            return Response(
+                {"detail": "School admin must be associated with a school."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        user = request.user
-        cache_key = f"schooladmins:user_id__{user.id}:view__teachers"
+        cache_key = f"teacher_performance_{school.id}"
         data = cache.get(cache_key)
 
-        if data is None:
-            school = user.school
+        if data is not None:
+            return Response(data)
 
-            if not school:
-                return Response(
-                    {
-                        "detail": "User is not associated with any school",
-                    },
-                    status=400,
-                )
+        # Get all teachers in this school
+        teachers = CustomUser.objects.filter(
+            school=school, user_type=UserTypes.TEACHER
+        ).distinct()
 
-            teacher_queryset = CustomUser.objects.filter(
-                school=school, user_type=UserTypes.TEACHER, is_active=True
-            ).annotate(
-                course_count=Count("courses", distinct=True),
-                student_count=Count("courses__enrollments__student", distinct=True),
-                average_grade=Avg("courses__enrollments__final_grade"),
-                actual_submissions=Count(
-                    "courses__assignments__submissions", distinct=True
-                ),
+        # Prefetch related data to avoid N+1
+        teachers = teachers.prefetch_related(
+            "courses",
+            "courses__enrollments",
+            "courses__assignments",
+            "courses__assignments__submissions",
+        )
+
+        result = []
+
+        now = timezone.now()
+        six_months_ago = now - timedelta(days=180)
+
+        for teacher in teachers:
+            # --- Basic counts ---
+            courses = teacher.courses.all()
+            course_ids = [c.id for c in courses]
+            courses_count = len(course_ids)
+
+            # Students: distinct students enrolled in these courses (excluding withdrawn)
+            students_count = (
+                StudentCourse.objects.filter(course_id__in=course_ids)
+                .exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
+                .values("student")
+                .distinct()
+                .count()
             )
 
-            performance_data = []
-            for teacher in teacher_queryset:
-                stats = teacher.courses.aggregate(
-                    total_assignments=Count("assignments", distinct=True),
-                    total_enrollments=Count("enrollments", distinct=True),
-                )
+            # --- Growth: % change in student count over last 6 months ---
+            # Current students (enrolled in courses created in last 6 months)
+            current_enrollments = StudentCourse.objects.filter(
+                course_id__in=course_ids,
+                course__created_at__gte=six_months_ago,
+            ).exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
+            current_students = current_enrollments.values("student").distinct().count()
 
-                expected_submissions = (stats["total_assignments"] or 0) * (
-                    stats["total_enrollments"] or 0
-                )
+            # Past students (enrolled in courses created before that)
+            past_enrollments = StudentCourse.objects.filter(
+                course_id__in=course_ids,
+                course__created_at__lt=six_months_ago,
+            ).exclude(enrollment_status="WITHDRAWN")
+            past_students = past_enrollments.values("student").distinct().count()
 
-                completion_rate = (
-                    (teacher.actual_submissions / expected_submissions * 100)
-                    if expected_submissions > 0
-                    else 0
-                )
+            if past_students > 0:
+                growth = ((current_students - past_students) / past_students) * 100
+            elif current_students > 0:
+                growth = 100.0  # started from zero
+            else:
+                growth = None
 
-                performance_data.append(
-                    {
-                        "teacher_id": teacher.id,
-                        "teacher_name": f"{teacher.first_name} {teacher.last_name}",
-                        "number_of_courses": teacher.course_count,
-                        "number_of_students": teacher.student_count,
-                        "average_student_performance": round(
-                            float(teacher.average_grade or 0), 2
-                        ),
-                        "assignment_completion_rate": round(
-                            min(float(completion_rate), 100), 2
-                        ),
-                    }
-                )
+            # --- Assignments ---
+            assignments = Assignment.objects.filter(course_id__in=course_ids)
+            assignments_count = assignments.count()
 
-            serializer = SchoolAdminTeacherPerformanceSerializer(
-                performance_data, many=True
+            # Assignments per week: over lifetime since first assignment
+            first_assignment = assignments.order_by("created_at").first()
+            if first_assignment and assignments_count > 0:
+                weeks = (now - first_assignment.created_at).days / 7
+                assignments_per_week = assignments_count / weeks if weeks > 0 else 0
+            else:
+                assignments_per_week = None
+
+            # --- Turnaround (avg days from submission to grading) ---
+            submissions = StudentSubmission.objects.filter(
+                assignment__course_id__in=course_ids, graded_at__isnull=False
             )
-            data = serializer.data
+            graded_count = submissions.count()
+            if graded_count > 0:
+                # Average duration in days
+                total_days = submissions.aggregate(
+                    total=Sum(
+                        ExpressionWrapper(
+                            F("graded_at") - F("submission_date"),
+                            output_field=DurationField(),
+                        )
+                    )
+                )["total"]
+                if total_days:
+                    turnaround = total_days.total_seconds() / (graded_count * 86400)
+                else:
+                    turnaround = None
+            else:
+                turnaround = None
 
-            cache.set(cache_key, data, 60 * 15)
+            # --- AI Confidence (average grading_confidence) ---
+            ai_confidence = submissions.aggregate(avg_conf=Avg("grading_confidence"))[
+                "avg_conf"
+            ]
+
+            # --- Rigor: average total_points per assignment, normalized to 5 ---
+            # We'll use the highest total_points across all assignments as max
+            max_points = (
+                assignments.aggregate(max=Coalesce(F("total_points"), Value(0)))["max"]
+                or 1
+            )
+            avg_points = assignments.aggregate(avg=Avg("total_points"))["avg"] or 0
+            if max_points > 0:
+                rigor = (avg_points / max_points) * 5
+            else:
+                rigor = None
+
+            result.append(
+                {
+                    "id": teacher.id,
+                    "name": teacher.get_full_name(),
+                    "email": teacher.email,
+                    "courses": courses_count,
+                    "students": students_count,
+                    "growth": round(growth, 1) if growth is not None else None,
+                    "assignments_per_week": (
+                        round(assignments_per_week, 1)
+                        if assignments_per_week is not None
+                        else None
+                    ),
+                    "turnaround": (
+                        round(turnaround, 1) if turnaround is not None else None
+                    ),
+                    "ai_confidence": (
+                        round(ai_confidence, 1) if ai_confidence is not None else None
+                    ),
+                    "rigor": round(rigor, 1) if rigor is not None else None,
+                    "status": teacher.is_active,
+                }
+            )
+
+        # # Apply pagination to the list
+        serializer = TeacherPerformanceDashboardSerializer(result, many=True)
+        data = serializer.data
+
+        cache.set(cache_key, data, 300)  # 5 minutes
         return Response(data)
+
+    @extend_schema(
+        tags=["School Admin"],
+        summary="Course Performance Table",
+        description="""
+        Retrieve a paginated list of courses within the school with performance metrics.
+
+        Metrics include:
+        - Course name and teacher
+        - Number of students (enrolled, not withdrawn)
+        - Number of assignments
+        - Average final grade
+        - Grade distribution (A, B, C, D, F counts)
+
+        Supports filtering by department (category), searching by course/teacher name,
+        and ordering by any numeric metric.
+        """,
+        parameters=[
+            OpenApiParameter(
+                name="category__name",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Filter by course category (department)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="search",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description="Search by course name or teacher name",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="ordering",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "Order by name, students, assignments, or avg_grade. "
+                    "Prefix with '-' for descending, e.g. `-avg_grade`."
+                ),
+                required=False,
+            ),
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page (max 100)",
+                required=False,
+            ),
+        ],
+        responses={200: CoursePerformanceSerializer(many=True)},
+    )
+    @action(detail=False, methods=["get"], url_path="dashboard/course-performance")
+    def course_peformance(self, request, *args, **kwargs):
+        school = request.user.school
+        if not school:
+            return Response(
+                {"detail": "School admin must be associated with a school."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Set up pagination
+        paginator = pagination.PageNumberPagination()
+        paginator.page_size = request.query_params.get("page_size", 10)
+        paginator.page_size_query_param = "page_size"
+        paginator.max_page_size = 100
+
+        # Base queryset: courses taught by teachers in this school
+        qs = Course.objects.filter(teacher__school=school)
+
+        # Annotations
+        qs = qs.annotate(
+            students=Count(
+                "enrollments",
+                filter=~Q(enrollments__enrollment_status="WITHDRAWN"),
+                distinct=True,
+            ),
+            assignments=Count("assignments", distinct=True),
+            avg_grade=Avg(
+                "enrollments__final_grade",
+                filter=~Q(
+                    enrollments__enrollment_status=EnrollmentStatusType.WITHDRAWN
+                ),
+            ),
+        )
+
+        # Grade distribution
+        grade_conditions = {
+            "A": Q(enrollments__final_grade__gte=90, enrollments__final_grade__lte=100),
+            "B": Q(enrollments__final_grade__gte=80, enrollments__final_grade__lt=90),
+            "C": Q(enrollments__final_grade__gte=70, enrollments__final_grade__lt=80),
+            "D": Q(enrollments__final_grade__gte=60, enrollments__final_grade__lt=70),
+            "F": Q(enrollments__final_grade__lt=60),
+        }
+
+        for grade, condition in grade_conditions.items():
+            qs = qs.annotate(
+                **{
+                    f"grade_{grade}": Count(
+                        "enrollments",
+                        filter=condition
+                        & ~Q(enrollments__enrollment_status="WITHDRAWN"),
+                    )
+                }
+            )
+
+        # Apply filter backends manually because we're in a ViewSet action
+        filter_backend = DjangoFilterBackend()
+        qs = filter_backend.filter_queryset(request, qs, view=self)
+
+        search_backend = filters.SearchFilter()
+        search_backend.search_fields = [
+            "name",
+            "teacher__first_name",
+            "teacher__last_name",
+        ]
+        qs = search_backend.filter_queryset(request, qs, view=self)
+
+        ordering_backend = filters.OrderingFilter()
+        ordering_backend.ordering_fields = [
+            "name",
+            "students",
+            "assignments",
+            "avg_grade",
+        ]
+        qs = ordering_backend.filter_queryset(request, qs, view=self)
+
+        # Paginate
+        page = paginator.paginate_queryset(qs, request, view=self)
+        if page is not None:
+            serializer = CoursePerformanceDashboardSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
+        serializer = CoursePerformanceDashboardSerializer(qs, many=True)
+        return Response(serializer.data)
+
+    @extend_schema(
+        tags=["School Admin"],
+        summary="Assignment Performance (Hardest & Reteach Recommended)",
+        description="""
+        Returns two lists of assignments with performance metrics.
+
+        **Hardest Units**: Assignments with the lowest mastery rates (sorted ascending).
+        **Reteach Recommended**: Assignments where mastery is below a threshold (default 75%).
+
+        Mastery is defined as the percentage of students who scored >= 70% on the assignment.
+        Both lists include assignment title, course name, mastery percentage, and average score.
+        """,
+        parameters=[
+            OpenApiParameter(
+                name="hardest_limit",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of hardest units to return (default: 5)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="reteach_limit",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of reteach-recommended units to return (default: 5)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="mastery_threshold",
+                type=OpenApiTypes.NUMBER,
+                location=OpenApiParameter.QUERY,
+                description="Passing score percentage threshold (default: 70.0)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="reteach_threshold",
+                type=OpenApiTypes.NUMBER,
+                location=OpenApiParameter.QUERY,
+                description="Mastery threshold below which reteach is recommended (default: 75.0)",
+                required=False,
+            ),
+        ],
+        responses={200: UnitPerformanceSerializer},
+    )
+    @action(detail=False, methods=["get"], url_path="dashboard/unit-performance")
+    def unit_performance(self, request, *args, **kwargs):
+        school = request.user.school
+        if not school:
+            return Response(
+                {"detail": "School admin must be associated with a school."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Parse query parameters
+        hardest_limit = int(request.query_params.get("hardest_limit", 5))
+        reteach_limit = int(request.query_params.get("reteach_limit", 5))
+        mastery_threshold = float(request.query_params.get("mastery_threshold", 70.0))
+        reteach_threshold = float(request.query_params.get("reteach_threshold", 75.0))
+
+        # Base queryset: assignments belonging to courses in this school
+        assignments = Assignment.objects.filter(course__teacher__school=school)
+
+        # Annotate performance metrics
+        assignments = assignments.annotate(
+            total_submissions=Count(
+                "submissions",
+                filter=Q(
+                    submissions__graded_at__isnull=False, submissions__is_published=True
+                ),
+            ),
+            avg_score=Avg(
+                "submissions__score_percentage",
+                filter=Q(
+                    submissions__graded_at__isnull=False, submissions__is_published=True
+                ),
+            ),
+            passing_submissions=Count(
+                "submissions",
+                filter=Q(
+                    submissions__score_percentage__gte=mastery_threshold,
+                    submissions__graded_at__isnull=False,
+                    submissions__is_published=True,
+                ),
+            ),
+        )
+
+        # Compute mastery percentage (handle division by zero)
+        assignments = assignments.annotate(
+            mastery=ExpressionWrapper(
+                Coalesce(
+                    F("passing_submissions") * 100.0 / F("total_submissions"),
+                    Value(0.0),
+                ),
+                output_field=FloatField(),
+            )
+        )
+
+        # Filter to assignments with at least one graded submission
+        assignments = assignments.filter(total_submissions__gt=0)
+
+        # ---- Hardest Units ----
+        hardest_qs = assignments.order_by("mastery")[:hardest_limit]
+
+        # ---- Reteach Recommended ----
+        reteach_qs = assignments.filter(mastery__lt=reteach_threshold).order_by(
+            "mastery"
+        )[:reteach_limit]
+
+        # Serialize
+        hardest_serializer = UnitPerformanceSerializer(hardest_qs, many=True)
+        reteach_serializer = UnitPerformanceSerializer(reteach_qs, many=True)
+
+        return Response(
+            {
+                "hardest_units": hardest_serializer.data,
+                "reteach_recommended": reteach_serializer.data,
+            }
+        )
 
     @extend_schema(
         tags=["School Admin"],
@@ -1349,6 +1898,204 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
             data = serializer.data
 
             cache.set(cache_key, data, 60 * 15)
+        return Response(data)
+
+    @extend_schema(
+        tags=["School Admin Charts"],
+        operation_id="assignment_activity_over_time_chart",
+        summary="Assignment Activity Over Time",
+        description=(
+            "Returns monthly assignment activity for the authenticated school. "
+            "The response contains two datasets:\n\n"
+            "- **created**: Number of assignments created each month.\n"
+            "- **graded**: Number of unique assignments that received at least one graded submission each month.\n\n"
+            "If the optional **year** query parameter is supplied, only activity for "
+            "that calendar year is returned. Otherwise, activity across all years is aggregated."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="year",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=(
+                    "Optional calendar year used to filter assignment activity "
+                    "(e.g. 2026). If omitted, activity from all years is aggregated."
+                ),
+            ),
+        ],
+        responses={
+            200: OpenApiResponse(
+                response=AssignmentActivityOverTimeChartSerializer,
+                description="Assignment activity chart retrieved successfully.",
+            ),
+            400: OpenApiResponse(
+                description="The authenticated school administrator is not associated with a school.",
+            ),
+            401: OpenApiResponse(
+                description="Authentication credentials were not provided or are invalid.",
+            ),
+            403: OpenApiResponse(
+                description="You do not have permission to access this resource.",
+            ),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="dashboard/assignment-activity-over-time",
+    )
+    def assignment_activity_over_time_chart(self, request, *args, **kwargs):
+        school = request.user.school
+
+        if not school:
+            return Response(
+                {"detail": "School admin must be associated with a school."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        year = request.query_params.get("year")
+
+        # Cache per school and optional year
+        cache_key = f"assignment_activity_{school.id}_{year or 'all'}"
+        data = cache.get(cache_key)
+
+        if data is None:
+            # Base queryset for assignments belonging to the school
+            base_qs = Assignment.objects.filter(course__teacher__school=school)
+
+            # CREATED ASSIGNMENTS PER MONTH
+
+            created_qs = base_qs
+            if year:
+                created_qs = created_qs.filter(created_at__year=year)
+
+            created_by_month = (
+                created_qs.annotate(month=ExtractMonth("created_at"))
+                .values("month")
+                .annotate(count=Count("id"))
+                .order_by("month")
+            )
+
+            created_dict = {item["month"]: item["count"] for item in created_by_month}
+
+            # GRADED ASSIGNMENTS PER MONTH
+
+            # An assignment is considered "graded" in a month if it has at least one
+            # submission with a non-null `graded_at` in that month.
+            graded_qs = base_qs.filter(submissions__graded_at__isnull=False)
+            if year:
+                graded_qs = graded_qs.filter(submissions__graded_at__year=year)
+
+            graded_by_month = (
+                graded_qs.annotate(month=ExtractMonth("submissions__graded_at"))
+                .values("month")
+                .annotate(
+                    count=Count("id", distinct=True)
+                )  # count distinct assignments
+                .order_by("month")
+            )
+            graded_dict = {item["month"]: item["count"] for item in graded_by_month}
+
+            # Build the full month list (1–12)
+            months = list(range(1, 13))
+            labels = [
+                "Jan",
+                "Feb",
+                "Mar",
+                "Apr",
+                "May",
+                "Jun",
+                "Jul",
+                "Aug",
+                "Sep",
+                "Oct",
+                "Nov",
+                "Dec",
+            ]
+            created_data = [created_dict.get(m, 0) for m in months]
+            graded_data = [graded_dict.get(m, 0) for m in months]
+
+            data = {
+                "labels": labels,
+                "created": created_data,
+                "graded": graded_data,
+            }
+
+            cache.set(cache_key, data, 60 * 15)
+
+        return Response(data)
+
+    @extend_schema(
+        tags=["School Admin Charts"],
+        operation_id="course_overview_chart",
+        summary="Course Overview Chart",
+        description=(
+            "Returns an overview of all courses within the school. "
+            "For each course, the response includes the number of teachers "
+            "assigned to the course and the average final grade of enrolled "
+            "students (excluding withdrawn enrollments). "
+            "This endpoint is intended for dashboard chart visualizations."
+        ),
+        responses={
+            200: OpenApiResponse(
+                response=CourseOverviewChartSerializer,
+                description="Course overview data retrieved successfully.",
+            ),
+            400: OpenApiResponse(
+                description="The authenticated school administrator is not associated with a school."
+            ),
+            401: OpenApiResponse(
+                description="Authentication credentials were not provided or are invalid."
+            ),
+            403: OpenApiResponse(
+                description="You do not have permission to access this resource."
+            ),
+        },
+    )
+    @action(detail=False, methods=["GET"], url_path="dashboard/course-overview-chart")
+    def course_overview_chart(self, request, *args, **kwargs):
+        school = request.user.school
+
+        if not school:
+            return Response(
+                {"detail": "School admin must be associated with a school."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        cache_key = f"department_overview_{school.id}"
+        data = cache.get(cache_key)
+
+        if data is None:
+            courses = (
+                Course.objects.filter(teacher__school=school)
+                .values("name")
+                .annotate(
+                    teacher_count=Count("teacher", distinct=True),
+                    avg_grade=Avg(
+                        "enrollments__final_grade",
+                        filter=~Q(enrollments__enrollment_status="WITHDRAWN"),
+                    ),
+                )
+                .order_by("name")
+            )
+
+            data = {
+                "courses": [
+                    {
+                        "name": item["name"],
+                        "teachers": item["teacher_count"],
+                        "avg_grade": (
+                            round(item["avg_grade"], 1)
+                            if item["avg_grade"] is not None
+                            else None
+                        ),
+                    }
+                    for item in courses
+                ]
+            }
+
+            cache.set(cache_key, data, 300)
         return Response(data)
 
     @extend_schema(
