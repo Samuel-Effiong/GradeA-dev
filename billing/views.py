@@ -76,6 +76,8 @@ from .serializers import (  # SubscriptionSerializer,; BetaUsageTrendSerializer,
     FeatureConsumptionTimeSeriesSerializer,
     IntentSignalResponseSerializer,
     MySubscriptionSerializer,
+    OverageCheckoutRequestSerializer,
+    OverageCheckoutSessionSerializer,
     OverageStatusSerializer,
     PeakUsageHourSerializer,
     PlanChangeResultSerializer,
@@ -91,9 +93,8 @@ from .stripe_service import (  # StripeSubscriptionMutationService,; StripeCheck
     IndividualPlanChangeService,
     StripeOverageService,
 )
-from .stripe_view_schemas import (  # START_TRIAL_SCHEMA,;; CONVERT_TRIAL_SCHEMA,;; CHECKOUT_SCHEMA,;; CONVERT_TRIAL_TO_PAID_SCHEMA,;; DOWNGRADE_SCHEMA,;; UPGRADE_SCHEMA,
+from .stripe_view_schemas import (  # START_TRIAL_SCHEMA,;; CONVERT_TRIAL_SCHEMA,;; CHECKOUT_SCHEMA,;; CONVERT_TRIAL_TO_PAID_SCHEMA,;; DOWNGRADE_SCHEMA,;; UPGRADE_SCHEMA,; PURCHASE_OVERAGE_SCHEMA,
     CANCEL_SCHEMA,
-    PURCHASE_OVERAGE_SCHEMA,
 )
 
 logger = logging.getLogger(__name__)
@@ -882,11 +883,46 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
         response_serializer = PlanChangeResultSerializer(result)
         return Response(response_serializer.data, status=status.HTTP_200_OK)
 
-    @PURCHASE_OVERAGE_SCHEMA
+    @extend_schema(
+        tags=["Subscription — Stripe"],
+        operation_id="purchaseOverageCredits",
+        summary="Purchase overage credit blocks",
+        description=(
+            "Creates a Stripe Checkout Session for purchasing one or more "
+            "overage credit blocks. The authenticated user's active "
+            "subscription determines the price per block and the maximum "
+            "number of blocks that may be purchased during the current "
+            "billing cycle.\n\n"
+            "This endpoint **does not grant credits immediately**. Instead, "
+            "it returns a Checkout URL that the frontend should redirect the "
+            "customer to. Credits are granted only after Stripe confirms a "
+            "successful payment via the `checkout.session.completed` webhook."
+        ),
+        request=OverageCheckoutRequestSerializer,
+        responses={
+            200: OpenApiResponse(
+                response=OverageCheckoutSessionSerializer,
+                description=(
+                    "Checkout Session created successfully. Redirect the user "
+                    "to `checkout_url` to complete payment."
+                ),
+            ),
+        },
+    )
     @action(detail=False, methods=["POST"], url_path="credits/overage/purchase")
     def purchase_overage(self, request, *args, **kwargs):
+        serializer = OverageCheckoutRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        success_url = serializer.validated_data["success_url"]
+        cancel_url = serializer.validated_data["cancel_url"]
+        quantity = serializer.validated_data["quantity"]
+
         try:
-            result = StripeOverageService.purchase_overage_block(request.user)
+            # result = StripeOverageService.purchase_overage_block(request.user)
+            result = StripeOverageService.create_overage_checkout_session(
+                request.user, success_url, cancel_url, quantity
+            )
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception:

@@ -698,6 +698,262 @@ class StripeSubscriptionMutationService:
         return updated_sub
 
     @staticmethod
+    def create_upgrade_checkout_session(user_sub, new_plan, success_url, cancel_url):
+        """
+        Previews the exact cost of upgrading `user_sub` to `new_plan` right
+        now, then creates a one-time Checkout Session for that exact
+        amount. The subscription's price is NOT changed yet — that only
+        happens once payment is confirmed via
+        `_handle_individual_upgrade_checkout_completed`.
+
+        For a same-tier-or-up MONTHLY -> ANNUAL upgrade specifically, the
+        preview itself is calculated with `proration_behavior="none"`
+        instead of `"always_invoice"` — this correctly shows the FULL new
+        annual price (no credit for unused monthly time), matching what
+        Stripe will actually end up billing for an interval-crossing
+        change regardless of what proration setting is used when the
+        change is actually applied. Showing the customer an artificially
+        small "delta" number here would be actively misleading for this
+        specific transition.
+
+        Args:
+            user_sub (UserSubscription): The current active subscription,
+                with `.plan` fresh (e.g. from
+                IndividualPlanChangeService._determine_branch's row lock).
+            new_plan (SubscriptionPlan): The plan being upgraded to.
+            success_url (str): Where Checkout redirects on success.
+            cancel_url (str): Where Checkout redirects if the user backs out.
+
+        Returns:
+            dict: either
+                {"requires_checkout": True, "checkout_url": str, "checkout_session_id": str}
+            or, when the previewed amount is <= 0:
+                {"requires_checkout": False, "subscription": UserSubscription}
+                (the upgrade has ALREADY been applied in this case — see
+                _apply_upgrade_directly).
+
+        Raises:
+            ValueError: For missing Stripe configuration, or any Stripe
+                API failure, with a clean user-facing message.
+        """
+        if not new_plan.stripe_price_id:
+            raise ValueError(f"Plan {new_plan.name} has no stripe_price_id configured.")
+        if not user_sub.stripe_subscription_id:
+            raise ValueError(
+                "This subscription has no associated Stripe subscription. "
+                "(it may have been granted manually). Contact support to upgrade."
+            )
+
+        try:
+            stripe_sub = stripe.Subscription.retrieve(user_sub.stripe_subscription_id)
+        except stripe.error.StripeError as exc:
+            raise ValueError(
+                f"Could not retrieve Stripe subscription: "
+                f"{getattr(exc, 'user_message', None) or str(exc)}"
+            ) from exc
+
+        item_id = stripe_sub["items"]["data"][0]["id"]
+        customer_id = stripe_sub["customer"]
+
+        is_interval_crossing = (
+            user_sub.plan.interval == BillingInterval.MONTHLY
+            and new_plan.interval == BillingInterval.ANNUAL
+        )
+        preview_proration_behavior = (
+            "none" if is_interval_crossing else "always_invoice"
+        )
+        # preview_proration_behavior = "always_invoice"
+
+        try:
+            preview = stripe.Invoice.create_preview(
+                customer=customer_id,
+                subscription=user_sub.stripe_subscription_id,
+                subscription_details={
+                    "items": [{"id": item_id, "price": new_plan.stripe_price_id}],
+                    "proration_behavior": preview_proration_behavior,
+                },
+            )
+        except stripe.error.StripeError as exc:
+            raise ValueError(
+                f"Could not preview the upgrade cost: "
+                f"{getattr(exc, 'user_message', None) or str(exc)}"
+            ) from exc
+
+        amount_due = preview["total"]
+
+        if amount_due <= 0:
+            # Nothing to charge -- e.g. a discounted higher tier that costs
+            # the same or less than the credit already on the current plan.
+            # Stripe's Checkout API requires a positive line-item amount
+            # anyway, and there's no charge for the customer to explicitly
+            # consent to here. Apply directly.
+            updated_sub = StripeSubscriptionMutationService._apply_upgrade_directly(
+                user_sub, new_plan, item_id
+            )
+            return {"requires_checkout": False, "subscription": updated_sub}
+
+        session = stripe.checkout.Session.create(
+            customer=customer_id,
+            mode="payment",
+            line_items=[
+                {
+                    "price_data": {
+                        "currency": "usd",
+                        "product_data": {
+                            "name": (
+                                f"Upgrade to "
+                                f"{new_plan.display_name or new_plan.name}"
+                            ),
+                        },
+                        "unit_amount": amount_due,
+                    },
+                    "quantity": 1,
+                }
+            ],
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata={
+                "flow": "individual_upgrade_checkout",
+                "user_id": str(user_sub.user_id),
+                "user_subscription_id": str(user_sub.id),
+                "new_plan_id": str(new_plan.id),
+                "stripe_subscription_id": user_sub.stripe_subscription_id,
+                "stripe_item_id": item_id,
+                "proration_amount": str(amount_due),
+            },
+        )
+
+        logger.info(
+            "Created upgrade checkout session for user %s: %s -> %s, "
+            "amount_due=%d cents. Checkout session: %s.",
+            user_sub.user.email,
+            user_sub.plan.name,
+            new_plan.name,
+            amount_due,
+            session.id,
+        )
+        return {
+            "requires_checkout": True,
+            "checkout_url": session.url,
+            "checkout_session_id": session.id,
+        }
+
+    @staticmethod
+    def _apply_upgrade_directly(user_sub, new_plan, item_id):
+        """
+        Used only when create_upgrade_checkout_session's preview found
+        nothing to charge (amount_due <= 0). Applies the plan swap
+        immediately with no invoice — but STILL runs the interval-crossing
+        safety net (see module docstring), since even a "nothing to
+        charge" preview doesn't guarantee Stripe won't independently force
+        a fresh full-price invoice as a side effect of an interval change
+        (the preview and the live apply calculate differently for that
+        specific case — belt and suspenders, cheap to check, never skipped).
+        """
+        is_interval_crossing = (
+            user_sub.plan.interval == BillingInterval.MONTHLY
+            and new_plan.interval == BillingInterval.ANNUAL
+        )
+
+        try:
+            stripe.Subscription.modify(
+                user_sub.stripe_subscription_id,
+                items=[{"id": item_id, "price": new_plan.stripe_price_id}],
+                proration_behavior="none",
+            )
+        except stripe.error.StripeError as exc:
+            raise ValueError(
+                f"Could not apply the upgrade: "
+                f"{getattr(exc, 'user_message', None) or str(exc)}"
+            ) from exc
+
+        if is_interval_crossing:
+            StripeSubscriptionMutationService._void_or_refund_side_effect_invoice(
+                user_sub.stripe_subscription_id
+            )
+
+        updated_sub = SubscriptionService.activate_subscription(user_sub.user, new_plan)
+        updated_sub.stripe_subscription_id = user_sub.stripe_subscription_id
+        updated_sub.stripe_status = StripeSubscriptionStatus.ACTIVE
+        updated_sub.save(
+            update_fields=["stripe_subscription_id", "stripe_status", "updated_at"]
+        )
+        return updated_sub
+
+    @staticmethod
+    def _void_or_refund_side_effect_invoice(stripe_subscription_id):
+        """
+        Compensating control for the interval-crossing double-bill risk
+        described in the module docstring. Call this IMMEDIATELY after any
+        `Subscription.modify()` that changes a subscription's billing
+        interval, once the customer has ALREADY paid the correct amount
+        through a separate Checkout payment. Detects whatever invoice
+        Stripe generated as a forced side effect of the interval reset and
+        neutralizes it:
+          - status == "paid": already collected -- refund it.
+          - status == "open": not yet collected -- void it so it's never
+            collected.
+          - anything else (no invoice at all, or already voided/uncollectible):
+            nothing to do.
+
+        Logs at WARNING level whenever it actually has to act, since this
+        represents a real (if brief) duplicate-charge attempt that's worth
+        being able to audit later, even though it's fully compensated for.
+
+        Failures here are logged at ERROR (not raised) — by this point the
+        customer has already paid via Checkout and the plan has already
+        been swapped; raising here would incorrectly fail an otherwise-
+        successful request over a cleanup step. A failure here needs
+        MANUAL reconciliation, flagged loudly in the log for that reason.
+        """
+        try:
+            stripe_sub = stripe.Subscription.retrieve(stripe_subscription_id)
+            latest_invoice_id = stripe_sub.get("latest_invoice")
+            if not latest_invoice_id:
+                return
+
+            invoice = stripe.Invoice.retrieve(
+                latest_invoice_id, expand=["payment_intent"]
+            )
+            status = invoice.get("status")
+
+            if status == "paid":
+                payment_intent = invoice.get("payment_intent")
+                pi_id = (
+                    payment_intent["id"]
+                    if isinstance(payment_intent, dict)
+                    else payment_intent
+                )
+                if pi_id:
+                    stripe.Refund.create(payment_intent=pi_id)
+                    logger.warning(
+                        "Refunded duplicate interval-change invoice %s "
+                        "(PaymentIntent %s) for subscription %s — customer "
+                        "already paid the equivalent amount via a separate "
+                        "Checkout session.",
+                        invoice["id"],
+                        pi_id,
+                        stripe_subscription_id,
+                    )
+            elif status == "open":
+                stripe.Invoice.void_invoice(invoice["id"])
+                logger.warning(
+                    "Voided duplicate interval-change invoice %s for "
+                    "subscription %s — customer already paid the "
+                    "equivalent amount via a separate Checkout session.",
+                    invoice["id"],
+                    stripe_subscription_id,
+                )
+        except stripe.error.StripeError:
+            logger.exception(
+                "Failed to void/refund a potential duplicate invoice for "
+                "subscription %s after an interval-crossing upgrade "
+                "checkout. MANUAL RECONCILIATION NEEDED — check this "
+                "subscription's invoices in the Stripe dashboard.",
+                stripe_subscription_id,
+            )
+
+    @staticmethod
     def change_license_price(
         license_sub: LicenseSubscription,
         new_plan: SubscriptionPlan,
@@ -1147,8 +1403,92 @@ class StripeOverageService:
     """Explicit, user-confirmed overage block purchases."""
 
     @staticmethod
+    def create_overage_checkout_session(user, success_url, cancel_url, quantity):
+        """
+        Creates a one-time Checkout Session for purchasing ONE overage
+        credit block. Nothing is granted until checkout.session.completed
+        confirms payment (see _handle_overage_checkout_completed) — this
+        replaces the old silent PaymentIntent-confirm flow
+        (purchase_overage_block), which charged the customer's saved card
+        without ever showing them the amount first.
+
+        Validation mirrors purchase_overage_block exactly (active
+        subscription required, plan must support overage, block cap not
+        yet reached) — only HOW payment is collected changes. The cap is
+        re-checked again at grant time under a row lock in the webhook
+        handler, since a session being CREATED here doesn't reserve a slot
+        — only a CONFIRMED payment should count against the cap.
+
+        Args:
+            user (CustomUser): The user purchasing overage credits.
+            success_url (str): Where Checkout redirects on success.
+            cancel_url (str): Where Checkout redirects if the user backs out.
+
+        Returns:
+            stripe.checkout.Session: the created Checkout Session (use
+                `.url` and `.id` for the response).
+
+        Raises:
+            ValueError: For any validation failure or Stripe API error,
+                with a clean user-facing message.
+        """
+        wallet, _ = CreditWallet.objects.get_or_create(user=user)
+
+        user_sub = (
+            user.subscriptions.filter(is_active=True).select_related("plan").first()
+        )
+        if not user_sub:
+            raise ValueError("No active subscription found.")
+
+        plan = user_sub.plan
+        if plan.max_overage_blocks <= 0 or plan.overage_block_price <= 0:
+            raise ValueError("This plan does not support overage credit purchases.")
+
+        if wallet.overage_blocks_used >= plan.max_overage_blocks:
+            raise ValueError("Maximum overage blocks reached for this billing cycle.")
+
+        expires_at = user_sub.next_credit_grant_at or user_sub.billing_cycle_end
+        customer_id = StripeCustomerService.get_or_create_customer(user)
+
+        try:
+            session = stripe.checkout.Session.create(
+                customer=customer_id,
+                mode="payment",
+                line_items=[
+                    {"price": plan.stripe_overage_price_id, "quantity": quantity},
+                ],
+                success_url=success_url,
+                cancel_url=cancel_url,
+                metadata={
+                    "flow": "overage_block_purchase_checkout",
+                    "user_id": str(user.id),
+                    "wallet_id": str(wallet.id),
+                    "plan_id": str(plan.id),
+                    "user_subscription_id": str(user_sub.id),
+                    "quantity": str(quantity),
+                    "overage_expires_at": expires_at.isoformat(),
+                },
+            )
+        except stripe.error.StripeError as exc:
+            raise ValueError(
+                f"Could not start overage checkout: "
+                f"{getattr(exc, 'user_message', None) or str(exc)}"
+            ) from exc
+
+        logger.info(
+            "Created overage checkout session for user %s (plan %s, price "
+            "%d cents). Checkout session: %s.",
+            user.email,
+            plan.name,
+            plan.overage_block_price,
+            session.id,
+        )
+        return session
+
+    @staticmethod
     @transaction.atomic
     def purchase_overage_block(user):
+        # FIXME: DEPRECATED
         """
         Charges the customer's default payment method synchronously via a
         PaymentIntent. The user is present and just clicked "buy" — this is
@@ -1445,28 +1785,58 @@ class IndividualPlanChangeService:
                 current_sub = UserSubscription.objects.select_related("plan").get(
                     id=current_sub.id
                 )
-                if current_sub.stripe_schedule_id:
-                    # A deferred change was previously scheduled but the
-                    # user is now choosing an immediate one instead — the
-                    # schedule must be released before directly modifying
-                    # the subscription's price, or the two can conflict on
-                    # Stripe's side. activate_subscription() (called inside
-                    # change_plan()) deactivates this row and creates a
-                    # fresh one with stripe_schedule_id=None, so no local
-                    # cleanup is needed here beyond the release itself.
-                    StripeSubscriptionScheduleService.release_schedule(current_sub)
-                updated_sub = StripeSubscriptionMutationService.change_plan(
-                    user_sub=current_sub, new_plan=target_plan
+
+                if not success_url or not cancel_url:
+                    raise ValueError(
+                        "success_url and cancel_url are required to complete an upgrade."
+                    )
+
+                result = (
+                    StripeSubscriptionMutationService.create_upgrade_checkout_session(
+                        current_sub, target_plan, success_url, cancel_url
+                    )
                 )
+
+                if result["requires_checkout"]:
+                    return {
+                        "action": "upgrade_checkout",
+                        "message": (
+                            "Redirecting to secure checkout to confirm your upgrade "
+                            "and the exact amount you'll be charged"
+                        ),
+                        "checkout_url": result["checkout_url"],
+                        "checkout_session_id": result["checkout_session_id"],
+                    }
                 return {
                     "action": "upgraded",
                     "message": (
-                        f"You've been upgraded to "
-                        f"{target_plan.display_name or target_plan.name} and "
-                        f"charged the prorated difference immediately."
+                        f"You've been upgraded to {target_plan.display_name or target_plan.name} "
+                        f"No additional charge was needed right now."
                     ),
-                    "subscription": updated_sub,
+                    "subscription": result["subscription"],
                 }
+                # if current_sub.stripe_schedule_id:
+                #     # A deferred change was previously scheduled but the
+                #     # user is now choosing an immediate one instead — the
+                #     # schedule must be released before directly modifying
+                #     # the subscription's price, or the two can conflict on
+                #     # Stripe's side. activate_subscription() (called inside
+                #     # change_plan()) deactivates this row and creates a
+                #     # fresh one with stripe_schedule_id=None, so no local
+                #     # cleanup is needed here beyond the release itself.
+                #     StripeSubscriptionScheduleService.release_schedule(current_sub)
+                # updated_sub = StripeSubscriptionMutationService.change_plan(
+                #     user_sub=current_sub, new_plan=target_plan
+                # )
+                # return {
+                #     "action": "upgraded",
+                #     "message": (
+                #         f"You've been upgraded to "
+                #         f"{target_plan.display_name or target_plan.name} and "
+                #         f"charged the prorated difference immediately."
+                #     ),
+                #     "subscription": updated_sub,
+                # }
 
             raise AssertionError(f"Unreachable branch: {branch!r}")  # pragma: no cover
         finally:
@@ -1663,6 +2033,12 @@ class StripeWebhookHandler:
 
         if flow == "individual_checkout":
             StripeWebhookHandler._handle_individual_checkout(session, metadata)
+        elif flow == "individual_upgrade_checkout":
+            StripeWebhookHandler._handle_individual_upgrade_checkout_completed(
+                session, metadata
+            )
+        elif flow == "overage_block_purchase_checkout":
+            StripeWebhookHandler._handle_overage_checkout_completed(session, metadata)
         elif flow == "individual_subscribe":
             StripeWebhookHandler._handle_individual_subscribe(session, metadata)
         elif flow == "individual_trial":
@@ -1735,6 +2111,142 @@ class StripeWebhookHandler:
             plan.name,
             user.email,
             session["subscription"],
+        )
+
+    @staticmethod
+    def _handle_overage_checkout_completed(session, metadata):
+        """
+        Handles flow='overage_block_purchase_checkout' — grants the
+        overage credit bucket ONLY after checkout.session.completed
+        confirms payment.
+
+        Re-validates the block cap under a row lock at GRANT time, not
+        just at session-creation time in create_overage_checkout_session —
+        a session being created doesn't reserve a slot against the cap;
+        only a confirmed payment should count. This protects against a
+        user opening more checkout sessions than their remaining cap
+        allows and completing more than one before the cap would
+        otherwise be enforced.
+
+        Deliberately not decorated with its own @transaction.atomic — like
+        every other flow handler dispatched from handle_checkout_completed,
+        it runs inside that method's outer atomic block.
+        """
+        wallet = CreditWallet.objects.select_for_update().get(id=metadata["wallet_id"])
+        plan = SubscriptionPlan.objects.get(id=metadata["plan_id"])
+        expires_at = parse_datetime(metadata["overage_expires_at"])
+        quantity = int(metadata["quantity"])
+
+        if wallet.overage_blocks_used >= plan.max_overage_blocks:
+            logger.error(
+                "Overage checkout session %s completed for wallet %s but "
+                "the block cap (%d) was already reached by the time "
+                "payment was confirmed — credits NOT granted. Needs "
+                "manual reconciliation (refund the payment via the Stripe "
+                "dashboard).",
+                session["id"],
+                wallet.id,
+                plan.max_overage_blocks,
+            )
+            return
+
+        SubscriptionService.grant_overage_bucket(
+            wallet=wallet,
+            plan=plan,
+            expires_at=expires_at,
+            quantity=quantity,
+            stripe_payment_intent_id=session.get("payment_intent"),
+        )
+
+        logger.info(
+            "Overage checkout completed for wallet %s: granted 1 block of " "plan %s.",
+            wallet.id,
+            plan.name,
+        )
+
+    @staticmethod
+    def _handle_individual_upgrade_checkout_completed(session, metadata):
+        """
+        Handles flow='individual_upgrade_checkout' — applies an immediate
+        plan upgrade ONLY after the customer has explicitly seen and paid
+        the exact prorated amount via the one-time Checkout Session
+        created by create_upgrade_checkout_session.
+
+        Applies the actual price change with proration_behavior="none" —
+        deliberately NOT "always_invoice" — since the equivalent amount
+        was already collected via the separate Checkout payment; letting
+        Stripe ALSO generate its own proration invoice here would
+        double-charge the customer for the non-interval-crossing case.
+
+        For the interval-crossing case (MONTHLY -> ANNUAL), the forced
+        side-effect invoice Stripe generates regardless of
+        proration_behavior is detected and voided/refunded — see
+        StripeSubscriptionMutationService._void_or_refund_side_effect_invoice
+        and the module-level docstring in the companion patch for the full
+        explanation.
+        """
+        user = CustomUser.objects.get(id=metadata["user_id"])
+        new_plan = SubscriptionPlan.objects.get(id=metadata["new_plan_id"])
+        old_user_sub = UserSubscription.objects.select_related("plan").get(
+            id=metadata["user_subscription_id"]
+        )
+        stripe_subscription_id = metadata["stripe_subscription_id"]
+        item_id = metadata["stripe_item_id"]
+
+        # Staleness guard
+        current_active_sub = (
+            UserSubscription.objects.filter(user=user, is_active=True)
+            .select_related("plan")
+            .first()
+        )
+
+        if not current_active_sub or current_active_sub.id != old_user_sub.id:
+            logger.warning(
+                "Upgrade checkout session %s completed for user %s, but "
+                "their active subscription has changed since this "
+                "checkout was created (expected subscription %s, "
+                "currently %s) — skipping to avoid overwriting a more "
+                "recent change. The payment for this session already "
+                "succeeded on Stripe and needs a manual refund if it "
+                "shouldn't have gone through.",
+                session["id"],
+                user.email,
+                old_user_sub.id,
+                current_active_sub.id if current_active_sub else "none",
+            )
+            return
+
+        is_interval_crossing = (
+            old_user_sub.plan.interval == BillingInterval.MONTHLY
+            and new_plan.interval == BillingInterval.ANNUAL
+        )
+
+        stripe.Subscription.modify(
+            stripe_subscription_id,
+            items=[{"id": item_id, "price": new_plan.stripe_price_id}],
+            proration_behavior="none",
+        )
+
+        if is_interval_crossing:
+            StripeSubscriptionMutationService._void_or_refund_side_effect_invoice(
+                stripe_subscription_id
+            )
+
+        updated_sub = SubscriptionService.activate_subscription(user, new_plan)
+        updated_sub.stripe_subscription_id = stripe_subscription_id
+        updated_sub.stripe_status = StripeSubscriptionStatus.ACTIVE
+        updated_sub.save(
+            update_fields=["stripe_subscription_id", "stripe_status", "updated_at"]
+        )
+
+        logger.info(
+            "Upgrade checkout completed for user %s: %s -> %s (subscription "
+            "%s, amount_paid=%s cents).",
+            user.email,
+            old_user_sub.plan.name,
+            new_plan.name,
+            stripe_subscription_id,
+            metadata.get("proration_amount"),
         )
 
     @staticmethod

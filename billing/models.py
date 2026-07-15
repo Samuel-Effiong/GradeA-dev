@@ -282,6 +282,9 @@ class SubscriptionPlan(models.Model):
         blank=True,
         help_text="Stripe Price ID (price_xxx). Sent to frontend as `price_id`.",
     )
+    stripe_overage_price_id = models.CharField(
+        max_length=100, null=True, blank=True, help_text="Stripe Price ID for overage"
+    )
 
     # --- Pricing ---
     price_cents = models.DecimalField(

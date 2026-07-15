@@ -67,6 +67,7 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
             "product_id",
             "price_id",
             "stripe_price_id",
+            "stripe_overage_price_id",
             "price_cents",
             "monthly_credits",
             "carry_over_percent",
@@ -87,6 +88,7 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
             "overage_block_size": {"write_only": True},
             "stripe_price_id": {"write_only": True},
             "product_id": {"write_only": True},
+            "stripe_overage_price_id": {"write_only": True},
         }
 
     def get_features(self, obj) -> list:
@@ -703,6 +705,55 @@ class UsageSummarySerializer(serializers.Serializer):
     total_consumed = serializers.IntegerField()
     consumed_by_feature = serializers.DictField()
     consumed_by_bucket_type = serializers.DictField()
+
+
+class OverageCheckoutSessionSerializer(serializers.Serializer):
+    """
+    Response shape for the overage-purchase endpoint, once it's switched
+    over to StripeOverageService.create_overage_checkout_session (see file
+    22's migration note — the actual view isn't in this codebase snapshot,
+    so this defines the contract for whoever updates it).
+
+    Mirrors the "checkout" action shape used elsewhere in this feature set
+    (individual plan selection, upgrade checkout) for consistency: the
+    frontend always redirects to checkout_url, and the credit block is
+    granted only once payment is confirmed via webhook — never in the
+    response to this call.
+    """
+
+    checkout_url = serializers.URLField(
+        help_text="Redirect the browser here to complete the overage purchase."
+    )
+    checkout_session_id = serializers.CharField()
+    message = serializers.CharField(
+        default=("Redirecting to secure checkout to complete your overage " "purchase.")
+    )
+
+
+class OverageCheckoutRequestSerializer(serializers.Serializer):
+    """
+    Request payload for initiating an overage credit purchase.
+
+    The frontend supplies the URLs Stripe should redirect the customer to
+    after Checkout completes or is cancelled, along with the number of
+    overage credit blocks to purchase. The authenticated user is inferred
+    from the request.
+    """
+
+    success_url = serializers.URLField(
+        help_text="Frontend URL Stripe redirects to after a successful payment."
+    )
+
+    cancel_url = serializers.URLField(
+        help_text="Frontend URL Stripe redirects to if the customer cancels Checkout."
+    )
+
+    quantity = serializers.IntegerField(
+        min_value=1,
+        default=1,
+        required=False,
+        help_text="Number of overage credit blocks to purchase.",
+    )
 
 
 class OverageStatusSerializer(serializers.ModelSerializer):
@@ -1619,7 +1670,16 @@ class SelectIndividualPlanSerializer(serializers.Serializer):
 
 class PlanChangeResultSerializer(serializers.Serializer):
     action = serializers.ChoiceField(
-        choices=["checkout", "upgraded", "downgrade_scheduled", "downgrade_cancelled"]
+        choices=[
+            "checkout",
+            "upgraded",
+            "upgrade_checkout",
+            "downgrade_scheduled",
+            "upgrade_scheduled",
+            "lateral_change_scheduled",
+            "scheduled_change_scheduled",
+            # "downgrade_cancelled"
+        ]
     )
     message = serializers.CharField(
         help_text="Human-readable summary of what happened, safe to show directly to the user."

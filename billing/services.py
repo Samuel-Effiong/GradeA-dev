@@ -958,7 +958,9 @@ class SubscriptionService:
 
     @staticmethod
     @transaction.atomic
-    def grant_overage_bucket(wallet, plan, expires_at, stripe_payment_intent_id=None):
+    def grant_overage_bucket(
+        wallet, plan, expires_at, quantity=1, stripe_payment_intent_id=None
+    ):
         """Shared by the legacy auto-purchase path and the new Stripe-confirmed
         purchase paths (StripeOverageService + the payment_intent.uscceeded webhook fallback)
         so the bucket/ledger logic only lives in one place.
@@ -971,13 +973,13 @@ class SubscriptionService:
         new_bucket = CreditBucket.objects.create(
             wallet=wallet,
             bucket_type=CreditBucketType.OVERAGE,
-            total_credits=plan.overage_block_size,
+            total_credits=plan.overage_block_size * quantity,
             used_credits=0,
             expires_at=expires_at,
         )
 
         CreditWallet.objects.filter(pk=wallet.pk).update(
-            overage_blocks_used=F("overage_blocks_used") + 1
+            overage_blocks_used=F("overage_blocks_used") + quantity
         )
 
         # Refresh the instance to get the updated value for logging
@@ -991,6 +993,7 @@ class SubscriptionService:
             reference=f"Overage Block #{wallet.overage_blocks_used} purchased",
             metadata={
                 "price_charged": str(plan.overage_block_price),
+                "quantity": str(quantity),
                 "stripe_payment_intent_id": stripe_payment_intent_id,
             },
         )
