@@ -10,7 +10,6 @@ from django.core.validators import validate_email
 # from django.core.mail import send_mail
 from django.db import transaction
 from django.db.models import (
-    Coalesce,
     Count,
     IntegerField,
     OuterRef,
@@ -20,6 +19,7 @@ from django.db.models import (
     Sum,
     Value,
 )
+from django.db.models.functions import Coalesce
 from django.template.loader import render_to_string
 from django.utils import timezone
 
