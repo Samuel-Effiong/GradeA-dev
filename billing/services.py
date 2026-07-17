@@ -490,7 +490,7 @@ class SubscriptionService:
         current_sub = (
             UserSubscription.objects.select_for_update()
             .filter(user=user, is_active=True)
-            .select_related("plan", "pending_plan")
+            .select_related("plan")
             .first()
         )
 
