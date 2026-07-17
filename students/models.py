@@ -116,6 +116,8 @@ class StudentSubmission(models.Model):
 
     attempt_count = models.PositiveSmallIntegerField(
         default=0,
+        null=True,
+        blank=True,
         help_text="Number of times the student has submitted this assignment.",
     )
 

@@ -116,6 +116,8 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
     Serializer for the UserSubscription model.
     """
 
+    plan = SubscriptionPlanSerializer(read_only=True)
+
     category = serializers.CharField(source="plan.category", read_only=True)
     tier = serializers.CharField(source="plan.tier", read_only=True)
     interval = serializers.CharField(source="plan.interval", read_only=True)

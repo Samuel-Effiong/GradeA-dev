@@ -93,9 +93,7 @@ from .stripe_service import (  # StripeSubscriptionMutationService,; StripeCheck
     IndividualPlanChangeService,
     StripeOverageService,
 )
-from .stripe_view_schemas import (  # START_TRIAL_SCHEMA,;; CONVERT_TRIAL_SCHEMA,;; CHECKOUT_SCHEMA,;; CONVERT_TRIAL_TO_PAID_SCHEMA,;; DOWNGRADE_SCHEMA,;; UPGRADE_SCHEMA,; PURCHASE_OVERAGE_SCHEMA,
-    CANCEL_SCHEMA,
-)
+from .stripe_view_schemas import CANCEL_SCHEMA
 
 logger = logging.getLogger(__name__)
 
@@ -935,11 +933,14 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        if result["status"] == "requires_action":
-            return Response(result, status=status.HTTP_200_OK)
+        response_data = {
+            "checkout_url": result.url,
+            "checkout_session_id": result.id,
+            "message": "Redirecting to secure checkout to complete your overage purchase.",
+        }
         return Response(
-            CreditBucketSerializer(result["bucket"]).data,
-            status=status.HTTP_201_CREATED,
+            OverageCheckoutSessionSerializer(response_data).data,
+            status=status.HTTP_200_OK,
         )
 
     # @CONVERT_TRIAL_SCHEMA

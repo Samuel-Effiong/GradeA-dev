@@ -1289,6 +1289,7 @@ class StripeSubscriptionScheduleService:
                                 ],
                                 "start_date": billing_cycle_end_ts,
                                 "proration_behavior": "none",
+                                "billing_cycle_anchor": "phase_start",
                             },
                         ],
                     )
@@ -1321,6 +1322,7 @@ class StripeSubscriptionScheduleService:
                         "items": [{"price": new_plan.stripe_price_id, "quantity": 1}],
                         "start_date": billing_cycle_end_ts,
                         "proration_behavior": "none",
+                        "billing_cycle_anchor": "phase_start",
                     },
                 ],
             )
@@ -2026,6 +2028,31 @@ class StripeWebhookHandler:
     # ------------------------------------------------------------------
 
     @staticmethod
+    def _extract_invoice_subscription_id(invoice):
+        """
+        Returns the Stripe subscription ID an invoice belongs to, checking
+        BOTH possible locations so this works regardless of which Stripe
+        API version this account is on:
+
+          - `invoice.subscription` — the field used in "classic" API
+            versions (pre-2025-03-31 "basil").
+          - `invoice.parent.subscription_details.subscription` — where
+            this moved to as of API version 2025-03-31 and later, as part
+            of Stripe's broader "parent" restructuring for invoicing
+            objects.
+
+        Returns None if neither location has a value (e.g. a genuinely
+        standalone, non-subscription invoice).
+        """
+        subscription_id = invoice.get("subscription")
+        if subscription_id:
+            return subscription_id
+
+        parent = invoice.get("parent") or {}
+        subscription_details = parent.get("subscription_details") or {}
+        return subscription_details.get("subscription")
+
+    @staticmethod
     @transaction.atomic
     def handle_checkout_completed(session):
         metadata = session.get("metadata", {}) or {}
@@ -2159,8 +2186,9 @@ class StripeWebhookHandler:
         )
 
         logger.info(
-            "Overage checkout completed for wallet %s: granted 1 block of " "plan %s.",
+            "Overage checkout completed for wallet %s: granted %s block(s) of plan %s.",
             wallet.id,
+            quantity,
             plan.name,
         )
 
@@ -2407,7 +2435,19 @@ class StripeWebhookHandler:
     @staticmethod
     @transaction.atomic
     def handle_invoice_payment_succeeded(invoice):
-        stripe_subscription_id = invoice.get("subscription")
+        # stripe_subscription_id = invoice.get("subscription")
+
+        # parent = invoice.get("parent") or {}
+
+        # stripe_subscription_id = (
+        #     invoice.get("subscription")
+        #     or parent.get("subscription_details", {}).get("subscription")
+        # )
+
+        stripe_subscription_id = StripeWebhookHandler._extract_invoice_subscription_id(
+            invoice
+        )
+
         if not stripe_subscription_id:
             return
 
@@ -2535,7 +2575,11 @@ class StripeWebhookHandler:
     @staticmethod
     @transaction.atomic
     def handle_invoice_payment_failed(invoice):
-        stripe_subscription_id = invoice.get("subscription")
+        # stripe_subscription_id = invoice.get("subscription")
+        stripe_subscription_id = StripeWebhookHandler._extract_invoice_subscription_id(
+            invoice
+        )
+
         if not stripe_subscription_id:
             return
 
