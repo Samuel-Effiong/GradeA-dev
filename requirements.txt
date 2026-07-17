@@ -80,6 +80,7 @@ fonttools==4.63.0
 fpdf==1.7.2
 fsspec==2025.9.0
 future==1.0.0
+gevent==26.5.0
 google-auth==2.53.0
 greenlet==3.3.1
 gunicorn==20.0.4
@@ -212,4 +213,6 @@ virtualenv==20.34.0
 wcwidth==0.2.13
 weasyprint==69.0
 webencodings==0.5.1
+zope.event==6.2
+zope.interface==8.5
 zopfli==0.4.3
