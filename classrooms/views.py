@@ -9,7 +9,17 @@ from django.core.validators import validate_email
 
 # from django.core.mail import send_mail
 from django.db import transaction
-from django.db.models import Count, Prefetch, Q
+from django.db.models import (
+    Coalesce,
+    Count,
+    IntegerField,
+    OuterRef,
+    Prefetch,
+    Q,
+    Subquery,
+    Sum,
+    Value,
+)
 from django.template.loader import render_to_string
 from django.utils import timezone
 
@@ -38,9 +48,12 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
+from ai_processor.models import ChatSession
+
 # from ai_processor.services import ai_processor
 from assignments.serializers import TaskInfoSerializer
 from AutoGrader.tasks import send_email_task
+from billing.models import CreditUsageLog
 from students.models import StudentSubmission
 from students.serializers import StudentListSerializer
 from users.mixins import UserCacheMixin
@@ -237,6 +250,117 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         response_serializer = SchoolWithAdminResponseSerializer(response_data)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="admin-summary",
+        permission_classes=[IsSuperAdmin],
+    )
+    def admin_summary(self, request, *args, **kwargs):
+        """
+        Returns a paginated list of school administrators with aggregated school stats.
+
+        Query parameters:
+        - search: (string) filter by admin name, email, or school name (case‑insensitive partial match)
+        - ordering: (string) field to order by (prefix with '-' for descending). Defaults to 'name'.
+                    Allowed fields: name, email, organization, teachers, students, tokens_used, sessions.
+        """
+
+        # Base queryset: all school admins, with school prefetched
+        admins = CustomUser.objects.filter(user_type="SCHOOL_ADMIN").select_related(
+            "school"
+        )
+
+        # --- Subqueries for school‑level aggregates ---
+        # 1. Teachers count
+        teachers_sub = Subquery(
+            CustomUser.objects.filter(school=OuterRef("school"), user_type="TEACHER")
+            .values("school")
+            .annotate(count=Count("id"))
+            .values("count"),
+            output_field=IntegerField(),
+        )
+
+        # 2. Students count
+        students_sub = Subquery(
+            CustomUser.objects.filter(
+                school=OuterRef("enrollments__course__teacher__school"),
+                user_type="STUDENT",
+            )
+            .values("school")
+            .annotate(count=Count("id"))
+            .values("count"),
+            output_field=IntegerField(),
+        )
+
+        # 3. Tokens used (sum of raw credits consumed by teachers in the school)
+        tokens_sub = Subquery(
+            CreditUsageLog.objects.filter(
+                wallet__user__school=OuterRef("school"),
+                wallet__user__user_type="TEACHER",
+            )
+            .values("wallet__user__school")
+            .annotate(total=Sum("amount"))
+            .values("total"),
+            output_field=IntegerField(),
+        )
+        # 4. Sessions (count of ChatSession records created by teachers in the school)
+        sessions_sub = Subquery(
+            ChatSession.objects.filter(
+                user__school=OuterRef("school"), user__user_type="TEACHER"
+            )
+            .values("user__school")
+            .annotate(count=Count("id"))
+            .values("count"),
+            output_field=IntegerField(),
+        )
+
+        # Annotate each admin with the school aggregates
+        admins = admins.annotate(
+            teachers=Coalesce(teachers_sub, Value(0)),
+            students=Coalesce(students_sub, Value(0)),
+            tokens_used=Coalesce(tokens_sub, Value(0)),
+            sessions=Coalesce(sessions_sub, Value(0)),
+        )
+
+        # --- Search ---
+        search = request.query_params.get("search", "").strip()
+        if search:
+            admins = admins.filter(
+                Q(first_name__icontains=search)
+                | Q(last_name__icontains=search)
+                | Q(email__icontains=search)
+                | Q(school__name__icontains=search)
+            )
+
+        # --- Ordering ---
+        ordering = request.query_params.get("ordering", "name")
+        # Map frontend field names to DB column names / annotated names
+        order_map = {
+            "name": "first_name",
+            "email": "email",
+            "organization": "school__name",
+            "teachers": "teachers",
+            "students": "students",
+            "tokens_used": "tokens_used",
+            "sessions": "sessions",
+        }
+
+        # Handle descending order (prefix '-')
+        if ordering.startswith("-"):
+            order_field = order_map.get(ordering[1:], "first_name")
+            ordering = f"-{order_field}"
+        else:
+            order_field = order_map.get(ordering, "first_name")
+            ordering = order_field
+        # If ordering by name, use first_name, last_name to be consistent
+        if ordering == "first_name":
+            admins = admins.order_by("first_name", "last_name")
+        elif ordering == "-first_name":
+            admins = admins.order_by("-first_name", "-last_name")
+        else:
+            admins = admins.order_by(ordering)
 
 
 @extend_schema_view(

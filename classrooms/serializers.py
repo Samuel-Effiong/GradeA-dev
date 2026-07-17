@@ -602,6 +602,17 @@ class SchoolWithAdminResponseSerializer(serializers.Serializer):
     )
 
 
+class SchoolAdminSummarySerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    name = serializers.CharField()
+    email = serializers.EmailField()
+    organization = serializers.CharField()
+    teachers = serializers.IntegerField()
+    students = serializers.IntegerField()
+    tokens_used = serializers.IntegerField()
+    sessions = serializers.IntegerField()
+
+
 class CourseCategorySerializer(serializers.ModelSerializer):
     """Serializer for CourseCategory"""
 
