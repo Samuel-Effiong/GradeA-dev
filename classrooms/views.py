@@ -1,6 +1,7 @@
 import csv
 import io
 
+from dateutil.relativedelta import relativedelta
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
@@ -19,7 +20,7 @@ from django.db.models import (
     Sum,
     Value,
 )
-from django.db.models.functions import Coalesce
+from django.db.models.functions import Coalesce, TruncMonth
 from django.template.loader import render_to_string
 from django.utils import timezone
 
@@ -49,6 +50,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 # from ai_processor.services import ai_processor
+from assignments.models import Assignment
 from assignments.serializers import TaskInfoSerializer
 from AutoGrader.tasks import send_email_task
 from billing.models import CreditUsageLog
@@ -77,6 +79,7 @@ from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
     CourseSerializer,
     DirectAddStudentSerializer,
     ExpiredTokenSerializer,
+    MonthlyTokenUsageSerializer,
     SchoolAdminSummarySerializer,
     SchoolSerializer,
     SchoolWithAdminResponseSerializer,
@@ -84,6 +87,7 @@ from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
     SessionSerializer,
     StudentCourseDetailSerializer,
     StudentCourseSerializer,
+    TeacherSummarySerializer,
     TopicSerializer,
 )
 from .tasks import student_summary_async
@@ -404,6 +408,261 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
 
         return paginator.get_paginated_response(data)
+
+    @extend_schema(
+        tags=["School"],
+        summary="Teacher summary",
+        description="""
+            Returns a paginated list of teachers with aggregate stats
+            (assignments, students, tokens used). Optionally filter by school
+            and academic session.
+        """,
+        parameters=[
+            OpenApiParameter(
+                name="school_id",
+                type=str,
+                location="query",
+                description="Filter by school UUID.",
+            ),
+            OpenApiParameter(
+                name="session_id",
+                type=str,
+                location="query",
+                description="Filter by academic session UUID (limits assignments and students to that session).",
+            ),
+            OpenApiParameter(
+                name="search",
+                type=str,
+                location="query",
+                description="Search by teacher name or email.",
+            ),
+            OpenApiParameter(
+                name="ordering",
+                type=str,
+                location="query",
+                description=(
+                    'Order by field (prefix with "-" for descending). '
+                    "Allowed: name, email, organization, assignments, "
+                    "students, tokens_used."
+                ),
+            ),
+        ],
+        responses={200: TeacherSummarySerializer(many=True)},
+    )
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="teacher-summary",
+        permission_classes=[IsAuthenticated, IsSuperAdmin],
+    )
+    def teacher_summary(self, request):
+        # Base queryset: all teachers, prefetch school
+        teachers = CustomUser.objects.filter(user_type="TEACHER").select_related(
+            "school"
+        )
+
+        # Optional filters
+        school_id = request.query_params.get("school_id")
+        if school_id:
+            teachers = teachers.filter(school_id=school_id)
+
+        session_id = request.query_params.get("session_id")
+        session_filter = Q()
+        if session_id:
+            session_filter = Q(course__session_id=session_id)
+
+        # --- Subqueries for teacher-level aggregates ---
+        # 1. Assignments count (filtered by session if provided)
+        assignments_count_sub = Subquery(
+            Assignment.objects.filter(course__teacher=OuterRef("id"))
+            .filter(session_filter)
+            .values("course__teacher")
+            .annotate(count=Count("id"))
+            .values("count"),
+            output_field=IntegerField(),
+        )
+        # 2. Students count (distinct students enrolled in courses taught
+        # by this teacher, filtered by session if provided)
+        students_count_sub = Subquery(
+            StudentCourse.objects.filter(course__teacher=OuterRef("id"))
+            .filter(session_filter)
+            .values("course__teacher")
+            .annotate(distinct_students=Count("student", distinct=True))
+            .values("distinct_students"),
+            output_field=IntegerField(),
+        )
+        # 3. Tokens used (sum of CreditUsageLog amounts for this teacher)
+        total_tokens_sub = Subquery(
+            CreditUsageLog.objects.filter(wallet__user=OuterRef("id"))
+            .values("wallet__user")
+            .annotate(total=Sum("amount"))
+            .values("total"),
+            output_field=IntegerField(),
+        )
+
+        # Annotate teachers
+        teachers = teachers.annotate(
+            assignment_count=Coalesce(assignments_count_sub, Value(0)),
+            student_count=Coalesce(students_count_sub, Value(0)),
+            total_tokens=Coalesce(total_tokens_sub, Value(0)),
+        )
+
+        # --- Search ---
+        search = request.query_params.get("search", "").strip()
+        if search:
+            teachers = teachers.filter(
+                Q(first_name__icontains=search)
+                | Q(last_name__icontains=search)
+                | Q(email__icontains=search)
+            )
+
+        # --- Ordering ---
+        ordering = request.query_params.get("ordering", "name")
+        order_map = {
+            "name": "first_name",  # order by first_name, then last_name
+            "email": "email",
+            "school": "school__name",
+            "assignments": "assignment_count",
+            "students": "students_count",
+            "tokens_used": "total_tokens",
+        }
+        if ordering.startswith("-"):
+            order_field = order_map.get(ordering[1:], "first_name")
+            descending = True
+        else:
+            order_field = order_map.get(ordering, "first_name")
+            descending = False
+
+        if order_field == "first_name":
+            teachers = (
+                teachers.order_by("first_name", "last_name")
+                if not descending
+                else teachers.order_by("-first_name", "-last_name")
+            )
+        else:
+            teachers = teachers.order_by(
+                order_field if not descending else f"-{order_field}"
+            )
+
+        # --- Pagination ---
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(teachers, request, view=self)
+
+        # Build response
+        data = []
+        for teacher in page:
+            data.append(
+                {
+                    "id": str(teacher.id),
+                    "name": teacher.get_full_name(),
+                    "email": teacher.email,
+                    "school": teacher.school.name if teacher.school else "",
+                    "assignments": teacher.assignment_count,
+                    "students": teacher.student_count,
+                    "tokens_used": teacher.total_tokens,
+                }
+            )
+
+        return paginator.get_paginated_response(data)
+
+    @extend_schema(
+        tags=["School"],
+        summary="Monthly token usage",
+        description="Returns monthly token consumption for a school over the past 12 months (or custom range).",
+        parameters=[
+            OpenApiParameter(
+                name="school_id",
+                type=str,
+                location="query",
+                description="School UUID. If not provided, uses the authenticated user's school (if school admin).",
+            ),
+            OpenApiParameter(
+                name="months",
+                type=int,
+                location="query",
+                description="Number of past months to include (default 12).",
+            ),
+        ],
+        responses={200: MonthlyTokenUsageSerializer(many=True)},
+    )
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="monthly-token-usage",
+        permission_classes=[IsAuthenticated],  # allow school admins as well
+    )
+    def monthly_token_usage(self, request):
+        # Determine school
+        school_id = request.query_params.get("school_id")
+        if school_id:
+            # Superadmin can specify any school
+            if not (
+                request.user.is_superuser or request.user.user_type == "SUPER_ADMIN"
+            ):
+                return Response(
+                    {"detail": "You do not have permission to view this school."},
+                    status=403,
+                )
+        else:
+            # For school admins, use their own school
+            if request.user.user_type == "SCHOOL_ADMIN":
+                school_id = request.user.school_id
+            else:
+                return Response(
+                    {"detail": "school_id is required for superadmins."}, status=400
+                )
+
+        if not school_id:
+            return Response({"detail": "School not found for this user."}, status=404)
+
+        # Number of months to look back
+        months = int(request.query_params.get("months", 12))
+        if months < 1 or months > 36:
+            months = 12
+
+        # Get teachers in this school
+        teacher_ids = CustomUser.objects.filter(
+            school_id=school_id, user_type="TEACHER"
+        ).values_list("id", flat=True)
+
+        if not teacher_ids:
+            return Response(
+                {"detail": "No teachers found for this school."}, status=404
+            )
+
+        # Date range: from `months` months ago to now
+        end_date = timezone.now()
+        start_date = end_date - relativedelta(months=months)
+
+        # Aggregate monthly usage
+        monthly_usage = (
+            CreditUsageLog.objects.filter(
+                wallet__user_id__in=teacher_ids, created_at__gte=start_date
+            )
+            .annotate(month=TruncMonth("created_at"))
+            .values("month")
+            .annotate(total=Sum("amount"))
+            .order_by("month")
+        )
+
+        # Build response, filling missing months with 0
+        result = []
+        current = start_date.replace(day=1)
+        usage_dict = {item["month"]: item["total"] for item in monthly_usage}
+
+        for i in range(months):
+            month_str = current.strftime("%b %Y")  # e.g. "Apr 2025"
+            tokens = usage_dict.get(current, 0)
+            result.append(
+                {
+                    "month": month_str,
+                    "tokens": tokens,
+                }
+            )
+            current += relativedelta(months=1)
+
+        serializer = MonthlyTokenUsageSerializer(result, many=True)
+        return Response(serializer.data)
 
 
 @extend_schema_view(

@@ -613,6 +613,21 @@ class SchoolAdminSummarySerializer(serializers.Serializer):
     sessions = serializers.IntegerField()
 
 
+class TeacherSummarySerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    name = serializers.CharField()
+    email = serializers.EmailField()
+    school = serializers.CharField()
+    students = serializers.IntegerField()
+    assignments = serializers.IntegerField()
+    tokens_used = serializers.IntegerField()
+
+
+class MonthlyTokenUsageSerializer(serializers.Serializer):
+    month = serializers.CharField()
+    tokens = serializers.IntegerField()
+
+
 class CourseCategorySerializer(serializers.ModelSerializer):
     """Serializer for CourseCategory"""
 
