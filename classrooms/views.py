@@ -358,7 +358,7 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         order_map = {
             "name": "first_name",
             "email": "email",
-            "organization": "school__name",
+            "school": "school__name",
             "teachers": "teachers",
             "students": "students",
             "tokens_used": "tokens_used",

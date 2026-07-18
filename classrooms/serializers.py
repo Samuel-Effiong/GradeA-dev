@@ -606,7 +606,7 @@ class SchoolAdminSummarySerializer(serializers.Serializer):
     id = serializers.UUIDField()
     name = serializers.CharField()
     email = serializers.EmailField()
-    organization = serializers.CharField()
+    school = serializers.CharField()
     teachers = serializers.IntegerField()
     students = serializers.IntegerField()
     tokens_used = serializers.IntegerField()
