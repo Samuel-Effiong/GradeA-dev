@@ -48,8 +48,6 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from ai_processor.models import ChatSession
-
 # from ai_processor.services import ai_processor
 from assignments.serializers import TaskInfoSerializer
 from AutoGrader.tasks import send_email_task
@@ -79,6 +77,7 @@ from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
     CourseSerializer,
     DirectAddStudentSerializer,
     ExpiredTokenSerializer,
+    SchoolAdminSummarySerializer,
     SchoolSerializer,
     SchoolWithAdminResponseSerializer,
     SchoolWithAdminSerializer,
@@ -251,6 +250,27 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         response_serializer = SchoolWithAdminResponseSerializer(response_data)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
+    @extend_schema(
+        tags=["School"],
+        summary="School admin summary",
+        description="Returns a paginated list of school administrators with aggregate stats for their schools.",
+        parameters=[
+            OpenApiParameter(
+                name="search",
+                type=str,
+                location="query",
+                description="Search by admin name, email, or school name (case‑insensitive partial match).",
+            ),
+            OpenApiParameter(
+                name="ordering",
+                type=str,
+                location="query",
+                description='Order by field (prefix with "-" for descending). Allowed: name, email, organization, '
+                "teachers, students, tokens_used, sessions.",  # noqa: E501
+            ),
+        ],
+        responses={200: SchoolAdminSummarySerializer(many=True)},
+    )
     @action(
         detail=False,
         methods=["get"],
@@ -307,10 +327,8 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         )
         # 4. Sessions (count of ChatSession records created by teachers in the school)
         sessions_sub = Subquery(
-            ChatSession.objects.filter(
-                user__school=OuterRef("school"), user__user_type="TEACHER"
-            )
-            .values("user__school")
+            Session.objects.filter(teacher__school=OuterRef("school"))
+            .values("teacher__school")
             .annotate(count=Count("id"))
             .values("count"),
             output_field=IntegerField(),
@@ -321,7 +339,7 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
             teachers=Coalesce(teachers_sub, Value(0)),
             students=Coalesce(students_sub, Value(0)),
             tokens_used=Coalesce(tokens_sub, Value(0)),
-            sessions=Coalesce(sessions_sub, Value(0)),
+            academic_sessions=Coalesce(sessions_sub, Value(0)),
         )
 
         # --- Search ---
@@ -344,23 +362,48 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
             "teachers": "teachers",
             "students": "students",
             "tokens_used": "tokens_used",
-            "sessions": "sessions",
+            "sessions": "academic_sessions",
         }
 
         # Handle descending order (prefix '-')
         if ordering.startswith("-"):
             order_field = order_map.get(ordering[1:], "first_name")
-            ordering = f"-{order_field}"
+            descending = True
         else:
             order_field = order_map.get(ordering, "first_name")
-            ordering = order_field
-        # If ordering by name, use first_name, last_name to be consistent
-        if ordering == "first_name":
-            admins = admins.order_by("first_name", "last_name")
-        elif ordering == "-first_name":
-            admins = admins.order_by("-first_name", "-last_name")
+            descending = False
+
+        # Apply ordering with tie-breaker for name
+        if order_field == "first_name":
+            admins = (
+                admins.order_by("first_name", "last_name")
+                if not descending
+                else admins.order_by("-first_name", "-last_name")
+            )
         else:
-            admins = admins.order_by(ordering)
+            admins = admins.order_by(
+                order_field if not descending else f"-{order_field}"
+            )
+
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(admins, request, view=self)
+
+        data = []
+        for admin in page:
+            data.append(
+                {
+                    "id": str(admin.id),
+                    "name": admin.get_full_name(),
+                    "email": admin.email,
+                    "organization": admin.school.name if admin.school else "",
+                    "teachers": admin.teachers,
+                    "students": admin.students,
+                    "tokens_used": admin.tokens_used,
+                    "sessions": admin.academic_sessions,
+                }
+            )
+
+        return paginator.get_paginated_response(data)
 
 
 @extend_schema_view(

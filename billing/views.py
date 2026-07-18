@@ -88,10 +88,11 @@ from .serializers import (  # SubscriptionSerializer,; BetaUsageTrendSerializer,
     UserSubscriptionSerializer,
     WeeklyGrowthSerializer,
 )
-from .services import AnalyticsService, SubscriptionService
+from .services import AnalyticsService
 from .stripe_service import (  # StripeSubscriptionMutationService,; StripeCheckoutService,
     IndividualPlanChangeService,
     StripeOverageService,
+    StripeSubscriptionScheduleService,
 )
 from .stripe_view_schemas import CANCEL_SCHEMA
 
@@ -642,160 +643,113 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
     @CANCEL_SCHEMA
     @action(detail=False, methods=["POST"])
     def cancel(self, request, *args, **kwargs):
-        user_subscription = self.get_queryset().first()
-        if not user_subscription:
-            return Response(
-                {
-                    "status": "inactive",
-                    "message": "No active subscription found to cancel",
-                },
-                status=status.HTTP_404_NOT_FOUND,
+        with transaction.atomic():
+
+            user_subscription = (
+                UserSubscription.objects.select_for_update()
+                .filter(user=request.user, is_active=True)
+                .first()
+            )
+            if not user_subscription:
+                return Response(
+                    {
+                        "status": "inactive",
+                        "message": "No active subscription found to cancel",
+                    },
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            had_pending_change = bool(user_subscription.pending_plan_id)
+            was_already_not_renewing = (
+                not user_subscription.auto_renew
+                and not had_pending_change
+                and not user_subscription.stripe_schedule_id
             )
 
-        user_subscription.auto_renew = False
-        user_subscription.save(update_fields=["auto_renew", "updated_at"])
+            schedule_released = False
 
-        if user_subscription.stripe_subscription_id:
-            stripe.Subscription.modify(
-                user_subscription.stripe_subscription_id, cancel_at_period_end=True
+            if user_subscription.stripe_schedule_id:
+                try:
+                    StripeSubscriptionScheduleService.release_schedule(
+                        user_subscription
+                    )
+                    schedule_released = True
+                except ValueError as exc:
+                    return Response(
+                        {"detail": str(exc)},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            if user_subscription.stripe_subscription_id:
+                try:
+                    stripe.Subscription.modify(
+                        user_subscription.stripe_subscription_id,
+                        cancel_at_period_end=True,
+                    )
+                except stripe.error.StripeError as exc:
+                    if schedule_released:
+                        user_subscription.pending_plan = None
+                        user_subscription.pending_change_type = None
+                        user_subscription.pending_change_note = None
+                        user_subscription.stripe_schedule_id = None
+                        user_subscription.save(
+                            update_fields=[
+                                "pending_plan",
+                                "pending_change_type",
+                                "pending_change_note",
+                                "stripe_schedule_id",
+                                "updated_at",
+                            ]
+                        )
+                    return Response(
+                        {
+                            "detail": (
+                                "Could not cancel your subscription with "
+                                "our payment provider: "
+                                f"{getattr(exc, 'user_message', None) or str(exc)}"
+                            )
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            update_fields = []
+
+            if user_subscription.auto_renew:
+                user_subscription.auto_renew = False
+                update_fields.append("auto_renew")
+
+            if had_pending_change:
+                user_subscription.pending_plan = None
+                user_subscription.pending_change_type = None
+                user_subscription.pending_change_note = None
+                user_subscription.stripe_schedule_id = None
+                update_fields += [
+                    "pending_plan",
+                    "pending_change_type",
+                    "pending_change_note",
+                    "stripe_schedule_id",
+                ]
+
+            if update_fields:
+                update_fields.append("updated_at")
+                user_subscription.save(update_fields=update_fields)
+
+        if was_already_not_renewing:
+            message = (
+                "Subscription is already set to not renew at the end of "
+                "the current billing cycle"
             )
+        else:
+            message = (
+                "Subscription will not renew at the end of the current " "billing cycle"
+            )
+            if had_pending_change:
+                message += (
+                    ". Your previously scheduled plan change has also " "been cancelled"
+                )
 
         return Response(
-            {
-                "status": "cancelled",
-                "message": "Subscription will not renew at the end of the current billing cycle",
-            },
-            status=status.HTTP_200_OK,
-        )
-
-        # @UPGRADE_SCHEMA
-        # @action(detail=False, methods=["POST"])
-        # def upgrade(self, request, *args, **kwargs):
-        #     """
-        #     Upgrade the user's active individual subscription to a new plan immediately.
-        #     The user must have an active subscription and a valid Stripe subscription ID.
-        #     """
-        #     plan_id = request.data.get("plan")
-
-        #     if not plan_id:
-        #         return Response(
-        #             {"detail": "The 'plan' field is required."},
-        #             status=status.HTTP_400_BAD_REQUEST,
-        #         )
-
-        #     try:
-        #         new_plan = SubscriptionPlan.objects.get(id=plan_id)
-        #     except SubscriptionPlan.DoesNotExist:
-        #         return Response(
-        #             {"detail": "Plan not found or is not active."},
-        #             status=status.HTTP_404_NOT_FOUND,
-        #         )
-
-        #     # Only individual plans can be upgradd via this endpoint
-        #     if new_plan.category != PlanCategory.INDIVIDUAL:
-        #         return Response(
-        #             {"detail": f"Plan {new_plan.name} is not an INDIVIDUAL plan."},
-        #             status=status.HTTP_400_BAD_REQUEST,
-        #         )
-
-        #     user_sub = self.get_queryset().filter(user=request.user, is_active=True).first()
-        #     if not user_sub:
-        #         return Response(
-        #             {"status": "error", "message": "No active subscription found"},
-        #             status=status.HTTP_404_NOT_FOUND,
-        #         )
-
-        #     # select_for_update() is held for the duration of the Stripe call below
-        #     # (deliberate, not an oversight) — low-frequency, single-user action,
-        #     # and holding the lock across the network round-trip is what stops two
-        #     # rapid double-clicks from both passing validation and both hitting Stripe.
-
-        #     with transaction.atomic():
-        #         current_sub = (
-        #             UserSubscription.objects.select_for_update()
-        #             .filter(user=request.user, is_active=True)
-        #             .first()
-        #         )
-
-        #         if not current_sub:
-        #             return Response(
-        #                 {"detail": "No active subscription found"},
-        #                 status=status.HTTP_400_BAD_REQUEST,
-        #             )
-
-        #         if current_sub.is_trial:
-        #             return Response(
-        #                 {"detail": "You're on a free trial."},
-        #                 status=status.HTTP_400_BAD_REQUEST,
-        #             )
-
-        #         if current_sub.plan_id == new_plan.id:
-        #             return Response(
-        #                 {"detail": "You are already on this plan."},
-        #                 status=status.HTTP_400_BAD_REQUEST,
-        #             )
-
-        #         if new_plan.price_cents < current_sub.plan.price_cents:
-        #             return Response(
-        #                 {"detail": "That plan is cheaper than your current plan."},
-        #                 status=status.HTTP_400_BAD_REQUEST,
-        #             )
-
-        #     # Ensure the subscription has a Stripe reference
-        #     if not user_sub.stripe_subscription_id:
-        #         return Response(
-        #             {
-        #                 "detail": "This subscription is not linked to Stripe; cannot upgrade."
-        #             },
-        #             status=status.HTTP_400_BAD_REQUEST,
-        #         )
-
-        #     try:
-        #         # Perform the upgrade via Stripe and local service layer
-        #         updated_sub = StripeSubscriptionMutationService.change_plan(
-        #             user_sub, new_plan, proration_behavior="always_invoice"
-        #         )
-        #     except ValueError as exc:
-        #         # Catch specific errors from the service (e.g., payment failed, invalid plan)
-        #         return Response(
-        #             {"detail": str(exc)},
-        #             status=status.HTTP_400_BAD_REQUEST,
-        #         )
-        #     except Exception:
-        #         # Catch any unexpected errors (e.g., Stripe API errors)
-        #         logger.exception(
-        #             "Unexpected error during upgrade for user %s", request.user.email
-        #         )
-
-        #         return Response(
-        #             {"detail": "An unexpected error occurred. Please try again later."},
-        #             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        #         )
-
-        #     serializer = self.get_serializer(updated_sub)
-        #     return Response(serializer.data, status=status.HTTP_200_OK)
-
-        # @DOWNGRADE_SCHEMA
-        # @action(detail=False, methods=["POST"])
-        # def downgrade(self, request, *args, **kwargs):
-        plan_id = request.data.get("plan_id")
-
-        try:
-            new_plan = SubscriptionPlan.objects.get(id=plan_id)
-        except SubscriptionPlan.DoesNotExist:
-            return Response(
-                {"status": "error", "message": "Plan not found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        # Downgrade is scheduled for the end of the cycle
-        SubscriptionService.schedule_downgrade(request.user, new_plan)
-
-        return Response(
-            {
-                "status": "scheduled",
-                "message": "Downgrade scheduled for the end of the current billing cycle",
-            },
+            {"status": "cancelled", "message": message},
             status=status.HTTP_200_OK,
         )
 
