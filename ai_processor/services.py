@@ -22,6 +22,11 @@ from PIL import Image
 # from ai_processor.models import ChatMessage, ChatSession
 from ai_processor.tools import encode_image, perform_search
 from ai_processor.validators import logger
+from billing.access_control import (
+    AIFeatureNotAvailableError,
+    can_ai_be_used_for_assignment,
+    can_user_access_ai,
+)
 from billing.errors import InsufficientCreditsError
 from billing.services import AnalyticsService
 from classrooms.models import StudentCourse
@@ -198,86 +203,6 @@ class AIProcessor:
 
     def get_ai_model_function(self):
         return self.__ai_model
-
-    # TODO: Delete function soon
-    def __generate_text(self, system_prompt=None, user_prompt=None, messages=None):
-        try:
-            response = self.client.chat.completions.create(
-                extra_headers={
-                    "HTTP-Referer": "",  # Optional. Site URL for rankings on openrouter.ai.
-                    "X-Title": "GradeA+",  # Optional. Site title for rankings on openrouter.ai.
-                },
-                model="openai/gpt-5-nano",
-                messages=messages
-                or [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                    {
-                        "role": "system",
-                        "content": "if there are urls within the user prompt, use the tool (fetch_url_content) provided"
-                        " to you to extract the contents in the url, to gain an uptodate understanding. "
-                        "If there are no urls DO NOT USE the tools continue processing the prompt",
-                    },
-                ],
-                tools=tool_schema,
-                temperature=0.0,
-                response_format={"type": "json_object"},
-            )
-
-            message = response.choices[0].message
-
-            tool_calls = message.tool_calls
-
-            if tool_calls:
-                tool = message.tool_calls[0]
-                tool_name = tool.function.name
-                args = json.loads(tool.function.arguments)
-
-                if tool_name == "fetch_url_content":
-                    print("Model requested a web search...")
-                    query = args["urls"]
-
-                    search_result = perform_search(query)
-
-                    tool_result = {
-                        "role": "tool",
-                        "tool_call_id": tool.id,
-                        "content": json.dumps(search_result),
-                    }
-                    messages.pop()
-                    messages.append(tool_result)
-
-                    # Send the search result back to the model for final reasoning
-                    follow_up = self.client.chat.completions.create(
-                        extra_headers={
-                            "HTTP-Referer": "",  # Optional. Site URL for rankings on openrouter.ai.
-                            "X-Title": "GradeA+",  # Optional. Site title for rankings on openrouter.ai.
-                        },
-                        model="openai/gpt-5-nano",  # deepseek/deepseek-chat-v3.1:free", # openai/gpt-oss-20b:free",
-                        # x-ai/grok-4-fast",
-                        # extra_body={
-                        #     "models": [
-                        #         "x-ai/grok-4-fast",
-                        #         "openai/gpt-5-nano"
-                        #     ],
-                        #     # "plugins": [{"id": "web"}],
-                        # },
-                        messages=messages,
-                        response_format={"type": "json_object"},
-                    )
-
-                    print("Final answer")
-                    content = follow_up.choices[0].message.content
-            else:
-                content = message.content
-
-            print(f"Received response of length {len(content)}")
-
-            return content
-
-        except Exception as e:
-            logger.error(f"Error during AI model: {str(e)}")
-            raise Exception(f"Error during AI model: {str(e)}") from Exception
 
     def create_file(self, uploaded_file):
         # file_bytes = uploaded_file.read()
@@ -528,6 +453,12 @@ Do not include any explanatory text before or after the JSON
 
                     chunk_result = json.loads(raw)
                     break
+                except (AIFeatureNotAvailableError, InsufficientCreditsError):
+                    # Deterministic access/credit denial - never resolved
+                    # by retrying, and would otherwise be re-wrapped into
+                    # a generic Exception below before ever reaching the
+                    # outer extract_assignment_with_retry wrapper.
+                    raise
                 except json.JSONDecodeError as e:
                     last_chunk_error = e
                     logger.warning(
@@ -684,6 +615,8 @@ Do not include any explanatory text before or after the JSON
 
                     chunk_result = json.loads(raw)
                     break
+                except (AIFeatureNotAvailableError, InsufficientCreditsError):
+                    raise
                 except json.JSONDecodeError as e:
                     last_chunk_error = e
                     logger.warning(
@@ -787,6 +720,13 @@ Do not include any explanatory text before or after the JSON
                         pages_per_chunk=pages_per_chunk,
                         processing_task_id=processing_task_id,
                     )
+                except (AIFeatureNotAvailableError, InsufficientCreditsError):
+                    # Deterministic access/credit denial - retrying can
+                    # never change the outcome, so fail fast instead of
+                    # burning max_retries attempts (and re-checking
+                    # tier/credits max_retries times) on a guaranteed
+                    # repeat failure.
+                    raise
                 except Exception as e:
                     last_error = e
                     logger.warning(
@@ -810,6 +750,8 @@ Do not include any explanatory text before or after the JSON
                     upload=upload,
                     processing_task_id=processing_task_id,
                 )
+            except (AIFeatureNotAvailableError, InsufficientCreditsError):
+                raise
             except Exception as e:
                 last_error = e
                 logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
@@ -1102,6 +1044,8 @@ Do not include any explanatory text before or after the JSON
 
                     chunk_result = json.loads(raw)
                     break
+                except (AIFeatureNotAvailableError, InsufficientCreditsError):
+                    raise
                 except json.JSONDecodeError as e:
                     last_chunk_error = e
                     logger.warning(
@@ -1350,6 +1294,8 @@ Do not include any explanatory text before or after the JSON
                     assignment_model=assignment_model,
                     processing_task_id=processing_task_id,
                 )
+            except (AIFeatureNotAvailableError, InsufficientCreditsError):
+                raise
             except Exception as e:
                 last_error = e
                 logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
@@ -1506,6 +1452,8 @@ Do not include any explanatory text before or after the JSON
                 )
                 return evaluations
 
+            except (AIFeatureNotAvailableError, InsufficientCreditsError):
+                raise
             except (json.JSONDecodeError, ValueError) as e:
                 last_error = e
                 logger.warning(
@@ -1660,6 +1608,8 @@ Do not include any explanatory text before or after the JSON
 
                 return summary
 
+            except (AIFeatureNotAvailableError, InsufficientCreditsError):
+                raise
             except (json.JSONDecodeError, ValueError) as e:
                 last_error = e
                 logger.warning(
@@ -1856,6 +1806,8 @@ Do not include any explanatory text before or after the JSON
                     assignment_model=assignment_model,
                     processing_task_id=processing_task_id,
                 )
+            except (AIFeatureNotAvailableError, InsufficientCreditsError):
+                raise
             except Exception as e:
                 last_error = e
                 logger.warning(f"[Grading] Attempt {attempt + 1} failed: {str(e)}")
@@ -1977,6 +1929,8 @@ Now, respond to the following teacher's instruction using the rules above
                 return self.generate_assignment_from_prompt(
                     user, prompt, chat_history=chat_history
                 )
+            except (AIFeatureNotAvailableError, InsufficientCreditsError):
+                raise
             except Exception as e:
                 last_error = e
                 logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
@@ -2041,7 +1995,63 @@ Now, respond to the following teacher's instruction using the rules above
         # their assignment to know who the teacher that created
         # the assignment is and charge the teacher
 
-        # Subscription check
+        ensure_task_not_cancelled(processing_task_id)
+
+        # --- Resolve WHO is billed for this call, AND enforce their
+        # tier/feature access control, together in one branch. This is
+        # deliberately a single pass (not two separate if/elif chains)
+        # so the access check and the billing-target resolution can never
+        # drift out of sync with each other - see the module's access
+        # control docs (billing/access_control.py) for the full tier
+        # rules (individual plan tier, license teacher plan tier, or the
+        # school admin's fixed analytics-only allowlist).
+        if user.user_type == UserTypes.STUDENT:
+            # Get the TEACHER wallet - students never have their own
+            # subscription/credits; consumption is always billed against,
+            # and gated by, the assignment's teacher.
+            if not assignment:
+                raise ValueError("Assignment is required for students")
+
+            target_teacher = assignment.course.teacher
+
+            can_access, reason = can_ai_be_used_for_assignment(
+                assignment, feature=feature
+            )
+            if not can_access:
+                raise AIFeatureNotAvailableError(
+                    f"AI access denied for this assignment's teacher: {reason}"
+                )
+
+            wallet = target_teacher.credit_wallet
+
+        elif (
+            user.user_type == UserTypes.TEACHER
+            or user.user_type == UserTypes.SCHOOL_ADMIN
+        ):
+            target_teacher = user
+
+            can_access, reason = can_user_access_ai(user, feature=feature)
+            if not can_access:
+                raise AIFeatureNotAvailableError(f"AI access denied: {reason}")
+
+            wallet = user.credit_wallet
+
+        elif user.user_type == UserTypes.SUPER_ADMIN:
+            # Unmetered, unrestricted internal tooling - no tier gating,
+            # no credit consumption. Resolved before any prompt-flattening
+            # / token-estimation work below, since none of that is needed
+            # for this branch.
+            response = self.__ai_model(
+                system_prompt, user_prompt, messages, tool_schemas, respond_format
+            )
+            return response
+
+        else:
+            # Defensive: previously falling through here with an
+            # unrecognized user_type left `wallet`/`target_teacher`
+            # unbound, causing an opaque UnboundLocalError several lines
+            # below instead of a clear, actionable error here.
+            raise ValueError(f"Unsupported user_type for AI access: {user.user_type!r}")
 
         total_prompt = ""
         image_bytes = []
@@ -2085,26 +2095,6 @@ Now, respond to the following teacher's instruction using the rules above
         ensure_task_not_cancelled(processing_task_id)
         estimated_cost = self.estimate_total_token(total_prompt, image_bytes, pdf_bytes)
 
-        if user.user_type == UserTypes.STUDENT:
-            # Get the TEACHER wallet
-
-            if assignment:
-                target_teacher = assignment.course.teacher
-                wallet = target_teacher.credit_wallet
-            else:
-                raise ValueError("Assignment is required for students")
-        elif (
-            user.user_type == UserTypes.TEACHER
-            or user.user_type == UserTypes.SCHOOL_ADMIN
-        ):
-            target_teacher = user
-            wallet = user.credit_wallet
-        elif user.user_type == UserTypes.SUPER_ADMIN:
-            response = self.__ai_model(
-                system_prompt, user_prompt, messages, tool_schemas, respond_format
-            )
-            return response
-
         balance = wallet.total_remaining_credits()
 
         if balance < estimated_cost:
@@ -2113,7 +2103,7 @@ Now, respond to the following teacher's instruction using the rules above
                 f"Please refill your wallet to continue"
             )
 
-        if wallet.total_remaining_credits() <= 0:
+        if balance <= 0:
             raise InsufficientCreditsError("Refill your wallet to continue")
 
         ensure_task_not_cancelled(processing_task_id)
@@ -2245,6 +2235,8 @@ Now, respond to the following teacher's instruction using the rules above
                     feature=feature,
                     task_type=task_type,
                 )
+            except (AIFeatureNotAvailableError, InsufficientCreditsError):
+                raise
             except Exception as e:
                 last_error = e
                 logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")

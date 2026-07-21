@@ -28,6 +28,7 @@ def update_license_consumption(sender, instance, created, **kwargs):
         SchoolCreditAllocation.objects.filter(
             user=user,
             is_active=True,
+            is_admin_allocation=False,
             license_subscription__is_active=True,
         )
         .select_related("license_subscription")

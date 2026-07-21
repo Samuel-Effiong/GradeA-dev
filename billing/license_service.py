@@ -71,6 +71,15 @@ class LicenseSubscriptionService:
     All operations are atomic and include comprehensive audit logging.
     """
 
+    # Fixed monthly AI-credit allowance granted to a license's admin_user
+    # (school admin), separate from teacher allocations. School admins
+    # cannot grade/perform AI tasks themselves, but their dashboard uses AI
+    # to generate analytics, which requires credits the same way any other
+    # AI feature does.
+
+    ADMIN_ANALYTICS_CREDITS_DISPLAY = 5_000
+    ADMIN_ANALYTICS_CREDITS_RAW = 5_000 * CONVERSION_FACTOR
+
     def _resolve_effective_price(
         self, license_sub, new_plan, custom_price_cents=None, remove_custom_price=False
     ):
@@ -234,6 +243,155 @@ class LicenseSubscriptionService:
         return new_bucket
 
     @staticmethod
+    def _grant_admin_allocation(
+        license_sub: LicenseSubscription,
+    ) -> SchoolCreditAllocation:
+        """
+        Grants the license's admin_user their own fixed, recurring
+        analytics-only credit allocation, so their dashboard's AI-generated
+        analytics have credits to draw from — school admins can't grade or
+        run other AI teacher features, but the dashboard shown to them
+        still calls AI to build those analytics.
+
+        Reuses SchoolCreditAllocation/CreditBucket/CreditLedger exactly as
+        teacher allocations do, which is what makes this allocation "just
+        work" with the existing monthly-refresh task
+        (process_license_monthly_credit_refreshes), contract renewal
+        (process_license_renewal / process_offline_renewal — both iterate
+        every active allocation generically), and the overage-purchase
+        endpoints (purchase_teacher_overage / grant_manual_teacher_overage
+        both validate beneficiaries purely via an active
+        SchoolCreditAllocation row under the license) with no further code
+        changes needed in any of those paths.
+
+        Marked is_admin_allocation=True so it is excluded from:
+          - LicenseSubscription.teacher_count / seats_remaining
+          - active_teacher_count wherever it's computed (license_views.py,
+            serializers.py)
+          - the monthly_allocation overwrite in change_license_plan /
+            update_license_plan (this allowance is fixed, not tied to plan)
+          - LicenseSubscription.total_credits_consumed increments (see
+            billing/signals.py: update_license_consumption)
+
+        Idempotent: safe to call multiple times for the same license (e.g.
+        to backfill an existing license created before this feature
+        existed) — reuses get_or_create on the (license_subscription, user)
+        unique-together pair and only ever creates one CreditBucket/GRANT
+        per allocation. Deliberately NOT called from
+        process_license_renewal / process_offline_renewal: those methods
+        already iterate every currently-active allocation and would grant
+        this SAME allocation a second time in the same renewal cycle if
+        this method both created it AND the iteration below picked it up —
+        backfilling a pre-existing license is therefore a separate,
+        explicit action (e.g. a one-off management command), not something
+        that happens implicitly as a side effect of a renewal.
+
+        Args:
+            license_sub: The license subscription whose admin should be
+                granted the allowance. Uses license_sub.admin_user.
+
+        Returns:
+            SchoolCreditAllocation: The admin's allocation (existing or
+                newly created).
+        """
+
+        admin_user = license_sub.admin_user
+        now = timezone.now()
+        next_refresh = now + relativedelta(months=1)
+        raw_amount = LicenseSubscriptionService.ADMIN_ANALYTICS_CREDITS_RAW
+
+        # Ensure the admin has a CreditWallet (should already exist via
+        # users/signals.py on account creation, but defensive).
+        wallet, _ = CreditWallet.objects.get_or_create(user=admin_user)
+
+        allocation, created = SchoolCreditAllocation.objects.get_or_create(
+            license_subscription=license_sub,
+            user=admin_user,
+            defaults={
+                "monthly_allocation": raw_amount,
+                "is_active": True,
+                "is_admin_allocation": True,
+                "next_credit_grant_at": next_refresh,
+            },
+        )
+
+        if not created:
+            if allocation.is_active:
+                # Already active — nothing to do. Do NOT create another
+                # bucket/ledger entry here; the normal monthly-refresh /
+                # renewal machinery is what grants subsequent cycles.
+                logger.debug(
+                    "Admin allocation for license %s (admin %s) already "
+                    "active — skipping duplicate grant.",
+                    license_sub.id,
+                    admin_user.email,
+                )
+                return allocation
+
+            # Reactivating a previously deactivated admin allocation (e.g.
+            # the license was cancelled and is being reinstated).
+            allocation.is_active = True
+            allocation.is_admin_allocation = True
+            allocation.monthly_allocation = raw_amount
+            allocation.next_credit_grant_at = next_refresh
+            allocation.save(
+                update_fields=[
+                    "is_active",
+                    "is_admin_allocation",
+                    "monthly_allocation",
+                    "next_credit_grant_at",
+                    "updated_at",
+                ]
+            )
+
+            logger.info(
+                "Reactivated admin analytics allocation for license %s (admin %s)",
+                license_sub.id,
+                admin_user.email,
+            )
+
+        # Create the initial MONTHLY bucket for the admin's allowance
+        monthly_bucket = CreditBucket.objects.create(
+            wallet=wallet,
+            bucket_type=CreditBucketType.MONTHLY,
+            total_credits=raw_amount,
+            used_credits=0,
+            expires_at=next_refresh,
+        )
+
+        CreditLedger.objects.create(
+            user=admin_user,
+            bucket=monthly_bucket,
+            ledger_type=CreditLedgerType.GRANT,
+            amount=raw_amount,
+            reference=(
+                f"Admin analytics allocation for LICENSE subscription {license_sub.id}"
+            ),
+            metadata={
+                "license_subscription_id": str(license_sub.id),
+                "allocation_id": str(allocation.id),
+                "grant_type": "LICENSE_ADMIN_ANALYTICS",
+                "display_amount": LicenseSubscriptionService.ADMIN_ANALYTICS_CREDITS_DISPLAY,
+                "raw_amount": raw_amount,
+            },
+        )
+
+        # Reset overage counter for the new cycle, mirroring teacher
+        # enrollment (_enrollment_teacher_internal) for consistency
+        wallet.overage_blocks_used = 0
+        wallet.save(update_fields=["overage_blocks_used", "updated_at"])
+
+        logger.info(
+            "Granted admin analytics allocation (%d display credits) to %s "
+            "for license %s",
+            LicenseSubscriptionService.ADMIN_ANALYTICS_CREDITS_DISPLAY,
+            admin_user.email,
+            license_sub.id,
+        )
+
+        return allocation
+
+    @staticmethod
     @transaction.atomic
     def create_license_subscription(
         school: School,
@@ -339,6 +497,13 @@ class LicenseSubscriptionService:
             now,
             billing_end,
         )
+
+        # 4. Grant the admin their own fixed analytics-credit allocation.
+        # Deliberately NOT wrapped in a try/except (unlike the per-teacher
+        # loop below) — a failure here should fail the whole license
+        # creation rather than silently leave the admin without any
+        # credits for their dashboard's AI-generated analytics.
+        LicenseSubscriptionService._grant_admin_allocation(license_sub)
 
         # 4. Enroll teachers if provided
         if teacher_emails:
@@ -1144,7 +1309,9 @@ class LicenseSubscriptionService:
 
         # Update monthly_allocation for all active teachers under this license
         # This ensures that at the next renewal they receive the correct amount
-        active_allocations = license_sub.allocations.filter(is_active=True)
+        active_allocations = license_sub.allocations.filter(
+            is_active=True, is_admin_allocation=False
+        )
 
         for allocation in active_allocations:
             allocation.monthly_allocation = new_plan.monthly_credits
@@ -1276,7 +1443,10 @@ class LicenseSubscriptionService:
         license_sub.save(update_fields=["plan", "custom_price_cents", "updated_at"])
 
         # Update allocations
-        active_allocations = license_sub.allocations.filter(is_active=True)
+        active_allocations = license_sub.allocations.filter(
+            is_active=True, is_admin_allocation=False
+        )
+
         for allocation in active_allocations:
             allocation.monthly_allocation = new_plan.monthly_credits
             allocation.save(update_fields=["monthly_allocation", "updated_at"])

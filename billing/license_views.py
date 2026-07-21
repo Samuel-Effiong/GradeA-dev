@@ -95,7 +95,7 @@ class IsSchoolAdminOrSuperAdmin(IsAuthenticated):
         # School admin can only manage licenses for their school
         if request.user.user_type == UserTypes.SCHOOL_ADMIN:
             # Check if user is an admin for the license's school
-            return obj.school.admins.filter(id=request.user.id).exists()
+            return obj.admin_user == request.user
 
         return False
 
@@ -420,7 +420,7 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
                 "stripe_status": license_sub.stripe_status,
                 "teacher_count": license_sub.teacher_count,
                 "active_teacher_count": license_sub.allocations.filter(
-                    is_active=True
+                    is_active=True, is_admin_allocation=False
                 ).count(),
                 "allocations": SchoolCreditAllocationSerializer(
                     license_sub.allocations.all(), many=True
@@ -984,7 +984,7 @@ class SchoolCreditAllocationViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated, IsNotStudent]
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ["license_subscription", "is_active"]
+    filterset_fields = ["license_subscription", "is_active", "is_admin_allocation"]
     search_fields = ["user__email", "license_subscription__school__name"]
     ordering_fields = ["created_at", "monthly_allocation"]
 

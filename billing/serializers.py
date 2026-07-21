@@ -1253,6 +1253,7 @@ class SchoolCreditAllocationSerializer(serializers.ModelSerializer):
             "license_school_name",
             "license_plan_name",
             "is_active",
+            "is_admin_allocation",
             "created_at",
             "updated_at",
         ]
@@ -1265,6 +1266,7 @@ class SchoolCreditAllocationSerializer(serializers.ModelSerializer):
             "user_full_name",
             "license_school_name",
             "license_plan_name",
+            "is_admin_allocation",
         ]
 
     def to_representation(self, instance):
@@ -1388,7 +1390,7 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
         ret = super().to_representation(instance)
         # Include active allocations count
         ret["active_teacher_count"] = instance.allocations.filter(
-            is_active=True
+            is_active=True, is_admin_allocation=False
         ).count()
         return ret
 

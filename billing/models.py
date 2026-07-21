@@ -1166,8 +1166,15 @@ class LicenseSubscription(models.Model):
 
     @property
     def teacher_count(self):
-        """Returns number of active teachers enrolled under this license."""
-        return self.allocations.filter(is_active=True).count()
+        """
+        Returns number of active TEACHERS enrolled under this license.
+        Excludes the admin's own analytics allocation
+        (is_admin_allocation=True) - The admin is not a teacher and does not
+        occupy a paid seat
+        """
+        return self.allocations.filter(
+            is_active=True, is_admin_allocation=False
+        ).count()
 
     @property
     def seats_remaining(self) -> int | None:
@@ -1280,6 +1287,18 @@ class SchoolCreditAllocation(models.Model):
     is_active = models.BooleanField(
         default=True,
         help_text="Whether this teacher is actively enrolled under the license",
+    )
+
+    is_admin_allocation = models.BooleanField(
+        default=False,
+        help_text=(
+            "True if this allocation belongs to the license's admin_user "
+            "(a fixed analytics-only credit grant for the school admin's "
+            "dashboard), not to an enrolled teacher. Excluded from "
+            "teacher_count/seats_remaining/active_teacher_count, from the "
+            "monthly_allocation overwrite on plan changes, and from "
+            "LicenseSubscription.total_credits_consumed."
+        ),
     )
 
     # --- Timestamps ---
