@@ -3,7 +3,7 @@ from django.db import transaction
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
-from billing.serializers import CreditWalletSummarySerializer
+from billing.serializers import CreditWalletSerializer
 from billing.services import AnalyticsService
 from classrooms.models import School
 
@@ -45,7 +45,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
         queryset=School.objects.all(), required=False
     )
     settings = SettingsSerializer(read_only=True)
-    credit_wallet = CreditWalletSummarySerializer(read_only=True)
+    credit_wallet = CreditWalletSerializer(read_only=True)
     is_system_generated_email = serializers.SerializerMethodField()
 
     class Meta:

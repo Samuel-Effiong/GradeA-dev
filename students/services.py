@@ -3,6 +3,7 @@ from html import escape
 
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
+from django.db import transaction
 from django.template.loader import render_to_string
 from django.utils import timezone
 
@@ -390,35 +391,61 @@ def upload_answers_engine(
                     "Student not among the enrolled students in the course"
                 )
 
-        # Submission limit enforcement
-        # Only apply to student uploading for themselves
-        if request_user.user_type == UserTypes.STUDENT and not is_proxy_upload:
-            existing_submission = StudentSubmission.objects.filter(
-                assignment=assignment, student=target_student
-            ).first()
-
-            if existing_submission and existing_submission.attempt_count >= 3:
-                raise ValueError(
-                    "You have reached the maximum of 3 submissions for this assignment"
-                )
-
-        # Handle duplicates
-        submission, created = StudentSubmission.objects.get_or_create(
-            assignment=assignment,
-            student=target_student,
-            defaults={"answers": student_submission.get("answers")},
+        # ----------------------------------------------------------------
+        # Atomic submission limit enforcement + get-or-create + increment.
+        #
+        # Uses select_for_update() to prevent a TOCTOU race condition where
+        # concurrent uploads from the same student could both pass the
+        # attempt_count >= 3 guard simultaneously, each increment the
+        # counter, and together bypass the 3-submission limit.
+        #
+        # attempt_count tracks *total submissions ever made*, starting at 1
+        # on the very first upload and increasing on every subsequent one.
+        # ----------------------------------------------------------------
+        is_student_self_upload = (
+            request_user.user_type == UserTypes.STUDENT and not is_proxy_upload
         )
 
-        if not created:
-            # If it already exists, update the answers
-            ensure_task_not_cancelled(processing_task_id)
-            submission.answers = student_submission.get("answers", submission.answers)
+        with transaction.atomic():
+            # Lock the existing row (if any) for the duration of this block.
+            existing_submission = (
+                StudentSubmission.objects.select_for_update()
+                .filter(assignment=assignment, student=target_student)
+                .first()
+            )
 
-            # Increment attempt count only if student slf-upload (not proxy)
-            if request_user.user_type == UserTypes.STUDENT and not is_proxy_upload:
-                submission.attempt_count += 1
-            submission.save()
+            if is_student_self_upload and existing_submission:
+                current_count = existing_submission.attempt_count or 0
+                if current_count >= 3:
+                    raise ValueError(
+                        "You have reached the maximum of 3 submissions for this assignment"
+                    )
 
+            if existing_submission:
+                # Re-submission — update answers and increment counter.
+                created = False
+                submission = existing_submission
+                ensure_task_not_cancelled(processing_task_id)
+                submission.answers = student_submission.get(
+                    "answers", submission.answers
+                )
+
+                if is_student_self_upload:
+                    submission.attempt_count = (submission.attempt_count or 0) + 1
+            else:
+                # First submission — create the row and set counter to 1.
+                created = True
+                submission = StudentSubmission(
+                    assignment=assignment,
+                    student=target_student,
+                    answers=student_submission.get("answers"),
+                    attempt_count=1 if is_student_self_upload else 0,
+                )
+
+        # ----------------------------------------------------------------
+        # Build raw_input outside the lock (it's CPU-only, no DB writes
+        # needed during construction), then persist everything in one save.
+        # ----------------------------------------------------------------
         ensure_task_not_cancelled(processing_task_id)
         answer_html = student_submission_to_html(submission)
         submission.raw_input = AssignmentProcessingService.html_to_prosemirror_json(

@@ -113,7 +113,7 @@ class StudentSubmissionSerializer(serializers.ModelSerializer):
 
     def get_remaining_attempts(self, obj):
         if obj:
-            return max(0, 3 - obj.attempt_count)
+            return max(0, 3 - (obj.attempt_count or 0))
         return 3
 
 
@@ -203,7 +203,7 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
 
     def get_remaining_attempts(self, obj):
         if obj:
-            return max(0, 3 - obj.attempt_count)
+            return max(0, 3 - (obj.attempt_count or 0))
         return 3
 
 
@@ -324,7 +324,7 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
 
     def get_remaining_attempts(self, obj):
         if obj:
-            return max(0, 3 - obj.attempt_count)
+            return max(0, 3 - (obj.attempt_count or 0))
         return 3
 
 
@@ -431,7 +431,7 @@ class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerialize
 
     def get_remaining_attempts(self, obj):
         if obj:
-            return max(0, 3 - obj.attempt_count)
+            return max(0, 3 - (obj.attempt_count or 0))
         return 3
 
     # def get_assignment_status(self, obj):

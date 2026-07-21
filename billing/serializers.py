@@ -1,7 +1,7 @@
 "The love of God"
 
 from django.db import models
-from django.db.models import F, Sum
+from django.db.models import F, Q, Sum
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -509,6 +509,18 @@ class CreditWalletSerializer(serializers.ModelSerializer):
 
     total_remaining_credits = serializers.SerializerMethodField(read_only=True)
 
+    active_buckets_count = serializers.SerializerMethodField(read_only=True)
+    display_total_remaining_credits = serializers.IntegerField(source="display_balance")
+
+    # --- Progress Bar Fields ---
+    # The plan's monthly allocation — the "100%" baseline for the progress bar
+    monthly_credit_total = serializers.SerializerMethodField(read_only=True)
+    # Only the current MONTHLY bucket remaining — excludes carry-over to keep math clean
+    monthly_credit_remaining = serializers.SerializerMethodField(read_only=True)
+    # Pre-calculated percentage (0–100) so the frontend doesn't need to do math
+    credit_percentage_remaining = serializers.SerializerMethodField(read_only=True)
+    bucket_breakdown = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = CreditWallet
         fields = [
@@ -516,6 +528,12 @@ class CreditWalletSerializer(serializers.ModelSerializer):
             "user",
             "overage_blocks_used",
             "total_remaining_credits",
+            "display_total_remaining_credits",
+            "active_buckets_count",
+            "monthly_credit_total",
+            "monthly_credit_remaining",
+            "credit_percentage_remaining",
+            "bucket_breakdown",
             "created_at",
             "updated_at",
         ]
@@ -523,6 +541,125 @@ class CreditWalletSerializer(serializers.ModelSerializer):
 
     def get_total_remaining_credits(self, obj) -> int:
         return obj.total_remaining_credits()
+
+    def get_active_buckets_count(self, obj) -> int:
+        return obj.buckets.filter(expires_at__gt=timezone.now()).count()
+
+    def get_monthly_credit_total(self, obj) -> int:
+        """
+        Returns the teacher's plan monthly credit allowance as a display value.
+        This is the '100%' ceiling for the progress bar.
+        """
+        subscription = (
+            obj.user.subscriptions.filter(is_active=True).select_related("plan").first()
+        )
+        if not subscription:
+            return 0
+        return subscription.plan.display_monthly_credits
+
+    def get_monthly_credit_remaining(self, obj) -> int:
+        """
+        Returns only the remaining credits in the active MONTHLY bucket as a display value.
+        Intentionally excludes CARRY_OVER so the bar always reflects the current month's budget.
+        A value above 100% is impossible — carry-over is shown separately.
+        """
+        now = timezone.now()
+        monthly_bucket = obj.buckets.filter(
+            bucket_type=CreditBucketType.MONTHLY,
+            expires_at__gt=now,
+        ).first()
+        if not monthly_bucket:
+            return 0
+        from .models import CONVERSION_FACTOR
+
+        return monthly_bucket.remaining_credits // CONVERSION_FACTOR
+
+    def get_credit_percentage_remaining(self, obj) -> float:
+        """
+        Returns the percentage of the monthly credit budget that remains (0.0 – 100.0).
+        Color thresholds for the frontend progress bar:
+          - >= 50%  → Green  (healthy)
+          - >= 20%  → Amber  (warning)
+          -  < 20%  → Red    (critical)
+        """
+        # total = self.get_monthly_credit_total(obj)
+        # if not total:
+        #     return 0.0
+        # remaining = self.get_monthly_credit_remaining(obj)
+        # percentage = (remaining / total) * 100
+        # return round(min(percentage, 100.0), 2)
+
+        # total = self.get_monthly_credit_total(obj)
+        # if not total:
+        #     return 0.0
+
+        # remaining = getattr(obj, "display_balance", obj.display_balance)
+        # percentage = (remaining / total) * 100
+        # return round(min(percentage, 100.0), 2)
+
+        now = timezone.now()
+
+        active_buckets_query = obj.buckets.filter(
+            models.Q(expires_at__isnull=True) | models.Q(expires_at__gt=now)
+        )
+
+        aggregate_result = active_buckets_query.aggregate(
+            total_initial=models.Sum("total_credits")
+        )
+        total_allocated = aggregate_result["total_initial"] or 0
+
+        # 2. Prevent Division by Zero (if they have absolutely no active buckets)
+        if not total_allocated:
+            return 0.0
+
+        # 3. Calculate Global Percentage using the raw remaining value
+        # (It's mathematically safer to stick to raw DB units here rather than display units)
+        remaining = obj.total_remaining_credits()
+        percentage = (remaining / total_allocated) * 100
+
+        return round(percentage, 2)
+
+    def get_bucket_breakdown(self, obj):
+        """
+        Returns a breakdown of remaining credits per bucket type (display units).
+        Only active, non-expired buckets are considered. MANUAL_GRANT is excluded.
+        The sum of all values equals the raw total (display_total_remaining_credits)
+        but may differ by a few units due to individual flooring per type.
+        """
+
+        now = timezone.now()
+
+        # Types to include in the breakdown (exclude MANUAL_GRANT)
+        included_types = [
+            CreditBucketType.MONTHLY,
+            CreditBucketType.CARRY_OVER,
+            CreditBucketType.OVERAGE,
+            CreditBucketType.TRIAL,
+        ]
+
+        # Filter active buckets (no expiry or expiry in the future) and included types
+        active_buckets = obj.buckets.filter(
+            (Q(expires_at__isnull=True) | Q(expires_at__gt=now)),
+            bucket_type__in=included_types,
+        )
+
+        # Aggregate remaining credits per bucket_type
+        breakdown_raw = active_buckets.values("bucket_type").annotate(
+            total_remaining=Sum(F("total_credits") - F("used_credits"))
+        )
+
+        # Initialise all included types with 0 (display units)
+        breakdown = {bt: 0 for bt in included_types}
+
+        # Fill in the values, converting raw to display units (floor division)
+        for item in breakdown_raw:
+            bucket_type = item["bucket_type"]
+
+            # if bucket_type != CreditBucketType.MANUAL_GRANT:
+            raw_remaining = item["total_remaining"] or 0
+            breakdown[bucket_type] = raw_remaining // CONVERSION_FACTOR
+
+        return breakdown
 
     def create(self, validated_data):
         request = self.context.get("request")
@@ -598,6 +735,7 @@ class CreditWalletSummarySerializer(serializers.ModelSerializer):
     monthly_credit_remaining = serializers.SerializerMethodField(read_only=True)
     # Pre-calculated percentage (0–100) so the frontend doesn't need to do math
     credit_percentage_remaining = serializers.SerializerMethodField(read_only=True)
+    bucket_breakdown = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = CreditWallet
@@ -611,6 +749,7 @@ class CreditWalletSummarySerializer(serializers.ModelSerializer):
             "monthly_credit_total",
             "monthly_credit_remaining",
             "credit_percentage_remaining",
+            "bucket_breakdown",
         ]
         read_only_fields = [
             "id",
@@ -700,6 +839,48 @@ class CreditWalletSummarySerializer(serializers.ModelSerializer):
 
         return round(percentage, 2)
 
+    def get_bucket_breakdown(self, obj):
+        """
+        Returns a breakdown of remaining credits per bucket type (display units).
+        Only active, non-expired buckets are considered. MANUAL_GRANT is excluded.
+        The sum of all values equals the raw total (display_total_remaining_credits)
+        but may differ by a few units due to individual flooring per type.
+        """
+
+        now = timezone.now()
+
+        # Types to include in the breakdown (exclude MANUAL_GRANT)
+        included_types = [
+            CreditBucketType.MONTHLY,
+            CreditBucketType.CARRY_OVER,
+            CreditBucketType.OVERAGE,
+            CreditBucketType.TRIAL,
+        ]
+
+        # Filter active buckets (no expiry or expiry in the future) and included types
+        active_buckets = obj.buckets.filter(
+            (Q(expires_at__isnull=True) | Q(expires_at__gt=now)),
+            bucket_type__in=included_types,
+        )
+
+        # Aggregate remaining credits per bucket_type
+        breakdown_raw = active_buckets.values("bucket_type").annotate(
+            total_remaining=Sum(F("total_credits") - F("used_credits"))
+        )
+
+        # Initialise all included types with 0 (display units)
+        breakdown = {bt: 0 for bt in included_types}
+
+        # Fill in the values, converting raw to display units (floor division)
+        for item in breakdown_raw:
+            bucket_type = item["bucket_type"]
+
+            # if bucket_type != CreditBucketType.MANUAL_GRANT:
+            raw_remaining = item["total_remaining"] or 0
+            breakdown[bucket_type] = raw_remaining // CONVERSION_FACTOR
+
+        return breakdown
+
 
 class UsageSummarySerializer(serializers.Serializer):
     billing_cycle_start = serializers.DateTimeField()
@@ -759,7 +940,7 @@ class OverageCheckoutRequestSerializer(serializers.Serializer):
 
 
 class OverageStatusSerializer(serializers.ModelSerializer):
-    max_blocks = serializers.SerializerMethodField()
+    # max_blocks = serializers.SerializerMethodField()
     block_size = serializers.SerializerMethodField()
     block_remaining = serializers.SerializerMethodField()
     current_overage_balance = serializers.SerializerMethodField()
@@ -768,7 +949,7 @@ class OverageStatusSerializer(serializers.ModelSerializer):
         model = CreditWallet
         fields = [
             "overage_blocks_used",
-            "max_blocks",
+            # "max_blocks",
             "block_size",
             "block_remaining",
             "current_overage_balance",

@@ -58,7 +58,7 @@ from .models import (
     SubscriptionPlan,
     UserSubscription,
 )
-from .serializers import (  # SubscriptionSerializer,; BetaUsageTrendSerializer,; FreeTrialStatusSerializer,
+from .serializers import (  # SubscriptionSerializer,; BetaUsageTrendSerializer,; FreeTrialStatusSerializer,; CreditWalletSummarySerializer,
     BetaCohortStatsSerializer,
     BetaFeatureMixSerializer,
     BetaProfileSerializer,
@@ -71,7 +71,6 @@ from .serializers import (  # SubscriptionSerializer,; BetaUsageTrendSerializer,
     CreditUsageDistributionResponseSerializer,
     CreditUsageLogSerializer,
     CreditWalletSerializer,
-    CreditWalletSummarySerializer,
     DailyTimeSeriesSerializer,
     FeatureConsumptionTimeSeriesSerializer,
     IntentSignalResponseSerializer,
@@ -1076,7 +1075,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
         summary="Get credit wallet summary",
         description="Get credit wallet summary for the user.",
         responses={
-            200: OpenApiResponse(response=CreditWalletSummarySerializer),
+            200: OpenApiResponse(response=CreditWalletSerializer),
             404: OpenApiResponse(
                 description="No wallet found",
                 examples=[
@@ -1102,7 +1101,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
             expires_at__gt=timezone.now()
         ).count()
 
-        serializer = CreditWalletSummarySerializer(wallet)
+        serializer = CreditWalletSerializer(wallet)
         return Response(serializer.data)
 
     @extend_schema(

@@ -552,18 +552,6 @@ CANCEL_SCHEMA = extend_schema(
 Cancels the authenticated user's subscription at the **end of the current
 billing cycle** (not immediately). The user retains access and credits until
 `billing_cycle_end`.
-
-**What happens**
-- `auto_renew` is set to `False` locally.
-- `Stripe.Subscription.modify(cancel_at_period_end=True)` is called so
-  Stripe stops attempting renewal at cycle end.
-- No credits are revoked now — `cleanup_expired_credit_buckets` handles
-  expiry at `billing_cycle_end`.
-- The `customer.subscription.deleted` webhook fires when the period ends,
-  which sets `is_active=False` on the local row.
-
-**To immediately cancel** (rare — e.g. fraud), a superadmin should cancel
-the Stripe subscription directly in the Stripe Dashboard.
 """,
     request=None,
     responses={
