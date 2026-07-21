@@ -520,6 +520,7 @@ class CreditWalletSerializer(serializers.ModelSerializer):
     # Pre-calculated percentage (0–100) so the frontend doesn't need to do math
     credit_percentage_remaining = serializers.SerializerMethodField(read_only=True)
     bucket_breakdown = serializers.SerializerMethodField(read_only=True)
+    monthly_usage_by_feature_type = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = CreditWallet
@@ -534,6 +535,7 @@ class CreditWalletSerializer(serializers.ModelSerializer):
             "monthly_credit_remaining",
             "credit_percentage_remaining",
             "bucket_breakdown",
+            "monthly_usage_by_feature_type",
             "created_at",
             "updated_at",
         ]
@@ -660,6 +662,25 @@ class CreditWalletSerializer(serializers.ModelSerializer):
             breakdown[bucket_type] = raw_remaining // CONVERSION_FACTOR
 
         return breakdown
+
+    def get_monthly_usage_by_feature_type(self, obj) -> int:
+        subscription = obj.user.subscriptions.filter(is_active=True).first()
+
+        if subscription:
+
+            start = subscription.billing_cycle_start
+            end = subscription.billing_cycle_end
+
+            logs = CreditUsageLog.objects.filter(
+                wallet=obj, created_at__range=[start, end]
+            )
+
+            by_feature = logs.values("feature").annotate(total=Sum("amount"))
+            feature_map = {item["feature"]: item["total"] for item in by_feature}
+
+            return feature_map
+
+        return None
 
     def create(self, validated_data):
         request = self.context.get("request")
