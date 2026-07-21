@@ -1,5 +1,7 @@
 "The love of God"
 
+from typing import Dict, Optional
+
 from django.db import models
 from django.db.models import F, Q, Sum
 from django.utils import timezone
@@ -520,7 +522,7 @@ class CreditWalletSerializer(serializers.ModelSerializer):
     # Pre-calculated percentage (0–100) so the frontend doesn't need to do math
     credit_percentage_remaining = serializers.SerializerMethodField(read_only=True)
     bucket_breakdown = serializers.SerializerMethodField(read_only=True)
-    monthly_usage_by_feature_type = serializers.SerializerMethodField(read_only=True)
+    feature_usage_breakdown = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = CreditWallet
@@ -535,7 +537,7 @@ class CreditWalletSerializer(serializers.ModelSerializer):
             "monthly_credit_remaining",
             "credit_percentage_remaining",
             "bucket_breakdown",
-            "monthly_usage_by_feature_type",
+            "feature_usage_breakdown",
             "created_at",
             "updated_at",
         ]
@@ -663,24 +665,35 @@ class CreditWalletSerializer(serializers.ModelSerializer):
 
         return breakdown
 
-    def get_monthly_usage_by_feature_type(self, obj) -> int:
-        subscription = obj.user.subscriptions.filter(is_active=True).first()
+    def get_feature_usage_breakdown(self, obj) -> Optional[Dict[str, int]]:
+        # subscription = obj.user.subscriptions.filter(is_active=True).first()
 
-        if subscription:
+        subscription = obj.active_subscription()
 
-            start = subscription.billing_cycle_start
-            end = subscription.billing_cycle_end
+        if not subscription:
+            return None
 
-            logs = CreditUsageLog.objects.filter(
-                wallet=obj, created_at__range=[start, end]
-            )
+        core_features = {
+            "Assignment Extraction": 0,
+            "Answer Extraction": 0,
+            "Grading Assignment": 0,
+            "Assignment Generation": 0,
+        }
 
-            by_feature = logs.values("feature").annotate(total=Sum("amount"))
-            feature_map = {item["feature"]: item["total"] for item in by_feature}
+        start = subscription.billing_cycle_start
+        end = subscription.billing_cycle_end
 
-            return feature_map
+        logs = CreditUsageLog.objects.filter(
+            wallet=obj, created_at__range=[start, end], feature__in=core_features.keys()
+        )
 
-        return None
+        by_feature = logs.values("feature").annotate(total=Sum("amount"))
+
+        for item in by_feature:
+            core_features[item["feature"]] = item["total"]
+        # feature_map = {item["feature"]: item["total"] for item in by_feature}
+
+        return core_features
 
     def create(self, validated_data):
         request = self.context.get("request")

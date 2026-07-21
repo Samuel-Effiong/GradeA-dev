@@ -6,6 +6,7 @@ from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models, transaction
 from django.utils import timezone
+from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
 from .errors import InsufficientCreditsError
@@ -586,6 +587,10 @@ class CreditWallet(models.Model):
     class Meta:
         ordering = ["-created_at"]
 
+    @cached_property
+    def active_subscription(self):
+        return self.user.subscriptions.filter(is_active=True).first
+
     def total_remaining_credits(self):
         """
         Calculates the total number of available credits across all active buckets.
@@ -964,6 +969,7 @@ class CreditUsageLog(models.Model):
         null=True,
         blank=True,
         help_text="Feature or service for which credits are being consumed",
+        db_index=True,
     )
     task_type = models.CharField(
         max_length=200, null=True, blank=True, help_text="Type of task being performed"
