@@ -82,6 +82,7 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
             "display_monthly_credits",
             "display_carry_over_max",
             "display_overage_block_size",
+            "features",
         ]
 
         extra_kwargs = {
@@ -91,6 +92,7 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
             "stripe_price_id": {"write_only": True},
             "product_id": {"write_only": True},
             "stripe_overage_price_id": {"write_only": True},
+            "features": {"read_only": True},
         }
 
     def get_features(self, obj) -> list:
