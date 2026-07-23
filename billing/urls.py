@@ -1,6 +1,7 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 
+from .billing_transaction_views import BillingTransactionViewSet
 from .license_views import LicenseSubscriptionViewSet, SchoolCreditAllocationViewSet
 from .views import (
     BetaAnalyticViewSet,
@@ -44,6 +45,7 @@ router.register(r"subscription", SubscriptionManagementViewSet, basename="subscr
 router.register(r"analytics", BetaAnalyticViewSet, basename="analytics")
 router.register(r"beta-profile", BetaProfileViewSet, basename="beta-profile")
 router.register(r"beta-chart", BetaAnaylicChartViewSet, basename="beta-chart")
+router.register(r"invoices", BillingTransactionViewSet, basename="billing-invoice")
 
 router.register(
     r"admin/credits", AdminCreditManagementViewSet, basename="admin-credits"

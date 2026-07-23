@@ -11,6 +11,7 @@ from django.core.validators import validate_email
 # from django.core.mail import send_mail
 from django.db import transaction
 from django.db.models import (
+    CharField,
     Count,
     IntegerField,
     OuterRef,
@@ -20,7 +21,8 @@ from django.db.models import (
     Sum,
     Value,
 )
-from django.db.models.functions import Coalesce, TruncMonth
+from django.db.models.functions import Coalesce, Concat, TruncMonth
+from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.utils import timezone
 
@@ -54,6 +56,7 @@ from assignments.models import Assignment
 from assignments.serializers import TaskInfoSerializer
 from AutoGrader.tasks import send_email_task
 from billing.models import CreditUsageLog
+from classrooms.permissions import IsNotStudent
 from students.models import StudentSubmission
 from students.serializers import StudentListSerializer
 from users.mixins import UserCacheMixin
@@ -81,7 +84,9 @@ from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
     ExpiredTokenSerializer,
     MonthlyTokenUsageSerializer,
     SchoolAdminSummarySerializer,
+    SchoolDetailSerializer,
     SchoolSerializer,
+    SchoolSummarySerializer,
     SchoolWithAdminResponseSerializer,
     SchoolWithAdminSerializer,
     SessionSerializer,
@@ -132,17 +137,29 @@ def _parse_row_without_headers(row):
 @extend_schema_view(
     list=extend_schema(
         tags=["School"],
-        summary="List all Schools",
-        description="Retrieve a paginated list of all Schools in the system.",
+        summary="School summary",
+        description="""
+            Returns a paginated list of all schools with aggregate stats and
+            admin info (if any).
+        """,
         parameters=[
             OpenApiParameter(
-                name="page",
-                type=OpenApiTypes.INT,
-                location=OpenApiParameter.QUERY,
-                description="Page number for pagination",
-            )
+                name="search",
+                type=str,
+                location="query",
+                description="Search by school name or admin name/email.",
+            ),
+            OpenApiParameter(
+                name="ordering",
+                type=str,
+                location="query",
+                description="""
+                    Order by field (prefix with "-" for descending).
+                    Allowed: admin_name, admin_email.
+                """,
+            ),
         ],
-        responses={200: SchoolSerializer(many=True)},
+        responses={200: SchoolSummarySerializer(many=True)},
     ),
     create=extend_schema(
         tags=["School"],
@@ -158,12 +175,9 @@ def _parse_row_without_headers(row):
     ),
     retrieve=extend_schema(
         tags=["School"],
-        summary="Retrieve a School",
-        description="Retrieve detailed information about a specific School by its ID.",
-        responses={
-            200: SchoolSerializer,
-            404: OpenApiResponse(description="School not found"),
-        },
+        summary="School detail summary",
+        description="Returns detailed stats for a specific school, including per-session breakdown.",
+        responses={200: SchoolDetailSerializer},
     ),
     partial_update=extend_schema(
         tags=["School"],
@@ -193,13 +207,19 @@ def _parse_row_without_headers(row):
 class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
     queryset = School.objects.all()
     serializer_class = SchoolSerializer
-    permission_classes = (IsSuperAdmin,)
+    permission_classes = (IsNotStudent,)
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     ordering_fields = ["name", "created_at"]
     search_fields = ["name"]
+
+    def get_permission(self):
+        if self.action in ["create", "destroy"]:
+            return [IsSuperAdmin()]
+
+        return super().get_permission()
 
     @extend_schema(
         tags=["School"],
@@ -408,6 +428,235 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
 
         return paginator.get_paginated_response(data)
+
+    def list(self, request):
+        # Base queryset: all schools
+        schools = School.objects.all()
+
+        # ---- Subqueries for aggregates ----
+        # Teachers count (direct school FK, works because teachers have school set)
+        teachers_sub = Subquery(
+            CustomUser.objects.filter(school=OuterRef("id"), user_type="TEACHER")
+            .values("school")
+            .annotate(count=Count("id"))
+            .values("count"),
+            output_field=IntegerField(),
+        )
+
+        # Students count via StudentCourse (since student.school is null)
+        students_sub = Subquery(
+            StudentCourse.objects.filter(course__teacher__school=OuterRef("id"))
+            .values("course__teacher__school")
+            .annotate(total=Count("student", distinct=True))
+            .values("total"),
+            output_field=IntegerField(),
+        )
+
+        # Tokens used (sum of raw credits consumed by teachers in the school)
+        tokens_sub = Subquery(
+            CreditUsageLog.objects.filter(
+                wallet__user__school=OuterRef("id"), wallet__user__user_type="TEACHER"
+            )
+            .values("wallet__user__school")
+            .annotate(total=Sum("amount"))
+            .values("total"),
+            output_field=IntegerField(),
+        )
+
+        # Academic sessions (count of Session records created by teachers in the school)
+        sessions_sub = Subquery(
+            Session.objects.filter(teacher__school=OuterRef("id"))
+            .values("teacher__school")
+            .annotate(count=Count("id"))
+            .values("count"),
+            output_field=IntegerField(),
+        )
+
+        # Annotate schools
+        schools = schools.annotate(
+            teachers=Coalesce(teachers_sub, Value(0)),
+            students=Coalesce(students_sub, Value(0)),
+            tokens_used=Coalesce(tokens_sub, Value(0)),
+            sessions=Coalesce(sessions_sub, Value(0)),
+        )
+
+        # ---- Prefetch the first admin for each school ----
+        admin_queryset = CustomUser.objects.filter(user_type="SCHOOL_ADMIN").order_by(
+            "date_joined"
+        )
+        schools = schools.prefetch_related(
+            Prefetch("users", queryset=admin_queryset, to_attr="school_admins")
+        )
+
+        # ---- Search ----
+        search = request.query_params.get("search", "").strip()
+        if search:
+            # Get school IDs where an admin matches the search
+            admin_school_ids = (
+                CustomUser.objects.filter(user_type="SCHOOL_ADMIN")
+                .filter(
+                    Q(first_name__icontains=search)
+                    | Q(last_name__icontains=search)
+                    | Q(email__icontains=search)
+                )
+                .exclude(school__isnull=True)
+                .values("school")
+            )  # exclude admins without school
+
+            schools = schools.filter(
+                Q(name__icontains=search) | Q(id__in=admin_school_ids)
+            )
+
+        # ---- Ordering ----
+        ordering = request.query_params.get("ordering", "school_name")
+        order_map = {
+            "school_name": "name",
+            "teachers": "teachers",
+            "students": "students",
+            "tokens_used": "tokens_used",
+            "sessions": "sessions",
+            "admin_name": "admin_name",
+            "admin_email": "admin_email",
+        }
+
+        # Handle ordering by admin_name or admin_email using subqueries
+        if ordering.lstrip("-") in ["admin_name", "admin_email"]:
+            admin_name_ord = Subquery(
+                CustomUser.objects.filter(
+                    school=OuterRef("id"), user_type="SCHOOL_ADMIN"
+                )
+                .order_by("date_joined")
+                .annotate(full_name=Concat("first_name", Value(" "), "last_name"))
+                .values("full_name")[:1],
+                output_field=CharField(),
+            )
+            admin_email_ord = Subquery(
+                CustomUser.objects.filter(
+                    school=OuterRef("id"), user_type="SCHOOL_ADMIN"
+                )
+                .order_by("date_joined")
+                .values("email")[:1],
+                output_field=CharField(),
+            )
+            schools = schools.annotate(
+                admin_name_ord=admin_name_ord, admin_email_ord=admin_email_ord
+            )
+
+            if ordering.startswith("-"):
+                if ordering[1:] == "admin_name":
+                    schools = schools.order_by("-admin_name_ord")
+                else:
+                    schools = schools.order_by("-admin_email_ord")
+            else:
+                if ordering == "admin_name":
+                    schools = schools.order_by("admin_name_ord")
+                else:
+                    schools = schools.order_by("admin_email_ord")
+        else:
+            order_field = order_map.get(ordering, "name")
+            if ordering.startswith("-"):
+                order_field = f"-{order_field}"
+            schools = schools.order_by(order_field)
+
+        # ---- Pagination ----
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(schools, request, view=self)
+
+        # ---- Build response ----
+        data = []
+        for school in page:
+            admin = school.school_admins[0] if school.school_admins else None
+            data.append(
+                {
+                    "id": str(school.id),
+                    "school_name": school.name,
+                    "address": school.address,
+                    "phone": school.phone,
+                    "website": school.website,
+                    "admin_id": str(admin.id) if admin else None,
+                    "admin_name": admin.get_full_name() if admin else None,
+                    "admin_email": admin.email if admin else None,
+                    "teachers": school.teachers,
+                    "students": school.students,
+                    "tokens_used": school.tokens_used,
+                    "sessions": school.sessions,
+                }
+            )
+
+        return paginator.get_paginated_response(data)
+
+    # @action(
+    #     detail=True,
+    #     methods=['get'],
+    #     url_path='detail-summary',
+    #     permission_classes=[IsAuthenticated, IsNotStudent]
+    # )
+    def retrieve(self, request, pk=None):
+        school = self.get_object()
+
+        # ---- Basic aggregates ----
+        teachers_count = CustomUser.objects.filter(
+            school=school, user_type="TEACHER"
+        ).count()
+        students_count = (
+            StudentCourse.objects.filter(course__teacher__school=school)
+            .values("student")
+            .distinct()
+            .count()
+        )
+        tokens_total = (
+            CreditUsageLog.objects.filter(
+                wallet__user__school=school, wallet__user__user_type="TEACHER"
+            ).aggregate(total=Sum("amount"))["total"]
+            or 0
+        )
+        sessions_total = Session.objects.filter(teacher__school=school).count()
+        courses_total = Course.objects.filter(teacher__school=school).count()
+
+        # ---- Admin info ----
+        admin = (
+            CustomUser.objects.filter(school=school, user_type="SCHOOL_ADMIN")
+            .order_by("date_joined")
+            .first()
+        )
+
+        # ---- Per‑session breakdown ----
+        sessions = Session.objects.filter(teacher__school=school).annotate(
+            assignments_count=Count("courses__assignments", distinct=True),
+            students_count=Count("courses__enrollments__student", distinct=True),
+        )
+        session_breakdown = [
+            {
+                "session_id": str(session.id),
+                "session_name": session.name,
+                "assignments": session.assignments_count,
+                "students": session.students_count,
+                "teacher": session.teacher.get_full_name(),
+            }
+            for session in sessions
+        ]
+
+        # ---- Assemble response ----
+        data = {
+            "id": str(school.id),
+            "school_name": school.name,
+            "address": school.address,
+            "phone": school.phone,
+            "website": school.website,
+            "admin_id": str(admin.id) if admin else None,
+            "admin_name": admin.get_full_name() if admin else None,
+            "admin_email": admin.email if admin else None,
+            "teachers": teachers_count,
+            "students": students_count,
+            "tokens_used": tokens_total,
+            "sessions": sessions_total,
+            "courses": courses_total,
+            "session_breakdown": session_breakdown,
+        }
+
+        serializer = SchoolDetailSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data)
 
     @extend_schema(
         tags=["School"],
@@ -637,7 +886,7 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # Aggregate monthly usage
         monthly_usage = (
             CreditUsageLog.objects.filter(
-                wallet__user_id__in=teacher_ids, created_at__gte=start_date
+                wallet__user_id__in=teacher_ids  # , created_at__gte=start_date
             )
             .annotate(month=TruncMonth("created_at"))
             .values("month")

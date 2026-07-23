@@ -613,6 +613,46 @@ class SchoolAdminSummarySerializer(serializers.Serializer):
     sessions = serializers.IntegerField()
 
 
+class SchoolSummarySerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    school_name = serializers.CharField()
+    address = serializers.CharField(required=False, allow_null=True)
+    phone = serializers.CharField(required=False, allow_null=True)
+    website = serializers.URLField(required=False, allow_null=True)
+    admin_id = serializers.UUIDField(required=False, allow_null=True)
+    admin_name = serializers.CharField(required=False, allow_null=True)
+    admin_email = serializers.EmailField(required=False, allow_null=True)
+    teachers = serializers.IntegerField()
+    students = serializers.IntegerField()
+    tokens_used = serializers.IntegerField()
+    sessions = serializers.IntegerField()
+
+
+class SessionBreakdownSerializer(serializers.Serializer):
+    session_id = serializers.UUIDField()
+    session_name = serializers.CharField()
+    assignments = serializers.IntegerField()
+    students = serializers.IntegerField()
+    teacher = serializers.CharField()
+
+
+class SchoolDetailSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    school_name = serializers.CharField()
+    address = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    phone = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    website = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    admin_id = serializers.UUIDField(required=False, allow_null=True)
+    admin_name = serializers.CharField(required=False, allow_null=True)
+    admin_email = serializers.EmailField(required=False, allow_null=True)
+    teachers = serializers.IntegerField()
+    students = serializers.IntegerField()
+    tokens_used = serializers.IntegerField()
+    sessions = serializers.IntegerField()
+    courses = serializers.IntegerField(required=False)
+    session_breakdown = SessionBreakdownSerializer(many=True, required=False)
+
+
 class TeacherSummarySerializer(serializers.Serializer):
     id = serializers.UUIDField()
     name = serializers.CharField()

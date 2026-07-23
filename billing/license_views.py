@@ -1008,7 +1008,7 @@ class SchoolCreditAllocationViewSet(viewsets.ReadOnlyModelViewSet):
 
         # School admin: filter to their school(s)
         if self.request.user.user_type == UserTypes.SCHOOL_ADMIN:
-            admin_schools = School.objects.filter(admins=self.request.user)
+            admin_schools = School.objects.filter(users=self.request.user)
             return queryset.filter(license_subscription__school__in=admin_schools)
 
         # Teachers: filter to their own allocation

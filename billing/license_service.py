@@ -33,10 +33,15 @@ from users.models import CustomUser, RegistrationMethod, UserTypes
 from users.services import otp_manager
 from users.utils import is_business_email
 
+from .billing_transaction_service import BillingTransactionService
 from .context import clear_license_invitation_context, set_license_invitation_context
 from .imports import stripe
 from .models import (  # CONVERSION_FACTOR,; UserSubscription,
     CONVERSION_FACTOR,
+    BillingTransactionMethod,
+    BillingTransactionSource,
+    BillingTransactionStatus,
+    BillingTransactionType,
     CreditBucket,
     CreditBucketType,
     CreditLedger,
@@ -1480,12 +1485,15 @@ class LicenseSubscriptionService:
                 from .stripe_service import StripeSubscriptionMutationService
 
                 StripeSubscriptionMutationService.change_license_price(
-                    license_sub, new_plan, new_custom_price_cents
+                    license_sub,
+                    new_plan,
+                    new_custom_price_cents,
+                    performed_by=performed_by,
                 )
             except ValueError as e:
                 raise ValueError(f"Stripe price change failed: {e}") from e
         else:
-            LicenseBillingRecord.objects.create(
+            billing_record = LicenseBillingRecord.objects.create(
                 license_subscription=license_sub,
                 record_type=LicenseBillingRecordType.PLAN_CHANGE_OFFLINE,
                 amount_paid_cents=new_custom_price_cents,
@@ -1494,6 +1502,19 @@ class LicenseSubscriptionService:
                     "(offline license — adjust the school's invoice accordingly)."
                 ),
                 performed_by=performed_by,
+            )
+
+            BillingTransactionService.record(
+                source=BillingTransactionSource.LICENSE,
+                transaction_type=BillingTransactionType.LICENSE_OFFLINE_PLAN_CHANGE,
+                status=BillingTransactionStatus.MANUAL,
+                billing_method=BillingTransactionMethod.OFFLINE,
+                amount_cents=new_custom_price_cents or 0,
+                license_subscription=license_sub,
+                license_billing_record=billing_record,
+                performed_by=performed_by,
+                description=f"Offline plan change {old_plan.name} -> {new_plan.name}",
+                occurred_at=timezone.now(),
             )
 
         logger.info(
@@ -1583,6 +1604,20 @@ class LicenseSubscriptionService:
                                 f"Seat increase payment failed (invoice status: {invoice['status']}). "
                                 "Seats have not been increased."
                             )
+
+                        BillingTransactionService.record(
+                            source=BillingTransactionSource.LICENSE,
+                            transaction_type=BillingTransactionType.LICENSE_SEAT_CHANGE_CHARGE,
+                            status=BillingTransactionStatus.PAID,
+                            billing_method=BillingTransactionMethod.STRIPE,
+                            amount_cents=invoice.get("amount_paid") or 0,
+                            currency=invoice.get("currency", "usd"),
+                            license_subscription=license_sub,
+                            stripe_invoice_id=latest_invoice_id,
+                            stripe_subscription_id=license_sub.stripe_subscription_id,
+                            performed_by=performed_by,
+                            description=f"Seats increased {old_seats} -> {new_max_seats}",
+                        )
             except stripe.error.StripeError as exc:
                 raise ValueError(f"Stripe error while updating seats: {exc}") from exc
 
@@ -1778,6 +1813,19 @@ class LicenseSubscriptionService:
                     "Payment requires additional authentication. Please try again."
                 )
             raise ValueError(f"Payment failed with status: {intent.status}")
+
+        BillingTransactionService.record(
+            source=BillingTransactionSource.LICENSE,
+            transaction_type=BillingTransactionType.LICENSE_OVERAGE_PURCHASE,
+            status=BillingTransactionStatus.PAID,
+            billing_method=BillingTransactionMethod.STRIPE,
+            amount_cents=total_price_cents,
+            currency="usd",
+            license_subscription=license_sub,
+            stripe_payment_intent_id=intent.id,
+            performed_by=admin_user,
+            description=f"Overage purchase — {total_blocks} block(s) across {len(allocations)} teacher(s)",
+        )
 
         # 11. Payment succeeded – grant overage buckets to each teacher
         # now = timezone.now()
@@ -1992,7 +2040,7 @@ class LicenseSubscriptionService:
             ]
         )
 
-        LicenseBillingRecord.objects.create(
+        billing_record = LicenseBillingRecord.objects.create(
             license_subscription=license_sub,
             record_type=LicenseBillingRecordType.RENEWED_OFFLINE,
             amount_paid_cents=amount_paid_cents,
@@ -2002,6 +2050,20 @@ class LicenseSubscriptionService:
             previous_billing_cycle_end=previous_cycle_end,
             new_billing_cycle_end=new_billing_cycle_end,
             performed_by=performed_by,
+        )
+
+        BillingTransactionService.record(
+            source=BillingTransactionSource.LICENSE,
+            transaction_type=BillingTransactionType.LICENSE_OFFLINE_RENEWAL,
+            status=BillingTransactionStatus.MANUAL,
+            billing_method=BillingTransactionMethod.OFFLINE,
+            amount_cents=amount_paid_cents or 0,
+            license_subscription=license_sub,
+            license_billing_record=billing_record,
+            performed_by=performed_by,
+            description=notes
+            or f"Offline renewal — cycle extended to {new_billing_cycle_end.date().isoformat()}",
+            occurred_at=timezone.now(),
         )
 
         logger.info(
@@ -2123,7 +2185,7 @@ class LicenseSubscriptionService:
             },
         )
 
-        LicenseBillingRecord.objects.create(
+        billing_record = LicenseBillingRecord.objects.create(
             license_subscription=license_sub,
             record_type=LicenseBillingRecordType.MANUAL_OVERAGE_GRANT,
             amount_paid_cents=amount_paid_cents,
@@ -2132,6 +2194,24 @@ class LicenseSubscriptionService:
             notes=notes
             or f"{blocks} overage block(s) manually granted to {teacher.email}.",
             performed_by=performed_by,
+        )
+
+        BillingTransactionService.record(
+            source=BillingTransactionSource.LICENSE,
+            transaction_type=BillingTransactionType.LICENSE_OFFLINE_MANUAL_OVERAGE_GRANT,
+            status=(
+                BillingTransactionStatus.PAID
+                if amount_paid_cents
+                else BillingTransactionStatus.MANUAL
+            ),
+            billing_method=license_sub.billing_method,
+            amount_cents=amount_paid_cents or 0,
+            license_subscription=license_sub,
+            license_billing_record=billing_record,
+            performed_by=performed_by,
+            description=notes
+            or f"Manual overage grant — {blocks} block(s) to {teacher.email}",
+            occurred_at=timezone.now(),
         )
 
         logger.info(

@@ -41,11 +41,16 @@ from django.utils.dateparse import parse_datetime
 from classrooms.models import School
 from users.models import CustomUser
 
+from .billing_transaction_service import BillingTransactionService
 from .imports import stripe
 from .license_service import LicenseSubscriptionService
 from .models import (  # CreditBucket,; CreditBucketType,; CreditLedgerType,
     PLAN_TIER_HIERARCHY,
     BillingInterval,
+    BillingTransactionMethod,
+    BillingTransactionSource,
+    BillingTransactionStatus,
+    BillingTransactionType,
     CreditLedger,
     CreditWallet,
     LicenseBillingMethod,
@@ -642,6 +647,7 @@ class StripeSubscriptionMutationService:
         # plans happen to be priced identically.
         stripe_sub_refreshed = stripe.Subscription.retrieve(stripe_subscription_id)
         latest_invoice_id = stripe_sub_refreshed.get("latest_invoice")
+        invoice = None
 
         if latest_invoice_id:
             invoice = stripe.Invoice.retrieve(
@@ -686,6 +692,20 @@ class StripeSubscriptionMutationService:
         updated_sub.stripe_status = StripeSubscriptionStatus.ACTIVE
         updated_sub.save(
             update_fields=["stripe_subscription_id", "stripe_status", "updated_at"]
+        )
+
+        BillingTransactionService.record(
+            source=BillingTransactionSource.INDIVIDUAL,
+            transaction_type=BillingTransactionType.INDIVIDUAL_UPGRADE_CHARGE,
+            status=BillingTransactionStatus.PAID,
+            billing_method=BillingTransactionMethod.STRIPE,
+            amount_cents=(invoice.get("amount_paid") if invoice else 0) or 0,
+            currency=(invoice.get("currency") if invoice else "usd") or "usd",
+            user=user_sub.user,
+            user_subscription=updated_sub,
+            stripe_invoice_id=latest_invoice_id,
+            stripe_subscription_id=stripe_subscription_id,
+            description=f"Upgrade from {old_plan.name} to {new_plan.name}",
         )
 
         logger.info(
@@ -958,6 +978,7 @@ class StripeSubscriptionMutationService:
         license_sub: LicenseSubscription,
         new_plan: SubscriptionPlan,
         new_custom_price_cents: Optional[int] = None,
+        performed_by: Optional[CustomUser] = None,
     ) -> str:
         """
         Update the Stripe subscription price for a license.
@@ -1110,6 +1131,20 @@ class StripeSubscriptionMutationService:
                         f"Upgrade payment failed (invoice status: {invoice['status']}). "
                         "Plan has not been changed."
                     )
+
+                BillingTransactionService.record(
+                    source=BillingTransactionSource.LICENSE,
+                    transaction_type=BillingTransactionType.LICENSE_PLAN_CHANGE_CHARGE,
+                    status=BillingTransactionStatus.PAID,
+                    billing_method=BillingTransactionMethod.STRIPE,
+                    amount_cents=invoice.get("amount_paid") or 0,
+                    currency=invoice.get("currency", "usd"),
+                    license_subscription=license_sub,
+                    stripe_invoice_id=latest_invoice_id,
+                    stripe_subscription_id=license_sub.stripe_subscription_id,
+                    performed_by=performed_by,
+                    description=f"License plan change to {new_plan.name}",
+                )
 
         logger.info(
             "License %s Stripe price updated: %d cents -> %d cents (proration: %s)",
@@ -2096,11 +2131,27 @@ class StripeWebhookHandler:
             )
 
         if trial_sub:
-            SubscriptionService.finalize_trial_to_paid_conversion(
+            updated_sub = SubscriptionService.finalize_trial_to_paid_conversion(
                 trial_sub=trial_sub,
                 new_plan=plan,
                 stripe_subscription_id=session["subscription"],
             )
+
+            BillingTransactionService.record(
+                source=BillingTransactionSource.INDIVIDUAL,
+                transaction_type=BillingTransactionType.INDIVIDUAL_TRIAL_CONVERSION_CHARGE,
+                status=BillingTransactionStatus.PAID,
+                billing_method=BillingTransactionMethod.STRIPE,
+                amount_cents=session.get("amount_total") or 0,
+                currency=session.get("currency", "usd"),
+                user=user,
+                user_subscription=updated_sub,
+                stripe_invoice_id=session.get("invoice"),
+                stripe_checkout_session_id=session.get("id"),
+                stripe_subscription_id=session.get("subscription"),
+                description=f"Trial converted to {plan.display_name or plan.name}",
+            )
+
             logger.info(
                 "Checkout completed: trial %s finalized to paid plan %s for "
                 "user %s. Stripe subscription: %s.",
@@ -2132,6 +2183,22 @@ class StripeWebhookHandler:
         subscription.save(
             update_fields=["stripe_subscription_id", "stripe_status", "updated_at"]
         )
+
+        BillingTransactionService.record(
+            source=BillingTransactionSource.INDIVIDUAL,
+            transaction_type=BillingTransactionType.INDIVIDUAL_SUBSCRIPTION_CHARGE,
+            status=BillingTransactionStatus.PAID,
+            billing_method=BillingTransactionMethod.STRIPE,
+            amount_cents=session.get("amount_total") or 0,
+            currency=session.get("currency", "usd"),
+            user=user,
+            user_subscription=subscription,
+            stripe_invoice_id=session.get("invoice"),
+            stripe_checkout_session_id=session.get("id"),
+            stripe_subscription_id=session.get("subscription"),
+            description=f"New subscription — {plan.display_name or plan.name}",
+        )
+
         logger.info(
             "Checkout completed: fresh activation of plan %s for user %s "
             "(no trial to finalize). Stripe subscription: %s.",
@@ -2175,6 +2242,24 @@ class StripeWebhookHandler:
                 wallet.id,
                 plan.max_overage_blocks,
             )
+
+            BillingTransactionService.record(
+                source=BillingTransactionSource.INDIVIDUAL,
+                transaction_type=BillingTransactionType.INDIVIDUAL_OVERAGE_PURCHASE,
+                status=BillingTransactionStatus.PAID,
+                billing_method=BillingTransactionMethod.STRIPE,
+                amount_cents=session.get("amount_total") or 0,
+                currency=session.get("currency", "usd"),
+                user=wallet.user,
+                stripe_invoice_id=session.get("invoice"),
+                stripe_payment_intent_id=session.get("payment_intent"),
+                stripe_checkout_session_id=session.get("id"),
+                description=(
+                    "Overage purchase paid but block cap already reached at "
+                    "grant time — credits NOT granted, needs manual refund."
+                ),
+            )
+
             return
 
         SubscriptionService.grant_overage_bucket(
@@ -2183,6 +2268,20 @@ class StripeWebhookHandler:
             expires_at=expires_at,
             quantity=quantity,
             stripe_payment_intent_id=session.get("payment_intent"),
+        )
+
+        BillingTransactionService.record(
+            source=BillingTransactionSource.INDIVIDUAL,
+            transaction_type=BillingTransactionType.INDIVIDUAL_OVERAGE_PURCHASE,
+            status=BillingTransactionStatus.PAID,
+            billing_method=BillingTransactionMethod.STRIPE,
+            amount_cents=session.get("amount_total") or 0,
+            currency=session.get("currency", "usd"),
+            user=wallet.user,
+            stripe_invoice_id=session.get("invoice"),
+            stripe_payment_intent_id=session.get("payment_intent"),
+            stripe_checkout_session_id=session.get("id"),
+            description=f"Overage purchase — {quantity} block(s) of {plan.name}",
         )
 
         logger.info(
@@ -2242,6 +2341,25 @@ class StripeWebhookHandler:
                 old_user_sub.id,
                 current_active_sub.id if current_active_sub else "none",
             )
+
+            BillingTransactionService.record(
+                source=BillingTransactionSource.INDIVIDUAL,
+                transaction_type=BillingTransactionType.INDIVIDUAL_UPGRADE_CHARGE,
+                status=BillingTransactionStatus.PAID,
+                billing_method=BillingTransactionMethod.STRIPE,
+                amount_cents=session.get("amount_total")
+                or int(metadata.get("proration_amount") or 0),
+                currency=session.get("currency", "usd"),
+                user=user,
+                stripe_payment_intent_id=session.get("payment_intent"),
+                stripe_checkout_session_id=session.get("id"),
+                stripe_subscription_id=stripe_subscription_id,
+                description=(
+                    "Upgrade checkout paid but the user's active subscription "
+                    "changed before this could be applied — needs manual review."
+                ),
+            )
+
             return
 
         is_interval_crossing = (
@@ -2267,6 +2385,22 @@ class StripeWebhookHandler:
             update_fields=["stripe_subscription_id", "stripe_status", "updated_at"]
         )
 
+        BillingTransactionService.record(
+            source=BillingTransactionSource.INDIVIDUAL,
+            transaction_type=BillingTransactionType.INDIVIDUAL_UPGRADE_CHARGE,
+            status=BillingTransactionStatus.PAID,
+            billing_method=BillingTransactionMethod.STRIPE,
+            amount_cents=session.get("amount_total")
+            or int(metadata.get("proration_amount") or 0),
+            currency=session.get("currency", "usd"),
+            user=user,
+            user_subscription=updated_sub,
+            stripe_payment_intent_id=session.get("payment_intent"),
+            stripe_checkout_session_id=session.get("id"),
+            stripe_subscription_id=stripe_subscription_id,
+            description=f"Upgrade from {old_user_sub.plan.name} to {new_plan.name}",
+        )
+
         logger.info(
             "Upgrade checkout completed for user %s: %s -> %s (subscription "
             "%s, amount_paid=%s cents).",
@@ -2288,6 +2422,22 @@ class StripeWebhookHandler:
         subscription.save(
             update_fields=["stripe_subscription_id", "stripe_status", "updated_at"]
         )
+
+        BillingTransactionService.record(
+            source=BillingTransactionSource.INDIVIDUAL,
+            transaction_type=BillingTransactionType.INDIVIDUAL_SUBSCRIPTION_CHARGE,
+            status=BillingTransactionStatus.PAID,
+            billing_method=BillingTransactionMethod.STRIPE,
+            amount_cents=session.get("amount_total") or 0,
+            currency=session.get("currency", "usd"),
+            user=user,
+            user_subscription=subscription,
+            stripe_invoice_id=session.get("invoice"),
+            stripe_checkout_session_id=session.get("id"),
+            stripe_subscription_id=session.get("subscription"),
+            description=f"New subscription — {plan.display_name or plan.name}",
+        )
+
         logger.info(
             "Stripe checkout completed: individual subscribe for user %s, plan %s.",
             user.email,
@@ -2347,6 +2497,22 @@ class StripeWebhookHandler:
                 "updated_at",
             ]
         )
+
+        BillingTransactionService.record(
+            source=BillingTransactionSource.LICENSE,
+            transaction_type=BillingTransactionType.LICENSE_INITIAL_CHARGE,
+            status=BillingTransactionStatus.PAID,
+            billing_method=BillingTransactionMethod.STRIPE,
+            amount_cents=session.get("amount_total") or 0,
+            currency=session.get("currency", "usd"),
+            user=admin_user,
+            license_subscription=license_sub,
+            stripe_invoice_id=session.get("invoice"),
+            stripe_checkout_session_id=session.get("id"),
+            stripe_subscription_id=session.get("subscription"),
+            description=f"License created — {plan.display_name or plan.name}",
+        )
+
         logger.info(
             "Stripe checkout completed: license created for school %s, plan %s.",
             school.name,
@@ -2419,6 +2585,21 @@ class StripeWebhookHandler:
             stripe_subscription_id=stripe_subscription_id,
         )
 
+        BillingTransactionService.record(
+            source=BillingTransactionSource.INDIVIDUAL,
+            transaction_type=BillingTransactionType.INDIVIDUAL_TRIAL_CONVERSION_CHARGE,
+            status=BillingTransactionStatus.PAID,
+            billing_method=BillingTransactionMethod.STRIPE,
+            amount_cents=session.get("amount_total") or 0,
+            currency=session.get("currency", "usd"),
+            user=user,
+            user_subscription=trial_sub,
+            stripe_invoice_id=session.get("invoice"),
+            stripe_checkout_session_id=session.get("id"),
+            stripe_subscription_id=stripe_subscription_id,
+            description=f"Trial converted to {new_plan.display_name or new_plan.name}",
+        )
+
         logger.info(
             "Stripe checkout completed: trial-to-paid conversion for user %s. "
             "Trial subscription: %s, New plan: %s, Stripe subscription: %s",
@@ -2463,7 +2644,7 @@ class StripeWebhookHandler:
         )
         if user_sub:
             StripeWebhookHandler._handle_individual_invoice_succeeded(
-                user_sub, billing_reason
+                user_sub, billing_reason, invoice
             )
             return
 
@@ -2484,6 +2665,25 @@ class StripeWebhookHandler:
                     license_sub.id,
                 )
                 return
+
+            txn_type = (
+                BillingTransactionType.LICENSE_PLAN_CHANGE_CHARGE
+                if billing_reason == "subscription_update"
+                else BillingTransactionType.LICENSE_SUBSCRIPTION_CHARGE
+            )
+            BillingTransactionService.record(
+                source=BillingTransactionSource.LICENSE,
+                transaction_type=txn_type,
+                status=BillingTransactionStatus.PAID,
+                billing_method=BillingTransactionMethod.STRIPE,
+                amount_cents=invoice.get("amount_paid") or 0,
+                currency=invoice.get("currency", "usd"),
+                license_subscription=license_sub,
+                stripe_invoice_id=invoice.get("id"),
+                stripe_subscription_id=stripe_subscription_id,
+                description=f"License Stripe invoice paid ({billing_reason})",
+            )
+
             # Only act on actual renewal invoices
             if billing_reason == "subscription_cycle":
                 # Renew credits - idempotent; will skip if billing_cycle_end already in future
@@ -2501,7 +2701,7 @@ class StripeWebhookHandler:
         )
 
     @staticmethod
-    def _handle_individual_invoice_succeeded(user_sub, billing_reason):
+    def _handle_individual_invoice_succeeded(user_sub, billing_reason, invoice):
         # if billing_reason != "subscription_cycle":
         #     # subscription_create is already handled by
         #     # checkout.session.completed; subscription_update (immediate
@@ -2522,10 +2722,30 @@ class StripeWebhookHandler:
             now.isoformat(),
         )
 
+        txn_type = (
+            BillingTransactionType.INDIVIDUAL_UPGRADE_CHARGE
+            if billing_reason == "subscription_update"
+            else BillingTransactionType.INDIVIDUAL_SUBSCRIPTION_CHARGE
+        )
+
         # Idempotency guard: if already renewed (billing_cycle_end > now), just update status
         if user_sub.billing_cycle_end > now:
             user_sub.stripe_status = StripeSubscriptionStatus.ACTIVE
             user_sub.save(update_fields=["stripe_status", "updated_at"])
+
+            BillingTransactionService.record(
+                source=BillingTransactionSource.INDIVIDUAL,
+                transaction_type=txn_type,
+                status=BillingTransactionStatus.PAID,
+                billing_method=BillingTransactionMethod.STRIPE,
+                amount_cents=invoice.get("amount_paid") or 0,
+                currency=invoice.get("currency", "usd"),
+                user=user_sub.user,
+                user_subscription=user_sub,
+                stripe_invoice_id=invoice.get("id"),
+                stripe_subscription_id=stripe_subscription_id,
+                description=f"Subscription invoice paid ({billing_reason})",
+            )
 
             # Ensure the Stripe price is in sync (if a pending plan exist)
             StripeSubscriptionMutationService.sync_price(
@@ -2535,6 +2755,8 @@ class StripeWebhookHandler:
 
         if user_sub.is_trial:
             # Trial just ended and the first real charge succeeded.
+
+            txn_type = BillingTransactionType.INDIVIDUAL_TRIAL_CONVERSION_CHARGE
             updated_sub = SubscriptionService.finalize_trial_conversion_via_stripe(
                 user_sub
             )
@@ -2556,6 +2778,20 @@ class StripeWebhookHandler:
             StripeSubscriptionMutationService.sync_price(
                 updated_sub, stripe_subscription_id
             )
+
+        BillingTransactionService.record(
+            source=BillingTransactionSource.INDIVIDUAL,
+            transaction_type=txn_type,
+            status=BillingTransactionStatus.PAID,
+            billing_method=BillingTransactionMethod.STRIPE,
+            amount_cents=invoice.get("amount_paid") or 0,
+            currency=invoice.get("currency", "usd"),
+            user=updated_sub.user,
+            user_subscription=updated_sub,
+            stripe_invoice_id=invoice.get("id"),
+            stripe_subscription_id=stripe_subscription_id,
+            description=f"Subscription invoice paid ({billing_reason})",
+        )
 
         updated_sub.stripe_subscription_id = stripe_subscription_id
         updated_sub.stripe_status = StripeSubscriptionStatus.ACTIVE
@@ -2591,6 +2827,26 @@ class StripeWebhookHandler:
             .first()
         )
         if user_sub:
+            billing_reason = invoice.get("billing_reason")
+            txn_type = (
+                BillingTransactionType.INDIVIDUAL_UPGRADE_CHARGE
+                if billing_reason == "subscription_update"
+                else BillingTransactionType.INDIVIDUAL_SUBSCRIPTION_CHARGE
+            )
+            BillingTransactionService.record(
+                source=BillingTransactionSource.INDIVIDUAL,
+                transaction_type=txn_type,
+                status=BillingTransactionStatus.FAILED,
+                billing_method=BillingTransactionMethod.STRIPE,
+                amount_cents=invoice.get("amount_due") or 0,
+                currency=invoice.get("currency", "usd"),
+                user=user_sub.user,
+                user_subscription=user_sub,
+                stripe_invoice_id=invoice.get("id"),
+                stripe_subscription_id=stripe_subscription_id,
+                description=f"Subscription invoice payment failed ({billing_reason})",
+            )
+
             if user_sub.is_trial:
                 # Card declined at trial end — mirrors expire_trial(), no conversion.
                 SubscriptionService.expire_trial(user_sub)
@@ -2607,6 +2863,25 @@ class StripeWebhookHandler:
             .first()
         )
         if license_sub:
+            billing_reason = invoice.get("billing_reason")
+            txn_type = (
+                BillingTransactionType.LICENSE_PLAN_CHANGE_CHARGE
+                if billing_reason == "subscription_update"
+                else BillingTransactionType.LICENSE_SUBSCRIPTION_CHARGE
+            )
+            BillingTransactionService.record(
+                source=BillingTransactionSource.LICENSE,
+                transaction_type=txn_type,
+                status=BillingTransactionStatus.FAILED,
+                billing_method=BillingTransactionMethod.STRIPE,
+                amount_cents=invoice.get("amount_due") or 0,
+                currency=invoice.get("currency", "usd"),
+                license_subscription=license_sub,
+                stripe_invoice_id=invoice.get("id"),
+                stripe_subscription_id=stripe_subscription_id,
+                description=f"License invoice payment failed ({billing_reason})",
+            )
+
             license_sub.stripe_status = StripeSubscriptionStatus.PAST_DUE
             license_sub.save(update_fields=["stripe_status", "updated_at"])
 
@@ -2656,6 +2931,11 @@ class StripeWebhookHandler:
             license_sub.is_active = False
             license_sub.stripe_status = StripeSubscriptionStatus.CANCELED
             license_sub.save(update_fields=["is_active", "stripe_status", "updated_at"])
+
+    @staticmethod
+    @transaction.atomic
+    def handle_charge_refunded(charge):
+        BillingTransactionService.handle_refund(charge)
 
     # ------------------------------------------------------------------
     # payment_intent.succeeded (overage block fallback for 3DS / requires_action)

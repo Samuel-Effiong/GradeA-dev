@@ -15,6 +15,7 @@ from .models import (
     CONVERSION_FACTOR,
     BetaProfile,
     BillingInterval,
+    BillingTransaction,
     CreditBucket,
     CreditBucketType,
     CreditLedger,
@@ -1917,3 +1918,49 @@ class PlanChangeResultSerializer(serializers.Serializer):
     pending_plan = SubscriptionPlanSerializer(required=False, allow_null=True)
     effective_date = serializers.DateTimeField(required=False, allow_null=True)
     recommended_plan = SubscriptionPlanSerializer(required=False, allow_null=True)
+
+
+class BillingTransactionSerializer(serializers.ModelSerializer):
+    display_amount = serializers.SerializerMethodField()
+    display_refunded_amount = serializers.SerializerMethodField()
+    school_name = serializers.CharField(
+        source="school.name", read_only=True, allow_null=True
+    )
+    performed_by_email = serializers.EmailField(
+        source="performed_by.email", read_only=True, allow_null=True
+    )
+
+    class Meta:
+        model = BillingTransaction
+        fields = [
+            "id",
+            "source",
+            "transaction_type",
+            "status",
+            "billing_method",
+            "amount_cents",
+            "display_amount",
+            "refunded_amount_cents",
+            "display_refunded_amount",
+            "currency",
+            "user",
+            "user_subscription",
+            "license_subscription",
+            "school",
+            "school_name",
+            "stripe_invoice_id",
+            "stripe_payment_intent_id",
+            "stripe_checkout_session_id",
+            "stripe_charge_id",
+            "description",
+            "performed_by_email",
+            "occurred_at",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+    def get_display_amount(self, obj) -> float:
+        return obj.display_amount
+
+    def get_display_refunded_amount(self, obj) -> float:
+        return obj.display_refunded_amount

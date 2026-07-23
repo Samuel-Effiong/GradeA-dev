@@ -1353,3 +1353,223 @@ class StripeEvent(models.Model):
 
     class Meta:
         ordering = ["-processed_at"]
+
+
+class BillingTransactionSource(models.TextChoices):
+    INDIVIDUAL = "INDIVIDUAL", _("Individual")
+    LICENSE = "LICENSE", _("License")
+
+
+class BillingTransactionType(models.TextChoices):
+    INDIVIDUAL_SUBSCRIPTION_CHARGE = "INDIVIDUAL_SUBSCRIPTION_CHARGE", _(
+        "Individual Subscription Charge"
+    )
+    INDIVIDUAL_TRIAL_CONVERSION_CHARGE = "INDIVIDUAL_TRIAL_CONVERSION_CHARGE", _(
+        "Trial Conversion Charge"
+    )
+    INDIVIDUAL_UPGRADE_CHARGE = "INDIVIDUAL_UPGRADE_CHARGE", _(
+        "Individual Upgrade Charge"
+    )
+    INDIVIDUAL_OVERAGE_PURCHASE = "INDIVIDUAL_OVERAGE_PURCHASE", _(
+        "Individual Overage Purchase"
+    )
+    LICENSE_INITIAL_CHARGE = "LICENSE_INITIAL_CHARGE", _("License Initial Charge")
+    LICENSE_SUBSCRIPTION_CHARGE = "LICENSE_SUBSCRIPTION_CHARGE", _(
+        "License Renewal Charge"
+    )
+    LICENSE_PLAN_CHANGE_CHARGE = "LICENSE_PLAN_CHANGE_CHARGE", _(
+        "License Plan Change Charge"
+    )
+    LICENSE_SEAT_CHANGE_CHARGE = "LICENSE_SEAT_CHANGE_CHARGE", _(
+        "License Seat Increase Charge"
+    )
+    LICENSE_OVERAGE_PURCHASE = "LICENSE_OVERAGE_PURCHASE", _("License Overage Purchase")
+    LICENSE_OFFLINE_RENEWAL = "LICENSE_OFFLINE_RENEWAL", _("License Offline Renewal")
+    LICENSE_OFFLINE_PLAN_CHANGE = "LICENSE_OFFLINE_PLAN_CHANGE", _(
+        "License Offline Plan Change"
+    )
+    LICENSE_OFFLINE_MANUAL_OVERAGE_GRANT = "LICENSE_OFFLINE_MANUAL_OVERAGE_GRANT", _(
+        "Manual Overage Grant"
+    )
+    OTHER = "OTHER", _("Other")
+
+
+class BillingTransactionStatus(models.TextChoices):
+    PENDING = "PENDING", _("Pending")
+    PAID = "PAID", _("Paid")
+    FAILED = "FAILED", _("Failed")
+    REFUNDED = "REFUNDED", _("Refunded")
+    PARTIALLY_REFUNDED = "PARTIALLY_REFUNDED", _("Partially Refunded")
+    VOIDED = "VOIDED", _("Voided")
+    MANUAL = "MANUAL", _("Recorded Manually (Offline)")
+
+
+class BillingTransactionMethod(models.TextChoices):
+    STRIPE = "STRIPE", _("Stripe")
+    OFFLINE = "OFFLINE", _("Offline")
+
+
+class BillingTransaction(models.Model):
+    """
+    Unified, money-only ledger across BOTH the INDIVIDUAL and LICENSE
+    billing tracks — subscription charges, upgrades, overage purchases,
+    refunds, and offline (manually recorded) license events. Backs the
+    single GET /billing/invoices/ endpoint.
+
+    Distinct from CreditLedger (credit movements, not money) and from
+    LicenseBillingRecord (offline-license-only accounting notes, no
+    Stripe-billed coverage). This table is the superset "what did money
+    do" view across both.
+
+    Rows are upserted — never duplicated — via
+    BillingTransactionService.record(), keyed on whichever identifier is
+    most specific: stripe_invoice_id, else stripe_payment_intent_id, else
+    license_billing_record. See the unique constraints below; they are
+    the DB-level backstop for that same idempotency guarantee.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    source = models.CharField(max_length=20, choices=BillingTransactionSource.choices)
+    transaction_type = models.CharField(
+        max_length=50, choices=BillingTransactionType.choices
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=BillingTransactionStatus.choices,
+        default=BillingTransactionStatus.PENDING,
+    )
+    billing_method = models.CharField(
+        max_length=20,
+        choices=BillingTransactionMethod.choices,
+        default=BillingTransactionMethod.STRIPE,
+    )
+
+    # --- Ownership / linkage ---
+    user = models.ForeignKey(
+        "users.CustomUser",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="billing_transactions",
+        help_text="For INDIVIDUAL transactions, the subscriber. For "
+        "LICENSE transactions, the admin who initiated the action (if "
+        "any) — the school is the real owner, tracked via `school`.",
+    )
+    user_subscription = models.ForeignKey(
+        UserSubscription,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="billing_transactions",
+    )
+    license_subscription = models.ForeignKey(
+        LicenseSubscription,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="billing_transactions",
+    )
+    school = models.ForeignKey(
+        "classrooms.School",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="billing_transactions",
+        help_text="Denormalized from license_subscription at write time "
+        "so history survives the license row changing, and permission "
+        "checks don't need an extra join.",
+    )
+
+    # --- Money ---
+    amount_cents = models.IntegerField(
+        default=0, help_text="Gross amount charged/recorded, in cents."
+    )
+    refunded_amount_cents = models.IntegerField(default=0)
+    currency = models.CharField(max_length=10, default="usd")
+
+    # --- Stripe references ---
+    stripe_invoice_id = models.CharField(
+        max_length=255, null=True, blank=True, db_index=True
+    )
+    stripe_payment_intent_id = models.CharField(
+        max_length=255, null=True, blank=True, db_index=True
+    )
+    stripe_checkout_session_id = models.CharField(
+        max_length=255, null=True, blank=True, db_index=True
+    )
+    stripe_charge_id = models.CharField(
+        max_length=255, null=True, blank=True, db_index=True
+    )
+    stripe_subscription_id = models.CharField(
+        max_length=255, null=True, blank=True, db_index=True
+    )
+
+    # --- Offline reference ---
+    license_billing_record = models.ForeignKey(
+        LicenseBillingRecord,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="billing_transactions",
+        help_text="Set for OFFLINE license events — links back to the "
+        "detailed LicenseBillingRecord (payment reference, notes, etc).",
+    )
+
+    description = models.CharField(max_length=255, blank=True)
+    metadata = models.JSONField(null=True, blank=True)
+
+    performed_by = models.ForeignKey(
+        "users.CustomUser",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="performed_billing_transactions",
+        help_text="The admin/superadmin who performed this action, for "
+        "manual/offline events. Null for customer- or webhook-driven ones.",
+    )
+
+    occurred_at = models.DateTimeField(
+        db_index=True,
+        help_text="When the underlying billing event actually happened "
+        "(may predate created_at for backfilled rows).",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-occurred_at"]
+        indexes = [
+            models.Index(fields=["user", "occurred_at"]),
+            models.Index(fields=["license_subscription", "occurred_at"]),
+            models.Index(fields=["school", "occurred_at"]),
+            models.Index(fields=["source", "transaction_type"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["stripe_invoice_id"],
+                condition=models.Q(stripe_invoice_id__isnull=False),
+                name="uniq_billing_txn_stripe_invoice",
+            ),
+            models.UniqueConstraint(
+                fields=["stripe_payment_intent_id"],
+                condition=models.Q(stripe_payment_intent_id__isnull=False),
+                name="uniq_billing_txn_payment_intent",
+            ),
+            models.UniqueConstraint(
+                fields=["license_billing_record"],
+                condition=models.Q(license_billing_record__isnull=False),
+                name="uniq_billing_txn_license_billing_record",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.transaction_type} — {self.amount_cents / 100:.2f} {self.currency.upper()} ({self.status})"
+
+    @property
+    def display_amount(self):
+        return round(self.amount_cents / 100, 2)
+
+    @property
+    def display_refunded_amount(self):
+        return round(self.refunded_amount_cents / 100, 2)
