@@ -671,7 +671,7 @@ class CreditWalletSerializer(serializers.ModelSerializer):
     def get_feature_usage_breakdown(self, obj) -> Optional[Dict[str, int]]:
         # subscription = obj.user.subscriptions.filter(is_active=True).first()
 
-        subscription = obj.active_subscription()
+        subscription = obj.active_subscription
 
         if not subscription:
             return None

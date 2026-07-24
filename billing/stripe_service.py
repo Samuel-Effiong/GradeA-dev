@@ -28,6 +28,8 @@ Classes:
                               verification + idempotency.
 """
 
+
+import re
 import logging
 from typing import Optional
 
@@ -1241,6 +1243,11 @@ class StripeSubscriptionScheduleService:
     fixes.
     """
 
+    _SCHEDULE_CONFLICT_RE = re.compile(
+        r"already attached to a schedule:\s*`(sub_sched_[A-Za-z0-9]+)`"
+    )
+
+
     @staticmethod
     def schedule_plan_change_on_stripe(user_sub, new_plan):
         """
@@ -1287,6 +1294,7 @@ class StripeSubscriptionScheduleService:
             ValueError: If `new_plan` has no stripe_price_id configured, or
                 if the Stripe API call fails for any other reason.
         """
+        
         if not new_plan.stripe_price_id:
             raise ValueError(f"Plan {new_plan.name} has no stripe_price_id configured.")
 
