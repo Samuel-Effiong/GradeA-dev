@@ -659,6 +659,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                 )
 
             had_pending_change = bool(user_subscription.pending_plan_id)
+            had_stripe_schedule = bool(user_subscription.stripe_schedule_id)
             was_already_not_renewing = (
                 not user_subscription.auto_renew
                 and not had_pending_change
@@ -728,6 +729,10 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                     "pending_change_note",
                     "stripe_schedule_id",
                 ]
+
+            if had_stripe_schedule and schedule_released:
+                user_subscription.stripe_schedule_id = None
+                update_fields.append("stripe_schedule_id")
 
             if update_fields:
                 update_fields.append("updated_at")

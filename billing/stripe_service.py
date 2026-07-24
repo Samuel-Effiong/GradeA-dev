@@ -28,9 +28,8 @@ Classes:
                               verification + idempotency.
 """
 
-
-import re
 import logging
+import re
 from typing import Optional
 
 from django.core.cache import cache
@@ -1247,7 +1246,6 @@ class StripeSubscriptionScheduleService:
         r"already attached to a schedule:\s*`(sub_sched_[A-Za-z0-9]+)`"
     )
 
-
     @staticmethod
     def schedule_plan_change_on_stripe(user_sub, new_plan):
         """
@@ -1294,7 +1292,7 @@ class StripeSubscriptionScheduleService:
             ValueError: If `new_plan` has no stripe_price_id configured, or
                 if the Stripe API call fails for any other reason.
         """
-        
+
         if not new_plan.stripe_price_id:
             raise ValueError(f"Plan {new_plan.name} has no stripe_price_id configured.")
 
@@ -1307,21 +1305,18 @@ class StripeSubscriptionScheduleService:
 
         billing_cycle_end_ts = int(user_sub.billing_cycle_end.timestamp())
 
-        try:
-            if user_sub.stripe_schedule_id:
+        if user_sub.stripe_schedule_id:
+            schedule = None
+            try:
+                schedule = stripe.SubscriptionSchedule.retrieve(
+                    user_sub.stripe_schedule_id
+                )
+            except stripe.error.InvalidRequestError:
                 schedule = None
-                try:
-                    schedule = stripe.SubscriptionSchedule.retrieve(
-                        user_sub.stripe_schedule_id
-                    )
-                except stripe.error.InvalidRequestError:
-                    # Schedule no longer exists / invalid reference —
-                    # treat as "nothing to reuse", fall through to create
-                    # a fresh one below.
-                    schedule = None
 
-                if schedule and schedule.get("status") in ("not_started", "active"):
-                    phase_zero_start = schedule["phases"][0]["start_date"]
+            if schedule and schedule.get("status") in ("not_started", "active"):
+                phase_zero_start = schedule["phases"][0]["start_date"]
+                try:
                     stripe.SubscriptionSchedule.modify(
                         user_sub.stripe_schedule_id,
                         end_behavior="release",
@@ -1342,48 +1337,111 @@ class StripeSubscriptionScheduleService:
                             },
                         ],
                     )
-                    logger.info(
-                        "Updated existing Stripe schedule %s for subscription "
-                        "%s: phase 2 now %s, effective %s.",
-                        user_sub.stripe_schedule_id,
-                        user_sub.id,
-                        new_plan.name,
-                        user_sub.billing_cycle_end.isoformat(),
-                    )
-                    return user_sub.stripe_schedule_id
-                # Existing reference is stale/terminal (released, completed,
-                # canceled, or gone) — fall through to create a fresh one.
+                except stripe.error.StripeError as exc:
+                    raise ValueError(
+                        f"Could not update the existing scheduled change on "
+                        f"Stripe: {getattr(exc, 'user_message', None) or str(exc)}"
+                    ) from exc
+                logger.info(
+                    "Updated existing Stripe schedule %s for subscription "
+                    "%s: phase 2 now %s, effective %s.",
+                    user_sub.stripe_schedule_id,
+                    user_sub.id,
+                    new_plan.name,
+                    user_sub.billing_cycle_end.isoformat(),
+                )
+                return user_sub.stripe_schedule_id
+            # Existing reference is stale/terminal (released, completed,
+            # canceled, or gone) — fall through to create a fresh one.
 
-            schedule = stripe.SubscriptionSchedule.create(
-                from_subscription=user_sub.stripe_subscription_id
+        try:
+            return StripeSubscriptionScheduleService._create_fresh_schedule(
+                user_sub, new_plan, current_price_id, billing_cycle_end_ts
             )
-            stripe.SubscriptionSchedule.modify(
-                schedule.id,
-                end_behavior="release",
-                phases=[
-                    {
-                        "items": [{"price": current_price_id, "quantity": 1}],
-                        "start_date": schedule["phases"][0]["start_date"],
-                        "end_date": billing_cycle_end_ts,
-                        "proration_behavior": "none",
-                    },
-                    {
-                        "items": [{"price": new_plan.stripe_price_id, "quantity": 1}],
-                        "start_date": billing_cycle_end_ts,
-                        "proration_behavior": "none",
-                        "billing_cycle_anchor": "phase_start",
-                    },
-                ],
+        except stripe.error.InvalidRequestError as exc:
+            stale_schedule_id = (
+                StripeSubscriptionScheduleService._extract_conflicting_schedule_id(exc)
             )
+            if not stale_schedule_id:
+                raise ValueError(
+                    f"Could not schedule the plan change on Stripe: "
+                    f"{getattr(exc, 'user_message', None) or str(exc)}"
+                ) from exc
+
+            logger.warning(
+                "Subscription %s is attached to Stripe schedule %s that "
+                "our local record (stripe_schedule_id=%r) didn't know "
+                "about — releasing it and retrying schedule creation "
+                "once. This points to a gap elsewhere that cleared "
+                "stripe_schedule_id without releasing the Stripe-side "
+                "schedule; worth investigating if this fires repeatedly.",
+                user_sub.id,
+                stale_schedule_id,
+                user_sub.stripe_schedule_id,
+            )
+
+            try:
+                stripe.SubscriptionSchedule.release(stale_schedule_id)
+            except stripe.error.StripeError as release_exc:
+                raise ValueError(
+                    f"Could not schedule the plan change on Stripe: a "
+                    f"stale schedule ({stale_schedule_id}) is attached "
+                    f"and could not be released automatically: "
+                    f"{getattr(release_exc, 'user_message', None) or str(release_exc)}"
+                ) from release_exc
+
+            try:
+                return StripeSubscriptionScheduleService._create_fresh_schedule(
+                    user_sub, new_plan, current_price_id, billing_cycle_end_ts
+                )
+            except stripe.error.StripeError as retry_exc:
+                raise ValueError(
+                    f"Could not schedule the plan change on Stripe even "
+                    f"after releasing stale schedule {stale_schedule_id}: "
+                    f"{getattr(retry_exc, 'user_message', None) or str(retry_exc)}"
+                ) from retry_exc
         except stripe.error.StripeError as exc:
             raise ValueError(
                 f"Could not schedule the plan change on Stripe: "
                 f"{getattr(exc, 'user_message', None) or str(exc)}"
             ) from exc
 
+    staticmethod
+
+    def _create_fresh_schedule(
+        user_sub, new_plan, current_price_id, billing_cycle_end_ts
+    ):
+        """
+        Creates a brand-new two-phase SubscriptionSchedule from
+        `user_sub`'s Stripe subscription and returns its ID. Factored out
+        of schedule_plan_change_on_stripe so the stale-schedule retry
+        path there can call this exact logic a second time without
+        duplicating it.
+        """
+        schedule = stripe.SubscriptionSchedule.create(
+            from_subscription=user_sub.stripe_subscription_id
+        )
+        stripe.SubscriptionSchedule.modify(
+            schedule.id,
+            end_behavior="release",
+            phases=[
+                {
+                    "items": [{"price": current_price_id, "quantity": 1}],
+                    "start_date": schedule["phases"][0]["start_date"],
+                    "end_date": billing_cycle_end_ts,
+                    "proration_behavior": "none",
+                },
+                {
+                    "items": [{"price": new_plan.stripe_price_id, "quantity": 1}],
+                    "start_date": billing_cycle_end_ts,
+                    "proration_behavior": "none",
+                    "billing_cycle_anchor": "phase_start",
+                },
+            ],
+        )
         logger.info(
-            "Created new Stripe schedule %s for subscription %s: %s until "
-            "%s, then %s.",
+            "Created new Stripe schedule %s for subscription %s: %s "
+            "until %s, then %s.",
             schedule.id,
             user_sub.id,
             user_sub.plan.name,
@@ -1391,6 +1449,21 @@ class StripeSubscriptionScheduleService:
             new_plan.name,
         )
         return schedule.id
+
+    @staticmethod
+    def _extract_conflicting_schedule_id(exc):
+        """
+        Best-effort parse of Stripe's "already attached to a schedule"
+        InvalidRequestError to pull out the conflicting schedule ID, e.g.
+        from: "You cannot migrate a subscription that is already
+        attached to a schedule: `sub_sched_1TweTwCsz2K1DeokqKVwQNTH`."
+        Returns None if the message doesn't match this specific shape —
+        callers should treat that as "not an error we know how to
+        recover from" and re-raise normally rather than guess.
+        """
+        message = getattr(exc, "user_message", None) or str(exc)
+        match = StripeSubscriptionScheduleService._SCHEDULE_CONFLICT_RE.search(message)
+        return match.group(1) if match else None
 
     @staticmethod
     def release_schedule(user_sub):
