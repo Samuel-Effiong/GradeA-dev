@@ -612,6 +612,9 @@ class StripeSubscriptionMutationService:
         old_plan = user_sub.plan
         stripe_subscription_id = user_sub.stripe_subscription_id
 
+        if user_sub.stripe_schedule_id:
+            StripeSubscriptionScheduleService.release_schedule(user_sub)
+
         try:
             stripe_sub = stripe.Subscription.retrieve(user_sub.stripe_subscription_id)
         except stripe.error.StripeError as exc:
@@ -874,6 +877,9 @@ class StripeSubscriptionMutationService:
             user_sub.plan.interval == BillingInterval.MONTHLY
             and new_plan.interval == BillingInterval.ANNUAL
         )
+
+        if user_sub.stripe_schedule_id:
+            StripeSubscriptionScheduleService.release_schedule(user_sub)
 
         try:
             stripe.Subscription.modify(
@@ -1481,8 +1487,8 @@ class StripeOverageService:
         if plan.max_overage_blocks <= 0 or plan.overage_block_price <= 0:
             raise ValueError("This plan does not support overage credit purchases.")
 
-        if wallet.overage_blocks_used >= plan.max_overage_blocks:
-            raise ValueError("Maximum overage blocks reached for this billing cycle.")
+        # if wallet.overage_blocks_used >= plan.max_overage_blocks:
+        #     raise ValueError("Maximum overage blocks reached for this billing cycle.")
 
         expires_at = user_sub.next_credit_grant_at or user_sub.billing_cycle_end
         customer_id = StripeCustomerService.get_or_create_customer(user)
@@ -1525,7 +1531,7 @@ class StripeOverageService:
     @staticmethod
     @transaction.atomic
     def purchase_overage_block(user):
-        # FIXME: DEPRECATED
+        # FIXME: DEPRECATED AND DELETE with every dependencies
         """
         Charges the customer's default payment method synchronously via a
         PaymentIntent. The user is present and just clicked "buy" — this is
@@ -2231,36 +2237,36 @@ class StripeWebhookHandler:
         expires_at = parse_datetime(metadata["overage_expires_at"])
         quantity = int(metadata["quantity"])
 
-        if wallet.overage_blocks_used >= plan.max_overage_blocks:
-            logger.error(
-                "Overage checkout session %s completed for wallet %s but "
-                "the block cap (%d) was already reached by the time "
-                "payment was confirmed — credits NOT granted. Needs "
-                "manual reconciliation (refund the payment via the Stripe "
-                "dashboard).",
-                session["id"],
-                wallet.id,
-                plan.max_overage_blocks,
-            )
+        # if wallet.overage_blocks_used >= plan.max_overage_blocks:
+        #     logger.error(
+        #         "Overage checkout session %s completed for wallet %s but "
+        #         "the block cap (%d) was already reached by the time "
+        #         "payment was confirmed — credits NOT granted. Needs "
+        #         "manual reconciliation (refund the payment via the Stripe "
+        #         "dashboard).",
+        #         session["id"],
+        #         wallet.id,
+        #         plan.max_overage_blocks,
+        #     )
 
-            BillingTransactionService.record(
-                source=BillingTransactionSource.INDIVIDUAL,
-                transaction_type=BillingTransactionType.INDIVIDUAL_OVERAGE_PURCHASE,
-                status=BillingTransactionStatus.PAID,
-                billing_method=BillingTransactionMethod.STRIPE,
-                amount_cents=session.get("amount_total") or 0,
-                currency=session.get("currency", "usd"),
-                user=wallet.user,
-                stripe_invoice_id=session.get("invoice"),
-                stripe_payment_intent_id=session.get("payment_intent"),
-                stripe_checkout_session_id=session.get("id"),
-                description=(
-                    "Overage purchase paid but block cap already reached at "
-                    "grant time — credits NOT granted, needs manual refund."
-                ),
-            )
+        #     BillingTransactionService.record(
+        #         source=BillingTransactionSource.INDIVIDUAL,
+        #         transaction_type=BillingTransactionType.INDIVIDUAL_OVERAGE_PURCHASE,
+        #         status=BillingTransactionStatus.PAID,
+        #         billing_method=BillingTransactionMethod.STRIPE,
+        #         amount_cents=session.get("amount_total") or 0,
+        #         currency=session.get("currency", "usd"),
+        #         user=wallet.user,
+        #         stripe_invoice_id=session.get("invoice"),
+        #         stripe_payment_intent_id=session.get("payment_intent"),
+        #         stripe_checkout_session_id=session.get("id"),
+        #         description=(
+        #             "Overage purchase paid but block cap already reached at "
+        #             "grant time — credits NOT granted, needs manual refund."
+        #         ),
+        #     )
 
-            return
+        #     return
 
         SubscriptionService.grant_overage_bucket(
             wallet=wallet,
@@ -2366,6 +2372,9 @@ class StripeWebhookHandler:
             old_user_sub.plan.interval == BillingInterval.MONTHLY
             and new_plan.interval == BillingInterval.ANNUAL
         )
+
+        if old_user_sub.stripe_schedule_id:
+            StripeSubscriptionScheduleService.release_schedule(old_user_sub)
 
         stripe.Subscription.modify(
             stripe_subscription_id,
@@ -2979,7 +2988,7 @@ class StripeWebhookHandler:
                 return
 
             try:
-                SubscriptionPlan.objects.get(id=plan_id)
+                plan = SubscriptionPlan.objects.get(id=plan_id)
             except SubscriptionPlan.DoesNotExist:
                 # SubscriptionPlan is on_delete=PROTECT everywhere it's
                 # referenced, so this should be effectively unreachable —
@@ -3003,6 +3012,20 @@ class StripeWebhookHandler:
                     expires_at_raw,
                 )
                 return
+
+            SubscriptionService.grant_overage_bucket(
+                wallet=wallet,
+                plan=plan,
+                expires_at=expires_at,
+                stripe_payment_intent_id=payment_intent["id"],
+            )
+            logger.info(
+                "Overage PaymentIntent %s succeeded (snapshotted metadata "
+                "path): granted overage bucket for plan %s to wallet %s.",
+                payment_intent["id"],
+                plan.name,
+                wallet.id,
+            )
 
         # --- Legacy fallback: PaymentIntents created before this
         # metadata-snapshotting change went out won't have plan_id /

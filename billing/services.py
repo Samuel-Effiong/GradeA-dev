@@ -989,7 +989,7 @@ class SubscriptionService:
             user=wallet.user,
             bucket=new_bucket,
             ledger_type=CreditLedgerType.PURCHASE,
-            amount=plan.overage_block_size,
+            amount=plan.overage_block_size * quantity,
             reference=f"Overage Block #{wallet.overage_blocks_used} purchased",
             metadata={
                 "price_charged": str(plan.overage_block_price),
@@ -1070,7 +1070,7 @@ class SubscriptionService:
             ]
         )
 
-        wallet.overage_block_used = 0
+        wallet.overage_blocks_used = 0
         wallet.save(update_fields=["overage_blocks_used", "updated_at"])
 
         bucket = CreditBucket.objects.create(

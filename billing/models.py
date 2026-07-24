@@ -589,7 +589,7 @@ class CreditWallet(models.Model):
 
     @cached_property
     def active_subscription(self):
-        return self.user.subscriptions.filter(is_active=True).first
+        return self.user.subscriptions.filter(is_active=True).first()
 
     def total_remaining_credits(self):
         """
@@ -1344,9 +1344,7 @@ class StripeEvent(models.Model):
     """Idempotency ledger for Stripe webhook events - see billing/webhooks.py"""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    stripe_event_id = models.CharField(
-        max_length=255, null=True, blank=True, db_index=True
-    )
+    stripe_event_id = models.CharField(max_length=255, unique=True, db_index=True)
     event_type = models.CharField(max_length=100)
     payload = models.JSONField(null=True, blank=True)
     processed_at = models.DateTimeField(auto_now_add=True)
