@@ -1,5 +1,6 @@
 "The love of God"
 
+import uuid
 from typing import Dict, Optional
 
 from django.db import models
@@ -52,7 +53,7 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
     """
 
     display_monthly_credits = serializers.ReadOnlyField()
-    display_carry_over_max = serializers.ReadOnlyField()
+    display_max_blank = serializers.ReadOnlyField()
     display_overage_block_size = serializers.ReadOnlyField()
 
     price_id = serializers.CharField(source="stripe_price_id", read_only=True)
@@ -81,14 +82,14 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
             "max_overage_blocks",
             "is_active",
             "display_monthly_credits",
-            "display_carry_over_max",
+            "display_max_bank",
             "display_overage_block_size",
             "features",
         ]
 
         extra_kwargs = {
             "monthly_credits": {"write_only": True},
-            "carry_over_max": {"write_only": True},
+            "max_bank": {"write_only": True},
             "overage_block_size": {"write_only": True},
             "stripe_price_id": {"write_only": True},
             "product_id": {"write_only": True},
@@ -104,11 +105,6 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
     @extend_schema_field(int)
     def get_display_monthly_credits(self, obj) -> int:
         return obj.display_monthly_credits
-
-    def get_display_carry_over_max(
-        self, obj
-    ) -> int:  # Adjust to str if it's formatted as string
-        return obj.display_carry_over_max
 
     def get_display_overage_block_size(
         self, obj
@@ -1805,6 +1801,75 @@ class ManualTeacherOverageGrantSerializer(serializers.Serializer):
         required=False, allow_null=True, allow_blank=True, max_length=100
     )
     notes = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+
+
+class PurchaseLicenseOverageSerializer(serializers.Serializer):
+    total_blocks = serializers.IntegerField(min_value=1)
+    allocations = serializers.DictField(
+        child=serializers.IntegerField(min_value=1),
+        help_text="Mapping of teacher UUID (string) to number of blocks to allocate.",
+    )
+    success_url = serializers.URLField(
+        required=False,
+        allow_null=True,
+        help_text=(
+            "Required if you are the school admin (routes through Stripe "
+            "Checkout). Ignored for super admin grants."
+        ),
+    )
+    cancel_url = serializers.URLField(required=False, allow_null=True)
+
+    def validate_allocations(self, value):
+        clean = {}
+        for teacher_id, blocks in value.items():
+            try:
+                uuid.UUID(str(teacher_id))
+            except (ValueError, TypeError, AttributeError) as exc:
+                raise serializers.ValidationError(
+                    f"{teacher_id!r} is not a valid teacher UUID."
+                ) from exc
+            clean[str(teacher_id)] = int(blocks)
+        return clean
+
+    def validate(self, attrs):
+        allocations = attrs.get("allocations") or {}
+        total_blocks = attrs.get("total_blocks")
+        allocated_sum = sum(allocations.values())
+        if allocated_sum != total_blocks:
+            raise serializers.ValidationError(
+                {
+                    "allocations": (
+                        f"Sum of allocated blocks ({allocated_sum}) must "
+                        f"equal total_blocks ({total_blocks})."
+                    )
+                }
+            )
+        return attrs
+
+
+class LicenseOveragePurchaseResultSerializer(serializers.Serializer):
+    """
+    Discriminated response — see `action`:
+      "checkout" -> school admin path. Redirect to `checkout_url`; nothing
+                    has been granted yet.
+      "granted"  -> super admin path. `allocations` reflects what was
+                    already credited, right now, with no Stripe charge.
+    """
+
+    action = serializers.ChoiceField(choices=["checkout", "granted"])
+    message = serializers.CharField()
+
+    # action == "checkout"
+    checkout_url = serializers.URLField(required=False, allow_null=True)
+    checkout_session_id = serializers.CharField(required=False, allow_null=True)
+    intent_id = serializers.UUIDField(required=False, allow_null=True)
+    amount_cents = serializers.IntegerField(required=False, allow_null=True)
+
+    # both actions
+    total_blocks = serializers.IntegerField(required=False)
+
+    # action == "granted"
+    allocations = serializers.ListField(required=False)
 
 
 class ConvertToOfflineSerializer(serializers.Serializer):

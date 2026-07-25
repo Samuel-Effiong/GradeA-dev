@@ -31,7 +31,7 @@ from .serializers import BillingTransactionSerializer
         ),
     ),
     retrieve=extend_schema(
-        tags=["Billing Transactions"], summary="Retrieve a single billing transaction"
+        tags=["Subscription — Stripe"], summary="Retrieve a single billing transaction"
     ),
 )
 class BillingTransactionViewSet(viewsets.ReadOnlyModelViewSet):

@@ -1,3 +1,4 @@
+import logging
 import math
 import uuid
 from decimal import Decimal
@@ -16,6 +17,7 @@ from .errors import InsufficientCreditsError
 # Create your models here.
 
 CONVERSION_FACTOR = 1000
+logger = logging.getLogger(__name__)
 
 
 class StripeSubscriptionStatus(models.TextChoices):
@@ -315,9 +317,22 @@ class SubscriptionPlan(models.Model):
         help_text="Percentage of unused credits to carry over (e.g. 25.00 for 25%)",
     )
 
-    carry_over_max = models.PositiveIntegerField(
-        default=0,
-        help_text="Maximum raw credits that can be carried over (display value × 1000)",
+    # carry_over_max = models.PositiveIntegerField(
+    #     default=0,
+    #     help_text="Maximum raw credits that can be carried over (display value × 1000)",
+    # )
+
+    max_bank = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text=(
+            "Ceiling on a user's total LIVE banked balance — MONTHLY + "
+            "CARRY_OVER buckets combined (raw credits, display value × "
+            "1000). OVERAGE and MANUAL_GRANT credits are exempt and never "
+            "counted against this. Null = no cap. At every rollover point, "
+            "the carryover portion (never the monthly grant) is trimmed so "
+            "the combined live total never exceeds this value."
+        ),
     )
 
     carry_over_expiry_months = models.PositiveSmallIntegerField(
@@ -382,9 +397,15 @@ class SubscriptionPlan(models.Model):
             return None
         return self.monthly_credits // CONVERSION_FACTOR
 
+    # @property
+    # def display_carry_over_max(self):
+    #     return self.carry_over_max // CONVERSION_FACTOR
+
     @property
-    def display_carry_over_max(self):
-        return self.carry_over_max // CONVERSION_FACTOR
+    def display_max_bank(self) -> int | None:
+        if self.max_bank is None:
+            return None
+        return self.max_bank // CONVERSION_FACTOR
 
     @property
     def display_overage_block_size(self):
@@ -613,6 +634,134 @@ class CreditWallet(models.Model):
         )
 
         return result["total"] or 0
+
+    def live_carry_over_total(self, now=None, exclude_bucket_id=None, lock=True):
+        """
+        Sum of remaining (total_credits - used_credits) across every
+        currently-live CARRY_OVER bucket for this wallet. Used as the
+        "how much banked balance already exists" input to max_bank
+        enforcement — see compute_capped_rollover.
+
+        lock=True (default) takes select_for_update() on the underlying
+        bucket rows, so this MUST be called from within an active
+        transaction (every current call site already is). Deliberately
+        avoids combining select_for_update() with .aggregate() — locks
+        the rows via a plain queryset first, then sums in Python, to
+        sidestep any DB-backend inconsistency around locking aggregated
+        queries.
+
+        exclude_bucket_id: optional — excludes one bucket from the sum
+        (for a future case where the bucket being retired is itself a
+        CARRY_OVER bucket; no current call site needs this, since every
+        existing rollover site retires a MONTHLY bucket, but the hook is
+        cheap to keep for future-proofing).
+        """
+        now = now or timezone.now()
+        qs = self.buckets.filter(bucket_type=CreditBucketType.CARRY_OVER).filter(
+            models.Q(expires_at__isnull=True) | models.Q(expires_at__gt=now)
+        )
+        if exclude_bucket_id:
+            qs = qs.exclude(pk=exclude_bucket_id)
+        if lock:
+            qs = qs.select_for_update()
+
+        buckets = list(qs.only("total_credits", "used_credits"))
+        return sum(max(0, b.total_credits - b.used_credits) for b in buckets)
+
+    def compute_capped_rollover(
+        self,
+        plan,
+        unused_credits,
+        monthly_amount=None,
+        now=None,
+        exclude_bucket_id=None,
+    ):
+        """
+        Single source of truth for how much of `unused_credits` may
+        actually roll over into a new CARRY_OVER bucket, after applying
+        plan.max_bank as a ceiling on the wallet's total live banked
+        balance (MONTHLY + CARRY_OVER only — OVERAGE and MANUAL_GRANT are
+        exempt by design and never enter this calculation).
+
+        The monthly grant itself is NEVER trimmed — only the carryover
+        portion is reduced to make room. If max_bank is smaller than the
+        monthly grant alone, carryover is forced to 0 (never negative);
+        this is logged as a likely plan misconfiguration rather than
+        silently accepted.
+
+        Args:
+            plan: The SubscriptionPlan whose carry_over_percent/max_bank
+                govern this rollover. For a plan CHANGE, this must be the
+                TARGET plan (the new plan's rules apply to the rollover
+                that feeds into it) — matches the existing convention at
+                every call site.
+            unused_credits: Raw credits left unused in the bucket being
+                retired.
+            monthly_amount: The actual number of credits about to occupy
+                the new MONTHLY bucket alongside this rollover. Defaults
+                to plan.monthly_credits (correct for individual
+                subscriptions, where the grant always equals the plan
+                default). License callers MUST pass the real grant_amount
+                here, since it can be less than plan.monthly_credits when
+                capped by the license's seat/global budget — using the
+                nominal plan value there would under-count room and
+                over-trim carryover.
+            now: Reference timestamp for "currently live" (defaults to
+                timezone.now()).
+            exclude_bucket_id: see live_carry_over_total.
+
+        Returns:
+            tuple[int, dict]: (final_rollover_amount, capping_metadata).
+            capping_metadata is always safe to merge into a CreditLedger
+            entry's `metadata` field and includes enough detail to fully
+            reconstruct the decision after the fact:
+                requested_rollover, final_rollover, max_bank_applied
+                (bool), max_bank, existing_live_carry_over,
+                monthly_amount_used.
+        """
+        requested = int(unused_credits * (plan.carry_over_percent / 100))
+        requested = max(0, requested)
+
+        if plan.max_bank is None:
+            return requested, {
+                "requested_rollover": requested,
+                "final_rollover": requested,
+                "max_bank_applied": False,
+                "max_bank": None,
+                "existing_live_carry_over": None,
+                "monthly_amount_used": None,
+            }
+
+        now = now or timezone.now()
+        existing_carry_over = self.live_carry_over_total(
+            now=now, exclude_bucket_id=exclude_bucket_id
+        )
+        effective_monthly = (
+            plan.monthly_credits if monthly_amount is None else monthly_amount
+        ) or 0
+
+        if plan.max_bank < effective_monthly:
+            logger.warning(
+                "Plan %s has max_bank (%d) LOWER than its monthly grant "
+                "(%d) for wallet %s — this is a plan misconfiguration. "
+                "Carryover forced to 0; monthly grant is never trimmed.",
+                plan.name,
+                plan.max_bank,
+                effective_monthly,
+                self.id,
+            )
+
+        room = max(0, plan.max_bank - effective_monthly - existing_carry_over)
+        final = max(0, min(requested, room))
+
+        return final, {
+            "requested_rollover": requested,
+            "final_rollover": final,
+            "max_bank_applied": final < requested,
+            "max_bank": plan.max_bank,
+            "existing_live_carry_over": existing_carry_over,
+            "monthly_amount_used": effective_monthly,
+        }
 
     @transaction.atomic
     def consume_credits(self, amount, feature=None, task_type=None, task_id=None):
@@ -1252,6 +1401,86 @@ class LicenseBillingRecord(models.Model):
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["license_subscription", "record_type"]),
+        ]
+
+
+class LicenseOveragePurchaseStatus(models.TextChoices):
+    PENDING = "PENDING", _("Pending")
+    COMPLETED = "COMPLETED", _("Completed")
+    FAILED = "FAILED", _("Failed")
+
+
+class LicenseOveragePurchaseIntent(models.Model):
+    """
+    Tracks a school-admin-initiated overage purchase from the moment a
+    Stripe Checkout Session is created until it's fulfilled (or fails).
+
+    This exists so that:
+      1. The allocation map (which can be arbitrarily large) never has to
+         be crammed into Stripe metadata (500-char/value limit) — only
+         this row's UUID goes into metadata.
+      2. Price is snapshotted at purchase-initiation time, so a plan price
+         change between checkout creation and webhook fulfillment can't
+         cause the wrong amount of credit to be granted for what was paid.
+      3. There's a durable, queryable record for manual reconciliation if
+         a payment succeeds but fulfillment can't fully complete (e.g. a
+         teacher was removed from the license mid-flight).
+
+    NOT used for the superadmin offline-grant path — that path never
+    touches Stripe and grants immediately, so there's nothing pending to
+    track.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    license_subscription = models.ForeignKey(
+        LicenseSubscription,
+        on_delete=models.CASCADE,
+        related_name="overage_purchase_intents",
+    )
+    initiated_by = models.ForeignKey(
+        "users.CustomUser",
+        on_delete=models.PROTECT,
+        related_name="license_overage_purchase_intents",
+    )
+
+    total_blocks = models.PositiveIntegerField()
+    allocations = models.JSONField(
+        help_text="Mapping of teacher user UUID (string) -> blocks purchased."
+    )
+
+    # Snapshots taken at creation time — see class docstring point 2.
+    block_size_snapshot = models.PositiveIntegerField(
+        help_text="plan.overage_block_size (raw credits per block) at purchase time."
+    )
+    unit_price_cents_snapshot = models.PositiveIntegerField(
+        help_text="plan.overage_block_price (cents per block) at purchase time."
+    )
+    amount_cents = models.PositiveIntegerField(
+        help_text="total_blocks * unit_price_cents_snapshot."
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=LicenseOveragePurchaseStatus.choices,
+        default=LicenseOveragePurchaseStatus.PENDING,
+    )
+    stripe_checkout_session_id = models.CharField(
+        max_length=255, null=True, blank=True, db_index=True, unique=True
+    )
+    stripe_payment_intent_id = models.CharField(
+        max_length=255, null=True, blank=True, db_index=True
+    )
+    failure_reason = models.TextField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["license_subscription", "status"]),
         ]
 
 

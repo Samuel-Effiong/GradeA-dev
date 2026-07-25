@@ -17,9 +17,8 @@ from drf_spectacular.utils import (
     OpenApiResponse,
     extend_schema,
     extend_schema_view,
-    inline_serializer,
 )
-from rest_framework import serializers, status, viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
@@ -43,10 +42,12 @@ from .serializers import (  # PlanCategory,
     ConvertToOfflineSerializer,
     CreditBucketSerializer,
     LicenseBillingRecordSerializer,
+    LicenseOveragePurchaseResultSerializer,
     LicensePlanChangeResultSerializer,
     LicenseSubscriptionSerializer,
     ManualTeacherOverageGrantSerializer,
     OfflineLicenseRenewalSerializer,
+    PurchaseLicenseOverageSerializer,
     SchoolCreditAllocationSerializer,
     UpdateLicenseSeatsSerializer,
 )
@@ -623,149 +624,83 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
 
     @extend_schema(
         tags=["License Subscriptions"],
-        summary="Purchase teacher overage blocks",
+        summary="Purchase or grant teacher overage blocks",
         description=(
-            "Purchase additional overage credit blocks for teachers under a license "
-            "subscription.\n\n"
-            "Each overage block grants **5,000 credits** to a teacher.\n\n"
-            "**Rules:**\n"
-            "- `total_blocks` must be greater than 0.\n"
-            "- `allocations` is a mapping of teacher UUIDs to the number of blocks "
-            "to allocate.\n"
-            "- The sum of all allocated blocks **must equal** `total_blocks`.\n"
-            "- The school's default payment method is charged for the purchase."
+            "Single endpoint for overage, auto-branching on the caller:\n\n"
+            "- **School admin** (this license's admin_user): routed through "
+            "Stripe Checkout. This call does NOT charge or grant anything "
+            "itself — the response has a `checkout_url` to redirect the "
+            "browser to. Credits are granted only after Stripe confirms "
+            "payment via webhook. Works even if this license is billed "
+            "OFFLINE — a Stripe customer is created/reused for the "
+            "purchase without changing the license's billing_method.\n"
+            "- **Super admin**: grants the blocks immediately with NO "
+            "Stripe charge — an administrative grant on behalf of the "
+            "school.\n\n"
+            "Both paths share the same request shape: `total_blocks` + "
+            "`allocations` (teacher UUID -> block count), which must sum "
+            "exactly to `total_blocks`. Each block grants "
+            "`plan.overage_block_size` credits. `success_url`/`cancel_url` "
+            "are required for the school-admin (checkout) path only."
         ),
-        request=inline_serializer(
-            name="PurchaseOverageRequest",
-            fields={
-                "total_blocks": serializers.IntegerField(
-                    min_value=1, help_text="Total number of overage blocks to purchase."
-                ),
-                "allocations": serializers.DictField(
-                    child=serializers.IntegerField(min_value=1),
-                    help_text=(
-                        "Mapping of teacher UUID to number of blocks to allocate."
-                    ),
-                ),
-            },
-        ),
-        responses={
-            200: OpenApiResponse(
-                response=inline_serializer(
-                    name="PurchaseOverageResponse",
-                    fields={
-                        "payment_intent_id": serializers.CharField(),
-                        "total_blocks": serializers.IntegerField(),
-                        "allocations": serializers.ListField(
-                            child=inline_serializer(
-                                name="TeacherAllocation",
-                                fields={
-                                    "teacher_id": serializers.UUIDField(),
-                                    "teacher_email": serializers.EmailField(),
-                                    "blocks": serializers.IntegerField(),
-                                    "credits_granted": serializers.IntegerField(),
-                                },
-                            )
-                        ),
-                    },
-                ),
-                description="Overage purchase completed successfully.",
-            ),
-            400: OpenApiResponse(
-                description=(
-                    "Validation failed. Possible reasons:\n"
-                    "- total_blocks is invalid\n"
-                    "- allocations is missing or malformed\n"
-                    "- allocated blocks do not equal total_blocks\n"
-                    "- payment failed"
-                )
-            ),
-            500: OpenApiResponse(description="Unexpected server error."),
-        },
+        request=PurchaseLicenseOverageSerializer,
+        responses={200: LicenseOveragePurchaseResultSerializer},
     )
-    @action(detail=True, methods=["post"])
+    @action(detail=True, methods=["post"], url_path="purchase-overage")
     def purchase_overage(self, request, pk=None):
         license_sub = self.get_object()
 
-        total_blocks = request.data.get("total_blocks")
-        if total_blocks is None:
-            return Response(
-                {"detail": "The 'total_blocks' field is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        try:
-            total_blocks = int(total_blocks)
-            if total_blocks <= 0:
-                raise ValueError
-        except (ValueError, TypeError):
-            return Response(
-                {"detail": "total_blocks must be a positive integer."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        serializer = PurchaseLicenseOverageSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        d = serializer.validated_data
 
-        allocations = request.data.get("allocations")
-        if not allocations:
-            return Response(
-                {"detail": "allocations is required and must be a non-empty object."},
-                status=status.HTTP_400_BAD_REQUEST,
+        try:
+            result = LicenseSubscriptionService.initiate_overage_purchase(
+                license_sub,
+                requesting_user=request.user,
+                total_blocks=d["total_blocks"],
+                allocations=d["allocations"],
+                success_url=d.get("success_url"),
+                cancel_url=d.get("cancel_url"),
             )
-        if not isinstance(allocations, dict):
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except stripe.error.StripeError as exc:
+            logger.exception(
+                "Stripe error during license overage purchase for license %s: %s",
+                license_sub.id,
+                exc,
+            )
             return Response(
                 {
-                    "detail": "allocations must be a dictionary mapping teacher IDs to block counts."
+                    "detail": f"Payment failed: {getattr(exc, 'user_message', None) or str(exc)}"
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
-
-        # Convert keys to strings (UUIDs) and values to ints
-        try:
-            clean_allocations = {}
-            for teacher_id, blocks in allocations.items():
-                blocks_int = int(blocks)
-                if blocks_int <= 0:
-                    raise ValueError(
-                        f"Invalid block count for teacher {teacher_id}: {blocks}"
-                    )
-                clean_allocations[str(teacher_id)] = blocks_int
-        except (ValueError, TypeError) as e:
-            return Response(
-                {"detail": f"Invalid allocation format: {str(e)}"},
-                status=status.HTTP_400_BAD_REQUEST,
+        except Exception:
+            logger.exception(
+                "Unexpected error during license overage purchase for license %s",
+                license_sub.id,
             )
-
-        # Ensure total blocks matches sum
-        allocated_sum = sum(clean_allocations.values())
-        if allocated_sum != total_blocks:
-            return Response(
-                {
-                    "detail": f"Sum of allocated blocks ({allocated_sum}) does not equal total_blocks ({total_blocks})."
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        try:
-            result = LicenseSubscriptionService.purchase_teacher_overage(
-                license_sub=license_sub,
-                admin_user=request.user,
-                total_blocks=total_blocks,
-                allocations=clean_allocations,
-            )
-        except ValueError as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        except stripe.error.StripeError as e:
-            logger.exception("Stripe error during license overage purchase: %s", e)
-            return Response(
-                {"detail": f"Payment failed: {e.user_message or str(e)}"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        except Exception as e:
-            logger.exception("Unexpected error during license overage purchase: %s", e)
             return Response(
                 {"detail": "An unexpected error occurred."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        return Response(result, status=status.HTTP_200_OK)
+        if result["action"] == "checkout":
+            message = (
+                "Redirecting to secure checkout to complete your overage purchase."
+            )
+        else:
+            message = (
+                f"Granted {result['total_blocks']} overage block(s) across "
+                f"{len(result['allocations'])} teacher(s)."
+            )
+
+        return Response(
+            LicenseOveragePurchaseResultSerializer({**result, "message": message}).data,
+            status=status.HTTP_200_OK,
+        )
 
     @extend_schema(
         tags=["License Subscriptions"],

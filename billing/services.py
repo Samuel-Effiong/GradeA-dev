@@ -105,8 +105,8 @@ class SubscriptionService:
 
             if unused > 0:
                 # We use the NEW Plan's rollover rules to be generous
-                rollover_amount = min(
-                    int(unused * (plan.carry_over_percent / 100)), plan.carry_over_max
+                rollover_amount, cap_meta = wallet.compute_capped_rollover(
+                    plan, unused, now=now
                 )
 
                 if rollover_amount > 0:
@@ -129,8 +129,23 @@ class SubscriptionService:
                         ledger_type=CreditLedgerType.GRANT,
                         amount=rollover_amount,
                         reference=f"Upgrade Rollover from expired {active_monthly.bucket_type} bucket",
-                        metadata={"previous_bucket_id": str(active_monthly.id)},
+                        metadata={
+                            "previous_bucket_id": str(active_monthly.id),
+                            **cap_meta,
+                        },
                     )
+                elif cap_meta["requested_rollover"] > 0:
+                    # Fully suppressed by max_bank — nothing granted, so
+                    # there's no bucket/ledger to attach metadata to.
+                    # Logged for visibility only.
+                    logger.info(
+                        "Rollover fully suppressed by max_bank for user %s: "
+                        "requested %d, room 0 (%s).",
+                        user.email,
+                        cap_meta["requested_rollover"],
+                        cap_meta,
+                    )
+
             # Crucial: Delete or expire the old monthly bucket so they don't have two active monthly buckets
             active_monthly.expires_at = now
             active_monthly.save(update_fields=["expires_at"])
@@ -195,8 +210,8 @@ class SubscriptionService:
         if old_monthly:
             unused = old_monthly.remaining_credits
             if unused > 0:
-                rollover_amount = min(
-                    int(unused * (plan.carry_over_percent / 100)), plan.carry_over_max
+                rollover_amount, cap_meta = wallet.compute_capped_rollover(
+                    plan, unused, now=now
                 )
                 if rollover_amount > 0:
                     expiry = now + relativedelta(
@@ -218,7 +233,17 @@ class SubscriptionService:
                         metadata={
                             "previous_unused": unused,
                             "subscription_id": str(user_subscription.id),
+                            **cap_meta,
                         },
+                    )
+                elif cap_meta["requested_rollover"] > 0:
+                    logger.info(
+                        "Mid-cycle rollover fully suppressed by max_bank "
+                        "for user %s (subscription %s): requested %d (%s).",
+                        user.email,
+                        user_subscription.id,
+                        cap_meta["requested_rollover"],
+                        cap_meta,
                     )
             old_monthly.expires_at = now
             old_monthly.save(update_fields=["expires_at", "updated_at"])
@@ -299,12 +324,8 @@ class SubscriptionService:
             )
 
             if unused_credits > 0:
-                # Calculate CARRY_OVER based on new plan rutes
-                potential_rollover = int(
-                    unused_credits * (target_plan.carry_over_percent / 100)
-                )
-                final_rollover_amount = min(
-                    potential_rollover, target_plan.carry_over_max
+                final_rollover_amount, cap_meta = wallet.compute_capped_rollover(
+                    target_plan, unused_credits, now=now
                 )
 
                 if final_rollover_amount > 0:
@@ -332,7 +353,18 @@ class SubscriptionService:
                             "rollover_applied_percent": str(
                                 target_plan.carry_over_percent
                             ),
+                            **cap_meta,
                         },
+                    )
+                elif cap_meta["requested_rollover"] > 0:
+                    logger.info(
+                        "Renewal rollover fully suppressed by max_bank for "
+                        "user %s (%s -> %s): requested %d (%s).",
+                        user.email,
+                        old_plan.name,
+                        target_plan.name,
+                        cap_meta["requested_rollover"],
+                        cap_meta,
                     )
 
             # Retire the Old Bucket
@@ -427,34 +459,6 @@ class SubscriptionService:
             new_plan.name,
             change_type,
             stripe_schedule_id,
-            current_sub.billing_cycle_end.isoformat(),
-        )
-        return current_sub
-
-        # @staticmethod
-        # @transaction.atomic
-        # def schedule_downgrade(user, new_plan):
-        """Schedule a downgrade for the end of the billing cycle"""
-
-        # 1. Find the currently active subscription
-        current_sub = (
-            UserSubscription.objects.select_for_update()
-            .filter(user=user, is_active=True)
-            .select_related("plan")
-            .first()
-        )
-
-        if not current_sub:
-            raise ValueError("No active subscription to downgrade.")
-
-        current_sub.pending_plan = new_plan
-        current_sub.save(update_fields=["pending_plan", "updated_at"])
-
-        logger.info(
-            "Downgrade scheduled for user %s: %s -> %s, effective %s.",
-            user.email,
-            current_sub.plan.name,
-            new_plan.name,
             current_sub.billing_cycle_end.isoformat(),
         )
         return current_sub

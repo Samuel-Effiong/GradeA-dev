@@ -36,6 +36,8 @@ from django.core.cache import cache
 
 # from django.conf import settings
 from django.db import transaction
+# pyrefly: ignore [missing-import]
+from django.db.models import F
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
@@ -52,19 +54,27 @@ from .models import (  # CreditBucket,; CreditBucketType,; CreditLedgerType,
     BillingTransactionSource,
     BillingTransactionStatus,
     BillingTransactionType,
+    CreditBucket,
+    CreditBucketType,
     CreditLedger,
+    CreditLedgerType,
     CreditWallet,
+    CONVERSION_FACTOR,
     LicenseBillingMethod,
     LicenseBillingRecord,
     LicenseBillingRecordType,
+    LicenseOveragePurchaseIntent,
+    LicenseOveragePurchaseStatus,
     LicenseSubscription,
     PendingChangeType,
     PlanCategory,
+    SchoolCreditAllocation,
     StripeSubscriptionStatus,
     SubscriptionPlan,
     UserSubscription,
     get_tier_rank,
 )
+
 from .services import SubscriptionService
 
 logger = logging.getLogger(__name__)
@@ -1406,11 +1416,8 @@ class StripeSubscriptionScheduleService:
                 f"{getattr(exc, 'user_message', None) or str(exc)}"
             ) from exc
 
-    staticmethod
-
-    def _create_fresh_schedule(
-        user_sub, new_plan, current_price_id, billing_cycle_end_ts
-    ):
+    @staticmethod
+    def _create_fresh_schedule(user_sub, new_plan, current_price_id, billing_cycle_end_ts):
         """
         Creates a brand-new two-phase SubscriptionSchedule from
         `user_sub`'s Stripe subscription and returns its ID. Factored out
@@ -1449,6 +1456,7 @@ class StripeSubscriptionScheduleService:
             new_plan.name,
         )
         return schedule.id
+        
 
     @staticmethod
     def _extract_conflicting_schedule_id(exc):
@@ -2186,6 +2194,10 @@ class StripeWebhookHandler:
             StripeWebhookHandler._handle_individual_upgrade_checkout_completed(
                 session, metadata
             )
+        elif flow == "license_overage_purchase_checkout":
+            StripeWebhookHandler._handle_license_overage_checkout_completed(
+                session, metadata
+            )
         elif flow == "overage_block_purchase_checkout":
             StripeWebhookHandler._handle_overage_checkout_completed(session, metadata)
         elif flow == "individual_subscribe":
@@ -2377,6 +2389,267 @@ class StripeWebhookHandler:
             quantity,
             plan.name,
         )
+
+    @staticmethod
+    def _handle_license_overage_checkout_completed(session, metadata):
+        """
+        Handles flow='license_overage_purchase_checkout' — fulfills a
+        LicenseOveragePurchaseIntent ONLY after Stripe confirms payment.
+
+        Deliberately NOT its own @transaction.atomic — runs inside
+        handle_checkout_completed's outer atomic block, same as every
+        other flow dispatched from there. If anything below raises, the
+        whole thing rolls back and the outer webhook dispatcher (see
+        webhooks.py) deletes the StripeEvent record so Stripe's retry is
+        treated as fresh, not a duplicate — the intent will still be
+        PENDING on retry, so this is safely self-healing.
+        """
+        intent_id = metadata.get("intent_id")
+        if not intent_id:
+            logger.error(
+                "license_overage_purchase_checkout session %s has no "
+                "intent_id in metadata — cannot fulfill. Needs manual "
+                "reconciliation.",
+                session.get("id"),
+            )
+            return
+
+        try:
+            intent = (
+                LicenseOveragePurchaseIntent.objects.select_for_update()
+                .select_related(
+                    "license_subscription", "license_subscription__plan", "initiated_by"
+                )
+                .get(id=intent_id)
+            )
+        except LicenseOveragePurchaseIntent.DoesNotExist:
+            logger.error(
+                "license_overage_purchase_checkout session %s references "
+                "intent %s which does not exist — cannot fulfill. Needs "
+                "manual reconciliation (refund via Stripe dashboard).",
+                session.get("id"),
+                intent_id,
+            )
+            return
+
+        # Idempotency belt-and-suspenders: StripeEvent already blocks a
+        # duplicate delivery of this exact event, but this guards against
+        # any other path re-invoking this handler for the same intent.
+        if intent.status == LicenseOveragePurchaseStatus.COMPLETED:
+            logger.info(
+                "Overage purchase intent %s already completed — skipping "
+                "duplicate fulfillment (session %s).",
+                intent.id,
+                session.get("id"),
+            )
+            return
+
+        payment_status = session.get("payment_status")
+        if payment_status != "paid":
+            # Delayed/async payment methods (bank debits, etc.) aren't
+            # supported by this flow — this codebase doesn't handle
+            # checkout.session.async_payment_succeeded anywhere else
+            # either. Flag loudly rather than granting on unconfirmed
+            # payment.
+            logger.error(
+                "license_overage_purchase_checkout session %s completed "
+                "with payment_status=%r (not 'paid') for intent %s — "
+                "credits NOT granted. Async payment methods are not "
+                "supported by this flow. Needs manual reconciliation.",
+                session.get("id"),
+                payment_status,
+                intent.id,
+            )
+            intent.status = LicenseOveragePurchaseStatus.FAILED
+            intent.stripe_payment_intent_id = session.get("payment_intent")
+            intent.failure_reason = (
+                f"Unsupported payment_status at fulfillment: {payment_status!r}"
+            )
+            intent.save(
+                update_fields=[
+                    "status",
+                    "stripe_payment_intent_id",
+                    "failure_reason",
+                    "updated_at",
+                ]
+            )
+            return
+
+        license_sub = LicenseSubscription.objects.select_for_update().get(
+            pk=intent.license_subscription_id
+        )
+
+        if not license_sub.is_active:
+            logger.error(
+                "Overage purchase intent %s paid (session %s) but license "
+                "%s is no longer active — credits NOT granted. Needs "
+                "manual refund via the Stripe dashboard.",
+                intent.id,
+                session.get("id"),
+                license_sub.id,
+            )
+            intent.status = LicenseOveragePurchaseStatus.FAILED
+            intent.stripe_payment_intent_id = session.get("payment_intent")
+            intent.failure_reason = "License no longer active at fulfillment time."
+            intent.save(
+                update_fields=[
+                    "status",
+                    "stripe_payment_intent_id",
+                    "failure_reason",
+                    "updated_at",
+                ]
+            )
+            BillingTransactionService.record(
+                source=BillingTransactionSource.LICENSE,
+                transaction_type=BillingTransactionType.LICENSE_OVERAGE_PURCHASE,
+                status=BillingTransactionStatus.PAID,
+                billing_method=BillingTransactionMethod.STRIPE,
+                amount_cents=session.get("amount_total") or intent.amount_cents,
+                currency=session.get("currency", "usd"),
+                license_subscription=license_sub,
+                stripe_payment_intent_id=session.get("payment_intent"),
+                stripe_checkout_session_id=session.get("id"),
+                performed_by=intent.initiated_by,
+                description=(
+                    "Overage purchase paid but license was inactive at "
+                    "fulfillment time — credits NOT granted, needs manual refund."
+                ),
+            )
+            return
+
+        # Re-validate every teacher is STILL active — one may have been
+        # removed between checkout creation and payment completion. Grant
+        # to whoever is still valid; explicitly flag anyone skipped rather
+        # than silently dropping them — a partial refund is a business
+        # decision, not one this code makes unilaterally.
+        teacher_ids = list(intent.allocations.keys())
+        active_allocations = {
+            str(a.user_id): a
+            for a in SchoolCreditAllocation.objects.select_for_update()
+            .filter(
+                license_subscription=license_sub,
+                user_id__in=teacher_ids,
+                is_active=True,
+                is_admin_allocation=False,
+            )
+            .select_related("user")
+        }
+
+        fulfilled, skipped = [], []
+        expiry = license_sub.billing_cycle_end
+
+        for teacher_id_str, blocks in intent.allocations.items():
+            allocation = active_allocations.get(teacher_id_str)
+            if not allocation:
+                skipped.append({"teacher_id": teacher_id_str, "blocks": blocks})
+                continue
+
+            teacher = allocation.user
+            wallet, _ = CreditWallet.objects.get_or_create(user=teacher)
+            raw_credits = blocks * intent.block_size_snapshot
+
+            bucket = CreditBucket.objects.create(
+                wallet=wallet,
+                bucket_type=CreditBucketType.OVERAGE,
+                total_credits=raw_credits,
+                used_credits=0,
+                expires_at=expiry,
+            )
+            CreditWallet.objects.filter(pk=wallet.pk).update(
+                overage_blocks_used=F("overage_blocks_used") + blocks
+            )
+            CreditLedger.objects.create(
+                user=teacher,
+                bucket=bucket,
+                ledger_type=CreditLedgerType.PURCHASE,
+                amount=raw_credits,
+                reference=f"Overage purchase via license {license_sub.id} (checkout)",
+                metadata={
+                    "license_id": str(license_sub.id),
+                    "intent_id": str(intent.id),
+                    "initiated_by": (
+                        intent.initiated_by.email if intent.initiated_by else None
+                    ),
+                    "stripe_checkout_session_id": session.get("id"),
+                    "stripe_payment_intent_id": session.get("payment_intent"),
+                    "blocks_purchased": blocks,
+                    "display_credits": blocks
+                    * (intent.block_size_snapshot // CONVERSION_FACTOR),
+                },
+            )
+            fulfilled.append(
+                {
+                    "teacher_id": str(teacher.id),
+                    "teacher_email": teacher.email,
+                    "blocks": blocks,
+                    "credits_granted": raw_credits,
+                }
+            )
+
+        intent.status = (
+            LicenseOveragePurchaseStatus.COMPLETED
+            if not skipped
+            else LicenseOveragePurchaseStatus.FAILED
+        )
+        intent.stripe_payment_intent_id = session.get("payment_intent")
+        intent.completed_at = timezone.now()
+        if skipped:
+            intent.failure_reason = (
+                f"Paid for {intent.total_blocks} block(s) but {len(skipped)} "
+                f"teacher(s) were no longer active at fulfillment time and "
+                f"were skipped: {skipped}. Needs manual review (partial "
+                f"refund or manual grant)."
+            )
+        intent.save(
+            update_fields=[
+                "status",
+                "stripe_payment_intent_id",
+                "completed_at",
+                "failure_reason",
+                "updated_at",
+            ]
+        )
+
+        BillingTransactionService.record(
+            source=BillingTransactionSource.LICENSE,
+            transaction_type=BillingTransactionType.LICENSE_OVERAGE_PURCHASE,
+            status=BillingTransactionStatus.PAID,
+            billing_method=BillingTransactionMethod.STRIPE,
+            amount_cents=session.get("amount_total") or intent.amount_cents,
+            currency=session.get("currency", "usd"),
+            license_subscription=license_sub,
+            stripe_payment_intent_id=session.get("payment_intent"),
+            stripe_checkout_session_id=session.get("id"),
+            performed_by=intent.initiated_by,
+            description=(
+                f"Overage purchase — {intent.total_blocks} block(s) across "
+                f"{len(intent.allocations)} teacher(s)"
+                + (f" ({len(skipped)} skipped, needs review)" if skipped else "")
+            ),
+        )
+
+        if skipped:
+            logger.error(
+                "Overage purchase intent %s (session %s) PARTIALLY "
+                "fulfilled: %d/%d teachers granted, %d skipped (no longer "
+                "active). Needs manual review. License %s.",
+                intent.id,
+                session.get("id"),
+                len(fulfilled),
+                len(intent.allocations),
+                len(skipped),
+                license_sub.id,
+            )
+        else:
+            logger.info(
+                "Overage purchase intent %s (session %s) fulfilled: %d "
+                "block(s) across %d teacher(s) for license %s.",
+                intent.id,
+                session.get("id"),
+                intent.total_blocks,
+                len(fulfilled),
+                license_sub.id,
+            )
 
     @staticmethod
     def _handle_individual_upgrade_checkout_completed(session, metadata):

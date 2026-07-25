@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional
 
 from dateutil.relativedelta import relativedelta  # type: ignore
 from django.conf import settings
+from django.core.cache import cache
 from django.db import models, transaction
 from django.db.models import F
 
@@ -50,6 +51,8 @@ from .models import (  # CONVERSION_FACTOR,; UserSubscription,
     LicenseBillingMethod,
     LicenseBillingRecord,
     LicenseBillingRecordType,
+    LicenseOveragePurchaseIntent,
+    LicenseOveragePurchaseStatus,
     LicenseSubscription,
     PlanCategory,
     PlanTier,
@@ -57,6 +60,8 @@ from .models import (  # CONVERSION_FACTOR,; UserSubscription,
     StripeSubscriptionStatus,
     SubscriptionPlan,
 )
+
+from .stripe_service import StripeCustomerService
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +89,80 @@ class LicenseSubscriptionService:
 
     ADMIN_ANALYTICS_CREDITS_DISPLAY = 5_000
     ADMIN_ANALYTICS_CREDITS_RAW = 5_000 * CONVERSION_FACTOR
+
+    _OVERAGE_LOCK_TIMEOUT_SECONDS = 30
+    MAX_BLOCKS_PER_PURCHASE = 1000  # Defensive cap against fat-finger/typo purchase
+
+    @staticmethod
+    def _is_superadmin_actor(user) -> bool:
+        return bool(user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN)
+
+    @staticmethod
+    def _is_license_school_admin_actor(license_sub: LicenseSubscription, user) -> bool:
+        return bool(license_sub.admin_user_id == user.id)
+
+    @staticmethod
+    def _validate_overage_purchase_request(
+        license_sub: LicenseSubscription, allocations: dict, total_blocks: int
+    ) -> None:
+        """
+        Shared, read-only validation used by both branches BEFORE any lock
+        is taken or any Stripe call is made. Raises ValueError on any
+        problem. Does not check per-teacher activity under lock — callers
+        that mutate state must re-validate that under select_for_update()
+        themselves, since a teacher's status can change between this check
+        and the actual grant.
+        """
+        if not license_sub.is_active:
+            raise ValueError("License is not active.")
+
+        if total_blocks <= 0:
+            raise ValueError("total_blocks must be a positive integer.")
+
+        if total_blocks > LicenseSubscriptionService.MAX_BLOCKS_PER_PURCHASE:
+            raise ValueError(
+                f"total_blocks ({total_blocks}) exceeds the maximum of "
+                f"{LicenseSubscriptionService.MAX_BLOCKS_PER_PURCHASE} blocks "
+                f"per purchase. Split this into multiple purchases if needed."
+            )
+
+        if not allocations:
+            raise ValueError("allocations cannot be empty.")
+
+        for teacher_id, blocks in allocations.items():
+            if not isinstance(blocks, int) or blocks <= 0:
+                raise ValueError(
+                    f"Invalid block count for teacher {teacher_id}: {blocks!r}."
+                )
+
+        allocated_sum = sum(allocations.values())
+        if allocated_sum != total_blocks:
+            raise ValueError(
+                f"Sum of allocated blocks ({allocated_sum}) must equal "
+                f"total_blocks ({total_blocks})."
+            )
+
+        plan = license_sub.plan
+        if not plan.overage_block_price or plan.overage_block_price <= 0:
+            raise ValueError("This plan has no overage pricing configured.")
+        if not plan.overage_block_size or plan.overage_block_size <= 0:
+            raise ValueError("This plan has no overage block size configured.")
+
+        teacher_ids = list(allocations.keys())
+        active_ids = set(
+            str(uid)
+            for uid in SchoolCreditAllocation.objects.filter(
+                license_subscription=license_sub,
+                user_id__in=teacher_ids,
+                is_active=True,
+                is_admin_allocation=False,
+            ).values_list("user_id", flat=True)
+        )
+        missing = {str(t) for t in teacher_ids} - active_ids
+        if missing:
+            raise ValueError(
+                f"Teachers not active under this license: {', '.join(sorted(missing))}"
+            )
 
     def _resolve_effective_price(
         self, license_sub, new_plan, custom_price_cents=None, remove_custom_price=False
@@ -200,9 +279,8 @@ class LicenseSubscriptionService:
         if current_bucket:
             unused = max(0, current_bucket.total_credits - current_bucket.used_credits)
             if unused > 0:
-                rollover_amount = min(
-                    int(unused * (plan.carry_over_percent / 100)),
-                    plan.carry_over_max,
+                rollover_amount, cap_meta = wallet.compute_capped_rollover(
+                    plan, unused, monthly_amount=grant_amount, now=now
                 )
                 if rollover_amount > 0:
                     expiry = now + relativedelta(
@@ -221,7 +299,15 @@ class LicenseSubscriptionService:
                         ledger_type=CreditLedgerType.GRANT,
                         amount=rollover_amount,
                         reference=f"Rollover — {reference}",
-                        metadata={**metadata, "previous_unused": unused},
+                        metadata={**metadata, "previous_unused": unused, **cap_meta},
+                    )
+                elif cap_meta["requested_rollover"] > 0:
+                    logger.info(
+                        "License rollover fully suppressed by max_bank for "
+                        "teacher %s: requested %d (%s).",
+                        teacher.email,
+                        cap_meta["requested_rollover"],
+                        cap_meta,
                     )
 
             current_bucket.expires_at = now
@@ -803,6 +889,24 @@ class LicenseSubscriptionService:
         if wallet_created:
             logger.info("Created CreditWallet for teacher %s", teacher.email)
 
+        max_seats = license_sub.max_seats
+
+        if max_seats == 0:
+            # Unlimited seats - no cap, grant full allocation
+            grant_amount = allocation.monthly_allocation
+            total_budget = None
+            consumed = None
+        else:
+            total_budget = max_seats * license_sub.plan.monthly_credits
+            consumed = license_sub.total_credits_consumed
+            remaining_budget = total_budget - consumed
+
+            if remaining_budget <= 0:
+                # No budget left - no credits to grant
+                grant_amount = 0
+            else:
+                grant_amount = min(allocation.monthly_allocation, remaining_budget)
+
         # 5. Handle existing MONTHLY bucket (from previous subscription or license)
         existing_monthly = wallet.buckets.filter(
             bucket_type=CreditBucketType.MONTHLY,
@@ -814,10 +918,8 @@ class LicenseSubscriptionService:
             # Expire the old bucket and create rollover
             unused = existing_monthly.remaining_credits
             if unused > 0:
-                # Apply rollover rules from the new LICENSE plan
-                rollover_amount = min(
-                    int(unused * (license_sub.plan.carry_over_percent / 100)),
-                    license_sub.plan.carry_over_max,
+                rollover_amount, cap_meta = wallet.compute_capped_rollover(
+                    license_sub.plan, unused, monthly_amount=grant_amount, now=now
                 )
 
                 if rollover_amount > 0:
@@ -847,6 +949,7 @@ class LicenseSubscriptionService:
                                 license_sub.plan.carry_over_percent
                             ),
                             "license_id": str(license_sub.id),
+                            **cap_meta,
                         },
                     )
                     logger.info(
@@ -854,6 +957,15 @@ class LicenseSubscriptionService:
                         "transitioning to license",
                         rollover_amount,
                         teacher.email,
+                    )
+                elif cap_meta["requested_rollover"] > 0:
+                    logger.info(
+                        "Rollover fully suppressed by max_bank for teacher "
+                        "%s transitioning to license %s: requested %d (%s).",
+                        teacher.email,
+                        license_sub.id,
+                        cap_meta["requested_rollover"],
+                        cap_meta,
                     )
 
             # Expire the old bucket
@@ -863,25 +975,6 @@ class LicenseSubscriptionService:
                 "Expired old MONTHLY bucket for teacher %s",
                 teacher.email,
             )
-
-        # Compute the grant amount based on remaining global budget
-        max_seats = license_sub.max_seats
-
-        if max_seats == 0:
-            # Unlimited seats - no cap, grant full allocation
-            grant_amount = allocation.monthly_allocation
-
-        else:
-            total_budget = max_seats * license_sub.plan.monthly_credits
-            consumed = license_sub.total_credits_consumed
-            remaining_budget = total_budget - consumed
-
-            if remaining_budget <= 0:
-                # No budget left - no credits to grant
-                grant_amount = 0
-
-            else:
-                grant_amount = min(allocation.monthly_allocation, remaining_budget)
 
         now = timezone.now()
 
@@ -1655,6 +1748,7 @@ class LicenseSubscriptionService:
         total_blocks: int,
         allocations: dict,  # {tearcher_id: number_of_blocks}
     ) -> dict:
+        # FIXME: DELETE THIS COMPLETELY!!! IT IS DEPRECATED
         """
         Purchase overage blocks for individual teachers under a license.
 
@@ -1896,6 +1990,357 @@ class LicenseSubscriptionService:
             "payment_intent_id": intent.id,
             "total_blocks": total_blocks,
             "allocations": granted_details,
+        }
+
+    @staticmethod
+    def initiate_overage_purchase(
+        license_sub: LicenseSubscription,
+        requesting_user,
+        total_blocks: int,
+        allocations: dict,
+        success_url: Optional[str] = None,
+        cancel_url: Optional[str] = None,
+    ) -> dict:
+        """
+        SINGLE entry point for purchasing/granting teacher overage blocks
+        under a license, for BOTH actor types:
+
+          - Super admin -> immediate, atomic OFFLINE grant. No Stripe
+            charge. Returns {"action": "granted", ...}.
+          - The license's own admin_user (school admin) -> creates a
+            Stripe Checkout Session and returns immediately with NOTHING
+            granted yet. Returns {"action": "checkout", ...}. Credits are
+            granted only once checkout.session.completed confirms payment
+            (see StripeWebhookHandler._handle_license_overage_checkout_
+            completed).
+
+        This works identically regardless of license_sub.billing_method —
+        an OFFLINE-billed license's school admin can still purchase
+        overage via Stripe Checkout here (a customer is lazily
+        created/reused via StripeCustomerService.get_or_create_license_
+        customer if one doesn't already exist), exactly as for a
+        STRIPE-billed license.
+
+        Any caller who is neither of the two above is rejected — this is
+        enforced here defensively even though the view's permission class
+        (IsSchoolAdminOrSuperAdmin) should already have filtered them out;
+        money-moving code must not rely on a single layer of defense.
+
+        Concurrency: a short-lived per-license lock prevents two
+        concurrent purchase requests for the same license from both
+        passing validation against the same (about-to-become-stale) state.
+        Held across the WHOLE call including any Stripe call, mirroring
+        IndividualPlanChangeService.select_plan's lock pattern.
+
+        Raises:
+            ValueError: for any validation failure, business-rule
+                rejection, or Stripe API error (wrapped with a clean
+                message).
+        """
+        lock_key = f"billing:license_overage:{license_sub.id}"
+        if not cache.add(
+            lock_key,
+            "1",
+            timeout=LicenseSubscriptionService._OVERAGE_LOCK_TIMEOUT_SECONDS,
+        ):
+            raise ValueError(
+                "An overage purchase is already being processed for this "
+                "license. Please wait a moment and try again."
+            )
+
+        try:
+            # Fresh, UNLOCKED read — deliberately no select_for_update()
+            # here. This method only branches and validates; the two
+            # branches below take their own tightly-scoped locks
+            # immediately before mutating anything, and neither branch
+            # ever holds a DB lock across the network call to Stripe.
+            license_sub = LicenseSubscription.objects.select_related("plan").get(
+                pk=license_sub.pk
+            )
+
+            is_super = LicenseSubscriptionService._is_superadmin_actor(requesting_user)
+            is_school_admin = LicenseSubscriptionService._is_license_school_admin_actor(
+                license_sub, requesting_user
+            )
+
+            if not is_super and not is_school_admin:
+                raise ValueError(
+                    "You are not authorized to purchase overage for this license."
+                )
+
+            LicenseSubscriptionService._validate_overage_purchase_request(
+                license_sub, allocations, total_blocks
+            )
+
+            if is_super:
+                return LicenseSubscriptionService._grant_overage_offline(
+                    license_sub, requesting_user, total_blocks, allocations
+                )
+
+            if not success_url or not cancel_url:
+                raise ValueError(
+                    "success_url and cancel_url are required to start checkout."
+                )
+
+            return LicenseSubscriptionService._create_overage_checkout(
+                license_sub,
+                requesting_user,
+                total_blocks,
+                allocations,
+                success_url,
+                cancel_url,
+            )
+        finally:
+            cache.delete(lock_key)
+
+    @staticmethod
+    @transaction.atomic
+    def _grant_overage_offline(
+        license_sub: LicenseSubscription,
+        performed_by,
+        total_blocks: int,
+        allocations: dict,
+    ) -> dict:
+        """
+        Super-admin path: grants overage blocks to teachers immediately,
+        with NO Stripe charge — an administrative grant on behalf of the
+        school (comp, negotiated deal, invoiced outside Stripe, etc.).
+
+        All-or-nothing: every listed teacher is re-validated under lock
+        before ANY bucket is created. Unlike the checkout path (where
+        money has already changed hands and partial fulfillment must be
+        tolerated), there's no reason to ever half-apply an unpaid,
+        purely-administrative grant — if any teacher is no longer valid,
+        the whole request is rejected and the caller can retry with a
+        corrected allocation.
+        """
+        license_sub = LicenseSubscription.objects.select_for_update().get(
+            pk=license_sub.pk
+        )
+        plan = license_sub.plan
+
+        teacher_ids = list(allocations.keys())
+        locked_allocations = list(
+            SchoolCreditAllocation.objects.select_for_update()
+            .filter(
+                license_subscription=license_sub,
+                user_id__in=teacher_ids,
+                is_active=True,
+                is_admin_allocation=False,
+            )
+            .select_related("user")
+        )
+        found_ids = {str(a.user_id) for a in locked_allocations}
+        missing = {str(t) for t in teacher_ids} - found_ids
+        if missing:
+            raise ValueError(
+                f"Teachers not active under this license: {', '.join(sorted(missing))}"
+            )
+
+        alloc_by_teacher = {str(a.user_id): a for a in locked_allocations}
+        expiry = license_sub.billing_cycle_end
+
+        billing_record = LicenseBillingRecord.objects.create(
+            license_subscription=license_sub,
+            record_type=LicenseBillingRecordType.MANUAL_OVERAGE_GRANT,
+            amount_paid_cents=None,
+            notes=(
+                f"Superadmin overage grant — {total_blocks} block(s) across "
+                f"{len(allocations)} teacher(s). No Stripe charge; bill the "
+                f"school outside the platform if applicable."
+            ),
+            performed_by=performed_by,
+        )
+
+        granted_details = []
+        for teacher_id_str, blocks in allocations.items():
+            allocation = alloc_by_teacher[teacher_id_str]
+            teacher = allocation.user
+            wallet, _ = CreditWallet.objects.get_or_create(user=teacher)
+            raw_credits = blocks * plan.overage_block_size
+
+            bucket = CreditBucket.objects.create(
+                wallet=wallet,
+                bucket_type=CreditBucketType.OVERAGE,
+                total_credits=raw_credits,
+                used_credits=0,
+                expires_at=expiry,
+            )
+
+            CreditWallet.objects.filter(pk=wallet.pk).update(
+                overage_blocks_used=F("overage_blocks_used") + blocks
+            )
+
+            CreditLedger.objects.create(
+                user=teacher,
+                bucket=bucket,
+                ledger_type=CreditLedgerType.GRANT,
+                amount=raw_credits,
+                reference=(
+                    f"Superadmin overage grant ({blocks} block(s)) — "
+                    f"license {license_sub.id}"
+                ),
+                metadata={
+                    "license_id": str(license_sub.id),
+                    "blocks": blocks,
+                    "granted_by": performed_by.email,
+                    "manual": True,
+                    "purchase_channel": "SUPERADMIN_OFFLINE",
+                },
+            )
+
+            granted_details.append(
+                {
+                    "teacher_id": str(teacher.id),
+                    "teacher_email": teacher.email,
+                    "blocks": blocks,
+                    "credits_granted": raw_credits,
+                }
+            )
+
+        BillingTransactionService.record(
+            source=BillingTransactionSource.LICENSE,
+            transaction_type=BillingTransactionType.LICENSE_OFFLINE_MANUAL_OVERAGE_GRANT,
+            status=BillingTransactionStatus.MANUAL,
+            billing_method=BillingTransactionMethod.OFFLINE,
+            amount_cents=0,
+            license_subscription=license_sub,
+            license_billing_record=billing_record,
+            performed_by=performed_by,
+            description=(
+                f"Superadmin overage grant — {total_blocks} block(s) across "
+                f"{len(allocations)} teacher(s)"
+            ),
+            occurred_at=timezone.now(),
+        )
+
+        logger.info(
+            "Superadmin %s granted %d overage block(s) across %d teacher(s) "
+            "under license %s (offline, no Stripe charge).",
+            performed_by.email,
+            total_blocks,
+            len(allocations),
+            license_sub.id,
+        )
+
+        return {
+            "action": "granted",
+            "total_blocks": total_blocks,
+            "allocations": granted_details,
+        }
+
+    @staticmethod
+    def _create_overage_checkout(
+        license_sub: LicenseSubscription,
+        requesting_user,
+        total_blocks: int,
+        allocations: dict,
+        success_url: str,
+        cancel_url: str,
+    ) -> dict:
+        """
+        School-admin path: creates a Stripe Checkout Session (mode=
+        "payment") for total_blocks worth of overage credit. NOTHING is
+        granted here — fulfillment happens only in
+        StripeWebhookHandler._handle_license_overage_checkout_completed.
+
+        Uses Checkout's own hosted payment collection rather than
+        confirming a PaymentIntent against a pre-saved default payment
+        method — this means a card does NOT need to already be on file
+        (via setup-payment-method) to purchase overage; Checkout collects
+        it directly. Passing `customer=` still lets Stripe offer any
+        already-saved payment methods for that customer, so returning
+        admins aren't forced to re-enter a card every time.
+
+        Deliberately does NOT hold any DB row lock while calling Stripe —
+        the LicenseOveragePurchaseIntent row is a plain insert (nothing
+        else can reference it until this method returns its id), and nothing
+        else is mutated until the webhook fires.
+        """
+        plan = license_sub.plan
+        amount_cents = total_blocks * plan.overage_block_price
+
+        customer_id = StripeCustomerService.get_or_create_license_customer(
+            license_sub, requesting_user
+        )
+
+        intent = LicenseOveragePurchaseIntent.objects.create(
+            license_subscription=license_sub,
+            initiated_by=requesting_user,
+            total_blocks=total_blocks,
+            allocations={str(k): int(v) for k, v in allocations.items()},
+            block_size_snapshot=plan.overage_block_size,
+            unit_price_cents_snapshot=plan.overage_block_price,
+            amount_cents=amount_cents,
+            status=LicenseOveragePurchaseStatus.PENDING,
+        )
+
+        block_display = plan.overage_block_size // CONVERSION_FACTOR
+        try:
+            session = stripe.checkout.Session.create(
+                customer=customer_id,
+                mode="payment",
+                line_items=[
+                    {
+                        "price_data": {
+                            "currency": "usd",
+                            "product_data": {
+                                "name": (
+                                    f"Overage credits — "
+                                    f"{plan.display_name or plan.name} "
+                                    f"({total_blocks} block(s) x "
+                                    f"{block_display:,} credits)"
+                                ),
+                            },
+                            "unit_amount": plan.overage_block_price,
+                        },
+                        "quantity": total_blocks,
+                    }
+                ],
+                success_url=success_url,
+                cancel_url=cancel_url,
+                metadata={
+                    "flow": "license_overage_purchase_checkout",
+                    "license_id": str(license_sub.id),
+                    "intent_id": str(intent.id),
+                },
+            )
+        except stripe.error.StripeError as exc:
+            # Nothing was charged. Mark the intent FAILED so it doesn't
+            # linger as a phantom PENDING row.
+            intent.status = LicenseOveragePurchaseStatus.FAILED
+            intent.failure_reason = f"Checkout session creation failed: {exc}"
+            intent.save(update_fields=["status", "failure_reason", "updated_at"])
+            raise ValueError(
+                f"Could not start overage checkout: "
+                f"{getattr(exc, 'user_message', None) or str(exc)}"
+            ) from exc
+
+        # The intent_id is already embedded in the Stripe session's
+        # metadata regardless of whether this second save succeeds — so
+        # even if the process crashes right here, the webhook can still
+        # find and fulfill this intent via metadata alone.
+        intent.stripe_checkout_session_id = session.id
+        intent.save(update_fields=["stripe_checkout_session_id", "updated_at"])
+
+        logger.info(
+            "Created license overage checkout session %s for license %s "
+            "(intent %s, %d block(s), %d cents), initiated by %s.",
+            session.id,
+            license_sub.id,
+            intent.id,
+            total_blocks,
+            amount_cents,
+            requesting_user.email,
+        )
+
+        return {
+            "action": "checkout",
+            "checkout_url": session.url,
+            "checkout_session_id": session.id,
+            "intent_id": str(intent.id),
+            "total_blocks": total_blocks,
+            "amount_cents": amount_cents,
         }
 
     @staticmethod

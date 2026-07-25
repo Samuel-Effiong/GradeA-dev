@@ -24,7 +24,12 @@ from django.utils import timezone
 from django.utils.text import gettext_lazy as _
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
+from drf_spectacular.utils import (
+    OpenApiExample,
+    OpenApiParameter,
+    OpenApiResponse,
+    extend_schema,
+)
 from rest_framework import filters, pagination, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.generics import get_object_or_404
@@ -1376,6 +1381,64 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
     #         cache.set(cache_key, data, 60 * 15)
     #     return Response(data)
 
+    @extend_schema(
+        tags=["School Admin"],
+        operation_id="teacherPerformanceDashboard",
+        summary="Teacher Performance Dashboard",
+        description="""
+    Returns performance metrics for every teacher belonging to the authenticated
+    School Admin's school.
+
+    - **assignments_per_week** — Average number of assignments created per week
+    since the teacher created their first assignment.
+
+    - **turnaround** — Average grading turnaround time in **days** from
+    student submission until grading.
+
+    - **ai_confidence** — Average AI grading confidence score across all graded
+    submissions.
+
+    - **rigor** — Average assignment difficulty score normalized to a
+    **0–5 scale**, based on assignment total points.
+
+    - **status**
+        - `true` → Teacher account is active.
+        - `false` → Teacher account is inactive.
+
+    ### Notes
+
+    - Only assignments that have been graded contribute to:
+        - turnaround
+        - ai_confidence
+
+    - Metrics that cannot yet be calculated are returned as `null`.
+
+    - Responses are cached for 5 minutes.
+    """,
+        responses={
+            200: OpenApiResponse(
+                response=TeacherPerformanceDashboardSerializer(many=True),
+                description="Teacher performance metrics retrieved successfully.",
+            ),
+            400: OpenApiResponse(
+                description="Authenticated School Admin is not associated with a school.",
+                examples=[
+                    OpenApiExample(
+                        "No School",
+                        value={
+                            "detail": "School admin must be associated with a school."
+                        },
+                    )
+                ],
+            ),
+            401: OpenApiResponse(
+                description="Authentication credentials were not provided."
+            ),
+            403: OpenApiResponse(
+                description="You do not have permission to access this resource."
+            ),
+        },
+    )
     @action(detail=False, methods=["get"], url_path="dashboard/teachers")
     def teacher_performance(self, request, *args, **kwargs):
         school = request.user.school
@@ -1635,7 +1698,9 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                     f"grade_{grade}": Count(
                         "enrollments",
                         filter=condition
-                        & ~Q(enrollments__enrollment_status=EnrollmentStatusType.WITHDRAWN),
+                        & ~Q(
+                            enrollments__enrollment_status=EnrollmentStatusType.WITHDRAWN
+                        ),
                     )
                 }
             )
