@@ -36,6 +36,7 @@ from django.core.cache import cache
 
 # from django.conf import settings
 from django.db import transaction
+
 # pyrefly: ignore [missing-import]
 from django.db.models import F
 from django.utils import timezone
@@ -48,6 +49,7 @@ from .billing_transaction_service import BillingTransactionService
 from .imports import stripe
 from .license_service import LicenseSubscriptionService
 from .models import (  # CreditBucket,; CreditBucketType,; CreditLedgerType,
+    CONVERSION_FACTOR,
     PLAN_TIER_HIERARCHY,
     BillingInterval,
     BillingTransactionMethod,
@@ -59,7 +61,6 @@ from .models import (  # CreditBucket,; CreditBucketType,; CreditLedgerType,
     CreditLedger,
     CreditLedgerType,
     CreditWallet,
-    CONVERSION_FACTOR,
     LicenseBillingMethod,
     LicenseBillingRecord,
     LicenseBillingRecordType,
@@ -74,7 +75,6 @@ from .models import (  # CreditBucket,; CreditBucketType,; CreditLedgerType,
     UserSubscription,
     get_tier_rank,
 )
-
 from .services import SubscriptionService
 
 logger = logging.getLogger(__name__)
@@ -355,6 +355,7 @@ class StripeCheckoutService:
         stripe_subscription_id attached directly — don't route those
         through this method.
         """
+
         if plan.is_contact_sales:
             raise ValueError(
                 f"Plan {plan.name} is contact-sales only and must be set up "
@@ -1417,7 +1418,9 @@ class StripeSubscriptionScheduleService:
             ) from exc
 
     @staticmethod
-    def _create_fresh_schedule(user_sub, new_plan, current_price_id, billing_cycle_end_ts):
+    def _create_fresh_schedule(
+        user_sub, new_plan, current_price_id, billing_cycle_end_ts
+    ):
         """
         Creates a brand-new two-phase SubscriptionSchedule from
         `user_sub`'s Stripe subscription and returns its ID. Factored out
@@ -1456,7 +1459,6 @@ class StripeSubscriptionScheduleService:
             new_plan.name,
         )
         return schedule.id
-        
 
     @staticmethod
     def _extract_conflicting_schedule_id(exc):
@@ -2875,6 +2877,32 @@ class StripeWebhookHandler:
             stripe_subscription_id=session.get("subscription"),
             description=f"License created — {plan.display_name or plan.name}",
         )
+
+        enrollment_results = getattr(
+            license_sub,
+            "_teacher_enrollment_results",
+            {"successful": 0, "failed": 0, "errors": []},
+        )
+        if enrollment_results["failed"]:
+            logger.error(
+                "Stripe checkout completed: license created for school %s "
+                "(plan %s), but %d/%d teacher invitations FAILED: %s. "
+                "Admin %s should be notified to retry via add-teachers.",
+                school.name,
+                plan.name,
+                enrollment_results["failed"],
+                enrollment_results["successful"] + enrollment_results["failed"],
+                enrollment_results["errors"],
+                admin_user.email,
+            )
+        else:
+            logger.info(
+                "Stripe checkout completed: license created for school %s "
+                "(plan %s). %d teacher(s) invited successfully.",
+                school.name,
+                plan.name,
+                enrollment_results["successful"],
+            )
 
         logger.info(
             "Stripe checkout completed: license created for school %s, plan %s.",

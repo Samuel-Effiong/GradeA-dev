@@ -533,7 +533,7 @@ else:
 
 ALLOWED_BUSINESS_EMAIL_DOMAINS = None
 DISALLOWED_EMAIL_DOMAINS = [
-    "gmail.com",
+    # "gmail.com",
     "yahoo.com",
     "hotmail.com",
     "outlook.com",
@@ -554,5 +554,8 @@ DISALLOWED_EMAIL_DOMAINS = [
     "gmx.com",
     "fastmail.com",
     "hushmail.com",
-    "yopmail.com",
+    # "yopmail.com",
 ]
+
+
+ENABLE_BILLING_TIME_TRAVEL = env.bool("ENABLE_BILLING_TIME_TRAVEL", default=False)

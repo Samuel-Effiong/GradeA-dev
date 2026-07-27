@@ -236,7 +236,14 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
                 )
 
                 out_serializer = self.get_serializer(license_sub)
-            return Response(out_serializer.data, status=status.HTTP_201_CREATED)
+
+            response_data = dict(out_serializer.data)
+            response_data["teacher_invitations"] = getattr(
+                license_sub,
+                "_teacher_enrollment_results",
+                {"successful": 0, "failed": 0, "errors": []},
+            )
+            return Response(response_data, status=status.HTTP_201_CREATED)
 
         success_url = (
             request.data.get("success_url")

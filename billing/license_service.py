@@ -61,8 +61,6 @@ from .models import (  # CONVERSION_FACTOR,; UserSubscription,
     SubscriptionPlan,
 )
 
-from .stripe_service import StripeCustomerService
-
 logger = logging.getLogger(__name__)
 
 
@@ -164,8 +162,9 @@ class LicenseSubscriptionService:
                 f"Teachers not active under this license: {', '.join(sorted(missing))}"
             )
 
+    @staticmethod
     def _resolve_effective_price(
-        self, license_sub, new_plan, custom_price_cents=None, remove_custom_price=False
+        license_sub, new_plan, custom_price_cents=None, remove_custom_price=False
     ):
         old_effective_price = (
             license_sub.custom_price_cents or license_sub.plan.price_cents
@@ -483,6 +482,76 @@ class LicenseSubscriptionService:
         return allocation
 
     @staticmethod
+    def _invite_and_enroll_one_teacher(
+        license_sub: LicenseSubscription,
+        school: School,
+        admin_user: CustomUser,
+        email: str,
+    ) -> dict:
+        """
+        Full enroll for ONE teacher — resolve/create + invite (best-effort,
+        deferred email) + SchoolCreditAllocation creation under
+        license_sub. NEVER raises; every failure mode is captured and
+        returned so every caller (create_license_subscription,
+        add_teachers_batch) gets a UNIFORM result shape rather than each
+        maintaining its own slightly different try/except (which is how
+        this bug family accumulated in the first place — one code path,
+        one place to get it right).
+
+        Returns:
+            dict: {"email": str, "successful": bool,
+                   "teacher_id": str | None, "error": str | None}
+        """
+        try:
+            teacher = LicenseSubscriptionService._get_or_invite_teacher(
+                email, school, admin_user, raise_on_conflict=True
+            )
+            if teacher is None:
+                # Only reachable if raise_on_conflict=False, which we
+                # never pass here — defensive, not expected in practice.
+                return {
+                    "email": email,
+                    "successful": False,
+                    "teacher_id": None,
+                    "error": "Teacher could not be resolved or created.",
+                }
+
+            LicenseSubscriptionService._enroll_teacher_internal(license_sub, teacher)
+            return {
+                "email": email,
+                "successful": True,
+                "teacher_id": str(teacher.id),
+                "error": None,
+            }
+        except (IndividualSubscriptionConflictError, ValueError) as exc:
+            logger.warning(
+                "Skipped enrolling %s in license %s: %s",
+                email,
+                license_sub.id,
+                exc,
+            )
+            return {
+                "email": email,
+                "successful": False,
+                "teacher_id": None,
+                "error": str(exc),
+            }
+        except Exception as exc:
+            logger.error(
+                "Unexpected error enrolling %s in license %s: %s",
+                email,
+                license_sub.id,
+                exc,
+                exc_info=True,
+            )
+            return {
+                "email": email,
+                "successful": False,
+                "teacher_id": None,
+                "error": f"Unexpected error: {exc}",
+            }
+
+    @staticmethod
     @transaction.atomic
     def create_license_subscription(
         school: School,
@@ -596,35 +665,47 @@ class LicenseSubscriptionService:
         # credits for their dashboard's AI-generated analytics.
         LicenseSubscriptionService._grant_admin_allocation(license_sub)
 
-        # 4. Enroll teachers if provided
+        enrollment_results = []
         if teacher_emails:
             for email in teacher_emails:
-                try:
-                    teacher = LicenseSubscriptionService._get_or_invite_teacher(
-                        email, school, admin_user, raise_on_conflict=True
+                enrollment_results.append(
+                    LicenseSubscriptionService._invite_and_enroll_one_teacher(
+                        license_sub, school, admin_user, email
                     )
-                    LicenseSubscriptionService._enroll_teacher_internal(
-                        license_sub, teacher
-                    )
-                except CustomUser.DoesNotExist:
-                    logger.error(
-                        "Teacher with ID %s not found. Skipping enrollment "
-                        "in license %s.",
-                        email,
-                        license_sub.id,
-                    )
-                except Exception as e:
-                    logger.error(
-                        "Failed to enroll teacher %s in license %s: %s",
-                        email,
-                        license_sub.id,
-                        str(e),
-                    )
+                )
+
+        successful_count = sum(1 for r in enrollment_results if r["successful"])
+        failed_results = [r for r in enrollment_results if not r["successful"]]
+
+        if failed_results:
+            logger.error(
+                "License %s creation: %d/%d teacher invitations FAILED: %s",
+                license_sub.id,
+                len(failed_results),
+                len(enrollment_results),
+                failed_results,
+            )
+
+        # Transient, non-persisted summary attached to this in-memory
+        # instance only — lets BOTH callers (the OFFLINE view branch,
+        # and the STRIPE webhook handler) report or log exactly what
+        # happened per teacher, without changing this method's return
+        # type (which must stay a bare model instance — the
+        # DRF-serializer call site depends on that contract).
+        license_sub._teacher_enrollment_results = {
+            "successful": successful_count,
+            "failed": len(failed_results),
+            "errors": [
+                {"email": r["email"], "error": r["error"]} for r in failed_results
+            ],
+        }
 
         logger.info(
-            "LicenseSubscription %s creation complete. " "Enrolled %d teachers.",
+            "LicenseSubscription %s creation complete. Enrolled %d/%d "
+            "requested teachers.",
             license_sub.id,
-            license_sub.teacher_count,
+            successful_count,
+            len(teacher_emails or []),
         )
 
         return license_sub
@@ -704,7 +785,10 @@ class LicenseSubscriptionService:
                 user.school = school
                 user.save(update_fields=["school"])
 
-            # 5. If user exists but inactive, ensure that they have a valid activation token
+            # 5. If user exists but inactive, ALWAYS (re-)send the
+            # invitation email, regardless of whether the previous
+            # activation token has already expired.
+            #
             if not user.is_active:
                 if (
                     not user.activation_token
@@ -714,10 +798,9 @@ class LicenseSubscriptionService:
                     user.activation_expires = timezone.now() + timedelta(days=7)
                     user.save(update_fields=["activation_token", "activation_expires"])
 
-                    # Re-send invitation email
-                    LicenseSubscriptionService._send_teacher_invitation(
-                        user, school, admin_user
-                    )
+                LicenseSubscriptionService._send_teacher_invitation(
+                    user, school, admin_user
+                )
 
             return user
 
@@ -748,10 +831,7 @@ class LicenseSubscriptionService:
     @staticmethod
     def _send_teacher_invitation(
         teacher: CustomUser, school: School, admin_user: CustomUser
-    ):
-        """
-        Send activation email to a newly invited teacher
-        """
+    ) -> None:
 
         frontend_domain = settings.FRONTEND_DOMAIN
         activation_link = (
@@ -771,15 +851,37 @@ class LicenseSubscriptionService:
             "current_year": timezone.now().year,
             "support_email": settings.SUPPORT_EMAIL,
         }
-        send_email_task.delay(
-            subject=f"Invitation to teach at {school.name}",
-            message="",
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[teacher.email],
-            html_message=None,
-            template_id="ynrw7gy0ye2l2k8e",  # reuse student template or create new one
-            merge_data=merge_data,
-        )
+
+        teacher_email = teacher.email
+        school_name = school.name
+
+        def _dispatch():
+            try:
+                send_email_task.delay(
+                    subject=f"Invitation to teach at {school_name}",
+                    message="",
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[teacher_email],
+                    html_message=None,
+                    template_id="ynrw7gy0ye2l2k8e",
+                    merge_data=merge_data,
+                )
+                logger.info(
+                    "Queued teacher invitation email to %s for school %s.",
+                    teacher_email,
+                    school_name,
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to queue teacher invitation email to %s for "
+                    "school %s. The teacher account/allocation were still "
+                    "created successfully — this can be resolved by "
+                    "re-inviting the same email via add-teachers.",
+                    teacher_email,
+                    school_name,
+                )
+
+        transaction.on_commit(_dispatch)
 
     @staticmethod
     def _enroll_teacher_internal(
@@ -1139,40 +1241,16 @@ class LicenseSubscriptionService:
         results: Dict[str, Any] = {"successful": 0, "failed": 0, "errors": []}
 
         for email in new_teacher_emails:
-            try:
-                teacher = LicenseSubscriptionService._get_or_invite_teacher(
-                    email,
-                    license_sub.school,
-                    license_sub.admin_user,
-                    raise_on_conflict=False,  # Do not raise, return None on conflict
-                )
-
-                if teacher is None:
-                    # Confict aready logged inside _get_or_invite_teacher
-                    results["failed"] += 1
-                    results["errors"].append(
-                        {
-                            "teacher_email": email,
-                            "error": "Individual subscription conflict or invalid email domain.",
-                        }
-                    )
-                    continue
-
-                # Enroll the teacher
-                LicenseSubscriptionService._enroll_teacher_internal(
-                    license_sub, teacher
-                )
+            result = LicenseSubscriptionService._invite_and_enroll_one_teacher(
+                license_sub, license_sub.school, license_sub.admin_user, email
+            )
+            if result["successful"]:
                 results["successful"] += 1
-
-            except Exception as e:
+            else:
                 results["failed"] += 1
                 results["errors"].append(
-                    {
-                        "teacher_email": email,
-                        "error": str(e),
-                    }
+                    {"teacher_email": email, "error": result["error"]}
                 )
-                logger.error("Failed to add teacher %s to license: %s", email, str(e))
 
         logger.info(
             "Batch added teachers to license %s: %d successful, %d failed",
@@ -1642,7 +1720,9 @@ class LicenseSubscriptionService:
         )
 
         # Get active teacher count
-        active_teacher_count = license_sub.allocations.filter(is_active=True).count()
+        active_teacher_count = license_sub.allocations.filter(
+            is_active=True, is_admin_allocation=False
+        ).count()
 
         if new_max_seats < active_teacher_count:
             raise ValueError(
@@ -2257,6 +2337,9 @@ class LicenseSubscriptionService:
         else can reference it until this method returns its id), and nothing
         else is mutated until the webhook fires.
         """
+
+        from billing.stripe_service import StripeCustomerService
+
         plan = license_sub.plan
         amount_cents = total_blocks * plan.overage_block_price
 
@@ -2275,25 +2358,14 @@ class LicenseSubscriptionService:
             status=LicenseOveragePurchaseStatus.PENDING,
         )
 
-        block_display = plan.overage_block_size // CONVERSION_FACTOR
+        # block_display = plan.overage_block_size // CONVERSION_FACTOR
         try:
             session = stripe.checkout.Session.create(
                 customer=customer_id,
                 mode="payment",
                 line_items=[
                     {
-                        "price_data": {
-                            "currency": "usd",
-                            "product_data": {
-                                "name": (
-                                    f"Overage credits — "
-                                    f"{plan.display_name or plan.name} "
-                                    f"({total_blocks} block(s) x "
-                                    f"{block_display:,} credits)"
-                                ),
-                            },
-                            "unit_amount": plan.overage_block_price,
-                        },
+                        "price": plan.stripe_overage_price_id,
                         "quantity": total_blocks,
                     }
                 ],

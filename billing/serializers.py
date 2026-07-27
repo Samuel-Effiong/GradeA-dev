@@ -53,7 +53,7 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
     """
 
     display_monthly_credits = serializers.ReadOnlyField()
-    display_max_blank = serializers.ReadOnlyField()
+    display_max_bank = serializers.ReadOnlyField()
     display_overage_block_size = serializers.ReadOnlyField()
 
     price_id = serializers.CharField(source="stripe_price_id", read_only=True)
@@ -75,7 +75,7 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
             "price_cents",
             "monthly_credits",
             "carry_over_percent",
-            "carry_over_max",
+            "max_bank",
             "carry_over_expiry_months",
             "overage_block_size",
             "overage_block_price",

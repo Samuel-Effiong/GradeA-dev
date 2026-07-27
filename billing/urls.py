@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 
 from .billing_transaction_views import BillingTransactionViewSet
 from .license_views import LicenseSubscriptionViewSet, SchoolCreditAllocationViewSet
+from .qa_time_travel import BillingTimeTravelView
 from .views import (
     BetaAnalyticViewSet,
     BetaAnaylicChartViewSet,
@@ -55,4 +56,5 @@ router.register(
 urlpatterns = router.urls + [
     path("stripe/webhooks", stripe_webhook, name="stripe-webhook"),
     path("stripe/webhooks/thin", thin_webhook, name="stripe-webhook-thin"),
+    path("qa/time-travel", BillingTimeTravelView.as_view(), name="qa-time-travel"),
 ]
