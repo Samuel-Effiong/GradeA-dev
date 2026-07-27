@@ -4,6 +4,7 @@ from datetime import timedelta
 
 # from django.conf import settings
 from django.db import transaction
+from django.core.cache import cache
 from django.db.models import Case, F, Q, Sum, Value, When
 from django.db.models.aggregates import Avg, Count
 from django.db.models.functions import ExtractHour, TruncDay, TruncWeek
@@ -58,7 +59,7 @@ from .models import (
     SubscriptionPlan,
     UserSubscription,
 )
-from .serializers import (  # SubscriptionSerializer,; BetaUsageTrendSerializer,; FreeTrialStatusSerializer,; CreditWalletSummarySerializer,
+from .serializers import (
     BetaCohortStatsSerializer,
     BetaFeatureMixSerializer,
     BetaProfileSerializer,
@@ -74,6 +75,8 @@ from .serializers import (  # SubscriptionSerializer,; BetaUsageTrendSerializer,
     DailyTimeSeriesSerializer,
     FeatureConsumptionTimeSeriesSerializer,
     IntentSignalResponseSerializer,
+    MyLicenseAdminSubscriptionSerializer,
+    MyLicenseTeacherSubscriptionSerializer,
     MySubscriptionSerializer,
     OverageCheckoutRequestSerializer,
     OverageCheckoutSessionSerializer,
@@ -94,6 +97,12 @@ from .stripe_service import (  # StripeSubscriptionMutationService,; StripeCheck
     StripeSubscriptionScheduleService,
 )
 from .stripe_view_schemas import CANCEL_SCHEMA
+from .subscription_resolver import (
+    SOURCE_INDIVIDUAL,
+    SOURCE_LICENSE_ADMIN,
+    SOURCE_LICENSE_TEACHER,
+    resolve_user_billing_context,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -540,9 +549,25 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
     @extend_schema(
         tags=["Subscription"],
         summary="Get my subscription",
-        description="Get my subscription.",
+        description=(
+            "Resolves the caller's current billing context regardless of "
+            "track. An INDIVIDUAL subscriber gets the existing "
+            "UserSubscription-shaped payload (unchanged). A teacher "
+            "actively enrolled under a school LICENSE gets a "
+            "LICENSE_TEACHER-shaped payload. A school admin managing an "
+            "active LICENSE gets a LICENSE_ADMIN-shaped payload. Check "
+            "`subscription_source` in the response to know which shape "
+            "was returned."
+        ),
         responses={
-            200: OpenApiResponse(response=MySubscriptionSerializer),
+            200: OpenApiResponse(
+                description=(
+                    "One of MySubscriptionSerializer, "
+                    "MyLicenseTeacherSubscriptionSerializer, or "
+                    "MyLicenseAdminSubscriptionSerializer — discriminated "
+                    "by `subscription_source`."
+                )
+            ),
             404: OpenApiResponse(
                 description="No active subscription found",
                 examples=[
@@ -559,17 +584,32 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
     )
     @action(detail=False, methods=["get"], url_path="me")
     def get_my_subscription(self, request, *args, **kwargs):
-        subscription = self.get_queryset().first()
-        if not subscription:
+        context = resolve_user_billing_context(request.user)
 
-            return Response(
-                {"detail": "No active subscription found"},
-                status=status.HTTP_404_NOT_FOUND,
+        if context.source == SOURCE_INDIVIDUAL:
+            serializer = MySubscriptionSerializer(
+                context.user_subscription, context={"request": request}
             )
-        serializer = MySubscriptionSerializer(
-            subscription, context={"request": request}
+            return Response(serializer.data)
+
+        if context.source == SOURCE_LICENSE_TEACHER:
+            serializer = MyLicenseTeacherSubscriptionSerializer(context.allocation)
+            return Response(serializer.data)
+
+        if context.source == SOURCE_LICENSE_ADMIN:
+            serializer = MyLicenseAdminSubscriptionSerializer(
+                context.license_subscription,
+                context={
+                    "admin_user": request.user,
+                    "managed_license_count": context.managed_license_count,
+                },
+            )
+            return Response(serializer.data)
+
+        return Response(
+            {"detail": "No active subscription found"},
+            status=status.HTTP_404_NOT_FOUND,
         )
-        return Response(serializer.data)
 
     @extend_schema(
         tags=["Subscription"],
@@ -639,161 +679,421 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
         serializer = self.get_serializer(user_subscription)
         return Response(serializer.data)
 
+
+    @staticmethod
+    def _billing_mutation_lock_key(user_id) -> str:
+        """
+        Shared with IndividualPlanChangeService.select_plan's lock key
+        (billing:planchange:{user_id}) — deliberately the SAME key, not a
+        separate one, so a plan change, a cancellation, and a resume can
+        never run concurrently for the same user. All three are
+        billing-mutating decisions about the same UserSubscription row.
+        """
+        return f"billing:planchange:{user_id}"
+
     @CANCEL_SCHEMA
     @action(detail=False, methods=["POST"])
     def cancel(self, request, *args, **kwargs):
-        with transaction.atomic():
+        lock_key = self._billing_mutation_lock_key(request.user.id)
+        if not cache.add(
+            lock_key, "1", timeout=self._BILLING_MUTATION_LOCK_TIMEOUT_SECONDS
+        ):
+            return Response(
+                {"detail": "A billing change is already being processed for "
+                           "your account. Please wait a moment and try again."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-            user_subscription = (
-                UserSubscription.objects.select_for_update()
-                .filter(user=request.user, is_active=True)
+        try:
+            with transaction.atomic():
+
+                user_subscription = (
+                    UserSubscription.objects.select_for_update()
+                    .filter(user=request.user, is_active=True)
+                    .first()
+                )
+                if not user_subscription:
+                    return Response(
+                        {
+                            "status": "inactive",
+                            "message": "No active subscription found to cancel",
+                        },
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
+
+                had_pending_change = bool(user_subscription.pending_plan_id)
+                had_stripe_schedule = bool(user_subscription.stripe_schedule_id)
+                was_already_not_renewing = (
+                    not user_subscription.auto_renew
+                    and not had_pending_change
+                    and not user_subscription.stripe_schedule_id
+                )
+
+                schedule_released = False
+
+                if user_subscription.stripe_schedule_id:
+                    try:
+                        StripeSubscriptionScheduleService.release_schedule(
+                            user_subscription
+                        )
+                        schedule_released = True
+                    except ValueError as exc:
+                        return Response(
+                            {"detail": str(exc)},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+
+                if user_subscription.stripe_subscription_id:
+                    try:
+                        stripe.Subscription.modify(
+                            user_subscription.stripe_subscription_id,
+                            cancel_at_period_end=True,
+                        )
+                    except stripe.error.StripeError as exc:
+                        if schedule_released:
+                            user_subscription.pending_plan = None
+                            user_subscription.pending_change_type = None
+                            user_subscription.pending_change_note = None
+                            user_subscription.stripe_schedule_id = None
+                            user_subscription.save(
+                                update_fields=[
+                                    "pending_plan",
+                                    "pending_change_type",
+                                    "pending_change_note",
+                                    "stripe_schedule_id",
+                                    "updated_at",
+                                ]
+                            )
+                        return Response(
+                            {
+                                "detail": (
+                                    "Could not cancel your subscription with "
+                                    "our payment provider: "
+                                    f"{getattr(exc, 'user_message', None) or str(exc)}"
+                                )
+                            },
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+
+                update_fields = []
+
+                if user_subscription.auto_renew:
+                    user_subscription.auto_renew = False
+                    update_fields.append("auto_renew")
+
+                if had_pending_change:
+                    user_subscription.pending_plan = None
+                    user_subscription.pending_change_type = None
+                    user_subscription.pending_change_note = None
+                    user_subscription.stripe_schedule_id = None
+                    update_fields += [
+                        "pending_plan",
+                        "pending_change_type",
+                        "pending_change_note",
+                        "stripe_schedule_id",
+                    ]
+
+                if had_stripe_schedule and schedule_released:
+                    user_subscription.stripe_schedule_id = None
+                    update_fields.append("stripe_schedule_id")
+
+                if update_fields:
+                    update_fields.append("updated_at")
+                    user_subscription.save(update_fields=update_fields)
+
+            if was_already_not_renewing:
+                message = (
+                    "Subscription is already set to not renew at the end of "
+                    "the current billing cycle"
+                )
+            else:
+                message = (
+                    "Subscription will not renew at the end of the current "
+                    "billing cycle"
+                )
+                if had_pending_change:
+                    message += (
+                        ". Your previously scheduled plan change has also "
+                        "been cancelled"
+                    )
+
+            return Response(
+                {"status": "cancelled", "message": message},
+                status=status.HTTP_200_OK,
+            )
+        finally:
+            cache.delete(lock_key)
+
+    @extend_schema(
+        tags=["Subscription"],
+        summary="Resume a cancelled subscription",
+        description=(
+            "Reverses a previous cancel() call — as long as the current "
+            "billing period has not yet ended (billing_cycle_end is still "
+            "in the future). Re-arms Stripe (cancel_at_period_end=False) "
+            "and sets auto_renew=True so the subscription continues to "
+            "renew normally.\n\n"
+            "For an active free TRIAL, auto_renew is intentionally NEVER "
+            "modified by this endpoint (trials never auto-convert to paid "
+            "without explicit plan selection) — only a legacy Stripe-backed "
+            "trial's cancel_at_period_end flag is reversed, if applicable.\n\n"
+            "Any plan change that was scheduled at the time of the original "
+            "cancellation was already permanently discarded by cancel() and "
+            "is NOT restored by this endpoint — the subscription simply "
+            "continues on its current plan."
+        ),
+        responses={
+            200: OpenApiResponse(description="Resumed, already active, or renewed during the request."),
+            400: OpenApiResponse(description="Nothing to resume, period already ended, or a Stripe error."),
+            404: OpenApiResponse(description="No active subscription found."),
+        },
+    )
+    @action(detail=False, methods=["POST"])
+    def resume(self, request, *args, **kwargs):
+        lock_key = self._billing_mutation_lock_key(request.user.id)
+        if not cache.add(
+            lock_key, "1", timeout=self._BILLING_MUTATION_LOCK_TIMEOUT_SECONDS
+        ):
+            return Response(
+                {"detail": "A billing change is already being processed for "
+                           "your account. Please wait a moment and try again."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            # --- Unlocked read: cheap validation before any Stripe call ---
+            sub = (
+                UserSubscription.objects.filter(user=request.user, is_active=True)
+                .select_related("plan")
                 .first()
             )
-            if not user_subscription:
+            if not sub:
                 return Response(
-                    {
-                        "status": "inactive",
-                        "message": "No active subscription found to cancel",
-                    },
+                    {"status": "inactive", "message": "No active subscription found to resume"},
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
-            had_pending_change = bool(user_subscription.pending_plan_id)
-            had_stripe_schedule = bool(user_subscription.stripe_schedule_id)
-            was_already_not_renewing = (
-                not user_subscription.auto_renew
-                and not had_pending_change
-                and not user_subscription.stripe_schedule_id
-            )
-
-            schedule_released = False
-
-            if user_subscription.stripe_schedule_id:
-                try:
-                    StripeSubscriptionScheduleService.release_schedule(
-                        user_subscription
-                    )
-                    schedule_released = True
-                except ValueError as exc:
-                    return Response(
-                        {"detail": str(exc)},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-
-            if user_subscription.stripe_subscription_id:
-                try:
-                    stripe.Subscription.modify(
-                        user_subscription.stripe_subscription_id,
-                        cancel_at_period_end=True,
-                    )
-                except stripe.error.StripeError as exc:
-                    if schedule_released:
-                        user_subscription.pending_plan = None
-                        user_subscription.pending_change_type = None
-                        user_subscription.pending_change_note = None
-                        user_subscription.stripe_schedule_id = None
-                        user_subscription.save(
-                            update_fields=[
-                                "pending_plan",
-                                "pending_change_type",
-                                "pending_change_note",
-                                "stripe_schedule_id",
-                                "updated_at",
-                            ]
+            now = timezone.now()
+            if now >= sub.billing_cycle_end:
+                return Response(
+                    {
+                        "detail": (
+                            "This subscription's current billing period has "
+                            "already ended. Please subscribe again via "
+                            "select-plan."
                         )
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            warnings = []
+            stripe_changed = False
+            stripe_attempted = False
+
+            # --- Stripe reconciliation (network call, deliberately NOT
+            # inside a DB transaction — see module conventions established
+            # for overage purchases: never hold a DB lock across a Stripe
+            # round trip). Reads Stripe's LIVE state rather than trusting
+            # the local auto_renew flag, to correctly handle desync (e.g.
+            # a cancellation made directly in the Stripe dashboard). ---
+            if sub.stripe_subscription_id:
+                stripe_attempted = True
+                try:
+                    stripe_sub = stripe.Subscription.retrieve(sub.stripe_subscription_id)
+                except stripe.error.StripeError as exc:
                     return Response(
                         {
                             "detail": (
-                                "Could not cancel your subscription with "
-                                "our payment provider: "
+                                "Could not verify your subscription with our "
+                                "payment provider: "
                                 f"{getattr(exc, 'user_message', None) or str(exc)}"
                             )
                         },
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
-            update_fields = []
+                stripe_status_value = stripe_sub.get("status")
+                if stripe_status_value in ("canceled", "incomplete_expired"):
+                    return Response(
+                        {
+                            "detail": (
+                                "This subscription has already been fully "
+                                "canceled with our payment provider and "
+                                "cannot be resumed. Please subscribe again "
+                                "via select-plan."
+                            )
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
 
-            if user_subscription.auto_renew:
-                user_subscription.auto_renew = False
-                update_fields.append("auto_renew")
+                if stripe_status_value == StripeSubscriptionStatus.PAST_DUE.lower():
+                    warnings.append(
+                        "This subscription has an outstanding payment issue "
+                        "that resuming does not resolve on its own — the "
+                        "next renewal invoice will need to succeed for "
+                        "service to continue uninterrupted."
+                    )
 
-            if had_pending_change:
-                user_subscription.pending_plan = None
-                user_subscription.pending_change_type = None
-                user_subscription.pending_change_note = None
-                user_subscription.stripe_schedule_id = None
-                update_fields += [
-                    "pending_plan",
-                    "pending_change_type",
-                    "pending_change_note",
-                    "stripe_schedule_id",
-                ]
+                if stripe_sub.get("cancel_at_period_end", False):
+                    try:
+                        stripe.Subscription.modify(
+                            sub.stripe_subscription_id,
+                            cancel_at_period_end=False,
+                        )
+                        stripe_changed = True
+                    except stripe.error.StripeError as exc:
+                        return Response(
+                            {
+                                "detail": (
+                                    "Could not resume your subscription with "
+                                    "our payment provider: "
+                                    f"{getattr(exc, 'user_message', None) or str(exc)}"
+                                )
+                            },
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
 
-            if had_stripe_schedule and schedule_released:
-                user_subscription.stripe_schedule_id = None
-                update_fields.append("stripe_schedule_id")
+            # --- Locked re-validation + local write ---
+            local_changed = False
+            stripe_reverted_due_to_local_failure = False
 
-            if update_fields:
-                update_fields.append("updated_at")
-                user_subscription.save(update_fields=update_fields)
-
-        if was_already_not_renewing:
-            message = (
-                "Subscription is already set to not renew at the end of "
-                "the current billing cycle"
-            )
-        else:
-            message = (
-                "Subscription will not renew at the end of the current " "billing cycle"
-            )
-            if had_pending_change:
-                message += (
-                    ". Your previously scheduled plan change has also " "been cancelled"
+            with transaction.atomic():
+                locked_sub = (
+                    UserSubscription.objects.select_for_update()
+                    .select_related("plan")
+                    .filter(pk=sub.pk)
+                    .first()
                 )
 
-        return Response(
-            {"status": "cancelled", "message": message},
-            status=status.HTTP_200_OK,
-        )
+                if not locked_sub or not locked_sub.is_active:
+                    # Superseded by a genuine renewal or expiry that
+                    # completed during the Stripe round trip above. Not an
+                    # error — report whatever the user's CURRENT state is.
+                    current_active = (
+                        UserSubscription.objects.filter(
+                            user=request.user, is_active=True
+                        )
+                        .select_related("plan")
+                        .first()
+                    )
+                    if current_active:
+                        return Response(
+                            {
+                                "status": "already_renewed",
+                                "message": (
+                                    "Your subscription already renewed during "
+                                    "this request — no action was needed."
+                                ),
+                                "subscription": UserSubscriptionSerializer(
+                                    current_active
+                                ).data,
+                            },
+                            status=status.HTTP_200_OK,
+                        )
+                    return Response(
+                        {
+                            "detail": (
+                                "Your subscription ended during this request. "
+                                "Please subscribe again via select-plan."
+                            )
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
 
-    # @CHECKOUT_SCHEMA
-    # @action(detail=False, methods=["POST"], url_path="checkout")
-    # def checkout(self, request, *args, **kwargs):
-    #     plan_id = request.data.get("plan")
-    #     if not plan_id:
-    #         return Response(
-    #             {"detail": "The 'plan' field is required."},
-    #             status=status.HTTP_400_BAD_REQUEST,
-    #         )
-    #     try:
-    #         plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
-    #     except SubscriptionPlan.DoesNotExist:
-    #         return Response(
-    #             {"detail": "Plan not found or is not active."},
-    #             status=status.HTTP_404_NOT_FOUND,
-    #         )
+                if now >= locked_sub.billing_cycle_end:
+                    return Response(
+                        {
+                            "detail": (
+                                "This subscription's current billing period "
+                                "ended during this request. Please subscribe "
+                                "again via select-plan."
+                            )
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
 
-    #     success_url = (
-    #         request.data.get("success_url")
-    #         or f"https://{settings.FRONTEND_DOMAIN}/billing/success"
-    #     )
-    #     cancel_url = (
-    #         request.data.get("cancel_url")
-    #         or f"https://{settings.FRONTEND_DOMAIN}/billing/cancelled"
-    #     )
+                update_fields = []
+                if not locked_sub.is_trial and not locked_sub.auto_renew:
+                    locked_sub.auto_renew = True
+                    update_fields.append("auto_renew")
+                    local_changed = True
 
-    #     try:
-    #         session = StripeCheckoutService.create_individual_subscribe_session(
-    #             user=request.user,
-    #             plan=plan,
-    #             success_url=success_url,
-    #             cancel_url=cancel_url,
-    #         )
-    #     except ValueError as exc:
-    #         return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+                if update_fields:
+                    update_fields.append("updated_at")
+                    try:
+                        locked_sub.save(update_fields=update_fields)
+                    except Exception:
+                        # Stripe was already updated (harmless flag flip,
+                        # not a charge) but the local write failed — this
+                        # would leave Stripe and our DB disagreeing about
+                        # whether this subscription will renew. Attempt a
+                        # compensating revert so Stripe matches the
+                        # (unchanged) local state; log loudly either way.
+                        logger.exception(
+                            "Resume: local save failed for subscription %s "
+                            "after Stripe was already updated. Attempting "
+                            "compensating revert.",
+                            locked_sub.id,
+                        )
+                        if stripe_changed and sub.stripe_subscription_id:
+                            try:
+                                stripe.Subscription.modify(
+                                    sub.stripe_subscription_id,
+                                    cancel_at_period_end=True,
+                                )
+                                stripe_reverted_due_to_local_failure = True
+                            except stripe.error.StripeError:
+                                logger.exception(
+                                    "Resume: compensating Stripe revert ALSO "
+                                    "failed for subscription %s "
+                                    "(stripe_subscription_id=%s). MANUAL "
+                                    "RECONCILIATION NEEDED — Stripe and local "
+                                    "state now disagree about renewal.",
+                                    locked_sub.id, sub.stripe_subscription_id,
+                                )
+                        raise
 
-    #     return Response({"checkout_url": session.url}, status=status.HTTP_200_OK)
+            logger.info(
+                "Subscription %s resumed for user %s. stripe_changed=%s "
+                "local_changed=%s is_trial=%s.",
+                sub.id, request.user.email, stripe_changed, local_changed,
+                sub.is_trial,
+            )
+
+            # --- Build response message ---
+            locked_sub.refresh_from_db()
+
+            if sub.is_trial:
+                if stripe_changed:
+                    message = (
+                        "Your trial will continue as normal and convert to "
+                        "a paid subscription when it ends, unless you "
+                        "cancel again before then."
+                    )
+                else:
+                    message = (
+                        "Free trials don't require resuming — yours will "
+                        "simply run its course and end automatically at "
+                        "its scheduled end date unless you subscribe to a "
+                        "paid plan before then."
+                    )
+            elif not stripe_changed and not local_changed:
+                message = "Your subscription is already active and set to renew — nothing to resume."
+            else:
+                message = "Your subscription has been resumed and will renew normally."
+
+            return Response(
+                {
+                    "status": "resumed" if (stripe_changed or local_changed) else "already_active",
+                    "message": message,
+                    "warnings": warnings,
+                    "subscription": UserSubscriptionSerializer(locked_sub).data,
+                },
+                status=status.HTTP_200_OK,
+            )
+        finally:
+            cache.delete(lock_key)
+
 
     @extend_schema(
         tags=["Subscription — Stripe"],
@@ -1137,31 +1437,45 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
     )
     def summary(self, request, *args, **kwargs):
         user = request.user
-        wallet = user.credit_wallet
+        try:
+            wallet = user.credit_wallet
+        except CreditWallet.DoesNotExist:
+            return Response(
+                {"status": "inactive", "message": "No credit wallet found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
-        # 1. Identify the current billing window
-        subscription = self.get_queryset().first()
-        if not subscription:
+        context = resolve_user_billing_context(user)
+
+        if context.source == SOURCE_INDIVIDUAL:
+            start = context.user_subscription.billing_cycle_start
+            end = context.user_subscription.billing_cycle_end
+        elif context.source == SOURCE_LICENSE_TEACHER:
+            # A teacher's OWN credit-refresh cycle governs when THEIR
+            # usage window resets — not the license's multi-month/year
+            # contract window. Falls back to the license's billing_cycle_
+            # end defensively if next_credit_grant_at is somehow unset.
+            license_sub = context.license_subscription
+            start = license_sub.billing_cycle_start
+            end = (
+                context.allocation.next_credit_grant_at or license_sub.billing_cycle_end
+            )
+        elif context.source == SOURCE_LICENSE_ADMIN:
+            start = context.license_subscription.billing_cycle_start
+            end = context.license_subscription.billing_cycle_end
+        else:
             return Response(
                 {"status": "inactive", "message": "No subscription found"},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        start = subscription.billing_cycle_start
-        end = subscription.billing_cycle_end
-
-        # 2 Aggregate logs within this window
         logs = CreditUsageLog.objects.filter(
             wallet=wallet, created_at__range=[start, end]
         )
-
         total_consumed = logs.aggregate(total=Sum("amount"))["total"] or 0
 
-        # 3 Break down by feature (e.g.)
         by_feature = logs.values("feature").annotate(total=Sum("amount"))
         feature_map = {item["feature"]: item["total"] for item in by_feature}
-
-        # 4 Break down by bucket type (.e.g., "MONTHLY", "CARRY_OVER", "OVERAGE")
 
         by_bucket_type = logs.values("bucket__bucket_type").annotate(
             total=Sum("amount")

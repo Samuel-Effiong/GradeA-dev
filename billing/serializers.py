@@ -29,10 +29,18 @@ from .models import (
     PlanCategory,
     PlanType,
     SchoolCreditAllocation,
+    StripeSubscriptionStatus,
     SubscriptionPlan,
     UserSubscription,
 )
 from .services import SubscriptionService
+from .subscription_resolver import (
+    SOURCE_INDIVIDUAL,
+    SOURCE_LICENSE_ADMIN,
+    SOURCE_LICENSE_TEACHER,
+    get_monthly_credit_ceiling_for_user,
+    resolve_user_billing_context,
+)
 
 
 class PlanFeatureSerializer(serializers.Serializer):
@@ -405,6 +413,144 @@ class MySubscriptionSerializer(UserSubscriptionSerializer):
             return 0
 
 
+class MyLicenseTeacherSubscriptionSerializer(serializers.Serializer):
+    """
+    Response shape for /subscription/me when the caller is a teacher
+    actively enrolled under a school LICENSE. Distinct from
+    MySubscriptionSerializer because a license teacher's entitlement is
+    split across two rows — SchoolCreditAllocation (their own grant/
+    refresh cycle) and the shared LicenseSubscription (plan/contract/
+    billing, which they don't manage) — rather than one UserSubscription
+    row. Instantiate with a SchoolCreditAllocation instance.
+    """
+
+    subscription_source = serializers.CharField(default="LICENSE_TEACHER")
+
+    # License-level (shared, read-only — the teacher does not manage this)
+    license_id = serializers.UUIDField(source="license_subscription.id")
+    school_name = serializers.CharField(source="license_subscription.school.name")
+    plan = SubscriptionPlanSerializer(source="license_subscription.plan")
+    plan_display_name = serializers.SerializerMethodField()
+    is_license_active = serializers.BooleanField(
+        source="license_subscription.is_active"
+    )
+    license_billing_cycle_start = serializers.DateTimeField(
+        source="license_subscription.billing_cycle_start"
+    )
+    license_billing_cycle_end = serializers.DateTimeField(
+        source="license_subscription.billing_cycle_end"
+    )
+    license_auto_renew = serializers.BooleanField(
+        source="license_subscription.auto_renew"
+    )
+    license_stripe_status = serializers.CharField(
+        source="license_subscription.stripe_status", allow_null=True
+    )
+    admin_email = serializers.EmailField(source="license_subscription.admin_user.email")
+    admin_name = serializers.SerializerMethodField()
+
+    # Allocation-level — the teacher's OWN grant/refresh cycle
+    monthly_allocation = serializers.IntegerField()
+    display_monthly_allocation = serializers.IntegerField()
+    next_credit_grant_at = serializers.DateTimeField(allow_null=True)
+    days_until_next_credit_grant = serializers.SerializerMethodField()
+
+    # Wallet — fully personal, never shared with other teachers
+    wallet_summary = serializers.SerializerMethodField()
+
+    def get_plan_display_name(self, obj) -> str:
+        plan = obj.license_subscription.plan
+        return plan.display_name or plan.name
+
+    def get_admin_name(self, obj) -> str:
+        return obj.license_subscription.admin_user.get_full_name()
+
+    def get_days_until_next_credit_grant(self, obj) -> int | None:
+        if not obj.next_credit_grant_at:
+            return None
+        delta = obj.next_credit_grant_at - timezone.now()
+        return max(0, delta.days)
+
+    def get_wallet_summary(self, obj) -> dict | None:
+        try:
+            wallet = obj.user.credit_wallet
+        except CreditWallet.DoesNotExist:
+            return None
+        return CreditWalletSummarySerializer(wallet).data
+
+
+class MyLicenseAdminSubscriptionSerializer(serializers.Serializer):
+    """
+    Response shape for /subscription/me when the caller is the admin_user
+    of an active LICENSE subscription. Instantiate with the
+    LicenseSubscription instance; pass context={"admin_user": user,
+    "managed_license_count": N}.
+    """
+
+    subscription_source = serializers.CharField(default="LICENSE_ADMIN")
+
+    license_id = serializers.UUIDField(source="id")
+    school_name = serializers.CharField(source="school.name")
+    plan = SubscriptionPlanSerializer()
+    plan_display_name = serializers.SerializerMethodField()
+    is_active = serializers.BooleanField()
+    billing_method = serializers.CharField()
+    billing_cycle_start = serializers.DateTimeField()
+    billing_cycle_end = serializers.DateTimeField()
+    days_until_renewal = serializers.SerializerMethodField()
+    auto_renew = serializers.BooleanField()
+    stripe_status = serializers.CharField(allow_null=True)
+    has_pending_billing_issue = serializers.SerializerMethodField()
+
+    teacher_count = serializers.IntegerField()
+    max_seats = serializers.IntegerField()
+    seats_remaining = serializers.SerializerMethodField()
+
+    managed_license_count = serializers.SerializerMethodField()
+    has_other_managed_licenses = serializers.SerializerMethodField()
+
+    wallet_summary = serializers.SerializerMethodField()
+
+    def get_plan_display_name(self, obj) -> str:
+        return obj.plan.display_name or obj.plan.name
+
+    def get_days_until_renewal(self, obj) -> int:
+        delta = obj.billing_cycle_end - timezone.now()
+        return max(0, delta.days)
+
+    def get_has_pending_billing_issue(self, obj) -> bool:
+        return obj.stripe_status == StripeSubscriptionStatus.PAST_DUE
+
+    def get_seats_remaining(self, obj) -> int | None:
+        return obj.seats_remaining
+
+    def get_managed_license_count(self, obj) -> int:
+        return self.context.get("managed_license_count", 1)
+
+    def get_has_other_managed_licenses(self, obj) -> bool:
+        return self.context.get("managed_license_count", 1) > 1
+
+    def get_wallet_summary(self, obj) -> dict | None:
+        admin_user = self.context.get("admin_user")
+        if not admin_user:
+            return None
+        has_admin_allocation = SchoolCreditAllocation.objects.filter(
+            license_subscription=obj,
+            user=admin_user,
+            is_admin_allocation=True,
+        ).exists()
+        if not has_admin_allocation:
+            # Pre-existing license created before the admin-analytics-
+            # allocation feature shipped, never backfilled. Degrade
+            # gracefully rather than erroring.
+            return None
+        try:
+            wallet = admin_user.credit_wallet
+        except CreditWallet.DoesNotExist:
+            return None
+        return CreditWalletSummarySerializer(wallet).data
+
+
 class FreeTrialStatusSerializer(serializers.Serializer):
     """
     Read-only serializer returned by the start_trial and convert_trial endpoints.
@@ -553,12 +699,7 @@ class CreditWalletSerializer(serializers.ModelSerializer):
         Returns the teacher's plan monthly credit allowance as a display value.
         This is the '100%' ceiling for the progress bar.
         """
-        subscription = (
-            obj.user.subscriptions.filter(is_active=True).select_related("plan").first()
-        )
-        if not subscription:
-            return 0
-        return subscription.plan.display_monthly_credits
+        return get_monthly_credit_ceiling_for_user(obj.user) // CONVERSION_FACTOR
 
     def get_monthly_credit_remaining(self, obj) -> int:
         """
@@ -803,12 +944,7 @@ class CreditWalletSummarySerializer(serializers.ModelSerializer):
         Returns the teacher's plan monthly credit allowance as a display value.
         This is the '100%' ceiling for the progress bar.
         """
-        subscription = (
-            obj.user.subscriptions.filter(is_active=True).select_related("plan").first()
-        )
-        if not subscription:
-            return 0
-        return subscription.plan.display_monthly_credits
+        return get_monthly_credit_ceiling_for_user(obj.user) // CONVERSION_FACTOR
 
     def get_monthly_credit_remaining(self, obj) -> int:
         """
@@ -989,20 +1125,44 @@ class OverageStatusSerializer(serializers.ModelSerializer):
         ]
 
     def _get_active_plan(self, obj):
-        if not hasattr(obj, "_active_individual_plan_cache"):
-            user_sub = (
-                obj.user.subscriptions.filter(is_active=True)
-                .select_related("plan")
-                .first()
-            )
-            obj._active_individual_plan_cache = user_sub.plan if user_sub else None
-        return obj._active_individual_plan_cache
+        """
+        Resolves the SubscriptionPlan governing overage terms for this
+        wallet's user, regardless of track:
+          - INDIVIDUAL subscriber -> their UserSubscription.plan
+          - LICENSE teacher       -> their license's LicenseSubscription.plan
+          - LICENSE admin         -> their license's LicenseSubscription.plan
+          - none of the above     -> None (matches prior "no plan" behavior)
+
+        Cached on the instance per-request, same pattern as before, so
+        repeated field access within one serialization doesn't re-run the
+        resolver's queries.
+        """
+        if not hasattr(obj, "_active_plan_cache"):
+            context = resolve_user_billing_context(obj.user)
+            if context.source == SOURCE_INDIVIDUAL:
+                obj._active_plan_cache = context.user_subscription.plan
+            elif context.source in (SOURCE_LICENSE_TEACHER, SOURCE_LICENSE_ADMIN):
+                obj._active_plan_cache = context.license_subscription.plan
+            else:
+                obj._active_plan_cache = None
+        return obj._active_plan_cache
 
     def get_block_size(self, obj) -> int:
         plan = self._get_active_plan(obj)
         return plan.overage_block_size if plan else 0
 
     def get_block_remaining(self, obj) -> int:
+        """
+        NOTE: plan.max_overage_blocks vs. overage_blocks_used is the
+        existing individual-subscription overage cap model. For LICENSE
+        users this cap is presently unenforced at purchase time (see the
+        earlier overage-implementation review — flagged as a known gap
+        in purchase_teacher_overage/initiate_overage_purchase, not
+        something introduced or fixed here). This field will therefore
+        report a "remaining" figure for license users that isn't
+        currently backed by an enforced ceiling — informational only
+        until that enforcement gap is closed.
+        """
         plan = self._get_active_plan(obj)
         if not plan:
             return 0
