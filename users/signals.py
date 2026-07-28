@@ -1,3 +1,4 @@
+"Eyes to see"
 import logging
 
 from django.conf import settings
