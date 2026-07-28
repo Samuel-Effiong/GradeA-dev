@@ -1,3 +1,5 @@
+"""Eyes to see Lord Jesus to anyone using this website"""
+
 import logging
 
 from celery import shared_task
