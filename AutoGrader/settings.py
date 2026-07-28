@@ -533,7 +533,7 @@ else:
 
 ALLOWED_BUSINESS_EMAIL_DOMAINS = None
 DISALLOWED_EMAIL_DOMAINS = [
-    # "gmail.com",
+    "gmail.com",
     "yahoo.com",
     "hotmail.com",
     "outlook.com",

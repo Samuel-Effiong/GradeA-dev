@@ -2,9 +2,10 @@ import logging
 import time
 from datetime import timedelta
 
+from django.core.cache import cache
+
 # from django.conf import settings
 from django.db import transaction
-from django.core.cache import cache
 from django.db.models import Case, F, Q, Sum, Value, When
 from django.db.models.aggregates import Avg, Count
 from django.db.models.functions import ExtractHour, TruncDay, TruncWeek
@@ -56,6 +57,7 @@ from .models import (
     CreditWallet,
     PlanCategory,
     PlanTier,
+    StripeSubscriptionStatus,
     SubscriptionPlan,
     UserSubscription,
 )
@@ -679,7 +681,6 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
         serializer = self.get_serializer(user_subscription)
         return Response(serializer.data)
 
-
     @staticmethod
     def _billing_mutation_lock_key(user_id) -> str:
         """
@@ -699,8 +700,10 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
             lock_key, "1", timeout=self._BILLING_MUTATION_LOCK_TIMEOUT_SECONDS
         ):
             return Response(
-                {"detail": "A billing change is already being processed for "
-                           "your account. Please wait a moment and try again."},
+                {
+                    "detail": "A billing change is already being processed for "
+                    "your account. Please wait a moment and try again."
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -830,21 +833,15 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
         description=(
             "Reverses a previous cancel() call — as long as the current "
             "billing period has not yet ended (billing_cycle_end is still "
-            "in the future). Re-arms Stripe (cancel_at_period_end=False) "
-            "and sets auto_renew=True so the subscription continues to "
-            "renew normally.\n\n"
-            "For an active free TRIAL, auto_renew is intentionally NEVER "
-            "modified by this endpoint (trials never auto-convert to paid "
-            "without explicit plan selection) — only a legacy Stripe-backed "
-            "trial's cancel_at_period_end flag is reversed, if applicable.\n\n"
-            "Any plan change that was scheduled at the time of the original "
-            "cancellation was already permanently discarded by cancel() and "
-            "is NOT restored by this endpoint — the subscription simply "
-            "continues on its current plan."
+            "in the future)."
         ),
         responses={
-            200: OpenApiResponse(description="Resumed, already active, or renewed during the request."),
-            400: OpenApiResponse(description="Nothing to resume, period already ended, or a Stripe error."),
+            200: OpenApiResponse(
+                description="Resumed, already active, or renewed during the request."
+            ),
+            400: OpenApiResponse(
+                description="Nothing to resume, period already ended, or a Stripe error."
+            ),
             404: OpenApiResponse(description="No active subscription found."),
         },
     )
@@ -855,8 +852,10 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
             lock_key, "1", timeout=self._BILLING_MUTATION_LOCK_TIMEOUT_SECONDS
         ):
             return Response(
-                {"detail": "A billing change is already being processed for "
-                           "your account. Please wait a moment and try again."},
+                {
+                    "detail": "A billing change is already being processed for "
+                    "your account. Please wait a moment and try again."
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -869,7 +868,10 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
             )
             if not sub:
                 return Response(
-                    {"status": "inactive", "message": "No active subscription found to resume"},
+                    {
+                        "status": "inactive",
+                        "message": "No active subscription found to resume",
+                    },
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
@@ -888,7 +890,6 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
 
             warnings = []
             stripe_changed = False
-            stripe_attempted = False
 
             # --- Stripe reconciliation (network call, deliberately NOT
             # inside a DB transaction — see module conventions established
@@ -897,9 +898,10 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
             # the local auto_renew flag, to correctly handle desync (e.g.
             # a cancellation made directly in the Stripe dashboard). ---
             if sub.stripe_subscription_id:
-                stripe_attempted = True
                 try:
-                    stripe_sub = stripe.Subscription.retrieve(sub.stripe_subscription_id)
+                    stripe_sub = stripe.Subscription.retrieve(
+                        sub.stripe_subscription_id
+                    )
                 except stripe.error.StripeError as exc:
                     return Response(
                         {
@@ -955,7 +957,6 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
 
             # --- Locked re-validation + local write ---
             local_changed = False
-            stripe_reverted_due_to_local_failure = False
 
             with transaction.atomic():
                 locked_sub = (
@@ -1041,7 +1042,6 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                                     sub.stripe_subscription_id,
                                     cancel_at_period_end=True,
                                 )
-                                stripe_reverted_due_to_local_failure = True
                             except stripe.error.StripeError:
                                 logger.exception(
                                     "Resume: compensating Stripe revert ALSO "
@@ -1049,14 +1049,18 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                                     "(stripe_subscription_id=%s). MANUAL "
                                     "RECONCILIATION NEEDED — Stripe and local "
                                     "state now disagree about renewal.",
-                                    locked_sub.id, sub.stripe_subscription_id,
+                                    locked_sub.id,
+                                    sub.stripe_subscription_id,
                                 )
                         raise
 
             logger.info(
                 "Subscription %s resumed for user %s. stripe_changed=%s "
                 "local_changed=%s is_trial=%s.",
-                sub.id, request.user.email, stripe_changed, local_changed,
+                sub.id,
+                request.user.email,
+                stripe_changed,
+                local_changed,
                 sub.is_trial,
             )
 
@@ -1084,7 +1088,11 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
 
             return Response(
                 {
-                    "status": "resumed" if (stripe_changed or local_changed) else "already_active",
+                    "status": (
+                        "resumed"
+                        if (stripe_changed or local_changed)
+                        else "already_active"
+                    ),
                     "message": message,
                     "warnings": warnings,
                     "subscription": UserSubscriptionSerializer(locked_sub).data,
@@ -1093,7 +1101,6 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
             )
         finally:
             cache.delete(lock_key)
-
 
     @extend_schema(
         tags=["Subscription — Stripe"],
