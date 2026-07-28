@@ -61,7 +61,7 @@ def send_user_activation_email(user):
             template_id="ynrw7gy0ye2l2k8e",
             merge_data=merge_data,
         )
-    except Exception:
+    except Exception as e:
         logger.exception(
             "Failed to queue activation email for user %s",
             getattr(user, "email", None),
