@@ -82,12 +82,12 @@ class Session(models.Model):
         constraints = [
             UniqueConstraint(
                 fields=["name", "teacher"],
-                condition=Q(owner_type="INDIVIDUAL"),
+                condition=models.Q(owner_type="INDIVIDUAL"),
                 name="unique_session_name_per_teacher",
             ),
             UniqueConstraint(
                 fields=["name", "school"],
-                condition=Q(owner_type="SCHOOL"),
+                condition=models.Q(owner_type="SCHOOL"),
                 name="unique_session_name_per_school",
             ),
         ]
