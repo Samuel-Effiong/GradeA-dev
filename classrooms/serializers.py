@@ -25,6 +25,7 @@ from .models import (
     EnrollmentStatusType,
     School,
     Session,
+    SessionOwnerType,
     StudentCourse,
     Topic,
 )
@@ -34,18 +35,31 @@ class SessionSerializer(serializers.ModelSerializer):
     """Serializer for the AcademicTerm model."""
 
     teacher = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    school = serializers.PrimaryKeyRelatedField(read_only=True)  # added
+    owner_type = serializers.ChoiceField(
+        choices=SessionOwnerType.choices, read_only=True
+    )
 
     class Meta:
         model = Session
-        fields = ["id", "name", "created_at", "teacher"]
-        read_only_fields = ["id", "created_at", "teacher"]
-
-        validators = [
-            UniqueTogetherValidator(
-                queryset=Session.objects.all(),
-                fields=["name", "teacher"],
-                message="This Teacher already has this session",
-            )
+        fields = [
+            "id",
+            "name",
+            "owner_type",
+            "teacher",
+            "created_at",
+            "owner_type",
+            "teacher",
+            "school",
+            "created_by",
+        ]
+        read_only_fields = [
+            "id",
+            "created_at",
+            "owner_type",
+            "teacher",
+            "school",
+            "created_by",
         ]
 
 

@@ -317,10 +317,10 @@ class SubscriptionPlan(models.Model):
         help_text="Percentage of unused credits to carry over (e.g. 25.00 for 25%)",
     )
 
-    carry_over_max = models.PositiveIntegerField(
-        default=0,
-        help_text="Maximum raw credits that can be carried over (display value × 1000)",
-    )
+    # carry_over_max = models.PositiveIntegerField(
+    #     default=0,
+    #     help_text="Maximum raw credits that can be carried over (display value × 1000)",
+    # )
 
     max_bank = models.PositiveIntegerField(
         null=True,

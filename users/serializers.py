@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
 from rest_framework import serializers
@@ -18,6 +20,8 @@ from users.models import (
     Waitlist,
 )
 from users.services import send_user_activation_email
+
+logger = logging.getLogger(__name__)
 
 
 class SettingsSerializer(serializers.ModelSerializer):
@@ -170,14 +174,18 @@ class CustomUserSerializer(serializers.ModelSerializer):
                 user = CustomUser.objects.create_user(**validated_data)
 
                 if user.registration_method == RegistrationMethod.EMAIL:
-                    send_user_activation_email(user)
+                    try:
+                        send_user_activation_email(user)
+                    except Exception:
+                        logger.exception(
+                            "Registration email dispatch failed for user %s",
+                            getattr(user, "email", None),
+                        )
 
                 return user
 
         except Exception as e:
-            raise serializers.ValidationError(
-                str(e), code="User creation error"
-            ) from Exception
+            raise serializers.ValidationError(str(e), code="User creation error") from e
 
     def update(self, instance, validated_data):
         try:

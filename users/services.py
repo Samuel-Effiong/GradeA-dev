@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import string
 from datetime import timedelta
 
@@ -13,51 +14,59 @@ from django.utils.crypto import get_random_string
 
 from AutoGrader.tasks import send_email_task
 
+logger = logging.getLogger(__name__)
+
 
 def send_user_activation_email(user):
-    token = otp_manager.generate_otp()
-    user.activation_token = token
-    user.activation_expires = timezone.now() + timedelta(minutes=15)
-    user.save()
+    try:
+        token = otp_manager.generate_otp()
+        user.activation_token = token
+        user.activation_expires = timezone.now() + timedelta(minutes=15)
+        user.save()
 
-    protocol = "https://"
-    frontend_domain = settings.FRONTEND_DOMAIN
+        protocol = "https://"
+        frontend_domain = settings.FRONTEND_DOMAIN
 
-    activation_url = (
-        f"{protocol}{frontend_domain}/verify-email?email={user.email}&token={token}"
-    )
+        activation_url = (
+            f"{protocol}{frontend_domain}/verify-email?email={user.email}&token={token}"
+        )
 
-    top_content = """
-    Your account is ready. Confirm your email address to activate your access and start managing grading,
-    submissions, and course activity with confidence.<br><br>
-    """
+        top_content = """
+        Your account is ready. Confirm your email address to activate your access and start managing grading,
+        submissions, and course activity with confidence.<br><br>
+        """
 
-    bottom_content = """
-    This link expires in 15 minutes. <br>
-    If you did not create this account, you can safely ignore this email<br>.
-    """
+        bottom_content = """
+        This link expires in 15 minutes. <br>
+        If you did not create this account, you can safely ignore this email<br>.
+        """
 
-    merge_data = {
-        "title": "Activate your Grade A+ account",
-        "name": f"{user.first_name}",
-        "activation_url": activation_url,
-        "top_content": top_content,
-        "bottom_content": bottom_content,
-        "support_email": settings.SUPPORT_EMAIL,
-        "current_year": timezone.now().year,
-    }
+        merge_data = {
+            "title": "Activate your Grade A+ account",
+            "name": f"{user.first_name}",
+            "activation_url": activation_url,
+            "top_content": top_content,
+            "bottom_content": bottom_content,
+            "support_email": settings.SUPPORT_EMAIL,
+            "current_year": timezone.now().year,
+        }
 
-    # html_content = render_to_string("email/token_activation.html", context=context)
-
-    return send_email_task.delay(
-        subject="Verify your email and get started with faster, smarter grading",
-        message="",
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
-        html_message=None,
-        template_id="ynrw7gy0ye2l2k8e",
-        merge_data=merge_data,
-    )
+        # html_content = render_to_string("email/token_activation.html", context=context)
+        return send_email_task.delay(
+            subject="Verify your email and get started with faster, smarter grading",
+            message="",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            html_message=None,
+            template_id="ynrw7gy0ye2l2k8e",
+            merge_data=merge_data,
+        )
+    except Exception:
+        logger.exception(
+            "Failed to queue activation email for user %s",
+            getattr(user, "email", None),
+        )
+        return None
 
 
 class OTPManager:

@@ -3,8 +3,7 @@ import io
 
 from dateutil.relativedelta import relativedelta
 from django.conf import settings
-
-# from django.contrib.auth.models import AnonymousUser
+from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import validate_email
@@ -57,7 +56,7 @@ from assignments.models import Assignment
 from assignments.serializers import TaskInfoSerializer
 from AutoGrader.tasks import send_email_task
 from billing.models import CreditUsageLog
-from classrooms.permissions import CanManageSession, IsNotStudent
+from classrooms.permissions import IsNotStudent
 from students.models import StudentSubmission
 from students.serializers import StudentListSerializer
 from users.mixins import UserCacheMixin
@@ -72,7 +71,6 @@ from .models import (  # , Classroom, ClassroomSettings
     EnrollmentStatusType,
     School,
     Session,
-    SessionOwnerType,
     StudentCourse,
     Topic,
 )
@@ -901,7 +899,7 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         current = start_date.replace(day=1)
         usage_dict = {item["month"]: item["total"] for item in monthly_usage}
 
-        for _ in range(months):
+        for i in range(months):
             month_str = current.strftime("%b %Y")  # e.g. "Apr 2025"
             tokens = usage_dict.get(current, 0)
             result.append(
@@ -2157,7 +2155,7 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
     queryset = Session.objects.all()
     serializer_class = SessionSerializer
-    permission_classes = (IsAuthenticated, CanManageSession)
+    permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
     pagination_class = PageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
@@ -2177,26 +2175,11 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        if user.user_type == UserTypes.SUPER_ADMIN:
-            return Session.objects.all()
-
-        if user.user_type == UserTypes.SCHOOL_ADMIN:
-            return Session.objects.filter(
-                school=user.school, owner_type=SessionOwnerType.SCHOOL
-            )
+        if isinstance(user, AnonymousUser):
+            return Session.objects.none()
 
         if user.user_type == UserTypes.TEACHER:
-            if user.school is not None:
-                # Teacher under a school: see only SCHOOL-owned sessions of that school
-                return Session.objects.filter(
-                    school=user.school, owner_type=SessionOwnerType.SCHOOL
-                )
-            else:
-                # Individual teacher: see only their own INDIVIDUAL sessions
-                return Session.objects.filter(
-                    owner_type=SessionOwnerType.INDIVIDUAL, teacher=user
-                )
-
+            return Session.objects.filter(teacher=user)
         elif user.user_type == UserTypes.STUDENT:
             return Session.objects.filter(
                 courses__enrollments__student=user,
@@ -2205,43 +2188,55 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         else:
             return Session.objects.none()
 
-    def perform_create(self, serializer):
-        user = self.request.user
-        # now = timezone.now()
-
-        if user.user_type == UserTypes.SUPER_ADMIN:
-            # Super admin can create both types - they must pass owner_type in request
-            owner_type = self.request.data.get(
-                "owner_type", SessionOwnerType.INDIVIDUAL
-            )
-
-        elif user.user_type == UserTypes.SCHOOL_ADMIN:
-            owner_type = SessionOwnerType.SCHOOL
-        elif user.user_type == UserTypes.TEACHER and user.school is None:
-            owner_type = SessionOwnerType.INDIVIDUAL
-        else:
-            raise PermissionDenied("You are not allowed to create sessions.")
-
-        # Validate that required FK is present
-        if owner_type == SessionOwnerType.SCHOOL:
-            if not user.school:
-                raise ValidationError(
-                    {"school": "School admin must belong to a school."}
-                )
-
-            serializer.save(
-                owner_type=owner_type,
-                school=user.school,
-                teacher=None,
-                created_by=user,
-            )
-        else:  # INDIVIDUAL
-            serializer.save(
-                owner_type=owner_type,
-                teacher=user,
-                school=None,
-                created_by=user,
-            )
+    # @extend_schema(
+    #     tags=["01 Session"],
+    #     summary="Get courses for a session",
+    #     description="Retrieve a list of courses associated with a specific session.",
+    #     parameters=[
+    #         OpenApiParameter(
+    #             name="session_id",
+    #             type=OpenApiTypes.UUID,
+    #             location=OpenApiParameter.PATH,
+    #             description="The ID of the session to retrieve courses for",
+    #             required=True,
+    #         ),
+    #     ],
+    #     responses={
+    #         200: CourseSerializer(many=True),
+    #         400: OpenApiResponse(description="Invalid session ID"),
+    #         404: OpenApiResponse(description="Session not found"),
+    #         500: OpenApiResponse(description="Internal Server Error"),
+    #     },
+    # )
+    # @action(
+    #     detail=False,
+    #     methods=["get"],
+    #     url_path=r"(?P<session_id>[-\w]+)/courses",
+    #     url_name="session-courses",
+    # )
+    # def get_courses(self, request, session_id=None, **kwargs):
+    #     """
+    #     Retrieve a list of courses associated with a specific session.
+    #     """
+    #
+    #     try:
+    #         session = self.queryset.filter(id=session_id).first()
+    #         if not session:
+    #             return Response(
+    #                 {"detail": "Session not found."}, status=status.HTTP_404_NOT_FOUND
+    #             )
+    #
+    #         courses = session.courses.all()
+    #
+    #         serializer = CourseSerializer(courses, many=True)
+    #         return Response(serializer.data)
+    #
+    #     except Exception as e:
+    #         return Response(
+    #             {"detail": "Internal Server Error", "traceback": f"{e}"},
+    #             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    #         )
+    #
 
 
 @extend_schema_view(

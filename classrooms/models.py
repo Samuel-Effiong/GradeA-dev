@@ -19,12 +19,33 @@ class School(models.Model):
         return self.name
 
 
+class SessionOwnerType(models.TextChoices):
+    INDIVIDUAL = "INDIVIDUAL", "Individual Teacher"
+    SCHOOL = "SCHOOL", "School"
+
+
 class Session(models.Model):
     """Represents an Academic period (semester, year, quarter)."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100, db_index=True)
     created_at = models.DateField(auto_now_add=True)
+
+    # Ownership fields
+    owner_type = models.CharField(
+        max_length=20,
+        choices=SessionOwnerType.choices,
+        default=SessionOwnerType.INDIVIDUAL,
+        db_index=True,
+    )
+    school = models.ForeignKey(
+        "classrooms.School",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="sessions",
+        help_text="Set only when owner_type = SCHOOL",
+    )
 
     teacher = models.ForeignKey(
         "users.CustomUser",
@@ -34,11 +55,27 @@ class Session(models.Model):
         related_name="sessions",
     )
 
+    created_by = models.ForeignKey(
+        "users.CustomUser",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+        help_text="Audit: who created this session (admin or teacher).",
+    )
+
     class Meta:
         ordering = ("-created_at",)
         constraints = [
             UniqueConstraint(
-                fields=["name", "teacher"], name="unique_session_name_per_teacher"
+                fields=["name", "teacher"],
+                condition=models.Q(owner_type=SessionOwnerType.SCHOOL),
+                name="unique_session_name_per_teacher",
+            ),
+            UniqueConstraint(
+                fields=["name", "school"],
+                condition=models.Q(owner_type=SessionOwnerType.SCHOOL),
+                name="unique_session_name_per_school",
             ),
         ]
 
