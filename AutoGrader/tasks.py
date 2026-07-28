@@ -45,6 +45,7 @@ def _send_email_impl(
 
         try:
             mail.send(fail_silently=False)
+            logger.info("Email sent successfully to %s", recipient_list)
             return f"Email sent successfully to {recipient_list}"
         except Exception as exc:
             logger.warning(
@@ -77,6 +78,7 @@ def send_email_task(
     template_id=None,
     merge_data=None,
 ):
+    logger.warning("sending email to subjec: %s", subject)
     return _send_email_impl(
         subject=subject,
         message=message,

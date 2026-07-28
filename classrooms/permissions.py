@@ -2,7 +2,7 @@ from rest_framework import permissions
 
 from users.models import UserTypes
 
-from .models import SessionOwnerType
+from .models import School, SessionOwnerType
 
 
 class IsTeacher(permissions.BasePermission):
@@ -113,56 +113,53 @@ class IsTeacherOrStudent(permissions.BasePermission):
 
 class CanManageSession(permissions.BasePermission):
     """
-    - Super admins: full access.
-    - School admins: can create/update/delete only SCHOOL-owned sessions of their school.
-    - Teachers with no school (individual): can create/update/delete only their own INDIVIDUAL sessions.
-    - Teachers with a school: read-only on school-owned sessions; never write.
+    Read: allowed for anyone authenticated (queryset scoping in
+    SessionViewSet.get_queryset already restricts what's visible).
+
+    Write (create/update/partial_update/destroy):
+      - SUPER_ADMIN: always.
+      - SCHOOL_ADMIN: only for SCHOOL sessions belonging to a school they
+        administer.
+      - TEACHER with no school (individual track): only their own
+        INDIVIDUAL sessions.
+      - TEACHER with a school: never — sessions are managed by their
+        school admin.
     """
 
     def has_permission(self, request, view):
-        # Read-only is allowed for all authenticated users
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False
+
         if request.method in permissions.SAFE_METHODS:
             return True
 
-        user = request.user
-        # Super admin can do anything
-        if user.user_type == UserTypes.SUPER_ADMIN:
+        if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:
             return True
 
-        # School admin can create school sessions
         if user.user_type == UserTypes.SCHOOL_ADMIN:
-            return True
+            return True  # narrowed to their own school in has_object_permission
 
-        # Teacher – only if they do NOT belong to a school
-        if user.user_type == UserTypes.TEACHER and user.school is None:
-            return True
+        if user.user_type == UserTypes.TEACHER:
+            return user.school_id is None
 
-        # All other cases (teacher with school, student, etc.) – no write
         return False
 
     def has_object_permission(self, request, view, obj):
-        user = request.user
-
-        # Read-only always allowed (filtered queryset already restricts visibility)
         if request.method in permissions.SAFE_METHODS:
             return True
 
-        # Super admin
-        if user.user_type == UserTypes.SUPER_ADMIN:
+        user = request.user
+
+        if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:
             return True
 
-        # School admin: can only manage SCHOOL-owned sessions of their school
-        if user.user_type == UserTypes.SCHOOL_ADMIN:
-            return (
-                obj.owner_type == SessionOwnerType.SCHOOL
-                and obj.school_id in user.schools_managed()  # see helper below
-            )
+        if obj.owner_type == SessionOwnerType.SCHOOL:
+            if user.user_type != UserTypes.SCHOOL_ADMIN:
+                return False
+            return School.objects.filter(users=user, pk=obj.school_id).exists()
 
-        # Individual teacher: can manage only their own INDIVIDUAL sessions
-        if user.user_type == UserTypes.TEACHER and user.school is None:
-            return (
-                obj.owner_type == SessionOwnerType.INDIVIDUAL
-                and obj.teacher_id == user.id
-            )
-
-        return False
+        # INDIVIDUAL session
+        if user.user_type != UserTypes.TEACHER or user.school_id:
+            return False
+        return obj.teacher_id == user.id

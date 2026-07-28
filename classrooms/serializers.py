@@ -1,8 +1,10 @@
 import secrets
+import string
 
 from django.core.validators import MinLengthValidator
 from django.db import transaction
 from django.utils import timezone
+from django.utils.crypto import get_random_string
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
@@ -47,19 +49,17 @@ class SessionSerializer(serializers.ModelSerializer):
             "name",
             "owner_type",
             "teacher",
-            "created_at",
-            "owner_type",
-            "teacher",
             "school",
             "created_by",
+            "created_at",
         ]
         read_only_fields = [
             "id",
-            "created_at",
             "owner_type",
             "teacher",
             "school",
             "created_by",
+            "created_at",
         ]
 
 
@@ -539,9 +539,7 @@ class SchoolWithAdminSerializer(serializers.Serializer):
     admin_middle_name = serializers.CharField(
         max_length=150, required=False, allow_blank=True
     )
-    admin_password = serializers.CharField(
-        write_only=True, style={"input_type": "password"}
-    )
+
     admin_profile_image = serializers.ImageField(required=False, allow_null=True)
 
     def validate_admin_email(self, value):
@@ -573,6 +571,11 @@ class SchoolWithAdminSerializer(serializers.Serializer):
                 address=validated_data.get("school_address", ""),
                 phone=validated_data.get("school_phone", ""),
                 website=validated_data.get("school_website", ""),
+            )
+
+            # 2. Generate a secure random password
+            temp_password = get_random_string(
+                length=12, allowed_chars=f"{string.ascii_letters}{string.digits}"
             )
 
             # 2. Create Admin User

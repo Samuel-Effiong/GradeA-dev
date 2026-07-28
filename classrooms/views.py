@@ -479,7 +479,7 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
             teachers=Coalesce(teachers_sub, Value(0)),
             students=Coalesce(students_sub, Value(0)),
             tokens_used=Coalesce(tokens_sub, Value(0)),
-            sessions=Coalesce(sessions_sub, Value(0)),
+            school_sessions=Coalesce(sessions_sub, Value(0)),
         )
 
         # ---- Prefetch the first admin for each school ----
@@ -581,7 +581,7 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     "teachers": school.teachers,
                     "students": school.students,
                     "tokens_used": school.tokens_used,
-                    "sessions": school.sessions,
+                    "sessions": school.school_sessions,
                 }
             )
 
@@ -2177,71 +2177,83 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        if user.user_type == UserTypes.SUPER_ADMIN:
+        if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:
             return Session.objects.all()
 
         if user.user_type == UserTypes.SCHOOL_ADMIN:
+            admin_schools = School.objects.filter(users=user)
             return Session.objects.filter(
-                school=user.school, owner_type=SessionOwnerType.SCHOOL
+                owner_type=SessionOwnerType.SCHOOL, school__in=admin_schools
             )
 
         if user.user_type == UserTypes.TEACHER:
-            if user.school is not None:
-                # Teacher under a school: see only SCHOOL-owned sessions of that school
+            if user.school_id:
+                # School-managed teacher: read-only view of their school's sessions.
                 return Session.objects.filter(
-                    school=user.school, owner_type=SessionOwnerType.SCHOOL
+                    owner_type=SessionOwnerType.SCHOOL, school=user.school
                 )
-            else:
-                # Individual teacher: see only their own INDIVIDUAL sessions
-                return Session.objects.filter(
-                    owner_type=SessionOwnerType.INDIVIDUAL, teacher=user
-                )
+            # Individual-track teacher: unchanged legacy behavior.
+            return Session.objects.filter(
+                owner_type=SessionOwnerType.INDIVIDUAL, teacher=user
+            )
 
-        elif user.user_type == UserTypes.STUDENT:
+        if user.user_type == UserTypes.STUDENT:
             return Session.objects.filter(
                 courses__enrollments__student=user,
                 courses__enrollments__enrollment_status=EnrollmentStatusType.ENROLLED,
-            )
-        else:
-            return Session.objects.none()
+            ).distinct()
+
+        return Session.objects.none()
 
     def perform_create(self, serializer):
         user = self.request.user
-        # now = timezone.now()
 
-        if user.user_type == UserTypes.SUPER_ADMIN:
-            # Super admin can create both types - they must pass owner_type in request
-            owner_type = self.request.data.get(
-                "owner_type", SessionOwnerType.INDIVIDUAL
-            )
-
-        elif user.user_type == UserTypes.SCHOOL_ADMIN:
-            owner_type = SessionOwnerType.SCHOOL
-        elif user.user_type == UserTypes.TEACHER and user.school is None:
-            owner_type = SessionOwnerType.INDIVIDUAL
-        else:
-            raise PermissionDenied("You are not allowed to create sessions.")
-
-        # Validate that required FK is present
-        if owner_type == SessionOwnerType.SCHOOL:
-            if not user.school:
-                raise ValidationError(
-                    {"school": "School admin must belong to a school."}
-                )
-
+        if user.user_type == UserTypes.SCHOOL_ADMIN:
+            admin_schools = School.objects.filter(users=user)
+            school = admin_schools.first()
+            if not school:
+                raise ParseError("You are not assigned as an admin for any school.")
             serializer.save(
-                owner_type=owner_type,
-                school=user.school,
+                owner_type=SessionOwnerType.SCHOOL,
+                school=school,
                 teacher=None,
                 created_by=user,
             )
-        else:  # INDIVIDUAL
+            return
+
+        if user.user_type == UserTypes.TEACHER:
+            if user.school_id:
+                raise PermissionDenied(
+                    "Sessions for your school are managed by your school "
+                    "admin. Contact them to add or update academic sessions."
+                )
             serializer.save(
-                owner_type=owner_type,
+                owner_type=SessionOwnerType.INDIVIDUAL,
                 teacher=user,
                 school=None,
                 created_by=user,
             )
+            return
+
+        if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:
+            school_id = self.request.data.get("school")
+            if not school_id:
+                raise ParseError(
+                    "Superadmin session creation requires an explicit "
+                    "'school' field (to create a SCHOOL session) — there's "
+                    "no superadmin path for creating an INDIVIDUAL session "
+                    "on a teacher's behalf."
+                )
+            school = get_object_or_404(School, pk=school_id)
+            serializer.save(
+                owner_type=SessionOwnerType.SCHOOL,
+                school=school,
+                teacher=None,
+                created_by=user,
+            )
+            return
+
+        raise PermissionDenied("You do not have permission to create sessions.")
 
 
 @extend_schema_view(
