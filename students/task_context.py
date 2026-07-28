@@ -11,7 +11,6 @@ from .models import (
 # from django.db import models
 
 
-
 def get_task_context(processing_task: BackgroundProcessingTask) -> Dict[str, Any]:
     """
     Derive contextual information from a BackgroundProcessingTask.
@@ -24,7 +23,7 @@ def get_task_context(processing_task: BackgroundProcessingTask) -> Dict[str, Any
 
     The function uses the task's related objects and task_type to populate the fields.
     """
-    context = {
+    context: Dict[str, Any] = {
         "resource_type": None,
         "resource_id": None,
         "action": None,
@@ -147,7 +146,7 @@ def get_session_context(batch_session: BatchUploadSession) -> Dict[str, Any]:
         - action: str (e.g., "batch_uploaded", "batch_submitted", "batch_graded")
         - additional_ids: dict (course_id, assignment_id, etc.)
     """
-    context = {
+    context: Dict[str, Any] = {
         "resource_type": None,
         "resource_id": None,
         "action": None,

@@ -1,12 +1,22 @@
 # import uuid
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from billing.models import (
+    BillingInterval,
+    LicenseSubscription,
+    PlanCategory,
+    PlanTier,
+    SchoolCreditAllocation,
+    SubscriptionPlan,
+)
 from classrooms.models import (  # EnrollmentStatusType,; StudentCourse,
     Course,
     School,
@@ -226,3 +236,104 @@ class CourseViewSetTest(ClassroomBaseAPITest):
         # Send garbage data
         response = self.client.post(url, {"name": "", "session": "not-a-uuid"})
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class SessionLicenseGatingTest(ClassroomBaseAPITest):
+    """
+    Covers the school-license session-sharing feature: license teachers are
+    blocked from creating their own sessions and instead see/use their
+    school admin's shared SCHOOL sessions, while individual-subscription
+    teachers are completely unaffected. Also covers the "removed from
+    license" edge case where school_id stays set but is_under_license()
+    correctly flips back to False.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.school_admin = User.objects.create_user(
+            email="admin@example.com",
+            password="password123",  # pragma: allowlist secret
+            first_name="School",
+            last_name="Admin",
+        )
+        self.school_admin.user_type = UserTypes.SCHOOL_ADMIN
+        self.school_admin.is_active = True
+        self.school_admin.school = self.school
+        self.school_admin.save()
+
+        self.plan = SubscriptionPlan.objects.create(
+            name="LICENSE_TEST_PLAN",
+            category=PlanCategory.LICENSE,
+            tier=PlanTier.PRO,
+            interval=BillingInterval.MONTHLY,
+            monthly_credits=20000,
+            carry_over_percent=0,
+            is_active=True,
+        )
+        now = timezone.now()
+        self.license_sub = LicenseSubscription.objects.create(
+            school=self.school,
+            admin_user=self.school_admin,
+            plan=self.plan,
+            contract_months=12,
+            max_seats=10,
+            billing_cycle_start=now,
+            billing_cycle_end=now + timedelta(days=365),
+            is_active=True,
+            auto_renew=True,
+        )
+
+        # teacher1 is enrolled under the school's license.
+        self.teacher1.school = self.school
+        self.teacher1.save()
+        self.allocation = SchoolCreditAllocation.objects.create(
+            license_subscription=self.license_sub,
+            user=self.teacher1,
+            monthly_allocation=20000,
+            is_active=True,
+            next_credit_grant_at=now + timedelta(days=30),
+        )
+
+    def test_license_teacher_cannot_create_session(self):
+        self.authenticate(self.teacher1)
+        url = reverse("session-list")
+        response = self.client.post(url, {"name": "Fall 2026"})
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_school_admin_session_visible_to_license_teacher(self):
+        self.authenticate(self.school_admin)
+        create_url = reverse("session-list")
+        create_response = self.client.post(create_url, {"name": "Fall 2026"})
+        self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
+
+        self.authenticate(self.teacher1)
+        response = self.client.get(reverse("session-list"))
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["name"], "Fall 2026")
+
+    def test_individual_teacher_unaffected_by_license_feature(self):
+        # teacher2 has no school/license at all - unrelated to this fixture.
+        self.authenticate(self.teacher2)
+        url = reverse("session-list")
+        response = self.client.post(url, {"name": "Fall 2026"})
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        list_response = self.client.get(url)
+        self.assertEqual(len(list_response.data["results"]), 1)
+
+    def test_teacher_removed_from_license_regains_individual_sessions(self):
+        # Simulate offboarding: allocation deactivated, but school_id is
+        # never cleared anywhere in the codebase.
+        self.allocation.is_active = False
+        self.allocation.save()
+
+        self.assertFalse(self.teacher1.is_under_license())
+
+        self.authenticate(self.teacher1)
+        url = reverse("session-list")
+        response = self.client.post(url, {"name": "Personal Session"})
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        list_response = self.client.get(url)
+        self.assertEqual(len(list_response.data["results"]), 1)
+        self.assertEqual(list_response.data["results"][0]["name"], "Personal Session")

@@ -1140,8 +1140,18 @@ class OverageStatusSerializer(serializers.ModelSerializer):
         if not hasattr(obj, "_active_plan_cache"):
             context = resolve_user_billing_context(obj.user)
             if context.source == SOURCE_INDIVIDUAL:
+                if context.user_subscription is None:
+                    raise ValueError(
+                        "UserBillingContext with source=SOURCE_INDIVIDUAL "
+                        "must have user_subscription set."
+                    )
                 obj._active_plan_cache = context.user_subscription.plan
             elif context.source in (SOURCE_LICENSE_TEACHER, SOURCE_LICENSE_ADMIN):
+                if context.license_subscription is None:
+                    raise ValueError(
+                        "UserBillingContext with source=SOURCE_LICENSE_TEACHER/"
+                        "SOURCE_LICENSE_ADMIN must have license_subscription set."
+                    )
                 obj._active_plan_cache = context.license_subscription.plan
             else:
                 obj._active_plan_cache = None

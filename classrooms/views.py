@@ -217,11 +217,11 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
     ordering_fields = ["name", "created_at"]
     search_fields = ["name"]
 
-    def get_permission(self):
+    def get_permissions(self):
         if self.action in ["create", "destroy"]:
             return [IsSuperAdmin()]
 
-        return super().get_permission()
+        return super().get_permissions()
 
     @extend_schema(
         tags=["School"],
@@ -1439,7 +1439,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
             if is_header:
 
-                def get_row_val(field):
+                def get_row_val(field, row=row):
                     idx = column_map.get(field)
                     if idx is not None and idx < len(row):
                         return (row[idx] or "").strip()
@@ -2187,12 +2187,15 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
 
         if user.user_type == UserTypes.TEACHER:
-            if user.school_id:
+            if user.is_under_license():
                 # School-managed teacher: read-only view of their school's sessions.
                 return Session.objects.filter(
                     owner_type=SessionOwnerType.SCHOOL, school=user.school
                 )
-            # Individual-track teacher: unchanged legacy behavior.
+            # Individual-track teacher: unchanged legacy behavior. Keyed off
+            # is_under_license() rather than school_id so a teacher who was
+            # removed from a license (or whose license lapsed) isn't stuck
+            # unable to see their own individual sessions.
             return Session.objects.filter(
                 owner_type=SessionOwnerType.INDIVIDUAL, teacher=user
             )
@@ -2222,7 +2225,7 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             return
 
         if user.user_type == UserTypes.TEACHER:
-            if user.school_id:
+            if user.is_under_license():
                 raise PermissionDenied(
                     "Sessions for your school are managed by your school "
                     "admin. Contact them to add or update academic sessions."

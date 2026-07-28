@@ -106,9 +106,19 @@ def get_monthly_credit_ceiling_for_user(user) -> int:
     context = resolve_user_billing_context(user)
 
     if context.source == SOURCE_INDIVIDUAL:
+        if context.user_subscription is None:
+            raise ValueError(
+                "UserBillingContext with source=SOURCE_INDIVIDUAL must have "
+                "user_subscription set."
+            )
         return context.user_subscription.plan.monthly_credits or 0
 
     if context.source == SOURCE_LICENSE_TEACHER:
+        if context.allocation is None:
+            raise ValueError(
+                "UserBillingContext with source=SOURCE_LICENSE_TEACHER must "
+                "have allocation set."
+            )
         return context.allocation.monthly_allocation or 0
 
     if context.source == SOURCE_LICENSE_ADMIN:

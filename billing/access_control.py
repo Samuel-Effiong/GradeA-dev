@@ -347,7 +347,7 @@ def can_user_access_ai(
         else:
             required_key = AI_FEATURE_GATING_MAP.get(feature)
             if required_key and not _plan_includes_gating_feature(
-                context.plan, required_key
+                context.plan, str(required_key)
             ):
                 return (
                     False,

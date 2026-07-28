@@ -57,7 +57,10 @@ from AutoGrader.tasks import send_email_task
 from billing.services import AnalyticsService
 from classrooms.models import EnrollmentStatusType, StudentCourse
 from classrooms.permissions import IsSuperAdmin
-from classrooms.serializers import StudentRegistrationCompletionSerializer
+from classrooms.serializers import (
+    SchoolAdminRegistrationCompletionSerializer,
+    StudentRegistrationCompletionSerializer,
+)
 from students.models import BackgroundTaskStatus, BatchUploadSession
 from students.task_context import get_session_context, get_task_context
 from students.task_tracking import (
@@ -1136,6 +1139,97 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                     {"detail": "Student registration completed successfully"},
                     status=status.HTTP_200_OK,
                 )
+        except (ParseError, ValidationError):
+            raise
+        except Exception as e:
+            return Response(
+                {"detail": f"Internal Server Error: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @extend_schema(
+        tags=["Authentication"],
+        summary="Complete school admin registration",
+        description="""
+        Complete registration for a school admin invited via the school's
+        `create_with_admin` endpoint.
+
+        Required fields:
+        - email: The invited admin's email address
+        - token: The activation token from the invitation email
+        - password: The password the admin wants to set for their account
+        """,
+        request=SchoolAdminRegistrationCompletionSerializer,
+        responses={
+            200: OpenApiResponse(
+                description="School admin registration completed successfully",
+            ),
+            400: OpenApiResponse(description="Invalid or expired token"),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["post"],
+        permission_classes=[AllowAny],
+        url_path="register/school-admin",
+        url_name="register-school-admin",
+    )
+    def register_school_admin(self, request, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                serializer = SchoolAdminRegistrationCompletionSerializer(
+                    data=request.data
+                )
+
+                if not serializer.is_valid():
+                    raise ValidationError(serializer.errors)
+
+                email = serializer.validated_data["email"].strip().lower()
+                token = serializer.validated_data["token"].strip()
+
+                # select_for_update prevents two concurrent submissions of the
+                # same invite link from both racing past the is_active check.
+                user = (
+                    CustomUser.objects.select_for_update()
+                    .filter(
+                        email__iexact=email,
+                        activation_token=token,
+                        user_type=UserTypes.SCHOOL_ADMIN,
+                        is_active=False,
+                    )
+                    .first()
+                )
+
+                if not user:
+                    raise ParseError("Invalid or expired activation token.")
+
+                if user.activation_expires and timezone.now() > user.activation_expires:
+                    raise ParseError(
+                        "This invitation link has expired. Please contact your "
+                        "superadmin for a new invitation."
+                    )
+
+                user.set_password(serializer.validated_data["password"])
+                user.is_active = True
+                user.email_verified_at = timezone.now()
+                user.activation_token = None
+                user.activation_expires = None
+                user.save()
+
+            refresh = RefreshToken.for_user(user)
+
+            # Track activity
+            AnalyticsService.track_activity(user)
+
+            return Response(
+                {
+                    "refresh": str(refresh),
+                    "access": str(refresh.access_token),
+                    "user": CustomUserSerializer(user).data,
+                },
+                status=status.HTTP_200_OK,
+            )
         except (ParseError, ValidationError):
             raise
         except Exception as e:

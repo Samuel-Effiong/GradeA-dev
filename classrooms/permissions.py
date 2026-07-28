@@ -120,10 +120,13 @@ class CanManageSession(permissions.BasePermission):
       - SUPER_ADMIN: always.
       - SCHOOL_ADMIN: only for SCHOOL sessions belonging to a school they
         administer.
-      - TEACHER with no school (individual track): only their own
-        INDIVIDUAL sessions.
-      - TEACHER with a school: never — sessions are managed by their
-        school admin.
+      - TEACHER not currently under an active school license (individual
+        track): only their own INDIVIDUAL sessions. This is keyed off
+        is_under_license(), not off school_id, since school_id stays set
+        even after a teacher is removed from a license or the license is
+        cancelled.
+      - TEACHER under an active school license: never — sessions are
+        managed by their school admin.
     """
 
     def has_permission(self, request, view):
@@ -141,7 +144,7 @@ class CanManageSession(permissions.BasePermission):
             return True  # narrowed to their own school in has_object_permission
 
         if user.user_type == UserTypes.TEACHER:
-            return user.school_id is None
+            return not user.is_under_license()
 
         return False
 
@@ -160,6 +163,6 @@ class CanManageSession(permissions.BasePermission):
             return School.objects.filter(users=user, pk=obj.school_id).exists()
 
         # INDIVIDUAL session
-        if user.user_type != UserTypes.TEACHER or user.school_id:
+        if user.user_type != UserTypes.TEACHER or user.is_under_license():
             return False
         return obj.teacher_id == user.id

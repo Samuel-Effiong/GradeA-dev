@@ -63,6 +63,8 @@ from .models import (  # CONVERSION_FACTOR,; UserSubscription,
 
 logger = logging.getLogger(__name__)
 
+_DEFAULT_LICENSE_BILLING_METHOD: str = str(LicenseBillingMethod.STRIPE)
+
 
 class IndividualSubscriptionConflictError(Exception):
     """Raised when a teacher has an active individual subscription and cannot
@@ -147,7 +149,7 @@ class LicenseSubscriptionService:
             raise ValueError("This plan has no overage block size configured.")
 
         teacher_ids = list(allocations.keys())
-        active_ids = set(
+        active_ids = {
             str(uid)
             for uid in SchoolCreditAllocation.objects.filter(
                 license_subscription=license_sub,
@@ -155,7 +157,7 @@ class LicenseSubscriptionService:
                 is_active=True,
                 is_admin_allocation=False,
             ).values_list("user_id", flat=True)
-        )
+        }
         missing = {str(t) for t in teacher_ids} - active_ids
         if missing:
             raise ValueError(
@@ -563,7 +565,7 @@ class LicenseSubscriptionService:
         custom_price_cents: Optional[int] = None,
         is_active: bool = True,
         auto_renew: bool = True,
-        billing_method: str = LicenseBillingMethod.STRIPE,
+        billing_method: str = _DEFAULT_LICENSE_BILLING_METHOD,
     ) -> LicenseSubscription:
         """
         Creates a new License subscription for a school.

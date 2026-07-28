@@ -1,16 +1,18 @@
+import logging
 import secrets
-import string
 
+from django.conf import settings
+from django.contrib.auth.password_validation import validate_password
 from django.core.validators import MinLengthValidator
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
-from django.utils.crypto import get_random_string
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
 from assignments.models import AssignmentStatus
 from assignments.serializers import AssignmentListSerializer  # , AssignmentSerializer
+from AutoGrader.tasks import send_email_task
 from billing.context import (
     clear_license_invitation_context,
     set_license_invitation_context,
@@ -19,7 +21,6 @@ from students.serializers import StudentSerializer
 from students.services import get_grade_details
 from users.models import CustomUser, UserTypes
 from users.serializers import CustomUserSerializer
-from users.services import send_user_activation_email
 
 from .models import (
     Course,
@@ -136,6 +137,28 @@ class CourseSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at", "teacher"]
 
         extra_kwargs = {"is_active": {"required": False}}
+
+    def validate_session(self, value):
+        """Ensure a course can only be attached to a session the requesting
+        teacher actually owns/has access to — otherwise a teacher could
+        point a course at another teacher's individual session or another
+        school's session by guessing/enumerating the UUID."""
+        request = self.context.get("request")
+        user = getattr(request, "user", None) if request else None
+        if user is None or not user.is_authenticated:
+            return value
+
+        if value.owner_type == SessionOwnerType.INDIVIDUAL:
+            if user.is_under_license() or value.teacher_id != user.id:
+                raise serializers.ValidationError(
+                    "You do not have access to this session."
+                )
+        elif value.owner_type == SessionOwnerType.SCHOOL:
+            if not user.is_under_license() or value.school_id != user.school_id:
+                raise serializers.ValidationError(
+                    "You do not have access to this session."
+                )
+        return value
 
     def create(self, validated_data):
         """Create course and associated topics from topic_names."""
@@ -514,6 +537,9 @@ class ExpiredTokenSerializer(serializers.Serializer):
     token = serializers.CharField(required=True)
 
 
+logger = logging.getLogger(__name__)
+
+
 class SchoolSerializer(serializers.ModelSerializer):
     class Meta:
         model = School
@@ -525,17 +551,70 @@ class SchoolSerializer(serializers.ModelSerializer):
         return value
 
 
+def _send_school_admin_invitation_email(user, school):
+    """Queue the invitation email for a newly created school admin.
+
+    The admin has no usable password yet; the email links to a registration
+    page where they set their own password using the activation token.
+    """
+    frontend_domain = settings.FRONTEND_DOMAIN
+    activation_url = (
+        f"https://{frontend_domain}/register/school-admin"
+        f"?email={user.email}&token={user.activation_token}"
+    )
+
+    merge_data = {
+        "title": f"You've been added as the admin for {school.name}",
+        "name": user.get_full_name() or user.first_name,
+        "top_content": (
+            f"You have been set up as the school administrator for {school.name} on Grade A+.<br><br>"
+            "Complete your registration to set up your password and start managing your school."
+        ),
+        "bottom_content": "This invitation link expires in 7 days.",
+        "activation_url": activation_url,
+        "current_year": timezone.now().year,
+        "support_email": settings.SUPPORT_EMAIL,
+    }
+
+    user_email = user.email
+    school_name = school.name
+
+    def _dispatch():
+        try:
+            send_email_task.delay(
+                subject=f"You've been added as the admin for {school_name}",
+                message="",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user_email],
+                html_message=None,
+                template_id="ynrw7gy0ye2l2k8e",
+                merge_data=merge_data,
+            )
+        except Exception:
+            logger.exception(
+                "Failed to queue school admin invitation email to %s for school %s.",
+                user_email,
+                school_name,
+            )
+
+    transaction.on_commit(_dispatch)
+
+
 class SchoolWithAdminSerializer(serializers.Serializer):
     # School Fields
     school_name = serializers.CharField(max_length=255)
     school_address = serializers.CharField(required=False, allow_blank=True)
     school_phone = serializers.CharField(required=False, allow_blank=True)
-    school_website = serializers.CharField(required=False, allow_blank=True)
+    school_website = serializers.URLField(required=False, allow_blank=True)
 
     # Admin Fields
     admin_email = serializers.EmailField()
-    admin_first_name = serializers.CharField(max_length=150)
-    admin_last_name = serializers.CharField(max_length=150)
+    admin_first_name = serializers.CharField(
+        max_length=150, validators=[MinLengthValidator(2)]
+    )
+    admin_last_name = serializers.CharField(
+        max_length=150, validators=[MinLengthValidator(2)]
+    )
     admin_middle_name = serializers.CharField(
         max_length=150, required=False, allow_blank=True
     )
@@ -543,11 +622,20 @@ class SchoolWithAdminSerializer(serializers.Serializer):
     admin_profile_image = serializers.ImageField(required=False, allow_null=True)
 
     def validate_admin_email(self, value):
-        # Reuse the business email validation from CustomUserSerializer
-        from users.serializers import CustomUserSerializer
+        from users.utils import is_business_email
 
-        # Instantiate the serializer to call it validate_email method
-        return CustomUserSerializer().validate_email(value)
+        value = value.lower().strip()
+
+        # School admins are onboarded here by a superadmin, not self-registering,
+        # so the beta whitelist/waitlist gate doesn't apply. We do still enforce
+        # the same business-email requirement as the plain /schools/admin path.
+        if not is_business_email(value):
+            raise serializers.ValidationError(
+                "Personal emails are not allowed for school admin accounts. "
+                "Please use a business email address."
+            )
+
+        return value
 
     def validate(self, attrs):
         # Ensure school name is unique (case-insensitive)
@@ -564,49 +652,60 @@ class SchoolWithAdminSerializer(serializers.Serializer):
         return attrs
 
     def create(self, validated_data):
-        with transaction.atomic():
-            # 1. Create School
-            school = School.objects.create(
-                name=validated_data["school_name"],
-                address=validated_data.get("school_address", ""),
-                phone=validated_data.get("school_phone", ""),
-                website=validated_data.get("school_website", ""),
-            )
+        try:
+            with transaction.atomic():
+                # 1. Create School
+                school = School.objects.create(
+                    name=validated_data["school_name"],
+                    address=validated_data.get("school_address", ""),
+                    phone=validated_data.get("school_phone", ""),
+                    website=validated_data.get("school_website", ""),
+                )
 
-            # 2. Generate a secure random password
-            temp_password = get_random_string(
-                length=12, allowed_chars=f"{string.ascii_letters}{string.digits}"
-            )
+                # 2. Create Admin User with an invitation token and no usable
+                # password. The admin sets their own password when they
+                # complete registration via the emailed invite link — no
+                # secret ever has to travel through an email template.
+                admin_data = {
+                    "email": validated_data["admin_email"],
+                    "first_name": validated_data["admin_first_name"],
+                    "last_name": validated_data["admin_last_name"],
+                    "middle_name": validated_data.get("admin_middle_name", ""),
+                    "profile_image": validated_data.get("admin_profile_image"),
+                    "user_type": UserTypes.SCHOOL_ADMIN,
+                    "school": school,
+                    "is_active": False,
+                    # A high-entropy token, not the 6-digit OTP used for the
+                    # short-lived (15 min) email-verification flow — this link
+                    # stays valid for 7 days and needs a much bigger keyspace
+                    # to resist brute-forcing over that window.
+                    "activation_token": secrets.token_urlsafe(32),
+                    "activation_expires": timezone.now() + timezone.timedelta(days=7),
+                }
 
-            # 2. Create Admin User
-            admin_data = {
-                "email": validated_data["admin_email"],
-                "first_name": validated_data["admin_first_name"],
-                "last_name": validated_data["admin_last_name"],
-                "middle_name": validated_data.get("admin_middle_name", ""),
-                "password": validated_data["admin_password"],
-                "profile_image": validated_data.get("admin_profile_image"),
-                "user_type": UserTypes.SCHOOL_ADMIN,
-                "school": school,
-            }
+                try:
+                    # Set license context so the post_save signal skips trial activation
+                    set_license_invitation_context(True)
+                    # No password kwarg is passed, so CustomUser.objects.create_user()
+                    # calls set_password(None), which Django resolves to an unusable
+                    # password — equivalent to calling set_unusable_password().
+                    user = CustomUser.objects.create_user(**admin_data)
+                finally:
+                    clear_license_invitation_context()
 
-            # 3. Create the admin user while skipping free trial
+                # 3. Send the invitation email only after the transaction commits,
+                # so a rollback can never leave a queued email referencing a
+                # school/admin that doesn't exist.
+                _send_school_admin_invitation_email(user, school)
 
-            try:
-                # Set license context so the post_save signal skips trial activation
-                set_license_invitation_context(True)
-                user = CustomUser.objects.create_user(**admin_data)
-            finally:
-                clear_license_invitation_context()
-
-            # 4. Send activation email (generates token and sends email)
-            send_user_activation_email(user)
-
-            # Return both
-            return {
-                "school": school,
-                "admin": user,
-            }
+                return {
+                    "school": school,
+                    "admin": user,
+                }
+        except IntegrityError as e:
+            raise serializers.ValidationError(
+                "A school or user with these details already exists."
+            ) from e
 
 
 class SchoolWithAdminResponseSerializer(serializers.Serializer):
@@ -616,6 +715,16 @@ class SchoolWithAdminResponseSerializer(serializers.Serializer):
     admin = CustomUserSerializer()
     message = serializers.CharField(
         default="School and admin created successfully", read_only=True
+    )
+
+
+class SchoolAdminRegistrationCompletionSerializer(serializers.Serializer):
+    """Serializer for a school admin completing registration via invite link."""
+
+    email = serializers.EmailField(required=True)
+    token = serializers.CharField(required=True, write_only=True)
+    password = serializers.CharField(
+        write_only=True, required=True, validators=[validate_password]
     )
 
 
