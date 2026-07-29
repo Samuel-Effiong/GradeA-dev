@@ -95,6 +95,15 @@ class Assignment(models.Model):
         blank=True,
         help_text=_("The name of the Celery task handling the batch grading"),
     )
+    admin_grading_notified_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=_(
+            "When school admins were notified that grading finished for this "
+            "assignment. Also acts as an idempotency guard so the notification "
+            "is only ever sent once per assignment."
+        ),
+    )
 
     # grading_status = models.CharField(
     #     max_length=20,

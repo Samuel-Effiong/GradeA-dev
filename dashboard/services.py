@@ -1,12 +1,25 @@
 from collections import Counter, defaultdict
 from datetime import timedelta
 
-from django.db.models import Prefetch
+from django.db.models import (
+    Avg,
+    DurationField,
+    ExpressionWrapper,
+    F,
+    Max,
+    OuterRef,
+    Prefetch,
+    Subquery,
+    Sum,
+    Value,
+)
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from assignments.models import Assignment, AssignmentStatus
 from classrooms.models import Course, EnrollmentStatusType, StudentCourse
 from students.models import StudentSubmission
+from users.models import CustomUser, UserTypes
 
 
 class DashboardService:
@@ -929,3 +942,280 @@ class WeeklyCourseSummaryService:
         if not counter:
             return None, 0
         return counter.most_common(1)[0]
+
+
+class SchoolAdminWeeklySummaryService:
+    """Builds the weekly digest payload sent to SCHOOL_ADMIN users.
+
+    Reuses the query logic behind SchoolAdminDashboardView.summary (at-risk
+    students) and .teacher_performance (per-teacher metrics) rather than the
+    views themselves, so this runs independently of their request-scoped
+    caching and doesn't risk regressing those live, tested endpoints.
+    """
+
+    WINDOW_DAYS = 7
+    AT_RISK_THRESHOLD = 60
+    TEACHER_GROWTH_WINDOW_DAYS = 180
+    MAX_AT_RISK_STUDENTS_LISTED = 15
+
+    def build_school_summary(self, school, *, as_of=None):
+        as_of = as_of or timezone.now()
+        window_start = as_of - timedelta(days=self.WINDOW_DAYS)
+
+        overall = self._build_overall_metrics(school, window_start, as_of)
+        at_risk_students, at_risk_student_count = self._build_at_risk_students(school)
+        teacher_activity = self._build_teacher_activity(school)
+
+        return {
+            "school": {
+                "id": school.id,
+                "name": school.name,
+                "generated_at": as_of,
+                "window_days": self.WINDOW_DAYS,
+            },
+            "overall": overall,
+            "overall_summary": self._build_overall_summary(school, overall),
+            "at_risk_students": at_risk_students,
+            "at_risk_student_count": at_risk_student_count,
+            "teacher_activity": teacher_activity,
+        }
+
+    def _build_overall_metrics(self, school, window_start, as_of):
+        active_teacher_count = CustomUser.objects.filter(
+            school=school, user_type=UserTypes.TEACHER, is_active=True
+        ).count()
+
+        active_student_count = CustomUser.objects.filter(
+            enrollments__course__teacher__school=school,
+            is_active=True,
+            user_type=UserTypes.STUDENT,
+        ).count()
+
+        active_course_count = Course.objects.filter(
+            teacher__school=school, is_active=True
+        ).count()
+
+        assignments_created_this_week = Assignment.objects.filter(
+            course__teacher__school=school,
+            created_at__gte=window_start,
+            created_at__lte=as_of,
+        ).count()
+
+        submissions_graded_this_week = StudentSubmission.objects.filter(
+            assignment__course__teacher__school=school,
+            graded_at__gte=window_start,
+            graded_at__lte=as_of,
+        )
+        assignments_graded_this_week = (
+            submissions_graded_this_week.values("assignment").distinct().count()
+        )
+
+        avg_turnaround = submissions_graded_this_week.aggregate(
+            avg_days=Avg(
+                ExpressionWrapper(
+                    F("graded_at") - F("submission_date"),
+                    output_field=DurationField(),
+                )
+            )
+        )["avg_days"]
+        avg_turnaround_days = (
+            round(avg_turnaround.total_seconds() / 86400, 1) if avg_turnaround else None
+        )
+
+        return {
+            "active_teacher_count": active_teacher_count,
+            "active_student_count": active_student_count,
+            "active_course_count": active_course_count,
+            "assignments_created_this_week": assignments_created_this_week,
+            "assignments_graded_this_week": assignments_graded_this_week,
+            "avg_turnaround_days": avg_turnaround_days,
+        }
+
+    def _build_overall_summary(self, school, overall):
+        return (
+            f"{school.name} has {overall['active_teacher_count']} active teacher(s) "
+            f"and {overall['active_student_count']} active student(s) across "
+            f"{overall['active_course_count']} active course(s). "
+            f"{overall['assignments_created_this_week']} assignment(s) were created "
+            f"and {overall['assignments_graded_this_week']} were graded this week."
+        )
+
+    def _at_risk_student_queryset(self, school):
+        """At-risk = average score_percentage < AT_RISK_THRESHOLD across a
+        student's graded, published submissions in this school. Mirrors the
+        school-level definition in SchoolAdminDashboardView.summary. Returns
+        a queryset of CustomUser rows annotated with `avg_score`, ordered by
+        avg_score ascending (worst first) — reused by both the weekly digest
+        and the daily at-risk alert task. Only currently-enrolled students
+        are considered, so a student who withdraws naturally drops out of
+        the at-risk set (rather than remaining flagged indefinitely on
+        stale submission history)."""
+        students_in_school = CustomUser.objects.filter(
+            enrollments__course__teacher__school=school,
+            enrollments__enrollment_status=EnrollmentStatusType.ENROLLED,
+            is_active=True,
+            user_type=UserTypes.STUDENT,
+        )
+
+        student_avg = (
+            StudentSubmission.objects.filter(
+                student=OuterRef("id"),
+                is_published=True,
+                graded_at__isnull=False,
+                score_percentage__isnull=False,
+                assignment__course__teacher__school=school,
+            )
+            .values("student")
+            .annotate(avg=Avg("score_percentage"))
+            .values("avg")
+        )
+
+        return (
+            students_in_school.annotate(avg_score=Subquery(student_avg[:1]))
+            .filter(avg_score__lt=self.AT_RISK_THRESHOLD)
+            .distinct()
+            .order_by("avg_score")
+        )
+
+    def _build_at_risk_students(self, school):
+        at_risk_qs = self._at_risk_student_queryset(school)
+        at_risk_student_count = at_risk_qs.count()
+        at_risk_students = [
+            {
+                "student_id": student.id,
+                "student_name": student.get_full_name(),
+                "average_score": round(student.avg_score, 1),
+            }
+            for student in at_risk_qs[: self.MAX_AT_RISK_STUDENTS_LISTED]
+        ]
+
+        return at_risk_students, at_risk_student_count
+
+    def _build_teacher_activity(self, school):
+        """Per-teacher activity/engagement metrics. NOTE: unlike `overall`
+        above, these are cumulative/lifetime (or 6-month) figures, not
+        window-scoped to this week — mirrors SchoolAdminDashboardView
+        .teacher_performance intentionally, since a single week is too
+        short a window for meaningful growth/rigor/turnaround trends."""
+        teachers = (
+            CustomUser.objects.filter(school=school, user_type=UserTypes.TEACHER)
+            .distinct()
+            .prefetch_related(
+                "courses",
+                "courses__enrollments",
+                "courses__assignments",
+                "courses__assignments__submissions",
+            )
+        )
+
+        now = timezone.now()
+        six_months_ago = now - timedelta(days=self.TEACHER_GROWTH_WINDOW_DAYS)
+
+        result = []
+        for teacher in teachers:
+            courses = teacher.courses.all()
+            course_ids = [course.id for course in courses]
+            courses_count = len(course_ids)
+
+            students_count = (
+                StudentCourse.objects.filter(course_id__in=course_ids)
+                .exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
+                .values("student")
+                .distinct()
+                .count()
+            )
+
+            current_students = (
+                StudentCourse.objects.filter(
+                    course_id__in=course_ids, course__created_at__gte=six_months_ago
+                )
+                .exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
+                .values("student")
+                .distinct()
+                .count()
+            )
+            past_students = (
+                StudentCourse.objects.filter(
+                    course_id__in=course_ids, course__created_at__lt=six_months_ago
+                )
+                .exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
+                .values("student")
+                .distinct()
+                .count()
+            )
+            if past_students > 0:
+                growth = ((current_students - past_students) / past_students) * 100
+            elif current_students > 0:
+                growth = 100.0
+            else:
+                growth = None
+
+            assignments = Assignment.objects.filter(course_id__in=course_ids)
+            assignments_count = assignments.count()
+            first_assignment = assignments.order_by("created_at").first()
+            if first_assignment and assignments_count > 0:
+                weeks = (now - first_assignment.created_at).days / 7
+                assignments_per_week = assignments_count / weeks if weeks > 0 else 0
+            else:
+                assignments_per_week = None
+
+            graded_submissions = StudentSubmission.objects.filter(
+                assignment__course_id__in=course_ids, graded_at__isnull=False
+            )
+            graded_count = graded_submissions.count()
+            if graded_count > 0:
+                total_duration = graded_submissions.aggregate(
+                    total=Sum(
+                        ExpressionWrapper(
+                            F("graded_at") - F("submission_date"),
+                            output_field=DurationField(),
+                        )
+                    )
+                )["total"]
+                turnaround = (
+                    total_duration.total_seconds() / (graded_count * 86400)
+                    if total_duration
+                    else None
+                )
+            else:
+                turnaround = None
+
+            ai_confidence = graded_submissions.aggregate(
+                avg_conf=Avg("grading_confidence")
+            )["avg_conf"]
+
+            max_points = (
+                assignments.aggregate(max=Coalesce(Max("total_points"), Value(0)))[
+                    "max"
+                ]
+                or 1
+            )
+            avg_points = assignments.aggregate(avg=Avg("total_points"))["avg"] or 0
+            rigor = (avg_points / max_points) * 5 if max_points > 0 else None
+
+            result.append(
+                {
+                    "id": teacher.id,
+                    "name": teacher.get_full_name(),
+                    "email": teacher.email,
+                    "courses": courses_count,
+                    "students": students_count,
+                    "growth": round(growth, 1) if growth is not None else None,
+                    "assignments_per_week": (
+                        round(assignments_per_week, 1)
+                        if assignments_per_week is not None
+                        else None
+                    ),
+                    "turnaround": (
+                        round(turnaround, 1) if turnaround is not None else None
+                    ),
+                    "ai_confidence": (
+                        round(ai_confidence, 1) if ai_confidence is not None else None
+                    ),
+                    "rigor": round(rigor, 1) if rigor is not None else None,
+                    "status": teacher.is_active,
+                }
+            )
+
+        result.sort(key=lambda row: (not row["status"], row["name"].lower()))
+        return result

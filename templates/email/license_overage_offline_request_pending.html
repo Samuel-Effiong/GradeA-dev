@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        .container {
+            font-family: "Inter", -apple-system, BlinkMacSystemFont,"Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #1f2937;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .header {
+            background-color: #00723A;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .section {
+            margin-top: 24px;
+        }
+        .card {
+            background-color: #f8fafc;
+            border-left: 4px solid #00723A;
+            padding: 16px;
+            margin-top: 12px;
+            border-radius: 4px;
+        }
+        .muted {
+            color: #475569;
+        }
+        table.teachers {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+        table.teachers th, table.teachers td {
+            text-align: left;
+            padding: 8px 12px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 14px;
+        }
+        table.teachers th {
+            color: #475569;
+            font-weight: 600;
+        }
+        .flag-inactive {
+            color: #b45309;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>New Offline Overage Request</h1>
+            <p>{{ school.name }}</p>
+        </div>
+
+        <div class="section">
+            <div class="card">
+                <p>
+                    <strong>{{ requested_by.get_full_name|default:requested_by.email }}</strong>
+                    has requested <strong>{{ total_blocks }}</strong> overage block(s)
+                    for <strong>{{ school.name }}</strong>, paying outside Stripe
+                    (quoted at <strong>${{ amount_quoted_display }}</strong>).
+                </p>
+                <p class="muted">Request ID: {{ request_id }}</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <p><strong>Teacher breakdown</strong></p>
+            <table class="teachers">
+                <tr>
+                    <th>Teacher</th>
+                    <th>Blocks</th>
+                    <th>Credits</th>
+                    <th>Status</th>
+                </tr>
+                {% for row in teacher_breakdown %}
+                <tr>
+                    <td>{{ row.teacher_name|default:row.teacher_email }}</td>
+                    <td>{{ row.blocks }}</td>
+                    <td>{{ row.credits }}</td>
+                    <td>
+                        {% if row.is_currently_active %}
+                            Active
+                        {% else %}
+                            <span class="flag-inactive">No longer active</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+
+        <div class="section">
+            <p>Please review this request in the admin dashboard and approve or reject it.</p>
+        </div>
+
+        <div class="section">
+            <p class="muted">You're receiving this because a school admin submitted an offline overage payment request that requires superadmin review.</p>
+        </div>
+
+        <div class="section">
+            <p>Best regards,<br>GradeA+ Team</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -122,6 +122,10 @@ class LicenseBillingRecordType(models.TextChoices):
     CONVERTED_TO_STRIPE = "CONVERTED_TO_STRIPE", _("Converted to Stripe")
     CONVERTED_TO_OFFLINE = "CONVERTED_TO_OFFLINE", _("Converted to Offline")
     MANUAL_OVERAGE_GRANT = "MANUAL_OVERAGE_GRANT", _("Manual Overage Grant")
+    OFFLINE_OVERAGE_REQUEST_APPROVED = (
+        "OFFLINE_OVERAGE_REQUEST_APPROVED",
+        _("Offline Overage Request Approved"),
+    )
 
 
 class PendingChangeType(models.TextChoices):
@@ -1362,7 +1366,7 @@ class LicenseBillingRecord(models.Model):
         related_name="billing_records",
     )
     record_type = models.CharField(
-        max_length=30, choices=LicenseBillingRecordType.choices
+        max_length=40, choices=LicenseBillingRecordType.choices
     )
 
     # Accounting detail — all optional since not every record type involves
@@ -1480,6 +1484,113 @@ class LicenseOveragePurchaseIntent(models.Model):
     class Meta:
         ordering = ["-created_at"]
         indexes = [
+            models.Index(fields=["license_subscription", "status"]),
+        ]
+
+
+class LicenseOverageOfflineRequestStatus(models.TextChoices):
+    PENDING = "PENDING", _("Pending")
+    APPROVED = "APPROVED", _("Approved")
+    REJECTED = "REJECTED", _("Rejected")
+
+
+class LicenseOverageOfflineRequest(models.Model):
+    """
+    Tracks a school-admin-initiated request to purchase overage blocks
+    paid for OUTSIDE Stripe (bank transfer, invoice, cash, etc.) —
+    parallel to LicenseOveragePurchaseIntent (the Stripe Checkout path)
+    and _grant_overage_offline (the superadmin comp-grant path), but
+    distinct from both:
+
+      - Unlike the Stripe intent, there's no payment processor to
+        confirm against, so a human superadmin must explicitly review
+        and approve/reject.
+      - Unlike the superadmin comp-grant, this always starts PENDING —
+        nothing is ever granted at creation time, and it's the SCHOOL
+        that pays (off-platform), not a free administrative grant.
+
+    Kept as its own model rather than folded into LicenseOveragePurchaseIntent
+    so PENDING/status semantics never become ambiguous between "awaiting
+    a Stripe webhook" and "awaiting human review", and so Stripe-only
+    fields don't accumulate as always-null columns here.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    license_subscription = models.ForeignKey(
+        LicenseSubscription,
+        on_delete=models.CASCADE,
+        related_name="overage_offline_requests",
+    )
+    requested_by = models.ForeignKey(
+        "users.CustomUser",
+        on_delete=models.PROTECT,
+        related_name="license_overage_offline_requests",
+    )
+
+    total_blocks = models.PositiveIntegerField()
+    allocations = models.JSONField(
+        help_text="Mapping of teacher user UUID (string) -> blocks requested."
+    )
+
+    # Snapshots at request time — same rationale as
+    # LicenseOveragePurchaseIntent: what the school admin was quoted must
+    # not drift if the plan's pricing changes before a superadmin reviews.
+    block_size_snapshot = models.PositiveIntegerField(
+        help_text="plan.overage_block_size (raw credits per block) at request time."
+    )
+    unit_price_cents_snapshot = models.PositiveIntegerField(
+        help_text="plan.overage_block_price (cents per block) at request time."
+    )
+    amount_cents_quoted = models.PositiveIntegerField(
+        help_text="total_blocks * unit_price_cents_snapshot at request time."
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=LicenseOverageOfflineRequestStatus.choices,
+        default=LicenseOverageOfflineRequestStatus.PENDING,
+    )
+
+    # Populated on APPROVE — the superadmin's real attestation of what
+    # was actually confirmed received, independent of amount_cents_quoted
+    # (a discount may have been negotiated off-platform).
+    amount_confirmed_cents = models.PositiveIntegerField(null=True, blank=True)
+    payment_reference = models.CharField(max_length=250, null=True, blank=True)
+    payment_method_label = models.CharField(max_length=100, null=True, blank=True)
+
+    # Partial-fulfillment bookkeeping — mirrors the Stripe webhook's
+    # fulfilled/skipped split for teachers no longer active by review time.
+    fulfilled_allocations = models.JSONField(null=True, blank=True)
+    skipped_allocations = models.JSONField(null=True, blank=True)
+
+    # Populated on REJECT.
+    rejection_reason = models.TextField(null=True, blank=True)
+
+    reviewed_by = models.ForeignKey(
+        "users.CustomUser",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="license_overage_offline_reviews",
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+
+    license_billing_record = models.ForeignKey(
+        LicenseBillingRecord,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="overage_offline_requests",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["status", "-created_at"]),
             models.Index(fields=["license_subscription", "status"]),
         ]
 
@@ -1617,6 +1728,9 @@ class BillingTransactionType(models.TextChoices):
     )
     LICENSE_OFFLINE_MANUAL_OVERAGE_GRANT = "LICENSE_OFFLINE_MANUAL_OVERAGE_GRANT", _(
         "Manual Overage Grant"
+    )
+    LICENSE_OFFLINE_OVERAGE_PURCHASE = "LICENSE_OFFLINE_OVERAGE_PURCHASE", _(
+        "License Overage Purchase (Offline)"
     )
     OTHER = "OTHER", _("Other")
 

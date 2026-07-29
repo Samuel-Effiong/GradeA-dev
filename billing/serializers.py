@@ -24,6 +24,7 @@ from .models import (
     CreditWallet,
     LicenseBillingMethod,
     LicenseBillingRecord,
+    LicenseOverageOfflineRequest,
     LicenseSubscription,
     PendingChangeType,
     PlanCategory,
@@ -1979,26 +1980,53 @@ class PurchaseLicenseOverageSerializer(serializers.Serializer):
         child=serializers.IntegerField(min_value=1),
         help_text="Mapping of teacher UUID (string) to number of blocks to allocate.",
     )
+    payment_method = serializers.ChoiceField(
+        choices=["stripe", "offline_request"],
+        default="stripe",
+        required=False,
+        help_text=(
+            "'stripe' (default): school-admin callers route through Stripe "
+            "Checkout, super-admin callers grant immediately. "
+            "'offline_request': school-admin only — creates a request "
+            "pending superadmin review; nothing is charged or granted "
+            "until approved. Ignored for super-admin callers, who always "
+            "get an immediate grant regardless of this value."
+        ),
+    )
     success_url = serializers.URLField(
         required=False,
         allow_null=True,
         help_text=(
-            "Required if you are the school admin (routes through Stripe "
-            "Checkout). Ignored for super admin grants."
+            "Required if you are the school admin AND payment_method is "
+            "'stripe' (routes through Stripe Checkout). Ignored for super "
+            "admin grants and for payment_method='offline_request'."
         ),
     )
     cancel_url = serializers.URLField(required=False, allow_null=True)
 
     def validate_allocations(self, value):
+        # Keys are normalized to the canonical lowercase-hyphenated UUID
+        # string (str(uuid.UUID(...))) rather than kept as-submitted. Every
+        # downstream consumer (license_service.py's active-teacher checks,
+        # the offline-grant path, and the webhook fulfillment handler)
+        # compares these keys against str(some_user.id), which is always
+        # lowercase — an un-normalized uppercase/mixed-case UUID here would
+        # cause a valid, active teacher to look "missing" (or, in the
+        # webhook, be silently skipped after payment already succeeded).
         clean = {}
         for teacher_id, blocks in value.items():
             try:
-                uuid.UUID(str(teacher_id))
+                normalized_id = str(uuid.UUID(str(teacher_id)))
             except (ValueError, TypeError, AttributeError) as exc:
                 raise serializers.ValidationError(
                     f"{teacher_id!r} is not a valid teacher UUID."
                 ) from exc
-            clean[str(teacher_id)] = int(blocks)
+            if normalized_id in clean:
+                raise serializers.ValidationError(
+                    f"Duplicate teacher {normalized_id!r} in allocations "
+                    "(case-insensitive match) — each teacher may appear only once."
+                )
+            clean[normalized_id] = int(blocks)
         return clean
 
     def validate(self, attrs):
@@ -2024,9 +2052,15 @@ class LicenseOveragePurchaseResultSerializer(serializers.Serializer):
                     has been granted yet.
       "granted"  -> super admin path. `allocations` reflects what was
                     already credited, right now, with no Stripe charge.
+      "offline_request_pending" -> school admin, payment_method=
+                    "offline_request". Nothing granted yet; `request_id`
+                    identifies the LicenseOverageOfflineRequest awaiting
+                    superadmin review.
     """
 
-    action = serializers.ChoiceField(choices=["checkout", "granted"])
+    action = serializers.ChoiceField(
+        choices=["checkout", "granted", "offline_request_pending"]
+    )
     message = serializers.CharField()
 
     # action == "checkout"
@@ -2035,11 +2069,100 @@ class LicenseOveragePurchaseResultSerializer(serializers.Serializer):
     intent_id = serializers.UUIDField(required=False, allow_null=True)
     amount_cents = serializers.IntegerField(required=False, allow_null=True)
 
+    # action == "offline_request_pending"
+    request_id = serializers.UUIDField(required=False, allow_null=True)
+
     # both actions
     total_blocks = serializers.IntegerField(required=False)
 
     # action == "granted"
     allocations = serializers.ListField(required=False)
+
+
+class LicenseOverageOfflineRequestListSerializer(serializers.ModelSerializer):
+    """
+    Superadmin review-queue row for a LicenseOverageOfflineRequest. Shows
+    everything a reviewer needs to safely approve/reject: who requested
+    it, the exact per-teacher breakdown (with a LIVE is_currently_active
+    flag, since the roster can drift while a request sits pending), the
+    quoted price vs. the plan's current price, and — once reviewed — the
+    outcome.
+    """
+
+    school_name = serializers.CharField(
+        source="license_subscription.school.name", read_only=True
+    )
+    license_id = serializers.UUIDField(source="license_subscription_id", read_only=True)
+    license_is_active = serializers.BooleanField(
+        source="license_subscription.is_active", read_only=True
+    )
+    requested_by_email = serializers.EmailField(
+        source="requested_by.email", read_only=True
+    )
+    requested_by_name = serializers.CharField(
+        source="requested_by.get_full_name", read_only=True
+    )
+    reviewed_by_email = serializers.EmailField(
+        source="reviewed_by.email", read_only=True, allow_null=True
+    )
+    current_unit_price_cents = serializers.SerializerMethodField()
+    age_seconds = serializers.SerializerMethodField()
+    teacher_breakdown = serializers.SerializerMethodField()
+
+    class Meta:
+        model = LicenseOverageOfflineRequest
+        fields = [
+            "id",
+            "school_name",
+            "license_id",
+            "license_is_active",
+            "requested_by_email",
+            "requested_by_name",
+            "total_blocks",
+            "amount_cents_quoted",
+            "block_size_snapshot",
+            "unit_price_cents_snapshot",
+            "current_unit_price_cents",
+            "teacher_breakdown",
+            "status",
+            "created_at",
+            "age_seconds",
+            "amount_confirmed_cents",
+            "payment_reference",
+            "payment_method_label",
+            "fulfilled_allocations",
+            "skipped_allocations",
+            "rejection_reason",
+            "reviewed_by_email",
+            "reviewed_at",
+        ]
+
+    @extend_schema_field(serializers.IntegerField)
+    def get_current_unit_price_cents(self, obj):
+        return obj.license_subscription.plan.overage_block_price
+
+    @extend_schema_field(serializers.FloatField)
+    def get_age_seconds(self, obj):
+        return (timezone.now() - obj.created_at).total_seconds()
+
+    @extend_schema_field(serializers.ListField)
+    def get_teacher_breakdown(self, obj):
+        return LicenseSubscriptionService._build_offline_overage_teacher_breakdown(obj)
+
+
+class ApproveOverageOfflineRequestSerializer(serializers.Serializer):
+    amount_confirmed_cents = serializers.IntegerField(min_value=0)
+    payment_reference = serializers.CharField(
+        required=False, allow_null=True, allow_blank=True, max_length=250
+    )
+    payment_method_label = serializers.CharField(
+        required=False, allow_null=True, allow_blank=True, max_length=100
+    )
+    notes = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+
+
+class RejectOverageOfflineRequestSerializer(serializers.Serializer):
+    rejection_reason = serializers.CharField(max_length=1000)
 
 
 class ConvertToOfflineSerializer(serializers.Serializer):

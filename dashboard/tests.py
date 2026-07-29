@@ -9,11 +9,26 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from assignments.models import Assignment, AssignmentStatus
-from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
-from dashboard.services import WeeklyCourseSummaryService
-from dashboard.tasks import send_weekly_course_summaries
+from classrooms.models import (
+    Course,
+    EnrollmentStatusType,
+    School,
+    Session,
+    StudentCourse,
+)
+from dashboard.models import StudentRiskAlertState, TeacherInactivityAlertState
+from dashboard.services import (
+    SchoolAdminWeeklySummaryService,
+    WeeklyCourseSummaryService,
+)
+from dashboard.tasks import (
+    send_at_risk_student_alerts,
+    send_teacher_inactivity_alerts,
+    send_weekly_course_summaries,
+    send_weekly_school_admin_summaries,
+)
 from students.models import StudentSubmission
-from users.models import CustomUser, UserTypes
+from users.models import CustomUser, UserActivity, UserTypes
 
 
 class WeeklyCourseSummaryServiceTest(TestCase):
@@ -293,6 +308,754 @@ class WeeklyCourseSummaryTaskTest(TestCase):
         self.assertEqual(
             schedule["task"],
             "dashboard.tasks.send_weekly_course_summaries",
+        )
+
+
+class SchoolAdminWeeklySummaryServiceTest(TestCase):
+    def setUp(self):
+        self.service = SchoolAdminWeeklySummaryService()
+        self.now = timezone.now()
+
+        self.school = School.objects.create(name="Riverside High")
+
+        self.admin = CustomUser.objects.create_user(
+            email="schooladmin-summary@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.SCHOOL_ADMIN,
+            first_name="School",
+            last_name="Admin",
+            school=self.school,
+            is_active=True,
+        )
+
+        self.teacher = CustomUser.objects.create_user(
+            email="school-teacher@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            first_name="School",
+            last_name="Teacher",
+            school=self.school,
+            is_active=True,
+        )
+        self.session = Session.objects.create(name="School Term", teacher=self.teacher)
+        self.course = Course.objects.create(
+            name="World History",
+            teacher=self.teacher,
+            session=self.session,
+        )
+
+        self.student_at_risk = CustomUser.objects.create_user(
+            email="at-risk-student@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.STUDENT,
+            first_name="At",
+            last_name="Risk",
+            is_active=True,
+        )
+        self.student_healthy = CustomUser.objects.create_user(
+            email="healthy-student@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.STUDENT,
+            first_name="Healthy",
+            last_name="Student",
+            is_active=True,
+        )
+        for student in [self.student_at_risk, self.student_healthy]:
+            StudentCourse.objects.create(
+                student=student,
+                course=self.course,
+                enrollment_status=EnrollmentStatusType.ENROLLED,
+            )
+
+        assignment = Assignment.objects.create(
+            title="Essay 1",
+            course=self.course,
+            status=AssignmentStatus.PUBLISHED,
+            due_date=self.now - timedelta(days=3),
+        )
+        StudentSubmission.objects.create(
+            assignment=assignment,
+            student=self.student_at_risk,
+            answers={"q1": "a"},
+            score=40,
+            score_percentage=40,
+            is_published=True,
+            graded_at=self.now - timedelta(days=2),
+        )
+        StudentSubmission.objects.create(
+            assignment=assignment,
+            student=self.student_healthy,
+            answers={"q1": "a"},
+            score=90,
+            score_percentage=90,
+            is_published=True,
+            graded_at=self.now - timedelta(days=2),
+        )
+
+    def test_build_school_summary_counts_and_at_risk_students(self):
+        summary = self.service.build_school_summary(self.school, as_of=self.now)
+
+        self.assertEqual(summary["school"]["name"], "Riverside High")
+        self.assertEqual(summary["overall"]["active_teacher_count"], 1)
+        self.assertEqual(summary["overall"]["active_course_count"], 1)
+        self.assertEqual(summary["overall"]["assignments_graded_this_week"], 1)
+
+        at_risk_names = [
+            student["student_name"] for student in summary["at_risk_students"]
+        ]
+        self.assertIn(self.student_at_risk.get_full_name(), at_risk_names)
+        self.assertNotIn(self.student_healthy.get_full_name(), at_risk_names)
+        self.assertEqual(summary["at_risk_student_count"], 1)
+
+    def test_build_school_summary_teacher_activity_row(self):
+        summary = self.service.build_school_summary(self.school, as_of=self.now)
+
+        teacher_row = next(
+            row for row in summary["teacher_activity"] if row["id"] == self.teacher.id
+        )
+        self.assertEqual(teacher_row["courses"], 1)
+        self.assertEqual(teacher_row["students"], 2)
+        self.assertTrue(teacher_row["status"])
+
+
+class WeeklySchoolAdminSummaryTaskTest(TestCase):
+    def setUp(self):
+        self.school = School.objects.create(name="Lakeside Academy")
+
+        self.admin = CustomUser.objects.create_user(
+            email="lakeside-admin@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.SCHOOL_ADMIN,
+            first_name="Lakeside",
+            last_name="Admin",
+            school=self.school,
+            is_active=True,
+        )
+        self.admin.settings.notify_weekly_summary = True
+        self.admin.settings.save(update_fields=["notify_weekly_summary"])
+
+        self.teacher = CustomUser.objects.create_user(
+            email="lakeside-teacher@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            first_name="Lakeside",
+            last_name="Teacher",
+            school=self.school,
+            is_active=True,
+        )
+
+    @patch("dashboard.tasks.send_email_task.delay")
+    def test_task_queues_one_email_per_opted_in_admin(self, mock_send_email):
+        result = send_weekly_school_admin_summaries()
+
+        self.assertIn("Queued 1 weekly school admin summary email(s).", result)
+        mock_send_email.assert_called_once()
+        self.assertEqual(
+            mock_send_email.mock_calls[0].kwargs["subject"],
+            "Weekly school summary: Lakeside Academy",
+        )
+        self.assertEqual(
+            mock_send_email.mock_calls[0].kwargs["recipient_list"],
+            [self.admin.email],
+        )
+
+    @patch(
+        "dashboard.tasks.ai_processor.generate_weekly_school_admin_summary_narrative"
+    )
+    @patch("dashboard.tasks.send_email_task.delay")
+    def test_task_uses_ai_narration_when_available(
+        self, mock_send_email, mock_generate_narrative
+    ):
+        mock_generate_narrative.return_value = {
+            "overall_narrative": "AI school overall summary.",
+            "at_risk_narrative": "AI at-risk narrative.",
+            "teacher_activity_narrative": "AI teacher activity narrative.",
+        }
+
+        result = send_weekly_school_admin_summaries()
+
+        self.assertIn("Queued 1 weekly school admin summary email(s).", result)
+        mock_generate_narrative.assert_called_once()
+        mock_send_email.assert_called_once()
+        self.assertIn(
+            "AI school overall summary.",
+            mock_send_email.mock_calls[0].kwargs["message"],
+        )
+
+    @patch("dashboard.tasks.send_email_task.delay")
+    def test_task_falls_back_to_plaintext_when_ai_narration_fails(
+        self, mock_send_email
+    ):
+        with patch(
+            "dashboard.tasks.ai_processor.generate_weekly_school_admin_summary_narrative",
+            side_effect=Exception("AI unavailable"),
+        ):
+            result = send_weekly_school_admin_summaries()
+
+        self.assertIn("Queued 1 weekly school admin summary email(s).", result)
+        mock_send_email.assert_called_once()
+
+    @patch("dashboard.tasks.send_email_task.delay")
+    def test_task_skips_admins_who_are_not_opted_in(self, mock_send_email):
+        self.admin.settings.notify_weekly_summary = False
+        self.admin.settings.save(update_fields=["notify_weekly_summary"])
+
+        result = send_weekly_school_admin_summaries()
+
+        self.assertIn("Queued 0 weekly school admin summary email(s).", result)
+        mock_send_email.assert_not_called()
+
+    def test_weekly_school_admin_summary_schedule_is_registered(self):
+        schedule = settings.CELERY_BEAT_SCHEDULE["send-weekly-school-admin-summaries"]
+
+        self.assertEqual(
+            schedule["task"],
+            "dashboard.tasks.send_weekly_school_admin_summaries",
+        )
+
+
+class AtRiskStudentAlertTaskTest(TestCase):
+    def setUp(self):
+        self.school = School.objects.create(name="At-Risk School")
+
+        self.admin = CustomUser.objects.create_user(
+            email="at-risk-admin@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.SCHOOL_ADMIN,
+            first_name="At-Risk",
+            last_name="Admin",
+            school=self.school,
+            is_active=True,
+        )
+        self.admin.settings.notify_at_risk_student_alerts = True
+        self.admin.settings.save(update_fields=["notify_at_risk_student_alerts"])
+
+        self.teacher = CustomUser.objects.create_user(
+            email="at-risk-teacher@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            first_name="At-Risk",
+            last_name="Teacher",
+            school=self.school,
+            is_active=True,
+        )
+        self.session = Session.objects.create(name="At-Risk Term", teacher=self.teacher)
+        self.course = Course.objects.create(
+            name="At-Risk Course", teacher=self.teacher, session=self.session
+        )
+
+    def _enroll_and_grade(self, student, score):
+        StudentCourse.objects.get_or_create(
+            student=student,
+            course=self.course,
+            defaults={"enrollment_status": EnrollmentStatusType.ENROLLED},
+        )
+        assignment = Assignment.objects.create(
+            title=f"Assignment for {student.email}",
+            course=self.course,
+            status=AssignmentStatus.PUBLISHED,
+            questions={"q1": "q"},
+        )
+        StudentSubmission.objects.create(
+            assignment=assignment,
+            student=student,
+            answers={"q1": "a"},
+            score=score,
+            score_percentage=score,
+            is_published=True,
+            graded_at=timezone.now(),
+        )
+
+    def _make_student(self, suffix):
+        return CustomUser.objects.create_user(
+            email=f"at-risk-student-{suffix}@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.STUDENT,
+            first_name="Student",
+            last_name=suffix,
+            is_active=True,
+        )
+
+    @patch("dashboard.tasks.send_email_task.delay")
+    def test_newly_at_risk_student_triggers_alert_and_persists_state(
+        self, mock_send_email
+    ):
+        student = self._make_student("A")
+        self._enroll_and_grade(student, 40)
+
+        result = send_at_risk_student_alerts()
+
+        self.assertIn("Queued 1 at-risk alert email(s).", result)
+        mock_send_email.assert_called_once()
+        self.assertEqual(
+            mock_send_email.mock_calls[0].kwargs["recipient_list"], [self.admin.email]
+        )
+        state = StudentRiskAlertState.objects.get(student=student, school=self.school)
+        self.assertTrue(state.is_at_risk)
+        self.assertIsNotNone(state.last_alerted_at)
+
+    @patch("dashboard.tasks.send_email_task.delay")
+    def test_healthy_student_never_alerts(self, mock_send_email):
+        student = self._make_student("B")
+        self._enroll_and_grade(student, 90)
+
+        result = send_at_risk_student_alerts()
+
+        self.assertIn("Queued 0 at-risk alert email(s).", result)
+        mock_send_email.assert_not_called()
+        self.assertFalse(
+            StudentRiskAlertState.objects.filter(
+                student=student, school=self.school
+            ).exists()
+        )
+
+    @patch("dashboard.tasks.send_email_task.delay")
+    def test_student_remaining_at_risk_is_not_realerted_on_second_run(
+        self, mock_send_email
+    ):
+        student = self._make_student("C")
+        self._enroll_and_grade(student, 30)
+
+        send_at_risk_student_alerts()
+        first_alerted_at = StudentRiskAlertState.objects.get(
+            student=student, school=self.school
+        ).last_alerted_at
+        mock_send_email.reset_mock()
+
+        result = send_at_risk_student_alerts()
+
+        self.assertIn("Queued 0 at-risk alert email(s).", result)
+        mock_send_email.assert_not_called()
+        state = StudentRiskAlertState.objects.get(student=student, school=self.school)
+        self.assertEqual(state.last_alerted_at, first_alerted_at)
+
+    @patch("dashboard.tasks.send_email_task.delay")
+    def test_recovered_student_state_clears_and_relapse_realerts(self, mock_send_email):
+        student = self._make_student("D")
+        self._enroll_and_grade(student, 30)
+        send_at_risk_student_alerts()
+        self.assertTrue(
+            StudentRiskAlertState.objects.get(
+                student=student, school=self.school
+            ).is_at_risk
+        )
+
+        # Recover: a new high-scoring submission pulls the average back up.
+        self._enroll_and_grade(student, 100)
+        self._enroll_and_grade(student, 100)
+        self._enroll_and_grade(student, 100)
+        mock_send_email.reset_mock()
+        send_at_risk_student_alerts()
+
+        state = StudentRiskAlertState.objects.get(student=student, school=self.school)
+        self.assertFalse(state.is_at_risk)
+        self.assertIsNone(state.average_score)
+        mock_send_email.assert_not_called()
+
+        # Relapse: drag the average back down below the threshold again.
+        for _ in range(5):
+            self._enroll_and_grade(student, 10)
+        mock_send_email.reset_mock()
+        result = send_at_risk_student_alerts()
+
+        self.assertIn("Queued 1 at-risk alert email(s).", result)
+        mock_send_email.assert_called_once()
+        state.refresh_from_db()
+        self.assertTrue(state.is_at_risk)
+
+    @patch("dashboard.tasks.send_email_task.delay")
+    def test_disenrolled_student_treated_as_recovered(self, mock_send_email):
+        student = self._make_student("E")
+        self._enroll_and_grade(student, 20)
+        send_at_risk_student_alerts()
+        state = StudentRiskAlertState.objects.get(student=student, school=self.school)
+        self.assertTrue(state.is_at_risk)
+
+        enrollment = StudentCourse.objects.get(student=student, course=self.course)
+        enrollment.enrollment_status = EnrollmentStatusType.WITHDRAWN
+        enrollment.save(update_fields=["enrollment_status"])
+
+        mock_send_email.reset_mock()
+        send_at_risk_student_alerts()
+
+        state.refresh_from_db()
+        self.assertFalse(state.is_at_risk)
+        mock_send_email.assert_not_called()
+
+    @patch("dashboard.tasks.send_email_task.delay")
+    def test_school_with_no_opted_in_admin_is_skipped(self, mock_send_email):
+        self.admin.settings.notify_at_risk_student_alerts = False
+        self.admin.settings.save(update_fields=["notify_at_risk_student_alerts"])
+        student = self._make_student("F")
+        self._enroll_and_grade(student, 20)
+
+        result = send_at_risk_student_alerts()
+
+        self.assertIn("Queued 0 at-risk alert email(s).", result)
+        mock_send_email.assert_not_called()
+        self.assertFalse(
+            StudentRiskAlertState.objects.filter(
+                student=student, school=self.school
+            ).exists()
+        )
+
+    @patch("dashboard.tasks.send_email_task.delay")
+    def test_admin_in_different_school_not_notified(self, mock_send_email):
+        other_school = School.objects.create(name="Other At-Risk School")
+        other_admin = CustomUser.objects.create_user(
+            email="other-at-risk-admin@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.SCHOOL_ADMIN,
+            first_name="Other",
+            last_name="Admin",
+            school=other_school,
+            is_active=True,
+        )
+        other_admin.settings.notify_at_risk_student_alerts = True
+        other_admin.settings.save(update_fields=["notify_at_risk_student_alerts"])
+
+        student = self._make_student("G")
+        self._enroll_and_grade(student, 20)
+        send_at_risk_student_alerts()
+
+        mock_send_email.assert_called_once()
+        self.assertEqual(
+            mock_send_email.mock_calls[0].kwargs["recipient_list"], [self.admin.email]
+        )
+
+
+class TeacherInactivityAlertTaskTest(TestCase):
+    def setUp(self):
+        self.school = School.objects.create(name="Inactivity School")
+
+        self.admin = CustomUser.objects.create_user(
+            email="inactivity-admin@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.SCHOOL_ADMIN,
+            first_name="Inactivity",
+            last_name="Admin",
+            school=self.school,
+            is_active=True,
+        )
+        self.admin.settings.notify_teacher_activity_alerts = True
+        self.admin.settings.save(update_fields=["notify_teacher_activity_alerts"])
+
+        self.old_join_date = timezone.now() - timedelta(days=365)
+
+    def _make_teacher(self, suffix, *, date_joined):
+        return CustomUser.objects.create_user(
+            email=f"inactivity-teacher-{suffix}@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            first_name="Teacher",
+            last_name=suffix,
+            school=self.school,
+            is_active=True,
+            date_joined=date_joined,
+        )
+
+    def _set_last_activity(self, teacher, when):
+        # Replace any existing rows so MAX(timestamp) reflects only `when`,
+        # rather than being pinned to a previously-recorded newer timestamp.
+        UserActivity.objects.filter(user=teacher).delete()
+        activity = UserActivity.objects.create(user=teacher)
+        UserActivity.objects.filter(pk=activity.pk).update(timestamp=when)
+
+    @patch("dashboard.tasks.send_email_task.delay")
+    def test_inactive_teacher_triggers_alert_and_persists_state(self, mock_send_email):
+        teacher = self._make_teacher("A", date_joined=self.old_join_date)
+        self._set_last_activity(teacher, timezone.now() - timedelta(days=20))
+
+        result = send_teacher_inactivity_alerts()
+
+        self.assertIn("Queued 1 teacher-inactivity alert email(s).", result)
+        mock_send_email.assert_called_once()
+        state = TeacherInactivityAlertState.objects.get(teacher=teacher)
+        self.assertTrue(state.is_flagged_inactive)
+        self.assertIsNotNone(state.last_alerted_at)
+
+    @patch("dashboard.tasks.send_email_task.delay")
+    def test_recently_active_teacher_never_alerts(self, mock_send_email):
+        teacher = self._make_teacher("B", date_joined=self.old_join_date)
+        self._set_last_activity(teacher, timezone.now() - timedelta(days=1))
+
+        result = send_teacher_inactivity_alerts()
+
+        self.assertIn("Queued 0 teacher-inactivity alert email(s).", result)
+        mock_send_email.assert_not_called()
+
+    @patch("dashboard.tasks.send_email_task.delay")
+    def test_staying_inactive_is_not_realerted(self, mock_send_email):
+        teacher = self._make_teacher("C", date_joined=self.old_join_date)
+        self._set_last_activity(teacher, timezone.now() - timedelta(days=20))
+
+        send_teacher_inactivity_alerts()
+        first_alerted_at = TeacherInactivityAlertState.objects.get(
+            teacher=teacher
+        ).last_alerted_at
+        mock_send_email.reset_mock()
+
+        result = send_teacher_inactivity_alerts()
+
+        self.assertIn("Queued 0 teacher-inactivity alert email(s).", result)
+        mock_send_email.assert_not_called()
+        state = TeacherInactivityAlertState.objects.get(teacher=teacher)
+        self.assertEqual(state.last_alerted_at, first_alerted_at)
+
+    @patch("dashboard.tasks.send_email_task.delay")
+    def test_becoming_active_clears_flag_and_relapse_realerts(self, mock_send_email):
+        teacher = self._make_teacher("D", date_joined=self.old_join_date)
+        self._set_last_activity(teacher, timezone.now() - timedelta(days=20))
+        send_teacher_inactivity_alerts()
+        self.assertTrue(
+            TeacherInactivityAlertState.objects.get(teacher=teacher).is_flagged_inactive
+        )
+
+        # Teacher logs back in.
+        self._set_last_activity(teacher, timezone.now())
+        mock_send_email.reset_mock()
+        send_teacher_inactivity_alerts()
+
+        state = TeacherInactivityAlertState.objects.get(teacher=teacher)
+        self.assertFalse(state.is_flagged_inactive)
+        mock_send_email.assert_not_called()
+
+        # Goes inactive again -> should re-alert.
+        self._set_last_activity(teacher, timezone.now() - timedelta(days=20))
+        mock_send_email.reset_mock()
+        result = send_teacher_inactivity_alerts()
+
+        self.assertIn("Queued 1 teacher-inactivity alert email(s).", result)
+        mock_send_email.assert_called_once()
+        state.refresh_from_db()
+        self.assertTrue(state.is_flagged_inactive)
+
+    @patch("dashboard.tasks.send_email_task.delay")
+    def test_new_teacher_within_grace_period_not_flagged(self, mock_send_email):
+        teacher = self._make_teacher(
+            "E", date_joined=timezone.now() - timedelta(days=2)
+        )
+        # Never logged in at all.
+
+        result = send_teacher_inactivity_alerts()
+
+        self.assertIn("Queued 0 teacher-inactivity alert email(s).", result)
+        mock_send_email.assert_not_called()
+        self.assertFalse(
+            TeacherInactivityAlertState.objects.filter(teacher=teacher).exists()
+        )
+
+    @patch("dashboard.tasks.send_email_task.delay")
+    def test_teacher_who_never_logged_in_but_joined_long_ago_is_flagged(
+        self, mock_send_email
+    ):
+        teacher = self._make_teacher("F", date_joined=self.old_join_date)
+        # No UserActivity rows at all.
+
+        result = send_teacher_inactivity_alerts()
+
+        self.assertIn("Queued 1 teacher-inactivity alert email(s).", result)
+        mock_send_email.assert_called_once()
+
+    @patch("dashboard.tasks.send_email_task.delay")
+    def test_school_with_no_opted_in_admin_is_skipped(self, mock_send_email):
+        self.admin.settings.notify_teacher_activity_alerts = False
+        self.admin.settings.save(update_fields=["notify_teacher_activity_alerts"])
+        teacher = self._make_teacher("G", date_joined=self.old_join_date)
+        self._set_last_activity(teacher, timezone.now() - timedelta(days=20))
+
+        result = send_teacher_inactivity_alerts()
+
+        self.assertIn("Queued 0 teacher-inactivity alert email(s).", result)
+        mock_send_email.assert_not_called()
+        self.assertFalse(
+            TeacherInactivityAlertState.objects.filter(teacher=teacher).exists()
+        )
+
+    def test_teacher_inactivity_schedule_is_registered(self):
+        schedule = settings.CELERY_BEAT_SCHEDULE["send-teacher-inactivity-alerts"]
+
+        self.assertEqual(
+            schedule["task"], "dashboard.tasks.send_teacher_inactivity_alerts"
+        )
+
+
+class TeacherFirstCourseMilestoneTest(TestCase):
+    def setUp(self):
+        self.school = School.objects.create(name="Milestone School")
+
+        self.admin = CustomUser.objects.create_user(
+            email="milestone-admin@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.SCHOOL_ADMIN,
+            first_name="Milestone",
+            last_name="Admin",
+            school=self.school,
+            is_active=True,
+        )
+        self.admin.settings.notify_teacher_activity_alerts = True
+        self.admin.settings.save(update_fields=["notify_teacher_activity_alerts"])
+
+        self.teacher = CustomUser.objects.create_user(
+            email="milestone-teacher@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            first_name="Milestone",
+            last_name="Teacher",
+            school=self.school,
+            is_active=True,
+        )
+        self.session = Session.objects.create(
+            name="Milestone Term", teacher=self.teacher
+        )
+
+    @patch("dashboard.tasks.send_teacher_first_course_milestone_alert.delay")
+    def test_first_course_dispatches_milestone_task(self, mock_delay):
+        with self.captureOnCommitCallbacks(execute=True):
+            course = Course.objects.create(
+                name="First Course", teacher=self.teacher, session=self.session
+            )
+
+        mock_delay.assert_called_once_with(str(course.id))
+
+    @patch("dashboard.tasks.send_teacher_first_course_milestone_alert.delay")
+    def test_second_course_does_not_dispatch_milestone_task(self, mock_delay):
+        with self.captureOnCommitCallbacks(execute=True):
+            Course.objects.create(
+                name="First Course", teacher=self.teacher, session=self.session
+            )
+        mock_delay.reset_mock()
+
+        with self.captureOnCommitCallbacks(execute=True):
+            Course.objects.create(
+                name="Second Course", teacher=self.teacher, session=self.session
+            )
+
+        mock_delay.assert_not_called()
+
+    @patch("dashboard.tasks.send_teacher_first_course_milestone_alert.delay")
+    def test_course_by_teacher_without_school_does_not_dispatch(self, mock_delay):
+        self.teacher.school = None
+        self.teacher.save(update_fields=["school"])
+
+        with self.captureOnCommitCallbacks(execute=True):
+            Course.objects.create(
+                name="Schoolless Course", teacher=self.teacher, session=self.session
+            )
+
+        mock_delay.assert_not_called()
+
+    @patch("dashboard.tasks.send_teacher_first_course_milestone_alert.delay")
+    def test_course_update_does_not_redispatch(self, mock_delay):
+        with self.captureOnCommitCallbacks(execute=True):
+            course = Course.objects.create(
+                name="First Course", teacher=self.teacher, session=self.session
+            )
+        mock_delay.reset_mock()
+
+        with self.captureOnCommitCallbacks(execute=True):
+            course.name = "Renamed Course"
+            course.save(update_fields=["name"])
+
+        mock_delay.assert_not_called()
+
+
+class TeacherFirstCourseMilestoneTaskTest(TestCase):
+    """Direct tests of send_teacher_first_course_milestone_alert's email
+    content/gating, invoked synchronously (bypassing .delay/Celery)."""
+
+    def setUp(self):
+        self.school = School.objects.create(name="Milestone Task School")
+
+        self.admin = CustomUser.objects.create_user(
+            email="milestone-task-admin@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.SCHOOL_ADMIN,
+            first_name="Milestone",
+            last_name="Admin",
+            school=self.school,
+            is_active=True,
+        )
+        self.admin.settings.notify_teacher_activity_alerts = True
+        self.admin.settings.save(update_fields=["notify_teacher_activity_alerts"])
+
+        self.teacher = CustomUser.objects.create_user(
+            email="milestone-task-teacher@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            first_name="Milestone",
+            last_name="Teacher",
+            school=self.school,
+            is_active=True,
+        )
+        self.session = Session.objects.create(
+            name="Milestone Task Term", teacher=self.teacher
+        )
+        self.course = Course.objects.create(
+            name="First Course", teacher=self.teacher, session=self.session
+        )
+
+    @patch("dashboard.tasks.send_email_task.delay")
+    def test_sends_email_to_opted_in_admin(self, mock_send_email):
+        from dashboard.tasks import send_teacher_first_course_milestone_alert
+
+        result = send_teacher_first_course_milestone_alert(str(self.course.id))
+
+        self.assertIn("Queued 1 teacher milestone alert email(s).", result)
+        mock_send_email.assert_called_once()
+        self.assertEqual(
+            mock_send_email.mock_calls[0].kwargs["recipient_list"], [self.admin.email]
+        )
+        self.assertIn(
+            "milestone", mock_send_email.mock_calls[0].kwargs["subject"].lower()
+        )
+
+    @patch("dashboard.tasks.send_email_task.delay")
+    def test_no_email_when_admin_not_opted_in(self, mock_send_email):
+        from dashboard.tasks import send_teacher_first_course_milestone_alert
+
+        self.admin.settings.notify_teacher_activity_alerts = False
+        self.admin.settings.save(update_fields=["notify_teacher_activity_alerts"])
+
+        result = send_teacher_first_course_milestone_alert(str(self.course.id))
+
+        self.assertIn("No opted-in admins", result)
+        mock_send_email.assert_not_called()
+
+    @patch("dashboard.tasks.send_email_task.delay")
+    def test_no_error_when_course_deleted_before_task_runs(self, mock_send_email):
+        from dashboard.tasks import send_teacher_first_course_milestone_alert
+
+        course_id = str(self.course.id)
+        self.course.delete()
+
+        result = send_teacher_first_course_milestone_alert(course_id)
+
+        self.assertIn("no longer exists", result)
+        mock_send_email.assert_not_called()
+
+    @patch("dashboard.tasks.send_email_task.delay")
+    def test_admin_in_different_school_not_notified(self, mock_send_email):
+        from dashboard.tasks import send_teacher_first_course_milestone_alert
+
+        other_school = School.objects.create(name="Other Milestone School")
+        other_admin = CustomUser.objects.create_user(
+            email="other-milestone-admin@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.SCHOOL_ADMIN,
+            first_name="Other",
+            last_name="Admin",
+            school=other_school,
+            is_active=True,
+        )
+        other_admin.settings.notify_teacher_activity_alerts = True
+        other_admin.settings.save(update_fields=["notify_teacher_activity_alerts"])
+
+        send_teacher_first_course_milestone_alert(str(self.course.id))
+
+        mock_send_email.assert_called_once()
+        self.assertEqual(
+            mock_send_email.mock_calls[0].kwargs["recipient_list"], [self.admin.email]
         )
 
 

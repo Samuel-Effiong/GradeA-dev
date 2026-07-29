@@ -36,9 +36,10 @@ class SettingsSerializer(serializers.ModelSerializer):
             "notify_assignment_due_reminder",
             "notify_grading_complete",
             "notify_new_assignment_posted",
+            "notify_teacher_activity_alerts",
+            "notify_at_risk_student_alerts",
         ]
-
-    read_only_fields = ["id", "user"]
+        read_only_fields = ["id", "user"]
 
 
 class CustomUserSerializer(serializers.ModelSerializer):

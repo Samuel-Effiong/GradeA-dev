@@ -261,6 +261,15 @@ WEEKLY_COURSE_SUMMARY_DAY_OF_WEEK = env.str(
 WEEKLY_COURSE_SUMMARY_HOUR = env.int("WEEKLY_COURSE_SUMMARY_HOUR", default=7)
 WEEKLY_COURSE_SUMMARY_MINUTE = env.int("WEEKLY_COURSE_SUMMARY_MINUTE", default=0)
 
+AT_RISK_ALERT_HOUR = env.int("AT_RISK_ALERT_HOUR", default=6)
+AT_RISK_ALERT_MINUTE = env.int("AT_RISK_ALERT_MINUTE", default=30)
+
+TEACHER_INACTIVITY_ALERT_HOUR = env.int("TEACHER_INACTIVITY_ALERT_HOUR", default=6)
+TEACHER_INACTIVITY_ALERT_MINUTE = env.int("TEACHER_INACTIVITY_ALERT_MINUTE", default=45)
+TEACHER_INACTIVITY_THRESHOLD_DAYS = env.int(
+    "TEACHER_INACTIVITY_THRESHOLD_DAYS", default=14
+)
+
 USE_BETA_PLAN_ON_SIGNUP = env.bool("USE_BETA_PLAN_ON_SIGNUP", default=False)
 
 # Celery Beat Schedule
@@ -311,6 +320,25 @@ CELERY_BEAT_SCHEDULE = {
             minute=WEEKLY_COURSE_SUMMARY_MINUTE,
             hour=WEEKLY_COURSE_SUMMARY_HOUR,
             day_of_week=WEEKLY_COURSE_SUMMARY_DAY_OF_WEEK,
+        ),
+    },
+    "send-weekly-school-admin-summaries": {
+        "task": "dashboard.tasks.send_weekly_school_admin_summaries",
+        "schedule": crontab(
+            minute=WEEKLY_COURSE_SUMMARY_MINUTE,
+            hour=WEEKLY_COURSE_SUMMARY_HOUR,
+            day_of_week=WEEKLY_COURSE_SUMMARY_DAY_OF_WEEK,
+        ),
+    },
+    "send-at-risk-student-alerts": {
+        "task": "dashboard.tasks.send_at_risk_student_alerts",
+        "schedule": crontab(minute=AT_RISK_ALERT_MINUTE, hour=AT_RISK_ALERT_HOUR),
+    },
+    "send-teacher-inactivity-alerts": {
+        "task": "dashboard.tasks.send_teacher_inactivity_alerts",
+        "schedule": crontab(
+            minute=TEACHER_INACTIVITY_ALERT_MINUTE,
+            hour=TEACHER_INACTIVITY_ALERT_HOUR,
         ),
     },
 }
@@ -554,7 +582,7 @@ DISALLOWED_EMAIL_DOMAINS = [
     "gmx.com",
     "fastmail.com",
     "hushmail.com",
-    # "yopmail.com",
+    "yopmail.com",
 ]
 
 

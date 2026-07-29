@@ -2,6 +2,7 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from .billing_transaction_views import BillingTransactionViewSet
+from .license_overage_offline_views import LicenseOverageOfflineRequestViewSet
 from .license_views import LicenseSubscriptionViewSet, SchoolCreditAllocationViewSet
 from .qa_time_travel import BillingTimeTravelView
 from .views import (
@@ -50,6 +51,11 @@ router.register(r"invoices", BillingTransactionViewSet, basename="billing-invoic
 
 router.register(
     r"admin/credits", AdminCreditManagementViewSet, basename="admin-credits"
+)
+router.register(
+    r"license-overage-offline-requests",
+    LicenseOverageOfflineRequestViewSet,
+    basename="license-overage-offline-request",
 )
 
 

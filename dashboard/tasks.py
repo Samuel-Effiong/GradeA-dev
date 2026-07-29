@@ -1,16 +1,27 @@
 import logging
+from datetime import timedelta
 
 from celery import shared_task
 from django.conf import settings
+from django.db.models import Max
 from django.template.loader import render_to_string
 from django.utils import timezone
 
 from ai_processor.services import ai_processor
 from AutoGrader.tasks import send_email_task
-from classrooms.models import Course
-from dashboard.services import StudentWeeklySummaryService, WeeklyCourseSummaryService
-from users.models import ConcurrentUserSnapshot, CustomUser, UserTypes
-from users.services import cleanup_expired_users, get_current_concurrent_users
+from classrooms.models import Course, School
+from dashboard.models import StudentRiskAlertState, TeacherInactivityAlertState
+from dashboard.services import (
+    SchoolAdminWeeklySummaryService,
+    StudentWeeklySummaryService,
+    WeeklyCourseSummaryService,
+)
+from users.models import ConcurrentUserSnapshot, CustomUser, UserActivity, UserTypes
+from users.services import (
+    cleanup_expired_users,
+    get_current_concurrent_users,
+    get_opted_in_school_admins,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -181,6 +192,399 @@ def send_weekly_student_summaries(self):
     )
 
 
+@shared_task(bind=True)
+def send_weekly_school_admin_summaries(self):
+    service = SchoolAdminWeeklySummaryService()
+    as_of = timezone.now()
+
+    eligible_admins = (
+        CustomUser.objects.filter(
+            user_type=UserTypes.SCHOOL_ADMIN,
+            school__isnull=False,
+            is_active=True,
+            email__isnull=False,
+            settings__notify_weekly_summary=True,
+        )
+        .exclude(email="")
+        .select_related("school")
+        .distinct()
+    )
+
+    emails_queued = 0
+    admins_processed = 0
+    admins_skipped = 0
+
+    for admin in eligible_admins:
+        if not admin.school or not admin.email:
+            admins_skipped += 1
+            continue
+
+        try:
+            summary = service.build_school_summary(admin.school, as_of=as_of)
+            ai_narrative = None
+            try:
+                ai_narrative = (
+                    ai_processor.generate_weekly_school_admin_summary_narrative(
+                        admin,
+                        admin.school,
+                        summary,
+                    )
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to generate AI narration for weekly school admin summary",
+                    extra={
+                        "school_id": str(admin.school_id),
+                        "admin_id": str(admin.id),
+                    },
+                )
+
+            if ai_narrative:
+                summary["ai_narrative"] = ai_narrative
+
+            context = {
+                "admin": admin,
+                "school": admin.school,
+                "summary": summary,
+                "ai_narrative": summary.get("ai_narrative"),
+                "overall": summary["overall"],
+                "at_risk_students": summary["at_risk_students"],
+                "at_risk_student_count": summary["at_risk_student_count"],
+                "teacher_activity": summary["teacher_activity"],
+            }
+
+            html_message = render_to_string(
+                "email/weekly_school_admin_summary.html",
+                context=context,
+            )
+            text_message = _build_plaintext_school_admin_summary(admin.school, summary)
+
+            send_email_task.delay(
+                subject=f"Weekly school summary: {admin.school.name}",
+                message=text_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[admin.email],
+                html_message=html_message,
+            )
+            emails_queued += 1
+            admins_processed += 1
+        except Exception:
+            admins_skipped += 1
+            logger.exception(
+                "Failed to queue weekly school admin summary email",
+                extra={
+                    "school_id": str(admin.school_id),
+                    "admin_id": str(admin.id),
+                },
+            )
+
+    return (
+        f"Queued {emails_queued} weekly school admin summary email(s). "
+        f"Processed {admins_processed} admin(s), skipped {admins_skipped}."
+    )
+
+
+@shared_task(bind=True)
+def send_at_risk_student_alerts(self):
+    """
+    Daily scan: for each school with at least one opted-in admin, recompute
+    the school-wide at-risk student set and alert on students who newly
+    crossed the threshold since the last run (never on students who remain
+    at-risk from a previous run). Schools with zero opted-in admins are
+    skipped entirely and their state is left untouched — if an admin opts in
+    later, the next run treats the whole current at-risk set as "newly
+    at-risk" and sends a one-time catch-up alert, which is intentional.
+    """
+    service = SchoolAdminWeeklySummaryService()
+
+    schools = School.objects.filter(
+        users__user_type=UserTypes.SCHOOL_ADMIN,
+        users__is_active=True,
+        users__settings__notify_at_risk_student_alerts=True,
+    ).distinct()
+
+    schools_processed = 0
+    schools_skipped = 0
+    emails_queued = 0
+
+    for school in schools:
+        admins = list(
+            get_opted_in_school_admins(school, flag="notify_at_risk_student_alerts")
+        )
+        if not admins:
+            continue
+
+        try:
+            now = timezone.now()
+            current_students = list(service._at_risk_student_queryset(school))
+            current_ids = {student.id for student in current_students}
+            existing_states = {
+                state.student_id: state
+                for state in StudentRiskAlertState.objects.filter(school=school)
+            }
+
+            newly_at_risk = []
+            for student in current_students:
+                state = existing_states.get(student.id)
+                is_new = state is None or not state.is_at_risk
+
+                obj, created = StudentRiskAlertState.objects.get_or_create(
+                    student_id=student.id,
+                    school=school,
+                    defaults={
+                        "is_at_risk": True,
+                        "average_score": student.avg_score,
+                        "last_alerted_at": now,
+                    },
+                )
+                if not created:
+                    obj.is_at_risk = True
+                    obj.average_score = student.avg_score
+                    update_fields = ["is_at_risk", "average_score"]
+                    if is_new:
+                        obj.last_alerted_at = now
+                        update_fields.append("last_alerted_at")
+                    obj.save(update_fields=update_fields)
+
+                if is_new:
+                    newly_at_risk.append(student)
+
+            recovered_ids = [
+                student_id
+                for student_id, state in existing_states.items()
+                if state.is_at_risk and student_id not in current_ids
+            ]
+            if recovered_ids:
+                StudentRiskAlertState.objects.filter(
+                    school=school, student_id__in=recovered_ids
+                ).update(is_at_risk=False, average_score=None)
+
+            if newly_at_risk:
+                context = {
+                    "school": school,
+                    "newly_at_risk_students": [
+                        {
+                            "student_name": student.get_full_name(),
+                            "average_score": round(student.avg_score, 1),
+                        }
+                        for student in newly_at_risk
+                    ],
+                }
+                html_message = render_to_string(
+                    "email/school_admin_at_risk_alert.html", context=context
+                )
+                names = ", ".join(student.get_full_name() for student in newly_at_risk)
+                message = (
+                    f"{len(newly_at_risk)} student(s) newly flagged as at-risk "
+                    f"at {school.name}: {names}"
+                )
+                for admin in admins:
+                    try:
+                        send_email_task.delay(
+                            subject=f"New at-risk students at {school.name}",
+                            message=message,
+                            from_email=settings.DEFAULT_FROM_EMAIL,
+                            recipient_list=[admin.email],
+                            html_message=html_message,
+                        )
+                        emails_queued += 1
+                    except Exception:
+                        logger.exception(
+                            "Failed to queue at-risk admin email",
+                            extra={
+                                "admin_id": str(admin.id),
+                                "school_id": str(school.id),
+                            },
+                        )
+
+            schools_processed += 1
+        except Exception:
+            schools_skipped += 1
+            logger.exception(
+                "Failed to process at-risk alerts for school",
+                extra={"school_id": str(school.id)},
+            )
+
+    return (
+        f"Queued {emails_queued} at-risk alert email(s). "
+        f"Processed {schools_processed} school(s), skipped {schools_skipped}."
+    )
+
+
+@shared_task(bind=True)
+def send_teacher_inactivity_alerts(self):
+    """
+    Daily scan: for each school with at least one opted-in admin, flags
+    active teachers who have had no UserActivity for
+    settings.TEACHER_INACTIVITY_THRESHOLD_DAYS and alerts once per
+    inactivity episode. Teachers who join more recently than the threshold
+    (and so haven't had a fair chance to log in yet) are skipped. A teacher
+    becoming active again clears the flag so a future inactivity episode
+    re-alerts.
+    """
+    threshold_days = settings.TEACHER_INACTIVITY_THRESHOLD_DAYS
+    cutoff = timezone.now() - timedelta(days=threshold_days)
+
+    schools = School.objects.filter(
+        users__user_type=UserTypes.SCHOOL_ADMIN,
+        users__is_active=True,
+        users__settings__notify_teacher_activity_alerts=True,
+    ).distinct()
+
+    schools_processed = 0
+    schools_skipped = 0
+    emails_queued = 0
+
+    for school in schools:
+        admins = list(
+            get_opted_in_school_admins(school, flag="notify_teacher_activity_alerts")
+        )
+        if not admins:
+            continue
+
+        try:
+            newly_flagged = []
+            teachers = CustomUser.objects.filter(
+                school=school, user_type=UserTypes.TEACHER, is_active=True
+            )
+            for teacher in teachers:
+                if teacher.date_joined > cutoff:
+                    continue
+
+                last_activity = UserActivity.objects.filter(user=teacher).aggregate(
+                    Max("timestamp")
+                )["timestamp__max"]
+                currently_inactive = last_activity is None or last_activity < cutoff
+
+                state, _ = TeacherInactivityAlertState.objects.get_or_create(
+                    teacher=teacher
+                )
+                if currently_inactive:
+                    if not state.is_flagged_inactive:
+                        state.is_flagged_inactive = True
+                        state.last_active_at = last_activity
+                        state.last_alerted_at = timezone.now()
+                        state.save(
+                            update_fields=[
+                                "is_flagged_inactive",
+                                "last_active_at",
+                                "last_alerted_at",
+                            ]
+                        )
+                        newly_flagged.append((teacher, last_activity))
+                elif state.is_flagged_inactive:
+                    state.is_flagged_inactive = False
+                    state.last_active_at = last_activity
+                    state.save(update_fields=["is_flagged_inactive", "last_active_at"])
+
+            if newly_flagged:
+                context = {
+                    "school": school,
+                    "inactive_teachers": [
+                        {"name": teacher.get_full_name(), "last_active_at": last_active}
+                        for teacher, last_active in newly_flagged
+                    ],
+                    "threshold_days": threshold_days,
+                }
+                html_message = render_to_string(
+                    "email/school_admin_teacher_activity_alert.html", context=context
+                )
+                names = ", ".join(
+                    teacher.get_full_name() for teacher, _ in newly_flagged
+                )
+                message = (
+                    f"{len(newly_flagged)} teacher(s) at {school.name} have had no "
+                    f"activity for {threshold_days}+ days: {names}"
+                )
+                for admin in admins:
+                    try:
+                        send_email_task.delay(
+                            subject=f"Teacher inactivity alert: {school.name}",
+                            message=message,
+                            from_email=settings.DEFAULT_FROM_EMAIL,
+                            recipient_list=[admin.email],
+                            html_message=html_message,
+                        )
+                        emails_queued += 1
+                    except Exception:
+                        logger.exception(
+                            "Failed to queue teacher-inactivity admin email",
+                            extra={
+                                "admin_id": str(admin.id),
+                                "school_id": str(school.id),
+                            },
+                        )
+
+            schools_processed += 1
+        except Exception:
+            schools_skipped += 1
+            logger.exception(
+                "Failed to process teacher-inactivity alerts for school",
+                extra={"school_id": str(school.id)},
+            )
+
+    return (
+        f"Queued {emails_queued} teacher-inactivity alert email(s). "
+        f"Processed {schools_processed} school(s), skipped {schools_skipped}."
+    )
+
+
+@shared_task(bind=True)
+def send_teacher_first_course_milestone_alert(self, course_id):
+    """
+    Fired (via transaction.on_commit) from classrooms.signals when a
+    teacher creates their first-ever course. Silently no-ops if the course
+    no longer exists, the teacher has no school, or no admin is opted in --
+    this is a best-effort milestone notification, not a critical path.
+    """
+    try:
+        course = Course.objects.select_related("teacher", "teacher__school").get(
+            pk=course_id
+        )
+    except Course.DoesNotExist:
+        return "Course no longer exists; skipped."
+
+    teacher = course.teacher
+    school = getattr(teacher, "school", None)
+    if not school:
+        return "Teacher has no school; skipped."
+
+    admins = list(
+        get_opted_in_school_admins(school, flag="notify_teacher_activity_alerts")
+    )
+    if not admins:
+        return "No opted-in admins; skipped."
+
+    context = {
+        "school": school,
+        "milestone_teacher": teacher.get_full_name(),
+        "milestone_course": course.name,
+    }
+    html_message = render_to_string(
+        "email/school_admin_teacher_activity_alert.html", context=context
+    )
+    message = f"{teacher.get_full_name()} created their first course: {course.name}."
+
+    emails_queued = 0
+    for admin in admins:
+        try:
+            send_email_task.delay(
+                subject=f"New teacher milestone at {school.name}",
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[admin.email],
+                html_message=html_message,
+            )
+            emails_queued += 1
+        except Exception:
+            logger.exception(
+                "Failed to queue teacher first-course milestone admin email",
+                extra={"admin_id": str(admin.id), "course_id": str(course.id)},
+            )
+
+    return f"Queued {emails_queued} teacher milestone alert email(s)."
+
+
 def _build_plaintext_summary(course, summary):
     overall = summary["overall"]
     at_risk_students = summary["at_risk_students"]
@@ -339,5 +743,73 @@ def _build_plaintext_student_summary(summary):
                 f"- {assignment['course_name']} - "
                 f"{assignment['assignment_title'] or 'Untitled Assignment'}"
             )
+
+    return "\n".join(lines)
+
+
+def _build_plaintext_school_admin_summary(school, summary):
+    overall = summary["overall"]
+    at_risk_students = summary["at_risk_students"]
+    teacher_activity = summary["teacher_activity"]
+    ai_narrative = summary.get("ai_narrative") or {}
+
+    lines = [
+        f"Weekly school summary for {school.name}",
+        "",
+        ai_narrative.get("overall_narrative", summary["overall_summary"]),
+        "",
+        "This week:",
+        f"- Active teachers: {overall['active_teacher_count']}",
+        f"- Active students: {overall['active_student_count']}",
+        f"- Active courses: {overall['active_course_count']}",
+        f"- Assignments created: {overall['assignments_created_this_week']}",
+        f"- Assignments graded: {overall['assignments_graded_this_week']}",
+        (
+            f"- Average grading turnaround: {overall['avg_turnaround_days']} day(s)"
+            if overall["avg_turnaround_days"] is not None
+            else "- Average grading turnaround: No graded work this week"
+        ),
+        "",
+    ]
+
+    if at_risk_students:
+        lines.append(
+            f"At-risk students ({summary['at_risk_student_count']} total, average "
+            "score below 60%):"
+        )
+        if ai_narrative.get("at_risk_narrative"):
+            lines.append(ai_narrative["at_risk_narrative"])
+        else:
+            for student in at_risk_students:
+                lines.append(
+                    f"- {student['student_name']}: {student['average_score']}% average"
+                )
+        lines.append("")
+    else:
+        lines.append(
+            ai_narrative.get(
+                "at_risk_narrative",
+                "At-risk students: None identified this week.",
+            )
+        )
+        lines.append("")
+
+    lines.append("Teacher activity (overall, not just this week):")
+    if teacher_activity:
+        if ai_narrative.get("teacher_activity_narrative"):
+            lines.append(ai_narrative["teacher_activity_narrative"])
+        else:
+            for teacher in teacher_activity:
+                assignments_per_week = (
+                    f"{teacher['assignments_per_week']}/wk"
+                    if teacher["assignments_per_week"] is not None
+                    else "no assignment history"
+                )
+                lines.append(
+                    f"- {teacher['name']}: {teacher['courses']} course(s), "
+                    f"{teacher['students']} student(s), {assignments_per_week}"
+                )
+    else:
+        lines.append("- No teachers found for this school.")
 
     return "\n".join(lines)

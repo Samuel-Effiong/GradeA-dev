@@ -46,7 +46,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 
-from .models import PlanFeatureKey
+from .models import PlanFeature, PlanFeatureKey
 
 # from billing.models import CreditWallet  #, UserSubscription
 
@@ -112,6 +112,7 @@ ADMIN_ALLOWED_AI_FEATURES = frozenset(
     {
         "Weekly Course Summary",
         "Schooladmin Custom AI Prompt",
+        "Weekly School Admin Summary",
     }
 )
 
@@ -229,11 +230,18 @@ def _plan_includes_gating_feature(plan, feature_key: str) -> bool:
     """
     if plan is None:
         return False
-    return plan.feature_inclusions.filter(
-        feature__key=feature_key,
-        feature__is_gating_feature=True,
-        included=True,
-    ).exists()
+
+    feature = PlanFeature.objects.filter(pk=feature_key).first()
+    if feature is None:
+        # No catalogue row at all - misconfiguration, deny by default.
+        return False
+
+    if not feature.is_gating_feature:
+        # Display-only catalogue label - never a real gate, regardless of
+        # whether any plan's PlanFeatureInclusion.included is True/False.
+        return True
+
+    return plan.feature_inclusions.filter(feature=feature, included=True).exists()
 
 
 def can_user_access_ai(

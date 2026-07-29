@@ -36,9 +36,6 @@ from django.core.cache import cache
 
 # from django.conf import settings
 from django.db import transaction
-
-# pyrefly: ignore [missing-import]
-from django.db.models import F
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
@@ -48,7 +45,7 @@ from users.models import CustomUser
 from .billing_transaction_service import BillingTransactionService
 from .imports import stripe
 from .license_service import LicenseSubscriptionService
-from .models import (  # CreditBucket,; CreditBucketType,; CreditLedgerType,
+from .models import (
     CONVERSION_FACTOR,
     PLAN_TIER_HIERARCHY,
     BillingInterval,
@@ -56,8 +53,6 @@ from .models import (  # CreditBucket,; CreditBucketType,; CreditLedgerType,
     BillingTransactionSource,
     BillingTransactionStatus,
     BillingTransactionType,
-    CreditBucket,
-    CreditBucketType,
     CreditLedger,
     CreditLedgerType,
     CreditWallet,
@@ -2537,56 +2532,36 @@ class StripeWebhookHandler:
             .select_related("user")
         }
 
-        fulfilled, skipped = [], []
-        expiry = license_sub.billing_cycle_end
-
+        skipped = []
+        blocks_by_teacher = {}
         for teacher_id_str, blocks in intent.allocations.items():
-            allocation = active_allocations.get(teacher_id_str)
-            if not allocation:
+            if teacher_id_str in active_allocations:
+                blocks_by_teacher[teacher_id_str] = blocks
+            else:
                 skipped.append({"teacher_id": teacher_id_str, "blocks": blocks})
-                continue
 
-            teacher = allocation.user
-            wallet, _ = CreditWallet.objects.get_or_create(user=teacher)
-            raw_credits = blocks * intent.block_size_snapshot
-
-            bucket = CreditBucket.objects.create(
-                wallet=wallet,
-                bucket_type=CreditBucketType.OVERAGE,
-                total_credits=raw_credits,
-                used_credits=0,
-                expires_at=expiry,
-            )
-            CreditWallet.objects.filter(pk=wallet.pk).update(
-                overage_blocks_used=F("overage_blocks_used") + blocks
-            )
-            CreditLedger.objects.create(
-                user=teacher,
-                bucket=bucket,
-                ledger_type=CreditLedgerType.PURCHASE,
-                amount=raw_credits,
-                reference=f"Overage purchase via license {license_sub.id} (checkout)",
-                metadata={
-                    "license_id": str(license_sub.id),
-                    "intent_id": str(intent.id),
-                    "initiated_by": (
-                        intent.initiated_by.email if intent.initiated_by else None
-                    ),
-                    "stripe_checkout_session_id": session.get("id"),
-                    "stripe_payment_intent_id": session.get("payment_intent"),
-                    "blocks_purchased": blocks,
-                    "display_credits": blocks
-                    * (intent.block_size_snapshot // CONVERSION_FACTOR),
-                },
-            )
-            fulfilled.append(
-                {
-                    "teacher_id": str(teacher.id),
-                    "teacher_email": teacher.email,
-                    "blocks": blocks,
-                    "credits_granted": raw_credits,
-                }
-            )
+        fulfilled = LicenseSubscriptionService._grant_overage_blocks(
+            license_sub=license_sub,
+            block_size=intent.block_size_snapshot,
+            blocks_by_teacher=blocks_by_teacher,
+            allocation_by_teacher=active_allocations,
+            ledger_type=CreditLedgerType.PURCHASE,
+            reference_fn=lambda teacher_id_str, blocks: (
+                f"Overage purchase via license {license_sub.id} (checkout)"
+            ),
+            metadata_fn=lambda teacher_id_str, blocks: {
+                "license_id": str(license_sub.id),
+                "intent_id": str(intent.id),
+                "initiated_by": (
+                    intent.initiated_by.email if intent.initiated_by else None
+                ),
+                "stripe_checkout_session_id": session.get("id"),
+                "stripe_payment_intent_id": session.get("payment_intent"),
+                "blocks_purchased": blocks,
+                "display_credits": blocks
+                * (intent.block_size_snapshot // CONVERSION_FACTOR),
+            },
+        )
 
         intent.status = (
             LicenseOveragePurchaseStatus.COMPLETED

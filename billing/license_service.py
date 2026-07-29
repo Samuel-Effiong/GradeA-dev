@@ -24,6 +24,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.db import models, transaction
 from django.db.models import F
+from django.template.loader import render_to_string
 
 # from django.db.models import F, Q
 from django.utils import timezone
@@ -51,6 +52,8 @@ from .models import (  # CONVERSION_FACTOR,; UserSubscription,
     LicenseBillingMethod,
     LicenseBillingRecord,
     LicenseBillingRecordType,
+    LicenseOverageOfflineRequest,
+    LicenseOverageOfflineRequestStatus,
     LicenseOveragePurchaseIntent,
     LicenseOveragePurchaseStatus,
     LicenseSubscription,
@@ -1830,6 +1833,7 @@ class LicenseSubscriptionService:
         allocations: dict,
         success_url: Optional[str] = None,
         cancel_url: Optional[str] = None,
+        payment_method: str = "stripe",
     ) -> dict:
         """
         SINGLE entry point for purchasing/granting teacher overage blocks
@@ -1837,12 +1841,19 @@ class LicenseSubscriptionService:
 
           - Super admin -> immediate, atomic OFFLINE grant. No Stripe
             charge. Returns {"action": "granted", ...}.
-          - The license's own admin_user (school admin) -> creates a
-            Stripe Checkout Session and returns immediately with NOTHING
-            granted yet. Returns {"action": "checkout", ...}. Credits are
-            granted only once checkout.session.completed confirms payment
-            (see StripeWebhookHandler._handle_license_overage_checkout_
+          - The license's own admin_user (school admin), payment_method=
+            "stripe" (default) -> creates a Stripe Checkout Session and
+            returns immediately with NOTHING granted yet. Returns
+            {"action": "checkout", ...}. Credits are granted only once
+            checkout.session.completed confirms payment (see
+            StripeWebhookHandler._handle_license_overage_checkout_
             completed).
+          - The license's own admin_user, payment_method="offline_request"
+            -> records a LicenseOverageOfflineRequest for superadmin
+            review (paying outside Stripe — bank transfer, invoice,
+            cash). Returns {"action": "offline_request_pending", ...}.
+            NOTHING is granted here either — see
+            approve_overage_offline_request.
 
         This works identically regardless of license_sub.billing_method —
         an OFFLINE-billed license's school admin can still purchase
@@ -1907,6 +1918,11 @@ class LicenseSubscriptionService:
                     license_sub, requesting_user, total_blocks, allocations
                 )
 
+            if payment_method == "offline_request":
+                return LicenseSubscriptionService.request_overage_offline(
+                    license_sub, requesting_user, total_blocks, allocations
+                )
+
             if not success_url or not cancel_url:
                 raise ValueError(
                     "success_url and cancel_url are required to start checkout."
@@ -1922,6 +1938,80 @@ class LicenseSubscriptionService:
             )
         finally:
             cache.delete(lock_key)
+
+    @staticmethod
+    def _grant_overage_blocks(
+        license_sub: LicenseSubscription,
+        block_size: int,
+        blocks_by_teacher: dict,
+        allocation_by_teacher: dict,
+        ledger_type,
+        reference_fn,
+        metadata_fn,
+    ) -> list:
+        """
+        Shared core of overage credit granting, used by
+        _grant_overage_offline (superadmin comp-grant path), the Stripe
+        checkout-completed webhook, and approve_overage_offline_request.
+
+        Callers own locking and deciding WHICH allocations are grantable —
+        this grants to exactly the allocations it's handed, nothing more:
+          - `blocks_by_teacher`: {str(teacher_id): int blocks}, already
+            filtered down to whoever should actually be granted.
+          - `allocation_by_teacher`: {str(teacher_id): SchoolCreditAllocation},
+            already select_for_update()'d by the caller.
+          - `reference_fn`/`metadata_fn`: callables(teacher_id_str, blocks)
+            -> str / dict, so each call site keeps its own distinct
+            CreditLedger wording (Stripe metadata, superadmin-grant
+            metadata, offline-approval metadata) without this helper
+            knowing about any of those specifics.
+
+        Must be called from within an existing @transaction.atomic block —
+        does not open its own.
+
+        Returns a list of {"teacher_id", "teacher_email", "blocks",
+        "credits_granted"} dicts, one per allocation granted.
+        """
+        expiry = license_sub.billing_cycle_end
+        granted_details = []
+
+        for teacher_id_str, blocks in blocks_by_teacher.items():
+            allocation = allocation_by_teacher[teacher_id_str]
+            teacher = allocation.user
+            wallet, _ = CreditWallet.objects.get_or_create(user=teacher)
+            raw_credits = blocks * block_size
+
+            bucket = CreditBucket.objects.create(
+                wallet=wallet,
+                bucket_type=CreditBucketType.OVERAGE,
+                total_credits=raw_credits,
+                used_credits=0,
+                expires_at=expiry,
+            )
+
+            CreditWallet.objects.filter(pk=wallet.pk).update(
+                overage_blocks_used=F("overage_blocks_used") + blocks
+            )
+
+            CreditLedger.objects.create(
+                user=teacher,
+                bucket=bucket,
+                ledger_type=ledger_type,
+                amount=raw_credits,
+                reference=reference_fn(teacher_id_str, blocks),
+                metadata=metadata_fn(teacher_id_str, blocks),
+            )
+
+            granted_details.append(
+                {
+                    "teacher_id": str(teacher.id),
+                    "teacher_email": teacher.email,
+                    "blocks": blocks,
+                    "credits_granted": raw_credits,
+                }
+            )
+
+        return granted_details
 
     @staticmethod
     @transaction.atomic
@@ -1968,7 +2058,6 @@ class LicenseSubscriptionService:
             )
 
         alloc_by_teacher = {str(a.user_id): a for a in locked_allocations}
-        expiry = license_sub.billing_cycle_end
 
         billing_record = LicenseBillingRecord.objects.create(
             license_subscription=license_sub,
@@ -1982,51 +2071,24 @@ class LicenseSubscriptionService:
             performed_by=performed_by,
         )
 
-        granted_details = []
-        for teacher_id_str, blocks in allocations.items():
-            allocation = alloc_by_teacher[teacher_id_str]
-            teacher = allocation.user
-            wallet, _ = CreditWallet.objects.get_or_create(user=teacher)
-            raw_credits = blocks * plan.overage_block_size
-
-            bucket = CreditBucket.objects.create(
-                wallet=wallet,
-                bucket_type=CreditBucketType.OVERAGE,
-                total_credits=raw_credits,
-                used_credits=0,
-                expires_at=expiry,
-            )
-
-            CreditWallet.objects.filter(pk=wallet.pk).update(
-                overage_blocks_used=F("overage_blocks_used") + blocks
-            )
-
-            CreditLedger.objects.create(
-                user=teacher,
-                bucket=bucket,
-                ledger_type=CreditLedgerType.GRANT,
-                amount=raw_credits,
-                reference=(
-                    f"Superadmin overage grant ({blocks} block(s)) — "
-                    f"license {license_sub.id}"
-                ),
-                metadata={
-                    "license_id": str(license_sub.id),
-                    "blocks": blocks,
-                    "granted_by": performed_by.email,
-                    "manual": True,
-                    "purchase_channel": "SUPERADMIN_OFFLINE",
-                },
-            )
-
-            granted_details.append(
-                {
-                    "teacher_id": str(teacher.id),
-                    "teacher_email": teacher.email,
-                    "blocks": blocks,
-                    "credits_granted": raw_credits,
-                }
-            )
+        granted_details = LicenseSubscriptionService._grant_overage_blocks(
+            license_sub=license_sub,
+            block_size=plan.overage_block_size,
+            blocks_by_teacher=allocations,
+            allocation_by_teacher=alloc_by_teacher,
+            ledger_type=CreditLedgerType.GRANT,
+            reference_fn=lambda teacher_id_str, blocks: (
+                f"Superadmin overage grant ({blocks} block(s)) — "
+                f"license {license_sub.id}"
+            ),
+            metadata_fn=lambda teacher_id_str, blocks: {
+                "license_id": str(license_sub.id),
+                "blocks": blocks,
+                "granted_by": performed_by.email,
+                "manual": True,
+                "purchase_channel": "SUPERADMIN_OFFLINE",
+            },
+        )
 
         BillingTransactionService.record(
             source=BillingTransactionSource.LICENSE,
@@ -2164,6 +2226,524 @@ class LicenseSubscriptionService:
             "total_blocks": total_blocks,
             "amount_cents": amount_cents,
         }
+
+    # ------------------------------------------------------------------
+    # Offline (off-app payment) overage requests
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    @transaction.atomic
+    def request_overage_offline(
+        license_sub: LicenseSubscription,
+        requesting_user,
+        total_blocks: int,
+        allocations: dict,
+    ) -> dict:
+        """
+        School-admin path (payment_method="offline_request"): records a
+        request to purchase overage blocks paid for OUTSIDE Stripe (bank
+        transfer, invoice, cash, etc.). Nothing is granted here — a
+        superadmin must review and call approve_overage_offline_request
+        or reject_overage_offline_request before any credit moves.
+
+        Called from within initiate_overage_purchase, under the SAME
+        per-license cache lock already held there. This branch makes no
+        network call, so holding that lock across it costs nothing extra
+        and keeps the "prevent two concurrent purchase requests for the
+        same license from racing" guarantee uniform across all three
+        branches (immediate grant / Stripe checkout / offline request).
+        """
+        plan = license_sub.plan
+        amount_cents_quoted = total_blocks * plan.overage_block_price
+
+        request_obj = LicenseOverageOfflineRequest.objects.create(
+            license_subscription=license_sub,
+            requested_by=requesting_user,
+            total_blocks=total_blocks,
+            allocations={str(k): int(v) for k, v in allocations.items()},
+            block_size_snapshot=plan.overage_block_size,
+            unit_price_cents_snapshot=plan.overage_block_price,
+            amount_cents_quoted=amount_cents_quoted,
+        )
+
+        logger.info(
+            "License %s: %s requested %d offline overage block(s) across "
+            "%d teacher(s) — request %s awaiting superadmin review.",
+            license_sub.id,
+            requesting_user.email,
+            total_blocks,
+            len(allocations),
+            request_obj.id,
+        )
+
+        LicenseSubscriptionService._notify_super_admins_offline_overage_pending(
+            request_obj
+        )
+
+        return {
+            "action": "offline_request_pending",
+            "request_id": str(request_obj.id),
+            "total_blocks": total_blocks,
+            "amount_cents": amount_cents_quoted,
+        }
+
+    @staticmethod
+    @transaction.atomic
+    def approve_overage_offline_request(
+        request_obj: LicenseOverageOfflineRequest,
+        performed_by,
+        amount_confirmed_cents: int,
+        payment_reference: Optional[str] = None,
+        payment_method_label: Optional[str] = None,
+        notes: Optional[str] = None,
+    ) -> LicenseOverageOfflineRequest:
+        """
+        Superadmin-only. Re-validates the license and every allocated
+        teacher's active status UNDER LOCK at approval time — the request
+        may have sat pending for days, during which the teacher roster or
+        the license itself can have changed — and grants to whoever is
+        still valid. Teachers no longer active are SKIPPED and recorded
+        in skipped_allocations rather than blocking the whole approval
+        (mirrors the Stripe webhook's partial-fulfillment behavior: the
+        school has a real financial claim against this specific
+        allocation, so an administrative reshuffle of one teacher
+        shouldn't hold the rest hostage).
+        """
+        lock_key = f"billing:license_overage:{request_obj.license_subscription_id}"
+        if not cache.add(
+            lock_key,
+            "1",
+            timeout=LicenseSubscriptionService._OVERAGE_LOCK_TIMEOUT_SECONDS,
+        ):
+            raise ValueError(
+                "An overage purchase is already being processed for this "
+                "license. Please wait a moment and try again."
+            )
+
+        try:
+            request_obj = LicenseOverageOfflineRequest.objects.select_for_update().get(
+                pk=request_obj.pk
+            )
+            if request_obj.status != LicenseOverageOfflineRequestStatus.PENDING:
+                raise ValueError("This request has already been reviewed.")
+
+            license_sub = LicenseSubscription.objects.select_for_update().get(
+                pk=request_obj.license_subscription_id
+            )
+
+            if not license_sub.is_active:
+                request_obj.status = LicenseOverageOfflineRequestStatus.REJECTED
+                request_obj.rejection_reason = (
+                    "License is no longer active — cannot grant overage. "
+                    "Reconcile any offline payment already received "
+                    "outside the platform."
+                )
+                request_obj.reviewed_by = performed_by
+                request_obj.reviewed_at = timezone.now()
+                request_obj.save(
+                    update_fields=[
+                        "status",
+                        "rejection_reason",
+                        "reviewed_by",
+                        "reviewed_at",
+                        "updated_at",
+                    ]
+                )
+                logger.error(
+                    "Offline overage request %s auto-rejected on approval "
+                    "attempt: license %s is no longer active.",
+                    request_obj.id,
+                    license_sub.id,
+                )
+                LicenseSubscriptionService._notify_school_admin_offline_overage_rejected(
+                    request_obj
+                )
+                return request_obj
+
+            teacher_ids = list(request_obj.allocations.keys())
+            active_allocations = {
+                str(a.user_id): a
+                for a in SchoolCreditAllocation.objects.select_for_update()
+                .filter(
+                    license_subscription=license_sub,
+                    user_id__in=teacher_ids,
+                    is_active=True,
+                    is_admin_allocation=False,
+                )
+                .select_related("user")
+            }
+
+            skipped = []
+            blocks_by_teacher = {}
+            for teacher_id_str, blocks in request_obj.allocations.items():
+                if teacher_id_str in active_allocations:
+                    blocks_by_teacher[teacher_id_str] = blocks
+                else:
+                    skipped.append({"teacher_id": teacher_id_str, "blocks": blocks})
+
+            fulfilled = LicenseSubscriptionService._grant_overage_blocks(
+                license_sub=license_sub,
+                block_size=request_obj.block_size_snapshot,
+                blocks_by_teacher=blocks_by_teacher,
+                allocation_by_teacher=active_allocations,
+                ledger_type=CreditLedgerType.PURCHASE,
+                reference_fn=lambda teacher_id_str, blocks: (
+                    f"Offline overage request approved — "
+                    f"{payment_method_label or 'off-app payment'}"
+                ),
+                metadata_fn=lambda teacher_id_str, blocks: {
+                    "license_id": str(license_sub.id),
+                    "request_id": str(request_obj.id),
+                    "requested_by": (
+                        request_obj.requested_by.email
+                        if request_obj.requested_by
+                        else None
+                    ),
+                    "approved_by": performed_by.email,
+                    "blocks_purchased": blocks,
+                    "payment_reference": payment_reference,
+                    "payment_method_label": payment_method_label,
+                },
+            )
+
+            if not fulfilled:
+                logger.error(
+                    "Offline overage request %s approved but EVERY "
+                    "allocated teacher was no longer active — 0/%d "
+                    "granted. Needs manual follow-up. License %s.",
+                    request_obj.id,
+                    len(request_obj.allocations),
+                    license_sub.id,
+                )
+            elif skipped:
+                logger.error(
+                    "Offline overage request %s PARTIALLY fulfilled on "
+                    "approval: %d/%d teachers granted, %d skipped (no "
+                    "longer active). License %s.",
+                    request_obj.id,
+                    len(fulfilled),
+                    len(request_obj.allocations),
+                    len(skipped),
+                    license_sub.id,
+                )
+
+            request_obj.status = LicenseOverageOfflineRequestStatus.APPROVED
+            request_obj.amount_confirmed_cents = amount_confirmed_cents
+            request_obj.payment_reference = payment_reference
+            request_obj.payment_method_label = payment_method_label
+            request_obj.fulfilled_allocations = fulfilled
+            request_obj.skipped_allocations = skipped
+            request_obj.reviewed_by = performed_by
+            request_obj.reviewed_at = timezone.now()
+
+            billing_record = LicenseBillingRecord.objects.create(
+                license_subscription=license_sub,
+                record_type=LicenseBillingRecordType.OFFLINE_OVERAGE_REQUEST_APPROVED,
+                amount_paid_cents=amount_confirmed_cents,
+                payment_reference=payment_reference,
+                payment_method_label=payment_method_label,
+                notes=notes,
+                performed_by=performed_by,
+            )
+            request_obj.license_billing_record = billing_record
+            request_obj.save(
+                update_fields=[
+                    "status",
+                    "amount_confirmed_cents",
+                    "payment_reference",
+                    "payment_method_label",
+                    "fulfilled_allocations",
+                    "skipped_allocations",
+                    "reviewed_by",
+                    "reviewed_at",
+                    "license_billing_record",
+                    "updated_at",
+                ]
+            )
+
+            BillingTransactionService.record(
+                source=BillingTransactionSource.LICENSE,
+                transaction_type=BillingTransactionType.LICENSE_OFFLINE_OVERAGE_PURCHASE,
+                status=BillingTransactionStatus.PAID,
+                billing_method=BillingTransactionMethod.OFFLINE,
+                amount_cents=amount_confirmed_cents,
+                license_subscription=license_sub,
+                license_billing_record=billing_record,
+                performed_by=performed_by,
+                description=(
+                    f"Offline overage request approved — "
+                    f"{request_obj.total_blocks} block(s) across "
+                    f"{len(request_obj.allocations)} teacher(s)"
+                    + (f" ({len(skipped)} skipped, needs review)" if skipped else "")
+                ),
+                occurred_at=timezone.now(),
+            )
+
+            logger.info(
+                "Offline overage request %s approved by %s: %d block(s) "
+                "granted across %d/%d teacher(s) for license %s.",
+                request_obj.id,
+                performed_by.email,
+                request_obj.total_blocks,
+                len(fulfilled),
+                len(request_obj.allocations),
+                license_sub.id,
+            )
+
+            LicenseSubscriptionService._notify_school_admin_offline_overage_approved(
+                request_obj
+            )
+
+            return request_obj
+        finally:
+            cache.delete(lock_key)
+
+    @staticmethod
+    @transaction.atomic
+    def reject_overage_offline_request(
+        request_obj: LicenseOverageOfflineRequest,
+        performed_by,
+        rejection_reason: str,
+    ) -> LicenseOverageOfflineRequest:
+        """
+        Superadmin-only. No credits are touched and no billing record is
+        created — nothing financial happened. The select_for_update() +
+        status guard alone is enough to prevent a double-reject or a
+        reject-after-approve race, since only approval ever grants.
+        """
+        request_obj = LicenseOverageOfflineRequest.objects.select_for_update().get(
+            pk=request_obj.pk
+        )
+        if request_obj.status != LicenseOverageOfflineRequestStatus.PENDING:
+            raise ValueError("This request has already been reviewed.")
+
+        request_obj.status = LicenseOverageOfflineRequestStatus.REJECTED
+        request_obj.rejection_reason = rejection_reason
+        request_obj.reviewed_by = performed_by
+        request_obj.reviewed_at = timezone.now()
+        request_obj.save(
+            update_fields=[
+                "status",
+                "rejection_reason",
+                "reviewed_by",
+                "reviewed_at",
+                "updated_at",
+            ]
+        )
+
+        logger.info(
+            "Offline overage request %s rejected by %s: %s",
+            request_obj.id,
+            performed_by.email,
+            rejection_reason,
+        )
+
+        LicenseSubscriptionService._notify_school_admin_offline_overage_rejected(
+            request_obj
+        )
+
+        return request_obj
+
+    @staticmethod
+    def _notify_super_admins_offline_overage_pending(
+        request_obj: LicenseOverageOfflineRequest,
+    ) -> None:
+        """
+        Best-effort — must never raise out of request_overage_offline.
+        Money-related, so this is NOT gated behind any per-user
+        notification preference; fires to every active super admin.
+        """
+        license_sub = request_obj.license_subscription
+        school = license_sub.school
+        requested_by = request_obj.requested_by
+
+        teacher_breakdown = (
+            LicenseSubscriptionService._build_offline_overage_teacher_breakdown(
+                request_obj
+            )
+        )
+
+        context = {
+            "school": school,
+            "license_subscription": license_sub,
+            "requested_by": requested_by,
+            "total_blocks": request_obj.total_blocks,
+            "amount_cents_quoted": request_obj.amount_cents_quoted,
+            "amount_quoted_display": f"{request_obj.amount_cents_quoted / 100:.2f}",
+            "teacher_breakdown": teacher_breakdown,
+            "request_id": str(request_obj.id),
+            "current_year": timezone.now().year,
+            "support_email": settings.SUPPORT_EMAIL,
+        }
+
+        def _dispatch():
+            recipients = list(
+                CustomUser.objects.filter(
+                    user_type=UserTypes.SUPER_ADMIN,
+                    is_superuser=True,
+                    is_active=True,
+                    email__isnull=False,
+                ).exclude(email="")
+            )
+            for admin in recipients:
+                try:
+                    html_message = render_to_string(
+                        "email/license_overage_offline_request_pending.html",
+                        context={**context, "admin": admin},
+                    )
+                    send_email_task.delay(
+                        subject=f"New offline overage request pending — {school.name}",
+                        message=(
+                            f"{school.name} has requested {request_obj.total_blocks} "
+                            "offline overage block(s). Review it in the admin dashboard."
+                        ),
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[admin.email],
+                        html_message=html_message,
+                    )
+                except Exception:
+                    logger.exception(
+                        "Failed to queue offline-overage-pending email to "
+                        "super admin %s for request %s.",
+                        admin.email,
+                        request_obj.id,
+                    )
+
+        transaction.on_commit(_dispatch)
+
+    @staticmethod
+    def _notify_school_admin_offline_overage_approved(
+        request_obj: LicenseOverageOfflineRequest,
+    ) -> None:
+        """Best-effort — must never raise out of approve_overage_offline_request."""
+        license_sub = request_obj.license_subscription
+        school = license_sub.school
+        requested_by = request_obj.requested_by
+
+        context = {
+            "school": school,
+            "total_blocks": request_obj.total_blocks,
+            "amount_confirmed_cents": request_obj.amount_confirmed_cents,
+            "amount_confirmed_display": f"{request_obj.amount_confirmed_cents / 100:.2f}",
+            "payment_reference": request_obj.payment_reference,
+            "fulfilled_allocations": request_obj.fulfilled_allocations or [],
+            "skipped_allocations": request_obj.skipped_allocations or [],
+            "reviewed_by": request_obj.reviewed_by,
+            "current_year": timezone.now().year,
+            "support_email": settings.SUPPORT_EMAIL,
+        }
+        recipient_email = requested_by.email if requested_by else None
+
+        def _dispatch():
+            if not recipient_email:
+                return
+            try:
+                html_message = render_to_string(
+                    "email/license_overage_offline_request_approved.html",
+                    context=context,
+                )
+                send_email_task.delay(
+                    subject=f"Your overage request has been approved — {school.name}",
+                    message=(
+                        f"Your offline overage request for {request_obj.total_blocks} "
+                        "block(s) has been approved."
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[recipient_email],
+                    html_message=html_message,
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to queue offline-overage-approved email to %s "
+                    "for request %s.",
+                    recipient_email,
+                    request_obj.id,
+                )
+
+        transaction.on_commit(_dispatch)
+
+    @staticmethod
+    def _notify_school_admin_offline_overage_rejected(
+        request_obj: LicenseOverageOfflineRequest,
+    ) -> None:
+        """Best-effort — must never raise out of the caller."""
+        license_sub = request_obj.license_subscription
+        school = license_sub.school
+        requested_by = request_obj.requested_by
+
+        context = {
+            "school": school,
+            "total_blocks": request_obj.total_blocks,
+            "rejection_reason": request_obj.rejection_reason,
+            "reviewed_by": request_obj.reviewed_by,
+            "current_year": timezone.now().year,
+            "support_email": settings.SUPPORT_EMAIL,
+        }
+        recipient_email = requested_by.email if requested_by else None
+
+        def _dispatch():
+            if not recipient_email:
+                return
+            try:
+                html_message = render_to_string(
+                    "email/license_overage_offline_request_rejected.html",
+                    context=context,
+                )
+                send_email_task.delay(
+                    subject=f"Your overage request was not approved — {school.name}",
+                    message=(
+                        f"Your offline overage request for {request_obj.total_blocks} "
+                        f"block(s) was not approved: {request_obj.rejection_reason}"
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[recipient_email],
+                    html_message=html_message,
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to queue offline-overage-rejected email to %s "
+                    "for request %s.",
+                    recipient_email,
+                    request_obj.id,
+                )
+
+        transaction.on_commit(_dispatch)
+
+    @staticmethod
+    def _build_offline_overage_teacher_breakdown(
+        request_obj: LicenseOverageOfflineRequest,
+    ) -> list:
+        """
+        Per-teacher breakdown for both the review-table serializer and
+        the pending-request email — includes a LIVE is_currently_active
+        flag (not cached) since the roster can drift while a request
+        sits pending.
+        """
+        teacher_ids = list(request_obj.allocations.keys())
+        allocations_by_teacher = {
+            str(a.user_id): a
+            for a in SchoolCreditAllocation.objects.filter(
+                license_subscription_id=request_obj.license_subscription_id,
+                user_id__in=teacher_ids,
+            ).select_related("user")
+        }
+
+        breakdown = []
+        for teacher_id_str, blocks in request_obj.allocations.items():
+            allocation = allocations_by_teacher.get(teacher_id_str)
+            is_currently_active = bool(allocation and allocation.is_active)
+            teacher = allocation.user if allocation else None
+            breakdown.append(
+                {
+                    "teacher_id": teacher_id_str,
+                    "teacher_email": teacher.email if teacher else None,
+                    "teacher_name": teacher.get_full_name() if teacher else None,
+                    "blocks": blocks,
+                    "credits": blocks * request_obj.block_size_snapshot,
+                    "is_currently_active": is_currently_active,
+                }
+            )
+        return breakdown
 
     @staticmethod
     @transaction.atomic

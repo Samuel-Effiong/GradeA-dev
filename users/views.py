@@ -535,16 +535,14 @@ class SettingsViewSet(UserCacheMixin, viewsets.ModelViewSet):
         data = cache.get(cache_key)
 
         if data is None:
-            try:
-                settings_obj = Settings.objects.get(user=request.user)
-                serializer = self.get_serializer(settings_obj)
-                data = serializer.data
-                cache.set(cache_key, data, getattr(settings, "CACHE_TTL", 60 * 5))
-            except Settings.DoesNotExist:
-                return Response(
-                    {"detail": "Settings not found for this user"},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
+            # Settings are normally auto-created on user registration (see
+            # users.signals.create_default_settings_and_wallet), but that
+            # creation can silently fail. Self-heal here instead of 404ing,
+            # since the user has no other way to discover/create their row.
+            settings_obj, _ = Settings.objects.get_or_create(user=request.user)
+            serializer = self.get_serializer(settings_obj)
+            data = serializer.data
+            cache.set(cache_key, data, getattr(settings, "CACHE_TTL", 60 * 5))
 
         return Response(data)
 

@@ -1,4 +1,5 @@
 from django.core.cache import cache
+from django.db import transaction
 from django.db.models import Avg
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
@@ -55,6 +56,30 @@ def clear_course_cache(sender, instance, **kwargs):
         "studentcourses:*",
         "topics:*",
     )
+
+
+@receiver(post_save, sender=Course)
+def notify_admins_of_teacher_first_course(sender, instance, created, **kwargs):
+    """When a teacher creates their first-ever course, queue a best-effort
+    milestone notification to their school's opted-in admins."""
+    if not created:
+        return
+
+    teacher = instance.teacher
+    if not teacher or not teacher.school_id:
+        return
+
+    if Course.objects.filter(teacher=teacher).count() != 1:
+        return
+
+    course_id = str(instance.id)
+
+    def enqueue():
+        from dashboard.tasks import send_teacher_first_course_milestone_alert
+
+        send_teacher_first_course_milestone_alert.delay(course_id)
+
+    transaction.on_commit(enqueue)
 
 
 @receiver([post_save, post_delete], sender=StudentCourse)

@@ -295,6 +295,12 @@ class Settings(models.Model):
     notify_new_assignment_posted = models.BooleanField(
         default=False, null=True, blank=True
     )
+    notify_teacher_activity_alerts = models.BooleanField(
+        default=False, null=True, blank=True
+    )
+    notify_at_risk_student_alerts = models.BooleanField(
+        default=False, null=True, blank=True
+    )
 
 
 class UserActivity(models.Model):

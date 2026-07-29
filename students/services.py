@@ -8,10 +8,12 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 
 from ai_processor.services import ai_processor
+from assignments.models import Assignment, AssignmentStatus
 from assignments.services import AssignmentProcessingService
 from AutoGrader.tasks import send_email_task
 from classrooms.tasks import student_summary_async
 from users.models import CustomUser, UserTypes
+from users.services import get_opted_in_school_admins
 
 from .exceptions import CannotAssociateStudentError
 from .models import BackgroundTaskType, StudentSubmission
@@ -179,7 +181,94 @@ def grade_engine(user, submission, processing_task_id=None):
     ensure_task_not_cancelled(processing_task_id)
     submission.save()
 
+    try:
+        _maybe_notify_admins_grading_complete(submission.assignment)
+    except Exception:
+        logger.exception(
+            "Failed to check/send admin grading-complete notification",
+            extra={"assignment_id": str(submission.assignment_id)},
+        )
+
     return submission
+
+
+def _maybe_notify_admins_grading_complete(assignment):
+    """
+    Fires the school-admin "grading complete" notification exactly once per
+    assignment, the moment every submission on a PUBLISHED assignment has
+    been graded (graded_at set).
+
+    Deliberately fires only once ever per assignment (guarded by the
+    persisted admin_grading_notified_at timestamp): a late submitter graded
+    after the assignment was already marked complete does not re-trigger a
+    second email. This avoids needing a second hook on submission creation
+    for what would be a rare edge case.
+    """
+    if assignment.status != AssignmentStatus.PUBLISHED:
+        return
+
+    submissions = StudentSubmission.objects.filter(assignment=assignment)
+    if not submissions.exists():
+        return
+    if submissions.filter(graded_at__isnull=True).exists():
+        return
+
+    # Atomic claim: if two submissions finish grading concurrently, only one
+    # of them will see rowcount == 1 here and proceed to notify.
+    claimed = Assignment.objects.filter(
+        pk=assignment.pk, admin_grading_notified_at__isnull=True
+    ).update(admin_grading_notified_at=timezone.now())
+    if not claimed:
+        return
+
+    notify_school_admins_of_grading_complete(assignment)
+
+
+def notify_school_admins_of_grading_complete(assignment):
+    course = assignment.course
+    teacher = course.teacher if course else None
+    school = getattr(teacher, "school", None)
+
+    if not school:
+        return
+
+    admins = get_opted_in_school_admins(school, flag="notify_grading_complete")
+    if not admins.exists():
+        return
+
+    graded_count = StudentSubmission.objects.filter(assignment=assignment).count()
+
+    context = {
+        "assignment": assignment,
+        "course": course,
+        "teacher": teacher,
+        "graded_count": graded_count,
+    }
+    html_message = render_to_string(
+        "email/school_admin_grading_complete.html", context=context
+    )
+    message = (
+        f'All {graded_count} submission(s) for "{assignment.title or "Untitled Assignment"}" '
+        f"in {course.name} have been graded."
+    )
+
+    for admin in admins:
+        try:
+            send_email_task.delay(
+                subject=(
+                    f"Grading complete: "
+                    f"{assignment.title or 'Untitled Assignment'} ({course.name})"
+                ),
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[admin.email],
+                html_message=html_message,
+            )
+        except Exception:
+            logger.exception(
+                "Failed to queue grading-complete admin email",
+                extra={"admin_id": str(admin.id), "assignment_id": str(assignment.id)},
+            )
 
 
 def notify_teacher_of_student_submission(submission):
@@ -193,7 +282,7 @@ def notify_teacher_of_student_submission(submission):
     except ObjectDoesNotExist:
         return
 
-    if not teacher_settings or not teacher_settings.notify_student_submission:
+    if not teacher_settings.notify_student_submission:
         return
 
     context = {
@@ -287,7 +376,7 @@ def notify_student_of_graded_submission(submission, *, is_update=False):
     except ObjectDoesNotExist:
         return
 
-    if not student_settings or not student_settings.notify_grading_complete:
+    if not student_settings.notify_grading_complete:
         return
 
     assignment = submission.assignment

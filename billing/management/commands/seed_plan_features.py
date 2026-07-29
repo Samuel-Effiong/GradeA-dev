@@ -1,4 +1,3 @@
-import logging
 from decimal import Decimal
 
 from django.core.management.base import BaseCommand
@@ -11,8 +10,6 @@ from billing.models import (
     PlanType,
     SubscriptionPlan,
 )
-
-logger = logging.getLogger(__name__)
 
 FEATURE_CATALOGUE = {
     PlanFeatureKey.UNLIMITED_COURSES: False,
@@ -123,67 +120,16 @@ ROLLOVER_PERCENTAGES = {
 }
 
 
-def seed_plan_features_data():
-    """
-    Non-interactive equivalent of `manage.py seed_plan_features` (no
-    dry-run, no stdout/styling), safe to call from a post_migrate signal
-    receiver so the PlanFeature/PlanFeatureInclusion gate data can never
-    silently stay unseeded in a deployed environment — see billing/apps.py.
-
-    Silently no-ops (per-plan) for any PlanType not yet backed by a
-    SubscriptionPlan row, same as the management command, since plan
-    creation is a separate, manual step.
-    """
-    with transaction.atomic():
-        labels = dict(PlanFeatureKey.choices)
-
-        for key, is_gating in FEATURE_CATALOGUE.items():
-            PlanFeature.objects.update_or_create(
-                key=key,
-                defaults={"label": labels[key], "is_gating_feature": is_gating},
-            )
-
-        for plan_name, feature_keys in PLAN_FEATURE_SETS.items():
-            plan = SubscriptionPlan.objects.filter(name=plan_name).first()
-            if not plan:
-                logger.info(
-                    "seed_plan_features_data: SubscriptionPlan %r not found - "
-                    "skipping feature inclusions for this plan.",
-                    plan_name,
-                )
-                continue
-
-            feature_set = set(feature_keys)
-            for order, key in enumerate(FEATURE_CATALOGUE.keys()):
-                feature = PlanFeature.objects.get(pk=key)
-                PlanFeatureInclusion.objects.update_or_create(
-                    plan=plan,
-                    feature=feature,
-                    defaults={
-                        "included": key in feature_set,
-                        "display_order": order,
-                    },
-                )
-
-        for plan_name, percent in ROLLOVER_PERCENTAGES.items():
-            plan = SubscriptionPlan.objects.filter(name=plan_name).first()
-            if not plan:
-                continue
-
-            target = Decimal(str(percent))
-            if plan.carry_over_percent != target:
-                plan.carry_over_percent = target
-                plan.save(update_fields=["carry_over_percent"])
-
-    logger.info("seed_plan_features_data: plan feature gate data is up to date.")
-
-
 class Command(BaseCommand):
     help = (
         "Seeds PlanFeature/PlanFeatureInclusion rows and syncs "
         "carry_over_percent from the GradeA+ Subscription Model. "
         "Idempotent - safe to re-run after editing the mapping tables "
-        "at the top of this file."
+        "at the top of this file. Not run automatically - if this is "
+        "never run in an environment, billing/checks.py's "
+        "check_plan_feature_catalogue_seeded system check will surface a "
+        "warning naming the missing gating key(s) on every "
+        "`manage.py check`/`migrate`/`runserver`."
     )
 
     def add_arguments(self, parser):

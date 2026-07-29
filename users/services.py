@@ -63,8 +63,9 @@ def send_user_activation_email(user):
         )
     except Exception as e:
         logger.exception(
-            "Failed to queue activation email for user %s",
+            "Failed to queue activation email for user %s %s",
             getattr(user, "email", None),
+            str(e),
         )
         return None
 
@@ -123,6 +124,27 @@ def get_current_concurrent_users():
 
     members = cache.smembers("online_users_set")
     return len(members) if members else 0
+
+
+def get_opted_in_school_admins(school, *, flag):
+    """Active, emailed SCHOOL_ADMIN users for one school who have opted in
+    to the given Settings notification flag (e.g. "notify_weekly_summary")."""
+    from users.models import CustomUser, UserTypes
+
+    if not school:
+        return CustomUser.objects.none()
+
+    return (
+        CustomUser.objects.filter(
+            user_type=UserTypes.SCHOOL_ADMIN,
+            school=school,
+            is_active=True,
+            email__isnull=False,
+            **{f"settings__{flag}": True},
+        )
+        .exclude(email="")
+        .distinct()
+    )
 
 
 def base_queryset(start=None, end=None):

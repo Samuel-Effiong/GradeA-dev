@@ -635,22 +635,29 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
         tags=["License Subscriptions"],
         summary="Purchase or grant teacher overage blocks",
         description=(
-            "Single endpoint for overage, auto-branching on the caller:\n\n"
-            "- **School admin** (this license's admin_user): routed through "
-            "Stripe Checkout. This call does NOT charge or grant anything "
+            "Single endpoint for overage, auto-branching on the caller "
+            "and on `payment_method`:\n\n"
+            "- **School admin** (this license's admin_user), "
+            "`payment_method='stripe'` (default): routed through Stripe "
+            "Checkout. This call does NOT charge or grant anything "
             "itself — the response has a `checkout_url` to redirect the "
             "browser to. Credits are granted only after Stripe confirms "
             "payment via webhook. Works even if this license is billed "
             "OFFLINE — a Stripe customer is created/reused for the "
             "purchase without changing the license's billing_method.\n"
+            "- **School admin**, `payment_method='offline_request'`: "
+            "creates a pending request (paying outside Stripe — bank "
+            "transfer, invoice, cash) for superadmin review. Nothing is "
+            "charged or granted until a superadmin approves it via the "
+            "license-overage-offline-requests endpoints.\n"
             "- **Super admin**: grants the blocks immediately with NO "
             "Stripe charge — an administrative grant on behalf of the "
-            "school.\n\n"
-            "Both paths share the same request shape: `total_blocks` + "
+            "school, regardless of `payment_method`.\n\n"
+            "All paths share the same request shape: `total_blocks` + "
             "`allocations` (teacher UUID -> block count), which must sum "
             "exactly to `total_blocks`. Each block grants "
             "`plan.overage_block_size` credits. `success_url`/`cancel_url` "
-            "are required for the school-admin (checkout) path only."
+            "are required only for the school-admin Stripe checkout path."
         ),
         request=PurchaseLicenseOverageSerializer,
         responses={200: LicenseOveragePurchaseResultSerializer},
@@ -671,6 +678,7 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
                 allocations=d["allocations"],
                 success_url=d.get("success_url"),
                 cancel_url=d.get("cancel_url"),
+                payment_method=d.get("payment_method", "stripe"),
             )
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
@@ -699,6 +707,11 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
         if result["action"] == "checkout":
             message = (
                 "Redirecting to secure checkout to complete your overage purchase."
+            )
+        elif result["action"] == "offline_request_pending":
+            message = (
+                "Your overage request has been submitted for review. "
+                "You'll be notified once it's approved or rejected."
             )
         else:
             message = (

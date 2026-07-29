@@ -563,7 +563,15 @@ class QATimeTravelService:
 class BillingTimeTravelView(APIView):
     permission_classes = [IsAuthenticated, IsSuperAdmin]
 
-    @extend_schema(exclude=True)  # never surfaced in public API docs
+    @extend_schema(
+        summary="QA: simulate subscription renewal (time travel)",
+        description=(
+            "QA-only. Requires ENABLE_BILLING_TIME_TRAVEL=True, DEBUG=True, "
+            "a Stripe TEST key, and superadmin auth — returns 404 otherwise. "
+            "See billing/qa_time_travel.py module docstring for full details."
+        ),
+        request=BillingTimeTravelRequestSerializer,
+    )
     def post(self, request, *args, **kwargs):
         if not _time_travel_enabled():
             # 404, not 403 — no acknowledgement this endpoint exists at

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        .container {
+            font-family: "Inter", -apple-system, BlinkMacSystemFont,"Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #1f2937;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .header {
+            background-color: #00723A;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .section {
+            margin-top: 24px;
+        }
+        .card {
+            background-color: #f8fafc;
+            border-left: 4px solid #00723A;
+            padding: 16px;
+            margin-top: 12px;
+            border-radius: 4px;
+        }
+        .muted {
+            color: #475569;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Teacher Activity Alert</h1>
+            <p>{{ school.name }}</p>
+        </div>
+
+        {% if inactive_teachers %}
+            <div class="section">
+                <p>
+                    {{ inactive_teachers|length }} teacher{{ inactive_teachers|length|pluralize }}
+                    {{ inactive_teachers|length|pluralize:"has,have" }} had no activity for
+                    {{ threshold_days }}+ days:
+                </p>
+                {% for teacher in inactive_teachers %}
+                    <div class="card">
+                        <strong>{{ teacher.name }}</strong>
+                        <p class="muted">
+                            {% if teacher.last_active_at %}
+                                Last active {{ teacher.last_active_at }}
+                            {% else %}
+                                No recorded activity
+                            {% endif %}
+                        </p>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% if milestone_teacher %}
+            <div class="section">
+                <div class="card">
+                    <p><strong>{{ milestone_teacher }}</strong> just created their first course: <strong>{{ milestone_course }}</strong>.</p>
+                </div>
+            </div>
+        {% endif %}
+
+        <div class="section">
+            <p class="muted">You're receiving this because teacher activity alerts are enabled in your notification settings.</p>
+        </div>
+
+        <div class="section">
+            <p>Best regards,<br>GradeA+ Team</p>
+        </div>
+    </div>
+</body>
+</html>

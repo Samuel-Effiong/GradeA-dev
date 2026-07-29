@@ -89,6 +89,9 @@ with open("ai_processor/STUDENT_SUMMARY_PROMPT.txt", "r") as file:
 with open("ai_processor/WEEKLY_COURSE_SUMMARY_PROMPT.txt", "r") as file:
     WEEKLY_COURSE_SUMMARY_PROMPT = file.read()
 
+with open("ai_processor/WEEKLY_SCHOOL_ADMIN_SUMMARY_PROMPT.txt", "r") as file:
+    WEEKLY_SCHOOL_ADMIN_SUMMARY_PROMPT = file.read()
+
 CHUNKED_EXTRACTION_PAGE_THRESHOLD = 4
 CHUNK_SIZE = 2
 
@@ -2416,6 +2419,69 @@ Turn this data into concise teacher-facing narration.
         if missing_fields:
             raise ValueError(
                 f"AI weekly course summary narration missing fields: {', '.join(missing_fields)}"
+            )
+
+        return {field: str(parsed[field]).strip() for field in required_fields}
+
+    def generate_weekly_school_admin_summary_narrative(
+        self, admin, school, summary_payload
+    ):
+        """
+        Convert a structured weekly school-admin summary payload into compact
+        leadership-facing narration for email display.
+
+        Returns:
+            dict: {
+                "overall_narrative": str,
+                "at_risk_narrative": str,
+                "teacher_activity_narrative": str,
+            }
+        """
+        user_prompt = f"""
+School: {school.name}
+
+Structured Weekly School Summary Data:
+{json.dumps(summary_payload, default=str, indent=2)}
+
+Turn this data into concise school-admin-facing narration.
+"""
+
+        messages = [
+            {"role": "system", "content": WEEKLY_SCHOOL_ADMIN_SUMMARY_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ]
+
+        response = self.execute_graded_task(
+            user=admin,
+            feature="Weekly School Admin Summary",
+            task_type="weekly_school_admin_summary",
+            messages=messages,
+            respond_format=True,
+        )
+
+        content = response.choices[0].message.content
+        if not content:
+            raise ValueError(
+                "AI returned an empty weekly school admin summary narration."
+            )
+
+        try:
+            parsed = json.loads(content)
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                "AI returned invalid JSON for weekly school admin summary narration."
+            ) from exc
+
+        required_fields = [
+            "overall_narrative",
+            "at_risk_narrative",
+            "teacher_activity_narrative",
+        ]
+
+        missing_fields = [field for field in required_fields if not parsed.get(field)]
+        if missing_fields:
+            raise ValueError(
+                f"AI weekly school admin summary narration missing fields: {', '.join(missing_fields)}"
             )
 
         return {field: str(parsed[field]).strip() for field in required_fields}

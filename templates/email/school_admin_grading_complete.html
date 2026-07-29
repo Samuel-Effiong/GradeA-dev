@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        .container {
+            font-family: "Inter", -apple-system, BlinkMacSystemFont,"Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #1f2937;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .header {
+            background-color: #00723A;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .section {
+            margin-top: 24px;
+        }
+        .card {
+            background-color: #f8fafc;
+            border-left: 4px solid #00723A;
+            padding: 16px;
+            margin-top: 12px;
+            border-radius: 4px;
+        }
+        .muted {
+            color: #475569;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Grading Complete</h1>
+            <p>{{ assignment.title|default:"Untitled Assignment" }} &bull; {{ course.name }}</p>
+        </div>
+
+        <div class="section">
+            <div class="card">
+                <p>
+                    All {{ graded_count }} submission{{ graded_count|pluralize }} for
+                    <strong>{{ assignment.title|default:"Untitled Assignment" }}</strong>
+                    in <strong>{{ course.name }}</strong>
+                    {% if teacher %}(taught by {{ teacher.get_full_name }}){% endif %}
+                    have finished AI grading.
+                </p>
+            </div>
+        </div>
+
+        <div class="section">
+            <p class="muted">You're receiving this because grading-complete alerts are enabled in your notification settings.</p>
+        </div>
+
+        <div class="section">
+            <p>Best regards,<br>GradeA+ Team</p>
+        </div>
+    </div>
+</body>
+</html>
