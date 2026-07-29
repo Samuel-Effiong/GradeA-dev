@@ -14,7 +14,9 @@ from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import (
     OpenApiExample,
+    OpenApiParameter,
     OpenApiResponse,
+    OpenApiTypes,
     extend_schema,
     extend_schema_view,
 )
@@ -873,6 +875,39 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
         return Response(
             {"client_secret": setup_intent.client_secret}, status=status.HTTP_200_OK
         )
+
+    @extend_schema(
+        tags=["License Subscriptions"],
+        summary="Get a school's current active license subscription",
+        description=(
+            "Superadmin-only. Returns the single active LicenseSubscription "
+            "for the given school, excluding all expired/past subscriptions. "
+            "404 if the school has no active license."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="school",
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.QUERY,
+                required=True,
+                description="ID of the school to look up.",
+            )
+        ],
+        responses={200: LicenseSubscriptionSerializer},
+    )
+    @action(detail=False, methods=["get"], url_path="active")
+    def active(self, request):
+        school_id = request.query_params.get("school")
+        if not school_id:
+            return Response(
+                {"detail": "The 'school' query parameter is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        license_sub = get_object_or_404(
+            self.get_queryset(), school_id=school_id, is_active=True
+        )
+        return Response(self.get_serializer(license_sub).data)
 
     @extend_schema(
         tags=["License Subscriptions"],

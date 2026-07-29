@@ -101,9 +101,17 @@ AI_FEATURE_GATING_MAP = {
 # LicenseSubscriptionService.ADMIN_ANALYTICS_CREDITS_RAW / the top-left
 # note on the subscription model diagram ("Teachers... Students never
 # pay"; admins manage billing, not grading).
+#
+# Every AI-processor call site whose caller passes a SCHOOL_ADMIN user
+# (dashboard/views.py's schooladmin custom-AI-prompt endpoint included)
+# must have its `feature=` string listed here, or it is unconditionally
+# blocked for every school admin regardless of plan/credits — this bit
+# the schooladmin custom-AI-prompt dashboard feature before
+# "Schooladmin Custom AI Prompt" was added below.
 ADMIN_ALLOWED_AI_FEATURES = frozenset(
     {
         "Weekly Course Summary",
+        "Schooladmin Custom AI Prompt",
     }
 )
 
