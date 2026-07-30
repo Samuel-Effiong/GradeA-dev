@@ -1708,6 +1708,18 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
         help_text="List of teacher emails to enroll in the license.",
     )
     custom_price_cents = serializers.IntegerField(required=False, allow_null=True)
+    carry_forward_teachers = serializers.BooleanField(
+        required=False,
+        default=True,
+        help_text=(
+            "When creating a replacement license for a school that already "
+            "has an active one, re-enroll its currently-active teachers "
+            "under the new license (no invitation email sent to them) "
+            "instead of stranding them on the deactivated old license. "
+            "Default True; pass False for an intentional clean-slate "
+            "replacement."
+        ),
+    )
 
     billing_method = serializers.ChoiceField(
         choices=LicenseBillingMethod.choices,
@@ -1749,6 +1761,7 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
             # "active_teacher_count",
             # Write only
             "teacher_emails",
+            "carry_forward_teachers",
             # Timestamps
             "created_at",
             "updated_at",
@@ -1818,6 +1831,7 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
         billing_method = validated_data.pop(
             "billing_method", LicenseBillingMethod.STRIPE
         )
+        carry_forward_teachers = validated_data.pop("carry_forward_teachers", True)
 
         # The service expects these as arguments
         school = validated_data.pop("school")
@@ -1843,6 +1857,7 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
             max_seats=max_seats,
             custom_price_cents=custom_price_cents,
             billing_method=billing_method,
+            carry_forward_teachers=carry_forward_teachers,
             **extra_kwargs,
         )
 

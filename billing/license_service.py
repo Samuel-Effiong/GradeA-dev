@@ -584,6 +584,103 @@ class LicenseSubscriptionService:
             }
 
     @staticmethod
+    def _carry_forward_teacher_allocations(
+        old_license: LicenseSubscription,
+        new_license: LicenseSubscription,
+    ) -> list:
+        """
+        Re-enrolls every currently-active, non-admin teacher from
+        old_license into new_license, used when a superadmin replaces a
+        school's license — without this, a teacher whose allocation still
+        points at the old (about-to-be-deactivated) license would
+        silently lose all billing/grading access (see
+        resolve_user_billing_context, which filters on
+        license_subscription__is_active=True).
+
+        Goes through _enroll_teacher_internal directly (NOT
+        _invite_and_enroll_one_teacher) since these are already-onboarded
+        CustomUser objects, not raw emails — no invitation email should
+        be sent. _enroll_teacher_internal already handles rolling over
+        any still-unexpired MONTHLY bucket into a CARRY_OVER bucket, so
+        no separate rollover call is needed here.
+
+        NEVER raises; mirrors _invite_and_enroll_one_teacher's per-item
+        try/except so one teacher's failure doesn't abort the whole
+        batch. Returns the same result shape (plus a "carried_forward"
+        marker) so it can be concatenated with invite results into a
+        single enrollment_results list.
+
+        Returns:
+            list[dict]: [{"email": str, "successful": bool,
+                          "teacher_id": str | None, "error": str | None,
+                          "carried_forward": True}, ...]
+        """
+        carried_user_ids = old_license.allocations.filter(
+            is_active=True, is_admin_allocation=False
+        ).values_list("user_id", flat=True)
+        carried_teachers = CustomUser.objects.filter(id__in=list(carried_user_ids))
+
+        results = []
+        for teacher in carried_teachers:
+            try:
+                LicenseSubscriptionService._enroll_teacher_internal(
+                    new_license, teacher
+                )
+                results.append(
+                    {
+                        "email": teacher.email,
+                        "successful": True,
+                        "teacher_id": str(teacher.id),
+                        "error": None,
+                        "carried_forward": True,
+                    }
+                )
+            except (IndividualSubscriptionConflictError, ValueError) as exc:
+                logger.warning(
+                    "Failed to carry forward teacher %s from license %s " "to %s: %s",
+                    teacher.email,
+                    old_license.id,
+                    new_license.id,
+                    exc,
+                )
+                results.append(
+                    {
+                        "email": teacher.email,
+                        "successful": False,
+                        "teacher_id": None,
+                        "error": str(exc),
+                        "carried_forward": True,
+                    }
+                )
+            except Exception as exc:
+                logger.error(
+                    "Unexpected error carrying forward teacher %s from "
+                    "license %s to %s: %s",
+                    teacher.email,
+                    old_license.id,
+                    new_license.id,
+                    exc,
+                    exc_info=True,
+                )
+                results.append(
+                    {
+                        "email": teacher.email,
+                        "successful": False,
+                        "teacher_id": None,
+                        "error": describe_user_error(
+                            exc,
+                            fallback_message=(
+                                "We couldn't carry this teacher's access "
+                                "forward to the new license. They may need "
+                                "to be re-added manually."
+                            ),
+                        ),
+                        "carried_forward": True,
+                    }
+                )
+        return results
+
+    @staticmethod
     @transaction.atomic
     def create_license_subscription(
         school: School,
@@ -596,6 +693,7 @@ class LicenseSubscriptionService:
         is_active: bool = True,
         auto_renew: bool = True,
         billing_method: str = _DEFAULT_LICENSE_BILLING_METHOD,
+        carry_forward_teachers: bool = True,
     ) -> LicenseSubscription:
         """
         Creates a new License subscription for a school.
@@ -617,6 +715,13 @@ class LicenseSubscriptionService:
             teacher_emails: Optional list of teacher emails to enroll immediately
             contract_months: Billing period length (9, 10, or 12). Default 12.
             max_seats: Maximum number of teacher seats (0 = unlimited). Default 0.
+            carry_forward_teachers: If this school already has an active
+                license, re-enroll its currently-active teachers (and the
+                admin's analytics allocation stays untouched — a fresh
+                one is always granted below) under the new license with
+                no invitation email, instead of silently stranding them
+                on the about-to-be-deactivated old license. Default True;
+                pass False for an intentional clean-slate replacement.
 
         Returns:
             LicenseSubscription: The newly created license
@@ -637,20 +742,57 @@ class LicenseSubscriptionService:
         if max_seats <= 0:
             raise ValueError("max_seats must be a positive integer")
 
-        # Validate that initial teachers emails don't exceed the seat cap
-        if max_seats > 0 and teacher_emails and len(teacher_emails) > max_seats:
-            raise ValueError(
-                f"Cannot enroll {len(teacher_emails)} teachers: license max_seats is {max_seats}."
-            )
-
         now = timezone.now()
         # Use contract_months to compute the billing window (e.g. 12 months for annual)
         billing_end = now + relativedelta(months=contract_months)
 
-        # 2. Check for existing active license (only one per school)
+        # 2. Check for existing active license (only one per school) — a
+        # plain read, looked up early (before any mutation) so it can
+        # inform both the carry-forward set and the combined seat check
+        # below.
         existing_license = LicenseSubscription.objects.filter(
             school=school, is_active=True
         ).first()
+
+        # Teachers who will be silently carried forward from the old
+        # license, if any — matched by email against teacher_emails so a
+        # teacher listed in both isn't double-processed (carried forward
+        # once, not ALSO sent through the new-invite path below).
+        carry_forward_emails: set = set()
+        if existing_license and carry_forward_teachers:
+            carried_user_ids = existing_license.allocations.filter(
+                is_active=True, is_admin_allocation=False
+            ).values_list("user_id", flat=True)
+            carry_forward_emails = set(
+                CustomUser.objects.filter(id__in=list(carried_user_ids)).values_list(
+                    "email", flat=True
+                )
+            )
+
+        normalized_new_emails = [
+            e.strip().lower() for e in (teacher_emails or []) if e and e.strip()
+        ]
+        genuinely_new_emails = [
+            e for e in normalized_new_emails if e not in carry_forward_emails
+        ]
+
+        # Validate combined seats (carried-forward + genuinely new)
+        # against the cap. Rejects the WHOLE creation rather than
+        # truncating — since this method is @transaction.atomic, raising
+        # here leaves the old license untouched and active.
+        total_requested = len(carry_forward_emails) + len(genuinely_new_emails)
+        if max_seats > 0 and total_requested > max_seats:
+            if carry_forward_emails:
+                raise ValueError(
+                    f"Cannot enroll {total_requested} teachers "
+                    f"({len(carry_forward_emails)} carried forward from the "
+                    f"previous license + {len(genuinely_new_emails)} new): "
+                    f"license max_seats is {max_seats}."
+                )
+            raise ValueError(
+                f"Cannot enroll {total_requested} teachers: "
+                f"license max_seats is {max_seats}."
+            )
 
         if existing_license:
             logger.warning(
@@ -659,6 +801,50 @@ class LicenseSubscriptionService:
                 school.id,
                 existing_license.id,
             )
+
+            # Auto-reject any PENDING offline overage requests against
+            # the license about to be deactivated — otherwise they'd sit
+            # PENDING forever and only fail confusingly later when a
+            # superadmin tries to approve them against an inactive
+            # license (see the inactive-license auto-reject branch in
+            # approve_overage_offline_request). Uses
+            # reject_overage_offline_request (not that inline branch)
+            # because it notifies the school admin, which is desired
+            # here — they need to know to re-request under the new
+            # license.
+            pending_overage_requests = list(
+                existing_license.overage_offline_requests.filter(
+                    status=LicenseOverageOfflineRequestStatus.PENDING
+                )
+            )
+            for pending_request in pending_overage_requests:
+                try:
+                    LicenseSubscriptionService.reject_overage_offline_request(
+                        pending_request,
+                        performed_by=admin_user,
+                        rejection_reason=(
+                            "Automatically rejected: a new license "
+                            "subscription was created for this school, "
+                            "replacing the license this overage request "
+                            "was against. Please submit a new offline "
+                            "overage request under the new license if "
+                            "still needed."
+                        ),
+                    )
+                except Exception as exc:
+                    # Never let a stale/racy overage request block
+                    # license creation — log and continue, same
+                    # defensive posture as the per-teacher enrollment
+                    # loop below.
+                    logger.error(
+                        "Failed to auto-reject pending overage request %s "
+                        "while replacing license %s: %s",
+                        pending_request.id,
+                        existing_license.id,
+                        exc,
+                        exc_info=True,
+                    )
+
             existing_license.is_active = False
             existing_license.save(update_fields=["is_active", "updated_at"])
 
@@ -698,13 +884,25 @@ class LicenseSubscriptionService:
         LicenseSubscriptionService._grant_admin_allocation(license_sub)
 
         enrollment_results = []
-        if teacher_emails:
-            for email in teacher_emails:
-                enrollment_results.append(
-                    LicenseSubscriptionService._invite_and_enroll_one_teacher(
-                        license_sub, school, admin_user, email
-                    )
+
+        # Carry forward active teachers from the old license (if any,
+        # and not opted out) BEFORE the new-invite loop, so that loop
+        # only ever processes genuinely_new_emails — teachers already
+        # carried forward never receive a duplicate enrollment or an
+        # invitation email.
+        if existing_license and carry_forward_teachers and carry_forward_emails:
+            enrollment_results.extend(
+                LicenseSubscriptionService._carry_forward_teacher_allocations(
+                    existing_license, license_sub
                 )
+            )
+
+        for email in genuinely_new_emails:
+            enrollment_results.append(
+                LicenseSubscriptionService._invite_and_enroll_one_teacher(
+                    license_sub, school, admin_user, email
+                )
+            )
 
         successful_count = sum(1 for r in enrollment_results if r["successful"])
         failed_results = [r for r in enrollment_results if not r["successful"]]
@@ -737,7 +935,7 @@ class LicenseSubscriptionService:
             "requested teachers.",
             license_sub.id,
             successful_count,
-            len(teacher_emails or []),
+            len(enrollment_results),
         )
 
         return license_sub

@@ -337,6 +337,7 @@ class StripeCheckoutService:
         custom_price_cents,
         success_url,
         cancel_url,
+        carry_forward_teachers=True,
     ):
         """
         License checkout. The LicenseSubscription row does NOT exist yet —
@@ -405,6 +406,7 @@ class StripeCheckoutService:
                 "custom_price_cents": (
                     str(custom_price_cents) if custom_price_cents else ""
                 ),
+                "carry_forward_teachers": "true" if carry_forward_teachers else "false",
             },
         }
         if existing_license:
@@ -2804,6 +2806,9 @@ class StripeWebhookHandler:
             if metadata.get("custom_price_cents")
             else None
         )
+        carry_forward_teachers = (
+            metadata.get("carry_forward_teachers", "true") == "true"
+        )
 
         license_sub = LicenseSubscriptionService.create_license_subscription(
             school=school,
@@ -2813,6 +2818,7 @@ class StripeWebhookHandler:
             contract_months=contract_months,
             max_seats=max_seats,
             custom_price_cents=custom_price_cents,
+            carry_forward_teachers=carry_forward_teachers,
         )
         license_sub.stripe_subscription_id = session["subscription"]
         license_sub.stripe_customer_id = session["customer"]

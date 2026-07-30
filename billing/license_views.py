@@ -268,6 +268,7 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
                 custom_price_cents=data.get("custom_price_cents"),
                 success_url=success_url,
                 cancel_url=cancel_url,
+                carry_forward_teachers=data.get("carry_forward_teachers", True),
             )
         except ValueError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)

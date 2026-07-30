@@ -32,7 +32,8 @@ class StudentSubmissionStatusSerializer(serializers.Serializer):
 
     submission_id = serializers.UUIDField(read_only=True, allow_null=True)
     name = serializers.CharField(read_only=True)
-    email = serializers.EmailField(read_only=True)
+    email = serializers.EmailField(read_only=True, allow_null=True)
+    is_system_generated_email = serializers.BooleanField(read_only=True)
     submission_status = serializers.CharField(read_only=True)
     grade = serializers.FloatField(read_only=True, allow_null=True)
     grade_percentage = serializers.FloatField(read_only=True, allow_null=True)
@@ -470,11 +471,16 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
                 else:
                     grade_status = "GRADED"
 
+            is_system_generated_email = bool(
+                student.email and student.email.endswith("@student.local")
+            )
+
             result.append(
                 {
                     "submission_id": submission_id,
                     "name": student.get_full_name(),
-                    "email": student.email,
+                    "email": None if is_system_generated_email else student.email,
+                    "is_system_generated_email": is_system_generated_email,
                     "submission_status": submission_status,
                     "grade": grade,
                     "grade_percentage": grade_percentage,
