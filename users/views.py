@@ -1,5 +1,5 @@
 """Views for user management and API endpoints.
-
+Help o father
 This module contains the Django REST Framework viewset for managing users
 (CustomUserViewSet) and OpenAPI schema extensions for documenting the
 users endpoints.
