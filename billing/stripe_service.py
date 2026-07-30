@@ -2505,10 +2505,10 @@ class StripeWebhookHandler:
             str(a.user_id): a
             for a in SchoolCreditAllocation.objects.select_for_update()
             .filter(
+                LicenseSubscriptionService._overage_eligible_allocations_q(license_sub),
                 license_subscription=license_sub,
                 user_id__in=teacher_ids,
                 is_active=True,
-                is_admin_allocation=False,
             )
             .select_related("user")
         }

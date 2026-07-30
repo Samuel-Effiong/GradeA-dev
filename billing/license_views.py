@@ -668,7 +668,7 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
 
     @extend_schema(
         tags=["License Subscriptions"],
-        summary="Purchase or grant teacher overage blocks",
+        summary="Purchase or grant overage blocks (teachers or the license admin)",
         description=(
             "Single endpoint for overage, auto-branching on the caller "
             "and on `payment_method`:\n\n"
@@ -689,10 +689,14 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
             "Stripe charge — an administrative grant on behalf of the "
             "school, regardless of `payment_method`.\n\n"
             "All paths share the same request shape: `total_blocks` + "
-            "`allocations` (teacher UUID -> block count), which must sum "
+            "`allocations` (user UUID -> block count), which must sum "
             "exactly to `total_blocks`. Each block grants "
             "`plan.overage_block_size` credits. `success_url`/`cancel_url` "
-            "are required only for the school-admin Stripe checkout path."
+            "are required only for the school-admin Stripe checkout path. "
+            "`allocations` may target any active teacher under this "
+            "license, and MAY ALSO target the license's own admin_user "
+            "(topping up their fixed analytics allocation) — no other "
+            "admin-flagged allocation ever qualifies."
         ),
         request=PurchaseLicenseOverageSerializer,
         responses={200: LicenseOveragePurchaseResultSerializer},

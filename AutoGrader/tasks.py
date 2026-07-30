@@ -48,6 +48,18 @@ def _send_email_impl(
             logger.info("Email sent successfully to %s", recipient_list)
             return f"Email sent successfully to {recipient_list}"
         except Exception as exc:
+            if not message and not html_message:
+                # Nothing to fall back to: this send relied entirely on
+                # template_id/merge_data, so a plain send_mail() would have
+                # no body and fail with its own (confusing) error.
+                logger.error(
+                    "Templated email send failed for %s and no plain-text "
+                    "body was provided, so no fallback is possible. Error: %s",
+                    recipient_list,
+                    exc,
+                )
+                raise
+
             logger.warning(
                 "Templated email send failed for %s, falling back to plain send_mail. Error: %s",
                 recipient_list,

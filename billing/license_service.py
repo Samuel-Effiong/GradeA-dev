@@ -106,6 +106,27 @@ class LicenseSubscriptionService:
         return bool(license_sub.admin_user_id == user.id)
 
     @staticmethod
+    def _overage_eligible_allocations_q(license_sub: LicenseSubscription):
+        """
+        Q object selecting SchoolCreditAllocation rows eligible to receive
+        overage blocks under this license: every regular teacher
+        allocation, PLUS the license's own admin_user's analytics
+        allocation (is_admin_allocation=True) — the admin can buy overage
+        for their own analytics allocation same as for any teacher. No
+        OTHER admin-flagged allocation ever qualifies, since a license has
+        exactly one admin_user.
+
+        Shared by every place that validates or grants overage
+        (_validate_overage_purchase_request, _grant_overage_offline, the
+        Stripe checkout-completed webhook, and
+        approve_overage_offline_request) so the eligibility rule can't
+        drift between them.
+        """
+        return models.Q(is_admin_allocation=False) | models.Q(
+            is_admin_allocation=True, user_id=license_sub.admin_user_id
+        )
+
+    @staticmethod
     def _validate_overage_purchase_request(
         license_sub: LicenseSubscription, allocations: dict, total_blocks: int
     ) -> None:
@@ -156,10 +177,10 @@ class LicenseSubscriptionService:
         active_ids = {
             str(uid)
             for uid in SchoolCreditAllocation.objects.filter(
+                LicenseSubscriptionService._overage_eligible_allocations_q(license_sub),
                 license_subscription=license_sub,
                 user_id__in=teacher_ids,
                 is_active=True,
-                is_admin_allocation=False,
             ).values_list("user_id", flat=True)
         }
         missing = {str(t) for t in teacher_ids} - active_ids
@@ -2049,10 +2070,10 @@ class LicenseSubscriptionService:
         locked_allocations = list(
             SchoolCreditAllocation.objects.select_for_update()
             .filter(
+                LicenseSubscriptionService._overage_eligible_allocations_q(license_sub),
                 license_subscription=license_sub,
                 user_id__in=teacher_ids,
                 is_active=True,
-                is_admin_allocation=False,
             )
             .select_related("user")
         )
@@ -2373,10 +2394,12 @@ class LicenseSubscriptionService:
                 str(a.user_id): a
                 for a in SchoolCreditAllocation.objects.select_for_update()
                 .filter(
+                    LicenseSubscriptionService._overage_eligible_allocations_q(
+                        license_sub
+                    ),
                     license_subscription=license_sub,
                     user_id__in=teacher_ids,
                     is_active=True,
-                    is_admin_allocation=False,
                 )
                 .select_related("user")
             }
@@ -2725,7 +2748,10 @@ class LicenseSubscriptionService:
         Per-teacher breakdown for both the review-table serializer and
         the pending-request email — includes a LIVE is_currently_active
         flag (not cached) since the roster can drift while a request
-        sits pending.
+        sits pending. Also includes `user_type` so a reviewer can tell a
+        regular teacher allocation apart from the license admin's own
+        analytics allocation (SCHOOL_ADMIN) when the admin has bought
+        overage for themselves.
         """
         teacher_ids = list(request_obj.allocations.keys())
         allocations_by_teacher = {
@@ -2746,6 +2772,7 @@ class LicenseSubscriptionService:
                     "teacher_id": teacher_id_str,
                     "teacher_email": teacher.email if teacher else None,
                     "teacher_name": teacher.get_full_name() if teacher else None,
+                    "user_type": teacher.user_type if teacher else None,
                     "blocks": blocks,
                     "credits": blocks * request_obj.block_size_snapshot,
                     "is_currently_active": is_currently_active,

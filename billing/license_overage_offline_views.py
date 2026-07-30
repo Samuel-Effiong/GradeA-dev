@@ -10,7 +10,7 @@ superadmin-only endpoint groups.
 """
 
 from django_filters.rest_framework import DjangoFilterBackend
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
@@ -27,6 +27,20 @@ from .serializers import (
 )
 
 
+@extend_schema_view(
+    list=extend_schema(
+        tags=["License Subscriptions"],
+        summary="List offline overage requests",
+        description="Superadmin-only list of offline overage requests.",
+        responses={200: LicenseOverageOfflineRequestListSerializer(many=True)},
+    ),
+    retrieve=extend_schema(
+        tags=["License Subscriptions"],
+        summary="Retrieve an offline overage request",
+        description="Superadmin-only retrieve of an offline overage request.",
+        responses={200: LicenseOverageOfflineRequestListSerializer},
+    ),
+)
 class LicenseOverageOfflineRequestViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Superadmin-only review queue for LicenseOverageOfflineRequest rows —

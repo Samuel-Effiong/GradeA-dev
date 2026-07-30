@@ -1,10 +1,12 @@
+# pyrefly: ignore [missing-import]
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
 from rest_framework.viewsets import GenericViewSet
 
 from ai_processor.models import ChatSession
-from billing.access_control import require_ai_access
+
+# from billing.access_control import require_ai_access
 from classrooms.models import Course
 
 # Create your views here.
