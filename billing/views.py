@@ -38,6 +38,7 @@ from rest_framework.response import Response
 
 from ai_processor.models import AssistantType, ChatMessage, ChatSession, RoleType
 from ai_processor.services import ai_processor
+from AutoGrader.error_messages import describe_stripe_error, describe_user_error
 from classrooms.permissions import IsNotStudent, IsSuperAdmin, IsTeacher
 from dashboard.serializers import (
     CustomAIPrompt,
@@ -190,8 +191,7 @@ class SubscriptionPlanViewSet(viewsets.ModelViewSet):
         if self.action in ["list", "retrieve"]:
             permission_classes = [IsAuthenticated]
         else:
-            # FIXME: Restrict creation of plan to superadmin only
-            permission_classes = [IsAuthenticated, IsNotStudent]
+            permission_classes = [IsAuthenticated, IsSuperAdmin]
         return [permission() for permission in permission_classes]
 
     def get_queryset(self):
@@ -772,7 +772,10 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                                 "detail": (
                                     "Could not cancel your subscription with "
                                     "our payment provider: "
-                                    f"{getattr(exc, 'user_message', None) or str(exc)}"
+                                    + describe_stripe_error(
+                                        exc,
+                                        fallback_message="Please try again.",
+                                    )
                                 )
                             },
                             status=status.HTTP_400_BAD_REQUEST,
@@ -908,7 +911,9 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                             "detail": (
                                 "Could not verify your subscription with our "
                                 "payment provider: "
-                                f"{getattr(exc, 'user_message', None) or str(exc)}"
+                                + describe_stripe_error(
+                                    exc, fallback_message="Please try again."
+                                )
                             )
                         },
                         status=status.HTTP_400_BAD_REQUEST,
@@ -949,7 +954,10 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                                 "detail": (
                                     "Could not resume your subscription with "
                                     "our payment provider: "
-                                    f"{getattr(exc, 'user_message', None) or str(exc)}"
+                                    + describe_stripe_error(
+                                        exc,
+                                        fallback_message="Please try again.",
+                                    )
                                 )
                             },
                             status=status.HTTP_400_BAD_REQUEST,
@@ -1182,7 +1190,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
         quantity = serializer.validated_data["quantity"]
 
         try:
-            # result = StripeOverageService.purchase_overage_block(request.user)
+
             result = StripeOverageService.create_overage_checkout_session(
                 request.user, success_url, cancel_url, quantity
             )
@@ -2678,8 +2686,17 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                 return Response(serializer.data)
 
         except Exception as e:
+            logger.error("Custom AI prompt failed", exc_info=e)
             return Response(
-                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {
+                    "error": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "The AI couldn't process your request. Please " "try again."
+                        ),
+                    )
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     @extend_schema(

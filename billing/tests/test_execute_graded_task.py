@@ -241,7 +241,12 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
 
         self.assertIsNotNone(response)
         self.assertEqual(teacher.credit_wallet.total_remaining_credits(), 99500)
-        self.assertFalse(CreditWallet.objects.filter(user=student).exists())
+        # Every user gets a CreditWallet automatically on registration (see
+        # users/signals.py) — the real guarantee this test cares about is
+        # that the student's own wallet, if any, was never touched.
+        student_wallet = CreditWallet.objects.filter(user=student).first()
+        if student_wallet is not None:
+            self.assertEqual(student_wallet.total_remaining_credits(), 0)
 
     def test_student_without_assignment_raises_value_error(self):
         student = self._make_user(UserTypes.STUDENT, "noassign@example.com")
@@ -320,7 +325,12 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
             user_prompt="prompt",
         )
         self.assertIsNotNone(response)
-        self.assertFalse(CreditWallet.objects.filter(user=superadmin).exists())
+        # Every user gets a CreditWallet automatically on registration (see
+        # users/signals.py) — the real guarantee is that the superadmin's
+        # unmetered bypass never touches/decrements it, if one exists.
+        superadmin_wallet = CreditWallet.objects.filter(user=superadmin).first()
+        if superadmin_wallet is not None:
+            self.assertEqual(superadmin_wallet.total_remaining_credits(), 0)
 
     def test_unrecognized_user_type_raises_clean_value_error(self):
         """

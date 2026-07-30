@@ -177,6 +177,201 @@ class SubscriptionService:
 
     @staticmethod
     @transaction.atomic
+    def apply_immediate_plan_change(user_sub, new_plan):
+        """
+        Swaps `user_sub` onto `new_plan` IN PLACE, for the specific case
+        where Stripe's own billing_cycle_anchor has NOT moved — i.e. a
+        same-interval plan change applied via a plain
+        `stripe.Subscription.modify(items=[...])` price swap (upgrade or
+        the "no additional charge needed" branch). Stripe does not reset a
+        subscription's billing/renewal date just because an item's price
+        changed, so this method must not either.
+
+        Contrast with `activate_subscription()`, which unconditionally
+        resets billing_cycle_start/billing_cycle_end/next_credit_grant_at
+        to "now + one period" — correct ONLY when Stripe's cycle has
+        genuinely just reset (a brand new Stripe subscription from
+        checkout, a real periodic renewal, or an INTERVAL-CROSSING change
+        e.g. MONTHLY -> ANNUAL, which Stripe itself treats as starting a
+        fresh billing period). Calling activate_subscription() instead of
+        this method for a same-interval immediate upgrade was the root
+        cause of local billing_cycle_end permanently drifting away from
+        Stripe's real invoice date — silently swallowing the next real
+        renewal's credit rollover, and feeding a wrong "effective date"
+        into any later scheduled downgrade built from billing_cycle_end.
+
+        What this does:
+        1. Rolls over unused credits in the current MONTHLY bucket into a
+           CARRY_OVER bucket, under new_plan's rollover rules — identical
+           math to activate_subscription()'s cleanup phase.
+        2. Grants a fresh MONTHLY bucket sized for new_plan, expiring at
+           the SAME next_credit_grant_at/billing_cycle_end the
+           subscription already had — that clock is untouched by a
+           same-interval price swap.
+        3. Updates `user_sub.plan` to new_plan on the SAME row (no
+           deactivate-and-recreate) — Stripe's subscription identity
+           didn't change either.
+        4. Clears pending_plan/pending_change_type/pending_change_note/
+           stripe_schedule_id — an immediate change always supersedes
+           anything previously scheduled. Callers are still responsible
+           for releasing the Stripe-side SubscriptionSchedule (if any)
+           BEFORE calling this, same convention as every other mutation
+           in this module.
+        5. Does NOT touch billing_cycle_start, billing_cycle_end,
+           next_credit_grant_at, auto_renew, overage_blocks_used,
+           stripe_subscription_id, or stripe_customer_id — none of those
+           changed on Stripe's side, so none of them change here.
+
+        Args:
+            user_sub (UserSubscription): The current active, non-trial
+                subscription being upgraded. Must already have a fresh
+                `.plan` (e.g. from a row lock taken by the caller).
+            new_plan (SubscriptionPlan): The plan being switched to.
+                Must be the SAME billing interval as user_sub.plan —
+                callers must route interval-crossing changes through
+                activate_subscription() instead.
+
+        Returns:
+            UserSubscription: The same row, now on new_plan.
+
+        Raises:
+            ValueError: If user_sub is not active, or if new_plan's
+                interval differs from user_sub.plan's interval (defensive
+                — this method must never be used for an interval-crossing
+                change).
+        """
+        user_sub = UserSubscription.objects.select_for_update().get(pk=user_sub.pk)
+
+        if not user_sub.is_active:
+            raise ValueError(
+                f"Subscription {user_sub.id} is not active — cannot apply an "
+                "immediate plan change to it."
+            )
+
+        old_plan = user_sub.plan
+        if old_plan.interval != new_plan.interval:
+            raise ValueError(
+                f"apply_immediate_plan_change cannot cross billing intervals "
+                f"({old_plan.interval} -> {new_plan.interval}) — Stripe resets "
+                "the billing cycle anchor for an interval change, so that case "
+                "must go through activate_subscription() instead."
+            )
+
+        user = user_sub.user
+        now = timezone.now()
+        wallet, _ = CreditWallet.objects.get_or_create(user=user)
+
+        # --- Roll over unused credits from the bucket being replaced ---
+        active_monthly = (
+            wallet.buckets.select_for_update()
+            .filter(bucket_type=CreditBucketType.MONTHLY, expires_at__gt=now)
+            .order_by("created_at")
+            .first()
+        )
+
+        if active_monthly:
+            unused = active_monthly.remaining_credits
+
+            if unused > 0:
+                rollover_amount, cap_meta = wallet.compute_capped_rollover(
+                    new_plan, unused, now=now
+                )
+
+                if rollover_amount > 0:
+                    expiry = now + relativedelta(
+                        months=1 * new_plan.carry_over_expiry_months
+                    )
+                    carry_bucket = CreditBucket.objects.create(
+                        wallet=wallet,
+                        bucket_type=CreditBucketType.CARRY_OVER,
+                        total_credits=rollover_amount,
+                        used_credits=0,
+                        expires_at=expiry,
+                    )
+                    CreditLedger.objects.create(
+                        user=user,
+                        bucket=carry_bucket,
+                        ledger_type=CreditLedgerType.GRANT,
+                        amount=rollover_amount,
+                        reference=(
+                            f"Rollover from {old_plan.name} on immediate "
+                            f"upgrade to {new_plan.name}"
+                        ),
+                        metadata={
+                            "previous_bucket_id": str(active_monthly.id),
+                            "subscription_id": str(user_sub.id),
+                            **cap_meta,
+                        },
+                    )
+                elif cap_meta["requested_rollover"] > 0:
+                    logger.info(
+                        "Immediate-upgrade rollover fully suppressed by "
+                        "max_bank for user %s (%s -> %s): requested %d (%s).",
+                        user.email,
+                        old_plan.name,
+                        new_plan.name,
+                        cap_meta["requested_rollover"],
+                        cap_meta,
+                    )
+
+            active_monthly.expires_at = now
+            active_monthly.save(update_fields=["expires_at", "updated_at"])
+
+        # --- Grant the new plan's MONTHLY bucket, on the EXISTING clock ---
+        new_bucket_expiry = user_sub.next_credit_grant_at or user_sub.billing_cycle_end
+
+        new_bucket = CreditBucket.objects.create(
+            wallet=wallet,
+            bucket_type=CreditBucketType.MONTHLY,
+            total_credits=new_plan.monthly_credits,
+            used_credits=0,
+            expires_at=new_bucket_expiry,
+        )
+
+        CreditLedger.objects.create(
+            user=user,
+            bucket=new_bucket,
+            ledger_type=CreditLedgerType.GRANT,
+            amount=new_plan.monthly_credits,
+            reference=f"Immediate upgrade from {old_plan.name} to {new_plan.name}",
+            metadata={
+                "subscription_id": str(user_sub.id),
+                "grant_type": "IMMEDIATE_PLAN_CHANGE",
+                "previous_plan_id": str(old_plan.id),
+            },
+        )
+
+        # --- Swap the plan in place; clear any superseded scheduled change ---
+        user_sub.plan = new_plan
+        user_sub.pending_plan = None
+        user_sub.pending_change_type = None
+        user_sub.pending_change_note = None
+        user_sub.stripe_schedule_id = None
+        user_sub.save(
+            update_fields=[
+                "plan",
+                "pending_plan",
+                "pending_change_type",
+                "pending_change_note",
+                "stripe_schedule_id",
+                "updated_at",
+            ]
+        )
+
+        logger.info(
+            "Applied immediate same-interval plan change for user %s "
+            "(subscription %s): %s -> %s. billing_cycle_end unchanged (%s).",
+            user.email,
+            user_sub.id,
+            old_plan.name,
+            new_plan.name,
+            user_sub.billing_cycle_end.isoformat(),
+        )
+
+        return user_sub
+
+    @staticmethod
+    @transaction.atomic
     def process_mid_cycle_credit_grant(user_subscription):
         """
         For ANNUAL-interval plans only. Stripe bills once a year, but credits
@@ -208,7 +403,13 @@ class SubscriptionService:
         )
 
         if old_monthly:
-            unused = old_monthly.remaining_credits
+            # NOT old_monthly.remaining_credits — this task runs for subs
+            # whose next_credit_grant_at (== this bucket's expires_at) has
+            # already passed, so that property would already read 0 and
+            # silently suppress every mid-cycle rollover. Use the raw
+            # total-minus-used instead, same fix as expire_trial()'s
+            # analogous bug.
+            unused = max(0, old_monthly.total_credits - old_monthly.used_credits)
             if unused > 0:
                 rollover_amount, cap_meta = wallet.compute_capped_rollover(
                     plan, unused, now=now
@@ -716,7 +917,7 @@ class SubscriptionService:
 
     @staticmethod
     @transaction.atomic
-    def expire_trial(user_subscription):
+    def expire_trial(user_subscription, force=False):
         """
         Called by Celery when a trial subscription's billing_cycle_end (= trial_end)
         has passed and the user has NOT converted to a paid plan.
@@ -731,10 +932,15 @@ class SubscriptionService:
 
         Args:
             user_subscription (UserSubscription): The expired trial subscription.
+            force (bool): Skip the "trial_end has passed" guard. Needed by
+                expire_active_trials()'s credit-exhaustion path, which
+                deliberately expires a trial early — before its natural
+                trial_end — once its credits run out. Time-based expiry
+                (the default, force=False) should never bypass this guard.
 
         Raises:
             ValueError: If the subscription is not a trial, or if the trial has not
-                        yet ended.
+                        yet ended (unless force=True).
         """
         if not user_subscription.is_trial:
             raise ValueError(
@@ -743,7 +949,11 @@ class SubscriptionService:
 
         now = timezone.now()
 
-        if user_subscription.trial_end and user_subscription.trial_end > now:
+        if (
+            not force
+            and user_subscription.trial_end
+            and user_subscription.trial_end > now
+        ):
             raise ValueError(
                 f"Trial for subscription {user_subscription.id} has not ended yet. "
                 f"Trial end: {user_subscription.trial_end}"
@@ -760,7 +970,12 @@ class SubscriptionService:
         )
 
         if trial_bucket:
-            unused = trial_bucket.remaining_credits
+            # NOT trial_bucket.remaining_credits — that property returns 0
+            # once expires_at has passed, which is normally already true by
+            # the time this runs (we're here BECAUSE trial_end passed). Use
+            # the raw total-minus-used so genuinely-unused credits still
+            # get logged as forfeited instead of silently vanishing.
+            unused = max(0, trial_bucket.total_credits - trial_bucket.used_credits)
             if unused > 0:
                 CreditLedger.objects.create(
                     user=user,

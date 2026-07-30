@@ -18,6 +18,7 @@ from users.services import get_opted_in_school_admins
 from .exceptions import CannotAssociateStudentError
 from .models import BackgroundTaskType, StudentSubmission
 from .task_tracking import (
+    cancellable_final_save,
     create_processing_task,
     ensure_task_not_cancelled,
     launch_processing_task,
@@ -178,8 +179,8 @@ def grade_engine(user, submission, processing_task_id=None):
         str(submission.student.id), str(user.id), str(submission.assignment.course.id)
     )
 
-    ensure_task_not_cancelled(processing_task_id)
-    submission.save()
+    with cancellable_final_save(processing_task_id):
+        submission.save()
 
     try:
         _maybe_notify_admins_grading_complete(submission.assignment)
@@ -540,8 +541,8 @@ def upload_answers_engine(
         submission.raw_input = AssignmentProcessingService.html_to_prosemirror_json(
             answer_html
         )
-        ensure_task_not_cancelled(processing_task_id)
-        submission.save()
+        with cancellable_final_save(processing_task_id):
+            submission.save()
 
         if created and request_user.user_type == UserTypes.STUDENT:
             notify_teacher_of_student_submission(submission)

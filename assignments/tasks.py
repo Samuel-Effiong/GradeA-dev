@@ -16,6 +16,7 @@ from students.models import BatchUploadSession, BatchUploadType, StudentSubmissi
 from students.serializers import StudentSubmissionSerializer
 from students.services import grade_engine, upload_answers_engine
 from students.task_tracking import (
+    cancellable_final_save,
     cleanup_cancelled_task_artifacts,
     ensure_task_not_cancelled,
     get_processing_task_by_id,
@@ -130,6 +131,10 @@ def grade_all_submissions(self, user_id, assignment_id, processing_task_id=None)
                     "assignment_id": assignment_id,
                     "current_submission_id": str(submission.id),
                 },
+                fallback_message=(
+                    "We couldn't finish grading all submissions. Please try "
+                    "again, or contact support if this continues."
+                ),
             )
             raise
 
@@ -233,14 +238,19 @@ def extract_assignment_background_task(
         processing_task = get_processing_task_by_id(processing_task_id)
         cleanup_cancelled_task_artifacts(processing_task)
         raise
-    except Exception:
+    except Exception as exc:
         mark_processing_task_failure(
             processing_task_id,
-            "Assignment extraction failed",
+            exc,
             meta={
                 "step": "Assignment extraction failed",
                 "assignment_id": assignment_id,
             },
+            fallback_message=(
+                "We couldn't extract the assignment content from your file. "
+                "Please check the file and try again, or contact support if "
+                "this continues."
+            ),
         )
         raise
 
@@ -307,14 +317,18 @@ def update_assignment_background_task(
         processing_task = get_processing_task_by_id(processing_task_id)
         cleanup_cancelled_task_artifacts(processing_task)
         raise
-    except Exception:
+    except Exception as exc:
         mark_processing_task_failure(
             processing_task_id,
-            "Assignment re-extraction failed",
+            exc,
             meta={
                 "step": "Assignment re-extraction failed",
                 "assignment_id": assignment_id,
             },
+            fallback_message=(
+                "We couldn't re-extract the updated assignment content. "
+                "Please try again, or contact support if this continues."
+            ),
         )
         raise
 
@@ -355,12 +369,12 @@ def extract_answer_background_task(
         submission.extraction_started_at = extraction_started_at
         submission.extraction_completed_at = extraction_completed_at
 
-        ensure_task_not_cancelled(processing_task_id)
         serializer = StudentSubmissionSerializer(
             submission, data=answer_json, partial=True
         )
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        with cancellable_final_save(processing_task_id):
+            serializer.save()
 
         print("Answer saved successfully")
         mark_processing_task_success(
@@ -381,11 +395,16 @@ def extract_answer_background_task(
             processing_task_id, meta={"step": "Answer extraction cancelled"}
         )
         raise
-    except Exception:
+    except Exception as exc:
         mark_processing_task_failure(
             processing_task_id,
-            "Answer extraction failed",
+            exc,
             meta={"step": "Answer extraction failed", "submission_id": submission_id},
+            fallback_message=(
+                "We couldn't extract the answers from this submission. The "
+                "file may be corrupted or in an unsupported format — please "
+                "try re-uploading, or contact support if this continues."
+            ),
         )
         raise
 
@@ -453,11 +472,15 @@ def grade_engine_async(
             meta={"step": "Grading cancelled", "submission_id": submission_id},
         )
         raise
-    except Exception:
+    except Exception as exc:
         mark_processing_task_failure(
             processing_task_id,
-            "Grading failed",
+            exc,
             meta={"step": "Grading failed", "submission_id": submission_id},
+            fallback_message=(
+                "We couldn't grade this submission. Please try again, or "
+                "contact support if this continues."
+            ),
         )
         raise
 
@@ -487,9 +510,9 @@ def format_grade(self, submission_id, prompt, processing_task_id=None):
         update_processing_task(
             processing_task_id, meta={"step": "Saving formatted grade"}
         )
-        ensure_task_not_cancelled(processing_task_id)
         submission.formatted_grade = formatted_grade
-        submission.save()
+        with cancellable_final_save(processing_task_id):
+            submission.save()
 
         self.update_state(
             state="PROGRESS", meta={"step": "Grade formatted successfully"}
@@ -512,11 +535,16 @@ def format_grade(self, submission_id, prompt, processing_task_id=None):
             meta={"step": "Formatted grade generation cancelled"},
         )
         raise
-    except Exception:
+    except Exception as exc:
         mark_processing_task_failure(
             processing_task_id,
-            "Formatted grade generation failed",
+            exc,
             meta={"step": "Formatted grade generation failed"},
+            fallback_message=(
+                "We couldn't generate the formatted grade for this "
+                "submission. Please try again, or contact support if this "
+                "continues."
+            ),
         )
         raise
 
@@ -606,6 +634,11 @@ def upload_answers_engine_async(
             processing_task_id,
             exc,
             meta={"step": "Answer extraction failed", "assignment_id": assignment_id},
+            fallback_message=(
+                "We couldn't process this submission upload. Please check "
+                "the file and try again, or contact support if this "
+                "continues."
+            ),
         )
         if self.request.retries < self.max_retries:
             raise self.retry(exc=exc, countdown=3) from Exception
@@ -629,9 +662,9 @@ def formatted_grade_async(submission_id, user_prompt, processing_task_id=None):
             assignment_model=submission.assignment,
             processing_task_id=processing_task_id,
         )
-        ensure_task_not_cancelled(processing_task_id)
         submission.formatted_grade = formatted_grade
-        submission.save(update_fields=["formatted_grade"])
+        with cancellable_final_save(processing_task_id):
+            submission.save(update_fields=["formatted_grade"])
 
         mark_processing_task_success(
             processing_task_id,
@@ -651,11 +684,16 @@ def formatted_grade_async(submission_id, user_prompt, processing_task_id=None):
             meta={"step": "Formatted grade generation cancelled"},
         )
         raise
-    except Exception:
+    except Exception as exc:
         mark_processing_task_failure(
             processing_task_id,
-            "Formatted grade generation failed",
+            exc,
             meta={"step": "Formatted grade generation failed"},
+            fallback_message=(
+                "We couldn't generate the formatted grade for this "
+                "submission. Please try again, or contact support if this "
+                "continues."
+            ),
         )
         raise
 
@@ -752,6 +790,11 @@ def upload_assignment_async(
             processing_task_id,
             e,
             meta={"step": "Assignment upload failed", "file_name": file_name},
+            fallback_message=(
+                "We couldn't upload and save this assignment. Please check "
+                "the file and try again, or contact support if this "
+                "continues."
+            ),
         )
         # if self.request.retries == self.max_retries:
         #     raise self.retry(exc=e, countdown=3) from Exception

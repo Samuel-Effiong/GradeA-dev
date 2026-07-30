@@ -39,6 +39,7 @@ from django.db import transaction
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
+from AutoGrader.error_messages import describe_stripe_error
 from classrooms.models import School
 from users.models import CustomUser
 
@@ -619,6 +620,14 @@ class StripeSubscriptionMutationService:
         old_plan = user_sub.plan
         stripe_subscription_id = user_sub.stripe_subscription_id
 
+        # Interval-crossing changes (MONTHLY -> ANNUAL) genuinely reset
+        # Stripe's billing_cycle_anchor as a side effect of the interval
+        # change itself — activate_subscription()'s "reset from now"
+        # semantics are correct there. A same-interval change (the common
+        # case) does NOT move Stripe's anchor, so the local cycle dates
+        # must be preserved instead — see apply_immediate_plan_change().
+        is_interval_crossing = old_plan.interval != new_plan.interval
+
         if user_sub.stripe_schedule_id:
             StripeSubscriptionScheduleService.release_schedule(user_sub)
 
@@ -626,7 +635,10 @@ class StripeSubscriptionMutationService:
             stripe_sub = stripe.Subscription.retrieve(user_sub.stripe_subscription_id)
         except stripe.error.StripeError as exc:
             raise ValueError(
-                f"Could not retrieve Stripe subscription: {getattr(exc, 'user_message', None) or str(exc)}"
+                "Could not retrieve Stripe subscription: "
+                + describe_stripe_error(
+                    exc, fallback_message="Please try again in a moment."
+                )
             ) from exc
 
         item_id = stripe_sub["items"]["data"][0]["id"]
@@ -641,14 +653,31 @@ class StripeSubscriptionMutationService:
         except stripe.error.CardError as exc:
             # Declined synchronously during the modify call itself - rare
             # since the decline usually surfaces on the resulting invoice
-            # instead, but Stripe can reject some cards immediately
+            # instead, but Stripe can reject some cards immediately. Stripe
+            # applies the subscription item change as part of the same
+            # call that attempts payment, so the item swap may already be
+            # live on Stripe's side even though this raised — best-effort
+            # revert it back before surfacing the decline, exactly like
+            # the invoice-status-based failure path below does.
+            # _revert_to_previous_price already swallows/logs its own
+            # StripeErrors internally rather than raising, so the ORIGINAL
+            # decline reason below is always what reaches the caller.
+            StripeSubscriptionMutationService._revert_to_previous_price(
+                stripe_subscription_id, item_id, old_price_id, invoice=None
+            )
 
             raise ValueError(
-                f"Card declined: {getattr(exc, 'user_message', None) or str(exc)}"
+                "Card declined: "
+                + describe_stripe_error(
+                    exc, fallback_message="Please try a different payment method."
+                )
             ) from exc
         except stripe.error.StripeError as exc:
             raise ValueError(
-                f"Stripe error while upgrading: {getattr(exc, 'user_message', None) or str(exc)}"
+                "Stripe error while upgrading: "
+                + describe_stripe_error(
+                    exc, fallback_message="Please try again in a moment."
+                )
             ) from exc
 
         # Re-retrieve to see the invoice Stripe generated as a side effect
@@ -696,8 +725,19 @@ class StripeSubscriptionMutationService:
                 )
 
         # Payment succeeded (or no proration invoice was needed at all) —
-        # grant credits for the new plan now
-        updated_sub = SubscriptionService.activate_subscription(user_sub.user, new_plan)
+        # grant credits for the new plan now. Interval-crossing changes
+        # genuinely reset Stripe's billing cycle, so activate_subscription()
+        # (which resets the local cycle to match) is correct there; a
+        # same-interval change must preserve the existing cycle instead —
+        # see apply_immediate_plan_change()'s docstring for why.
+        if is_interval_crossing:
+            updated_sub = SubscriptionService.activate_subscription(
+                user_sub.user, new_plan
+            )
+        else:
+            updated_sub = SubscriptionService.apply_immediate_plan_change(
+                user_sub, new_plan
+            )
         updated_sub.stripe_subscription_id = user_sub.stripe_subscription_id
         updated_sub.stripe_status = StripeSubscriptionStatus.ACTIVE
         updated_sub.save(
@@ -778,8 +818,10 @@ class StripeSubscriptionMutationService:
             stripe_sub = stripe.Subscription.retrieve(user_sub.stripe_subscription_id)
         except stripe.error.StripeError as exc:
             raise ValueError(
-                f"Could not retrieve Stripe subscription: "
-                f"{getattr(exc, 'user_message', None) or str(exc)}"
+                "Could not retrieve Stripe subscription: "
+                + describe_stripe_error(
+                    exc, fallback_message="Please try again in a moment."
+                )
             ) from exc
 
         item_id = stripe_sub["items"]["data"][0]["id"]
@@ -805,8 +847,10 @@ class StripeSubscriptionMutationService:
             )
         except stripe.error.StripeError as exc:
             raise ValueError(
-                f"Could not preview the upgrade cost: "
-                f"{getattr(exc, 'user_message', None) or str(exc)}"
+                "Could not preview the upgrade cost: "
+                + describe_stripe_error(
+                    exc, fallback_message="Please try again in a moment."
+                )
             ) from exc
 
         amount_due = preview["total"]
@@ -896,16 +940,27 @@ class StripeSubscriptionMutationService:
             )
         except stripe.error.StripeError as exc:
             raise ValueError(
-                f"Could not apply the upgrade: "
-                f"{getattr(exc, 'user_message', None) or str(exc)}"
+                "Could not apply the upgrade: "
+                + describe_stripe_error(
+                    exc, fallback_message="Please try again in a moment."
+                )
             ) from exc
 
         if is_interval_crossing:
             StripeSubscriptionMutationService._void_or_refund_side_effect_invoice(
                 user_sub.stripe_subscription_id
             )
-
-        updated_sub = SubscriptionService.activate_subscription(user_sub.user, new_plan)
+            # Stripe genuinely resets the billing cycle anchor as part of
+            # an interval change, so the local cycle must reset to match.
+            updated_sub = SubscriptionService.activate_subscription(
+                user_sub.user, new_plan
+            )
+        else:
+            # Same-interval change: Stripe's anchor doesn't move, so the
+            # local cycle must not either — see apply_immediate_plan_change().
+            updated_sub = SubscriptionService.apply_immediate_plan_change(
+                user_sub, new_plan
+            )
         updated_sub.stripe_subscription_id = user_sub.stripe_subscription_id
         updated_sub.stripe_status = StripeSubscriptionStatus.ACTIVE
         updated_sub.save(
@@ -1180,6 +1235,11 @@ class StripeSubscriptionMutationService:
         mid-error-handling for the original payment failure, and a failed
         rollback shouldn't mask that with a different exception. It does
         mean rare rollback failures need manual reconciliation in Stripe.
+
+        `invoice` may be None — e.g. when Stripe declines the card
+        synchronously during the modify() call itself, before any invoice
+        object is available to the caller. In that case only the price is
+        reverted; there's no invoice reference to void.
         """
 
         try:
@@ -1195,6 +1255,9 @@ class StripeSubscriptionMutationService:
                 stripe_subscription_id,
                 old_price_id,
             )
+
+        if invoice is None:
+            return
 
         try:
             if invoice.get("status") == "open":
@@ -1345,8 +1408,11 @@ class StripeSubscriptionScheduleService:
                     )
                 except stripe.error.StripeError as exc:
                     raise ValueError(
-                        f"Could not update the existing scheduled change on "
-                        f"Stripe: {getattr(exc, 'user_message', None) or str(exc)}"
+                        "Could not update the existing scheduled change on "
+                        "Stripe: "
+                        + describe_stripe_error(
+                            exc, fallback_message="Please try again in a moment."
+                        )
                     ) from exc
                 logger.info(
                     "Updated existing Stripe schedule %s for subscription "
@@ -1370,8 +1436,10 @@ class StripeSubscriptionScheduleService:
             )
             if not stale_schedule_id:
                 raise ValueError(
-                    f"Could not schedule the plan change on Stripe: "
-                    f"{getattr(exc, 'user_message', None) or str(exc)}"
+                    "Could not schedule the plan change on Stripe: "
+                    + describe_stripe_error(
+                        exc, fallback_message="Please try again in a moment."
+                    )
                 ) from exc
 
             logger.warning(
@@ -1390,10 +1458,13 @@ class StripeSubscriptionScheduleService:
                 stripe.SubscriptionSchedule.release(stale_schedule_id)
             except stripe.error.StripeError as release_exc:
                 raise ValueError(
-                    f"Could not schedule the plan change on Stripe: a "
+                    "Could not schedule the plan change on Stripe: a "
                     f"stale schedule ({stale_schedule_id}) is attached "
-                    f"and could not be released automatically: "
-                    f"{getattr(release_exc, 'user_message', None) or str(release_exc)}"
+                    "and could not be released automatically: "
+                    + describe_stripe_error(
+                        release_exc,
+                        fallback_message="Please try again in a moment.",
+                    )
                 ) from release_exc
 
             try:
@@ -1402,14 +1473,19 @@ class StripeSubscriptionScheduleService:
                 )
             except stripe.error.StripeError as retry_exc:
                 raise ValueError(
-                    f"Could not schedule the plan change on Stripe even "
+                    "Could not schedule the plan change on Stripe even "
                     f"after releasing stale schedule {stale_schedule_id}: "
-                    f"{getattr(retry_exc, 'user_message', None) or str(retry_exc)}"
+                    + describe_stripe_error(
+                        retry_exc,
+                        fallback_message="Please try again in a moment.",
+                    )
                 ) from retry_exc
         except stripe.error.StripeError as exc:
             raise ValueError(
-                f"Could not schedule the plan change on Stripe: "
-                f"{getattr(exc, 'user_message', None) or str(exc)}"
+                "Could not schedule the plan change on Stripe: "
+                + describe_stripe_error(
+                    exc, fallback_message="Please try again in a moment."
+                )
             ) from exc
 
     @staticmethod
@@ -1523,8 +1599,11 @@ class StripeSubscriptionScheduleService:
             )
         except stripe.error.StripeError as exc:
             raise ValueError(
-                f"Could not release the existing scheduled change on "
-                f"Stripe: {getattr(exc, 'user_message', None) or str(exc)}"
+                "Could not release the existing scheduled change on "
+                "Stripe: "
+                + describe_stripe_error(
+                    exc, fallback_message="Please try again in a moment."
+                )
             ) from exc
 
 
@@ -1573,9 +1652,6 @@ class StripeOverageService:
         if plan.max_overage_blocks <= 0 or plan.overage_block_price <= 0:
             raise ValueError("This plan does not support overage credit purchases.")
 
-        # if wallet.overage_blocks_used >= plan.max_overage_blocks:
-        #     raise ValueError("Maximum overage blocks reached for this billing cycle.")
-
         expires_at = user_sub.next_credit_grant_at or user_sub.billing_cycle_end
         customer_id = StripeCustomerService.get_or_create_customer(user)
 
@@ -1600,8 +1676,10 @@ class StripeOverageService:
             )
         except stripe.error.StripeError as exc:
             raise ValueError(
-                f"Could not start overage checkout: "
-                f"{getattr(exc, 'user_message', None) or str(exc)}"
+                "Could not start overage checkout: "
+                + describe_stripe_error(
+                    exc, fallback_message="Please try again in a moment."
+                )
             ) from exc
 
         logger.info(
@@ -1613,103 +1691,6 @@ class StripeOverageService:
             session.id,
         )
         return session
-
-    @staticmethod
-    @transaction.atomic
-    def purchase_overage_block(user):
-        # FIXME: DEPRECATED AND DELETE with every dependencies
-        """
-        Charges the customer's default payment method synchronously via a
-        PaymentIntent. The user is present and just clicked "buy" — this is
-        an on-session charge, so there's no off_session decline risk to
-        design around, unlike an automatic background top-up would have.
-        """
-        wallet, _ = CreditWallet.objects.get_or_create(user=user)
-        wallet = CreditWallet.objects.select_for_update().get(pk=wallet.pk)
-
-        user_sub = (
-            user.subscriptions.filter(is_active=True).select_related("plan").first()
-        )
-        expires_at = user_sub.next_credit_grant_at or user_sub.billing_cycle_end
-        if not user_sub:
-            raise ValueError("No active subscription found.")
-
-        plan = user_sub.plan
-        if plan.max_overage_blocks <= 0 or plan.overage_block_price <= 0:
-            raise ValueError("This plan does not support overage credit purchases.")
-
-        if wallet.overage_blocks_used >= plan.max_overage_blocks:
-            raise ValueError("Maximum overage blocks reached for this billing cycle.")
-
-        if not wallet.stripe_customer_id:
-            raise ValueError("No Stripe customer on file for this user.")
-
-        default_pm = None
-        if user_sub.stripe_subscription_id:
-            stripe_sub = stripe.Subscription.retrieve(user_sub.stripe_subscription_id)
-            default_pm = stripe_sub.get("default_payment_method")
-
-        if not default_pm:
-            customer = stripe.Customer.retrieve(wallet.stripe_customer_id)
-            default_pm = (customer.get("invoice_settings") or {}).get(
-                "default_payment_method"
-            )
-
-        if not default_pm:
-            raise ValueError(
-                "No default payment method on file. Add a card before "
-                "purchasing overage credits."
-            )
-
-        try:
-            intent = stripe.PaymentIntent.create(
-                amount=plan.overage_block_price,
-                currency="usd",
-                customer=wallet.stripe_customer_id,
-                payment_method=default_pm,
-                confirm=True,
-                automatic_payment_methods={"enabled": True, "allow_redirects": "never"},
-                metadata={
-                    "flow": "overage_block_purchase",
-                    "user_id": str(user.id),
-                    "wallet_id": str(wallet.id),
-                    "plan_id": str(plan.id),
-                    "user_subscription_id": str(user_sub.id),
-                    "overage_expires_at": expires_at.isoformat(),
-                },
-            )
-        except stripe.error.CardError as exc:
-            raise ValueError(
-                f"Card declined: {getattr(exc, 'user_message', None) or str(exc)}"
-            ) from exc
-        except stripe.error.StripeError as exc:
-            raise ValueError(
-                f"Stripe error while purchasing overage block: "
-                f"{getattr(exc, 'user_message', None) or str(exc)}"
-            ) from exc
-
-        if intent.status == "succeeded":
-            # Grant the overage bucket atomically
-            bucket = SubscriptionService.grant_overage_bucket(
-                wallet=wallet,
-                plan=plan,
-                expires_at=expires_at,
-                stripe_payment_intent_id=intent.id,
-            )
-            return {"status": "succeeded", "bucket": bucket}
-
-        if intent.status == "requires_action":
-            # 3DS or similar. The bucket is granted by the
-            # payment_intent.succeeded webhook once authentication
-            # completes, not here.
-            return {"status": "requires_action", "client_secret": intent.client_secret}
-
-        last_error = intent.get("last_payment_error") or {}
-
-        raise ValueError(
-            f"Payment could not be completed (status: {intent.status})."
-            + (f" {last_error['message']}" if last_error.get("message") else "")
-        )
 
 
 class StripePriceService:
@@ -2717,8 +2698,15 @@ class StripeWebhookHandler:
             StripeSubscriptionMutationService._void_or_refund_side_effect_invoice(
                 stripe_subscription_id
             )
-
-        updated_sub = SubscriptionService.activate_subscription(user, new_plan)
+            # Stripe genuinely resets the billing cycle anchor as part of
+            # an interval change, so the local cycle must reset to match.
+            updated_sub = SubscriptionService.activate_subscription(user, new_plan)
+        else:
+            # Same-interval change: Stripe's anchor doesn't move, so the
+            # local cycle must not either — see apply_immediate_plan_change().
+            updated_sub = SubscriptionService.apply_immediate_plan_change(
+                old_user_sub, new_plan
+            )
         updated_sub.stripe_subscription_id = stripe_subscription_id
         updated_sub.stripe_status = StripeSubscriptionStatus.ACTIVE
         updated_sub.save(

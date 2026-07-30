@@ -23,6 +23,8 @@ from PIL import Image
 from ai_processor.tools import encode_image, perform_search
 from ai_processor.validators import logger
 from billing.access_control import (
+    NO_CREDITS_REMAINING_REASON,
+    TRIAL_CREDITS_EXHAUSTED_REASON,
     AIFeatureNotAvailableError,
     can_ai_be_used_for_assignment,
     can_user_access_ai,
@@ -2035,6 +2037,16 @@ Now, respond to the following teacher's instruction using the rules above
 
             can_access, reason = can_user_access_ai(user, feature=feature)
             if not can_access:
+                # A zero-balance denial is a credit/balance problem, not a
+                # plan/tier permission problem — raise the exception type
+                # that matches (see AIFeatureNotAvailableError's docstring
+                # for the distinction custom_ai_prompt_retry and callers
+                # rely on to decide fail-fast-vs-retry / messaging).
+                if reason in (
+                    NO_CREDITS_REMAINING_REASON,
+                    TRIAL_CREDITS_EXHAUSTED_REASON,
+                ):
+                    raise InsufficientCreditsError("Refill your wallet to continue")
                 raise AIFeatureNotAvailableError(f"AI access denied: {reason}")
 
             wallet = user.credit_wallet
@@ -2208,6 +2220,13 @@ Now, respond to the following teacher's instruction using the rules above
             )
 
             content = response.choices[0].message.content
+        except (AIFeatureNotAvailableError, InsufficientCreditsError):
+            # Must propagate untouched — custom_ai_prompt_retry() relies on
+            # these exact types to fail fast on permission/credit denial
+            # instead of retrying. Rewrapping into a generic Exception (as
+            # the branch below does for genuinely transient errors) would
+            # demote them and defeat that fail-fast behavior entirely.
+            raise
         except Exception as e:
             raise Exception(f"Error during AI model: {str(e)}") from Exception
 

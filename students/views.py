@@ -1,5 +1,6 @@
 # from django.shortcuts import render
 import json
+import logging
 import uuid
 
 from django.conf import settings
@@ -43,6 +44,7 @@ from rest_framework.status import (
 
 from ai_processor.services import ai_processor
 from assignments.models import Assignment, AssignmentStatus
+from AutoGrader.error_messages import describe_user_error
 from assignments.serializers import (
     BatchUploadResponseSerializer,
     ScheduledGradingResponseSerializer,
@@ -85,6 +87,8 @@ from .services import (
     upload_answers_engine,
 )
 from .task_tracking import create_processing_task, launch_processing_task
+
+logger = logging.getLogger(__name__)
 
 # from openai.types import Batch
 
@@ -366,7 +370,19 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
             return Response(serializer.data, status=HTTP_201_CREATED)
         except Exception as e:
-            return Response({"error": str(e)}, status=HTTP_500_INTERNAL_SERVER_ERROR)
+            logger.error("Failed to process submission upload", exc_info=e)
+            return Response(
+                {
+                    "error": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "We couldn't process your submission. Please "
+                            "check the file and try again."
+                        ),
+                    )
+                },
+                status=HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     @extend_schema(
         tags=["07 Student Submissions"],

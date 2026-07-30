@@ -9,21 +9,25 @@ Run with:
 Coverage targets:
   - activate_free_trial() — happy path, all guards
   - expire_trial()        — happy path, guards, partial usage
-  - convert_trial_to_paid() — happy path, guards, credit forfeit
   - TRIAL bucket ordering in consume_credits
-  - API: POST /start-trial/
-  - API: POST /convert-trial/
   - Serializer trial fields
+
+NOTE: this file used to also cover SubscriptionService.convert_trial_to_paid()
+and the /start-trial/ and /convert-trial/ API actions. Both were removed —
+convert_trial_to_paid() no longer exists (trial-to-paid conversion now goes
+through Stripe Checkout + webhook finalization, see
+StripeCheckoutService.create_trial_to_paid_session /
+SubscriptionService.finalize_trial_to_paid_conversion in stripe_service.py),
+and the start-trial/convert-trial ViewSet actions are commented out in
+views.py in favor of the same Checkout-based flow. The tests for them were
+dead weight testing removed code paths, so they were deleted rather than
+fixed.
 """
 
 from datetime import timedelta
 
-# import pytest
 from django.test import TestCase
-from django.urls import reverse
 from django.utils import timezone
-from rest_framework import status
-from rest_framework.test import APITestCase
 
 from billing.models import (
     CONVERSION_FACTOR,
@@ -175,12 +179,20 @@ class TestActivateFreeTrial(TestCase):
         self.assertIn("FREE_TRIAL", ledger.metadata.get("grant_type", ""))
 
     def test_creates_wallet_if_missing(self):
+        # Every user gets a CreditWallet automatically on registration (see
+        # users/signals.py), so simulate the "missing" case explicitly
+        # rather than assuming none exists yet.
+        CreditWallet.objects.filter(user=self.user).delete()
         self.assertFalse(CreditWallet.objects.filter(user=self.user).exists())
         SubscriptionService.activate_free_trial(self.user, self.plan)
         self.assertTrue(CreditWallet.objects.filter(user=self.user).exists())
 
     def test_overage_blocks_reset_to_zero(self):
-        wallet = CreditWallet.objects.create(user=self.user, overage_blocks_used=3)
+        # A wallet already exists (auto-created on registration) — update
+        # it rather than creating a second one for the same user.
+        wallet, _ = CreditWallet.objects.get_or_create(user=self.user)
+        wallet.overage_blocks_used = 3
+        wallet.save(update_fields=["overage_blocks_used"])
         SubscriptionService.activate_free_trial(self.user, self.plan)
         wallet.refresh_from_db()
         self.assertEqual(wallet.overage_blocks_used, 0)
@@ -336,140 +348,6 @@ class TestExpireTrial(TestCase):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Service layer — convert_trial_to_paid()
-# ─────────────────────────────────────────────────────────────────────────────
-
-
-class TestConvertTrialToPaid(TestCase):
-
-    def setUp(self):
-        self.user = make_teacher()
-        self.plan = make_individual_plan()
-        self.trial_sub = SubscriptionService.activate_free_trial(self.user, self.plan)
-
-    # ── Happy path ────────────────────────────────────────────────────────────
-
-    def test_returns_new_paid_subscription(self):
-        new_sub = SubscriptionService.convert_trial_to_paid(self.user, self.plan)
-
-        self.assertFalse(new_sub.is_trial)
-        self.assertTrue(new_sub.is_active)
-        self.assertIsNone(new_sub.trial_end)
-        self.assertTrue(new_sub.auto_renew)
-        self.assertEqual(new_sub.plan, self.plan)
-
-    def test_trial_subscription_is_deactivated(self):
-        SubscriptionService.convert_trial_to_paid(self.user, self.plan)
-        self.trial_sub.refresh_from_db()
-        self.assertFalse(self.trial_sub.is_active)
-
-    def test_trial_credits_are_forfeited_on_conversion(self):
-        SubscriptionService.convert_trial_to_paid(self.user, self.plan)
-
-        wallet = CreditWallet.objects.get(user=self.user)
-
-        # TRIAL bucket must be expired (expires_at <= now)
-        trial_bucket = wallet.buckets.filter(bucket_type=CreditBucketType.TRIAL).first()
-        self.assertIsNotNone(trial_bucket)
-        self.assertLessEqual(trial_bucket.expires_at, timezone.now())
-        self.assertTrue(trial_bucket.is_processed)
-
-    def test_expire_ledger_entry_created_for_forfeited_credits(self):
-        SubscriptionService.convert_trial_to_paid(self.user, self.plan)
-
-        wallet = CreditWallet.objects.get(user=self.user)
-        trial_bucket = wallet.buckets.get(bucket_type=CreditBucketType.TRIAL)
-
-        expire_entry = CreditLedger.objects.filter(
-            user=self.user,
-            bucket=trial_bucket,
-            ledger_type=CreditLedgerType.EXPIRE,
-        ).first()
-        self.assertIsNotNone(expire_entry)
-
-    def test_new_monthly_bucket_is_created(self):
-        SubscriptionService.convert_trial_to_paid(self.user, self.plan)
-
-        wallet = CreditWallet.objects.get(user=self.user)
-        monthly = wallet.buckets.filter(
-            bucket_type=CreditBucketType.MONTHLY,
-            expires_at__gt=timezone.now(),
-        ).first()
-
-        self.assertIsNotNone(monthly)
-        self.assertEqual(monthly.total_credits, self.plan.monthly_credits)
-
-    def test_can_convert_to_different_plan(self):
-        """User trials Standard but converts to Pro — common real-world path."""
-        pro_plan = SubscriptionPlan.objects.create(
-            name=PlanType.PRO,
-            display_name="Pro Grader",
-            category=PlanCategory.INDIVIDUAL,
-            tier=PlanTier.PRO,
-            monthly_credits=20_000_000,
-            carry_over_percent=25,
-            carry_over_max=5_000_000,
-            carry_over_expiry_months=1,
-            overage_block_size=5_000_000,
-            overage_block_price=400,
-            max_overage_blocks=5,
-            is_active=True,
-        )
-        new_sub = SubscriptionService.convert_trial_to_paid(self.user, pro_plan)
-        self.assertEqual(new_sub.plan, pro_plan)
-
-    def test_no_expire_ledger_when_trial_already_exhausted(self):
-        """If user burned all trial credits before converting, no EXPIRE entry."""
-        wallet = CreditWallet.objects.get(user=self.user)
-        bucket = wallet.buckets.get(bucket_type=CreditBucketType.TRIAL)
-        bucket.used_credits = bucket.total_credits
-        bucket.save()
-
-        SubscriptionService.convert_trial_to_paid(self.user, self.plan)
-
-        expire_entries = CreditLedger.objects.filter(
-            user=self.user,
-            bucket=bucket,
-            ledger_type=CreditLedgerType.EXPIRE,
-        )
-        self.assertEqual(expire_entries.count(), 0)
-
-    def test_only_one_active_subscription_after_conversion(self):
-        SubscriptionService.convert_trial_to_paid(self.user, self.plan)
-        active = UserSubscription.objects.filter(user=self.user, is_active=True)
-        self.assertEqual(active.count(), 1)
-
-    def test_converted_user_can_renew_on_next_cycle(self):
-        """Smoke test: the paid subscription is in a state that process_rollover_and_renewal accepts."""
-        new_sub = SubscriptionService.convert_trial_to_paid(self.user, self.plan)
-        self.assertTrue(new_sub.auto_renew)
-        self.assertFalse(new_sub.is_trial)
-        self.assertIsNone(new_sub.trial_end)
-
-    # ── Guards ────────────────────────────────────────────────────────────────
-
-    def test_rejects_license_plan(self):
-        license_plan = make_license_plan()
-        with self.assertRaises(ValueError) as ctx:
-            SubscriptionService.convert_trial_to_paid(self.user, license_plan)
-        self.assertIn("INDIVIDUAL", str(ctx.exception))
-
-    def test_rejects_user_with_no_active_trial(self):
-        user2 = make_teacher("notrial@example.com")
-        with self.assertRaises(ValueError) as ctx:
-            SubscriptionService.convert_trial_to_paid(user2, self.plan)
-        self.assertIn("does not have an active free trial", str(ctx.exception))
-
-    def test_rejects_user_on_paid_subscription_not_trial(self):
-        """User on a paid plan should not be able to call convert_trial."""
-        user2 = make_teacher("paid@example.com")
-        SubscriptionService.activate_subscription(user2, self.plan)
-        with self.assertRaises(ValueError) as ctx:
-            SubscriptionService.convert_trial_to_paid(user2, self.plan)
-        self.assertIn("does not have an active free trial", str(ctx.exception))
-
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Credit consumption ordering — TRIAL drains before MONTHLY
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -557,162 +435,6 @@ class TestTrialCreditConsumptionOrdering(TestCase):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# API — POST /start-trial/
-# ─────────────────────────────────────────────────────────────────────────────
-
-
-class TestStartTrialAPI(APITestCase):
-
-    def setUp(self):
-        self.user = make_teacher()
-        self.plan = make_individual_plan()
-        self.url = reverse("subscription-management-start-trial")
-
-    def test_201_on_success(self):
-        self.client.force_authenticate(user=self.user)
-        response = self.client.post(self.url, {"plan": str(self.plan.id)})
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-
-    def test_response_contains_trial_fields(self):
-        self.client.force_authenticate(user=self.user)
-        response = self.client.post(self.url, {"plan": str(self.plan.id)})
-        data = response.data
-        self.assertIn("is_trial", data)
-        self.assertIn("trial_end", data)
-        self.assertIn("trial_days_remaining", data)
-        self.assertIn("trial_credits_total", data)
-        self.assertIn("trial_credits_remaining", data)
-        self.assertTrue(data["is_trial"])
-
-    def test_trial_credits_total_is_5k(self):
-        self.client.force_authenticate(user=self.user)
-        response = self.client.post(self.url, {"plan": str(self.plan.id)})
-        self.assertEqual(response.data["trial_credits_total"], 5_000)
-
-    def test_trial_credits_remaining_equals_total_at_start(self):
-        self.client.force_authenticate(user=self.user)
-        response = self.client.post(self.url, {"plan": str(self.plan.id)})
-        self.assertEqual(
-            response.data["trial_credits_remaining"],
-            response.data["trial_credits_total"],
-        )
-
-    def test_401_unauthenticated(self):
-        response = self.client.post(self.url, {"plan": str(self.plan.id)})
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-
-    def test_400_missing_plan(self):
-        self.client.force_authenticate(user=self.user)
-        response = self.client.post(self.url, {})
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_404_plan_not_found(self):
-        self.client.force_authenticate(user=self.user)
-        import uuid
-
-        response = self.client.post(self.url, {"plan": str(uuid.uuid4())})
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
-    def test_400_license_plan(self):
-        self.client.force_authenticate(user=self.user)
-        license_plan = make_license_plan()
-        response = self.client.post(self.url, {"plan": str(license_plan.id)})
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_409_already_trialled(self):
-        self.client.force_authenticate(user=self.user)
-        # First trial
-        self.client.post(self.url, {"plan": str(self.plan.id)})
-        # Expire the trial
-        sub = UserSubscription.objects.get(user=self.user, is_trial=True)
-        sub.is_active = False
-        sub.save()
-        # Second attempt
-        response = self.client.post(self.url, {"plan": str(self.plan.id)})
-        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
-
-    def test_400_user_has_active_subscription(self):
-        self.client.force_authenticate(user=self.user)
-        # Give user a paid sub first
-        SubscriptionService.activate_subscription(self.user, self.plan)
-        response = self.client.post(self.url, {"plan": str(self.plan.id)})
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("active subscription", response.data["detail"])
-
-    def test_students_cannot_start_trial(self):
-        student = CustomUser.objects.create_user(
-            email="student@example.com",
-            password="password123",  # pragma: allowlist secret
-            user_type=UserTypes.STUDENT,
-            is_active=True,
-        )
-        self.client.force_authenticate(user=student)
-        response = self.client.post(self.url, {"plan": str(self.plan.id)})
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# API — POST /convert-trial/
-# ─────────────────────────────────────────────────────────────────────────────
-
-
-class TestConvertTrialAPI(APITestCase):
-
-    def setUp(self):
-        self.user = make_teacher()
-        self.plan = make_individual_plan()
-        # Start a trial first
-        SubscriptionService.activate_free_trial(self.user, self.plan)
-        self.url = reverse("subscription-management-convert-trial")
-
-    def test_200_on_success(self):
-        self.client.force_authenticate(user=self.user)
-        response = self.client.post(self.url, {"plan": str(self.plan.id)})
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-    def test_response_is_paid_subscription(self):
-        self.client.force_authenticate(user=self.user)
-        response = self.client.post(self.url, {"plan": str(self.plan.id)})
-        self.assertFalse(response.data["is_trial"])
-        self.assertTrue(response.data["is_active"])
-        self.assertTrue(response.data["auto_renew"])
-
-    def test_trial_days_remaining_is_none_after_conversion(self):
-        self.client.force_authenticate(user=self.user)
-        response = self.client.post(self.url, {"plan": str(self.plan.id)})
-        self.assertIsNone(response.data.get("trial_days_remaining"))
-
-    def test_401_unauthenticated(self):
-        response = self.client.post(self.url, {"plan": str(self.plan.id)})
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-
-    def test_400_missing_plan(self):
-        self.client.force_authenticate(user=self.user)
-        response = self.client.post(self.url, {})
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    def test_404_plan_not_found(self):
-        self.client.force_authenticate(user=self.user)
-        import uuid
-
-        response = self.client.post(self.url, {"plan": str(uuid.uuid4())})
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
-    def test_400_no_active_trial(self):
-        user2 = make_teacher("notrial@example.com")
-        self.client.force_authenticate(user=user2)
-        response = self.client.post(self.url, {"plan": str(self.plan.id)})
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("does not have an active free trial", response.data["detail"])
-
-    def test_400_license_plan(self):
-        self.client.force_authenticate(user=self.user)
-        license_plan = make_license_plan()
-        response = self.client.post(self.url, {"plan": str(license_plan.id)})
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Serializer — trial fields on UserSubscriptionSerializer
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -741,7 +463,12 @@ class TestUserSubscriptionSerializerTrialFields(TestCase):
         self.assertTrue(data["is_trial"])
         self.assertIsNotNone(data["trial_end"])
         self.assertIsNotNone(data["trial_days_remaining"])
-        self.assertEqual(data["trial_days_remaining"], 14)
+        # get_trial_days_remaining() intentionally reports WHOLE days
+        # remaining (floor, per its own docstring) — the instant after a
+        # 14-day trial is created, less than 14 full days remain (a few
+        # milliseconds have already elapsed), so this legitimately reads
+        # 13, not 14.
+        self.assertEqual(data["trial_days_remaining"], 13)
         self.assertEqual(data["trial_credits_remaining"], 5_000)
 
     def test_trial_credits_remaining_reflects_consumption(self):

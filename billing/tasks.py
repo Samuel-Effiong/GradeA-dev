@@ -519,7 +519,7 @@ def expire_active_trials(self):
                 # User has no credits left - expire the trial immediately
                 # even if the 14-day window hasn't closed yet.
 
-                SubscriptionService.expire_trial(trial_sub)
+                SubscriptionService.expire_trial(trial_sub, force=True)
                 expired_by_credits_count += 1
 
                 logger.info(

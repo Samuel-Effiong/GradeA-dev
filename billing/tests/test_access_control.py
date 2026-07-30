@@ -93,6 +93,22 @@ class AccessControlTestBase(TestCase):
     def _make_individual_subscription(
         self, user, plan, is_trial=False, trial_end=None, is_active=True
     ):
+        # Creating the TRIAL-tier plan before the user (needed so the user
+        # has a valid FK target to build against) also means the
+        # CustomUser-creation signal's own automatic free-trial activation
+        # (see users/signals.py) can succeed and attach a subscription of
+        # its own — colliding with the one_active_subscription_per_user
+        # constraint once we create the one this test actually wants.
+        # These tests want full, explicit control over subscription state,
+        # so clear out whatever the signal produced first.
+        UserSubscription.objects.filter(user=user, is_active=True).update(
+            is_active=False
+        )
+        # Same reasoning for the TRIAL CreditBucket the signal granted —
+        # deactivating the subscription row above doesn't touch it, and a
+        # leftover live bucket would give the user credits these tests
+        # never asked for (they set the exact balance via _give_credits).
+        CreditBucket.objects.filter(wallet__user=user).delete()
         now = timezone.now()
         return UserSubscription.objects.create(
             user=user,

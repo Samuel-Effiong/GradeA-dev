@@ -9,6 +9,7 @@ and a convenience `me` action to fetch the currently authenticated user's
 profile.
 """
 
+import logging
 from datetime import timedelta
 
 from celery.result import AsyncResult
@@ -53,6 +54,7 @@ from rest_framework_simplejwt.views import (
 )
 from rest_framework_simplejwt.views import TokenRefreshView as BaseTokenRefreshView
 
+from AutoGrader.error_messages import describe_user_error
 from AutoGrader.tasks import send_email_task
 from billing.services import AnalyticsService
 from classrooms.models import EnrollmentStatusType, StudentCourse
@@ -96,6 +98,8 @@ from users.serializers import (  # BatchSessionResultTaskEntrySerializer,; TaskC
     WaitlistSerializer,
 )
 from users.services import send_user_activation_email
+
+logger = logging.getLogger(__name__)
 
 # Create your views here.
 
@@ -1140,8 +1144,16 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         except (ParseError, ValidationError):
             raise
         except Exception as e:
+            logger.error("Student registration failed", exc_info=e)
             return Response(
-                {"detail": f"Internal Server Error: {str(e)}"},
+                {
+                    "detail": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "Registration could not be completed. Please " "try again."
+                        ),
+                    )
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -1231,8 +1243,16 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         except (ParseError, ValidationError):
             raise
         except Exception as e:
+            logger.error("School admin registration failed", exc_info=e)
             return Response(
-                {"detail": f"Internal Server Error: {str(e)}"},
+                {
+                    "detail": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "Registration could not be completed. Please " "try again."
+                        ),
+                    )
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -1311,8 +1331,12 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 response.raise_for_status()
                 token_data = response.json()
             except http_requests.exceptions.RequestException as e:
+                logger.error("Google OAuth token exchange failed", exc_info=e)
                 raise ParseError(
-                    f"Failed to exchange authorization code for tokens: {str(e)}"
+                    describe_user_error(
+                        e,
+                        fallback_message=("Google sign-in failed. Please try again."),
+                    )
                 ) from e
 
             id_token_str = token_data.get("id_token")

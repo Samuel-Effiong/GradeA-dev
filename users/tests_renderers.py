@@ -90,3 +90,21 @@ class APIJSONRendererTests(TestCase):
         self.assertIn("1. Email: This field is required.", payload["message"])
         self.assertIn("2. Password: Too short.", payload["message"])
         self.assertEqual(payload["error"]["field_errors"], response.data)
+
+    def test_unhandled_exception_never_leaks_raw_technical_detail(self):
+        # An unhandled 500: no _drf_handled marker, no data payload — this is
+        # the path custom_exception_handler takes for anything DRF itself
+        # doesn't know how to format (a bare bug, a network error, etc.).
+        response = Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        response.exception = True
+        response._raw_exc = KeyError("grading_summary")
+        response.data = None
+
+        payload = self.render_payload(response)
+
+        self.assertFalse(payload["success"])
+        self.assertNotIn("KeyError", payload["message"])
+        self.assertNotIn("grading_summary", payload["message"])
+        self.assertEqual(
+            payload["message"], "An unexpected error occurred. Please try again."
+        )

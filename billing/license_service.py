@@ -29,6 +29,7 @@ from django.template.loader import render_to_string
 # from django.db.models import F, Q
 from django.utils import timezone
 
+from AutoGrader.error_messages import describe_stripe_error, describe_user_error
 from AutoGrader.tasks import send_email_task
 from classrooms.models import School
 from users.models import CustomUser, RegistrationMethod, UserTypes
@@ -553,7 +554,12 @@ class LicenseSubscriptionService:
                 "email": email,
                 "successful": False,
                 "teacher_id": None,
-                "error": f"Unexpected error: {exc}",
+                "error": describe_user_error(
+                    exc,
+                    fallback_message=(
+                        "We couldn't enroll this teacher. Please try again."
+                    ),
+                ),
             }
 
     @staticmethod
@@ -2196,8 +2202,10 @@ class LicenseSubscriptionService:
             intent.failure_reason = f"Checkout session creation failed: {exc}"
             intent.save(update_fields=["status", "failure_reason", "updated_at"])
             raise ValueError(
-                f"Could not start overage checkout: "
-                f"{getattr(exc, 'user_message', None) or str(exc)}"
+                "Could not start overage checkout: "
+                + describe_stripe_error(
+                    exc, fallback_message="Please try again in a moment."
+                )
             ) from exc
 
         # The intent_id is already embedded in the Stripe session's

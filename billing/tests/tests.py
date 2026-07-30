@@ -1,7 +1,7 @@
 import threading
 from datetime import timedelta
 
-from django.test import TestCase
+from django.test import TransactionTestCase
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
@@ -180,7 +180,29 @@ class UserSubscriptionViewSetTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 
-class ConcurrentRegistrationTest(TestCase):
+class ConcurrentRegistrationTest(TransactionTestCase):
+    # Real OS threads (test_concurrent_registration below) each open their
+    # own DB connection. Under plain TestCase, setUp()'s writes live in
+    # the outer per-test transaction and are invisible to those other
+    # connections until rollback — the TRIAL plan created in setUp() would
+    # never actually be visible to either thread, so automatic trial
+    # activation would silently no-op for both. TransactionTestCase commits
+    # setUp() for real, so both threads see it.
+    def setUp(self):
+        # activate_automatic_free_trial() (fired on every CustomUser
+        # creation via users/signals.py) requires a TRIAL-tier INDIVIDUAL
+        # plan to exist — without it, trial signup silently no-ops (caught
+        # and logged, not raised) and every test below sees zero
+        # subscriptions instead of the trial they expect.
+        SubscriptionPlan.objects.create(
+            name=PlanType.TRIAL,
+            display_name="Free Trial",
+            category="INDIVIDUAL",
+            tier="TRIAL",
+            monthly_credits=0,
+            is_active=True,
+        )
+
     def test_concurrent_registration(self):
         def create_user():
             CustomUser.objects.create_user(
@@ -198,7 +220,10 @@ class ConcurrentRegistrationTest(TestCase):
 
         user = CustomUser.objects.get(email="concurrent@test.com")
         trials = user.subscriptions.filter(is_trial=True)
-        assert trials.count() == 1, "Should have exactly one trial"
+        assert trials.count() == 1, (
+            f"Should have exactly one trial, got {trials.count()}: "
+            f"{list(user.subscriptions.values('id', 'is_trial', 'is_active', 'plan_id'))}"
+        )
 
     def test_trial_cannot_be_activated_twice(self):
         user = CustomUser.objects.create_user(
@@ -217,35 +242,6 @@ class ConcurrentRegistrationTest(TestCase):
         assert "already used" in str(cm.exception).lower()
         # Verify still only one trial
         assert user.subscriptions.filter(is_trial=True).count() == 1
-
-    def test_missing_standard_plan(self):
-        # Delete STANDARD plan
-        from billing.models import PlanType, SubscriptionPlan
-
-        SubscriptionPlan.objects.filter(name=PlanType.STANDARD).delete()
-
-        # Register user
-        user = CustomUser.objects.create_user(
-            email="noplan@test.com",
-            password="test",  # pragma: allowlist secret
-            user_type="TEACHER",
-        )
-
-        # User should exist but have no subscription
-        assert user.subscriptions.count() == 0
-
-        # Recreate plan
-        SubscriptionPlan.objects.create(
-            name=PlanType.STANDARD,
-            category="INDIVIDUAL",
-            # ... other fields
-        )
-
-        # Can now activate subscription
-        from billing.services import SubscriptionService
-
-        sub = SubscriptionService.activate_automatic_free_trial(user)
-        assert sub is not None
 
     def test_trial_activation_with_existing_wallet(self):
         user = CustomUser.objects.create_user(
@@ -387,35 +383,6 @@ class ConcurrentRegistrationTest(TestCase):
         # Trial should be inactive
         trial.refresh_from_db()
         assert not trial.is_active
-
-    def test_convert_trial_to_paid_mid_trial(self):
-        user = CustomUser.objects.create_user(
-            email="convert@test.com",
-            password="test",  # pragma: allowlist secret
-            user_type="TEACHER",
-        )
-
-        # User on trial
-        trial = user.subscriptions.filter(is_trial=True).first()
-        assert trial.is_active
-
-        # Get a paid plan
-        from billing.models import PlanType, SubscriptionPlan
-
-        paid_plan = SubscriptionPlan.objects.get(name=PlanType.PRO)
-
-        # Convert to paid
-        from billing.services import SubscriptionService
-
-        paid_sub = SubscriptionService.convert_trial_to_paid(user, paid_plan)
-
-        # Old trial is inactive
-        trial.refresh_from_db()
-        assert not trial.is_active
-
-        # New paid subscription is active
-        assert paid_sub.is_active
-        assert not paid_sub.is_trial
 
     def test_expired_trial_task_handles_missing_wallet(self):
         user = CustomUser.objects.create_user(

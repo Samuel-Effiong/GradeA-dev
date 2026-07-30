@@ -10,6 +10,7 @@ from django.db.models import (
     ExpressionWrapper,
     F,
     FloatField,
+    Max,
     OuterRef,
     Prefetch,
     Q,
@@ -1551,7 +1552,9 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
             # --- Rigor: average total_points per assignment, normalized to 5 ---
             # We'll use the highest total_points across all assignments as max
             max_points = (
-                assignments.aggregate(max=Coalesce(F("total_points"), Value(0)))["max"]
+                assignments.aggregate(max=Coalesce(Max("total_points"), Value(0)))[
+                    "max"
+                ]
                 or 1
             )
             avg_points = assignments.aggregate(avg=Avg("total_points"))["avg"] or 0

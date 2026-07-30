@@ -148,6 +148,25 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
     has_pending_change = serializers.SerializerMethodField(read_only=True)
     recommended_plan = serializers.SerializerMethodField(read_only=True)
 
+    def to_internal_value(self, data):
+        """
+        `plan` is declared read_only above so GET responses can nest the
+        full SubscriptionPlanSerializer representation — but that also
+        makes DRF drop an incoming "plan" id from validated_data on
+        write, which validate() below (and create()) both still expect
+        to receive as a resolved SubscriptionPlan instance. Resolve it
+        here so both keep working without changing the request payload
+        shape (still just {"plan": "<uuid>"}, not "plan_id").
+        """
+        ret = super().to_internal_value(data)
+        plan_id = data.get("plan")
+        if plan_id is not None:
+            try:
+                ret["plan"] = SubscriptionPlan.objects.get(pk=plan_id)
+            except (SubscriptionPlan.DoesNotExist, ValueError, TypeError) as exc:
+                raise serializers.ValidationError({"plan": "Invalid plan id."}) from exc
+        return ret
+
     def validate(self, attrs):
         user = attrs.get("user")
         plan = attrs.get("plan")

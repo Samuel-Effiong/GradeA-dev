@@ -66,6 +66,21 @@ class AIFeatureNotAvailableError(Exception):
     pass
 
 
+# The two can_user_access_ai() reasons that indicate a credit-BALANCE
+# problem rather than a plan/tier permission problem. Callers (see
+# AIProcessor.execute_graded_task) match against these to decide whether
+# to raise InsufficientCreditsError (balance) instead of
+# AIFeatureNotAvailableError (permission) — kept as named constants here,
+# next to where they're produced, rather than duplicated as string
+# literals at each call site.
+NO_CREDITS_REMAINING_REASON = (
+    "No credits remaining. Please purchase more credits to continue using AI features."
+)
+TRIAL_CREDITS_EXHAUSTED_REASON = (
+    "Out of trial credits. Please subscribe to continue using AI features."
+)
+
+
 # Maps an AI-processor `feature` string (the exact value passed as
 # `feature=` into AIProcessor.execute_graded_task) to the PlanFeatureKey
 # that must be actively included AND marked as a code-enforced gate
@@ -343,12 +358,12 @@ def can_user_access_ai(
         if context.kind == "individual" and context.is_trial:
             return (
                 False,
-                "Out of trial credits. Please subscribe to continue using AI features.",
+                TRIAL_CREDITS_EXHAUSTED_REASON,
             )
         else:
             return (
                 False,
-                "No credits remaining. Please purchase more credits to continue using AI features.",
+                NO_CREDITS_REMAINING_REASON,
             )
 
     # Check 5: Feature-level tier/role gating, only when a specific

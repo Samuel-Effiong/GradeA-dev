@@ -26,6 +26,7 @@ from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from AutoGrader.error_messages import describe_stripe_error, describe_user_error
 from classrooms.models import School
 from classrooms.permissions import IsNotStudent, IsSuperAdmin
 from users.models import CustomUser, UserTypes
@@ -309,8 +310,18 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
             return Response(results, status=status.HTTP_200_OK)
 
         except Exception as e:
+            logger.error("Failed to add teachers to license %s", pk, exc_info=e)
             return Response(
-                {"error": str(e)},
+                {
+                    "error": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "We couldn't add these teachers to the license. "
+                            "Please try again, or contact support if this "
+                            "continues."
+                        ),
+                    )
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -354,8 +365,21 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
                     )
                 successful += 1
             except Exception as e:
+                logger.error(
+                    "Failed to remove teacher %s from license", teacher_id, exc_info=e
+                )
                 failed += 1
-                errors.append({"teacher_id": teacher_id, "error": str(e)})
+                errors.append(
+                    {
+                        "teacher_id": teacher_id,
+                        "error": describe_user_error(
+                            e,
+                            fallback_message=(
+                                "We couldn't remove this teacher from the " "license."
+                            ),
+                        ),
+                    }
+                )
 
         return Response(
             {"successful": successful, "failed": failed, "errors": errors},
@@ -391,8 +415,19 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
             )
 
         except Exception as e:
+            logger.error(
+                "Failed to process manual renewal for license %s", pk, exc_info=e
+            )
             return Response(
-                {"error": str(e)},
+                {
+                    "error": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "Renewal could not be processed. Please try "
+                            "again, or contact support if this continues."
+                        ),
+                    )
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -690,7 +725,8 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
             )
             return Response(
                 {
-                    "detail": f"Payment failed: {getattr(exc, 'user_message', None) or str(exc)}"
+                    "detail": "Payment failed: "
+                    + describe_stripe_error(exc, fallback_message="Please try again.")
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -883,7 +919,21 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
                 license_sub, request.user
             )
         except stripe.error.StripeError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            logger.error(
+                "Failed to create setup intent for license %s", pk, exc_info=exc
+            )
+            return Response(
+                {
+                    "detail": describe_stripe_error(
+                        exc,
+                        fallback_message=(
+                            "We couldn't set up your payment method with our "
+                            "payment provider. Please try again."
+                        ),
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         return Response(
             {"client_secret": setup_intent.client_secret}, status=status.HTTP_200_OK

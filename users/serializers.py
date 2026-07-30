@@ -5,6 +5,7 @@ from django.db import transaction
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
+from AutoGrader.error_messages import describe_user_error
 from billing.serializers import CreditWalletSerializer
 from billing.services import AnalyticsService
 from classrooms.models import School
@@ -186,7 +187,16 @@ class CustomUserSerializer(serializers.ModelSerializer):
                 return user
 
         except Exception as e:
-            raise serializers.ValidationError(str(e), code="User creation error") from e
+            logger.error("User creation failed", exc_info=e)
+            raise serializers.ValidationError(
+                describe_user_error(
+                    e,
+                    fallback_message=(
+                        "We couldn't create your account. Please try again."
+                    ),
+                ),
+                code="user_creation_error",
+            ) from e
 
     def update(self, instance, validated_data):
         try:
@@ -202,9 +212,16 @@ class CustomUserSerializer(serializers.ModelSerializer):
                 instance.save()
                 return instance
         except Exception as e:
+            logger.error("User update failed", exc_info=e)
             raise serializers.ValidationError(
-                str(e), code="User update error"
-            ) from Exception
+                describe_user_error(
+                    e,
+                    fallback_message=(
+                        "We couldn't update your account. Please try again."
+                    ),
+                ),
+                code="user_update_error",
+            ) from e
 
 
 class GoogleUserSerializer(CustomUserSerializer):

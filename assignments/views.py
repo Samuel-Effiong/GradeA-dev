@@ -1,5 +1,6 @@
 import hashlib
 import json
+import logging
 import re
 import uuid
 from io import BytesIO
@@ -40,6 +41,7 @@ from weasyprint import HTML
 
 from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor  # pdf_service
+from AutoGrader.error_messages import describe_user_error
 
 # from ai_processor.tools import encode_image
 from classrooms.models import Course, Topic
@@ -84,6 +86,8 @@ from .tasks import (  # grade_all_submissions,
     update_assignment_background_task,
     upload_assignment_async,
 )
+
+logger = logging.getLogger(__name__)
 
 # from billing.access_control import require_ai_access
 
@@ -799,8 +803,22 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 # results.append(assignment_questions)
 
             except Exception as e:
-                # raise ParseError(str(e)) from Exception
-                failed.append({"file_name": file_name, "error": str(e)})
+                logger.error(
+                    "Failed to extract assignment from file %s", file_name, exc_info=e
+                )
+                failed.append(
+                    {
+                        "file_name": file_name,
+                        "error": describe_user_error(
+                            e,
+                            fallback_message=(
+                                "Could not extract an assignment from this "
+                                "file. Please check the file format and try "
+                                "again."
+                            ),
+                        ),
+                    }
+                )
 
         # with transaction.atomic():
         #     serializer = AssignmentSerializer(data=results, many=True)
@@ -1204,8 +1222,18 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
             return Response(data, status=status.HTTP_201_CREATED)
         except Exception as e:
+            logger.error("Failed to generate assignment from prompt", exc_info=e)
             return Response(
-                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {
+                    "error": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "We couldn't generate an assignment right now. "
+                            "Please try again in a moment."
+                        ),
+                    )
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     @extend_schema(
@@ -1779,8 +1807,18 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             base_url = request.build_absolute_uri("/")
             pdf_bytes = HTML(string=full_html, base_url=base_url).write_pdf()
         except Exception as e:
+            logger.error("PDF generation failed", exc_info=e)
             return Response(
-                {"error": f"PDF generation failed: {str(e)}"},
+                {
+                    "error": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "We couldn't generate the PDF for this "
+                            "assignment. Please try again or contact "
+                            "support if this continues."
+                        ),
+                    )
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
