@@ -44,7 +44,6 @@ from rest_framework.status import (
 
 from ai_processor.services import ai_processor
 from assignments.models import Assignment, AssignmentStatus
-from AutoGrader.error_messages import describe_user_error
 from assignments.serializers import (
     BatchUploadResponseSerializer,
     ScheduledGradingResponseSerializer,
@@ -56,6 +55,7 @@ from assignments.tasks import (
     grade_engine_async,
     upload_answers_engine_async,
 )
+from AutoGrader.error_messages import describe_user_error
 from classrooms.permissions import IsStudent, IsTeacher, IsTeacherOrReadOnly
 from users.mixins import UserCacheMixin
 from users.models import CustomUser, UserTypes
@@ -519,7 +519,18 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
                 return Response(serializer.data, status=HTTP_201_CREATED)
         except Exception as e:
-            return Response({"error": str(e)}, status=HTTP_500_INTERNAL_SERVER_ERROR)
+            logger.error("Failed to save submission update", exc_info=e)
+            return Response(
+                {
+                    "error": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "We couldn't save your update. Please try again."
+                        ),
+                    )
+                },
+                status=HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     @extend_schema(
         tags=["07 Student Submissions"],
@@ -550,7 +561,19 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             return Response(serializer.data, status=HTTP_200_OK)
 
         except Exception as e:
-            return Response({"error": str(e)}, status=HTTP_500_INTERNAL_SERVER_ERROR)
+            logger.error("Grading failed", exc_info=e)
+            return Response(
+                {
+                    "error": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "Grading failed. Please try again — if the "
+                            "problem continues, contact support."
+                        ),
+                    )
+                },
+                status=HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     @extend_schema(
         tags=["07 Student Submissions"],

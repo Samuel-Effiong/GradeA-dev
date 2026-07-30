@@ -1,5 +1,6 @@
 import csv
 import io
+import logging
 
 from dateutil.relativedelta import relativedelta
 from django.conf import settings
@@ -55,6 +56,7 @@ from rest_framework.response import Response
 # from ai_processor.services import ai_processor
 from assignments.models import Assignment
 from assignments.serializers import TaskInfoSerializer
+from AutoGrader.error_messages import describe_user_error
 from AutoGrader.tasks import send_email_task
 from billing.models import CreditUsageLog
 from classrooms.permissions import CanManageSession, IsNotStudent
@@ -98,6 +100,8 @@ from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
     TopicSerializer,
 )
 from .tasks import student_summary_async
+
+logger = logging.getLogger(__name__)
 
 
 def _is_email_value(value):
@@ -1309,8 +1313,17 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
             detail = e.message_dict if hasattr(e, "message_dict") else e.messages
             raise ValidationError(detail) from e
         except Exception as e:
+            logger.error("Failed to add student to course", exc_info=e)
             return Response(
-                {"detail": f"Failed to process student: {str(e)}"},
+                {
+                    "detail": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "We couldn't add this student to the course. "
+                            "Please try again."
+                        ),
+                    )
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -1345,10 +1358,17 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
             detail = e.message_dict if hasattr(e, "message_dict") else e.messages
             raise ValidationError(detail) from e
         except Exception as e:
+            logger.error("Failed to direct-add student to course", exc_info=e)
             return Response(
                 {
                     "message": "Unable to add student to course",
-                    "detail": f"Failed to process student: {str(e)}",
+                    "detail": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "We couldn't add this student to the course. "
+                            "Please try again."
+                        ),
+                    ),
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
@@ -1589,11 +1609,23 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                                 )
                                 failure_count += 1
             except Exception as e:
+                logger.error(
+                    "Failed to bulk-add student %s %s",
+                    first_name,
+                    last_name,
+                    exc_info=e,
+                )
                 results.append(
                     {
                         "name": f"{first_name} {last_name}",
                         "status": "failed",
-                        "error": str(e),
+                        "error": describe_user_error(
+                            e,
+                            fallback_message=(
+                                "Could not add this student — check the row "
+                                "data and try again."
+                            ),
+                        ),
                     }
                 )
                 failure_count += 1
@@ -1765,8 +1797,16 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     status=status.HTTP_200_OK,
                 )
         except Exception as e:
+            logger.error("Failed to remove student from course", exc_info=e)
             return Response(
-                {"detail": f"Failed to remove student: {str(e)}"},
+                {
+                    "detail": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "We couldn't remove this student from the " "course."
+                        ),
+                    )
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -1866,8 +1906,17 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
 
         except Exception as e:
+            logger.error("Failed to renew activation token", exc_info=e)
             return Response(
-                {"detail": f"Failed to renew token: {str(e)}"},
+                {
+                    "detail": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "We couldn't renew the activation link. Please "
+                            "try again."
+                        ),
+                    )
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 

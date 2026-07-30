@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 
 from django.core.cache import cache
@@ -39,6 +40,7 @@ from rest_framework.response import Response
 from ai_processor.models import AssistantType, ChatMessage, ChatSession, RoleType
 from ai_processor.services import AI_CONFIDENCE_THRESHOLD, ai_processor
 from assignments.models import Assignment, AssignmentStatus
+from AutoGrader.error_messages import describe_user_error
 
 # from assignments.services import AssignmentProcessingService
 from classrooms.models import (
@@ -87,6 +89,8 @@ from users.services import (
     get_peak_time_of_day,
     get_time_range,
 )
+
+logger = logging.getLogger(__name__)
 
 # from dashboard.services import DashboardService
 
@@ -1062,8 +1066,18 @@ class SuperAdminDashboardView(viewsets.ViewSet):
 
                 return Response(serializer.data)
         except Exception as e:
+            logger.error("Custom AI prompt failed", exc_info=e)
             return Response(
-                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {
+                    "error": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "We couldn't generate a response right now. "
+                            "Please try again."
+                        ),
+                    )
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     @extend_schema(
@@ -2240,8 +2254,18 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
 
                 return Response(serializer.data)
         except Exception as e:
+            logger.error("Custom AI prompt failed", exc_info=e)
             return Response(
-                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {
+                    "error": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "We couldn't generate a response right now. "
+                            "Please try again."
+                        ),
+                    )
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     @extend_schema(
@@ -3091,8 +3115,18 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 return Response(serializer.data)
 
         except Exception as e:
+            logger.error("Custom AI prompt failed", exc_info=e)
             return Response(
-                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {
+                    "error": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "We couldn't generate a response right now. "
+                            "Please try again."
+                        ),
+                    )
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     @extend_schema(

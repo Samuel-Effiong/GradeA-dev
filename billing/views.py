@@ -545,6 +545,10 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
     permission_classes = [IsAuthenticated, IsNotStudent]
     http_method_names = ["get", "head", "post", "patch", "delete", "options"]
 
+    # Shared TTL with IndividualPlanChangeService._LOCK_TIMEOUT_SECONDS since
+    # both lock the same key (billing:planchange:{user_id}).
+    _BILLING_MUTATION_LOCK_TIMEOUT_SECONDS = 30
+
     def get_queryset(self):
         return UserSubscription.objects.filter(user=self.request.user, is_active=True)
 
