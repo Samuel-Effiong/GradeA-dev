@@ -435,7 +435,9 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         Do not include any explanatory text before or after the JSON
         """
 
-        content = AssignmentProcessingService.prepare_ai_content(uploaded_file, prompt)
+        file_payload = AssignmentProcessingService.build_async_upload_payload(
+            uploaded_file
+        )
 
         task_id = None
 
@@ -450,7 +452,8 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             upload_answers_engine_async,
             processing_task,
             str(assignment.id),
-            content,
+            file_payload,
+            prompt,
             str(request.user.id),
         )
         task_id = task.id
@@ -950,9 +953,10 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             Do not include any explanatory text before or after the JSON
             """
 
-            # Prepare content for each file
-            content = AssignmentProcessingService.prepare_ai_content(
-                uploaded_file, prompt
+            # Read raw file bytes cheaply here; heavy rasterization/compression
+            # happens inside the Celery task, not on the request thread.
+            file_payload = AssignmentProcessingService.build_async_upload_payload(
+                uploaded_file
             )
 
             # Trigger individual async tasks for each paper
@@ -969,7 +973,8 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 upload_answers_engine_async,
                 processing_task,
                 str(assignment.id),
-                content,
+                file_payload,
+                prompt,
                 str(request.user.id),
                 session_id=str(session.id),
                 file_name=uploaded_file.name,

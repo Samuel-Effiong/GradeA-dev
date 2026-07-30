@@ -72,6 +72,12 @@ from .models import (
     get_tier_rank,
 )
 from .services import SubscriptionService
+from .subscription_resolver import (
+    SOURCE_INDIVIDUAL,
+    SOURCE_LICENSE_ADMIN,
+    SOURCE_LICENSE_TEACHER,
+    resolve_user_billing_context,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -129,6 +135,12 @@ class StripeCustomerService:
         consistent with this codebase's rule that local/Stripe-side state
         changes should be webhook-confirmed rather than assumed from a
         client-reported success.
+
+        set_as_default is explicitly "true" here (not left to the
+        webhook's default) so handle_setup_intent_succeeded's branching
+        logic is uniform across every SetupIntent origin — this flow's
+        existing always-default behavior is preserved by making that
+        choice explicit at creation time, not by an implicit fallback.
         """
         customer_id = StripeCustomerService.get_or_create_license_customer(
             license_sub, admin_user
@@ -137,7 +149,56 @@ class StripeCustomerService:
             customer=customer_id,
             payment_method_types=["card"],
             usage="off_session",
-            metadata={"license_id": str(license_sub.id)},
+            metadata={"license_id": str(license_sub.id), "set_as_default": "true"},
+        )
+
+    @staticmethod
+    def get_customer_for_request_user(user) -> str:
+        """
+        Resolves "the" Stripe customer for whoever is making a
+        payment-methods request, based on their CURRENT billing context
+        (a user has exactly one at a time — individual subscriber OR
+        license admin, never both). Teachers never manage billing
+        directly, so they (and anyone with no billing context at all)
+        are rejected here rather than silently resolving to nothing.
+
+        Raises:
+            ValueError: if the user is a license teacher or has no
+                billing context — callers should map this to 403.
+        """
+        context = resolve_user_billing_context(user)
+
+        if context.source == SOURCE_INDIVIDUAL:
+            return StripeCustomerService.get_or_create_customer(user)
+
+        if context.source == SOURCE_LICENSE_ADMIN:
+            return StripeCustomerService.get_or_create_license_customer(
+                context.license_subscription, user
+            )
+
+        if context.source == SOURCE_LICENSE_TEACHER:
+            raise ValueError(
+                "Teachers don't manage billing directly — payment methods "
+                "are managed by your school's license admin."
+            )
+
+        raise ValueError("No active subscription or license found for this account.")
+
+    @staticmethod
+    def create_setup_intent_for_request_user(user, set_as_default: bool = False):
+        """
+        General (non-license-specific) SetupIntent creator, used by the
+        payment-methods "add a card" endpoint. Unlike
+        create_license_setup_intent, set_as_default is caller-controlled
+        — adding a card should NOT silently change the customer's
+        default unless explicitly requested.
+        """
+        customer_id = StripeCustomerService.get_customer_for_request_user(user)
+        return stripe.SetupIntent.create(
+            customer=customer_id,
+            payment_method_types=["card"],
+            usage="off_session",
+            metadata={"set_as_default": "true" if set_as_default else "false"},
         )
 
 
@@ -3514,25 +3575,36 @@ class StripeWebhookHandler:
     @staticmethod
     def handle_setup_intent_succeeded(setup_intent):
         """
-        Attaches the newly-collected card as the customer's default invoice
-        payment method. This is what purchase_teacher_overage's
-        customer-level fallback reads from later. Deliberately webhook-driven
-        rather than done synchronously in a "confirm" endpoint, so we never
-        trust a client-supplied payment_method_id without Stripe having
-        actually confirmed the SetupIntent succeeded.
+        Optionally sets the newly-collected card as the customer's default
+        invoice payment method, gated on metadata.set_as_default rather
+        than on the presence of a license_id — this is now shared by the
+        license admin flow (create_license_setup_intent, always
+        set_as_default="true") and the general payment-methods "add a
+        card" endpoint (create_setup_intent_for_request_user,
+        caller-controlled). Every SetupIntent this codebase creates sets
+        this metadata key explicitly, so there is no implicit default
+        branch here.
+
+        Deliberately webhook-driven rather than done synchronously in a
+        "confirm" endpoint, so we never trust a client-supplied
+        payment_method_id without Stripe having actually confirmed the
+        SetupIntent succeeded. The card itself is already attached to the
+        customer by Stripe once the SetupIntent succeeds, regardless of
+        default status — nothing else needs to happen here when
+        set_as_default is false.
         """
         metadata = setup_intent.get("metadata", {}) or {}
-        license_id = metadata.get("license_id")
-        if not license_id:
+        should_set_default = metadata.get("set_as_default") == "true"
+        if not should_set_default:
             return
 
         payment_method_id = setup_intent.get("payment_method")
         customer_id = setup_intent.get("customer")
         if not payment_method_id or not customer_id:
             logger.warning(
-                "setup_intent.succeeded for license %s missing payment_method "
-                "or customer on the event object.",
-                license_id,
+                "setup_intent.succeeded (id=%s) missing payment_method or "
+                "customer on the event object.",
+                setup_intent.get("id"),
             )
             return
 
@@ -3543,14 +3615,12 @@ class StripeWebhookHandler:
             )
         except stripe.error.StripeError:
             logger.exception(
-                "Failed to set default payment method for license %s " "(customer %s).",
-                license_id,
+                "Failed to set default payment method for customer %s.",
                 customer_id,
             )
             return
 
         logger.info(
-            "Default payment method set for license %s (customer %s).",
-            license_id,
+            "Default payment method set for customer %s.",
             customer_id,
         )

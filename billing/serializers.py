@@ -2113,6 +2113,22 @@ class LicenseOveragePurchaseResultSerializer(serializers.Serializer):
     allocations = serializers.ListField(required=False)
 
 
+class PaymentMethodSerializer(serializers.Serializer):
+    """
+    Not model-backed — every field here is read live from a Stripe
+    PaymentMethod object, never persisted locally. Exists purely so
+    drf_spectacular has a declared response shape, matching the
+    convention every other endpoint in this codebase follows.
+    """
+
+    id = serializers.CharField()
+    brand = serializers.CharField()
+    last4 = serializers.CharField()
+    exp_month = serializers.IntegerField()
+    exp_year = serializers.IntegerField()
+    is_default = serializers.BooleanField()
+
+
 class LicenseOverageOfflineRequestListSerializer(serializers.ModelSerializer):
     """
     Superadmin review-queue row for a LicenseOverageOfflineRequest. Shows

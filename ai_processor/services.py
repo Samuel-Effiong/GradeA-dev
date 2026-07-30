@@ -20,7 +20,7 @@ from pdf2image import convert_from_bytes
 from PIL import Image
 
 # from ai_processor.models import ChatMessage, ChatSession
-from ai_processor.tools import encode_image, perform_search
+from ai_processor.tools import compress_image_for_upload, encode_image, perform_search
 from ai_processor.validators import logger
 from billing.access_control import (
     NO_CREDITS_REMAINING_REASON,
@@ -2507,6 +2507,8 @@ Turn this data into concise school-admin-facing narration.
 
 
 class PDFService:
+    MAX_PAGE_COUNT = 1000
+
     def __init__(self, uploaded_file: UploadedFile = None):
         # self.ocr_service = OCRService()
 
@@ -2534,12 +2536,16 @@ class PDFService:
 
         images = convert_from_bytes(pdf_bytes)
 
+        if len(images) > self.MAX_PAGE_COUNT:
+            raise ValueError(
+                f"PDF has {len(images)} pages, which exceeds the maximum "
+                f"of {self.MAX_PAGE_COUNT} pages allowed per upload."
+            )
+
         images_byte = []
 
         for image in images:
-            buffered = BytesIO()
-            image.save(buffered, format="PNG")
-            image_byte = buffered.getvalue()
+            image_byte = compress_image_for_upload(image)
             encoded_image_byte = encode_image(image_byte=image_byte)
             images_byte.append(encoded_image_byte)
 

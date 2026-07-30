@@ -553,7 +553,8 @@ def format_grade(self, submission_id, prompt, processing_task_id=None):
 def upload_answers_engine_async(
     self,
     assignment_id,
-    content,
+    file_payload,
+    prompt,
     user_id,
     session_id=None,
     file_name=None,
@@ -570,6 +571,16 @@ def upload_answers_engine_async(
         user = CustomUser.objects.get(id=user_id)
 
         is_teacher = user.user_type == UserTypes.TEACHER
+
+        self.update_state(
+            state="PROGRESS", meta={"step": "Preparing submission content"}
+        )
+        update_processing_task(
+            processing_task_id, meta={"step": "Preparing submission content"}
+        )
+        ensure_task_not_cancelled(processing_task_id)
+        uploaded_file = AssignmentProcessingService.rebuild_uploaded_file(file_payload)
+        content = AssignmentProcessingService.prepare_ai_content(uploaded_file, prompt)
 
         self.update_state(state="PROGRESS", meta={"step": "Extracting answers"})
         update_processing_task(processing_task_id, meta={"step": "Extracting answers"})
@@ -706,7 +717,8 @@ def upload_assignment_async(
     course_id,
     topic_id=None,
     session_id=None,
-    content=None,
+    file_payload=None,
+    prompt_text=None,
     file_name=None,
     processing_task_id=None,
 ):
@@ -720,6 +732,15 @@ def upload_assignment_async(
         user = CustomUser.objects.get(id=user_id)
         course = Course.objects.get(id=course_id, teacher=user)
         topic = Topic.objects.get(id=topic_id) if topic_id else None
+
+        update_processing_task(
+            processing_task_id, meta={"step": "Preparing assignment content"}
+        )
+        ensure_task_not_cancelled(processing_task_id)
+        uploaded_file = AssignmentProcessingService.rebuild_uploaded_file(file_payload)
+        content = AssignmentProcessingService.prepare_ai_content(
+            uploaded_file, prompt_text
+        )
 
         update_processing_task(
             processing_task_id, meta={"step": "Extracting assignment"}

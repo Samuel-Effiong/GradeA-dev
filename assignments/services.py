@@ -4,6 +4,7 @@ import re
 
 # import string
 from datetime import datetime
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 
@@ -12,13 +13,18 @@ from django.core.files.uploadedfile import SimpleUploadedFile, UploadedFile
 from django.db import transaction
 from django.utils import timezone
 from lxml import html
+from PIL import Image
 from prosemirror.model import DOMParser, Schema
 from prosemirror.schema.basic import schema as basic_schema
 from prosemirror.schema.list import add_list_nodes
 from rest_framework.exceptions import ParseError
 
 from ai_processor.services import ai_processor, pdf_service
-from ai_processor.tools import encode_image
+from ai_processor.tools import (
+    ImageCompressionError,
+    compress_image_for_upload,
+    encode_image,
+)
 from students.task_tracking import (
     ensure_task_not_cancelled,
     lock_processing_task_for_final_save,
@@ -91,25 +97,31 @@ class AssignmentProcessingService:
         content: list[dict[str, Any]] = [{"type": "text", "text": prompt_text}]
 
         if uploaded_file.content_type in cls.IMAGE_FORMATS:
-            base64_data = encode_image(uploaded_file)
+            try:
+                image = Image.open(BytesIO(uploaded_file.read()))
+                compressed_bytes = compress_image_for_upload(image)
+            except ImageCompressionError as exc:
+                raise ParseError(str(exc)) from exc
+            base64_data = encode_image(image_byte=compressed_bytes)
             content.append(
                 {
                     "type": "image_url",
-                    "image_url": {
-                        "url": f"data:{uploaded_file.content_type};base64,{base64_data}"
-                    },
+                    "image_url": {"url": f"data:image/jpeg;base64,{base64_data}"},
                     "bytes": base64_data,
                 }
             )
         elif uploaded_file.content_type == cls.PDF_FORMAT:
             pdf_service.set_uploaded_file(uploaded_file)
-            images = pdf_service.extract()
+            try:
+                images = pdf_service.extract()
+            except (ValueError, ImageCompressionError) as exc:
+                raise ParseError(str(exc)) from exc
 
             for image in images:
                 content.append(
                     {
                         "type": "image_url",
-                        "image_url": {"url": f"data:image/PNG;base64,{image}"},
+                        "image_url": {"url": f"data:image/jpeg;base64,{image}"},
                         "bytes": image,
                     }
                 )

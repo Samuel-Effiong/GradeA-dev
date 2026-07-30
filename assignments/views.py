@@ -953,8 +953,8 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             Do not include any explanatory text before or after the JSON
             """
 
-            content = AssignmentProcessingService.prepare_ai_content(
-                uploaded_file, prompt_text=prompt_text
+            file_payload = AssignmentProcessingService.build_async_upload_payload(
+                uploaded_file
             )
 
             processing_task = create_processing_task(
@@ -971,7 +971,8 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 course_id=str(course.id),
                 topic_id=str(topic.id) if topic else None,
                 session_id=str(session.id),
-                content=content,
+                file_payload=file_payload,
+                prompt_text=prompt_text,
                 file_name=uploaded_file.name,
             )
             tasks_data.append({"file_name": uploaded_file.name, "task_id": task.id})
