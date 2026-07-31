@@ -34,7 +34,6 @@ from rest_framework.exceptions import (
     ValidationError,
 )
 from rest_framework.filters import OrderingFilter, SearchFilter
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from weasyprint import HTML
@@ -42,6 +41,7 @@ from weasyprint import HTML
 from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor  # pdf_service
 from AutoGrader.error_messages import describe_user_error
+from AutoGrader.pagination import StandardPageNumberPagination
 
 # from ai_processor.tools import encode_image
 from classrooms.models import Course, Topic
@@ -104,6 +104,20 @@ logger = logging.getLogger(__name__)
     list=extend_schema(
         tags=["Assignments"],
         summary="List all assignments",
+        parameters=[
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page (max 100)",
+            ),
+        ],
         responses={
             200: AssignmentListSerializer(many=True),  # Use the standard serializer
         },
@@ -273,7 +287,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
     queryset = Assignment.objects.all()
     serializer_class = AssignmentSerializer
     permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
     generation_history_message_limit = 12
 
@@ -1837,6 +1851,20 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         tags=["Assignment Generation Sessions"],
         summary="List assignment generation sessions",
         description="Retrieve a paginated list of assignment-generation chat sessions for the current user.",
+        parameters=[
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page (max 100)",
+            ),
+        ],
         responses={
             200: AssignmentGenerationSessionSerializer(many=True),
             401: OpenApiResponse(
@@ -1875,7 +1903,7 @@ class AssignmentGenerationSessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     queryset = AssignmentGenerationSession.objects.all()
     serializer_class = AssignmentGenerationSessionSerializer
     permission_classes = (IsAuthenticated,)
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "delete", "options"]
 
     filter_backends = [DjangoFilterBackend, OrderingFilter]

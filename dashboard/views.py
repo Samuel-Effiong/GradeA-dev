@@ -656,39 +656,70 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         - Academic Activity: Total courses and assignments created.
         - Performance Indicators: Average student performance (final grades) within the school.
         """,
+        parameters=[
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page (max 100)",
+            ),
+        ],
         responses={200: SchoolAnalyticsSerializer(many=True)},
     )
     # @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:schools"))
     # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/schools")
     def schools(self, request, *args, **kwargs):
-
-        cache_key = f"superadmins:user_id__{request.user.id}:view__schools"
+        paginator = StandardPageNumberPagination()
+        page_number = request.query_params.get(paginator.page_query_param, "1")
+        page_size = request.query_params.get(paginator.page_size_query_param, "")
+        cache_key = (
+            f"superadmins:user_id__{request.user.id}:view__schools"
+            f":{page_number}:{page_size}"
+        )
         data = cache.get(cache_key)
 
         if data is None:
 
-            schools = School.objects.all().annotate(
-                teacher_count=Count(
-                    "users",
-                    filter=Q(users__user_type=UserTypes.TEACHER, users__is_active=True),
-                    distinct=True,
-                ),
-                student_count=Count(
-                    "users",
-                    filter=Q(users__user_type=UserTypes.STUDENT, users__is_active=True),
-                    distinct=True,
-                ),
-                course_count=Count("users__courses", distinct=True),
-                performance=Avg(
-                    "users__courses__enrollments__final_grade",
-                    filter=Q(users__user_type=UserTypes.TEACHER),
-                ),
-                total_assignments=Count("users__courses__assignments", distinct=True),
-                # total_completed_assignments=Count("users__courses__assignments__submissions",
-                #                                   filter=Q(users__courses__assignments__submission__is_completed=True),
-                #                                   distinct=True),
+            schools = (
+                School.objects.all()
+                .annotate(
+                    teacher_count=Count(
+                        "users",
+                        filter=Q(
+                            users__user_type=UserTypes.TEACHER, users__is_active=True
+                        ),
+                        distinct=True,
+                    ),
+                    student_count=Count(
+                        "users",
+                        filter=Q(
+                            users__user_type=UserTypes.STUDENT, users__is_active=True
+                        ),
+                        distinct=True,
+                    ),
+                    course_count=Count("users__courses", distinct=True),
+                    performance=Avg(
+                        "users__courses__enrollments__final_grade",
+                        filter=Q(users__user_type=UserTypes.TEACHER),
+                    ),
+                    total_assignments=Count(
+                        "users__courses__assignments", distinct=True
+                    ),
+                    # total_completed_assignments=Count("users__courses__assignments__submissions",
+                    #                                   filter=Q(users__courses__assignments__submission__is_completed=True),
+                    #                                   distinct=True),
+                )
+                .order_by("name")
             )
+
+            schools = paginator.paginate_queryset(schools, request, view=self)
 
             result = []
             for school in schools:
@@ -710,7 +741,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
                 )
 
             serializer = SchoolAnalyticsSerializer(result, many=True)
-            data = serializer.data
+            data = paginator.get_paginated_response(serializer.data).data
 
             cache.set(cache_key, data, 60 * 15)
 
@@ -729,6 +760,20 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         - Academic Performance: Average student performance (final grades) across all their courses.
         - Engagement: Assignment completion rates (actual submissions vs. expected based on enrollments).
         """,
+        parameters=[
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page (max 100)",
+            ),
+        ],
         responses={200: TeacherPerformanceSerializer(many=True)},
     )
     # @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:teachers"))
@@ -743,7 +788,13 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         - Assignment completion rates per teacher
         """
 
-        cache_key = f"superadmins:user_id__{request.user.id}:view__teachers"
+        paginator = StandardPageNumberPagination()
+        page_number = request.query_params.get(paginator.page_query_param, "1")
+        page_size = request.query_params.get(paginator.page_size_query_param, "")
+        cache_key = (
+            f"superadmins:user_id__{request.user.id}:view__teachers"
+            f":{page_number}:{page_size}"
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -762,6 +813,8 @@ class SuperAdminDashboardView(viewsets.ViewSet):
                     "courses__assignments__submissions", distinct=True
                 ),
             )
+
+            teachers = paginator.paginate_queryset(teachers, request, view=self)
 
             performance_data = []
             for teacher in teachers:
@@ -795,7 +848,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
                 )
 
             serializer = TeacherPerformanceSerializer(performance_data, many=True)
-            data = serializer.data
+            data = paginator.get_paginated_response(serializer.data).data
 
             cache.set(cache_key, data, 60 * 15)
         return Response(data)

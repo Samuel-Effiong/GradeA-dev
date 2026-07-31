@@ -40,7 +40,6 @@ from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action  # , api_view
 from rest_framework.exceptions import NotFound, ParseError, ValidationError
 from rest_framework.filters import OrderingFilter, SearchFilter
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.exceptions import TokenError
@@ -55,6 +54,7 @@ from rest_framework_simplejwt.views import (
 from rest_framework_simplejwt.views import TokenRefreshView as BaseTokenRefreshView
 
 from AutoGrader.error_messages import describe_user_error
+from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.tasks import send_email_task
 from billing.services import AnalyticsService
 from classrooms.models import EnrollmentStatusType, StudentCourse
@@ -116,7 +116,7 @@ class BaseUserViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
     serializer_class = CustomUserSerializer
     permission_classes = (IsAuthenticated,)
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
     filterset_fields = {
@@ -228,7 +228,7 @@ class CustomUserViewSet(UserCacheMixin, viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
     serializer_class = CustomUserSerializer
     permission_classes = (IsAuthenticated,)
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
     filterset_fields = {
@@ -450,7 +450,7 @@ class SettingsViewSet(UserCacheMixin, viewsets.ModelViewSet):
     queryset = Settings.objects.all()
     serializer_class = SettingsSerializer
     permission_classes = (IsAuthenticated,)
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "patch", "options"]
 
     filterset_fields = {
@@ -1998,6 +1998,20 @@ class TaskViewSet(viewsets.ViewSet):
         tags=["Beta Whitelist"],
         summary="List all beta whitelisted emails",
         description="Retrieve a paginated list of all emails that are whitelisted for the private beta.",
+        parameters=[
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page (max 100)",
+            ),
+        ],
         responses={200: BetaWhitelistSerializer(many=True)},
     ),
     create=extend_schema(
@@ -2037,7 +2051,7 @@ class BetaWhitelistViewSet(viewsets.ModelViewSet):
     queryset = BetaWhitelist.objects.all()
     serializer_class = BetaWhitelistSerializer
     permission_classes = [AllowAny]  # [IsAuthenticated, IsSuperAdmin]
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     search_fields = ["email", "mode"]
@@ -2049,6 +2063,20 @@ class BetaWhitelistViewSet(viewsets.ModelViewSet):
         tags=["Waitlist"],
         summary="List all waitlist entries",
         description="Retrieve a paginated list of all users currently on the waiting list.",
+        parameters=[
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page (max 100)",
+            ),
+        ],
         responses={200: WaitlistSerializer(many=True)},
     ),
     retrieve=extend_schema(
@@ -2074,7 +2102,7 @@ class WaitlistViewSet(viewsets.ModelViewSet):
     queryset = Waitlist.objects.all()
     serializer_class = WaitlistSerializer
     permission_classes = [AllowAny]  # [IsAuthenticated, IsSuperAdmin]
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "post", "delete", "head", "options"]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     search_fields = ["email"]

@@ -2276,6 +2276,18 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                 required=False,
                 description="Search by user's first name, last name, middle name, or email",
             ),
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page (max 100)",
+            ),
         ],
         responses={
             200: OpenApiResponse(
@@ -2373,6 +2385,9 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             )
         )
 
+        page = self.paginate_queryset(leads)
+        leads = page if page is not None else leads
+
         # 3. Structure the response for the Sales Team
         data = []
         for p in leads:
@@ -2413,6 +2428,8 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             )
 
         serializer = ConversionLeadSerializer(data, many=True)
+        if page is not None:
+            return self.get_paginated_response(serializer.data)
         return Response(serializer.data)
 
     @extend_schema(

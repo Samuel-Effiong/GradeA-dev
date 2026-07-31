@@ -49,7 +49,6 @@ from rest_framework.exceptions import (
     ValidationError,
 )
 from rest_framework.filters import OrderingFilter, SearchFilter
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
@@ -57,6 +56,7 @@ from rest_framework.response import Response
 from assignments.models import Assignment
 from assignments.serializers import TaskInfoSerializer
 from AutoGrader.error_messages import describe_user_error
+from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.tasks import send_email_task
 from billing.models import CreditUsageLog
 from classrooms.permissions import CanManageSession, IsNotStudent
@@ -164,6 +164,18 @@ def _parse_row_without_headers(row):
                     Allowed: admin_name, admin_email.
                 """,
             ),
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page (max 100)",
+            ),
         ],
         responses={200: SchoolSummarySerializer(many=True)},
     ),
@@ -214,7 +226,7 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
     queryset = School.objects.all()
     serializer_class = SchoolSerializer
     permission_classes = (IsNotStudent,)
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -1007,7 +1019,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
     permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -2207,7 +2219,7 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     queryset = Session.objects.all()
     serializer_class = SessionSerializer
     permission_classes = (IsAuthenticated, CanManageSession)
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
     filter_backends = (DjangoFilterBackend, SearchFilter, OrderingFilter)
@@ -2395,7 +2407,7 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
     queryset = StudentCourse.objects.all()
     serializer_class = StudentCourseSerializer
     permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "delete", "patch", "options"]
     #
     # @method_decorator(cache_page(60 * 3, key_prefix="studentcourses:list"))
@@ -2588,7 +2600,7 @@ class CourseCategoryViewSet(UserCacheMixin, viewsets.ModelViewSet):
     queryset = CourseCategory.objects.all()
     serializer_class = CourseCategorySerializer
     permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = {
@@ -2722,7 +2734,7 @@ class TopicViewSet(UserCacheMixin, viewsets.ModelViewSet):
     queryset = Topic.objects.all()
     serializer_class = TopicSerializer
     permission_class = (IsAuthenticated, IsTeacherOrReadOnly)
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "option"]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ("name", "course__name")

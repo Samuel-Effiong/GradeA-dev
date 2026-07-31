@@ -985,12 +985,31 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
             "plan/seat changes, billing-method conversions, and manual "
             "overage grants for this license."
         ),
+        parameters=[
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page (max 100)",
+            ),
+        ],
         responses={200: LicenseBillingRecordSerializer(many=True)},
     )
     @action(detail=True, methods=["get"], url_path="billing-history")
     def billing_history(self, request, pk=None):
         license_sub = self.get_object()
         records = license_sub.billing_records.all()
+        page = self.paginate_queryset(records)
+        if page is not None:
+            serializer = LicenseBillingRecordSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
         return Response(LicenseBillingRecordSerializer(records, many=True).data)
 
 

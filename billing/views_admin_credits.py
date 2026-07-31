@@ -10,7 +10,13 @@ Import and register this viewset in billing/urls.py.
 from django.db.models import Sum
 
 # from django.utils import timezone
-from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import (
+    OpenApiExample,
+    OpenApiParameter,
+    OpenApiResponse,
+    extend_schema,
+)
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ParseError
@@ -140,6 +146,20 @@ class AdminCreditManagementViewSet(viewsets.GenericViewSet):
 
         Pass `user_id` as a path parameter.
         """,
+        parameters=[
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page (max 100)",
+            ),
+        ],
         responses={
             200: OpenApiResponse(
                 response=ManualGrantBucketSerializer(many=True),
@@ -165,6 +185,11 @@ class AdminCreditManagementViewSet(viewsets.GenericViewSet):
             # )
 
         grants = ManualCreditService.get_grant_history(target_user)
+        page = self.paginate_queryset(grants)
+        if page is not None:
+            serializer = ManualGrantBucketSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
         serializer = ManualGrantBucketSerializer(grants, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -182,6 +207,20 @@ class AdminCreditManagementViewSet(viewsets.GenericViewSet):
         Use this for a platform-wide audit of credit grants issued outside of
         subscription plans.
         """,
+        parameters=[
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page (max 100)",
+            ),
+        ],
         responses={
             200: OpenApiResponse(
                 response=ManualGrantBucketSerializer(many=True),
@@ -192,6 +231,11 @@ class AdminCreditManagementViewSet(viewsets.GenericViewSet):
     @action(detail=False, methods=["get"], url_path="grants/all")
     def all_grants(self, request, *args, **kwargs):
         grants = ManualCreditService.get_all_grants_summary()
+        page = self.paginate_queryset(grants)
+        if page is not None:
+            serializer = ManualGrantBucketSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
         serializer = ManualGrantBucketSerializer(grants, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

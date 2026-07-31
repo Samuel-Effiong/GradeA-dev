@@ -31,7 +31,6 @@ from rest_framework import filters, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotAcceptable, NotFound, ParseError
 from rest_framework.filters import OrderingFilter, SearchFilter
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.status import (
@@ -56,6 +55,7 @@ from assignments.tasks import (
     upload_answers_engine_async,
 )
 from AutoGrader.error_messages import describe_user_error
+from AutoGrader.pagination import StandardPageNumberPagination
 from classrooms.permissions import IsStudent, IsTeacher, IsTeacherOrReadOnly
 from users.mixins import UserCacheMixin
 from users.models import CustomUser, UserTypes
@@ -166,7 +166,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     queryset = StudentSubmission.objects.all()
     serializer_class = StudentSubmissionSerializer
     permission_classes = (IsAuthenticated,)
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]

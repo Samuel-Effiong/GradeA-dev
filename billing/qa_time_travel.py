@@ -40,11 +40,16 @@ real, production webhook/Celery-triggered path this exists to validate.
 HARD GUARDRAILS (all independently enforced, all must pass)
 -------------------------------------------------------------
 1. `settings.ENABLE_BILLING_TIME_TRAVEL` must be explicitly True.
-2. `settings.DEBUG` must be True.
-3. The configured Stripe API key must be a TEST key (`sk_test_...`).
-4. Caller must pass IsSuperAdmin.
-Failing (1), (2), or (3) returns a bare 404 — not 403 — so a
-misconfigured production deployment gives no hint this endpoint exists.
+2. The configured Stripe API key must be a TEST key (`sk_test_...`).
+3. Caller must pass IsSuperAdmin.
+Failing (1) or (2) returns a bare 404 — not 403 — so a misconfigured
+deployment gives no hint this endpoint exists. There is deliberately NO
+`DEBUG`/`ENVIRONMENT` requirement — ENABLE_BILLING_TIME_TRAVEL is the
+single toggle controlling reachability, so whoever controls that one
+setting fully controls whether this endpoint is live. The Stripe
+test-key check (2) is what actually prevents it from ever mutating real
+subscription dates against LIVE Stripe data even if that toggle is
+mistakenly left on somewhere.
 """
 
 import logging
@@ -82,13 +87,17 @@ logger = logging.getLogger(__name__)
 
 def _time_travel_enabled() -> bool:
     """
-    All three conditions must hold. Any single failure disables the
-    feature entirely — this is intentionally NOT a "most conditions"
-    check; each guardrail is independently sufficient to block access.
+    Both conditions must hold. Any single failure disables the feature
+    entirely — this is intentionally NOT a "most conditions" check; each
+    guardrail is independently sufficient to block access.
+
+    Deliberately does NOT check settings.DEBUG/ENVIRONMENT —
+    ENABLE_BILLING_TIME_TRAVEL is the single toggle controlling whether
+    this endpoint is reachable at all, in any environment. The Stripe
+    test-key check still stands on its own regardless: even with the
+    toggle on, this can never run against a live (non-sk_test_) key.
     """
     if not getattr(settings, "ENABLE_BILLING_TIME_TRAVEL", False):
-        return False
-    if not getattr(settings, "DEBUG", False):
         return False
     api_key = getattr(stripe, "api_key", "") or ""
     if not api_key.startswith("sk_test_"):
@@ -566,9 +575,9 @@ class BillingTimeTravelView(APIView):
     @extend_schema(
         summary="QA: simulate subscription renewal (time travel)",
         description=(
-            "QA-only. Requires ENABLE_BILLING_TIME_TRAVEL=True, DEBUG=True, "
-            "a Stripe TEST key, and superadmin auth — returns 404 otherwise. "
-            "See billing/qa_time_travel.py module docstring for full details."
+            "QA-only. Requires ENABLE_BILLING_TIME_TRAVEL=True, a Stripe "
+            "TEST key, and superadmin auth — returns 404 otherwise. See "
+            "billing/qa_time_travel.py module docstring for full details."
         ),
         request=BillingTimeTravelRequestSerializer,
     )
