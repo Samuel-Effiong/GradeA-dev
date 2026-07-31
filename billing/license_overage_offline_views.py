@@ -10,12 +10,13 @@ superadmin-only endpoint groups.
 """
 
 from django_filters.rest_framework import DjangoFilterBackend
-from drf_spectacular.utils import extend_schema, extend_schema_view
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
 from rest_framework.response import Response
 
+from AutoGrader.pagination import StandardPageNumberPagination
 from classrooms.permissions import IsSuperAdmin
 
 from .license_service import LicenseSubscriptionService
@@ -32,6 +33,14 @@ from .serializers import (
         tags=["License Subscriptions"],
         summary="List offline overage requests",
         description="Superadmin-only list of offline overage requests.",
+        parameters=[
+            OpenApiParameter("page", int, description="Page number to retrieve."),
+            OpenApiParameter(
+                "page_size",
+                int,
+                description="Number of results per page (max 100).",
+            ),
+        ],
         responses={200: LicenseOverageOfflineRequestListSerializer(many=True)},
     ),
     retrieve=extend_schema(
@@ -65,6 +74,7 @@ class LicenseOverageOfflineRequestViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = LicenseOverageOfflineRequestListSerializer
     permission_classes = [IsSuperAdmin]
     http_method_names = ["get", "post", "options", "head"]
+    pagination_class = StandardPageNumberPagination
 
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = [

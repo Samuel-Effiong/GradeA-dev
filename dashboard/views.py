@@ -41,6 +41,7 @@ from ai_processor.models import AssistantType, ChatMessage, ChatSession, RoleTyp
 from ai_processor.services import AI_CONFIDENCE_THRESHOLD, ai_processor
 from assignments.models import Assignment, AssignmentStatus
 from AutoGrader.error_messages import describe_user_error
+from AutoGrader.pagination import StandardPageNumberPagination
 
 # from assignments.services import AssignmentProcessingService
 from classrooms.models import (
@@ -1430,6 +1431,20 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
 
     - Responses are cached for 5 minutes.
     """,
+        parameters=[
+            OpenApiParameter(
+                "page",
+                int,
+                location=OpenApiParameter.QUERY,
+                description="Page number to retrieve.",
+            ),
+            OpenApiParameter(
+                "page_size",
+                int,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page (max 100).",
+            ),
+        ],
         responses={
             200: OpenApiResponse(
                 response=TeacherPerformanceDashboardSerializer(many=True),
@@ -1463,7 +1478,10 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        cache_key = f"teacher_performance_{school.id}"
+        paginator = StandardPageNumberPagination()
+        page_number = request.query_params.get(paginator.page_query_param, "1")
+        page_size = request.query_params.get(paginator.page_size_query_param, "")
+        cache_key = f"teacher_performance_{school.id}_{page_number}_{page_size}"
         data = cache.get(cache_key)
 
         if data is not None:
@@ -1481,6 +1499,8 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
             "courses__assignments",
             "courses__assignments__submissions",
         )
+
+        teachers = paginator.paginate_queryset(teachers, request, view=self)
 
         result = []
 
@@ -1601,9 +1621,9 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 }
             )
 
-        # # Apply pagination to the list
         serializer = TeacherPerformanceDashboardSerializer(result, many=True)
-        data = serializer.data
+        response = paginator.get_paginated_response(serializer.data)
+        data = response.data
 
         cache.set(cache_key, data, 300)  # 5 minutes
         return Response(data)

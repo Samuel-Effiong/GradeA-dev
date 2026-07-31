@@ -622,14 +622,14 @@ class SchoolWithAdminSerializer(serializers.Serializer):
     admin_profile_image = serializers.ImageField(required=False, allow_null=True)
 
     def validate_admin_email(self, value):
-        from users.utils import is_business_email
+        from users.utils import is_business_email, is_exempt_email_domain
 
         value = value.lower().strip()
 
         # School admins are onboarded here by a superadmin, not self-registering,
         # so the beta whitelist/waitlist gate doesn't apply. We do still enforce
         # the same business-email requirement as the plain /schools/admin path.
-        if not is_business_email(value):
+        if not is_exempt_email_domain(value) and not is_business_email(value):
             raise serializers.ValidationError(
                 "Personal emails are not allowed for school admin accounts. "
                 "Please use a business email address."

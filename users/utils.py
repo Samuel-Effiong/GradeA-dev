@@ -28,6 +28,10 @@ DEFAULT_DISALLOWED_DOMAINS = [
     "hushmail.com",
 ]
 
+DEFAULT_EXEMPT_DOMAINS = [
+    "yopmail.com",
+]
+
 
 def get_cipher():
     """Derives a valid Fernet key from the Django SECRET_KEY."""
@@ -59,3 +63,14 @@ def is_business_email(email: str) -> bool:
     )
 
     return domain not in disallowed
+
+
+def is_exempt_email_domain(email: str) -> bool:
+    """Return True if the email domain is exempt from the personal/business
+    email restriction (e.g. testing domains like yopmail.com), and should be
+    accepted regardless of account type."""
+
+    domain = email.split("@")[-1].lower()
+    exempt = getattr(settings, "EXEMPT_EMAIL_DOMAINS", DEFAULT_EXEMPT_DOMAINS)
+
+    return domain in exempt

@@ -582,7 +582,14 @@ DISALLOWED_EMAIL_DOMAINS = [
     "gmx.com",
     "fastmail.com",
     "hushmail.com",
-    # "yopmail.com",
+    "yopmail.com",
+]
+
+# Domains exempt from the personal/business email restriction above -
+# accepted for both individual teacher (personal) and school admin/licensed
+# (business) account creation. Used for QA/testing addresses.
+EXEMPT_EMAIL_DOMAINS = [
+    "yopmail.com",
 ]
 
 

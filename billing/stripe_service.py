@@ -887,6 +887,23 @@ class StripeSubscriptionMutationService:
                 )
             ) from exc
 
+        if stripe_sub.get("cancel_at_period_end"):
+            # A subscription scheduled to cancel has no upcoming invoice
+            # for Stripe to preview (Invoice.create_preview fails with
+            # "No upcoming invoices for customer" below if we proceed) —
+            # reject early with an actionable message instead of letting
+            # that opaque Stripe error surface. Deliberately does NOT
+            # clear cancel_at_period_end here itself: SubscriptionManagement
+            # ViewSet.resume (billing/views.py) already owns reactivation,
+            # with its own staleness/PAST_DUE/billing_cycle_end checks and
+            # locking — duplicating a slice of that here would risk the
+            # two implementations drifting apart.
+            raise ValueError(
+                "Your subscription is scheduled to cancel at the end of "
+                "the current billing period. Resume your subscription "
+                "first, then try changing plans again."
+            )
+
         item_id = stripe_sub["items"]["data"][0]["id"]
         customer_id = stripe_sub["customer"]
 

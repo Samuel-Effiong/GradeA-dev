@@ -34,7 +34,7 @@ from AutoGrader.tasks import send_email_task
 from classrooms.models import School
 from users.models import CustomUser, RegistrationMethod, UserTypes
 from users.services import otp_manager
-from users.utils import is_business_email
+from users.utils import is_business_email, is_exempt_email_domain
 
 from .billing_transaction_service import BillingTransactionService
 from .context import clear_license_invitation_context, set_license_invitation_context
@@ -961,7 +961,7 @@ class LicenseSubscriptionService:
             raise ValueError("Teacher email is required")
 
         # 1. Business email validation
-        if not is_business_email(email):
+        if not is_exempt_email_domain(email) and not is_business_email(email):
             error_msg = f"Email {email} is not a business email. Only business emails are allowed."
 
             if raise_on_conflict:

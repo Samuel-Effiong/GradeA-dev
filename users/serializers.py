@@ -113,7 +113,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
         return bool(obj.email and str(obj.email).endswith("@student.local"))
 
     def validate(self, attrs):
-        from users.utils import is_business_email
+        from users.utils import is_business_email, is_exempt_email_domain
 
         # Determine user_type and email for this operation
         user_type = attrs.get("user_type")
@@ -138,7 +138,11 @@ class CustomUserSerializer(serializers.ModelSerializer):
                     )
 
         # Enforce email domain rules on account creation or when changing their email
-        if email and (is_creating or email_changed):
+        if (
+            email
+            and (is_creating or email_changed)
+            and not is_exempt_email_domain(email)
+        ):
             if user_type == UserTypes.TEACHER:
                 # Teachers (individual track) MUST use personal email
                 if is_business_email(email):
