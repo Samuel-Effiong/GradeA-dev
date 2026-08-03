@@ -1061,24 +1061,24 @@ class SubscriptionService:
 
     @staticmethod
     @transaction.atomic
-    def grant_overage_bucket(
-        wallet, plan, expires_at, quantity=1, stripe_payment_intent_id=None
-    ):
+    def grant_overage_bucket(wallet, plan, quantity=1, stripe_payment_intent_id=None):
         """Shared by the legacy auto-purchase path and the new Stripe-confirmed
         purchase paths (StripeOverageService + the payment_intent.uscceeded webhook fallback)
         so the bucket/ledger logic only lives in one place.
+
+        Overage blocks never expire (expires_at=None) — a purchased block
+        is a standing balance the customer paid for, and consumption
+        order already draws it down last, after every free/rollover
+        bucket. Tying it to the billing cycle it happened to be bought in
+        would forfeit paid-for value the customer never got to use.
         """
-
-        # expires_at = user_sub.next_credit_grant_a or user_sub.billing_cycle_end
-
-        # plan = user_sub.plan
 
         new_bucket = CreditBucket.objects.create(
             wallet=wallet,
             bucket_type=CreditBucketType.OVERAGE,
             total_credits=plan.overage_block_size * quantity,
             used_credits=0,
-            expires_at=expires_at,
+            expires_at=None,
         )
 
         CreditWallet.objects.filter(pk=wallet.pk).update(

@@ -2018,6 +2018,7 @@ class LicenseSubscriptionService:
                             license_subscription=license_sub,
                             stripe_invoice_id=latest_invoice_id,
                             stripe_subscription_id=license_sub.stripe_subscription_id,
+                            receipt_url=invoice.get("hosted_invoice_url"),
                             performed_by=performed_by,
                             description=f"Seats increased {old_seats} -> {new_max_seats}",
                         )
@@ -2166,7 +2167,6 @@ class LicenseSubscriptionService:
 
     @staticmethod
     def _grant_overage_blocks(
-        license_sub: LicenseSubscription,
         block_size: int,
         blocks_by_teacher: dict,
         allocation_by_teacher: dict,
@@ -2191,13 +2191,20 @@ class LicenseSubscriptionService:
             metadata, offline-approval metadata) without this helper
             knowing about any of those specifics.
 
+        Overage blocks never expire (expires_at=None) — deliberately NOT
+        tied to license_sub.billing_cycle_end. A purchased/granted block
+        is a standing balance the school/teacher paid for (or was
+        comp-granted); consumption order already guarantees it's drawn
+        down last, after every free/rollover bucket, so tying it to the
+        cycle it happened to be granted in would forfeit paid-for value
+        the customer never got a chance to use.
+
         Must be called from within an existing @transaction.atomic block —
         does not open its own.
 
         Returns a list of {"teacher_id", "teacher_email", "blocks",
         "credits_granted"} dicts, one per allocation granted.
         """
-        expiry = license_sub.billing_cycle_end
         granted_details = []
 
         for teacher_id_str, blocks in blocks_by_teacher.items():
@@ -2211,7 +2218,7 @@ class LicenseSubscriptionService:
                 bucket_type=CreditBucketType.OVERAGE,
                 total_credits=raw_credits,
                 used_credits=0,
-                expires_at=expiry,
+                expires_at=None,
             )
 
             CreditWallet.objects.filter(pk=wallet.pk).update(
@@ -2297,7 +2304,6 @@ class LicenseSubscriptionService:
         )
 
         granted_details = LicenseSubscriptionService._grant_overage_blocks(
-            license_sub=license_sub,
             block_size=plan.overage_block_size,
             blocks_by_teacher=allocations,
             allocation_by_teacher=alloc_by_teacher,
@@ -2325,8 +2331,9 @@ class LicenseSubscriptionService:
             license_billing_record=billing_record,
             performed_by=performed_by,
             description=(
-                f"Superadmin overage grant — {total_blocks} block(s) across "
-                f"{len(allocations)} teacher(s)"
+                f"Superadmin overage grant — "
+                f"{total_blocks * plan.display_overage_block_size:,} AI credit(s) "
+                f"across {len(allocations)} teacher(s)"
             ),
             occurred_at=timezone.now(),
         )
@@ -2611,7 +2618,6 @@ class LicenseSubscriptionService:
                     skipped.append({"teacher_id": teacher_id_str, "blocks": blocks})
 
             fulfilled = LicenseSubscriptionService._grant_overage_blocks(
-                license_sub=license_sub,
                 block_size=request_obj.block_size_snapshot,
                 blocks_by_teacher=blocks_by_teacher,
                 allocation_by_teacher=active_allocations,
@@ -2701,8 +2707,8 @@ class LicenseSubscriptionService:
                 performed_by=performed_by,
                 description=(
                     f"Offline overage request approved — "
-                    f"{request_obj.total_blocks} block(s) across "
-                    f"{len(request_obj.allocations)} teacher(s)"
+                    f"{request_obj.total_blocks * (request_obj.block_size_snapshot // CONVERSION_FACTOR):,} "
+                    f"AI credit(s) across {len(request_obj.allocations)} teacher(s)"
                     + (f" ({len(skipped)} skipped, needs review)" if skipped else "")
                 ),
                 occurred_at=timezone.now(),
@@ -3290,7 +3296,10 @@ class LicenseSubscriptionService:
             license_billing_record=billing_record,
             performed_by=performed_by,
             description=notes
-            or f"Manual overage grant — {blocks} block(s) to {teacher.email}",
+            or (
+                f"Manual overage grant — {raw_credits // CONVERSION_FACTOR:,} "
+                f"AI credit(s) to {teacher.email}"
+            ),
             occurred_at=timezone.now(),
         )
 

@@ -1235,7 +1235,7 @@ class CarryOverHistorySerializer(serializers.ModelSerializer):
         return max(0, delta.days)
 
     def get_status(self, obj) -> str:
-        if obj.is_expired:
+        if obj.is_expired():
             return "expired"
         if obj.remaining_credits == 0:
             return "exhausted"
@@ -2360,6 +2360,7 @@ class BillingTransactionSerializer(serializers.ModelSerializer):
             "stripe_payment_intent_id",
             "stripe_checkout_session_id",
             "stripe_charge_id",
+            "receipt_url",
             "description",
             "performed_by_email",
             "occurred_at",

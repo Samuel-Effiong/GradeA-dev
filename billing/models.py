@@ -770,13 +770,25 @@ class CreditWallet(models.Model):
     @transaction.atomic
     def consume_credits(self, amount, feature=None, task_type=None, task_id=None):
         """
-        Consumes credits from the user's wallet using a smart expiry-aware FIFO strategy.
+        Consumes credits from the user's wallet using a type-priority,
+        expiry-aware FIFO strategy.
 
-        Consumption order is determined by expiry date (soonest-expiring first) among
-        CARRY_OVER, MONTHLY, and MANUAL_GRANT buckets, with OVERAGE always consumed last.
-        MANUAL_GRANT buckets with no expiry are consumed after time-bounded buckets
-        but before OVERAGE, ensuring goodwill credits don't displace subscription value
-        unnecessarily while still being used before paid overage blocks.
+        Consumption order is determined PRIMARILY by bucket type —
+        CARRY_OVER -> TRIAL -> MONTHLY -> MANUAL_GRANT -> OVERAGE — not by
+        expiry date. This is deliberate: CARRY_OVER and TRIAL are one-shot
+        pools that are permanently forfeited at their own expiry with no
+        further chance to roll over, whereas unused MONTHLY balance gets
+        another chance to become carry-over at the NEXT rollover (subject
+        to the plan's cap). Prioritizing the pools that are actually at
+        risk of permanent loss ahead of the renewable one minimizes real
+        credit waste — draining by "soonest expiry" instead would let a
+        long-lived CARRY_OVER bucket (e.g. carry_over_expiry_months > 1)
+        sit untouched while MONTHLY drains first, which is backwards.
+        Expiry date is only a SECONDARY tiebreaker, used to order multiple
+        buckets of the same type against each other (e.g. two CARRY_OVER
+        buckets alive at once from different rollovers). OVERAGE always
+        comes last regardless of its own (now always-null) expiry, since
+        it costs money and free/rollover credit should be exhausted first.
 
         Args:
             amount (int): Raw credits to consume.
@@ -806,13 +818,17 @@ class CreditWallet(models.Model):
 
         # --- Build the ordered bucket query ---
         # Strategy:
-        #   1. OVERAGE always comes last (it costs money).
-        #   2. Among CARRY_OVER, MONTHLY, MANUAL_GRANT: order by expires_at ASC
-        #      so soonest-to-expire credits are drained first.
-        #   3. Buckets with no expiry (null expires_at) sit after time-bounded
-        #      ones but before OVERAGE — achieved via nulls_last on expires_at.
-        #   4. Within the same expires_at value, prefer CARRY_OVER → MONTHLY →
-        #      MANUAL_GRANT via a type-priority tiebreaker.
+        #   1. Order PRIMARILY by type_priority: CARRY_OVER -> TRIAL ->
+        #      MONTHLY -> MANUAL_GRANT -> OVERAGE. This one ordinal alone
+        #      guarantees OVERAGE always comes last (it has the highest
+        #      value) — no separate sentinel needed.
+        #   2. Within the same type, order by expires_at ASC (soonest
+        #      first) so multiple buckets of one type — e.g. two
+        #      CARRY_OVER buckets alive at once from different rollovers —
+        #      still drain the more time-sensitive one first.
+        #   3. Buckets with no expiry (null expires_at) sort after
+        #      time-bounded ones of the same type — achieved via
+        #      nulls_last on expires_at.
 
         consumable_types = [
             CreditBucketType.CARRY_OVER,
@@ -834,25 +850,14 @@ class CreditWallet(models.Model):
             output_field=models.IntegerField(),
         )
 
-        # Sentinel: push overage to the very back regardless of its expires_at
-        is_overage = models.Case(
-            models.When(bucket_type=CreditBucketType.OVERAGE, then=models.Value(1)),
-            default=models.Value(0),
-            output_field=models.IntegerField(),
-        )
-
         buckets = (
             self.buckets.select_for_update()
             .filter(bucket_type__in=consumable_types)
             .filter(models.Q(expires_at__isnull=True) | models.Q(expires_at__gt=now))
-            .annotate(
-                overage_sentinel=is_overage,
-                type_priority=type_priority,
-            )
+            .annotate(type_priority=type_priority)
             .order_by(
-                "overage_sentinel",
-                models.F("expires_at").asc(nulls_last=True),
                 "type_priority",
+                models.F("expires_at").asc(nulls_last=True),
                 "created_at",
             )
         )
@@ -1839,6 +1844,12 @@ class BillingTransaction(models.Model):
     )
     stripe_subscription_id = models.CharField(
         max_length=255, null=True, blank=True, db_index=True
+    )
+    receipt_url = models.URLField(
+        max_length=500,
+        null=True,
+        blank=True,
+        help_text="Stripe-hosted receipt/invoice page for this purchase.",
     )
 
     # --- Offline reference ---

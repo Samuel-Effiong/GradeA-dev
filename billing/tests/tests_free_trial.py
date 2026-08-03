@@ -362,17 +362,23 @@ class TestTrialCreditConsumptionOrdering(TestCase):
     def test_trial_credits_consumed_before_monthly(self):
         """
         If a user somehow also has MONTHLY credits (e.g. after a conversion edge
-        case), the TRIAL bucket must drain first because it expires sooner.
+        case), the TRIAL bucket must drain first by TYPE priority (TRIAL=1,
+        MONTHLY=2) — NOT because of relative expiry. Proven here by giving
+        the MONTHLY bucket a SOONER expiry (1 day) than the trial (14
+        days): under a "soonest-expiring-first" ordering this would drain
+        MONTHLY first, which is exactly the bug class this test guards
+        against.
         """
         wallet = CreditWallet.objects.get(user=self.user)
 
-        # Manually inject a MONTHLY bucket (simulates an edge case)
+        # Manually inject a MONTHLY bucket (simulates an edge case) with a
+        # SOONER expiry than the trial, to prove type beats expiry.
         monthly_bucket = CreditBucket.objects.create(
             wallet=wallet,
             bucket_type=CreditBucketType.MONTHLY,
             total_credits=10_000 * CONVERSION_FACTOR,
             used_credits=0,
-            expires_at=timezone.now() + timedelta(days=30),
+            expires_at=timezone.now() + timedelta(days=1),
         )
 
         consume_amount = 100 * CONVERSION_FACTOR
@@ -409,17 +415,25 @@ class TestTrialCreditConsumptionOrdering(TestCase):
         self.assertEqual(monthly_bucket.used_credits, 100 * CONVERSION_FACTOR)
 
     def test_carry_over_consumed_before_trial(self):
-        """CARRY_OVER expires before TRIAL (it was created before trial), so it drains first."""
+        """
+        CARRY_OVER must drain before TRIAL purely by TYPE priority
+        (CARRY_OVER=0, TRIAL=1) — NOT because of relative expiry. Proven
+        here by deliberately giving the CARRY_OVER bucket a LATER expiry
+        than the trial (90 days vs. the trial's 14), the exact shape of
+        bug this ordering guards against: consumption order must never
+        regress to "soonest-expiring-first", since a longer-lived
+        CARRY_OVER/TRIAL bucket would then wrongly sit unused while a
+        shorter-lived one (or MONTHLY) drains first, risking permanent
+        loss of the one-shot bucket once IT expires.
+        """
         wallet = CreditWallet.objects.get(user=self.user)
 
-        # CARRY_OVER bucket with an expiry earlier than the trial bucket
         carry_bucket = CreditBucket.objects.create(
             wallet=wallet,
             bucket_type=CreditBucketType.CARRY_OVER,
             total_credits=500 * CONVERSION_FACTOR,
             used_credits=0,
-            expires_at=timezone.now()
-            + timedelta(days=7),  # expires before trial (14 days)
+            expires_at=timezone.now() + timedelta(days=90),  # later than trial
         )
 
         consume_amount = 100 * CONVERSION_FACTOR

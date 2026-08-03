@@ -549,6 +549,16 @@ GOOGLE_REDIRECT_URI = env.str("GOOGLE_REDIRECT_URI")
 
 FIELD_ENCRYPTION_KEY = env.str("FIELD_ENCRYPTION_KEY", "")
 
+# MailerLite (https://developers.mailerlite.com) - syncs activated users to
+# mailing list groups segmented by user_type. API key is optional; when
+# unset, MailerLiteService silently no-ops so signup/activation never breaks.
+MAILERLITE_API_KEY = env.str("MAILERLITE_API_KEY", default="")
+MAILERLITE_GROUP_ID_TEACHER = env.str("MAILERLITE_GROUP_ID_TEACHER", default="")
+MAILERLITE_GROUP_ID_STUDENT = env.str("MAILERLITE_GROUP_ID_STUDENT", default="")
+MAILERLITE_GROUP_ID_SCHOOL_ADMIN = env.str(
+    "MAILERLITE_GROUP_ID_SCHOOL_ADMIN", default=""
+)
+
 if ENVIRONMENT == "prod":
     STRIPE_PUBLIC_KEY = env.str("STRIPE_PUBLIC_KEY")
     STRIPE_SECRET_KEY = env.str("STRIPE_SECRET_KEY")

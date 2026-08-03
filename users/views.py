@@ -98,6 +98,7 @@ from users.serializers import (  # BatchSessionResultTaskEntrySerializer,; TaskC
     WaitlistSerializer,
 )
 from users.services import send_user_activation_email
+from users.tasks import sync_user_to_mailerlite
 
 logger = logging.getLogger(__name__)
 
@@ -622,6 +623,8 @@ class AuthViewSet(viewsets.ViewSet):
         user.is_active = True
         user.save()
 
+        sync_user_to_mailerlite.delay(str(user.id))
+
         user_data = CustomUserSerializer(user).data
 
         refresh = RefreshToken.for_user(user)
@@ -1133,6 +1136,8 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 user.email_verified_at = timezone.now()
                 user.save()
 
+                sync_user_to_mailerlite.delay(str(user.id))
+
                 for enrollment in pending_enrollments:
                     enrollment.enrollment_status = EnrollmentStatusType.ENROLLED
                     enrollment.save(update_fields=["enrollment_status"])
@@ -1226,6 +1231,8 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 user.activation_token = None
                 user.activation_expires = None
                 user.save()
+
+            sync_user_to_mailerlite.delay(str(user.id))
 
             refresh = RefreshToken.for_user(user)
 
@@ -1387,6 +1394,8 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                         user.is_active = True
                         user.set_unusable_password()
                         user.save(update_fields=["password", "is_active"])
+
+                        sync_user_to_mailerlite.delay(str(user.id))
                     else:
                         raise ValidationError(serializer.errors)
 

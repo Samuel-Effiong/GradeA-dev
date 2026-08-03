@@ -2941,7 +2941,19 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 type=OpenApiTypes.UUID,
                 location=OpenApiParameter.PATH,
                 description=_("The unique identifier (UUID) of the course"),
-            )
+            ),
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page (max 100)",
+            ),
         ],
         responses={200: TeacherStudentAnalyticsSerializer(many=True)},
     )
@@ -2953,7 +2965,13 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         url_path=r"dashboard/students/(?P<course_id>[-\w]+)",
     )
     def students(self, request, course_id, *args, **kwargs):
-        cache_key = f"teacheradmins:user_id__{request.user.id}:instance_id__{course_id}:view__students"
+        paginator = StandardPageNumberPagination()
+        page_number = request.query_params.get(paginator.page_query_param, "1")
+        page_size = request.query_params.get(paginator.page_size_query_param, "")
+        cache_key = (
+            f"teacheradmins:user_id__{request.user.id}:instance_id__{course_id}"
+            f":view__students:{page_number}:{page_size}"
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -3442,6 +3460,20 @@ class StudentAdminDashboardView(viewsets.ViewSet):
         - Status tracking (Submitted, Late, etc.)
         - etc
         """,
+        parameters=[
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page (max 100)",
+            ),
+        ],
         responses={200: StudentAssignmentListSerializer(many=True)},
     )
     @action(
@@ -3450,7 +3482,13 @@ class StudentAdminDashboardView(viewsets.ViewSet):
         url_path=r"dashboard/assignments",
     )
     def assignments(self, request, *args, **kwargs):
-        cache_key = f"studentadmins:user_id__{request.user.id}:view__assignments"
+        paginator = StandardPageNumberPagination()
+        page_number = request.query_params.get(paginator.page_query_param, "1")
+        page_size = request.query_params.get(paginator.page_size_query_param, "")
+        cache_key = (
+            f"studentadmins:user_id__{request.user.id}:view__assignments"
+            f":{page_number}:{page_size}"
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -3460,6 +3498,9 @@ class StudentAdminDashboardView(viewsets.ViewSet):
             assignments = Assignment.objects.filter(
                 course__enrollments__student=student
             ).order_by("-created_at")
+
+            assignments = paginator.paginate_queryset(assignments, request, view=self)
+
             submissions = StudentSubmission.objects.filter(
                 student=student, assignment__in=assignments
             ).select_related("assignment")
@@ -3505,7 +3546,7 @@ class StudentAdminDashboardView(viewsets.ViewSet):
                 data.append(stats)
 
             serializer = StudentAssignmentListSerializer(data, many=True)
-            data = serializer.data
+            data = paginator.get_paginated_response(serializer.data).data
 
             cache.set(cache_key, data, 60 * 15)
         return Response(data)

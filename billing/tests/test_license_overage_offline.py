@@ -149,6 +149,9 @@ class OfflineOverageRequestTestCase(TransactionTestCase):
             wallet__user=self.teacher, bucket_type=CreditBucketType.OVERAGE
         )
         assert bucket.total_credits == 3 * 5000
+        # Overage credits never expire — granted here well within the
+        # license's billing_cycle_end, but must NOT be tied to it.
+        assert bucket.expires_at is None
 
         ledger = CreditLedger.objects.get(user=self.teacher, bucket=bucket)
         assert ledger.metadata["request_id"] == str(req.id)
@@ -301,6 +304,84 @@ class OfflineOverageRequestTestCase(TransactionTestCase):
         )
         assert "purchase_channel" not in offline_ledger.metadata
         assert offline_ledger.reference != superadmin_ledger.reference
+
+    # -- overage credits never expire (locks in the removal of the old
+    # license_sub.billing_cycle_end-tied expiry) --------------------------
+
+    @patch("billing.license_service.send_email_task")
+    def test_superadmin_grant_and_offline_approval_both_create_non_expiring_buckets(
+        self, mock_email
+    ):
+        """
+        Both paths that route through the shared _grant_overage_blocks
+        helper — the superadmin immediate-grant path and the offline
+        request approval path — must create OVERAGE buckets with
+        expires_at=None, regardless of how close (or far) the license's
+        own billing_cycle_end is.
+        """
+        LicenseSubscriptionService.initiate_overage_purchase(
+            self.license_sub,
+            requesting_user=self.super_admin,
+            total_blocks=1,
+            allocations={str(self.teacher.id): 1},
+        )
+        superadmin_bucket = (
+            CreditBucket.objects.filter(
+                wallet__user=self.teacher, bucket_type=CreditBucketType.OVERAGE
+            )
+            .order_by("-created_at")
+            .first()
+        )
+        assert superadmin_bucket is not None
+        assert superadmin_bucket.expires_at is None
+
+        result = self._request(blocks=1)
+        req = LicenseOverageOfflineRequest.objects.get(id=result["request_id"])
+        LicenseSubscriptionService.approve_overage_offline_request(
+            req, performed_by=self.super_admin, amount_confirmed_cents=299
+        )
+        offline_bucket = (
+            CreditBucket.objects.filter(
+                wallet__user=self.teacher, bucket_type=CreditBucketType.OVERAGE
+            )
+            .order_by("-created_at")
+            .first()
+        )
+        assert offline_bucket is not None
+        assert offline_bucket.id != superadmin_bucket.id
+        assert offline_bucket.expires_at is None
+
+    @patch("billing.license_service.send_email_task")
+    def test_overage_bucket_survives_expired_bucket_cleanup_task_indefinitely(
+        self, mock_email
+    ):
+        """
+        The Celery sweep that formalizes bucket expiration
+        (cleanup_expired_credit_buckets) filters on expires_at__lte=now —
+        a NULL expires_at can never match that filter, so an OVERAGE
+        bucket must never be touched by it, no matter how much real time
+        (simulated here via freezegun-free direct time travel on the
+        license, which the task doesn't even consult) has passed.
+        """
+        from billing.tasks import cleanup_expired_credit_buckets
+
+        LicenseSubscriptionService.initiate_overage_purchase(
+            self.license_sub,
+            requesting_user=self.super_admin,
+            total_blocks=1,
+            allocations={str(self.teacher.id): 1},
+        )
+        bucket = CreditBucket.objects.get(
+            wallet__user=self.teacher, bucket_type=CreditBucketType.OVERAGE
+        )
+        assert bucket.expires_at is None
+        assert bucket.is_processed is False
+
+        cleanup_expired_credit_buckets()
+
+        bucket.refresh_from_db()
+        assert bucket.is_processed is False
+        assert bucket.total_credits == bucket.remaining_credits
 
 
 class OfflineOverageRequestPermissionTests(APITestCase):

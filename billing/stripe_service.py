@@ -37,7 +37,6 @@ from django.core.cache import cache
 # from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
-from django.utils.dateparse import parse_datetime
 
 from AutoGrader.error_messages import describe_stripe_error
 from classrooms.models import School
@@ -80,6 +79,54 @@ from .subscription_resolver import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def resolve_stripe_receipt_url(
+    *,
+    invoice=None,
+    invoice_id=None,
+    charge=None,
+    charge_id=None,
+    payment_intent_id=None,
+):
+    """
+    Resolves the Stripe-hosted receipt/invoice link for a purchase, in
+    priority order invoice -> charge -> payment_intent (mirrors
+    BillingTransactionService._resolve_lookup's specificity ordering).
+
+    Prefers an already-fetched `invoice`/`charge` object (zero extra API
+    calls) over fetching by id. Never raises — a receipt link is a
+    nice-to-have, not something that should break webhook processing or
+    any surrounding business-logic transaction.
+    """
+    try:
+        if invoice is not None:
+            return invoice.get("hosted_invoice_url")
+        if invoice_id:
+            return stripe.Invoice.retrieve(invoice_id).get("hosted_invoice_url")
+
+        if charge is not None:
+            return charge.get("receipt_url")
+        if charge_id:
+            return stripe.Charge.retrieve(charge_id).get("receipt_url")
+
+        if payment_intent_id:
+            pi = stripe.PaymentIntent.retrieve(
+                payment_intent_id, expand=["latest_charge"]
+            )
+            latest_charge = pi.get("latest_charge")
+            return latest_charge.get("receipt_url") if latest_charge else None
+    except stripe.error.StripeError as exc:
+        logger.warning(
+            "resolve_stripe_receipt_url failed (invoice_id=%s, charge_id=%s, "
+            "payment_intent_id=%s): %s",
+            invoice_id,
+            charge_id,
+            payment_intent_id,
+            exc,
+        )
+
+    return None
 
 
 class StripeCustomerService:
@@ -818,6 +865,7 @@ class StripeSubscriptionMutationService:
             user_subscription=updated_sub,
             stripe_invoice_id=latest_invoice_id,
             stripe_subscription_id=stripe_subscription_id,
+            receipt_url=invoice.get("hosted_invoice_url") if invoice else None,
             description=f"Upgrade from {old_plan.name} to {new_plan.name}",
         )
 
@@ -1290,6 +1338,7 @@ class StripeSubscriptionMutationService:
                     license_subscription=license_sub,
                     stripe_invoice_id=latest_invoice_id,
                     stripe_subscription_id=license_sub.stripe_subscription_id,
+                    receipt_url=invoice.get("hosted_invoice_url"),
                     performed_by=performed_by,
                     description=f"License plan change to {new_plan.name}",
                 )
@@ -1732,7 +1781,6 @@ class StripeOverageService:
         if plan.max_overage_blocks <= 0 or plan.overage_block_price <= 0:
             raise ValueError("This plan does not support overage credit purchases.")
 
-        expires_at = user_sub.next_credit_grant_at or user_sub.billing_cycle_end
         customer_id = StripeCustomerService.get_or_create_customer(user)
 
         try:
@@ -1751,7 +1799,6 @@ class StripeOverageService:
                     "plan_id": str(plan.id),
                     "user_subscription_id": str(user_sub.id),
                     "quantity": str(quantity),
-                    "overage_expires_at": expires_at.isoformat(),
                 },
             )
         except stripe.error.StripeError as exc:
@@ -2306,6 +2353,10 @@ class StripeWebhookHandler:
                 stripe_invoice_id=session.get("invoice"),
                 stripe_checkout_session_id=session.get("id"),
                 stripe_subscription_id=session.get("subscription"),
+                receipt_url=resolve_stripe_receipt_url(
+                    invoice_id=session.get("invoice"),
+                    payment_intent_id=session.get("payment_intent"),
+                ),
                 description=f"Trial converted to {plan.display_name or plan.name}",
             )
 
@@ -2353,6 +2404,10 @@ class StripeWebhookHandler:
             stripe_invoice_id=session.get("invoice"),
             stripe_checkout_session_id=session.get("id"),
             stripe_subscription_id=session.get("subscription"),
+            receipt_url=resolve_stripe_receipt_url(
+                invoice_id=session.get("invoice"),
+                payment_intent_id=session.get("payment_intent"),
+            ),
             description=f"New subscription — {plan.display_name or plan.name}",
         )
 
@@ -2385,7 +2440,6 @@ class StripeWebhookHandler:
         """
         wallet = CreditWallet.objects.select_for_update().get(id=metadata["wallet_id"])
         plan = SubscriptionPlan.objects.get(id=metadata["plan_id"])
-        expires_at = parse_datetime(metadata["overage_expires_at"])
         quantity = int(metadata["quantity"])
 
         # if wallet.overage_blocks_used >= plan.max_overage_blocks:
@@ -2422,7 +2476,6 @@ class StripeWebhookHandler:
         SubscriptionService.grant_overage_bucket(
             wallet=wallet,
             plan=plan,
-            expires_at=expires_at,
             quantity=quantity,
             stripe_payment_intent_id=session.get("payment_intent"),
         )
@@ -2438,7 +2491,14 @@ class StripeWebhookHandler:
             stripe_invoice_id=session.get("invoice"),
             stripe_payment_intent_id=session.get("payment_intent"),
             stripe_checkout_session_id=session.get("id"),
-            description=f"Overage purchase — {quantity} block(s) of {plan.name}",
+            receipt_url=resolve_stripe_receipt_url(
+                invoice_id=session.get("invoice"),
+                payment_intent_id=session.get("payment_intent"),
+            ),
+            description=(
+                f"Overage purchase — "
+                f"{quantity * plan.display_overage_block_size:,} AI credit(s)"
+            ),
         )
 
         logger.info(
@@ -2567,10 +2627,15 @@ class StripeWebhookHandler:
                 license_subscription=license_sub,
                 stripe_payment_intent_id=session.get("payment_intent"),
                 stripe_checkout_session_id=session.get("id"),
+                receipt_url=resolve_stripe_receipt_url(
+                    payment_intent_id=session.get("payment_intent")
+                ),
                 performed_by=intent.initiated_by,
                 description=(
-                    "Overage purchase paid but license was inactive at "
-                    "fulfillment time — credits NOT granted, needs manual refund."
+                    f"Overage purchase "
+                    f"({intent.total_blocks * (intent.block_size_snapshot // CONVERSION_FACTOR):,} "
+                    f"AI credit(s)) paid but license was inactive at fulfillment "
+                    f"time — credits NOT granted, needs manual refund."
                 ),
             )
             return
@@ -2602,7 +2667,6 @@ class StripeWebhookHandler:
                 skipped.append({"teacher_id": teacher_id_str, "blocks": blocks})
 
         fulfilled = LicenseSubscriptionService._grant_overage_blocks(
-            license_sub=license_sub,
             block_size=intent.block_size_snapshot,
             blocks_by_teacher=blocks_by_teacher,
             allocation_by_teacher=active_allocations,
@@ -2658,10 +2722,14 @@ class StripeWebhookHandler:
             license_subscription=license_sub,
             stripe_payment_intent_id=session.get("payment_intent"),
             stripe_checkout_session_id=session.get("id"),
+            receipt_url=resolve_stripe_receipt_url(
+                payment_intent_id=session.get("payment_intent")
+            ),
             performed_by=intent.initiated_by,
             description=(
-                f"Overage purchase — {intent.total_blocks} block(s) across "
-                f"{len(intent.allocations)} teacher(s)"
+                f"Overage purchase — "
+                f"{intent.total_blocks * (intent.block_size_snapshot // CONVERSION_FACTOR):,} "
+                f"AI credit(s) across {len(intent.allocations)} teacher(s)"
                 + (f" ({len(skipped)} skipped, needs review)" if skipped else "")
             ),
         )
@@ -2752,6 +2820,9 @@ class StripeWebhookHandler:
                 stripe_payment_intent_id=session.get("payment_intent"),
                 stripe_checkout_session_id=session.get("id"),
                 stripe_subscription_id=stripe_subscription_id,
+                receipt_url=resolve_stripe_receipt_url(
+                    payment_intent_id=session.get("payment_intent")
+                ),
                 description=(
                     "Upgrade checkout paid but the user's active subscription "
                     "changed before this could be applied — needs manual review."
@@ -2806,6 +2877,9 @@ class StripeWebhookHandler:
             stripe_payment_intent_id=session.get("payment_intent"),
             stripe_checkout_session_id=session.get("id"),
             stripe_subscription_id=stripe_subscription_id,
+            receipt_url=resolve_stripe_receipt_url(
+                payment_intent_id=session.get("payment_intent")
+            ),
             description=f"Upgrade from {old_user_sub.plan.name} to {new_plan.name}",
         )
 
@@ -2843,6 +2917,10 @@ class StripeWebhookHandler:
             stripe_invoice_id=session.get("invoice"),
             stripe_checkout_session_id=session.get("id"),
             stripe_subscription_id=session.get("subscription"),
+            receipt_url=resolve_stripe_receipt_url(
+                invoice_id=session.get("invoice"),
+                payment_intent_id=session.get("payment_intent"),
+            ),
             description=f"New subscription — {plan.display_name or plan.name}",
         )
 
@@ -2922,6 +3000,10 @@ class StripeWebhookHandler:
             stripe_invoice_id=session.get("invoice"),
             stripe_checkout_session_id=session.get("id"),
             stripe_subscription_id=session.get("subscription"),
+            receipt_url=resolve_stripe_receipt_url(
+                invoice_id=session.get("invoice"),
+                payment_intent_id=session.get("payment_intent"),
+            ),
             description=f"License created — {plan.display_name or plan.name}",
         )
 
@@ -3035,6 +3117,10 @@ class StripeWebhookHandler:
             stripe_invoice_id=session.get("invoice"),
             stripe_checkout_session_id=session.get("id"),
             stripe_subscription_id=stripe_subscription_id,
+            receipt_url=resolve_stripe_receipt_url(
+                invoice_id=session.get("invoice"),
+                payment_intent_id=session.get("payment_intent"),
+            ),
             description=f"Trial converted to {new_plan.display_name or new_plan.name}",
         )
 
@@ -3119,6 +3205,7 @@ class StripeWebhookHandler:
                 license_subscription=license_sub,
                 stripe_invoice_id=invoice.get("id"),
                 stripe_subscription_id=stripe_subscription_id,
+                receipt_url=invoice.get("hosted_invoice_url"),
                 description=f"License Stripe invoice paid ({billing_reason})",
             )
 
@@ -3182,6 +3269,7 @@ class StripeWebhookHandler:
                 user_subscription=user_sub,
                 stripe_invoice_id=invoice.get("id"),
                 stripe_subscription_id=stripe_subscription_id,
+                receipt_url=invoice.get("hosted_invoice_url"),
                 description=f"Subscription invoice paid ({billing_reason})",
             )
 
@@ -3228,6 +3316,7 @@ class StripeWebhookHandler:
             user_subscription=updated_sub,
             stripe_invoice_id=invoice.get("id"),
             stripe_subscription_id=stripe_subscription_id,
+            receipt_url=invoice.get("hosted_invoice_url"),
             description=f"Subscription invoice paid ({billing_reason})",
         )
 
@@ -3397,9 +3486,8 @@ class StripeWebhookHandler:
 
         wallet_id = metadata.get("wallet_id")
         plan_id = metadata.get("plan_id")
-        expires_at_raw = metadata.get("overage_expires_at")
 
-        if wallet_id and plan_id and expires_at_raw:
+        if wallet_id and plan_id:
             # --- Preferred path: grant details were snapshotted at
             # purchase time, so there's no ambiguity regardless of what
             # happened to the user's subscription in the meantime. ---
@@ -3431,21 +3519,9 @@ class StripeWebhookHandler:
                 )
                 return
 
-            expires_at = parse_datetime(expires_at_raw)
-            if expires_at is None:
-                logger.error(
-                    "Overage PaymentIntent %s has an unparseable "
-                    "overage_expires_at value %r — credits NOT granted. "
-                    "Needs manual reconciliation (refund or manual grant).",
-                    payment_intent["id"],
-                    expires_at_raw,
-                )
-                return
-
             SubscriptionService.grant_overage_bucket(
                 wallet=wallet,
                 plan=plan,
-                expires_at=expires_at,
                 stripe_payment_intent_id=payment_intent["id"],
             )
             logger.info(
@@ -3455,15 +3531,16 @@ class StripeWebhookHandler:
                 plan.name,
                 wallet.id,
             )
+            return
 
         # --- Legacy fallback: PaymentIntents created before this
-        # metadata-snapshotting change went out won't have plan_id /
-        # overage_expires_at. Fall back to the old best-effort behavior —
-        # resolve from whatever subscription is active RIGHT NOW. This is
-        # the race-prone path being replaced; it should only ever fire for
+        # metadata-snapshotting change went out won't have wallet_id/
+        # plan_id. Fall back to the old best-effort behavior — resolve
+        # from whatever subscription is active RIGHT NOW. This is the
+        # race-prone path being replaced; it should only ever fire for
         # a short window during deploy, as old in-flight intents clear. ---
         logger.warning(
-            "Overage PaymentIntent %s missing plan/expiry metadata (legacy "
+            "Overage PaymentIntent %s missing wallet/plan metadata (legacy "
             "format, pre-dates purchase-time snapshotting). Falling back to "
             "resolving from the user's current active subscription.",
             payment_intent["id"],
@@ -3514,7 +3591,6 @@ class StripeWebhookHandler:
         SubscriptionService.grant_overage_bucket(
             wallet=wallet,
             plan=user_sub.plan,
-            expires_at=user_sub.next_credit_grant_at or user_sub.billing_cycle_end,
             stripe_payment_intent_id=payment_intent["id"],
         )
 

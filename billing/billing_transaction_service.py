@@ -63,6 +63,7 @@ class BillingTransactionService:
         stripe_checkout_session_id=None,
         stripe_charge_id=None,
         stripe_subscription_id=None,
+        receipt_url=None,
         license_billing_record=None,
         description="",
         metadata=None,
@@ -113,6 +114,7 @@ class BillingTransactionService:
             stripe_checkout_session_id=stripe_checkout_session_id,
             stripe_charge_id=stripe_charge_id,
             stripe_subscription_id=stripe_subscription_id,
+            receipt_url=receipt_url,
             license_billing_record=license_billing_record,
             description=description,
             metadata=metadata or {},
@@ -174,6 +176,10 @@ class BillingTransactionService:
         if stripe_subscription_id and not obj.stripe_subscription_id:
             obj.stripe_subscription_id = stripe_subscription_id
             update_fields.append("stripe_subscription_id")
+
+        if receipt_url and not obj.receipt_url:
+            obj.receipt_url = receipt_url
+            update_fields.append("receipt_url")
 
         if description and not obj.description:
             obj.description = description
@@ -250,6 +256,7 @@ class BillingTransactionService:
                 stripe_charge_id=charge.get("id"),
                 stripe_payment_intent_id=payment_intent_id,
                 stripe_invoice_id=invoice_id,
+                receipt_url=charge.get("receipt_url"),
                 description=(
                     "Refund received with no matching local billing "
                     "transaction — needs manual reconciliation."
@@ -266,14 +273,16 @@ class BillingTransactionService:
             if amount_refunded >= reference_amount
             else BillingTransactionStatus.PARTIALLY_REFUNDED
         )
-        txn.save(
-            update_fields=[
-                "stripe_charge_id",
-                "refunded_amount_cents",
-                "status",
-                "updated_at",
-            ]
-        )
+        update_fields = [
+            "stripe_charge_id",
+            "refunded_amount_cents",
+            "status",
+            "updated_at",
+        ]
+        if not txn.receipt_url and charge.get("receipt_url"):
+            txn.receipt_url = charge.get("receipt_url")
+            update_fields.append("receipt_url")
+        txn.save(update_fields=update_fields)
         logger.info(
             "BillingTransaction %s refunded: %d/%d cents (status=%s).",
             txn.id,
