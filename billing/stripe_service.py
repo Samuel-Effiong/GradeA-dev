@@ -251,6 +251,98 @@ class StripeCustomerService:
             metadata={"set_as_default": "true" if set_as_default else "false"},
         )
 
+    _PORTAL_CONFIGURATION_CACHE_KEY = (
+        "stripe_payment_methods_only_portal_configuration_id"
+    )
+    _PORTAL_CONFIGURATION_PURPOSE = "payment_methods_only"
+
+    @staticmethod
+    def _get_or_create_payment_methods_only_portal_configuration() -> str:
+        """
+        Stripe's Billing Portal is account-wide by default: whatever
+        Configuration is marked is_default also exposes subscription
+        cancel/pause/update controls (configured in the Stripe Dashboard,
+        outside this codebase's control). Handing a portal session to a
+        user WITHOUT pinning it to a locked-down Configuration would let
+        them cancel or change plans directly on Stripe, bypassing every
+        rule in SubscriptionManagementViewSet / LicenseSubscriptionViewSet
+        (trial handling, proration, license seat limits, etc.) entirely.
+
+        So every session this codebase creates is pinned to a dedicated
+        Configuration with ONLY payment_method_update enabled — everything
+        else (subscription_cancel, subscription_pause, subscription_update,
+        customer_update) explicitly off. Lazily created once and reused
+        (cached by ID) rather than requiring a manual one-time Dashboard
+        setup step, mirroring this file's get_or_create_customer-style
+        convention.
+        """
+        cached_id = cache.get(StripeCustomerService._PORTAL_CONFIGURATION_CACHE_KEY)
+        if cached_id:
+            return cached_id
+
+        existing = stripe.billing_portal.Configuration.list(limit=100)
+        for config in existing.auto_paging_iter():
+            if (
+                config.get("metadata", {}).get("purpose")
+                == StripeCustomerService._PORTAL_CONFIGURATION_PURPOSE
+            ):
+                cache.set(
+                    StripeCustomerService._PORTAL_CONFIGURATION_CACHE_KEY,
+                    config.id,
+                    timeout=None,
+                )
+                return config.id
+
+        configuration = stripe.billing_portal.Configuration.create(
+            business_profile={
+                "headline": "Manage your payment methods",
+            },
+            features={
+                "payment_method_update": {"enabled": True},
+                "invoice_history": {"enabled": True},
+                "customer_update": {"enabled": False},
+                "subscription_cancel": {"enabled": False},
+                "subscription_pause": {"enabled": False},
+                "subscription_update": {"enabled": False},
+            },
+            metadata={"purpose": StripeCustomerService._PORTAL_CONFIGURATION_PURPOSE},
+        )
+        cache.set(
+            StripeCustomerService._PORTAL_CONFIGURATION_CACHE_KEY,
+            configuration.id,
+            timeout=None,
+        )
+        return configuration.id
+
+    @staticmethod
+    def create_billing_portal_session_for_request_user(user, return_url: str):
+        """
+        Alternative to create_setup_intent_for_request_user: instead of this
+        app driving card entry/list/delete/default itself via SetupIntent +
+        Stripe Elements, this hands card management off to Stripe's own
+        hosted Billing Portal. The customer resolution (individual vs.
+        license admin vs. rejected teacher/no-context) is identical to
+        get_customer_for_request_user — the only difference is what's done
+        with the resolved customer_id once we have it.
+
+        Deliberately pinned to the locked-down payment-methods-only
+        Configuration (see _get_or_create_payment_methods_only_portal_configuration)
+        AND deep-linked via flow_data straight into the payment_method_update
+        flow — belt-and-suspenders so a user landing here can only ever
+        manage cards, never subscriptions, regardless of what the account's
+        default portal configuration happens to allow.
+        """
+        customer_id = StripeCustomerService.get_customer_for_request_user(user)
+        configuration_id = (
+            StripeCustomerService._get_or_create_payment_methods_only_portal_configuration()
+        )
+        return stripe.billing_portal.Session.create(
+            customer=customer_id,
+            return_url=return_url,
+            configuration=configuration_id,
+            flow_data={"type": "payment_method_update"},
+        )
+
 
 class StripeCheckoutService:
     """

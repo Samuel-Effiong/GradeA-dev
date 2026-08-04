@@ -127,11 +127,17 @@
                 </div>
             {% endif %}
             {% if at_risk_students %}
-                <p class="muted">{{ at_risk_student_count }} student(s) with an average score below 60% across graded, published work.</p>
+                <p class="muted">{{ at_risk_student_count }} student(s) flagged as at-risk (low grades, missing work, or a declining trend).</p>
                 {% for student in at_risk_students %}
                     <div class="card">
                         <strong>{{ student.student_name }}</strong>
-                        <p class="muted">Average score: {{ student.average_score }}%</p>
+                        <p class="muted">
+                            {% if student.average_score is not None %}
+                                Average score: {{ student.average_score }}%
+                            {% else %}
+                                No graded work yet
+                            {% endif %}
+                        </p>
                     </div>
                 {% endfor %}
             {% else %}

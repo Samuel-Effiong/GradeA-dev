@@ -161,7 +161,7 @@ class AtRiskStudentSerializer(serializers.Serializer):
     student_name = serializers.CharField(read_only=True)
     course_id = serializers.UUIDField(read_only=True)
     course_name = serializers.CharField(read_only=True)
-    average_grade = serializers.FloatField(read_only=True)
+    average_grade = serializers.FloatField(read_only=True, allow_null=True)
     grade_trend = serializers.CharField(read_only=True)
 
 

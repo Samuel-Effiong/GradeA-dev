@@ -667,6 +667,7 @@ class TestTeacherAllocation(TransactionTestCase):
             billing_cycle_start=timezone.now(),
             billing_cycle_end=timezone.now() + timedelta(days=30),
             is_active=True,
+            max_seats=10,
         )
 
     def test_add_single_teacher_creates_allocation(self):
@@ -681,7 +682,7 @@ class TestTeacherAllocation(TransactionTestCase):
         )
 
         allocation = LicenseSubscriptionService.add_teacher_to_license(
-            self.license_sub, teacher
+            self.license_sub, teacher.email
         )
 
         assert allocation.license_subscription == self.license_sub
@@ -710,15 +711,15 @@ class TestTeacherAllocation(TransactionTestCase):
 
         results = LicenseSubscriptionService.add_teachers_batch(
             self.license_sub,
-            [str(teacher1.id), str(teacher2.id)],
+            [teacher1.email, teacher2.email],
         )
 
         assert results["successful"] == 2
         assert results["failed"] == 0
         assert len(results["errors"]) == 0
 
-    def test_add_teachers_batch_invalid_ids(self):
-        """Batch add with invalid IDs should handle gracefully"""
+    def test_add_teachers_batch_invalid_email(self):
+        """Batch add with a non-business email should handle gracefully"""
         valid_teacher = CustomUser.objects.create_user(
             email="teacher@school.edu",
             password="test123",  # pragma: allowlist secret
@@ -730,7 +731,7 @@ class TestTeacherAllocation(TransactionTestCase):
 
         results = LicenseSubscriptionService.add_teachers_batch(
             self.license_sub,
-            [str(valid_teacher.id), "invalid-uuid"],
+            [valid_teacher.email, "invalid@gmail.com"],
         )
 
         assert results["successful"] == 1
@@ -749,7 +750,7 @@ class TestTeacherAllocation(TransactionTestCase):
         )
 
         allocation = LicenseSubscriptionService.add_teacher_to_license(
-            self.license_sub, teacher
+            self.license_sub, teacher.email
         )
         assert allocation.is_active is True
 
@@ -803,10 +804,14 @@ class TestLicenseRenewal(TransactionTestCase):
             user_type=UserTypes.TEACHER,
             school=self.school,
         )
-        # Add teacher to license
-        LicenseSubscriptionService._enroll_teacher_internal(
-            self.license_sub, self.teacher
-        )
+        # Add teacher to license. _enroll_teacher_internal uses
+        # select_for_update() and relies on being called from within an
+        # existing transaction (as every production caller does) — wrap it
+        # here since this TransactionTestCase doesn't wrap tests in one.
+        with transaction.atomic():
+            LicenseSubscriptionService._enroll_teacher_internal(
+                self.license_sub, self.teacher
+            )
 
     def test_license_renewal_creates_new_monthly_bucket(self):
         """Renewal should create new MONTHLY bucket for each teacher"""
@@ -822,10 +827,11 @@ class TestLicenseRenewal(TransactionTestCase):
         assert old_monthly.expires_at <= timezone.now()
 
         # New bucket should exist
-        new_monthly = wallet.buckets.filter(
-            bucket_type=CreditBucketType.MONTHLY,
-            id__ne=old_monthly_id,
-        ).first()
+        new_monthly = (
+            wallet.buckets.filter(bucket_type=CreditBucketType.MONTHLY)
+            .exclude(id=old_monthly_id)
+            .first()
+        )
         assert new_monthly is not None
         assert new_monthly.total_credits == self.plan.monthly_credits
 

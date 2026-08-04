@@ -3,13 +3,13 @@ from datetime import timedelta
 
 from django.db.models import (
     Avg,
+    Count,
     DurationField,
     ExpressionWrapper,
     F,
     Max,
-    OuterRef,
     Prefetch,
-    Subquery,
+    Q,
     Sum,
     Value,
 )
@@ -18,6 +18,7 @@ from django.utils import timezone
 
 from assignments.models import Assignment, AssignmentStatus
 from classrooms.models import Course, EnrollmentStatusType, StudentCourse
+from dashboard.risk import RiskInputs, StudentRiskEvaluator
 from students.models import StudentSubmission
 from users.models import CustomUser, UserTypes
 
@@ -293,12 +294,9 @@ class StudentWeeklySummaryService:
 
 class WeeklyCourseSummaryService:
     WINDOW_DAYS = 7
-    TREND_SCORE_WINDOW = 3
-    GRADE_RISK_THRESHOLD = 70.0
-    GRADE_WARNING_THRESHOLD = 75.0
-    SUBMISSION_RISK_THRESHOLD = 0.70
-    CRITICAL_SUBMISSION_THRESHOLD = 0.50
     GRADE_TREND_DELTA = 3.0
+
+    risk_evaluator = StudentRiskEvaluator()
 
     def build_course_summary(self, course, *, as_of=None, window_days=None):
         course = self._resolve_course(course)
@@ -430,123 +428,50 @@ class WeeklyCourseSummaryService:
     ):
         graded_submissions = self._sorted_graded_submissions(relevant_submissions)
         graded_scores = [
-            float(submission.score_percentage)
+            float(submission.score_percentage) for submission in graded_submissions
+        ]
+        dated_scores = [
+            (submission.submission_date, float(submission.score_percentage))
             for submission in graded_submissions
-            if submission.score_percentage is not None
         ]
 
-        recent_scores = graded_scores[-self.TREND_SCORE_WINDOW :]
+        recent_scores = graded_scores[-StudentRiskEvaluator.TREND_WINDOW :]
         submitted_assignment_ids = {
             submission.assignment_id for submission in relevant_submissions
         }
         submitted_count = len(submitted_assignment_ids)
         missing_count = max(expected_assignment_count - submitted_count, 0)
 
-        if expected_assignment_count:
-            submission_rate = submitted_count / expected_assignment_count
-        else:
-            submission_rate = 1.0
-
-        average_grade = (
-            round(sum(graded_scores) / len(graded_scores), 2) if graded_scores else None
+        risk_result = self.risk_evaluator.evaluate(
+            RiskInputs(
+                expected_assignment_count=expected_assignment_count,
+                submitted_count=submitted_count,
+                graded_scores=dated_scores,
+            )
         )
-        grade_trend, trend_delta = self._calculate_grade_trend(recent_scores)
         low_performance_topics, low_performance_assignments = (
             self._collect_low_performance_patterns(graded_submissions)
-        )
-
-        at_risk, issue_tags, risk_reasons = self._evaluate_student_risk(
-            expected_assignment_count=expected_assignment_count,
-            submitted_count=submitted_count,
-            submission_rate=submission_rate,
-            average_grade=average_grade,
-            grade_trend=grade_trend,
         )
 
         return {
             "student_id": enrollment.student.id,
             "student_name": enrollment.student.get_full_name(),
             "ai_student_summary": enrollment.ai_summary,
-            "average_grade": average_grade,
+            "average_grade": risk_result.average_grade,
             "assignments_submitted": submitted_count,
             "assignments_expected": expected_assignment_count,
             "missing_assignments_count": missing_count,
-            "submission_rate": round(submission_rate * 100, 2),
-            "grade_trend": grade_trend,
-            "trend_delta": trend_delta,
+            "submission_rate": risk_result.submission_rate,
+            "grade_trend": risk_result.grade_trend,
+            "trend_delta": risk_result.trend_delta,
             "recent_scores": recent_scores,
             "graded_scores": graded_scores,
-            "issue_tags": issue_tags,
-            "risk_reasons": risk_reasons,
-            "at_risk": at_risk,
+            "issue_tags": risk_result.issue_tags,
+            "risk_reasons": risk_result.reasons,
+            "at_risk": risk_result.at_risk,
             "low_performance_topics": low_performance_topics,
             "low_performance_assignments": low_performance_assignments,
         }
-
-    def _evaluate_student_risk(
-        self,
-        *,
-        expected_assignment_count,
-        submitted_count,
-        submission_rate,
-        average_grade,
-        grade_trend,
-    ):
-        issue_tags = []
-        reasons = []
-
-        if expected_assignment_count and submitted_count == 0:
-            issue_tags.append("missing_submissions")
-            reasons.append("No submitted work for course assignments due so far.")
-        elif (
-            expected_assignment_count
-            and submission_rate < self.SUBMISSION_RISK_THRESHOLD
-        ):
-            issue_tags.append("missing_submissions")
-            missing_count = expected_assignment_count - submitted_count
-            reasons.append(
-                f"Submission rate is {round(submission_rate * 100, 1)}% with "
-                f"{missing_count} missing assignment(s)."
-            )
-
-        if average_grade is not None and average_grade < self.GRADE_RISK_THRESHOLD:
-            if submission_rate >= self.SUBMISSION_RISK_THRESHOLD:
-                issue_tags.append("conceptual_gaps")
-                reasons.append(
-                    f"Average graded score is {average_grade}%, which suggests conceptual gaps despite "
-                    "regular submission."
-                )
-            else:
-                issue_tags.append("low_scores")
-                reasons.append(
-                    f"Average graded score is {average_grade}%, below the {self.GRADE_RISK_THRESHOLD:.0f}% target."
-                )
-
-        if grade_trend == "DECLINING":
-            issue_tags.append("declining_performance")
-            reasons.append("Recent graded work is trending downward.")
-
-        moderate_flags = 0
-        if (
-            expected_assignment_count
-            and submission_rate < self.SUBMISSION_RISK_THRESHOLD
-        ):
-            moderate_flags += 1
-        if average_grade is not None and average_grade < self.GRADE_WARNING_THRESHOLD:
-            moderate_flags += 1
-        if grade_trend == "DECLINING":
-            moderate_flags += 1
-
-        critical_low_grade = (
-            average_grade is not None and average_grade < self.GRADE_RISK_THRESHOLD
-        )
-        critical_missing = (
-            expected_assignment_count >= 2
-            and submission_rate < self.CRITICAL_SUBMISSION_THRESHOLD
-        )
-
-        at_risk = critical_low_grade or critical_missing or moderate_flags >= 2
-        return at_risk, issue_tags, reasons
 
     def _collect_low_performance_patterns(self, graded_submissions):
         topic_names = set()
@@ -555,7 +480,10 @@ class WeeklyCourseSummaryService:
         for submission in graded_submissions:
             if submission.score_percentage is None:
                 continue
-            if float(submission.score_percentage) >= self.GRADE_RISK_THRESHOLD:
+            if (
+                float(submission.score_percentage)
+                >= StudentRiskEvaluator.MODERATE_GRADE_THRESHOLD
+            ):
                 continue
 
             if submission.assignment.topic_id and submission.assignment.topic:
@@ -903,25 +831,8 @@ class WeeklyCourseSummaryService:
         ]
         return sorted(
             graded_submissions,
-            key=lambda submission: (
-                submission.graded_at or submission.submission_date,
-                submission.submission_date,
-            ),
+            key=lambda submission: (submission.submission_date, submission.id),
         )
-
-    def _calculate_grade_trend(self, recent_scores):
-        if len(recent_scores) < 2:
-            return "INSUFFICIENT DATA", 0.0
-
-        first_score = recent_scores[0]
-        last_score = recent_scores[-1]
-        delta = round(last_score - first_score, 2)
-
-        if delta >= self.GRADE_TREND_DELTA:
-            return "IMPROVING", delta
-        if delta <= -self.GRADE_TREND_DELTA:
-            return "DECLINING", delta
-        return "STABLE", delta
 
     def _trend_from_values(self, previous_value, current_value, *, threshold):
         if previous_value is None and current_value is None:
@@ -954,9 +865,10 @@ class SchoolAdminWeeklySummaryService:
     """
 
     WINDOW_DAYS = 7
-    AT_RISK_THRESHOLD = 60
     TEACHER_GROWTH_WINDOW_DAYS = 180
     MAX_AT_RISK_STUDENTS_LISTED = 15
+
+    risk_evaluator = StudentRiskEvaluator()
 
     def build_school_summary(self, school, *, as_of=None):
         as_of = as_of or timezone.now()
@@ -1040,56 +952,125 @@ class SchoolAdminWeeklySummaryService:
             f"and {overall['assignments_graded_this_week']} were graded this week."
         )
 
-    def _at_risk_student_queryset(self, school):
-        """At-risk = average score_percentage < AT_RISK_THRESHOLD across a
-        student's graded, published submissions in this school. Mirrors the
-        school-level definition in SchoolAdminDashboardView.summary. Returns
-        a queryset of CustomUser rows annotated with `avg_score`, ordered by
-        avg_score ascending (worst first) — reused by both the weekly digest
-        and the daily at-risk alert task. Only currently-enrolled students
-        are considered, so a student who withdraws naturally drops out of
-        the at-risk set (rather than remaining flagged indefinitely on
-        stale submission history)."""
-        students_in_school = CustomUser.objects.filter(
-            enrollments__course__teacher__school=school,
-            enrollments__enrollment_status=EnrollmentStatusType.ENROLLED,
-            is_active=True,
-            user_type=UserTypes.STUDENT,
-        )
+    def _at_risk_students(self, school):
+        """Evaluate every currently-enrolled, active student at this school
+        via StudentRiskEvaluator (dashboard/risk.py) — the single canonical
+        at-risk definition shared across the codebase — and return the
+        CustomUser instances that are at-risk, worst average first (students
+        with no graded work yet, if flagged via missing work, sort last).
+        Each returned student has `avg_score` set as a dynamic attribute.
 
-        student_avg = (
-            StudentSubmission.objects.filter(
-                student=OuterRef("id"),
-                is_published=True,
-                graded_at__isnull=False,
-                score_percentage__isnull=False,
-                assignment__course__teacher__school=school,
+        Only currently-ENROLLED students are considered, so a student who
+        withdraws naturally drops out of the at-risk set (rather than
+        remaining flagged indefinitely on stale submission history).
+        Reused by both the weekly digest and the daily at-risk alert task.
+        """
+        enrollments = StudentCourse.objects.filter(
+            course__teacher__school=school,
+            enrollment_status=EnrollmentStatusType.ENROLLED,
+            student__is_active=True,
+            student__user_type=UserTypes.STUDENT,
+        ).select_related("student")
+
+        course_ids_by_student = defaultdict(set)
+        students_by_id = {}
+        for enrollment in enrollments:
+            students_by_id[enrollment.student_id] = enrollment.student
+            course_ids_by_student[enrollment.student_id].add(enrollment.course_id)
+
+        if not students_by_id:
+            return []
+
+        all_course_ids = {
+            course_id
+            for course_ids in course_ids_by_student.values()
+            for course_id in course_ids
+        }
+
+        due_assignment_counts = {
+            row["course_id"]: row["count"]
+            for row in (
+                Assignment.objects.filter(
+                    course_id__in=all_course_ids,
+                    status=AssignmentStatus.PUBLISHED,
+                )
+                .filter(Q(due_date__isnull=True) | Q(due_date__lte=timezone.now()))
+                .values("course_id")
+                .annotate(count=Count("id"))
             )
-            .values("student")
-            .annotate(avg=Avg("score_percentage"))
-            .values("avg")
-        )
+        }
 
-        return (
-            students_in_school.annotate(avg_score=Subquery(student_avg[:1]))
-            .filter(avg_score__lt=self.AT_RISK_THRESHOLD)
-            .distinct()
-            .order_by("avg_score")
+        submissions_by_student = defaultdict(list)
+        submissions = (
+            StudentSubmission.objects.filter(
+                student_id__in=students_by_id.keys(),
+                assignment__course_id__in=all_course_ids,
+            )
+            .select_related("assignment")
+            .order_by("submission_date", "id")
         )
+        for submission in submissions:
+            submissions_by_student[submission.student_id].append(submission)
+
+        at_risk_students = []
+        for student_id, student in students_by_id.items():
+            student_course_ids = course_ids_by_student[student_id]
+            expected_assignment_count = sum(
+                due_assignment_counts.get(course_id, 0)
+                for course_id in student_course_ids
+            )
+            student_submissions = [
+                submission
+                for submission in submissions_by_student.get(student_id, [])
+                if submission.assignment.course_id in student_course_ids
+            ]
+            submitted_count = len(
+                {submission.assignment_id for submission in student_submissions}
+            )
+            # Only published, graded submissions count toward the average
+            # shown to school admins (matches the prior school-wide behavior).
+            graded_scores = [
+                (submission.submission_date, float(submission.score_percentage))
+                for submission in student_submissions
+                if submission.is_published and submission.score_percentage is not None
+            ]
+
+            risk_result = self.risk_evaluator.evaluate(
+                RiskInputs(
+                    expected_assignment_count=expected_assignment_count,
+                    submitted_count=submitted_count,
+                    graded_scores=graded_scores,
+                )
+            )
+            if risk_result.at_risk:
+                student.avg_score = risk_result.average_grade
+                at_risk_students.append(student)
+
+        at_risk_students.sort(
+            key=lambda student: (
+                student.avg_score is None,
+                student.avg_score if student.avg_score is not None else 0.0,
+            )
+        )
+        return at_risk_students
 
     def _build_at_risk_students(self, school):
-        at_risk_qs = self._at_risk_student_queryset(school)
-        at_risk_student_count = at_risk_qs.count()
-        at_risk_students = [
+        at_risk_students = self._at_risk_students(school)
+        at_risk_student_count = len(at_risk_students)
+        listed = [
             {
                 "student_id": student.id,
                 "student_name": student.get_full_name(),
-                "average_score": round(student.avg_score, 1),
+                "average_score": (
+                    round(student.avg_score, 1)
+                    if student.avg_score is not None
+                    else None
+                ),
             }
-            for student in at_risk_qs[: self.MAX_AT_RISK_STUDENTS_LISTED]
+            for student in at_risk_students[: self.MAX_AT_RISK_STUDENTS_LISTED]
         ]
 
-        return at_risk_students, at_risk_student_count
+        return listed, at_risk_student_count
 
     def _build_teacher_activity(self, school):
         """Per-teacher activity/engagement metrics. NOTE: unlike `overall`

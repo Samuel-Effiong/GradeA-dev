@@ -316,7 +316,7 @@ def send_at_risk_student_alerts(self):
 
         try:
             now = timezone.now()
-            current_students = list(service._at_risk_student_queryset(school))
+            current_students = service._at_risk_students(school)
             current_ids = {student.id for student in current_students}
             existing_states = {
                 state.student_id: state
@@ -365,7 +365,11 @@ def send_at_risk_student_alerts(self):
                     "newly_at_risk_students": [
                         {
                             "student_name": student.get_full_name(),
-                            "average_score": round(student.avg_score, 1),
+                            "average_score": (
+                                round(student.avg_score, 1)
+                                if student.avg_score is not None
+                                else None
+                            ),
                         }
                         for student in newly_at_risk
                     ],
@@ -773,17 +777,18 @@ def _build_plaintext_school_admin_summary(school, summary):
     ]
 
     if at_risk_students:
-        lines.append(
-            f"At-risk students ({summary['at_risk_student_count']} total, average "
-            "score below 60%):"
-        )
+        lines.append(f"At-risk students ({summary['at_risk_student_count']} total):")
         if ai_narrative.get("at_risk_narrative"):
             lines.append(ai_narrative["at_risk_narrative"])
         else:
             for student in at_risk_students:
-                lines.append(
-                    f"- {student['student_name']}: {student['average_score']}% average"
+                average_score = student["average_score"]
+                score_text = (
+                    f"{average_score}% average"
+                    if average_score is not None
+                    else "no graded work yet"
                 )
+                lines.append(f"- {student['student_name']}: {score_text}")
         lines.append("")
     else:
         lines.append(

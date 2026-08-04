@@ -16,6 +16,7 @@ on each request rather than cached/duplicated locally.
 
 import logging
 
+from django.conf import settings
 from drf_spectacular.utils import (
     OpenApiExample,
     OpenApiResponse,
@@ -339,6 +340,124 @@ with `DELETE /payment-methods/{id}/`.
         return Response(
             {"client_secret": setup_intent.client_secret}, status=status.HTTP_200_OK
         )
+
+    @extend_schema(
+        tags=["Payment Methods"],
+        summary="Get a Stripe-hosted Billing Portal link",
+        description="""
+Alternative to the `list`/`create`/`destroy`/`set-default` endpoints above:
+instead of this app driving card entry with Stripe Elements, this hands the
+**entire** payment-methods experience to Stripe's own hosted Billing Portal.
+
+**Flow**
+1. Call this endpoint → receive `portal_url`.
+2. Redirect the user to `portal_url` (full page redirect, not an iframe —
+   Stripe does not support embedding the portal).
+3. The user adds/removes/sets-default cards entirely on Stripe's page. None
+   of this app's endpoints are involved while they're there — Stripe applies
+   changes to the same customer that `GET /payment-methods/` reads from, so
+   nothing needs to be synced back manually.
+4. Stripe redirects back to `return_url` when the user clicks "Return" (or
+   closes out) on the portal.
+5. Optionally call `GET /payment-methods/` again on return to refresh
+   whatever the frontend was showing before the redirect.
+
+**Customer resolution is identical to the other endpoints** — the caller's
+individual customer if they're an individually-billed subscriber, their
+school's customer if they're a license admin. License teachers and users
+with no billing context are rejected (403), same as everywhere else in this
+ViewSet.
+
+**Payment methods only — subscriptions are NOT manageable from this
+portal.** The session is pinned to a dedicated, locked-down Stripe Billing
+Portal Configuration (created/cached automatically, distinct from whatever
+the account's default configuration allows) with only
+`payment_method_update` enabled and `subscription_update` /
+`subscription_cancel` / `subscription_pause` explicitly disabled, and is
+additionally deep-linked straight into the payment-method flow via
+`flow_data`. This is intentional: subscription changes must go through
+`SubscriptionManagementViewSet` / `LicenseSubscriptionViewSet` so this
+app's trial, proration, and license-seat rules are applied — the portal
+must never be a side door around them.
+
+**Session lifetime**: each `portal_url` is single-use-ish and expires after
+a short time if unused — always request a fresh one right before
+redirecting, don't cache/reuse an old link.
+""",
+        request=inline_serializer(
+            name="BillingPortalSessionRequest",
+            fields={
+                "return_url": serializers.URLField(
+                    required=False,
+                    help_text=(
+                        "Where Stripe redirects the user after they leave "
+                        "the portal. Defaults to "
+                        f"https://{settings.FRONTEND_DOMAIN}/billing if "
+                        "omitted."
+                    ),
+                ),
+            },
+        ),
+        responses={
+            200: OpenApiResponse(
+                response=inline_serializer(
+                    name="BillingPortalSessionResponse",
+                    fields={
+                        "portal_url": serializers.URLField(
+                            help_text=(
+                                "Stripe-hosted URL. Redirect the user here "
+                                "immediately — do not reuse across requests."
+                            )
+                        ),
+                    },
+                ),
+                description="Portal session created.",
+                examples=[
+                    OpenApiExample(
+                        "Portal session created",
+                        value={
+                            "portal_url": (
+                                "https://billing.stripe.com/p/session/" "abc123def456"
+                            )
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            400: OpenApiResponse(description="Stripe rejected the session creation."),
+            403: OpenApiResponse(
+                description=(
+                    "No billing context (license teacher, or no "
+                    "subscription/license at all)."
+                ),
+            ),
+        },
+    )
+    @action(detail=False, methods=["post"], url_path="portal-session")
+    def portal_session(self, request):
+        return_url = (
+            request.data.get("return_url")
+            or f"https://{settings.FRONTEND_DOMAIN}/billing"
+        )
+
+        try:
+            session = (
+                StripeCustomerService.create_billing_portal_session_for_request_user(
+                    request.user, return_url=return_url
+                )
+            )
+        except ValueError as exc:
+            return self._forbidden(exc)
+        except stripe.error.StripeError as exc:
+            logger.exception(
+                "Failed to create billing portal session for user %s",
+                request.user.id,
+            )
+            return self._stripe_error_response(
+                exc, "We couldn't open the billing portal. Please try again."
+            )
+
+        return Response({"portal_url": session.url}, status=status.HTTP_200_OK)
 
     @extend_schema(
         tags=["Payment Methods"],

@@ -1,8 +1,8 @@
-from datetime import timedelta
+from datetime import date, timedelta
 from unittest.mock import patch
 
 from django.conf import settings
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
@@ -17,6 +17,7 @@ from classrooms.models import (
     StudentCourse,
 )
 from dashboard.models import StudentRiskAlertState, TeacherInactivityAlertState
+from dashboard.risk import RiskInputs, StudentRiskEvaluator
 from dashboard.services import (
     SchoolAdminWeeklySummaryService,
     WeeklyCourseSummaryService,
@@ -29,6 +30,175 @@ from dashboard.tasks import (
 )
 from students.models import StudentSubmission
 from users.models import CustomUser, UserActivity, UserTypes
+
+
+class StudentRiskEvaluatorTest(SimpleTestCase):
+    def setUp(self):
+        self.evaluator = StudentRiskEvaluator()
+
+    def test_critical_grade_alone_triggers_at_risk(self):
+        result = self.evaluator.evaluate(
+            RiskInputs(
+                expected_assignment_count=3,
+                submitted_count=3,
+                graded_scores=[
+                    (date(2026, 1, 1), 55.0),
+                    (date(2026, 1, 8), 58.0),
+                    (date(2026, 1, 15), 56.0),
+                ],
+            )
+        )
+        self.assertTrue(result.at_risk)
+        self.assertAlmostEqual(result.average_grade, 56.33, places=1)
+
+    def test_critical_missing_work_alone_triggers_at_risk_despite_healthy_grade(self):
+        result = self.evaluator.evaluate(
+            RiskInputs(
+                expected_assignment_count=3,
+                submitted_count=1,
+                graded_scores=[(date(2026, 1, 1), 82.0)],
+            )
+        )
+        self.assertTrue(result.at_risk)
+        self.assertEqual(result.average_grade, 82.0)
+
+    def test_missing_work_below_expected_two_does_not_trigger_critical_bypass(self):
+        # Only 1 assignment expected: the critical_missing_work bypass
+        # requires expected_assignment_count >= 2.
+        result = self.evaluator.evaluate(
+            RiskInputs(
+                expected_assignment_count=1,
+                submitted_count=0,
+                graded_scores=[],
+            )
+        )
+        self.assertFalse(result.at_risk)
+        self.assertIsNone(result.average_grade)
+
+    def test_single_moderate_flag_is_not_enough(self):
+        # grade=65 (flag A only): below 70 but not below 60, full
+        # submission, no trend data -> only 1 of 3 moderate flags.
+        result = self.evaluator.evaluate(
+            RiskInputs(
+                expected_assignment_count=1,
+                submitted_count=1,
+                graded_scores=[(date(2026, 1, 1), 65.0)],
+            )
+        )
+        self.assertFalse(result.at_risk)
+
+    def test_two_moderate_flags_trigger_at_risk(self):
+        # grade=65 (flag A) + submission_rate=50% (flag B) = 2 of 3,
+        # neither condition alone is critical.
+        result = self.evaluator.evaluate(
+            RiskInputs(
+                expected_assignment_count=4,
+                submitted_count=2,
+                graded_scores=[(date(2026, 1, 1), 65.0), (date(2026, 1, 8), 65.0)],
+            )
+        )
+        self.assertTrue(result.at_risk)
+
+    def test_zero_graded_submissions_is_not_auto_flagged(self):
+        # Regression test for the `avg_grade_val or 0` bug: a student with
+        # no graded work yet must not be treated as failing.
+        result = self.evaluator.evaluate(
+            RiskInputs(
+                expected_assignment_count=1,
+                submitted_count=1,
+                graded_scores=[],
+            )
+        )
+        self.assertIsNone(result.average_grade)
+        self.assertFalse(result.at_risk)
+
+    def test_trend_improving_over_full_window(self):
+        scores = [
+            (date(2026, 1, 1), 50.0),
+            (date(2026, 1, 8), 60.0),
+            (date(2026, 1, 15), 70.0),
+            (date(2026, 1, 22), 80.0),
+        ]
+        result = self.evaluator.evaluate(
+            RiskInputs(
+                expected_assignment_count=4, submitted_count=4, graded_scores=scores
+            )
+        )
+        self.assertEqual(result.grade_trend, "IMPROVING")
+
+    def test_trend_declining_over_full_window(self):
+        scores = [
+            (date(2026, 1, 1), 90.0),
+            (date(2026, 1, 8), 75.0),
+            (date(2026, 1, 15), 60.0),
+        ]
+        result = self.evaluator.evaluate(
+            RiskInputs(
+                expected_assignment_count=3, submitted_count=3, graded_scores=scores
+            )
+        )
+        self.assertEqual(result.grade_trend, "DECLINING")
+
+    def test_trend_ignores_single_outlier_that_endpoint_comparison_would_not(self):
+        # [70, 95, 71]: raw first-vs-last comparison is ~flat/slightly up,
+        # but a single midpoint spike shouldn't swing the regression fit
+        # enough to call it a strong trend either way -> STABLE.
+        scores = [
+            (date(2026, 1, 1), 70.0),
+            (date(2026, 1, 8), 95.0),
+            (date(2026, 1, 15), 71.0),
+        ]
+        result = self.evaluator.evaluate(
+            RiskInputs(
+                expected_assignment_count=3, submitted_count=3, graded_scores=scores
+            )
+        )
+        self.assertEqual(result.grade_trend, "STABLE")
+
+    def test_trend_same_day_scores_falls_back_to_first_vs_last(self):
+        same_day = date(2026, 1, 1)
+        scores = [(same_day, 90.0), (same_day, 60.0)]
+        result = self.evaluator.evaluate(
+            RiskInputs(
+                expected_assignment_count=2, submitted_count=2, graded_scores=scores
+            )
+        )
+        self.assertEqual(result.grade_trend, "DECLINING")
+        self.assertEqual(result.trend_delta, -30.0)
+
+    def test_trend_insufficient_data_below_two_scores(self):
+        result = self.evaluator.evaluate(
+            RiskInputs(
+                expected_assignment_count=1,
+                submitted_count=1,
+                graded_scores=[(date(2026, 1, 1), 40.0)],
+            )
+        )
+        self.assertEqual(result.grade_trend, "INSUFFICIENT DATA")
+
+    def test_trend_only_uses_last_six_scores(self):
+        # An old, sharply declining pair falls outside the 6-score window
+        # and should not affect a otherwise-flat recent trend.
+        old_decline = [
+            (date(2026, 1, 1), 95.0),
+            (date(2026, 1, 2), 40.0),
+        ]
+        recent_flat = [
+            (date(2026, 2, 1), 70.0),
+            (date(2026, 2, 8), 71.0),
+            (date(2026, 2, 15), 69.0),
+            (date(2026, 2, 22), 70.0),
+            (date(2026, 3, 1), 70.0),
+            (date(2026, 3, 8), 71.0),
+        ]
+        result = self.evaluator.evaluate(
+            RiskInputs(
+                expected_assignment_count=8,
+                submitted_count=8,
+                graded_scores=old_decline + recent_flat,
+            )
+        )
+        self.assertEqual(result.grade_trend, "STABLE")
 
 
 class WeeklyCourseSummaryServiceTest(TestCase):

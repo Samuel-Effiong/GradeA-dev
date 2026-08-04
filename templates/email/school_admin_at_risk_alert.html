@@ -46,13 +46,19 @@
         <div class="section">
             <p>
                 {{ newly_at_risk_students|length }} student{{ newly_at_risk_students|length|pluralize }}
-                {{ newly_at_risk_students|length|pluralize:"has,have" }} newly fallen below a 60% average
-                across graded, published work.
+                {{ newly_at_risk_students|length|pluralize:"has,have" }} newly been flagged as at-risk
+                (low grades, missing work, or a declining trend).
             </p>
             {% for student in newly_at_risk_students %}
                 <div class="card">
                     <strong>{{ student.student_name }}</strong>
-                    <p class="muted">Average score: {{ student.average_score }}%</p>
+                    <p class="muted">
+                        {% if student.average_score is not None %}
+                            Average score: {{ student.average_score }}%
+                        {% else %}
+                            No graded work yet
+                        {% endif %}
+                    </p>
                 </div>
             {% endfor %}
         </div>

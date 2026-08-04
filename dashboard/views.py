@@ -12,10 +12,8 @@ from django.db.models import (
     F,
     FloatField,
     Max,
-    OuterRef,
     Prefetch,
     Q,
-    Subquery,
     Sum,
     Value,
     Variance,
@@ -52,6 +50,9 @@ from classrooms.models import (
     StudentCourse,
 )
 from classrooms.permissions import IsSchoolAdmin, IsStudent, IsSuperAdmin, IsTeacher
+
+# from dashboard.services import analyze_question_difficulty
+from dashboard.risk import RiskInputs, StudentRiskEvaluator
 from dashboard.serializers import (  # SchoolAdminTeacherPerformanceSerializer,
     AssignmentActivityOverTimeChartSerializer,
     ConcurrencySerializer,
@@ -80,8 +81,7 @@ from dashboard.serializers import (  # SchoolAdminTeacherPerformanceSerializer,
     TeacherStudentAnalyticsSerializer,
     UnitPerformanceSerializer,
 )
-
-# from dashboard.services import analyze_question_difficulty
+from dashboard.services import SchoolAdminWeeklySummaryService
 from students.models import StudentSubmission
 from students.services import get_grade_details
 from users.models import CustomUser, UserTypes
@@ -1301,34 +1301,13 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 1,
             )
 
-            # At-Risk Students: Student with average score_percentage < 60 across graded and published submissions
-            at_risk_threshold = 60
-            # Get all student in tthis school with submissions
-            student_in_school = CustomUser.objects.filter(
-                enrollments__course__teacher__school=school,
-                is_active=True,
-                user_type=UserTypes.STUDENT,
-            )
-
-            # We need to aggregate average score_percentage per student from their graded published submissions
-
-            student_avg = (
-                StudentSubmission.objects.filter(
-                    student=OuterRef("id"),
-                    is_published=True,
-                    graded_at__isnull=False,
-                    score_percentage__isnull=False,
-                    assignment__course__teacher__school=school,
-                )
-                .values("student")
-                .annotate(avg=Avg("score_percentage"))
-                .values("avg")
-            )
-
+            # At-risk student count: delegates to SchoolAdminWeeklySummaryService
+            # (dashboard/services.py) so this endpoint, the weekly digest, and
+            # the daily at-risk alert task all agree on one definition
+            # (dashboard/risk.py) instead of maintaining separate, drifting
+            # copies of the same query.
             at_risk_students = (
-                student_in_school.annotate(avg_score=Subquery(student_avg[:1]))
-                .filter(avg_score__lt=at_risk_threshold)
-                .count()
+                SchoolAdminWeeklySummaryService()._build_at_risk_students(school)[1]
             )
 
             data = {
@@ -2367,6 +2346,8 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
     permission_classes = [IsTeacher]
     # http_method_names = ["get", "options", "head"]
 
+    risk_evaluator = StudentRiskEvaluator()
+
     @extend_schema(
         tags=["Teacher Admin"],
         summary="Teacher Dashboard Overview",
@@ -2566,7 +2547,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             course_submissions_qs = (
                 StudentSubmission.objects.filter(assignment__course__session=session)
                 .select_related("assignment", "assignment__course")
-                .order_by("graded_at")
+                .order_by("submission_date", "id")
             )
 
             enrollments = (
@@ -2617,46 +2598,31 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
 
                 submitted_count = enrollment.submitted_count_val
                 course_total_assigned = course_totals.get(course.id, 0)
-                avg_grade = enrollment.avg_grade_val or 0
 
-                graded = [s for s in student_course_subs if s.score is not None]
-                recent = graded[-3:] if len(graded) >= 3 else graded
-                scores = [float(s.score) for s in recent]
+                graded = [
+                    s for s in student_course_subs if s.score_percentage is not None
+                ]
+                dated_scores = [
+                    (s.submission_date, float(s.score_percentage)) for s in graded
+                ]
 
-                if len(scores) < 2:
-                    trend = "INSUFFICIENT DATA"
-                elif scores[-1] > scores[0]:
-                    trend = "IMPROVING"
-                elif scores[-1] < scores[0]:
-                    trend = "DECLINING"
-                else:
-                    trend = "STABLE"
+                risk_result = self.risk_evaluator.evaluate(
+                    RiskInputs(
+                        expected_assignment_count=course_total_assigned,
+                        submitted_count=submitted_count,
+                        graded_scores=dated_scores,
+                    )
+                )
 
-                risk_flags = 0
-                is_critical = False
-
-                if avg_grade < 70:
-                    risk_flags += 1
-                    is_critical = True  # Direct override
-
-                if (
-                    course_total_assigned > 0
-                    and (submitted_count / course_total_assigned) < 0.7
-                ):
-                    risk_flags += 1
-
-                if trend == "DECLINING":
-                    risk_flags += 1
-
-                if is_critical or risk_flags >= 2:
+                if risk_result.at_risk:
                     at_risk_students.append(
                         {
                             "student_id": student.id,
                             "student_name": student.get_full_name(),
                             "course_id": course.id,
                             "course_name": course.name,
-                            "average_grade": round(float(avg_grade), 2),
-                            "grade_trend": trend,
+                            "average_grade": risk_result.average_grade,
+                            "grade_trend": risk_result.grade_trend,
                         }
                     )
 
@@ -2928,10 +2894,12 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         - Full submission history for the course.
 
         Risk Analysis Logic:
-        A student is flagged as "at_risk" if they meet:
-        - ANY of the following "Critical" conditions:
+        A student is flagged as "at_risk" if they meet ANY of:
+        - Average grade below 60% (critical).
+        - Submission rate below 50%, with at least 2 assignments due
+          (critical missing work).
+        - At least TWO of the following "Moderate" conditions:
             1. Average grade below 70%.
-        - OR at least TWO of the following "Moderate" conditions:
             2. Submission rate below 70%.
             3. Performance trend is "DECLINING".
         """,
@@ -2985,7 +2953,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             course_submissions_qs = (
                 StudentSubmission.objects.filter(assignment__course=course)
                 .select_related("assignment")
-                .order_by("graded_at")
+                .order_by("submission_date", "id")
             )
 
             enrollments = (
@@ -3016,44 +2984,31 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 # Use prefetched submissions
                 student_course_submissions = student.course_submissions
                 submitted_count = enrollment.submitted_count_val
-                avg_grade = enrollment.avg_grade_val or 0
 
                 # Filter specifically for graded submissions from the prefetched list
-                graded = [s for s in student_course_submissions if s.score is not None]
+                graded = [
+                    s
+                    for s in student_course_submissions
+                    if s.score_percentage is not None
+                ]
 
                 # Best/Worst (using score_percentage for normalized comparison)
                 best = max(graded, key=lambda s: s.score_percentage or 0, default=None)
                 worst = min(graded, key=lambda s: s.score_percentage or 0, default=None)
 
-                # Trend (last 3)
-                # Since query is ordered by graded_at, last 3 are at the end
-                recent = graded[-3:] if len(graded) >= 3 else graded
-                scores = [float(s.score_percentage or 0) for s in recent]
-
-                if len(scores) < 2:
-                    trend = "INSUFFICIENT DATA"
-                elif scores[-1] > scores[0]:
-                    trend = "IMPROVING"
-                elif scores[-1] < scores[0]:
-                    trend = "DECLINING"
-                else:
-                    trend = "STABLE"
-
-                # Risk Analysis
-                risk_flags = 0
-                is_critical = False
-
-                if avg_grade < 70:
-                    risk_flags += 1
-                    is_critical = True
-
-                if total_assigned > 0 and (submitted_count / total_assigned) < 0.7:
-                    risk_flags += 1
-
-                if trend == "DECLINING":
-                    risk_flags += 1
-
-                at_risk = is_critical or risk_flags >= 2
+                dated_scores = [
+                    (s.submission_date, float(s.score_percentage)) for s in graded
+                ]
+                risk_result = self.risk_evaluator.evaluate(
+                    RiskInputs(
+                        expected_assignment_count=total_assigned,
+                        submitted_count=submitted_count,
+                        graded_scores=dated_scores,
+                    )
+                )
+                average_grade = risk_result.average_grade
+                trend = risk_result.grade_trend
+                at_risk = risk_result.at_risk
 
                 assignment_history = [
                     {
@@ -3077,7 +3032,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                         "student_name": student.get_full_name(),
                         "assignment_submitted": submitted_count,
                         "assignment_assigned": total_assigned,
-                        "average_grade": round(float(avg_grade), 2) if avg_grade else 0,
+                        "average_grade": average_grade,
                         "best_assignment": (
                             {
                                 "id": best.assignment.id,
