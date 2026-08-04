@@ -26,7 +26,10 @@ from django.db import transaction
 from django.utils import timezone
 
 from .imports import stripe
-from .license_service import LicenseSubscriptionService
+from .license_service import (
+    LicenseSubscriptionService,
+    sync_teachers_under_license_to_mailerlite,
+)
 from .models import (
     BillingInterval,
     CreditBucket,
@@ -133,6 +136,7 @@ def process_license_renewals(self):
 
                 license_sub.is_active = False
                 license_sub.save(update_fields=["is_active", "updated_at"])
+                sync_teachers_under_license_to_mailerlite(license_sub)
                 deactivated_count += 1
                 logger.info(
                     "License %s deactivated (auto_renew=False).",
@@ -350,6 +354,11 @@ def reconcile_subscription_renewals(self):
                 if stripe_sub["status"] in ["canceled", "unpaid"]:
                     sub.is_active = False
                     sub.save(update_fields=["stripe_status", "is_active", "updated_at"])
+
+                    from users.tasks import sync_user_to_mailerlite
+
+                    sync_user_to_mailerlite.delay(str(sub.user_id))
+
                     logger.info(
                         "Subscription %s deactivated due to Stripe status: %s",
                         sub.id,

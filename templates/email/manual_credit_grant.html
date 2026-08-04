@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        .container {
+            font-family: "Inter", -apple-system, BlinkMacSystemFont,"Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #1f2937;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .header {
+            background-color: #00723A;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .section {
+            margin-top: 24px;
+        }
+        .card {
+            background-color: #f8fafc;
+            border-left: 4px solid #00723A;
+            padding: 16px;
+            margin-top: 12px;
+            border-radius: 4px;
+        }
+        .muted {
+            color: #475569;
+        }
+        .footer {
+            color: #94a3b8;
+            font-size: 12px;
+            margin-top: 32px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>You've Been Credited</h1>
+            <p>Hi {{ user.get_full_name|default:user.email }},</p>
+        </div>
+
+        <div class="section">
+            <div class="card">
+                <p>
+                    We've added <strong>{{ blocks }}</strong> credit block{{ blocks|pluralize }}
+                    — <strong>{{ display_amount }}</strong> AI credits — to your GradeA+ account.
+                </p>
+                {% if reason %}
+                <p>Reason: {{ reason }}</p>
+                {% endif %}
+                <p>
+                    {% if expires_at %}
+                    These credits expire on <strong>{{ expires_at|date:"F j, Y" }}</strong>.
+                    {% else %}
+                    These credits do not expire.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <div class="section">
+            <p>Jump back in and put them to work whenever you're ready.</p>
+        </div>
+
+        <div class="section">
+            <p class="muted">Questions? Reach us at {{ support_email }}.</p>
+        </div>
+
+        <div class="section">
+            <p>Best regards,<br>GradeA+ Team</p>
+        </div>
+
+        <div class="footer">
+            &copy; {{ current_year }} GradeA+. All rights reserved.
+        </div>
+    </div>
+</body>
+</html>

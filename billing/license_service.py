@@ -32,6 +32,7 @@ from django.utils import timezone
 from AutoGrader.error_messages import describe_stripe_error, describe_user_error
 from AutoGrader.tasks import send_email_task
 from classrooms.models import School
+from users.mailerlite_service import queue_sync
 from users.models import CustomUser, RegistrationMethod, UserTypes
 from users.services import otp_manager
 from users.utils import is_business_email, is_exempt_email_domain
@@ -68,6 +69,28 @@ from .models import (  # CONVERSION_FACTOR,; UserSubscription,
 logger = logging.getLogger(__name__)
 
 _DEFAULT_LICENSE_BILLING_METHOD: str = str(LicenseBillingMethod.STRIPE)
+
+
+def sync_teachers_under_license_to_mailerlite(license_sub: LicenseSubscription) -> None:
+    """
+    Re-syncs every teacher still allocated under `license_sub` to MailerLite.
+
+    Call this after flipping a LicenseSubscription's is_active flag, or
+    changing its plan - either one alters what get_active_subscription()
+    and subscription_tier return for every teacher under it, so their
+    MailerLite fields go stale unless re-synced explicitly.
+
+    user__is_active=True excludes teachers who were invited but haven't
+    completed activation yet - same rule queue_sync() applies for a
+    single user (see users/mailerlite_service.py).
+    """
+    from users.tasks import sync_user_to_mailerlite
+
+    teacher_ids = license_sub.allocations.filter(
+        is_active=True, user__is_active=True
+    ).values_list("user_id", flat=True)
+    for user_id in teacher_ids:
+        sync_user_to_mailerlite.delay(str(user_id))
 
 
 class IndividualSubscriptionConflictError(Exception):
@@ -1216,6 +1239,8 @@ class LicenseSubscriptionService:
                 allocation.monthly_allocation,
             )
 
+        queue_sync(teacher)
+
         # 3. Ensure teacher's CreditWallet exists
         wallet, wallet_created = CreditWallet.objects.get_or_create(user=teacher)
         if wallet_created:
@@ -1531,6 +1556,10 @@ class LicenseSubscriptionService:
         allocation.is_active = False
         allocation.save(update_fields=["is_active", "updated_at"])
 
+        from users.tasks import sync_user_to_mailerlite
+
+        sync_user_to_mailerlite.delay(str(teacher.id))
+
         # 2. Expire all active credit buckets for this teacher
         wallet = teacher.credit_wallet
         now = timezone.now()
@@ -1592,6 +1621,7 @@ class LicenseSubscriptionService:
             )
             license_sub.is_active = False
             license_sub.save(update_fields=["is_active", "updated_at"])
+            sync_teachers_under_license_to_mailerlite(license_sub)
             return
 
         # Get all active allocations
@@ -1672,6 +1702,7 @@ class LicenseSubscriptionService:
             )
             license_sub.is_active = False
             license_sub.save(update_fields=["is_active", "updated_at"])
+            sync_teachers_under_license_to_mailerlite(license_sub)
             raise RuntimeError(
                 f"License {license_sub.id} renewal failed for all teachers."
             )
@@ -1746,6 +1777,8 @@ class LicenseSubscriptionService:
             active_allocations.count(),
         )
 
+        sync_teachers_under_license_to_mailerlite(license_sub)
+
     @staticmethod
     def cancel_license_subscription(license_sub: LicenseSubscription) -> None:
         """
@@ -1760,6 +1793,8 @@ class LicenseSubscriptionService:
         license_sub.is_active = False
         license_sub.auto_renew = False
         license_sub.save(update_fields=["is_active", "auto_renew", "updated_at"])
+
+        sync_teachers_under_license_to_mailerlite(license_sub)
 
         logger.info(
             "Cancelled license subscription %s for school %s. "
@@ -1926,6 +1961,8 @@ class LicenseSubscriptionService:
             new_custom_price_cents,
             active_allocations.count(),
         )
+
+        sync_teachers_under_license_to_mailerlite(license_sub)
 
         return license_sub
 

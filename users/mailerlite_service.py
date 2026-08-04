@@ -2,8 +2,9 @@
 users/mailerlite_service.py
 ============================
 Syncs activated users to MailerLite, segmented into one group per
-user_type (Teacher / Student / School Admin) with custom fields for
-further targeting.
+user_type (Teacher / Student / School Admin), populating the
+subscription_type, subscription_tier, and subscription_active custom
+fields (the only ones this integration writes).
 
 Never raises - a MailerLite outage or missing API key must not break
 signup/activation. Callers should invoke this via the
@@ -16,7 +17,7 @@ import logging
 import requests
 from django.conf import settings
 
-from users.models import RegistrationMethod, UserTypes
+from users.models import UserTypes
 
 logger = logging.getLogger(__name__)
 
@@ -41,16 +42,16 @@ class MailerLiteService:
     @staticmethod
     def _build_payload(user):
         subscription = user.get_active_subscription()
-        plan_name = getattr(getattr(subscription, "plan", None), "name", None)
+        plan_tier = getattr(getattr(subscription, "plan", None), "tier", None)
 
         fields = {
             "name": user.first_name or "",
             "last_name": user.last_name or "",
-            "user_type": user.user_type,
-            "registration_method": user.registration_method or RegistrationMethod.EMAIL,
-            "school": user.school.name if user.school_id else "",
             "subscription_type": user.subscription_type or "",
-            "plan": plan_name or "",
+            "subscription_tier": plan_tier or "",
+            "subscription_active": (
+                "true" if getattr(subscription, "is_active", False) else "false"
+            ),
         }
 
         payload = {"email": user.email, "fields": fields}
@@ -97,3 +98,25 @@ class MailerLiteService:
         except requests.RequestException:
             logger.error("MailerLite sync failed for %s", user.email, exc_info=True)
             return False
+
+
+def queue_sync(user):
+    """
+    Enqueues a MailerLite sync for `user`, but only if their account is
+    already active.
+
+    Several billing code paths that mutate subscription state (e.g.
+    activate_subscription) are also called during signup - before the
+    user has verified their email/completed activation - to set up an
+    initial trial or beta plan. Syncing at that point would push an
+    unverified signup into MailerLite. This guard makes it safe to call
+    queue_sync from those shared code paths unconditionally: it's a
+    no-op until the user actually activates, at which point the
+    activation-time sync (users/views.py) picks up the correct state.
+    """
+    if not user.is_active:
+        return
+
+    from users.tasks import sync_user_to_mailerlite
+
+    sync_user_to_mailerlite.delay(str(user.id))

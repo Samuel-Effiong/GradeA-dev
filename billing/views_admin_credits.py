@@ -7,9 +7,10 @@ Kept in a separate file to avoid bloating billing/views.py further.
 Import and register this viewset in billing/urls.py.
 """
 
-from django.db.models import Sum
+from datetime import timedelta
 
-# from django.utils import timezone
+from django.db.models import Prefetch, Sum
+from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -19,13 +20,19 @@ from drf_spectacular.utils import (
 )
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import ParseError
+from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
 
 from classrooms.permissions import IsSuperAdmin
 from users.models import CustomUser
 
-from .models import CONVERSION_FACTOR, CreditBucket, CreditBucketType
+from .models import (
+    CONVERSION_FACTOR,
+    CreditBucket,
+    CreditBucketType,
+    CreditLedger,
+    CreditLedgerType,
+)
 from .serializers import (
     AdminGrantSummarySerializer,
     ManualCreditTopUpSerializer,
@@ -64,12 +71,15 @@ class AdminCreditManagementViewSet(viewsets.GenericViewSet):
 
         The grant creates a dedicated **MANUAL_GRANT** CreditBucket and an
         immutable ledger entry recording the amount, reason, expiry, and the
-        admin who authorised it.
+        admin who authorised it. The recipient is notified by email.
 
-        `amount` is supplied in **display units** (the number the teacher sees
-        in the UI). Internally it is multiplied by 1000 before storage.
+        `blocks` is the number of credit blocks to grant, priced using the
+        target user's own resolved plan (`plan.overage_block_size`) — the
+        same block size used for paid overage purchases.
 
-        If `expires_at` is omitted or `null`, the credits **never expire**.
+        `user_id` and `blocks` are required; `reason` and `expires_at` are
+        optional. If `expires_at` is omitted or `null`, the credits **never
+        expire**.
         """,
         request=ManualCreditTopUpSerializer,
         responses={
@@ -93,7 +103,9 @@ class AdminCreditManagementViewSet(viewsets.GenericViewSet):
                             "is_expired": False,
                             "status": "active",
                             "granted_by_email": "admin@gradea.com",
-                            "ledger_reason": "Custom deal — 500 credits for Spring semester",
+                            "ledger_reason": "Custom deal — Spring semester bonus",
+                            "blocks_granted": 100,
+                            "block_size": 5000,
                             "created_at": "2025-04-01T10:00:00Z",
                             "updated_at": "2025-04-01T10:00:00Z",
                         },
@@ -115,17 +127,20 @@ class AdminCreditManagementViewSet(viewsets.GenericViewSet):
 
         # validate_user_id returns the resolved CustomUser instance
         target_user = data["user_id"]
-        amount_display = data["amount"]
+        blocks = data["blocks"]
         reason = data["reason"]
         expires_at = data.get("expires_at")
 
-        bucket = ManualCreditService.top_up_credits(
-            target_user=target_user,
-            amount_display=amount_display,
-            reason=reason,
-            expires_at=expires_at,
-            granted_by=request.user,
-        )
+        try:
+            bucket = ManualCreditService.top_up_credits(
+                target_user=target_user,
+                blocks=blocks,
+                reason=reason,
+                expires_at=expires_at,
+                granted_by=request.user,
+            )
+        except ValueError as e:
+            raise ValidationError(str(e)) from e
 
         # Prefetch ledger so the serializer can read metadata without extra queries
         bucket.credit_ledgers.all()
@@ -176,13 +191,8 @@ class AdminCreditManagementViewSet(viewsets.GenericViewSet):
     def user_grant_history(self, request, user_id=None, *args, **kwargs):
         try:
             target_user = CustomUser.objects.get(id=user_id)
-        except CustomUser.DoesNotExist:
-            raise ParseError(f"No user found with id {user_id!r}.")
-
-            # return Response(
-            #     {"detail": f"No user found with id {user_id!r}."},
-            #     status=status.HTTP_404_NOT_FOUND,
-            # )
+        except CustomUser.DoesNotExist as exc:
+            raise NotFound(f"No user found with id {user_id!r}.") from exc
 
         grants = ManualCreditService.get_grant_history(target_user)
         page = self.paginate_queryset(grants)
@@ -240,6 +250,48 @@ class AdminCreditManagementViewSet(viewsets.GenericViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     # ------------------------------------------------------------------
+    # Single grant detail
+    # ------------------------------------------------------------------
+
+    @extend_schema(
+        tags=["Admin — Credit Management"],
+        summary="Retrieve a single manual grant",
+        description="""
+        Returns the full detail of a single **MANUAL_GRANT** bucket, including
+        the recipient's name/email, blocks allocated, block size, expiry, and
+        the admin who authorised it.
+
+        Pass the grant's bucket `id` as a path parameter.
+        """,
+        responses={
+            200: OpenApiResponse(
+                response=ManualGrantBucketSerializer,
+                description="The requested manual grant.",
+            ),
+            404: OpenApiResponse(description="Grant not found."),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="grants/detail/(?P<grant_id>[^/.]+)",
+    )
+    def grant_detail(self, request, grant_id=None, *args, **kwargs):
+        bucket = (
+            CreditBucket.objects.filter(
+                bucket_type=CreditBucketType.MANUAL_GRANT, id=grant_id
+            )
+            .select_related("wallet__user")
+            .prefetch_related("credit_ledgers")
+            .first()
+        )
+        if not bucket:
+            raise NotFound(f"No manual grant found with id {grant_id!r}.")
+
+        serializer = ManualGrantBucketSerializer(bucket)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    # ------------------------------------------------------------------
     # Aggregate summary
     # ------------------------------------------------------------------
 
@@ -262,11 +314,29 @@ class AdminCreditManagementViewSet(viewsets.GenericViewSet):
                         "Summary example",
                         value={
                             "total_grants": 12,
+                            "total_blocks_granted": 62,
                             "total_credits_granted_display": 6200,
+                            "total_credits_used_display": 1800,
                             "total_credits_remaining_display": 3100,
+                            "unique_recipients": 9,
                             "active_grants": 8,
                             "expired_grants": 3,
                             "exhausted_grants": 1,
+                            "expiring_soon_grants": 2,
+                            "grants_by_admin": [
+                                {
+                                    "granted_by_email": "admin@gradea.com",
+                                    "grants_count": 10,
+                                    "total_blocks": 50,
+                                    "total_credits_display": 5000,
+                                },
+                                {
+                                    "granted_by_email": "ops@gradea.com",
+                                    "grants_count": 2,
+                                    "total_blocks": 12,
+                                    "total_credits_display": 1200,
+                                },
+                            ],
                         },
                     )
                 ],
@@ -275,10 +345,19 @@ class AdminCreditManagementViewSet(viewsets.GenericViewSet):
     )
     @action(detail=False, methods=["get"], url_path="grants/summary")
     def grants_summary(self, request, *args, **kwargs):
-        # now = timezone.now()
+        now = timezone.now()
+        expiring_soon_cutoff = now + timedelta(days=30)
 
         all_grants = CreditBucket.objects.filter(
             bucket_type=CreditBucketType.MANUAL_GRANT
+        ).prefetch_related(
+            Prefetch(
+                "credit_ledgers",
+                queryset=CreditLedger.objects.filter(
+                    ledger_type=CreditLedgerType.GRANT
+                ),
+                to_attr="grant_ledgers",
+            )
         )
 
         total_grants = all_grants.count()
@@ -286,20 +365,24 @@ class AdminCreditManagementViewSet(viewsets.GenericViewSet):
         total_credits_granted = (
             all_grants.aggregate(total=Sum("total_credits"))["total"] or 0
         )
+        total_credits_used = (
+            all_grants.aggregate(total=Sum("used_credits"))["total"] or 0
+        )
+        unique_recipients = all_grants.values("wallet__user").distinct().count()
 
-        # Active: not expired AND has remaining credits
-        # active_qs = all_grants.filter(expires_at__isnull=True) | all_grants.filter(
-        #     expires_at__gt=now
-        # )
-
-        # We can't do complex property-based filtering in a single ORM call,
-        # so we split into Python for status classification
+        # Status classification and per-admin/blocks breakdown both need
+        # per-bucket property access (is_expired/remaining_credits) and
+        # ledger metadata, neither of which is a plain DB column, so we
+        # split into Python rather than a single complex ORM call.
         active = 0
         expired = 0
         exhausted = 0
+        expiring_soon = 0
         total_remaining_raw = 0
+        total_blocks_granted = 0
+        by_admin: dict[str | None, dict] = {}
 
-        for bucket in all_grants.iterator():
+        for bucket in all_grants:
             if bucket.is_expired():
                 expired += 1
             elif bucket.remaining_credits == 0:
@@ -307,14 +390,45 @@ class AdminCreditManagementViewSet(viewsets.GenericViewSet):
             else:
                 active += 1
                 total_remaining_raw += bucket.remaining_credits
+                if bucket.expires_at and bucket.expires_at <= expiring_soon_cutoff:
+                    expiring_soon += 1
+
+            ledger = bucket.grant_ledgers[0] if bucket.grant_ledgers else None
+            metadata = ledger.metadata if ledger and ledger.metadata else {}
+            blocks = metadata.get("blocks") or 0
+            granted_by_email = metadata.get("granted_by_email")
+
+            total_blocks_granted += blocks
+
+            admin_row = by_admin.setdefault(
+                granted_by_email,
+                {
+                    "granted_by_email": granted_by_email,
+                    "grants_count": 0,
+                    "total_blocks": 0,
+                    "total_credits_display": 0,
+                },
+            )
+            admin_row["grants_count"] += 1
+            admin_row["total_blocks"] += blocks
+            admin_row["total_credits_display"] += (
+                bucket.total_credits // CONVERSION_FACTOR
+            )
 
         data = {
             "total_grants": total_grants,
+            "total_blocks_granted": total_blocks_granted,
             "total_credits_granted_display": total_credits_granted // CONVERSION_FACTOR,
+            "total_credits_used_display": total_credits_used // CONVERSION_FACTOR,
             "total_credits_remaining_display": total_remaining_raw // CONVERSION_FACTOR,
+            "unique_recipients": unique_recipients,
             "active_grants": active,
             "expired_grants": expired,
             "exhausted_grants": exhausted,
+            "expiring_soon_grants": expiring_soon,
+            "grants_by_admin": sorted(
+                by_admin.values(), key=lambda row: row["total_blocks"], reverse=True
+            ),
         }
 
         serializer = AdminGrantSummarySerializer(data)

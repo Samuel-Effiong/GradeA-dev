@@ -16,8 +16,13 @@ on each request rather than cached/duplicated locally.
 
 import logging
 
-from drf_spectacular.utils import OpenApiResponse, extend_schema
-from rest_framework import status, viewsets
+from drf_spectacular.utils import (
+    OpenApiExample,
+    OpenApiResponse,
+    extend_schema,
+    inline_serializer,
+)
+from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -126,9 +131,66 @@ class PaymentMethodViewSet(viewsets.ViewSet):
             "Stripe customer — their own individual customer if they're an "
             "individually-billed subscriber, or their school's customer if "
             "they're a license admin. License teachers and users with no "
-            "billing context are rejected (403)."
+            "billing context are rejected (403).\n\n"
+            "This is a **live** read straight from Stripe on every call — "
+            "nothing is cached locally. After `POST /payment-methods/` "
+            "succeeds (see below), poll this endpoint until the new card "
+            "shows up rather than assuming it's there immediately."
         ),
-        responses={200: PaymentMethodSerializer(many=True)},
+        responses={
+            200: OpenApiResponse(
+                response=PaymentMethodSerializer(many=True),
+                description="Cards on file, in Stripe's default list order.",
+                examples=[
+                    OpenApiExample(
+                        "Two cards, one default",
+                        value=[
+                            {
+                                "id": "pm_1NxA2bCcDefault0001",
+                                "brand": "visa",
+                                "last4": "4242",
+                                "exp_month": 12,
+                                "exp_year": 2027,
+                                "is_default": True,
+                            },
+                            {
+                                "id": "pm_1NxA2bCcSpare0002",
+                                "brand": "mastercard",
+                                "last4": "4444",
+                                "exp_month": 3,
+                                "exp_year": 2026,
+                                "is_default": False,
+                            },
+                        ],
+                        response_only=True,
+                    ),
+                    OpenApiExample(
+                        "No cards on file",
+                        value=[],
+                        response_only=True,
+                    ),
+                ],
+            ),
+            403: OpenApiResponse(
+                description=(
+                    "No billing context (e.g. a license teacher, or a user "
+                    "with no subscription/license at all)."
+                ),
+                examples=[
+                    OpenApiExample(
+                        "License teacher",
+                        value={
+                            "detail": (
+                                "Teachers don't manage billing directly — "
+                                "payment methods are managed by your "
+                                "school's license admin."
+                            )
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+        },
     )
     def list(self, request):
         try:
@@ -175,18 +237,87 @@ class PaymentMethodViewSet(viewsets.ViewSet):
     @extend_schema(
         tags=["Payment Methods"],
         summary="Add a payment method",
-        description=(
-            "Creates a SetupIntent for the requesting user's resolved Stripe "
-            "customer and returns a client_secret for the frontend to "
-            "collect a card with Stripe Elements. The card is only actually "
-            "attached once Stripe confirms the SetupIntent succeeded (via "
-            "webhook) — nothing changes here synchronously. Pass "
-            "set_as_default=true to make this the customer's default "
-            "payment method once added; omitted/false leaves the existing "
-            "default untouched."
+        description="""
+Starts adding a **new** card. This does NOT attach a card by itself — there
+is no "update an existing card" concept in Stripe (PCI rules mean card
+numbers can never be edited in place), so every add always results in a
+brand-new `PaymentMethod` object once completed, never a modification of one
+that already exists.
+
+**Flow (frontend must complete all 4 steps — this endpoint only does #1)**
+1. Call this endpoint → receive `client_secret`.
+2. Use Stripe Elements / `stripe.js` (`stripe.confirmCardSetup(client_secret, ...)`)
+   client-side to collect the card and confirm the SetupIntent.
+3. Stripe attaches the card to the customer and fires `setup_intent.succeeded`
+   to our webhook — this is what actually makes the card appear on the
+   customer, not step 1 or step 2 alone.
+4. Poll `GET /payment-methods/` (or re-fetch) until the new card shows up.
+   Do not assume the card exists just because step 2's client-side confirm
+   call resolved — the webhook is the source of truth and may lag slightly.
+
+**`set_as_default`**
+Pass `true` to make this card the customer's default once it's attached;
+omit or pass `false` to leave the existing default untouched. This choice is
+only applied by the webhook after Stripe confirms the SetupIntent, same as
+the card attachment itself.
+
+**Repeated calls create repeated cards.** Calling this endpoint twice (e.g.
+a retried or resubmitted form) and completing both SetupIntents produces
+*two* separate cards on the customer — there is no dedup against
+already-existing cards with the same number. Remove unwanted duplicates
+with `DELETE /payment-methods/{id}/`.
+""",
+        request=inline_serializer(
+            name="AddPaymentMethodRequest",
+            fields={
+                "set_as_default": serializers.BooleanField(
+                    required=False,
+                    default=False,
+                    help_text=(
+                        "If true, this card becomes the customer's default "
+                        "payment method once the SetupIntent succeeds. "
+                        "Defaults to false (existing default untouched)."
+                    ),
+                ),
+            },
         ),
-        request=OpenApiResponse(description="{ set_as_default?: bool }"),
-        responses={200: OpenApiResponse(description="Returns a client_secret.")},
+        responses={
+            200: OpenApiResponse(
+                response=inline_serializer(
+                    name="AddPaymentMethodResponse",
+                    fields={
+                        "client_secret": serializers.CharField(
+                            help_text=(
+                                "Pass to stripe.js "
+                                "(stripe.confirmCardSetup) to collect the "
+                                "card and complete the SetupIntent."
+                            )
+                        ),
+                    },
+                ),
+                description=(
+                    "SetupIntent created. No card exists yet — confirm it "
+                    "client-side with stripe.js, then poll "
+                    "GET /payment-methods/."
+                ),
+                examples=[
+                    OpenApiExample(
+                        "SetupIntent created",
+                        value={"client_secret": "seti_1NxA2b_secret_a1b2c3d4e5"},
+                        response_only=True,
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                description="Stripe rejected the SetupIntent creation.",
+            ),
+            403: OpenApiResponse(
+                description=(
+                    "No billing context (license teacher, or no "
+                    "subscription/license at all)."
+                ),
+            ),
+        },
     )
     def create(self, request):
         set_as_default = bool(request.data.get("set_as_default", False))
@@ -213,14 +344,58 @@ class PaymentMethodViewSet(viewsets.ViewSet):
         tags=["Payment Methods"],
         summary="Remove a payment method",
         description=(
-            "Detaches a card from the requesting user's resolved Stripe "
-            "customer. Blocked if this is the customer's ONLY card and an "
-            "active Stripe-billed subscription depends on it — add another "
-            "card first. Does not auto-promote another card to default; "
-            "if the deleted card was the default, the customer is simply "
-            "left with no default until one is explicitly set."
+            "Detaches a card (`pk` = Stripe PaymentMethod ID, e.g. "
+            "`pm_1NxA2bCcDefault0001`) from the requesting user's resolved "
+            "Stripe customer. Takes effect immediately and synchronously — "
+            "unlike add, there is no webhook step to wait for.\n\n"
+            "Blocked if this is the customer's ONLY card and an active "
+            "Stripe-billed subscription depends on it — add another card "
+            "first via `POST /payment-methods/`. Does not auto-promote "
+            "another card to default; if the deleted card was the default, "
+            "the customer is simply left with no default until one is "
+            "explicitly set via `set-default`."
         ),
-        responses={204: OpenApiResponse(description="Payment method removed.")},
+        responses={
+            204: OpenApiResponse(description="Payment method removed."),
+            400: OpenApiResponse(
+                description=(
+                    "This is the customer's only card and an active "
+                    "auto-renewing Stripe subscription depends on it."
+                ),
+                examples=[
+                    OpenApiExample(
+                        "Last card blocked",
+                        value={
+                            "detail": (
+                                "This is your only payment method and your "
+                                "subscription renews automatically. Add "
+                                "another card before removing this one."
+                            )
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            403: OpenApiResponse(description="No billing context for this user."),
+            404: OpenApiResponse(
+                description=(
+                    "`pk` doesn't exist on Stripe, or belongs to a "
+                    "different customer than the caller's."
+                ),
+                examples=[
+                    OpenApiExample(
+                        "Not owned by caller",
+                        value={
+                            "detail": (
+                                "That payment method does not belong to "
+                                "your account."
+                            )
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+        },
     )
     def destroy(self, request, pk=None):
         try:
@@ -264,7 +439,24 @@ class PaymentMethodViewSet(viewsets.ViewSet):
     @extend_schema(
         tags=["Payment Methods"],
         summary="Set a payment method as default",
-        responses={204: OpenApiResponse(description="Default payment method updated.")},
+        description=(
+            "Sets `pk` (Stripe PaymentMethod ID) as the customer's default "
+            "`invoice_settings.default_payment_method`. Synchronous — takes "
+            "effect immediately, no webhook involved. The card must already "
+            "be attached to the caller's resolved customer (i.e. it must "
+            "show up in `GET /payment-methods/` first)."
+        ),
+        responses={
+            204: OpenApiResponse(description="Default payment method updated."),
+            400: OpenApiResponse(description="Stripe rejected the update."),
+            403: OpenApiResponse(description="No billing context for this user."),
+            404: OpenApiResponse(
+                description=(
+                    "`pk` doesn't exist on Stripe, or belongs to a "
+                    "different customer than the caller's."
+                ),
+            ),
+        },
     )
     @action(detail=True, methods=["post"], url_path="set-default")
     def set_default(self, request, pk=None):

@@ -1,9 +1,14 @@
 import logging
 
 from dateutil.relativedelta import relativedelta  # type: ignore
+from django.conf import settings
 from django.db import transaction
 from django.db.models import F
+from django.template.loader import render_to_string
 from django.utils import timezone
+
+from AutoGrader.tasks import send_email_task
+from users.mailerlite_service import queue_sync
 
 from .models import (  # CreditUsageLog,; SubscriptionPlan,
     CONVERSION_FACTOR,
@@ -21,6 +26,12 @@ from .models import (  # CreditUsageLog,; SubscriptionPlan,
     StripeSubscriptionStatus,
     SubscriptionPlan,
     UserSubscription,
+)
+from .subscription_resolver import (
+    SOURCE_INDIVIDUAL,
+    SOURCE_LICENSE_ADMIN,
+    SOURCE_LICENSE_TEACHER,
+    resolve_user_billing_context,
 )
 
 logger = logging.getLogger(__name__)
@@ -172,6 +183,8 @@ class SubscriptionService:
             reference=f"Initial allocation for {plan.display_name or plan.name}",
             metadata={"subscription_id": str(subscription.id)},
         )
+
+        queue_sync(user)
 
         return subscription
 
@@ -367,6 +380,8 @@ class SubscriptionService:
             new_plan.name,
             user_sub.billing_cycle_end.isoformat(),
         )
+
+        queue_sync(user)
 
         return user_sub
 
@@ -913,6 +928,8 @@ class SubscriptionService:
             SubscriptionService.TRIAL_CREDITS_RAW,
         )
 
+        queue_sync(user)
+
         return subscription
 
     @staticmethod
@@ -1006,6 +1023,10 @@ class SubscriptionService:
         user_subscription.is_active = False
         user_subscription.is_trial = False
         user_subscription.save(update_fields=["is_active", "is_trial", "updated_at"])
+
+        from users.tasks import sync_user_to_mailerlite
+
+        sync_user_to_mailerlite.delay(str(user.id))
 
         logger.info(
             "Free trial expired for user %s (subscription %s). "
@@ -1201,6 +1222,9 @@ class SubscriptionService:
             user.email,
             trial_sub.id,
         )
+
+        queue_sync(user)
+
         return trial_sub
 
     @staticmethod
@@ -1377,6 +1401,9 @@ class SubscriptionService:
             monthly_bucket_expiry.isoformat(),
             stripe_subscription_id,
         )
+
+        queue_sync(user)
+
         return trial_sub
 
     @staticmethod
@@ -1523,6 +1550,8 @@ class SubscriptionService:
             trial_end.isoformat(),
         )
 
+        queue_sync(user)
+
         return subscription
 
 
@@ -1536,19 +1565,78 @@ class ManualCreditService:
     gives support teams an unambiguous audit trail.
     """
 
+    # Postgres PositiveIntegerField ceiling — total_credits can never exceed this.
+    MAX_STORABLE_RAW_CREDITS = 2_147_483_647
+
+    @staticmethod
+    def _resolve_plan_for_block_size(target_user):
+        """
+        Resolves the SubscriptionPlan governing this user's overage/block
+        terms, regardless of track (individual, license teacher, or
+        license admin). Mirrors ManualWalletSummarySerializer._get_active_plan
+        in billing/serializers.py so "a block" means the same thing here
+        as it does in the paid overage-purchase flow.
+        """
+        context = resolve_user_billing_context(target_user)
+        if context.source == SOURCE_INDIVIDUAL:
+            return context.user_subscription.plan if context.user_subscription else None
+        if context.source in (SOURCE_LICENSE_TEACHER, SOURCE_LICENSE_ADMIN):
+            return (
+                context.license_subscription.plan
+                if context.license_subscription
+                else None
+            )
+        return None
+
+    @staticmethod
+    def _notify_user_of_grant(target_user, blocks, display_amount, reason, expires_at):
+        """Best-effort — must never raise out of top_up_credits."""
+
+        def _dispatch():
+            try:
+                html_message = render_to_string(
+                    "email/manual_credit_grant.html",
+                    {
+                        "user": target_user,
+                        "blocks": blocks,
+                        "display_amount": display_amount,
+                        "reason": reason,
+                        "expires_at": expires_at,
+                        "current_year": timezone.now().year,
+                        "support_email": settings.SUPPORT_EMAIL,
+                    },
+                )
+                send_email_task.delay(
+                    subject="You've received bonus AI credits — GradeA+",
+                    message=(
+                        f"You've been credited {display_amount} AI credits "
+                        "on your GradeA+ account."
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[target_user.email],
+                    html_message=html_message,
+                )
+            except Exception:
+                logger.exception(
+                    "Failed to queue manual-credit-grant email to %s",
+                    target_user.email,
+                )
+
+        transaction.on_commit(_dispatch)
+
     @staticmethod
     @transaction.atomic
     def top_up_credits(
-        target_user, amount_display, reason, expires_at=None, granted_by=None
+        target_user, blocks, reason="", expires_at=None, granted_by=None
     ):
         """
-        Injects a manual credit grant into a user's wallet.
+        Injects a manual credit grant into a user's wallet, priced in blocks.
 
         Args:
             target_user (CustomUser): The user receiving the credits.
-            amount_display (int): Credit amount in display units (multiplied
-                by CONVERSION_FACTOR internally). Must be >= 1.
-            reason (str): Human-readable explanation shown in the audit ledger.
+            blocks (int): Number of credit blocks to grant. Must be >= 1.
+                Raw credits = blocks × target_user's resolved plan.overage_block_size.
+            reason (str): Optional human-readable explanation shown in the audit ledger.
             expires_at (datetime | None): Optional expiry. None = credits never expire.
             granted_by (CustomUser | None): The admin authorising the grant, recorded
                 in the ledger metadata for accountability.
@@ -1557,18 +1645,34 @@ class ManualCreditService:
             CreditBucket: The newly created MANUAL_GRANT bucket.
 
         Raises:
-            ValueError: If amount_display is less than 1.
+            ValueError: If blocks is less than 1, the target user has no
+                resolvable plan to price a block against, or the resulting
+                raw credit amount exceeds what the database column can store.
         """
 
-        if amount_display < 1:
-            raise ValueError("Credit amount must be at least 1.")
+        if blocks < 1:
+            raise ValueError("Block count must be at least 1.")
 
-        raw_amount = amount_display * CONVERSION_FACTOR
+        plan = ManualCreditService._resolve_plan_for_block_size(target_user)
+        if not plan or not plan.overage_block_size:
+            raise ValueError(
+                f"{target_user.email} has no active plan to determine block size."
+            )
+
+        raw_amount = blocks * plan.overage_block_size
+        if raw_amount > ManualCreditService.MAX_STORABLE_RAW_CREDITS:
+            raise ValueError(
+                "Grant exceeds the maximum storable credit amount; reduce blocks."
+            )
 
         # Ensure the wallet exists (it should via signals, but be defensive)
         wallet, _ = CreditWallet.objects.get_or_create(user=target_user)
 
-        # Create the MANUAL_GRANT bucket
+        # Create the MANUAL_GRANT bucket. bucket_type stays MANUAL_GRANT (not
+        # OVERAGE) so admin overrides remain distinguishable from purchased
+        # overage in the ledger/analytics; wallet.overage_blocks_used is
+        # deliberately left untouched since that counter caps *purchased*
+        # overage against plan.max_overage_blocks, which doesn't apply here.
         bucket = CreditBucket.objects.create(
             wallet=wallet,
             bucket_type=CreditBucketType.MANUAL_GRANT,
@@ -1576,6 +1680,8 @@ class ManualCreditService:
             used_credits=0,
             expires_at=expires_at,
         )
+
+        display_amount = raw_amount // CONVERSION_FACTOR
 
         # Immutable audit ledger entry
         CreditLedger.objects.create(
@@ -1586,7 +1692,9 @@ class ManualCreditService:
             reference=reason,
             metadata={
                 "grant_type": "MANUAL_ADMIN_GRANT",
-                "display_amount": amount_display,
+                "blocks": blocks,
+                "block_size": plan.overage_block_size,
+                "display_amount": display_amount,
                 "raw_amount": raw_amount,
                 "expires_at": expires_at.isoformat() if expires_at else None,
                 "granted_by_id": str(granted_by.id) if granted_by else None,
@@ -1595,15 +1703,20 @@ class ManualCreditService:
         )
 
         logger.info(
-            "Manual credit grant: %d display credits (%d raw) granted to %s by %s. "
-            "Bucket ID: %s. Expires: %s. Reason: %s",
-            amount_display,
+            "Manual credit grant: %d block(s), %d display credits (%d raw) granted "
+            "to %s by %s. Bucket ID: %s. Expires: %s. Reason: %s",
+            blocks,
+            display_amount,
             raw_amount,
             target_user.email,
             granted_by.email if granted_by else "system",
             bucket.id,
             expires_at or "never",
             reason,
+        )
+
+        ManualCreditService._notify_user_of_grant(
+            target_user, blocks, display_amount, reason, expires_at
         )
 
         return bucket

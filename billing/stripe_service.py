@@ -44,7 +44,10 @@ from users.models import CustomUser
 
 from .billing_transaction_service import BillingTransactionService
 from .imports import stripe
-from .license_service import LicenseSubscriptionService
+from .license_service import (
+    LicenseSubscriptionService,
+    sync_teachers_under_license_to_mailerlite,
+)
 from .models import (
     CONVERSION_FACTOR,
     PLAN_TIER_HIERARCHY,
@@ -3437,6 +3440,10 @@ class StripeWebhookHandler:
                     user_sub.is_active = False
                     user_sub.is_trial = False
                     user_sub.save(update_fields=["is_active", "is_trial", "updated_at"])
+
+                    from users.tasks import sync_user_to_mailerlite
+
+                    sync_user_to_mailerlite.delay(str(user_sub.user_id))
                 else:
                     SubscriptionService.expire_trial(user_sub)
             else:
@@ -3445,6 +3452,10 @@ class StripeWebhookHandler:
                 user_sub.save(
                     update_fields=["is_active", "stripe_status", "updated_at"]
                 )
+
+                from users.tasks import sync_user_to_mailerlite
+
+                sync_user_to_mailerlite.delay(str(user_sub.user_id))
             return
 
         license_sub = (
@@ -3458,6 +3469,7 @@ class StripeWebhookHandler:
             license_sub.is_active = False
             license_sub.stripe_status = StripeSubscriptionStatus.CANCELED
             license_sub.save(update_fields=["is_active", "stripe_status", "updated_at"])
+            sync_teachers_under_license_to_mailerlite(license_sub)
 
     @staticmethod
     @transaction.atomic

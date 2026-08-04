@@ -786,14 +786,17 @@ class CreditWalletSerializer(serializers.ModelSerializer):
     def get_bucket_breakdown(self, obj):
         """
         Returns a breakdown of remaining credits per bucket type (display units).
-        Only active, non-expired buckets are considered. MANUAL_GRANT is excluded.
+        Only active, non-expired buckets are considered. MANUAL_GRANT has no
+        key of its own — its remaining credits are folded into OVERAGE, since
+        from the user's perspective a manual top-up reads the same as bonus
+        overage capacity.
         The sum of all values equals the raw total (display_total_remaining_credits)
         but may differ by a few units due to individual flooring per type.
         """
 
         now = timezone.now()
 
-        # Types to include in the breakdown (exclude MANUAL_GRANT)
+        # Keys present in the output dict
         included_types = [
             CreditBucketType.MONTHLY,
             CreditBucketType.CARRY_OVER,
@@ -801,10 +804,14 @@ class CreditWalletSerializer(serializers.ModelSerializer):
             CreditBucketType.TRIAL,
         ]
 
-        # Filter active buckets (no expiry or expiry in the future) and included types
+        # Bucket types queried — MANUAL_GRANT is included here but merged into
+        # OVERAGE below rather than appearing as its own key.
+        queried_types = included_types + [CreditBucketType.MANUAL_GRANT]
+
+        # Filter active buckets (no expiry or expiry in the future) and queried types
         active_buckets = obj.buckets.filter(
             (Q(expires_at__isnull=True) | Q(expires_at__gt=now)),
-            bucket_type__in=included_types,
+            bucket_type__in=queried_types,
         )
 
         # Aggregate remaining credits per bucket_type
@@ -815,13 +822,19 @@ class CreditWalletSerializer(serializers.ModelSerializer):
         # Initialise all included types with 0 (display units)
         breakdown = {bt: 0 for bt in included_types}
 
-        # Fill in the values, converting raw to display units (floor division)
+        # Fill in the values, converting raw to display units (floor division).
+        # MANUAL_GRANT is folded into OVERAGE instead of getting its own key.
         for item in breakdown_raw:
             bucket_type = item["bucket_type"]
-
-            # if bucket_type != CreditBucketType.MANUAL_GRANT:
             raw_remaining = item["total_remaining"] or 0
-            breakdown[bucket_type] = raw_remaining // CONVERSION_FACTOR
+            display_remaining = raw_remaining // CONVERSION_FACTOR
+
+            target_key = (
+                CreditBucketType.OVERAGE
+                if bucket_type == CreditBucketType.MANUAL_GRANT
+                else bucket_type
+            )
+            breakdown[target_key] += display_remaining
 
         return breakdown
 
@@ -1031,14 +1044,17 @@ class CreditWalletSummarySerializer(serializers.ModelSerializer):
     def get_bucket_breakdown(self, obj):
         """
         Returns a breakdown of remaining credits per bucket type (display units).
-        Only active, non-expired buckets are considered. MANUAL_GRANT is excluded.
+        Only active, non-expired buckets are considered. MANUAL_GRANT has no
+        key of its own — its remaining credits are folded into OVERAGE, since
+        from the user's perspective a manual top-up reads the same as bonus
+        overage capacity.
         The sum of all values equals the raw total (display_total_remaining_credits)
         but may differ by a few units due to individual flooring per type.
         """
 
         now = timezone.now()
 
-        # Types to include in the breakdown (exclude MANUAL_GRANT)
+        # Keys present in the output dict
         included_types = [
             CreditBucketType.MONTHLY,
             CreditBucketType.CARRY_OVER,
@@ -1046,10 +1062,14 @@ class CreditWalletSummarySerializer(serializers.ModelSerializer):
             CreditBucketType.TRIAL,
         ]
 
-        # Filter active buckets (no expiry or expiry in the future) and included types
+        # Bucket types queried — MANUAL_GRANT is included here but merged into
+        # OVERAGE below rather than appearing as its own key.
+        queried_types = included_types + [CreditBucketType.MANUAL_GRANT]
+
+        # Filter active buckets (no expiry or expiry in the future) and queried types
         active_buckets = obj.buckets.filter(
             (Q(expires_at__isnull=True) | Q(expires_at__gt=now)),
-            bucket_type__in=included_types,
+            bucket_type__in=queried_types,
         )
 
         # Aggregate remaining credits per bucket_type
@@ -1060,13 +1080,19 @@ class CreditWalletSummarySerializer(serializers.ModelSerializer):
         # Initialise all included types with 0 (display units)
         breakdown = {bt: 0 for bt in included_types}
 
-        # Fill in the values, converting raw to display units (floor division)
+        # Fill in the values, converting raw to display units (floor division).
+        # MANUAL_GRANT is folded into OVERAGE instead of getting its own key.
         for item in breakdown_raw:
             bucket_type = item["bucket_type"]
-
-            # if bucket_type != CreditBucketType.MANUAL_GRANT:
             raw_remaining = item["total_remaining"] or 0
-            breakdown[bucket_type] = raw_remaining // CONVERSION_FACTOR
+            display_remaining = raw_remaining // CONVERSION_FACTOR
+
+            target_key = (
+                CreditBucketType.OVERAGE
+                if bucket_type == CreditBucketType.MANUAL_GRANT
+                else bucket_type
+            )
+            breakdown[target_key] += display_remaining
 
         return breakdown
 
@@ -1246,26 +1272,30 @@ class ManualCreditTopUpSerializer(serializers.Serializer):
     """
     Input serializer for a superadmin manual credit grant.
 
-    `amount` is expressed in display units (the user-facing number).
-    Internally it is multiplied by CONVERSION_FACTOR before storage.
-    For example, passing amount=500 injects 500,000 raw credits.
+    `blocks` is priced using the target user's own resolved plan
+    (plan.overage_block_size), the same block size used for paid overage
+    purchases, so a block means the same thing here as everywhere else.
     """
 
     user_id = serializers.UUIDField(
         help_text="UUID of the user who will receive the credits."
     )
-    amount = serializers.IntegerField(
+    blocks = serializers.IntegerField(
         min_value=1,
+        max_value=1000,
         help_text=(
-            "Credits to grant in display units (e.g. 500 = 500 AI credits visible "
-            f"to the user). Stored internally as amount × {CONVERSION_FACTOR}."
+            "Number of credit blocks to grant. Raw credits = blocks × the "
+            "target user's plan overage_block_size."
         ),
     )
     reason = serializers.CharField(
         max_length=500,
+        required=False,
+        allow_blank=True,
+        default="",
         help_text=(
-            "Human-readable explanation for the grant. This is written verbatim "
-            "into the immutable audit ledger."
+            "Optional human-readable explanation for the grant. This is written "
+            "verbatim into the immutable audit ledger."
         ),
     )
     expires_at = serializers.DateTimeField(
@@ -1322,12 +1352,26 @@ class ManualGrantBucketSerializer(serializers.ModelSerializer):
         help_text="The reason string recorded in the audit ledger."
     )
     is_expired = serializers.SerializerMethodField()
+    blocks_granted = serializers.SerializerMethodField(
+        help_text="Number of credit blocks granted (from the ledger metadata)."
+    )
+    block_size = serializers.SerializerMethodField(
+        help_text="Raw credits per block at the time of the grant (from the ledger metadata)."
+    )
+    recipient_name = serializers.SerializerMethodField(
+        help_text="Full name of the user who received this grant."
+    )
+    recipient_email = serializers.SerializerMethodField(
+        help_text="Email of the user who received this grant."
+    )
 
     class Meta:
         model = CreditBucket
         fields = [
             "id",
             "wallet",
+            "recipient_name",
+            "recipient_email",
             "bucket_type",
             "total_credits",
             "used_credits",
@@ -1340,6 +1384,8 @@ class ManualGrantBucketSerializer(serializers.ModelSerializer):
             "status",
             "granted_by_email",
             "ledger_reason",
+            "blocks_granted",
+            "block_size",
             "created_at",
             "updated_at",
         ]
@@ -1386,6 +1432,36 @@ class ManualGrantBucketSerializer(serializers.ModelSerializer):
         ledger = self._get_ledger_entry(obj)
         return ledger.reference if ledger else None
 
+    def get_blocks_granted(self, obj) -> int | None:
+        ledger = self._get_ledger_entry(obj)
+        if ledger and ledger.metadata:
+            return ledger.metadata.get("blocks")
+        return None
+
+    def get_block_size(self, obj) -> int | None:
+        ledger = self._get_ledger_entry(obj)
+        if ledger and ledger.metadata:
+            return ledger.metadata.get("block_size")
+        return None
+
+    def get_recipient_name(self, obj) -> str | None:
+        user = obj.wallet.user
+        return user.get_full_name() or None
+
+    def get_recipient_email(self, obj) -> str | None:
+        return obj.wallet.user.email
+
+
+class AdminGrantByAdminSerializer(serializers.Serializer):
+    """Per-admin breakdown row for AdminGrantSummarySerializer.grants_by_admin."""
+
+    granted_by_email = serializers.CharField(
+        allow_null=True, help_text="Email of the granting admin, or null if unrecorded."
+    )
+    grants_count = serializers.IntegerField()
+    total_blocks = serializers.IntegerField()
+    total_credits_display = serializers.IntegerField()
+
 
 class AdminGrantSummarySerializer(serializers.Serializer):
     """
@@ -1393,17 +1469,33 @@ class AdminGrantSummarySerializer(serializers.Serializer):
     """
 
     total_grants = serializers.IntegerField()
+    total_blocks_granted = serializers.IntegerField(
+        help_text="Sum of blocks across all grants."
+    )
     total_credits_granted_display = serializers.IntegerField(
         help_text="Sum of all granted credits in display units."
     )
+    total_credits_used_display = serializers.IntegerField(
+        help_text="Sum of credits actually consumed from MANUAL_GRANT buckets, in display units."
+    )
     total_credits_remaining_display = serializers.IntegerField(
         help_text="Sum of all remaining credits across active MANUAL_GRANT buckets."
+    )
+    unique_recipients = serializers.IntegerField(
+        help_text="Number of distinct users who have received at least one manual grant."
     )
     active_grants = serializers.IntegerField(
         help_text="Number of grants that are not expired and not exhausted."
     )
     expired_grants = serializers.IntegerField()
     exhausted_grants = serializers.IntegerField()
+    expiring_soon_grants = serializers.IntegerField(
+        help_text="Active grants with an expires_at within the next 30 days."
+    )
+    grants_by_admin = AdminGrantByAdminSerializer(
+        many=True,
+        help_text="Per-admin breakdown of grants issued, for accountability across superadmins.",
+    )
 
 
 class BetaSummarySerializer(serializers.Serializer):
