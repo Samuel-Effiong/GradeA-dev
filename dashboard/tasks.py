@@ -10,7 +10,11 @@ from django.utils import timezone
 from ai_processor.services import ai_processor
 from AutoGrader.tasks import send_email_task
 from classrooms.models import Course, School
-from dashboard.models import StudentRiskAlertState, TeacherInactivityAlertState
+from dashboard.models import (
+    SchoolAtRiskSnapshot,
+    StudentRiskAlertState,
+    TeacherInactivityAlertState,
+)
 from dashboard.services import (
     SchoolAdminWeeklySummaryService,
     StudentWeeklySummaryService,
@@ -287,11 +291,14 @@ def send_weekly_school_admin_summaries(self):
 @shared_task(bind=True)
 def send_at_risk_student_alerts(self):
     """
-    Daily scan: for each school with at least one opted-in admin, recompute
-    the school-wide at-risk student set and alert on students who newly
-    crossed the threshold since the last run (never on students who remain
-    at-risk from a previous run). Schools with zero opted-in admins are
-    skipped entirely and their state is left untouched — if an admin opts in
+    Daily scan across every school with at least one active school admin:
+    recompute the school-wide at-risk student set and record a
+    SchoolAtRiskSnapshot (used by the at-risk trend chart) regardless of
+    email opt-in, then — only for schools with at least one admin opted
+    into the email alert — alert on students who newly crossed the
+    threshold since the last run (never on students who remain at-risk
+    from a previous run). Schools with zero opted-in admins still get a
+    snapshot but no email/alert-state bookkeeping; if an admin opts in
     later, the next run treats the whole current at-risk set as "newly
     at-risk" and sends a one-time catch-up alert, which is intentional.
     """
@@ -300,7 +307,6 @@ def send_at_risk_student_alerts(self):
     schools = School.objects.filter(
         users__user_type=UserTypes.SCHOOL_ADMIN,
         users__is_active=True,
-        users__settings__notify_at_risk_student_alerts=True,
     ).distinct()
 
     schools_processed = 0
@@ -308,15 +314,23 @@ def send_at_risk_student_alerts(self):
     emails_queued = 0
 
     for school in schools:
-        admins = list(
-            get_opted_in_school_admins(school, flag="notify_at_risk_student_alerts")
-        )
-        if not admins:
-            continue
-
         try:
             now = timezone.now()
             current_students = service._at_risk_students(school)
+
+            SchoolAtRiskSnapshot.objects.update_or_create(
+                school=school,
+                snapshot_date=now.date(),
+                defaults={"at_risk_count": len(current_students)},
+            )
+
+            admins = list(
+                get_opted_in_school_admins(school, flag="notify_at_risk_student_alerts")
+            )
+            if not admins:
+                schools_processed += 1
+                continue
+
             current_ids = {student.id for student in current_students}
             existing_states = {
                 state.student_id: state

@@ -72,10 +72,11 @@ class SessionModelTest(TestCase):
 
     def test_session_name_uniqueness_per_teacher(self):
         """Test the unique constraint: name per teacher."""
-        # Same teacher, same name -> should fail
-        with self.assertRaises(IntegrityError):
-            with transaction.atomic():
-                Session.objects.create(name="Fall 2024", teacher=self.teacher)
+        # Same teacher, same name -> should fail. Session.save() calls
+        # full_clean(), so validate_unique() catches this and raises
+        # ValidationError before the DB constraint is ever reached.
+        with self.assertRaises(ValidationError):
+            Session.objects.create(name="Fall 2024", teacher=self.teacher)
 
         # Different teacher, same name -> should pass
         teacher2 = User.objects.create_user(

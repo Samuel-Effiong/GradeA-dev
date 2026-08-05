@@ -3,7 +3,7 @@ import logging
 from dateutil.relativedelta import relativedelta  # type: ignore
 from django.conf import settings
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F, Q
 from django.template.loader import render_to_string
 from django.utils import timezone
 
@@ -1739,16 +1739,30 @@ class ManualCreditService:
         )
 
     @staticmethod
-    def get_all_grants_summary():
+    def get_all_grants_summary(search=None):
         """
         Returns a queryset of all MANUAL_GRANT buckets across all users.
         Used by the superadmin dashboard to audit the full grant history.
+
+        `search`, if given, filters by recipient name/email, the grant's
+        reason, or the granting admin's email.
         """
-        return (
+        grants = (
             CreditBucket.objects.filter(bucket_type=CreditBucketType.MANUAL_GRANT)
             .select_related("wallet__user")
             .order_by("-created_at")
         )
+
+        if search:
+            grants = grants.filter(
+                Q(wallet__user__email__icontains=search)
+                | Q(wallet__user__first_name__icontains=search)
+                | Q(wallet__user__last_name__icontains=search)
+                | Q(credit_ledgers__reference__icontains=search)
+                | Q(credit_ledgers__metadata__granted_by_email__icontains=search)
+            ).distinct()
+
+        return grants
 
 
 class AnalyticsService:

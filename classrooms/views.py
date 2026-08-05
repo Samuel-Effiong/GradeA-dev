@@ -59,7 +59,7 @@ from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.tasks import send_email_task
 from billing.models import CreditUsageLog
-from classrooms.permissions import CanManageSession, IsNotStudent
+from classrooms.permissions import CanManageSession
 from students.models import StudentSubmission
 from students.serializers import StudentListSerializer
 from users.mixins import UserCacheMixin
@@ -165,6 +165,15 @@ def _parse_row_without_headers(row):
                 """,
             ),
             OpenApiParameter(
+                name="include_archived",
+                type=bool,
+                location="query",
+                description=(
+                    "If true, also include archived (soft-deleted) schools. "
+                    "Defaults to false — archived schools are hidden."
+                ),
+            ),
+            OpenApiParameter(
                 name="page",
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
@@ -211,12 +220,17 @@ def _parse_row_without_headers(row):
     ),
     destroy=extend_schema(
         tags=["School"],
-        summary="Delete a School",
-        description="Delete a School by ID. This action cannot be undone.",
+        summary="Archive a School",
+        description=(
+            "Archives a School by ID (soft-delete). The school is hidden from "
+            "the default list/detail views but the row and all its history "
+            "(sessions, license/billing records, analytics) are preserved. "
+            'Restore it with PATCH {"is_active": true}.'
+        ),
         responses={
-            204: OpenApiResponse(description="School deleted successfully"),
+            204: OpenApiResponse(description="School archived successfully"),
             403: OpenApiResponse(
-                description="You do not have permission to delete this School"
+                description="You do not have permission to archive this School"
             ),
             404: OpenApiResponse(description="School not found"),
         },
@@ -225,50 +239,20 @@ def _parse_row_without_headers(row):
 class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
     queryset = School.objects.all()
     serializer_class = SchoolSerializer
-    permission_classes = (IsNotStudent,)
+    permission_classes = (IsSuperAdmin,)
     pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    ordering_fields = ["name", "created_at"]
-    search_fields = ["name"]
+    def get_queryset(self):
+        if self.request.query_params.get("include_archived", "").lower() == "true":
+            return School.objects.all()
+        return School.objects.filter(is_active=True)
 
-    def get_permissions(self):
-        if self.action in ["create", "destroy"]:
-            return [IsSuperAdmin()]
-
-        return super().get_permissions()
-
-    @extend_schema(
-        tags=["School"],
-        summary="Create the School admin of a school",
-        description="""
-
-        """,
-        request=CustomUserSerializer,
-        responses={
-            201: OpenApiResponse(
-                response=CustomUserSerializer,
-                description="School admin created successfully",
-            ),
-            400: OpenApiResponse(
-                description="Invalid input. Missing required fields or invalid data format"
-            ),
-        },
-    )
-    @action(detail=False, methods=["post"], url_path="admin", url_name="admin")
-    def admin(self, request, *args, **kwargs):
-        """Make a User the admin of a school"""
-        # Ensure user_type is set to SCHOOL_ADMIN
-        data = request.data.copy()
-        # if 'user_type' not in data:
-        data["user_type"] = UserTypes.SCHOOL_ADMIN
-
-        serializer = CustomUserSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    def destroy(self, request, *args, **kwargs):
+        school = self.get_object()
+        school.is_active = False
+        school.save(update_fields=["is_active"])
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @extend_schema(
         tags=["School"],
@@ -277,7 +261,7 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         request=SchoolWithAdminSerializer,
         responses={201: SchoolWithAdminResponseSerializer},
     )
-    @action(detail=False, methods=["post"], permission_classes=[IsSuperAdmin])
+    @action(detail=False, methods=["post"])
     def create_with_admin(self, request, *args, **kwargs):
         serializer = SchoolWithAdminSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -317,7 +301,6 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         detail=False,
         methods=["get"],
         url_path="admin-summary",
-        permission_classes=[IsSuperAdmin],
     )
     def admin_summary(self, request, *args, **kwargs):
         """
@@ -448,8 +431,9 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         return paginator.get_paginated_response(data)
 
     def list(self, request):
-        # Base queryset: all schools
-        schools = School.objects.all()
+        # Base queryset: active schools by default; ?include_archived=true
+        # to also see archived ones (see get_queryset()).
+        schools = self.get_queryset()
 
         # ---- Subqueries for aggregates ----
         # Teachers count (direct school FK, works because teachers have school set)
@@ -598,6 +582,7 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     "students": school.students,
                     "tokens_used": school.tokens_used,
                     "sessions": school.school_sessions,
+                    "is_active": school.is_active,
                 }
             )
 
@@ -639,9 +624,13 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         )
 
         # ---- Per‑session breakdown ----
-        sessions = Session.objects.filter(teacher__school=school).annotate(
-            assignments_count=Count("courses__assignments", distinct=True),
-            students_count=Count("courses__enrollments__student", distinct=True),
+        sessions = (
+            Session.objects.filter(teacher__school=school)
+            .select_related("teacher")
+            .annotate(
+                assignments_count=Count("courses__assignments", distinct=True),
+                students_count=Count("courses__enrollments__student", distinct=True),
+            )
         )
         session_breakdown = [
             {
@@ -669,6 +658,7 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
             "tokens_used": tokens_total,
             "sessions": sessions_total,
             "courses": courses_total,
+            "is_active": school.is_active,
             "session_breakdown": session_breakdown,
         }
 
@@ -720,7 +710,6 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         detail=False,
         methods=["get"],
         url_path="teacher-summary",
-        permission_classes=[IsAuthenticated, IsSuperAdmin],
     )
     def teacher_summary(self, request):
         # Base queryset: all teachers, prefetch school
@@ -856,7 +845,11 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         detail=False,
         methods=["get"],
         url_path="monthly-token-usage",
-        permission_classes=[IsAuthenticated],  # allow school admins as well
+        # Deliberate exception to the viewset's superadmin-only default: this
+        # is the only endpoint that lets a SCHOOL_ADMIN see their own
+        # school's usage, so it stays open to any authenticated user and
+        # enforces the school-scoping itself below.
+        permission_classes=[IsAuthenticated],
     )
     def monthly_token_usage(self, request):
         # Determine school

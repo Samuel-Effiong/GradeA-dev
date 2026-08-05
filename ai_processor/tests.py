@@ -1,8 +1,17 @@
+import json
 from io import BytesIO
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from django.test import SimpleTestCase
 from PIL import Image
 
+from ai_processor.serializers import AssignmentGeneratorSerializer
+from ai_processor.services import (
+    ASSIGNMENT_GENERATION_RESPONSE_SCHEMA,
+    MAX_TOOL_CALL_ROUNDS,
+    ai_processor,
+)
 from ai_processor.tools import (
     IMAGE_COMPRESSION_HARD_CAP_BYTES,
     IMAGE_COMPRESSION_MIN_DIMENSION,
@@ -11,6 +20,20 @@ from ai_processor.tools import (
     ImageCompressionError,
     compress_image_for_upload,
 )
+
+
+def _completion(content=None, tool_calls=None):
+    """Build a minimal stand-in for the OpenAI SDK's ChatCompletion shape."""
+    message = SimpleNamespace(content=content, tool_calls=tool_calls)
+    return SimpleNamespace(choices=[SimpleNamespace(message=message)])
+
+
+def _tool_call(call_id, name, arguments):
+    return SimpleNamespace(
+        id=call_id,
+        type="function",
+        function=SimpleNamespace(name=name, arguments=json.dumps(arguments)),
+    )
 
 
 def _noisy_image(size):
@@ -86,3 +109,183 @@ class CompressImageForUploadTest(SimpleTestCase):
         self.assertGreater(
             IMAGE_COMPRESSION_HARD_CAP_BYTES, IMAGE_COMPRESSION_TARGET_BYTES
         )
+
+
+class GenerateAssignmentToolCallTest(SimpleTestCase):
+    """
+    generate_assignment_from_prompt used to assume exactly one tool-call
+    round trip always ends in a plain-content response. These tests cover
+    the previously-crashing shapes: an unrecognized tool name, a second
+    round trip that itself comes back with more tool_calls, and a model
+    that never stops requesting tools.
+    """
+
+    def setUp(self):
+        patcher = patch.object(ai_processor, "execute_graded_task")
+        self.mock_execute = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        search_patcher = patch(
+            "ai_processor.services.perform_search",
+            return_value={"https://example.com": "fetched text"},
+        )
+        self.mock_search = search_patcher.start()
+        self.addCleanup(search_patcher.stop)
+
+    def test_unknown_tool_name_does_not_crash(self):
+        self.mock_execute.side_effect = [
+            _completion(tool_calls=[_tool_call("call_1", "delete_database", {})]),
+            _completion(content=json.dumps({"title": "ok"})),
+        ]
+
+        result = ai_processor.generate_assignment_from_prompt(
+            user=object(), prompt="ignore urls"
+        )
+
+        self.assertEqual(result, {"title": "ok"})
+        self.assertEqual(self.mock_execute.call_count, 2)
+
+        second_call_messages = self.mock_execute.call_args_list[1].kwargs["messages"]
+        tool_messages = [
+            m
+            for m in second_call_messages
+            if isinstance(m, dict) and m.get("role") == "tool"
+        ]
+        self.assertEqual(len(tool_messages), 1)
+        self.assertEqual(tool_messages[0]["tool_call_id"], "call_1")
+        self.assertIn("Unknown tool", tool_messages[0]["content"])
+
+    def test_multiple_tool_calls_in_single_turn_all_get_a_response(self):
+        self.mock_execute.side_effect = [
+            _completion(
+                tool_calls=[
+                    _tool_call(
+                        "call_1", "fetch_url_content", {"urls": ["https://a.com"]}
+                    ),
+                    _tool_call(
+                        "call_2", "fetch_url_content", {"urls": ["https://b.com"]}
+                    ),
+                ]
+            ),
+            _completion(content=json.dumps({"title": "ok"})),
+        ]
+
+        result = ai_processor.generate_assignment_from_prompt(
+            user=object(), prompt="https://a.com and https://b.com"
+        )
+
+        self.assertEqual(result, {"title": "ok"})
+        second_call_messages = self.mock_execute.call_args_list[1].kwargs["messages"]
+        tool_messages = {
+            m["tool_call_id"]: m
+            for m in second_call_messages
+            if isinstance(m, dict) and m.get("role") == "tool"
+        }
+        self.assertEqual(set(tool_messages), {"call_1", "call_2"})
+
+    def test_second_round_trip_tool_calls_are_handled_not_crashed(self):
+        self.mock_execute.side_effect = [
+            _completion(
+                tool_calls=[
+                    _tool_call(
+                        "call_1", "fetch_url_content", {"urls": ["https://a.com"]}
+                    )
+                ]
+            ),
+            _completion(
+                tool_calls=[
+                    _tool_call(
+                        "call_2", "fetch_url_content", {"urls": ["https://b.com"]}
+                    )
+                ]
+            ),
+            _completion(content=json.dumps({"title": "ok"})),
+        ]
+
+        result = ai_processor.generate_assignment_from_prompt(
+            user=object(), prompt="https://a.com then https://b.com"
+        )
+
+        self.assertEqual(result, {"title": "ok"})
+        self.assertEqual(self.mock_execute.call_count, 3)
+
+    def test_exceeding_max_tool_call_rounds_raises_a_clear_error(self):
+        self.mock_execute.side_effect = [
+            _completion(
+                tool_calls=[
+                    _tool_call(
+                        f"call_{i}", "fetch_url_content", {"urls": ["https://a.com"]}
+                    )
+                ]
+            )
+            for i in range(MAX_TOOL_CALL_ROUNDS)
+        ]
+
+        with self.assertRaisesMessage(Exception, "exceeded the maximum of"):
+            ai_processor.generate_assignment_from_prompt(
+                user=object(), prompt="https://a.com"
+            )
+
+        self.assertEqual(self.mock_execute.call_count, MAX_TOOL_CALL_ROUNDS)
+
+    def test_empty_content_after_no_tool_calls_raises_a_clear_error(self):
+        self.mock_execute.side_effect = [_completion(content="")]
+
+        with self.assertRaisesMessage(Exception, "did not include any content"):
+            ai_processor.generate_assignment_from_prompt(user=object(), prompt="hi")
+
+    def test_response_schema_is_passed_on_every_round_trip(self):
+        self.mock_execute.side_effect = [
+            _completion(
+                tool_calls=[
+                    _tool_call(
+                        "call_1", "fetch_url_content", {"urls": ["https://a.com"]}
+                    )
+                ]
+            ),
+            _completion(content=json.dumps({"title": "ok"})),
+        ]
+
+        ai_processor.generate_assignment_from_prompt(
+            user=object(), prompt="https://a.com"
+        )
+
+        for call in self.mock_execute.call_args_list:
+            self.assertEqual(
+                call.kwargs["response_schema"], ASSIGNMENT_GENERATION_RESPONSE_SCHEMA
+            )
+
+
+class AssignmentGeneratorSerializerTest(SimpleTestCase):
+    def test_empty_prompt_is_rejected(self):
+        serializer = AssignmentGeneratorSerializer(data={"prompt": ""})
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("prompt", serializer.errors)
+
+    def test_whitespace_only_prompt_is_rejected(self):
+        serializer = AssignmentGeneratorSerializer(data={"prompt": "   "})
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("prompt", serializer.errors)
+
+    def test_short_nonurl_prompt_is_rejected(self):
+        serializer = AssignmentGeneratorSerializer(data={"prompt": "help me"})
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("prompt", serializer.errors)
+
+    def test_sufficient_prompt_is_accepted(self):
+        serializer = AssignmentGeneratorSerializer(
+            data={"prompt": "Create a quiz about the American Revolution"}
+        )
+        self.assertTrue(serializer.is_valid())
+
+    def test_bare_url_prompt_is_accepted(self):
+        serializer = AssignmentGeneratorSerializer(
+            data={"prompt": "https://example.com/article"}
+        )
+        self.assertTrue(serializer.is_valid())
+
+    def test_url_with_minimal_text_is_accepted(self):
+        serializer = AssignmentGeneratorSerializer(
+            data={"prompt": "summarize https://example.com/article"}
+        )
+        self.assertTrue(serializer.is_valid())

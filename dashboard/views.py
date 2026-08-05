@@ -1,5 +1,5 @@
 import logging
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.core.cache import cache
 from django.db import transaction
@@ -52,6 +52,7 @@ from classrooms.models import (
 from classrooms.permissions import IsSchoolAdmin, IsStudent, IsSuperAdmin, IsTeacher
 
 # from dashboard.services import analyze_question_difficulty
+from dashboard.models import SchoolAtRiskSnapshot
 from dashboard.risk import RiskInputs, StudentRiskEvaluator
 from dashboard.serializers import (  # SchoolAdminTeacherPerformanceSerializer,
     AssignmentActivityOverTimeChartSerializer,
@@ -70,6 +71,7 @@ from dashboard.serializers import (  # SchoolAdminTeacherPerformanceSerializer,
     SchoolAdminStudentPerformanceSerializer,
     SchoolAdminSummarySerializer,
     SchoolAnalyticsSerializer,
+    SchoolAtRiskTrendSerializer,
     StudentAssignmentListSerializer,
     StudentDashboardOverviewSerializer,
     SuperAdminStudentPerformanceSerializer,
@@ -1160,6 +1162,9 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
     permission_classes = [IsSchoolAdmin]
     # http_method_names = ["get", "head", "options"]
 
+    AT_RISK_TREND_WINDOW_WEEKS = 8
+    AT_RISK_TREND_MAX_WINDOW_WEEKS = 52
+
     @extend_schema(
         tags=["School Admin"],
         summary="School Dashboard Summary",
@@ -1334,6 +1339,155 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
             data = serializer.data
 
             cache.set(cache_key, data, 60 * 15)
+        return Response(data)
+
+    @extend_schema(
+        tags=["School Admin"],
+        summary="At-Risk Student Trend",
+        description="""
+        Weekly at-risk student count for the school admin's school, bucketed
+        into calendar (Mon-Sun) weeks.
+
+        By default returns a rolling 8-week (~2 month) window ending with
+        the current (partial) calendar week. Pass `start_date` and/or
+        `end_date` (YYYY-MM-DD) to request a different window instead -
+        each is snapped outward to the Monday/Sunday of its containing
+        calendar week. Omitting one of the two falls back to the default
+        relative to whichever was provided (or to today).
+
+        Each week's value is the most recent daily snapshot recorded for
+        that week (SchoolAtRiskSnapshot, written once per day by the
+        at-risk alert task). Weeks with no snapshot yet are omitted
+        entirely rather than filled with 0 or null.
+        """,
+        parameters=[
+            OpenApiParameter(
+                name="start_date",
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=(
+                    "Start of the window (YYYY-MM-DD). Defaults to "
+                    f"{AT_RISK_TREND_WINDOW_WEEKS} weeks before end_date."
+                ),
+            ),
+            OpenApiParameter(
+                name="end_date",
+                type=OpenApiTypes.DATE,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description="End of the window (YYYY-MM-DD). Defaults to today.",
+            ),
+        ],
+        responses={
+            200: SchoolAtRiskTrendSerializer,
+            400: OpenApiResponse(description="Invalid window"),
+        },
+    )
+    @action(detail=False, methods=["get"], url_path="dashboard/at-risk-trend")
+    def at_risk_trend(self, request, *args, **kwargs):
+        user = request.user
+        school = user.school
+
+        if not school:
+            return Response(
+                {"detail": "School admin must be associated with a school."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        start_param = request.query_params.get("start_date")
+        end_param = request.query_params.get("end_date")
+
+        try:
+            end_date = date.fromisoformat(end_param) if end_param else None
+        except ValueError:
+            return Response(
+                {"detail": "end_date must be in YYYY-MM-DD format."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            start_date = date.fromisoformat(start_param) if start_param else None
+        except ValueError:
+            return Response(
+                {"detail": "start_date must be in YYYY-MM-DD format."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        end_date = end_date or timezone.localdate()
+        window_end_week_start = end_date - timedelta(days=end_date.weekday())
+        window_end = window_end_week_start + timedelta(days=6)
+
+        if start_date:
+            window_start = start_date - timedelta(days=start_date.weekday())
+        else:
+            window_start = window_end_week_start - timedelta(
+                weeks=self.AT_RISK_TREND_WINDOW_WEEKS - 1
+            )
+
+        if window_start > window_end:
+            return Response(
+                {"detail": "start_date must not be after end_date."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        total_weeks = ((window_end - window_start).days + 1) // 7
+        if total_weeks > self.AT_RISK_TREND_MAX_WINDOW_WEEKS:
+            return Response(
+                {
+                    "detail": (
+                        "Window too large: max "
+                        f"{self.AT_RISK_TREND_MAX_WINDOW_WEEKS} weeks between "
+                        "start_date and end_date."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        cache_key = (
+            f"schooladmins:user_id__{user.id}:view__at_risk_trend"
+            f":{window_start.isoformat()}:{window_end.isoformat()}"
+        )
+        data = cache.get(cache_key)
+
+        if data is None:
+            snapshots = SchoolAtRiskSnapshot.objects.filter(
+                school=school,
+                snapshot_date__gte=window_start,
+                snapshot_date__lte=window_end,
+            ).order_by("snapshot_date")
+
+            weeks = []
+            for week_index in range(total_weeks):
+                week_start = window_start + timedelta(weeks=week_index)
+                week_end = week_start + timedelta(days=6)
+                week_snapshots = [
+                    snapshot
+                    for snapshot in snapshots
+                    if week_start <= snapshot.snapshot_date <= week_end
+                ]
+                if not week_snapshots:
+                    continue
+
+                latest_snapshot = week_snapshots[-1]
+                weeks.append(
+                    {
+                        "week_start": week_start,
+                        "week_end": week_end,
+                        "at_risk_count": latest_snapshot.at_risk_count,
+                    }
+                )
+
+            data = {
+                "school_name": school.name,
+                "window_start": window_start,
+                "window_end": window_end,
+                "weeks": weeks,
+            }
+            serializer = SchoolAtRiskTrendSerializer(data)
+            data = serializer.data
+
+            cache.set(cache_key, data, 60 * 60)
         return Response(data)
 
     # @extend_schema(

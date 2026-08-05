@@ -175,6 +175,67 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
         self.assertEqual(wallet.total_remaining_credits(), 99500)
 
     @patch.object(AIProcessor, "_AIProcessor__ai_model")
+    def test_response_schema_reaches_ai_model_for_metered_path(self, mock_ai_model):
+        mock_ai_model.return_value = make_ai_response(tokens=500)
+        teacher = self._make_teacher_with_credits()
+        schema = {"name": "test_schema", "strict": True, "schema": {"type": "object"}}
+
+        self.processor.execute_graded_task(
+            user=teacher,
+            feature="Grading Assignment",
+            task_type="grade_assignment",
+            user_prompt="short prompt",
+            response_schema=schema,
+        )
+
+        mock_ai_model.assert_called_once_with(
+            None, "short prompt", None, None, True, schema
+        )
+
+    @patch.object(AIProcessor, "_AIProcessor__ai_model")
+    def test_tool_call_message_with_none_content_does_not_crash(self, mock_ai_model):
+        """
+        Regression test: a replayed assistant tool-call message (as built
+        by generate_assignment_from_prompt after a fetch_url_content round
+        trip) has content=None - the token-estimation pass used to crash
+        on this (`for item in content` with content=None) as soon as a
+        real tool call was ever exercised end-to-end.
+        """
+        mock_ai_model.return_value = make_ai_response(tokens=500)
+        teacher = self._make_teacher_with_credits()
+
+        response = self.processor.execute_graded_task(
+            user=teacher,
+            feature="Grading Assignment",
+            task_type="grade_assignment",
+            messages=[
+                {"role": "system", "content": "system prompt"},
+                {"role": "user", "content": "please make a quiz"},
+                {
+                    "role": "assistant",
+                    "content": None,
+                    "tool_calls": [
+                        {
+                            "id": "call_1",
+                            "type": "function",
+                            "function": {
+                                "name": "fetch_url_content",
+                                "arguments": '{"urls": ["https://example.com"]}',
+                            },
+                        }
+                    ],
+                },
+                {
+                    "role": "tool",
+                    "tool_call_id": "call_1",
+                    "content": "fetched page text",
+                },
+            ],
+        )
+
+        self.assertIsNotNone(response)
+
+    @patch.object(AIProcessor, "_AIProcessor__ai_model")
     def test_gated_feature_blocked_before_any_ai_call(self, mock_ai_model):
         standard_plan = self._make_plan(PlanType.STANDARD, tier=PlanTier.STANDARD)
         teacher = self._make_teacher_with_credits(plan=standard_plan)
@@ -331,6 +392,22 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
         superadmin_wallet = CreditWallet.objects.filter(user=superadmin).first()
         if superadmin_wallet is not None:
             self.assertEqual(superadmin_wallet.total_remaining_credits(), 0)
+
+    @patch.object(AIProcessor, "_AIProcessor__ai_model")
+    def test_response_schema_reaches_ai_model_for_super_admin_path(self, mock_ai_model):
+        mock_ai_model.return_value = make_ai_response(tokens=999999)
+        superadmin = self._make_user(UserTypes.SUPER_ADMIN, "super2@example.com")
+        schema = {"name": "test_schema", "strict": True, "schema": {"type": "object"}}
+
+        self.processor.execute_graded_task(
+            user=superadmin,
+            feature="Superadmin Custom AI Prompt",
+            task_type="custom_ai_prompt:superadmin",
+            user_prompt="prompt",
+            response_schema=schema,
+        )
+
+        mock_ai_model.assert_called_once_with(None, "prompt", None, None, True, schema)
 
     def test_unrecognized_user_type_raises_clean_value_error(self):
         """

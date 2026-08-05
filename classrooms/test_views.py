@@ -101,7 +101,25 @@ class SchoolViewSetTest(ClassroomBaseAPITest):
             self.assertEqual(len(response2.data["results"]), 2)
 
     def test_list_schools_teacher_denied(self):
+        # SchoolViewSet is superadmin-only: teachers (and school admins)
+        # must not be able to browse every school's data.
         self.authenticate(self.teacher1)
+        url = reverse("school-list")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_list_schools_student_denied(self):
+        student = User.objects.create_user(
+            email="student1@example.com",
+            password="password123",  # pragma: allowlist secret
+            first_name="Student",
+            last_name="One",
+        )
+        student.user_type = UserTypes.STUDENT
+        student.is_active = True
+        student.save()
+
+        self.authenticate(student)
         url = reverse("school-list")
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

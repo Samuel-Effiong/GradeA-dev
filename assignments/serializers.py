@@ -199,7 +199,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
         except Exception as e:
             raise serializers.ValidationError(
                 f"Failed to create assignment and rubric: {e}"
-            ) from Exception
+            ) from e
 
     def normalize(self, obj):
         return json.loads(json.dumps(obj, sort_keys=True))
@@ -584,6 +584,7 @@ class GeneratedAssignmentSerializer(serializers.Serializer):
     session_id = serializers.UUIDField(required=False, allow_null=True)
     message_id = serializers.UUIDField(required=False, allow_null=True)
     is_draft = serializers.BooleanField(required=False)
+    needs_clarification = serializers.BooleanField(required=False, default=False)
 
 
 class SaveGeneratedAssignmentDraftSerializer(serializers.Serializer):
@@ -846,7 +847,11 @@ class AssignmentGenerationSessionSerializer(serializers.ModelSerializer):
         if not latest_message:
             return None
 
-        metadata = getattr(latest_message, "metadata", {})
+        # metadata is a nullable JSONField - a USER-role message (or an
+        # ASSISTANT message from before this field existed) never sets it,
+        # so it's None rather than a missing attribute; getattr's default
+        # only covers the latter.
+        metadata = latest_message.metadata or {}
         reply = metadata.get("reply", "")
 
         if reply:

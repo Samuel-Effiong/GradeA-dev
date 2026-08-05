@@ -42,6 +42,8 @@ from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor  # pdf_service
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
+from billing.access_control import AIFeatureNotAvailableError
+from billing.errors import InsufficientCreditsError
 
 # from ai_processor.tools import encode_image
 from classrooms.models import Course, Topic
@@ -1066,6 +1068,29 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         return compact_snapshot
 
+    def _build_course_context(self, course):
+        """
+        Compact plain-text course summary for the AI's system prompt, used
+        to ground clarifying questions and topic suggestions. Topic list
+        capped to avoid unbounded prompt growth for courses with hundreds
+        of topics.
+        """
+        lines = [f"Course name: {course.name}"]
+
+        if course.description:
+            lines.append(f"Course description: {course.description}")
+
+        topic_names = list(
+            course.topics.order_by("name").values_list("name", flat=True)[:15]
+        )
+        if topic_names:
+            lines.append(
+                "Existing topics already created in this course: "
+                + ", ".join(topic_names)
+            )
+
+        return "\n".join(lines)
+
     def _build_assignment_generation_chat_history(self, generation_session):
         previous_messages = list(
             generation_session.messages.order_by("-created_at")[
@@ -1170,8 +1195,15 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         prompt = serializer.validated_data["prompt"]
         session_id = request.data.get("session_id")
+        course_context = self._build_course_context(course)
 
         try:
+            # Only the DB writes are transactional. The AI call below is an
+            # external network round trip (up to 3 retries, each up to 2
+            # sequential LLM calls, plus any tool-fetch requests) - it must
+            # not run inside a DB transaction, or a slow/hanging call holds
+            # a connection open and locks the session/message rows for the
+            # full duration.
             with transaction.atomic():
                 if session_id:
                     generation_session = get_object_or_404(
@@ -1197,22 +1229,88 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     content=prompt,
                 )
 
-                generated_assignment = (
-                    ai_processor.generate_assignment_from_prompt_with_retry(
-                        request.user,
-                        prompt,
-                        max_retries=3,
-                        chat_history=chat_history,
+            generated_assignment = (
+                ai_processor.generate_assignment_from_prompt_with_retry(
+                    request.user,
+                    prompt,
+                    max_retries=3,
+                    chat_history=chat_history,
+                    course_context=course_context,
+                )
+            )
+
+            # self_assessment now carries much richer, teacher-facing HTML
+            # (clarifying questions / topic suggestions) than the original
+            # reflection-only field this was designed for. Sanitize once
+            # here so every downstream read (both branches below, message
+            # storage, and the API response) is already safe - same
+            # AssignmentProcessingService sanitizer boundary already
+            # applied to title/instructions/question_text.
+            generated_assignment["self_assessment"] = (
+                AssignmentProcessingService.sanitize_ai_html(
+                    generated_assignment.get("self_assessment", "")
+                )
+            )
+
+            # Trust the flag when the model sets it - but a real assignment
+            # can never have zero questions (AssignmentSerializer requires
+            # min_length=1 below), so an empty "questions" list is always a
+            # clarification-shaped response even if the model forgot to
+            # also set needs_clarification. Without this OR, that mismatch
+            # used to fall through to draft-building and 500 on
+            # AssignmentSerializer validation instead of returning the
+            # clarification turn it clearly intended.
+            needs_clarification = bool(
+                generated_assignment.get("needs_clarification")
+            ) or not generated_assignment.get("questions")
+
+            if needs_clarification:
+                if not generated_assignment.get("needs_clarification"):
+                    logger.warning(
+                        "Assignment generation returned an empty-questions "
+                        "payload without needs_clarification set - "
+                        "treating as a clarification turn anyway."
                     )
+
+                reply = generated_assignment.get("self_assessment") or (
+                    "<p>Could you share a bit more about what you'd like "
+                    "this assignment to cover?</p>"
                 )
 
-                assignment_data = self._build_generated_assignment_draft(
-                    generated_assignment, course
-                )
+                with transaction.atomic():
+                    assistant_message = AssignmentGenerationMessage.objects.create(
+                        session=generation_session,
+                        role=AssignmentGenerationRole.ASSISTANT,
+                        content=reply,
+                        assignment_snapshot=None,
+                        metadata={
+                            "source": "generate_assignment_from_prompt",
+                            "user_message_id": str(user_message.id),
+                            "reply": reply,
+                            "draft_status": "NEEDS_CLARIFICATION",
+                        },
+                    )
 
-                draft_serializer = AssignmentSerializer(data=assignment_data)
-                draft_serializer.is_valid(raise_exception=True)
+                data = {
+                    "content": "",
+                    "reply": reply,
+                    "assignment_id": None,
+                    "session_id": str(generation_session.id),
+                    "message_id": str(assistant_message.id),
+                    "is_draft": False,
+                    "needs_clarification": True,
+                }
 
+                return Response(data, status=status.HTTP_201_CREATED)
+
+            assignment_data = self._build_generated_assignment_draft(
+                generated_assignment, course
+            )
+
+            draft_serializer = AssignmentSerializer(data=assignment_data)
+            draft_serializer.is_valid(raise_exception=True)
+
+            with transaction.atomic():
                 assistant_message = AssignmentGenerationMessage.objects.create(
                     session=generation_session,
                     role=AssignmentGenerationRole.ASSISTANT,
@@ -1233,9 +1331,52 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 "session_id": str(generation_session.id),
                 "message_id": str(assistant_message.id),
                 "is_draft": True,
+                "needs_clarification": False,
             }
 
             return Response(data, status=status.HTTP_201_CREATED)
+        except InsufficientCreditsError as e:
+            logger.warning(
+                "Assignment generation blocked by insufficient credits for user %s: %s",
+                request.user.id,
+                e,
+            )
+            return Response(
+                {
+                    "error": describe_user_error(
+                        e,
+                        fallback_message="Refill your wallet to continue generating assignments.",
+                    )
+                },
+                status=status.HTTP_402_PAYMENT_REQUIRED,
+            )
+        except AIFeatureNotAvailableError as e:
+            logger.warning(
+                "Assignment generation denied by plan/tier for user %s: %s",
+                request.user.id,
+                e,
+            )
+            return Response(
+                {
+                    "error": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "AI assignment generation isn't available on your current plan."
+                        ),
+                    )
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        except Http404:
+            return Response(
+                {
+                    "error": (
+                        "That generation session no longer exists. Start a "
+                        "new session."
+                    )
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
         except Exception as e:
             logger.error("Failed to generate assignment from prompt", exc_info=e)
             return Response(

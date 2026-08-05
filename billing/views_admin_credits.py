@@ -219,6 +219,15 @@ class AdminCreditManagementViewSet(viewsets.GenericViewSet):
         """,
         parameters=[
             OpenApiParameter(
+                name="search",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    "Case-insensitive search across recipient name/email, "
+                    "the grant's reason, and the granting admin's email."
+                ),
+            ),
+            OpenApiParameter(
                 name="page",
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
@@ -240,7 +249,8 @@ class AdminCreditManagementViewSet(viewsets.GenericViewSet):
     )
     @action(detail=False, methods=["get"], url_path="grants/all")
     def all_grants(self, request, *args, **kwargs):
-        grants = ManualCreditService.get_all_grants_summary()
+        search = request.query_params.get("search")
+        grants = ManualCreditService.get_all_grants_summary(search=search)
         page = self.paginate_queryset(grants)
         if page is not None:
             serializer = ManualGrantBucketSerializer(page, many=True)

@@ -7,11 +7,14 @@ from datetime import datetime
 from io import BytesIO
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
+import bleach
 import fitz
 from django.core.files.uploadedfile import SimpleUploadedFile, UploadedFile
 from django.db import transaction
 from django.utils import timezone
+from django.utils.html import escape as escape_html
 from lxml import html
 from PIL import Image
 from prosemirror.model import DOMParser, Schema
@@ -37,6 +40,79 @@ from students.task_tracking import (
 # from assignments.models import Assignment
 
 INVALID_XML_CHARS = re.compile(r"[\x00-\x08\x0b-\x0c\x0e-\x1f]")
+
+# AI-generated content is untrusted input. It's only ever supposed to use
+# plain formatting markup (see the "HTML Must Be Clean" rules in
+# ai_processor/ASSIGNMENT_GENERATION_PROMPT_6.txt) - that's an instruction
+# to the model, not an enforced boundary, so every AI-supplied HTML field
+# is run through this allowlist before it's stored or rendered. No links,
+# images, scripts, or style/event attributes are permitted: those aren't
+# needed for assignment text and are the tags/attributes that make markup
+# executable.
+AI_HTML_ALLOWED_TAGS = [
+    "p",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "strong",
+    "em",
+    "b",
+    "i",
+    "u",
+    "sub",
+    "sup",
+    "ul",
+    "ol",
+    "li",
+    "table",
+    "thead",
+    "tbody",
+    "tr",
+    "td",
+    "th",
+    "code",
+    "pre",
+    "span",
+    "br",
+    "hr",
+    "blockquote",
+]
+
+
+def _allow_math_block_class(tag, name, value):
+    return name == "class" and value == "math-block"
+
+
+LINK_ALLOWED_SCHEMES = ("http", "https", "mailto")
+
+
+def _safe_link_attrs(dom):
+    """
+    parseDOM getAttrs for the ProseMirror 'link' mark. Returning False
+    tells ProseMirror the rule doesn't match, so an unsafe href (e.g.
+    javascript:, data:) is dropped instead of being preserved verbatim.
+    """
+    href = (dom.get("href") or "").strip()
+    scheme = urlparse(href).scheme.lower()
+    if scheme and scheme not in LINK_ALLOWED_SCHEMES:
+        return False
+
+    return {
+        "href": href,
+        "title": dom.get("title"),
+        "style": dom.get("style"),
+        "class": dom.get("class"),
+    }
+
+
+AI_HTML_ALLOWED_ATTRIBUTES = {
+    "td": ["colspan", "rowspan"],
+    "th": ["colspan", "rowspan"],
+    "span": _allow_math_block_class,
+}
 
 
 class PDFService:
@@ -138,6 +214,45 @@ class AssignmentProcessingService:
         if not isinstance(value, str):
             return value
         return INVALID_XML_CHARS.sub("", value)
+
+    @classmethod
+    def sanitize_ai_html(cls, value):
+        """
+        Strip AI-generated HTML down to a plain-formatting allowlist.
+
+        The AI is only instructed (not enforced) to emit safe markup, so
+        this is the actual security boundary: scripts, event handlers,
+        links, images, and inline style/class are dropped rather than
+        trusted.
+        """
+        if not isinstance(value, str) or not value:
+            return value
+
+        cleaned = bleach.clean(
+            cls.clean_xml_text(value),
+            tags=AI_HTML_ALLOWED_TAGS,
+            attributes=AI_HTML_ALLOWED_ATTRIBUTES,
+            protocols=[],
+            strip=True,
+        )
+        return cleaned
+
+    @classmethod
+    def sanitize_ai_image_url(cls, value):
+        """
+        Only allow absolute http(s) image URLs through - anything else
+        (javascript:, data:, or a malformed value that could break out of
+        the surrounding HTML attribute) is dropped.
+        """
+        if not isinstance(value, str) or not value.strip():
+            return ""
+
+        candidate = value.strip()
+        parsed = urlparse(candidate)
+        if parsed.scheme not in ("http", "https") or not parsed.netloc:
+            return ""
+
+        return candidate
 
     @classmethod
     def build_async_upload_payload(cls, uploaded_file: UploadedFile) -> dict:
@@ -320,12 +435,7 @@ class AssignmentProcessingService:
                         "parseDOM": [
                             {
                                 "tag": "a[href]",
-                                "getAttrs": lambda dom: {
-                                    "href": dom.get("href"),
-                                    "title": dom.get("title"),
-                                    "style": dom.get("style"),
-                                    "class": dom.get("class"),
-                                },
+                                "getAttrs": _safe_link_attrs,
                             }
                         ],
                         "toDOM": lambda node: [
@@ -390,10 +500,10 @@ class AssignmentProcessingService:
                             Use False when generating the student-facing version.
         """
 
-        title_html = cls.clean_xml_text(data.get("title", ""))
-        instructions_html = cls.clean_xml_text(data.get("instructions", ""))
+        title_html = cls.sanitize_ai_html(data.get("title", ""))
+        instructions_html = cls.sanitize_ai_html(data.get("instructions", ""))
         due_date = data.get("due_date")
-        total_points = data.get("total_points", 0)
+        total_points = escape_html(str(data.get("total_points", 0)))
         questions = data.get("questions", [])
 
         if due_date:
@@ -441,14 +551,14 @@ class AssignmentProcessingService:
 
         # Questions
         for q in questions:
-            q_no = q.get("question_number")
-            q_points = q.get("points")
-            q_text = cls.clean_xml_text(q.get("question_text", ""))
+            q_no = escape_html(str(q.get("question_number", "")))
+            q_points = escape_html(str(q.get("points", "")))
+            q_text = cls.sanitize_ai_html(q.get("question_text", ""))
             q_type = q.get("question_type", "").upper()
             options = q.get("options", [])
             rubric = q.get("rubric", [])
-            model_answer = cls.clean_xml_text(q.get("model_answer", ""))
-            image_url = q.get("question_image", "")
+            model_answer = cls.sanitize_ai_html(q.get("model_answer", ""))
+            image_url = cls.sanitize_ai_image_url(q.get("question_image", ""))
 
             html_output.append(
                 f"""
@@ -463,7 +573,7 @@ class AssignmentProcessingService:
                 html_output.append(
                     f"""
                 <div style="margin-top:12px; margin-bottom:12px; text-align:center;">
-                    <img src={image_url!r} style="max-width:100%; height:auto;" alt="Question {q_no} image">
+                    <img src="{escape_html(image_url)}" style="max-width:100%; height:auto;" alt="Question {q_no} image">
                 </div>
                 """
                 )
@@ -480,7 +590,7 @@ class AssignmentProcessingService:
                     # letter = string.ascii_uppercase[idx]
                     html_output.append(
                         f"""
-                        <p>{opt}</p>
+                        <p>{cls.sanitize_ai_html(opt)}</p>
                     """
                     )
 
@@ -505,9 +615,9 @@ class AssignmentProcessingService:
                 )
 
                 for r in rubric:
-                    level = r.get("level", "").title()
-                    points = r.get("points", "")
-                    desc = r.get("description", "")
+                    level = cls.sanitize_ai_html(r.get("level", "").title())
+                    points = escape_html(str(r.get("points", "")))
+                    desc = cls.sanitize_ai_html(r.get("description", ""))
 
                     html_output.append(
                         f"""

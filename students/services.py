@@ -524,12 +524,17 @@ def upload_answers_engine(
                     submission.attempt_count = (submission.attempt_count or 0) + 1
             else:
                 # First submission — create the row and set counter to 1.
+                # submission_date is set explicitly here (rather than left
+                # to auto_now_add) because student_submission_to_html()
+                # below renders this instance before it's ever saved, and
+                # auto_now_add only populates the field on save.
                 created = True
                 submission = StudentSubmission(
                     assignment=assignment,
                     student=target_student,
                     answers=student_submission.get("answers"),
                     attempt_count=1 if is_student_self_upload else 0,
+                    submission_date=timezone.now(),
                 )
 
         # ----------------------------------------------------------------

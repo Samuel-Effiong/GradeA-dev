@@ -1,3 +1,4 @@
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.test import TestCase
@@ -7,6 +8,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from assignments.models import Assignment, AssignmentStatus
+from billing.models import CreditBucket, CreditBucketType, CreditWallet
 from classrooms.models import Course, School, Session
 from students.models import StudentSubmission
 from students.services import (
@@ -41,8 +43,29 @@ class StudentSubmissionGradeUpdateTest(APITestCase):
             course=self.course,
             questions={"q1": "What is 1+1?"},
         )
+        wallet, _ = CreditWallet.objects.get_or_create(user=self.teacher)
+        CreditBucket.objects.create(
+            wallet=wallet,
+            bucket_type=CreditBucketType.MONTHLY,
+            total_credits=100_000,
+            used_credits=0,
+            expires_at=timezone.now() + timedelta(days=30),
+        )
+
         self.submission = StudentSubmission.objects.create(
-            assignment=self.assignment, student=self.student, answers={"q1": "2"}
+            assignment=self.assignment,
+            student=self.student,
+            answers={"q1": "2"},
+            score=80.00,
+            score_percentage=80.00,
+            max_points=100,
+            feedback={
+                "grading_summary": {
+                    "total_score": 80.00,
+                    "max_total_points": 100,
+                    "percentage": 80.00,
+                }
+            },
         )
         self.url = reverse(
             "student-submission-update-grade", kwargs={"pk": self.submission.pk}
@@ -50,13 +73,21 @@ class StudentSubmissionGradeUpdateTest(APITestCase):
 
     def test_teacher_can_update_grade(self):
         self.client.force_authenticate(user=self.teacher)
+        # StudentSubmissionGradeUpdateSerializer only accepts `score` -
+        # `feedback` isn't a writable field here, so it's ignored on
+        # input. Only the grading_summary numbers inside the existing
+        # feedback dict get recomputed from the new score.
         data = {"score": 95.00, "feedback": {"overall": "Great job!"}}
         response = self.client.patch(self.url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         self.submission.refresh_from_db()
         self.assertEqual(float(self.submission.score), 95.00)
-        self.assertEqual(self.submission.feedback, {"overall": "Great job!"})
+        self.assertEqual(float(self.submission.score_percentage), 95.00)
+        self.assertEqual(
+            self.submission.feedback["grading_summary"],
+            {"total_score": 95.00, "max_total_points": 100, "percentage": 95.00},
+        )
         self.assertTrue(self.submission.was_regraded)
         self.assertIsNotNone(self.submission.regraded_at)
 

@@ -16,7 +16,11 @@ from classrooms.models import (
     Session,
     StudentCourse,
 )
-from dashboard.models import StudentRiskAlertState, TeacherInactivityAlertState
+from dashboard.models import (
+    SchoolAtRiskSnapshot,
+    StudentRiskAlertState,
+    TeacherInactivityAlertState,
+)
 from dashboard.risk import RiskInputs, StudentRiskEvaluator
 from dashboard.services import (
     SchoolAdminWeeklySummaryService,
@@ -893,6 +897,55 @@ class AtRiskStudentAlertTaskTest(TestCase):
             mock_send_email.mock_calls[0].kwargs["recipient_list"], [self.admin.email]
         )
 
+    @patch("dashboard.tasks.send_email_task.delay")
+    def test_snapshot_recorded_even_without_opted_in_admin(self, mock_send_email):
+        # The trend chart must get daily data regardless of whether any
+        # admin opted into the email alert.
+        self.admin.settings.notify_at_risk_student_alerts = False
+        self.admin.settings.save(update_fields=["notify_at_risk_student_alerts"])
+        student = self._make_student("H")
+        self._enroll_and_grade(student, 20)
+
+        send_at_risk_student_alerts()
+
+        mock_send_email.assert_not_called()
+        snapshot = SchoolAtRiskSnapshot.objects.get(
+            school=self.school, snapshot_date=timezone.now().date()
+        )
+        self.assertEqual(snapshot.at_risk_count, 1)
+
+    @patch("dashboard.tasks.send_email_task.delay")
+    def test_snapshot_is_idempotent_when_run_twice_same_day(self, mock_send_email):
+        student = self._make_student("I")
+        self._enroll_and_grade(student, 20)
+
+        send_at_risk_student_alerts()
+        send_at_risk_student_alerts()
+
+        self.assertEqual(
+            SchoolAtRiskSnapshot.objects.filter(school=self.school).count(), 1
+        )
+        snapshot = SchoolAtRiskSnapshot.objects.get(school=self.school)
+        self.assertEqual(snapshot.at_risk_count, 1)
+
+    @patch("dashboard.tasks.send_email_task.delay")
+    def test_snapshot_count_reflects_recovered_students(self, mock_send_email):
+        student = self._make_student("J")
+        self._enroll_and_grade(student, 20)
+        send_at_risk_student_alerts()
+        self.assertEqual(
+            SchoolAtRiskSnapshot.objects.get(school=self.school).at_risk_count, 1
+        )
+
+        self._enroll_and_grade(student, 100)
+        self._enroll_and_grade(student, 100)
+        self._enroll_and_grade(student, 100)
+        send_at_risk_student_alerts()
+
+        self.assertEqual(
+            SchoolAtRiskSnapshot.objects.get(school=self.school).at_risk_count, 0
+        )
+
 
 class TeacherInactivityAlertTaskTest(TestCase):
     def setUp(self):
@@ -1403,3 +1456,191 @@ class StudentDashboardOverviewAPITest(APITestCase):
         self.assertEqual(response.data["assignments_submitted"], 2)
         self.assertEqual(response.data["assignments_pending_not_due"], 2)
         self.assertEqual(response.data["assignments_due_no_submission"], 1)
+
+
+class SchoolAtRiskTrendAPITest(APITestCase):
+    def setUp(self):
+        self.school = School.objects.create(name="Trend School")
+        self.admin = CustomUser.objects.create_user(
+            email="trend-admin@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.SCHOOL_ADMIN,
+            first_name="Trend",
+            last_name="Admin",
+            school=self.school,
+            is_active=True,
+        )
+        self.teacher = CustomUser.objects.create_user(
+            email="trend-teacher@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            first_name="Trend",
+            last_name="Teacher",
+            is_active=True,
+        )
+        self.url = reverse("school-admin-at-risk-trend")
+
+    def test_teacher_denied(self):
+        self.client.force_authenticate(user=self.teacher)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_admin_without_school_returns_400(self):
+        admin_no_school = CustomUser.objects.create_user(
+            email="noschool-admin@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.SCHOOL_ADMIN,
+            first_name="No",
+            last_name="School",
+            is_active=True,
+        )
+        self.client.force_authenticate(user=admin_no_school)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @patch("dashboard.views.timezone.localdate")
+    def test_weeks_with_no_snapshot_are_omitted(self, mock_localdate):
+        today = date(2026, 8, 4)
+        mock_localdate.return_value = today
+        current_week_start = today - timedelta(days=today.weekday())
+
+        # Only one snapshot exists at all, in the current week.
+        SchoolAtRiskSnapshot.objects.create(
+            school=self.school, snapshot_date=today, at_risk_count=5
+        )
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["weeks"]), 1)
+        self.assertEqual(response.data["weeks"][0]["at_risk_count"], 5)
+        self.assertEqual(
+            response.data["weeks"][0]["week_start"], current_week_start.isoformat()
+        )
+
+    @patch("dashboard.views.timezone.localdate")
+    def test_week_reports_latest_snapshot(self, mock_localdate):
+        today = date(2026, 8, 4)
+        mock_localdate.return_value = today
+        current_week_start = today - timedelta(days=today.weekday())
+
+        SchoolAtRiskSnapshot.objects.create(
+            school=self.school,
+            snapshot_date=current_week_start,
+            at_risk_count=3,
+        )
+        SchoolAtRiskSnapshot.objects.create(
+            school=self.school,
+            snapshot_date=current_week_start + timedelta(days=2),
+            at_risk_count=7,
+        )
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(self.url)
+
+        self.assertEqual(len(response.data["weeks"]), 1)
+        self.assertEqual(response.data["weeks"][0]["at_risk_count"], 7)
+
+    @patch("dashboard.views.timezone.localdate")
+    def test_snapshot_outside_window_is_excluded(self, mock_localdate):
+        today = date(2026, 8, 4)
+        mock_localdate.return_value = today
+        current_week_start = today - timedelta(days=today.weekday())
+        window_start = current_week_start - timedelta(weeks=7)
+
+        # One day before the 8-week window starts.
+        SchoolAtRiskSnapshot.objects.create(
+            school=self.school,
+            snapshot_date=window_start - timedelta(days=1),
+            at_risk_count=99,
+        )
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.data["weeks"], [])
+
+    @patch("dashboard.views.timezone.localdate")
+    def test_response_is_cached_per_admin(self, mock_localdate):
+        today = date(2026, 8, 4)
+        mock_localdate.return_value = today
+        SchoolAtRiskSnapshot.objects.create(
+            school=self.school, snapshot_date=today, at_risk_count=2
+        )
+
+        self.client.force_authenticate(user=self.admin)
+        first = self.client.get(self.url)
+        self.assertEqual(first.data["weeks"][0]["at_risk_count"], 2)
+
+        # A snapshot update after the first request shouldn't show up until
+        # the per-admin cache entry expires.
+        SchoolAtRiskSnapshot.objects.filter(
+            school=self.school, snapshot_date=today
+        ).update(at_risk_count=999)
+        second = self.client.get(self.url)
+        self.assertEqual(second.data["weeks"][0]["at_risk_count"], 2)
+
+    def test_custom_start_and_end_date_window(self):
+        # A snapshot far outside the default 8-week window is included
+        # when start_date/end_date explicitly cover it.
+        old_date = date(2026, 1, 5)  # Monday
+        SchoolAtRiskSnapshot.objects.create(
+            school=self.school, snapshot_date=old_date, at_risk_count=4
+        )
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(
+            self.url, {"start_date": "2026-01-01", "end_date": "2026-01-31"}
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["weeks"]), 1)
+        self.assertEqual(response.data["weeks"][0]["at_risk_count"], 4)
+        self.assertEqual(response.data["weeks"][0]["week_start"], "2026-01-05")
+
+    def test_start_date_and_end_date_snap_to_calendar_week_boundaries(self):
+        self.client.force_authenticate(user=self.admin)
+        # Wednesday start, Wednesday end -> should snap out to the
+        # enclosing Monday and Sunday.
+        response = self.client.get(
+            self.url, {"start_date": "2026-01-07", "end_date": "2026-01-14"}
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["window_start"], "2026-01-05")
+        self.assertEqual(response.data["window_end"], "2026-01-18")
+
+    def test_invalid_date_format_returns_400(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(self.url, {"start_date": "not-a-date"})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_start_date_after_end_date_returns_400(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(
+            self.url, {"start_date": "2026-02-01", "end_date": "2026-01-01"}
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_window_exceeding_max_weeks_returns_400(self):
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(
+            self.url, {"start_date": "2020-01-01", "end_date": "2026-01-01"}
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_only_end_date_provided_defaults_start_relative_to_it(self):
+        old_date = date(2026, 1, 5)
+        SchoolAtRiskSnapshot.objects.create(
+            school=self.school, snapshot_date=old_date, at_risk_count=6
+        )
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(self.url, {"end_date": "2026-01-18"})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # Default window is 8 weeks ending at end_date's week.
+        self.assertEqual(response.data["window_end"], "2026-01-18")
+        self.assertEqual(len(response.data["weeks"]), 1)
+        self.assertEqual(response.data["weeks"][0]["at_risk_count"], 6)

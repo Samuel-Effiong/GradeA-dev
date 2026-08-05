@@ -543,12 +543,30 @@ logger = logging.getLogger(__name__)
 class SchoolSerializer(serializers.ModelSerializer):
     class Meta:
         model = School
-        fields = ["id", "name", "address", "phone", "website", "created_at"]
+        fields = [
+            "id",
+            "name",
+            "address",
+            "phone",
+            "website",
+            "is_active",
+            "created_at",
+        ]
 
     def validate_name(self, value):
         if not value.strip():
             raise serializers.ValidationError("School name cannot be empty.")
         return value
+
+    def create(self, validated_data):
+        # DRF's BooleanField treats a missing field in HTML/multipart form
+        # data as an explicit False on non-partial requests, which would
+        # silently override the model's default=True whenever a caller
+        # creates a school without passing is_active. New schools should
+        # always start active — archiving only ever happens via destroy()
+        # or an explicit PATCH.
+        validated_data.pop("is_active", None)
+        return super().create(validated_data)
 
 
 def _send_school_admin_invitation_email(user, school):
@@ -752,6 +770,7 @@ class SchoolSummarySerializer(serializers.Serializer):
     students = serializers.IntegerField()
     tokens_used = serializers.IntegerField()
     sessions = serializers.IntegerField()
+    is_active = serializers.BooleanField()
 
 
 class SessionBreakdownSerializer(serializers.Serializer):
@@ -776,6 +795,7 @@ class SchoolDetailSerializer(serializers.Serializer):
     tokens_used = serializers.IntegerField()
     sessions = serializers.IntegerField()
     courses = serializers.IntegerField(required=False)
+    is_active = serializers.BooleanField()
     session_breakdown = SessionBreakdownSerializer(many=True, required=False)
 
 

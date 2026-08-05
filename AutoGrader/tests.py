@@ -15,7 +15,6 @@ class SendEmailTaskTests(SimpleTestCase):
         mock_mail.send.side_effect = Exception("Template rejected by provider")
 
         send_email_task.__wrapped__(
-            None,
             subject="Welcome",
             message="Plain body",
             from_email="from@example.com",

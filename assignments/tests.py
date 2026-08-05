@@ -16,7 +16,15 @@ from assignments.models import (
 )
 from assignments.signals import assignment_due_reminder_task_name
 from assignments.tasks import send_assignment_due_reminder
-from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
+from billing.access_control import AIFeatureNotAvailableError
+from billing.errors import InsufficientCreditsError
+from classrooms.models import (
+    Course,
+    EnrollmentStatusType,
+    Session,
+    StudentCourse,
+    Topic,
+)
 from students.models import StudentSubmission
 from users.models import CustomUser, UserTypes
 
@@ -142,6 +150,285 @@ class AssignmentGenerationDraftAPITest(APITestCase):
 
         self.assertEqual(second_save_response.status_code, status.HTTP_200_OK)
         self.assertEqual(Assignment.objects.count(), 1)
+
+    @patch("assignments.views.ai_processor.generate_assignment_from_prompt_with_retry")
+    def test_insufficient_credits_returns_402(self, mock_generate_assignment):
+        mock_generate_assignment.side_effect = InsufficientCreditsError(
+            "Refill your wallet to continue"
+        )
+
+        response = self.client.post(
+            reverse("assignment-generate", kwargs={"course_id": self.course.id}),
+            {"prompt": "Create a one-question biology quiz."},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_402_PAYMENT_REQUIRED)
+        self.assertIn("error", response.data)
+        # The failed attempt's user message is still recorded even though
+        # no assistant reply was produced - the DB write for it happens
+        # before the AI call, outside the (now much smaller) transaction.
+        self.assertEqual(
+            AssignmentGenerationMessage.objects.filter(
+                role=AssignmentGenerationRole.USER
+            ).count(),
+            1,
+        )
+        self.assertEqual(
+            AssignmentGenerationMessage.objects.filter(
+                role=AssignmentGenerationRole.ASSISTANT
+            ).count(),
+            0,
+        )
+
+        # Regression test: a session whose latest message is a dangling
+        # USER message (metadata=None, since USER messages never set it)
+        # used to 500 the whole sessions list - get_latest_message_preview
+        # did `getattr(latest_message, "metadata", {})`, whose {} default
+        # only applies when the attribute is missing, not when it's None.
+        list_response = self.client.get(reverse("assignment-generation-session-list"))
+        self.assertEqual(list_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(list_response.data["results"][0]["latest_message_preview"], "")
+
+    @patch("assignments.views.ai_processor.generate_assignment_from_prompt_with_retry")
+    def test_ai_feature_not_available_returns_403(self, mock_generate_assignment):
+        mock_generate_assignment.side_effect = AIFeatureNotAvailableError(
+            "AI access denied: plan does not include this feature"
+        )
+
+        response = self.client.post(
+            reverse("assignment-generate", kwargs={"course_id": self.course.id}),
+            {"prompt": "Create a one-question biology quiz."},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertIn("error", response.data)
+
+    @patch("assignments.views.ai_processor.generate_assignment_from_prompt_with_retry")
+    def test_insufficient_prompt_returns_clarification_not_a_draft(
+        self, mock_generate_assignment
+    ):
+        mock_generate_assignment.return_value = {
+            "needs_clarification": True,
+            "title": "",
+            "instructions": "",
+            "total_points": 0,
+            "question_count": 0,
+            "assignment_type": "HYBRID",
+            "questions": [],
+            "self_assessment": (
+                "What subject or topic would you like this assignment to " "cover?"
+            ),
+        }
+
+        response = self.client.post(
+            reverse("assignment-generate", kwargs={"course_id": self.course.id}),
+            {"prompt": "Summarize something interesting for me please"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertFalse(response.data["is_draft"])
+        self.assertTrue(response.data["needs_clarification"])
+        self.assertEqual(
+            response.data["reply"],
+            "What subject or topic would you like this assignment to cover?",
+        )
+        self.assertIsNone(response.data["assignment_id"])
+        self.assertEqual(Assignment.objects.count(), 0)
+
+        assistant_message = AssignmentGenerationMessage.objects.get(
+            id=response.data["message_id"]
+        )
+        self.assertIsNone(assistant_message.assignment_snapshot)
+        self.assertEqual(
+            assistant_message.metadata["draft_status"], "NEEDS_CLARIFICATION"
+        )
+
+        # A clarification turn can't be saved as a real Assignment - the
+        # save endpoint already rejects anything that isn't an AI_DRAFT.
+        save_response = self.client.post(
+            reverse(
+                "assignment-save-generated-draft",
+                kwargs={"message_id": assistant_message.id},
+            ),
+            {},
+            format="json",
+        )
+        self.assertEqual(save_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Assignment.objects.count(), 0)
+
+    def test_short_prompt_is_rejected_before_any_ai_call(self):
+        with patch(
+            "assignments.views.ai_processor.generate_assignment_from_prompt_with_retry"
+        ) as mock_generate_assignment:
+            response = self.client.post(
+                reverse("assignment-generate", kwargs={"course_id": self.course.id}),
+                {"prompt": "hi"},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        mock_generate_assignment.assert_not_called()
+        self.assertEqual(AssignmentGenerationMessage.objects.count(), 0)
+
+    @patch("assignments.views.ai_processor.generate_assignment_from_prompt_with_retry")
+    def test_course_context_is_built_and_passed_to_ai_processor(
+        self, mock_generate_assignment
+    ):
+        self.course.description = "A course on the Old and New Testaments."
+        self.course.save(update_fields=["description"])
+        Topic.objects.create(course=self.course, name="Genesis")
+        Topic.objects.create(course=self.course, name="Parables")
+
+        mock_generate_assignment.return_value = generated_assignment_payload()
+
+        self.client.post(
+            reverse("assignment-generate", kwargs={"course_id": self.course.id}),
+            {"prompt": "Create a one-question biology quiz."},
+            format="json",
+        )
+
+        course_context = mock_generate_assignment.call_args.kwargs["course_context"]
+        self.assertIn("Course name: Draft Course", course_context)
+        self.assertIn(
+            "Course description: A course on the Old and New Testaments.",
+            course_context,
+        )
+        self.assertIn("Genesis", course_context)
+        self.assertIn("Parables", course_context)
+
+    @patch("assignments.views.ai_processor.generate_assignment_from_prompt_with_retry")
+    def test_course_context_caps_topic_list_at_fifteen(self, mock_generate_assignment):
+        for i in range(20):
+            Topic.objects.create(course=self.course, name=f"Topic {i:02d}")
+
+        mock_generate_assignment.return_value = generated_assignment_payload()
+
+        self.client.post(
+            reverse("assignment-generate", kwargs={"course_id": self.course.id}),
+            {"prompt": "Create a one-question biology quiz."},
+            format="json",
+        )
+
+        course_context = mock_generate_assignment.call_args.kwargs["course_context"]
+        topic_count = course_context.count("Topic ")
+        self.assertEqual(topic_count, 15)
+
+    @patch("assignments.views.ai_processor.generate_assignment_from_prompt_with_retry")
+    def test_self_assessment_is_sanitized_in_clarification_response(
+        self, mock_generate_assignment
+    ):
+        mock_generate_assignment.return_value = {
+            "needs_clarification": True,
+            "title": "",
+            "instructions": "",
+            "total_points": 0,
+            "question_count": 0,
+            "assignment_type": "HYBRID",
+            "questions": [],
+            "self_assessment": (
+                "<p>Hi</p><script>alert(1)</script>"
+                '<p onclick="alert(1)">click me</p>'
+            ),
+        }
+
+        response = self.client.post(
+            reverse("assignment-generate", kwargs={"course_id": self.course.id}),
+            {"prompt": "Summarize something interesting for me please"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertNotIn("<script", response.data["reply"])
+        self.assertNotIn("onclick", response.data["reply"])
+        self.assertIn("<p>Hi</p>", response.data["reply"])
+
+        assistant_message = AssignmentGenerationMessage.objects.get(
+            id=response.data["message_id"]
+        )
+        self.assertNotIn("<script", assistant_message.content)
+        self.assertNotIn("<script", assistant_message.metadata["reply"])
+
+    @patch("assignments.views.ai_processor.generate_assignment_from_prompt_with_retry")
+    def test_self_assessment_is_sanitized_in_draft_response(
+        self, mock_generate_assignment
+    ):
+        payload = generated_assignment_payload()
+        payload["self_assessment"] = "<p>Nice quiz</p><script>alert(1)</script>"
+        mock_generate_assignment.return_value = payload
+
+        response = self.client.post(
+            reverse("assignment-generate", kwargs={"course_id": self.course.id}),
+            {"prompt": "Create a one-question biology quiz."},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertNotIn("<script", response.data["reply"])
+        self.assertIn("<p>Nice quiz</p>", response.data["reply"])
+
+    @patch("assignments.views.ai_processor.generate_assignment_from_prompt_with_retry")
+    def test_empty_questions_without_clarification_flag_is_treated_as_clarification(
+        self, mock_generate_assignment
+    ):
+        mock_generate_assignment.return_value = {
+            "title": "",
+            "instructions": "",
+            "total_points": 0,
+            "question_count": 0,
+            "assignment_type": "HYBRID",
+            "questions": [],
+            "self_assessment": "<p>What subject should this cover?</p>",
+        }
+
+        response = self.client.post(
+            reverse("assignment-generate", kwargs={"course_id": self.course.id}),
+            {"prompt": "Summarize something interesting for me please"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertFalse(response.data["is_draft"])
+        self.assertTrue(response.data["needs_clarification"])
+        self.assertEqual(
+            response.data["reply"], "<p>What subject should this cover?</p>"
+        )
+        self.assertEqual(Assignment.objects.count(), 0)
+
+        assistant_message = AssignmentGenerationMessage.objects.get(
+            id=response.data["message_id"]
+        )
+        self.assertIsNone(assistant_message.assignment_snapshot)
+        self.assertEqual(
+            assistant_message.metadata["draft_status"], "NEEDS_CLARIFICATION"
+        )
+
+    @patch("assignments.views.ai_processor.generate_assignment_from_prompt_with_retry")
+    def test_empty_questions_with_blank_self_assessment_gets_fallback_reply(
+        self, mock_generate_assignment
+    ):
+        mock_generate_assignment.return_value = {
+            "title": "",
+            "instructions": "",
+            "total_points": 0,
+            "question_count": 0,
+            "assignment_type": "HYBRID",
+            "questions": [],
+            "self_assessment": "",
+        }
+
+        response = self.client.post(
+            reverse("assignment-generate", kwargs={"course_id": self.course.id}),
+            {"prompt": "Summarize something interesting for me please"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(response.data["needs_clarification"])
+        self.assertTrue(response.data["reply"])
+        self.assertIn("cover", response.data["reply"])
 
 
 class AssignmentDueReminderSchedulingTest(TestCase):

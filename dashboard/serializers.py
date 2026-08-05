@@ -465,6 +465,28 @@ class SchoolAdminSummarySerializer(serializers.Serializer):
     avg_assignments_per_course = serializers.FloatField(read_only=True)
 
 
+class AtRiskTrendWeekSerializer(serializers.Serializer):
+    """A single weekly data point for the at-risk trend chart."""
+
+    week_start = serializers.DateField(read_only=True)
+    week_end = serializers.DateField(read_only=True)
+    at_risk_count = serializers.IntegerField(read_only=True)
+
+
+class SchoolAtRiskTrendSerializer(serializers.Serializer):
+    """At-risk student count on a weekly tick over a rolling 2-month window.
+
+    `weeks` only includes weeks that have at least one recorded snapshot -
+    weeks before snapshot collection started are omitted rather than
+    filled with fabricated 0/null values.
+    """
+
+    school_name = serializers.CharField(read_only=True)
+    window_start = serializers.DateField(read_only=True)
+    window_end = serializers.DateField(read_only=True)
+    weeks = AtRiskTrendWeekSerializer(many=True, read_only=True)
+
+
 class AssignmentActivityOverTimeChartSerializer(serializers.Serializer):
     """
     Serializer for the Assignment Activity Over Time chart.
