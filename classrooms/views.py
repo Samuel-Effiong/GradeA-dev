@@ -203,7 +203,20 @@ def _parse_row_without_headers(row):
     retrieve=extend_schema(
         tags=["School"],
         summary="School detail summary",
-        description="Returns detailed stats for a specific school, including per-session breakdown.",
+        description=(
+            "Returns detailed stats for a specific school, including a "
+            "per-session breakdown with a nested per-teacher breakdown. "
+            "Includes SCHOOL-owned sessions (shared across every teacher "
+            "in the school), not just INDIVIDUAL ones — each contributing "
+            "teacher gets their own slice under session_breakdown[].teachers, "
+            "and the session's own assignments/students/tokens are the sum "
+            "of that list. "
+            "tokens_used is every token consumed by the school's teachers "
+            "and school admins; only the portion tied to a course/session "
+            "is broken out per-session — the rest is reported separately "
+            "as tokens_unattributed, so sum(session_breakdown[].tokens) + "
+            "tokens_unattributed == tokens_used."
+        ),
         responses={200: SchoolDetailSerializer},
     ),
     partial_update=extend_schema(
@@ -339,11 +352,13 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
             output_field=IntegerField(),
         )
 
-        # 3. Tokens used (sum of raw credits consumed by teachers in the school)
+        # 3. Tokens used (sum of raw credits consumed by teachers and school
+        # admins in the school — school admins can also directly trigger
+        # credit-consuming AI features, billed to their own wallet)
         tokens_sub = Subquery(
             CreditUsageLog.objects.filter(
                 wallet__user__school=OuterRef("school"),
-                wallet__user__user_type="TEACHER",
+                wallet__user__user_type__in=["TEACHER", "SCHOOL_ADMIN"],
             )
             .values("wallet__user__school")
             .annotate(total=Sum("amount"))
@@ -454,10 +469,12 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
             output_field=IntegerField(),
         )
 
-        # Tokens used (sum of raw credits consumed by teachers in the school)
+        # Tokens used (sum of raw credits consumed by teachers and school
+        # admins in the school)
         tokens_sub = Subquery(
             CreditUsageLog.objects.filter(
-                wallet__user__school=OuterRef("id"), wallet__user__user_type="TEACHER"
+                wallet__user__school=OuterRef("id"),
+                wallet__user__user_type__in=["TEACHER", "SCHOOL_ADMIN"],
             )
             .values("wallet__user__school")
             .annotate(total=Sum("amount"))
@@ -607,13 +624,37 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
             .distinct()
             .count()
         )
+        # Every token consumed by the school's teachers and school admins —
+        # school admins can also directly trigger credit-consuming AI
+        # features (weekly summaries, custom prompts), billed to their own
+        # wallet, so they're included here too.
+        school_wallet_filter = Q(
+            wallet__user__school=school,
+            wallet__user__user_type__in=["TEACHER", "SCHOOL_ADMIN"],
+        )
         tokens_total = (
+            CreditUsageLog.objects.filter(school_wallet_filter).aggregate(
+                total=Sum("amount")
+            )["total"]
+            or 0
+        )
+        # Only the subset of usage logs tied to a Course (hence a Session)
+        # can be shown per-session below; the rest (school-admin actions,
+        # custom AI chat, pre-Assignment extraction) has no course context
+        # to attribute to and is surfaced separately as tokens_unattributed.
+        tokens_attributed = (
             CreditUsageLog.objects.filter(
-                wallet__user__school=school, wallet__user__user_type="TEACHER"
+                school_wallet_filter, course__isnull=False
             ).aggregate(total=Sum("amount"))["total"]
             or 0
         )
-        sessions_total = Session.objects.filter(teacher__school=school).count()
+        tokens_unattributed = tokens_total - tokens_attributed
+        # SCHOOL-owned sessions have no `teacher` (see Session.clean()) -
+        # they're shared across every teacher in the school - so counting
+        # via teacher__school alone misses them entirely.
+        sessions_total = Session.objects.filter(
+            Q(teacher__school=school) | Q(school=school)
+        ).count()
         courses_total = Course.objects.filter(teacher__school=school).count()
 
         # ---- Admin info ----
@@ -623,25 +664,103 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
             .first()
         )
 
-        # ---- Per‑session breakdown ----
-        sessions = (
-            Session.objects.filter(teacher__school=school)
-            .select_related("teacher")
-            .annotate(
-                assignments_count=Count("courses__assignments", distinct=True),
-                students_count=Count("courses__enrollments__student", distinct=True),
+        # ---- Per‑session breakdown, with a nested per‑teacher breakdown ----
+        # A Session's `teacher` FK is only ever set for owner_type=INDIVIDUAL
+        # (see Session.clean()) - for owner_type=SCHOOL it's null, and the
+        # session is shared: any teacher in the school can attach their own
+        # Course to it. So attribution has to come from Course (which has
+        # both `teacher` and `session`), not from Session.teacher.
+        #
+        # Each metric is computed as its own grouped-by-(session, teacher)
+        # aggregate query and merged in Python, rather than combined into
+        # one annotate() call - combining a Sum with multiple joined
+        # one-to-many relations (assignments, enrollments, usage logs) in a
+        # single query silently inflates every total via join fan-out; only
+        # Count(distinct=True) has an escape hatch for that, Sum doesn't.
+        assignments_by_key = {
+            (row["course__session"], row["course__teacher"]): row["count"]
+            for row in Assignment.objects.filter(course__teacher__school=school)
+            .values("course__session", "course__teacher")
+            .annotate(count=Count("id"))
+        }
+        students_by_key = {
+            (row["course__session"], row["course__teacher"]): row["count"]
+            for row in StudentCourse.objects.filter(course__teacher__school=school)
+            .values("course__session", "course__teacher")
+            .annotate(count=Count("student", distinct=True))
+        }
+        tokens_by_key = {
+            (row["course__session"], row["course__teacher"]): row["total"]
+            for row in CreditUsageLog.objects.filter(
+                school_wallet_filter, course__teacher__school=school
             )
+            .values("course__session", "course__teacher")
+            .annotate(total=Sum("amount"))
+        }
+
+        sessions = Session.objects.filter(
+            Q(owner_type=SessionOwnerType.INDIVIDUAL, teacher__school=school)
+            | Q(owner_type=SessionOwnerType.SCHOOL, school=school)
         )
-        session_breakdown = [
-            {
-                "session_id": str(session.id),
-                "session_name": session.name,
-                "assignments": session.assignments_count,
-                "students": session.students_count,
-                "teacher": session.teacher.get_full_name(),
-            }
-            for session in sessions
-        ]
+
+        # For SCHOOL sessions, the contributing teachers are whoever has a
+        # Course there - grouped up front to avoid an N+1 query per session.
+        school_session_teachers = {}
+        for row in (
+            Course.objects.filter(
+                session__owner_type=SessionOwnerType.SCHOOL, session__school=school
+            )
+            .values_list("session_id", "teacher_id")
+            .distinct()
+        ):
+            session_id, teacher_id = row
+            school_session_teachers.setdefault(session_id, set()).add(teacher_id)
+
+        all_teacher_ids = {
+            tid for tids in school_session_teachers.values() for tid in tids
+        }
+        all_teacher_ids.update(
+            s.teacher_id
+            for s in sessions
+            if s.owner_type == SessionOwnerType.INDIVIDUAL
+        )
+        teacher_names = {
+            u.id: u.get_full_name()
+            for u in CustomUser.objects.filter(id__in=all_teacher_ids)
+        }
+
+        session_breakdown = []
+        for session in sessions:
+            if session.owner_type == SessionOwnerType.INDIVIDUAL:
+                teacher_ids = [session.teacher_id]
+            else:
+                teacher_ids = sorted(
+                    school_session_teachers.get(session.id, set()),
+                    key=lambda tid: teacher_names.get(tid, ""),
+                )
+
+            teachers = [
+                {
+                    "teacher_id": str(teacher_id),
+                    "teacher_name": teacher_names.get(teacher_id, ""),
+                    "assignments": assignments_by_key.get((session.id, teacher_id), 0),
+                    "students": students_by_key.get((session.id, teacher_id), 0),
+                    "tokens": tokens_by_key.get((session.id, teacher_id), 0),
+                }
+                for teacher_id in teacher_ids
+            ]
+
+            session_breakdown.append(
+                {
+                    "session_id": str(session.id),
+                    "session_name": session.name,
+                    "owner_type": session.owner_type,
+                    "assignments": sum(t["assignments"] for t in teachers),
+                    "students": sum(t["students"] for t in teachers),
+                    "tokens": sum(t["tokens"] for t in teachers),
+                    "teachers": teachers,
+                }
+            )
 
         # ---- Assemble response ----
         data = {
@@ -656,6 +775,7 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
             "teachers": teachers_count,
             "students": students_count,
             "tokens_used": tokens_total,
+            "tokens_unattributed": tokens_unattributed,
             "sessions": sessions_total,
             "courses": courses_total,
             "is_active": school.is_active,
@@ -880,12 +1000,14 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if months < 1 or months > 36:
             months = 12
 
-        # Get teachers in this school
-        teacher_ids = CustomUser.objects.filter(
-            school_id=school_id, user_type="TEACHER"
+        # Get teachers and school admins in this school — school admins can
+        # also directly trigger credit-consuming AI features, billed to
+        # their own wallet, so they're included for a complete picture.
+        school_user_ids = CustomUser.objects.filter(
+            school_id=school_id, user_type__in=["TEACHER", "SCHOOL_ADMIN"]
         ).values_list("id", flat=True)
 
-        if not teacher_ids:
+        if not school_user_ids:
             return Response(
                 {"detail": "No teachers found for this school."}, status=404
             )
@@ -897,7 +1019,7 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # Aggregate monthly usage
         monthly_usage = (
             CreditUsageLog.objects.filter(
-                wallet__user_id__in=teacher_ids  # , created_at__gte=start_date
+                wallet__user_id__in=school_user_ids  # , created_at__gte=start_date
             )
             .annotate(month=TruncMonth("created_at"))
             .values("month")

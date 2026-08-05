@@ -768,7 +768,9 @@ class CreditWallet(models.Model):
         }
 
     @transaction.atomic
-    def consume_credits(self, amount, feature=None, task_type=None, task_id=None):
+    def consume_credits(
+        self, amount, feature=None, task_type=None, task_id=None, course=None
+    ):
         """
         Consumes credits from the user's wallet using a type-priority,
         expiry-aware FIFO strategy.
@@ -795,6 +797,8 @@ class CreditWallet(models.Model):
             feature (str, optional): Feature identifier for analytics.
             task_type (str, optional): Task type for analytics.
             task_id (str, optional): Task ID for refund traceability.
+            course (Course, optional): Course the task was performed under,
+                when known, for per-session usage attribution.
 
         Returns:
             int: The amount consumed (always equals requested amount on success).
@@ -881,6 +885,7 @@ class CreditWallet(models.Model):
                     feature=feature,
                     task_type=task_type,
                     task_id=task_id,
+                    course=course,
                 )
             )
 
@@ -1115,6 +1120,19 @@ class CreditUsageLog(models.Model):
         on_delete=models.CASCADE,
         related_name="credit_usage_logs",
         help_text="Credit bucket the usage log is associated with",
+    )
+    course = models.ForeignKey(
+        "classrooms.Course",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="credit_usage_logs",
+        help_text=(
+            "Course the consuming task was performed under, when known. "
+            "Null for tasks with no course context (e.g. custom AI chat, "
+            "school-wide summaries) or for usage logged before this field "
+            "existed."
+        ),
     )
     amount = models.IntegerField(help_text="Amount of credits consumed from the bucket")
     feature = models.CharField(

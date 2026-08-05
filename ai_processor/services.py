@@ -2208,6 +2208,7 @@ Now, respond to the following teacher's instruction using the rules above
         respond_format=True,
         response_schema=None,
         assignment=None,
+        course=None,
         processing_task_id=None,
     ):
         # I need the assignment to for students who are submitting
@@ -2357,6 +2358,8 @@ Now, respond to the following teacher's instruction using the rules above
             response_schema,
         )
 
+        resolved_course = assignment.course if assignment else course
+
         with transaction.atomic():
             ensure_task_not_cancelled(processing_task_id)
             actual_cost = response.usage.total_tokens
@@ -2365,6 +2368,7 @@ Now, respond to the following teacher's instruction using the rules above
                 feature=feature,
                 task_type=task_type,
                 task_id=task_id,
+                course=resolved_course,
             )
 
             # Update the Beta Analytics Profile for the Teacher
@@ -2599,6 +2603,7 @@ Based on the data above, write a short personalised summary for the teacher."""
             task_type="student_summary",
             messages=messages,
             respond_format=False,
+            course=course,
         )
 
         content = response.choices[0].message.content
@@ -2644,6 +2649,7 @@ Turn this data into concise teacher-facing narration.
             task_type="weekly_course_summary",
             messages=messages,
             respond_format=True,
+            course=course,
         )
 
         content = response.choices[0].message.content

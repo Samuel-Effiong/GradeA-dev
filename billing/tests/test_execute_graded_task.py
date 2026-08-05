@@ -45,7 +45,7 @@ from billing.models import (  # PlanFeature,; PlanFeatureInclusion,; PlanFeature
     SubscriptionPlan,
     UserSubscription,
 )
-from classrooms.models import School
+from classrooms.models import Course, School
 from users.models import CustomUser, UserTypes
 
 
@@ -289,8 +289,13 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
         # Deliberately give the student NO wallet/subscription at all -
         # proves consumption can never accidentally hit their account.
 
+        # A real (saved) Course is needed here, not a bare MagicMock -
+        # execute_graded_task now also reads assignment.course to attribute
+        # the resulting CreditUsageLog to a course/session, and that FK
+        # assignment requires an actual Course row.
+        course = Course.objects.create(name="Course", teacher=teacher)
         assignment = MagicMock()
-        assignment.course.teacher = teacher
+        assignment.course = course
 
         response = self.processor.execute_graded_task(
             user=student,

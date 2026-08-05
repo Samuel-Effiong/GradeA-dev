@@ -773,12 +773,28 @@ class SchoolSummarySerializer(serializers.Serializer):
     is_active = serializers.BooleanField()
 
 
+class SessionTeacherSerializer(serializers.Serializer):
+    teacher_id = serializers.UUIDField()
+    teacher_name = serializers.CharField()
+    assignments = serializers.IntegerField()
+    students = serializers.IntegerField()
+    tokens = serializers.IntegerField()
+
+
 class SessionBreakdownSerializer(serializers.Serializer):
     session_id = serializers.UUIDField()
     session_name = serializers.CharField()
-    assignments = serializers.IntegerField()
-    students = serializers.IntegerField()
-    teacher = serializers.CharField()
+    owner_type = serializers.CharField(
+        help_text="INDIVIDUAL (one teacher) or SCHOOL (shared, may have multiple contributing teachers)."
+    )
+    assignments = serializers.IntegerField(help_text="Sum of teachers[].assignments.")
+    students = serializers.IntegerField(help_text="Sum of teachers[].students.")
+    tokens = serializers.IntegerField(help_text="Sum of teachers[].tokens.")
+    teachers = SessionTeacherSerializer(
+        many=True,
+        help_text="Per-teacher breakdown within this session. Empty for a "
+        "SCHOOL session with no courses yet.",
+    )
 
 
 class SchoolDetailSerializer(serializers.Serializer):
@@ -793,6 +809,15 @@ class SchoolDetailSerializer(serializers.Serializer):
     teachers = serializers.IntegerField()
     students = serializers.IntegerField()
     tokens_used = serializers.IntegerField()
+    tokens_unattributed = serializers.IntegerField(
+        help_text=(
+            "Portion of tokens_used that couldn't be tied to any session "
+            "(no course context — e.g. school-admin actions, custom AI "
+            "chat, pre-Assignment extraction). "
+            "sum(session_breakdown[].tokens) + tokens_unattributed == "
+            "tokens_used."
+        )
+    )
     sessions = serializers.IntegerField()
     courses = serializers.IntegerField(required=False)
     is_active = serializers.BooleanField()
