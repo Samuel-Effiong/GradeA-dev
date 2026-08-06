@@ -50,8 +50,19 @@ logger = logging.getLogger(__name__)
 
 @shared_task(bind=True)
 def grade_all_submissions(self, user_id, assignment_id, processing_task_id=None):
-    """love God"""
-    submissions = StudentSubmission.objects.filter(assignment_id=assignment_id)
+    """
+    Legacy bulk-grading task. No code dispatches this anymore (the
+    grade-all view fans out per-submission grade_engine_async tasks, and
+    scheduled batches use grade_batch_async) — kept only because a
+    celery-beat PeriodicTask row could still reference it by dotted path.
+
+    Scoped to UNGRADED submissions, matching every live bulk path: the old
+    unfiltered query re-ran the full billed AI pipeline over already-graded
+    submissions on every invocation.
+    """
+    submissions = StudentSubmission.objects.filter(
+        assignment_id=assignment_id, graded_at__isnull=True
+    )
     submissions_count = submissions.count()
 
     user = CustomUser.objects.get(id=user_id)

@@ -1635,11 +1635,20 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         url_path="publish-all-grades",
     )
     def publish_all_grades(self, request, pk=None):
+        # Local import: students.services reaches back into assignments
+        # (models/tasks), so importing it at module level here would create
+        # an import cycle.
+        from students.services import notify_student_of_graded_submission
+        from students.signals import clear_student_submission_cache
+
         assignment = self.get_object()
 
-        # Get all graded submissions for this assignment (either has graded_at or score)
+        # Publishable = grading actually finished: BOTH graded_at AND a
+        # score, matching the single-submission publish endpoint. The old
+        # OR let half-graded rows (a failed run that set one but not the
+        # other) be published to students.
         graded_submissions = assignment.submissions.filter(
-            Q(graded_at__isnull=False) | Q(score__isnull=False)
+            graded_at__isnull=False, score__isnull=False
         )
 
         total_graded = graded_submissions.count()
@@ -1649,8 +1658,30 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 status=status.HTTP_200_OK,
             )
 
-        # Update all graded submissions to published
+        # Snapshot who is being published for the FIRST time before the
+        # bulk write, so we can notify exactly those students. .update()
+        # bypasses post_save, so unlike the single-publish endpoint nothing
+        # else would notify them or invalidate caches.
+        newly_published = list(graded_submissions.filter(is_published=False))
         updated_count = graded_submissions.update(is_published=True)
+
+        for submission in newly_published:
+            # The snapshot was taken before the bulk write, so the in-memory
+            # instances still say is_published=False — and the notifier
+            # (correctly) refuses to email about an unpublished grade.
+            submission.is_published = True
+            try:
+                notify_student_of_graded_submission(submission)
+            except Exception:
+                logger.exception(
+                    "Failed to notify student of published grade",
+                    extra={"submission_id": str(submission.id)},
+                )
+
+        # .update() skips post_save, so fire the submission cache
+        # invalidation once for the whole batch.
+        if newly_published:
+            clear_student_submission_cache(sender=None, instance=newly_published[0])
 
         total_submissions = assignment.submissions.count()
         ungraded_count = total_submissions - total_graded

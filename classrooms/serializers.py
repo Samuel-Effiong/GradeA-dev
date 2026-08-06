@@ -317,12 +317,15 @@ class StudentCourseDetailSerializer(StudentCourseSerializer):
         fields = StudentCourseSerializer.Meta.fields + ["assignments"]
 
     def get_assignments(self, obj):
-        # Access pre-fetched assignments from the course
-        # from assignment.models import AssignmentStatus
-
-        assignments = obj.course.assignments.all().filter(
-            status=AssignmentStatus.PUBLISHED
-        )
+        # Filter the prefetched assignments in Python: calling .filter() on
+        # the prefetched .all() would discard the prefetch cache and issue
+        # a fresh query per enrollment row — the exact N+1 the view's
+        # prefetch_related("course__assignments") exists to prevent.
+        assignments = [
+            a
+            for a in obj.course.assignments.all()
+            if a.status == AssignmentStatus.PUBLISHED
+        ]
 
         # Filter pre-fetched submissions for this specific student
 
@@ -341,7 +344,7 @@ class StudentCourseDetailSerializer(StudentCourseSerializer):
             if not submission:
                 now = timezone.now()
 
-                if assignment.due_date < now:
+                if assignment.due_date and assignment.due_date < now:
                     status = "OVERDUE"
                 else:
                     status = "PENDING"

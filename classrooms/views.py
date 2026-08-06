@@ -2665,14 +2665,22 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 ).distinct()
             return CustomUser.objects.none()
 
+        # Scope the submissions prefetch to what the serializer can
+        # legitimately show. Unfiltered, it loaded EVERY submission each
+        # student had ever made — across all courses, including other
+        # teachers' — into memory for the serializer to then discard in
+        # Python. For a teacher, only submissions in that teacher's own
+        # courses are relevant (and visible); a student only ever sees
+        # their own rows, which student__submissions already guarantees.
+        submissions_qs = StudentSubmission.objects.select_related("assignment")
+        if user.user_type == UserTypes.TEACHER:
+            submissions_qs = submissions_qs.filter(assignment__course__teacher=user)
+
         queryset = StudentCourse.objects.select_related(
             "student", "course"
         ).prefetch_related(
             "course__assignments",
-            Prefetch(
-                "student__submissions",
-                queryset=StudentSubmission.objects.all().select_related("assignment"),
-            ),
+            Prefetch("student__submissions", queryset=submissions_qs),
         )
 
         if user.user_type == UserTypes.TEACHER:

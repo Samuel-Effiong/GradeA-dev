@@ -133,39 +133,51 @@ def _recalculate_final_grade(student_id, course_id):
     more than a 5-point quiz. Runs after every submission save *and*
     delete so `final_grade` can't drift from submissions that were
     resubmitted, ungraded, or removed after an earlier grade was recorded.
+
+    Locks the enrollment row for the duration of the aggregate + write.
+    Batch grading (grade-all) finishes several submissions for the same
+    (student, course) on different workers at nearly the same moment; an
+    unlocked read-aggregate-write here let a worker holding a stale
+    aggregate win the last write, permanently understating final_grade
+    (nothing re-triggers the recalc afterwards). Under the lock, the
+    second worker blocks until the first commits and then aggregates
+    fresh data, so the last write always reflects every graded
+    submission.
     """
-    try:
-        enrollment = StudentCourse.objects.get(
-            student_id=student_id, course_id=course_id
+    with transaction.atomic():
+        enrollment = (
+            StudentCourse.objects.select_for_update()
+            .filter(student_id=student_id, course_id=course_id)
+            .first()
         )
-    except StudentCourse.DoesNotExist:
-        return
+        if enrollment is None:
+            return
 
-    totals = StudentSubmission.objects.filter(
-        student_id=student_id,
-        assignment__course_id=course_id,
-        graded_at__isnull=False,
-        score__isnull=False,
-        max_points__gt=0,
-    ).aggregate(total_score=Sum("score"), total_max_points=Sum("max_points"))
+        totals = StudentSubmission.objects.filter(
+            student_id=student_id,
+            assignment__course_id=course_id,
+            graded_at__isnull=False,
+            score__isnull=False,
+            max_points__gt=0,
+        ).aggregate(total_score=Sum("score"), total_max_points=Sum("max_points"))
 
-    total_score = totals["total_score"]
-    total_max_points = totals["total_max_points"]
+        total_score = totals["total_score"]
+        total_max_points = totals["total_max_points"]
 
-    if not total_max_points:
-        new_final_grade = None
-    else:
-        raw_grade = (total_score / total_max_points) * 100
-        # Clamp to the documented 0-100 scale so bad upstream data (extra
-        # credit pushing a score over 100%, a negative adjustment) can't
-        # silently fall outside every grade band in grade-distribution
-        # reporting.
-        clamped = max(Decimal("0"), min(Decimal("100"), raw_grade))
-        new_final_grade = clamped.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        if not total_max_points:
+            new_final_grade = None
+        else:
+            raw_grade = (total_score / total_max_points) * 100
+            # Clamp to the documented 0-100 scale so bad upstream data (extra
+            # credit pushing a score over 100%, a negative adjustment) can't
+            # silently fall outside every grade band in grade-distribution
+            # reporting.
+            clamped = max(Decimal("0"), min(Decimal("100"), raw_grade))
+            new_final_grade = clamped.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
-    if enrollment.final_grade != new_final_grade:
-        enrollment.final_grade = new_final_grade
-        enrollment.save(update_fields=["final_grade"])
+        if enrollment.final_grade != new_final_grade:
+            enrollment.final_grade = new_final_grade
+            enrollment.save(update_fields=["final_grade"])
 
 
 @receiver(post_save, sender=StudentSubmission)

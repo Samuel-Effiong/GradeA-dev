@@ -2,6 +2,7 @@ import logging
 from datetime import date, timedelta
 
 from django.core.cache import cache
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.db.models import (
     Avg,
@@ -1789,14 +1790,11 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
             school=school, user_type=UserTypes.TEACHER
         ).distinct()
 
-        # Prefetch related data to avoid N+1
-        teachers = teachers.prefetch_related(
-            "courses",
-            "courses__enrollments",
-            "courses__assignments",
-            "courses__assignments__submissions",
-        )
-
+        # NOTE: no prefetch here on purpose. compute_teacher_performance_stats
+        # works entirely through fresh manager queries and aggregates — a
+        # prefetch of courses/enrollments/assignments/submissions loaded
+        # every submission row for the page into memory and was then never
+        # read, pure overhead on top of the helper's own queries.
         teachers = paginator.paginate_queryset(teachers, request, view=self)
 
         result = []
@@ -1927,8 +1925,18 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         # used_credits), not the all-time `credits_used` shown above —
         # mixing all-time usage with a current-balance denominator made
         # this creep toward 100% forever regardless of the current cycle.
-        remaining = teacher.credit_wallet.plan_remaining_credits()
-        current_used = teacher.credit_wallet.plan_used_credits()
+        # credit_wallet is a reverse OneToOne with no auto-creation — a
+        # teacher who has never touched a credit-consuming feature has no
+        # wallet row, and the reverse accessor raises
+        # CreditWallet.DoesNotExist (not AttributeError, so getattr's
+        # default can't catch it). Treat "no wallet" as zero usage instead
+        # of a 500.
+        try:
+            wallet = teacher.credit_wallet
+        except ObjectDoesNotExist:
+            wallet = None
+        remaining = wallet.plan_remaining_credits() if wallet else 0
+        current_used = wallet.plan_used_credits() if wallet else 0
         denominator = current_used + remaining
         result["credits_used"] = credits_used
         result["credits_used_percentage"] = (

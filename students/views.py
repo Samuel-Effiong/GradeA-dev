@@ -174,8 +174,12 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
+    # grading_state lets a teacher query "what's still RUNNING / FAILED"
+    # (the field is indexed for exactly this filter).
     filterset_fields = [
         "assignment",
+        "grading_state",
+        "is_published",
     ]
     search_fields = ["student__first_name", "student__last_name"]
     ordering_fields = ["student__first_name", "student__last_name"]
@@ -196,7 +200,16 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             submission.raw_input = AssignmentProcessingService.html_to_prosemirror_json(
                 answer_html
             )
-            submission.save(update_fields=["raw_input"])
+            # Queryset .update(), NOT instance.save(): this is a lazy
+            # backfill of derived display data on a GET. A save() here
+            # fires post_save, which recalculates the course final grade
+            # and pattern-deletes every dashboard cache — a teacher merely
+            # paging through submissions repeatedly flushed deployment-wide
+            # caches. Nothing grade-bearing changes, so skipping signals is
+            # correct, not just cheaper.
+            StudentSubmission.objects.filter(pk=submission.pk).update(
+                raw_input=submission.raw_input
+            )
 
         if request.user.user_type == UserTypes.STUDENT:
             serializer = StudentSubmissionDetailStudentVersionSerializer(
@@ -815,7 +828,22 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 "Submission has not be graded yet", status=HTTP_400_BAD_REQUEST
             )
 
-        score = float(serializer.validated_data["score"])
+        # partial=True makes every serializer field optional, so a PATCH
+        # without "score" passes validation with empty validated_data —
+        # guard explicitly instead of KeyError-500ing.
+        if "score" not in serializer.validated_data:
+            return Response(
+                {"error": "A 'score' value is required."},
+                status=HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            score = float(serializer.validated_data["score"])
+        except (TypeError, ValueError):
+            return Response(
+                {"error": "Score must be a number."},
+                status=HTTP_400_BAD_REQUEST,
+            )
 
         try:
             max_total_points = float(feedback["grading_summary"]["max_total_points"])
@@ -893,11 +921,22 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         Return a formatted response
         """
 
-        formatted_grade_async.delay(str(submission.id), user_prompt)
-
-        # submission.formatted_grade = ai_processor.formatted_grade(
-        #     request.user, user_prompt, assignment_model=assignment
-        # )
+        # Tracked dispatch (BackgroundProcessingTask + launch), matching
+        # every other formatted-grade call site — a bare .delay() here made
+        # the regrade's formatting step invisible and uncancellable.
+        formatted_processing_task = create_processing_task(
+            requested_by=request.user,
+            task_type=BackgroundTaskType.FORMATTED_GRADE,
+            assignment=assignment,
+            submission=submission,
+            meta={"step": "Queued for formatted grade generation"},
+        )
+        launch_processing_task(
+            formatted_grade_async,
+            formatted_processing_task,
+            str(submission.id),
+            user_prompt,
+        )
 
         response_serializer = StudentSubmissionDetailSerializer(submission)
         return Response(response_serializer.data, status=HTTP_200_OK)
@@ -1068,18 +1107,28 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     )
     def publish_grade(self, request, pk=None):
         submission = self.get_object()
-        was_published = submission.is_published
 
-        if not submission.graded_at and submission.score is None:
+        # A submission is publishable only when grading actually finished:
+        # BOTH a grading timestamp and a score. Requiring only one let a
+        # half-graded row (graded_at set by a run that failed before
+        # persisting a score, or vice versa) be published, emailing the
+        # student about a grade that doesn't exist.
+        if not submission.graded_at or submission.score is None:
             return Response(
                 {"error": "Cannot publish an ungraded submission."},
                 status=HTTP_400_BAD_REQUEST,
             )
 
+        # Conditional UPDATE as an atomic claim: two concurrent publish
+        # requests both saw is_published=False above, but only one matches
+        # this WHERE clause — so the student gets exactly one notification
+        # instead of one per click.
+        newly_published = StudentSubmission.objects.filter(
+            pk=submission.pk, is_published=False
+        ).update(is_published=True)
         submission.is_published = True
-        submission.save(update_fields=["is_published"])
 
-        if not was_published:
+        if newly_published:
             notify_student_of_graded_submission(submission)
 
         serializer = StudentSubmissionDetailSerializer(
