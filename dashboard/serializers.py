@@ -1,4 +1,5 @@
 from django.contrib.humanize.templatetags.humanize import naturaltime
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from ai_processor.models import ChatMessage, ChatSession
@@ -570,9 +571,59 @@ class TeacherPerformanceDashboardSerializer(serializers.Serializer):
     status = serializers.CharField()
 
 
+class FeatureMixCategorySerializer(serializers.Serializer):
+    amount = serializers.IntegerField()
+    percent = serializers.FloatField()
+
+
+class TeacherDailyUsageSerializer(serializers.Serializer):
+    date = serializers.DateField()
+    credits = serializers.IntegerField()
+
+
+class TeacherDetailSerializer(TeacherPerformanceDashboardSerializer):
+    """
+    Everything TeacherPerformanceDashboardSerializer has, plus credit
+    usage data for a single teacher's detail view.
+    """
+
+    credits_used = serializers.IntegerField(
+        help_text="All-time credits consumed by this teacher, net of refunds."
+    )
+    credits_used_percentage = serializers.FloatField(
+        help_text=(
+            "credits_used as a percentage of (credits_used + remaining plan "
+            "credits). Excludes OVERAGE buckets, which are purchased "
+            "reactively and aren't part of the fixed plan allocation."
+        )
+    )
+    days_active = serializers.IntegerField(
+        help_text="Distinct calendar days with credit usage in the last 60 days."
+    )
+    daily_usage = TeacherDailyUsageSerializer(
+        many=True, help_text="Daily credit usage for the last 60 days, zero-filled."
+    )
+    grading = FeatureMixCategorySerializer()
+    creation = FeatureMixCategorySerializer()
+    feedback = FeatureMixCategorySerializer()
+    other = FeatureMixCategorySerializer()
+
+
+class CourseStudentBreakdownSerializer(serializers.Serializer):
+    """Documents the shape of CoursePerformanceDashboardSerializer.students
+    (schema-only, not used to actually serialize)."""
+
+    enrolled = serializers.IntegerField()
+    completed = serializers.IntegerField()
+    pending = serializers.IntegerField()
+    total = serializers.IntegerField(
+        help_text="enrolled + completed + pending (everyone except withdrawn)."
+    )
+
+
 class CoursePerformanceDashboardSerializer(serializers.ModelSerializer):
     teacher = serializers.CharField(source="teacher.get_full_name")
-    students = serializers.IntegerField(source="student_count")
+    students = serializers.SerializerMethodField()
     assignments = serializers.IntegerField(source="assignment_count")
     avg_grade = serializers.FloatField(allow_null=True)
     distribution = serializers.SerializerMethodField()
@@ -589,14 +640,36 @@ class CoursePerformanceDashboardSerializer(serializers.ModelSerializer):
             "distribution",
         ]
 
+    @extend_schema_field(CourseStudentBreakdownSerializer)
+    def get_students(self, obj):
+        return {
+            "enrolled": obj.enrolled_count,
+            "completed": obj.completed_count,
+            "pending": obj.pending_count,
+            "total": obj.student_count,
+        }
+
+    @extend_schema_field(serializers.DictField(child=serializers.IntegerField()))
     def get_distribution(self, obj):
-        # Build distribution dict from annotated fields
+        # Build distribution dict from annotated fields. Only counts
+        # enrolled/completed students - see the view for why pending and
+        # withdrawn enrollments are excluded.
         grades = {}
         for letter in ["A", "B", "C", "D", "F"]:
             count = getattr(obj, f"grade_{letter}", 0)
             if count:
                 grades[letter] = count
         return grades
+
+
+class CoursePerformanceDashboardPageSerializer(serializers.Serializer):
+    """Documents the paginated envelope returned by the course-performance
+    dashboard endpoint (schema-only, not used to actually serialize)."""
+
+    count = serializers.IntegerField()
+    next = serializers.CharField(allow_null=True)
+    previous = serializers.CharField(allow_null=True)
+    results = CoursePerformanceDashboardSerializer(many=True)
 
 
 class UnitPerformanceSerializer(serializers.ModelSerializer):

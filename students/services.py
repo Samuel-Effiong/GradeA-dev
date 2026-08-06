@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 from html import escape
 
 from django.conf import settings
@@ -15,8 +16,8 @@ from classrooms.tasks import student_summary_async
 from users.models import CustomUser, UserTypes
 from users.services import get_opted_in_school_admins
 
-from .exceptions import CannotAssociateStudentError
-from .models import BackgroundTaskType, StudentSubmission
+from .exceptions import CannotAssociateStudentError, SubmissionGradingInProgressError
+from .models import BackgroundTaskType, GradingState, StudentSubmission
 from .task_tracking import (
     cancellable_final_save,
     create_processing_task,
@@ -106,7 +107,87 @@ def student_submission_to_html(submission) -> str:
     """
 
 
+# Celery's hard kill point for one grading run - grade_engine_async sets
+# this as its time_limit (see assignments.tasks), and the Redis broker
+# visibility_timeout in settings is sized above it. Referenced by name in
+# AutoGrader/settings.py's CELERY_BROKER_TRANSPORT_OPTIONS comment.
+GRADING_TASK_TIME_LIMIT_SECONDS = 25 * 60
+
+# How long a RUNNING grading claim may sit before another worker is allowed
+# to steal it. Generous on purpose: a legitimate run is several sequential AI
+# calls with retries, so a tight window would let a slow-but-alive run be
+# stolen and double-billed - the exact problem the claim exists to prevent.
+# Derived from (not merely near) the task's hard kill point: a worker that
+# somehow ran past the kill point is dead by the time this window elapses,
+# so a stale claim really is abandoned rather than merely slow.
+GRADING_CLAIM_STALE_AFTER = timedelta(seconds=GRADING_TASK_TIME_LIMIT_SECONDS + 5 * 60)
+
+
+def _claim_submission_for_grading(submission_id):
+    """
+    Atomically claim a submission for grading (C3). Returns True if the
+    claim was acquired.
+
+    A single conditional UPDATE, so two concurrent claimants (a Celery
+    redelivery racing the still-running original, or a double-clicked
+    grade button) serialize on the row lock and exactly one wins: the
+    loser's UPDATE re-evaluates the WHERE clause against the winner's
+    committed RUNNING state and matches zero rows.
+
+    Claimable states: anything that is not a *fresh* RUNNING claim - IDLE,
+    DONE (legitimate re-grade), FAILED, and a RUNNING claim older than
+    GRADING_CLAIM_STALE_AFTER (left behind by a crashed/killed worker).
+    """
+    now = timezone.now()
+    stale_cutoff = now - GRADING_CLAIM_STALE_AFTER
+    claimed = (
+        StudentSubmission.objects.filter(pk=submission_id)
+        .exclude(
+            grading_state=GradingState.RUNNING,
+            grading_started_at__gt=stale_cutoff,
+        )
+        .update(grading_state=GradingState.RUNNING, grading_started_at=now)
+    )
+    return bool(claimed)
+
+
+def _mark_grading_claim_failed(submission_id):
+    """Release a held claim after a failed run so the submission is
+    immediately re-gradable (FAILED is a claimable state)."""
+    StudentSubmission.objects.filter(pk=submission_id).update(
+        grading_state=GradingState.FAILED
+    )
+
+
+def _coerce_confidence(value):
+    """Clamp a model-reported 0-100 confidence to a safe int; the DB field
+    is non-nullable, and the model can emit null or junk here."""
+    try:
+        confidence = int(float(value))
+    except (TypeError, ValueError):
+        return 0
+    return min(100, max(0, confidence))
+
+
 def grade_engine(user, submission, processing_task_id=None):
+    if not _claim_submission_for_grading(submission.id):
+        raise SubmissionGradingInProgressError(
+            f"Submission {submission.id} is already being graded."
+        )
+
+    # Keep the in-memory instance in sync with the claim we just wrote, so
+    # the pipeline's final full save can't clobber the claim fields with
+    # stale pre-claim values.
+    submission.refresh_from_db(fields=["grading_state", "grading_started_at"])
+
+    try:
+        return _run_grading_pipeline(user, submission, processing_task_id)
+    except BaseException:
+        _mark_grading_claim_failed(submission.id)
+        raise
+
+
+def _run_grading_pipeline(user, submission, processing_task_id):
     from assignments.tasks import formatted_grade_async
 
     ensure_task_not_cancelled(processing_task_id)
@@ -124,6 +205,55 @@ def grade_engine(user, submission, processing_task_id=None):
     ensure_task_not_cancelled(processing_task_id)
     submission.ai_grading_completed_at = timezone.now()
 
+    # The pipeline recomputes and clamps all arithmetic before returning
+    # (AIProcessor._finalize_grading_result), so grading_summary is
+    # guaranteed present on any AI-produced result - this guard exists so a
+    # malformed result from any other source fails loudly here instead of
+    # persisting an unusable grade or raising an opaque KeyError.
+    grading_summary = (
+        grading.get("grading_summary") if isinstance(grading, dict) else None
+    )
+    if not isinstance(grading_summary, dict):
+        raise ValueError(
+            "Grading result has no grading_summary - refusing to persist it."
+        )
+
+    try:
+        grading_score = round(float(grading_summary["total_score"]), 2)
+        max_points = int(float(grading_summary["max_total_points"]))
+        percentage = round(float(grading_summary["percentage"]), 2)
+    except (KeyError, TypeError, ValueError) as e:
+        raise ValueError(f"Grading summary is malformed: {e}") from e
+
+    submission.score = grading_score
+    submission.ai_score = grading_score
+    submission.max_points = max_points
+    submission.score_percentage = percentage
+
+    submission.feedback = grading
+    submission.grading_confidence = _coerce_confidence(
+        grading.get("grading_confidence")
+    )
+    submission.graded_at = timezone.now()
+    submission.grading_state = GradingState.DONE
+
+    # update the raw_input
+    ensure_task_not_cancelled(processing_task_id)
+    answer_html = student_submission_to_html(submission)
+    submission.raw_input = AssignmentProcessingService.html_to_prosemirror_json(
+        answer_html
+    )
+
+    with cancellable_final_save(processing_task_id):
+        submission.save()
+
+    # H4: follow-up tasks (formatted grade + AI summary refresh) dispatch
+    # only after the grade's save has actually COMMITTED - via on_commit,
+    # not merely placed after the save - so formatted_grade_async can never
+    # finish first and have its formatted_grade write clobbered by this
+    # function's own full-row save. In autocommit mode (the normal case)
+    # the callback runs immediately; if a future caller wraps grade_engine
+    # in an outer transaction, dispatch waits for that commit.
     user_prompt = f"""
     Student Name: {submission.student.get_full_name()}
     Course: {submission.assignment.course}
@@ -136,51 +266,36 @@ def grade_engine(user, submission, processing_task_id=None):
     Return a formatted response
     """
 
-    formatted_processing_task = create_processing_task(
-        requested_by=user,
-        task_type=BackgroundTaskType.FORMATTED_GRADE,
-        assignment=submission.assignment,
-        submission=submission,
-        meta={"step": "Queued for formatted grade generation"},
-    )
-    launch_processing_task(
-        formatted_grade_async,
-        formatted_processing_task,
-        str(submission.id),
-        user_prompt,
-    )
+    def _dispatch_followups():
+        try:
+            formatted_processing_task = create_processing_task(
+                requested_by=user,
+                task_type=BackgroundTaskType.FORMATTED_GRADE,
+                assignment=submission.assignment,
+                submission=submission,
+                meta={"step": "Queued for formatted grade generation"},
+            )
+            launch_processing_task(
+                formatted_grade_async,
+                formatted_processing_task,
+                str(submission.id),
+                user_prompt,
+            )
+            # Invalidate ai_summary
+            student_summary_async.delay(
+                str(submission.student.id),
+                str(user.id),
+                str(submission.assignment.course.id),
+            )
+        except Exception:
+            # The grade itself is already committed - a follow-up dispatch
+            # failure must not fail (or un-claim) the graded run.
+            logger.exception(
+                "Failed to dispatch post-grading follow-up tasks",
+                extra={"submission_id": str(submission.id)},
+            )
 
-    grading_score = round(grading["grading_summary"]["total_score"], 2)
-    max_points = int(grading["grading_summary"]["max_total_points"])
-    percentage = round(grading["grading_summary"]["percentage"], 2)
-    # grading_confidence = grading["grading_confidence"]
-
-    print(f"grading_score: {grading_score}")
-
-    submission.score = grading_score
-    submission.ai_score = grading_score
-    submission.max_points = max_points
-    submission.score_percentage = percentage
-
-    submission.feedback = grading
-    submission.grading_confidence = grading.get("grading_confidence")
-    submission.graded_at = timezone.now()
-
-    # update the ras_input
-    ensure_task_not_cancelled(processing_task_id)
-    answer_html = student_submission_to_html(submission)
-    submission.raw_input = AssignmentProcessingService.html_to_prosemirror_json(
-        answer_html
-    )
-
-    # Invalidate ai_summary
-    ensure_task_not_cancelled(processing_task_id)
-    student_summary_async.delay(
-        str(submission.student.id), str(user.id), str(submission.assignment.course.id)
-    )
-
-    with cancellable_final_save(processing_task_id):
-        submission.save()
+    transaction.on_commit(_dispatch_followups)
 
     try:
         _maybe_notify_admins_grading_complete(submission.assignment)
@@ -545,6 +660,12 @@ def upload_answers_engine(
         answer_html = student_submission_to_html(submission)
         submission.raw_input = AssignmentProcessingService.html_to_prosemirror_json(
             answer_html
+        )
+        # Persist the extractor's confidence - the dashboard threshold-flags
+        # low-confidence extractions, which stayed 0 forever while this
+        # field was silently dropped on the upload path.
+        submission.extraction_confidence = _coerce_confidence(
+            student_submission.get("extraction_confidence")
         )
         with cancellable_final_save(processing_task_id):
             submission.save()

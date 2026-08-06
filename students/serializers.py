@@ -137,9 +137,7 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
     score = serializers.SerializerMethodField()
     score_percentage = serializers.SerializerMethodField()
     is_grading_scheduled = serializers.SerializerMethodField()
-    max_points = serializers.IntegerField(
-        source="assignment.total_points", read_only=True
-    )
+    max_points = serializers.SerializerMethodField()
 
     remaining_attempts = serializers.SerializerMethodField()
 
@@ -201,6 +199,13 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
             obj.scheduled_grading_at and obj.scheduled_grading_at > timezone.now()
         )
 
+    def get_max_points(self, obj) -> int:
+        # The denominator the score was actually graded against, when
+        # available - serving assignment.total_points against a score
+        # computed from a different max produces an internally inconsistent
+        # display. Falls back to the assignment total for ungraded rows.
+        return obj.max_points or obj.assignment.total_points
+
     def get_remaining_attempts(self, obj):
         if obj:
             return max(0, 3 - (obj.attempt_count or 0))
@@ -219,9 +224,7 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
     is_grading_scheduled = serializers.SerializerMethodField()
     submission_status = serializers.SerializerMethodField()
     email = serializers.SerializerMethodField()
-    max_points = serializers.IntegerField(
-        source="assignment.total_points", read_only=True
-    )
+    max_points = serializers.SerializerMethodField()
 
     grade_status = serializers.SerializerMethodField()
     remaining_attempts = serializers.SerializerMethodField()
@@ -322,6 +325,10 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
             obj.scheduled_grading_at and obj.scheduled_grading_at > timezone.now()
         )
 
+    def get_max_points(self, obj) -> int:
+        # See StudentSubmissionListSerializer.get_max_points.
+        return obj.max_points or obj.assignment.total_points
+
     def get_remaining_attempts(self, obj):
         if obj:
             return max(0, 3 - (obj.attempt_count or 0))
@@ -333,9 +340,7 @@ class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerialize
     score_percentage = serializers.SerializerMethodField()
     formatted_grade = serializers.SerializerMethodField()
     submission_status = serializers.SerializerMethodField()
-    max_points = serializers.IntegerField(
-        source="assignment.total_points", read_only=True
-    )
+    max_points = serializers.SerializerMethodField()
     grade_status = serializers.SerializerMethodField()
 
     assignment_title = serializers.CharField(source="assignment__title", read_only=True)
@@ -428,6 +433,10 @@ class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerialize
             grade_details = get_grade_details(obj.score_percentage)
             return grade_details.get("letter_grade")
         return None
+
+    def get_max_points(self, obj) -> int:
+        # See StudentSubmissionListSerializer.get_max_points.
+        return obj.max_points or obj.assignment.total_points
 
     def get_remaining_attempts(self, obj):
         if obj:

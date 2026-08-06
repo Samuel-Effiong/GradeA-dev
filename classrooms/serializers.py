@@ -831,7 +831,23 @@ class TeacherSummarySerializer(serializers.Serializer):
     school = serializers.CharField()
     students = serializers.IntegerField()
     assignments = serializers.IntegerField()
-    tokens_used = serializers.IntegerField()
+    tokens_used = serializers.IntegerField(
+        help_text=(
+            "Without session_id: the teacher's full personal token total "
+            "(every AI feature they've used). With session_id: scoped to "
+            "that session's courses, same as assignments/students."
+        )
+    )
+    tokens_used_outside_session = serializers.IntegerField(
+        help_text=(
+            "The rest of the teacher's token total not counted in "
+            "tokens_used — other sessions, or usage with no course context "
+            "at all (custom AI chat, pre-Assignment extraction). Always 0 "
+            "when no session_id filter is applied. tokens_used + "
+            "tokens_used_outside_session == the teacher's full personal "
+            "total."
+        )
+    )
 
 
 class MonthlyTokenUsageSerializer(serializers.Serializer):

@@ -6,6 +6,27 @@ from django.utils.translation import gettext_lazy as _
 # from idlelib.pyparse import trans
 
 
+class GradingState(models.TextChoices):
+    """
+    Idempotency guard for the grading pipeline (students.services.grade_engine).
+
+    Celery is configured with acks_late=True and a Redis broker visibility
+    timeout — if a grading run (several sequential AI calls, each with its
+    own retries) takes longer than that timeout, Redis will redeliver the
+    same task message to a second worker while the first is still running.
+    Without a claim, both workers run the full (billed) pipeline
+    concurrently on the same submission. RUNNING with a fresh
+    grading_started_at is the claim; a second worker/request sees RUNNING
+    and backs off instead of re-running the pipeline. See
+    students.services._claim_submission_for_grading.
+    """
+
+    IDLE = "IDLE", _("Idle")
+    RUNNING = "RUNNING", _("Running")
+    DONE = "DONE", _("Done")
+    FAILED = "FAILED", _("Failed")
+
+
 # Create your models here.
 class StudentSubmission(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -59,6 +80,25 @@ class StudentSubmission(models.Model):
     )
     graded_at = models.DateTimeField(
         null=True, blank=True, help_text=_("The time student submission was graded")
+    )
+    grading_state = models.CharField(
+        max_length=20,
+        choices=GradingState.choices,
+        default=GradingState.IDLE,
+        db_index=True,
+        help_text=_(
+            "Idempotency claim for the grading pipeline. RUNNING means a "
+            "worker currently holds the claim; see GradingState's docstring."
+        ),
+    )
+    grading_started_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=_(
+            "When the current (or most recent) grading claim was acquired. "
+            "Used to detect and reclaim a stale RUNNING claim left behind "
+            "by a crashed worker."
+        ),
     )
     grading_confidence = models.IntegerField(null=False, blank=True, default=0)
     extraction_confidence = models.IntegerField(null=False, blank=True, default=0)

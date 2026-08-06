@@ -9,6 +9,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from assignments.models import Assignment, AssignmentStatus
+from billing.models import CreditBucket, CreditBucketType, CreditUsageLog
 from classrooms.models import (
     Course,
     EnrollmentStatusType,
@@ -1644,3 +1645,154 @@ class SchoolAtRiskTrendAPITest(APITestCase):
         self.assertEqual(response.data["window_end"], "2026-01-18")
         self.assertEqual(len(response.data["weeks"]), 1)
         self.assertEqual(response.data["weeks"][0]["at_risk_count"], 6)
+
+
+class TeacherDetailAPITest(APITestCase):
+    def setUp(self):
+        self.school = School.objects.create(name="Detail School")
+        self.other_school = School.objects.create(name="Other Detail School")
+        self.admin = CustomUser.objects.create_user(
+            email="detail-admin@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.SCHOOL_ADMIN,
+            first_name="Detail",
+            last_name="Admin",
+            school=self.school,
+            is_active=True,
+        )
+        self.teacher = CustomUser.objects.create_user(
+            email="detail-teacher@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            first_name="Detail",
+            last_name="Teacher",
+            school=self.school,
+            is_active=True,
+        )
+        self.url = reverse(
+            "school-admin-teacher-detail", kwargs={"teacher_id": str(self.teacher.id)}
+        )
+
+    def _log_usage(self, amount, feature, is_refunded=False, created_at=None):
+        bucket = CreditBucket.objects.create(
+            wallet=self.teacher.credit_wallet,
+            bucket_type=CreditBucketType.MONTHLY,
+            total_credits=amount,
+            used_credits=amount,
+        )
+        log = CreditUsageLog.objects.create(
+            wallet=self.teacher.credit_wallet,
+            bucket=bucket,
+            amount=amount,
+            feature=feature,
+            is_refunded=is_refunded,
+        )
+        if created_at is not None:
+            # created_at has auto_now_add=True - .create() would ignore an
+            # explicit value, but .update() bypasses that.
+            CreditUsageLog.objects.filter(pk=log.pk).update(created_at=created_at)
+        return log
+
+    def test_teacher_denied(self):
+        self.client.force_authenticate(user=self.teacher)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_admin_without_school_returns_400(self):
+        admin_no_school = CustomUser.objects.create_user(
+            email="detail-noschool-admin@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.SCHOOL_ADMIN,
+            first_name="No",
+            last_name="School",
+            is_active=True,
+        )
+        self.client.force_authenticate(user=admin_no_school)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_cross_school_teacher_returns_404(self):
+        other_admin = CustomUser.objects.create_user(
+            email="other-school-admin@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.SCHOOL_ADMIN,
+            first_name="Other",
+            last_name="Admin",
+            school=self.other_school,
+            is_active=True,
+        )
+        self.client.force_authenticate(user=other_admin)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_non_teacher_id_returns_404(self):
+        url = reverse(
+            "school-admin-teacher-detail", kwargs={"teacher_id": str(self.admin.id)}
+        )
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_feature_mix_percentages_and_unmapped_feature_falls_to_other(self):
+        self._log_usage(1000, "Grading Assignment")
+        self._log_usage(500, "Assignment Extraction")  # -> creation
+        self._log_usage(300, "Formatted Grade")  # -> feedback
+        self._log_usage(200, "Custom AI Prompt")  # unmapped -> other
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.assertEqual(response.data["credits_used"], 2000)
+        self.assertEqual(response.data["grading"]["amount"], 1000)
+        self.assertEqual(response.data["creation"]["amount"], 500)
+        self.assertEqual(response.data["feedback"]["amount"], 300)
+        self.assertEqual(response.data["other"]["amount"], 200)
+        total_percent = sum(
+            response.data[cat]["percent"]
+            for cat in ("grading", "creation", "feedback", "other")
+        )
+        self.assertAlmostEqual(total_percent, 100.0, delta=0.1)
+
+    def test_refunded_usage_excluded(self):
+        self._log_usage(1000, "Grading Assignment")
+        self._log_usage(400, "Grading Assignment", is_refunded=True)
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(self.url)
+        self.assertEqual(response.data["credits_used"], 1000)
+        self.assertEqual(response.data["grading"]["amount"], 1000)
+
+    def test_credits_used_percentage_excludes_overage(self):
+        self._log_usage(1000, "Grading Assignment")
+        CreditBucket.objects.create(
+            wallet=self.teacher.credit_wallet,
+            bucket_type=CreditBucketType.MONTHLY,
+            total_credits=9000,
+            used_credits=0,
+        )
+        CreditBucket.objects.create(
+            wallet=self.teacher.credit_wallet,
+            bucket_type=CreditBucketType.OVERAGE,
+            total_credits=5000,
+            used_credits=0,
+        )
+        # used=1000, plan-remaining (MONTHLY only, OVERAGE excluded)=9000
+        # -> 1000 / (1000 + 9000) = 10%
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(self.url)
+        self.assertEqual(response.data["credits_used_percentage"], 10.0)
+
+    def test_days_active_and_daily_usage_window(self):
+        now = timezone.now()
+        self._log_usage(100, "Grading Assignment", created_at=now)
+        self._log_usage(200, "Grading Assignment", created_at=now - timedelta(days=5))
+        # Outside the 60-day window - counted in credits_used (all-time)
+        # but not in days_active/daily_usage (windowed).
+        self._log_usage(9999, "Grading Assignment", created_at=now - timedelta(days=90))
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(self.url)
+        self.assertEqual(response.data["days_active"], 2)
+        self.assertEqual(len(response.data["daily_usage"]), 61)
+        self.assertEqual(response.data["credits_used"], 100 + 200 + 9999)

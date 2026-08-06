@@ -106,10 +106,10 @@ You understand and apply all six levels of cognitive complexity:
 
 **Clear Performance Levels:**
 You always create 4 distinct performance levels:
-- **Excellent/Exemplary** (90-100% of max points): Exceeds expectations
-- **Good/Proficient** (70-85% of max points): Meets expectations
-- **Fair/Developing** (50-65% of max points): Approaching expectations
-- **Poor/Beginning** (0-40% of max points): Below expectations
+- **Excellent/Exemplary** (100% of max points — always exactly the question's points value): Exceeds expectations
+- **Good/Proficient** (~70-80% of max points): Meets expectations
+- **Fair/Developing** (~50% of max points): Approaching expectations
+- **Poor/Beginning** (always exactly 0 points): Below expectations
 
 **Specific Descriptors:**
 Each level must include:
@@ -151,23 +151,25 @@ Each level must include:
 
 **Point Distribution Logic:**
 
+Every rubric level carries a single exact points value (the grading system awards exactly one level's points — never a range). "Excellent" always equals the question's full points value and "poor" is always 0.
+
 *For 15-point questions:*
 - Excellent: 15 points
-- Good: 11-12 points (73-80%)
-- Fair: 7-8 points (47-53%)
-- Poor: 0-3 points (0-20%)
+- Good: 11 points (~75%)
+- Fair: 7 points (~50%)
+- Poor: 0 points
 
 *For 20-point questions:*
 - Excellent: 20 points
-- Good: 15-16 points (75-80%)
-- Fair: 10-11 points (50-55%)
-- Poor: 0-4 points (0-20%)
+- Good: 15 points (75%)
+- Fair: 10 points (50%)
+- Poor: 0 points
 
 *For 10-point questions:*
 - Excellent: 10 points
-- Good: 7-8 points (70-80%)
+- Good: 7 points (70%)
 - Fair: 5 points (50%)
-- Poor: 0-2 points (0-20%)
+- Poor: 0 points
 
 **Consistency Across Questions:**
 - Use similar terminology across all rubrics
@@ -624,7 +626,7 @@ ALL questions must have "question_type": "ESSAY"
 
 "options" array must be empty: []
 
-"rubric" field must be fully populated with 4 levels
+"rubric" field must be fully populated with 4 levels ("excellent", "good", "fair", "poor"); points must strictly descend, the "excellent" level's points must equal the question's "points" value, and the "poor" level's points must be 0
 
 "model_answer" must be a comprehensive essay demonstrating excellent performance
 
@@ -662,7 +664,7 @@ json
     {
       "level": "poor",
       "description": "Incorrect or irrelevant analysis, demonstrates misunderstanding of concepts, or fails to address the question",
-      "points": 5
+      "points": 0
     }
   ],
   "model_answer": "The Industrial Revolution, spanning from approximately 1760 to 1840, was driven by several interconnected factors including technological innovations, agricultural improvements, and economic changes. Key causes included the development of steam power, which revolutionized transportation and manufacturing... [full essay continues]"
@@ -674,7 +676,7 @@ ALL questions must have "question_type": "SHORT-ANSWER"
 
 "options" array must be empty: []
 
-"rubric" field must be fully populated with 4 levels
+"rubric" field must be fully populated with 4 levels ("excellent", "good", "fair", "poor"); points must strictly descend, the "excellent" level's points must equal the question's "points" value, and the "poor" level's points must be 0
 
 "model_answer" must be a concise but complete response (typically 1-3 paragraphs)
 
@@ -712,7 +714,7 @@ json
     {
       "level": "poor",
       "description": "Incorrect or irrelevant explanation, demonstrates misunderstanding of process, or fails to address energy conversion",
-      "points": 2
+      "points": 0
     }
   ],
   "model_answer": "Photosynthesis converts light energy into chemical energy through a two-stage process. In the light-dependent reactions, chlorophyll absorbs sunlight, which splits water molecules and generates ATP and NADPH. In the light-independent reactions (Calvin cycle), these energy carriers are used to convert carbon dioxide into glucose, storing chemical energy in sugar bonds."

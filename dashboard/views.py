@@ -19,10 +19,9 @@ from django.db.models import (
     Variance,
     When,
 )
-from django.db.models.functions import Cast, Coalesce, ExtractMonth
+from django.db.models.functions import Cast, Coalesce, ExtractMonth, TruncDay
 from django.utils import timezone
 from django.utils.text import gettext_lazy as _
-from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
     OpenApiExample,
@@ -40,6 +39,8 @@ from ai_processor.services import AI_CONFIDENCE_THRESHOLD, ai_processor
 from assignments.models import Assignment, AssignmentStatus
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
+from billing.models import CreditUsageLog
+from billing.services import FEATURE_TO_ANALYTICS_FIELD
 
 # from assignments.services import AssignmentProcessingService
 from classrooms.models import (
@@ -59,8 +60,8 @@ from dashboard.serializers import (  # SchoolAdminTeacherPerformanceSerializer,
     ConcurrencySerializer,
     CourseAnalyticsSerializer,
     CourseOverviewChartSerializer,
+    CoursePerformanceDashboardPageSerializer,
     CoursePerformanceDashboardSerializer,
-    CoursePerformanceSerializer,
     CustomAIPrompt,
     CustomAIReply,
     DashboardChatSessionSerializer,
@@ -78,6 +79,7 @@ from dashboard.serializers import (  # SchoolAdminTeacherPerformanceSerializer,
     TeacherAssignmentAnalyticsSerializer,
     TeacherCourseAnalyticsSerializer,
     TeacherDashboardOverviewSerializer,
+    TeacherDetailSerializer,
     TeacherPerformanceDashboardSerializer,
     TeacherPerformanceSerializer,
     TeacherStudentAnalyticsSerializer,
@@ -1158,6 +1160,115 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         return Response(serializer.data)
 
 
+def compute_teacher_performance_stats(teacher, now, six_months_ago):
+    """
+    Per-teacher performance stats shared by SchoolAdminDashboardView's
+    teacher_performance (list) and teacher_detail (single-teacher) actions,
+    so the two can never drift apart on these fields.
+    """
+    # --- Basic counts ---
+    courses = teacher.courses.all()
+    course_ids = [c.id for c in courses]
+    courses_count = len(course_ids)
+
+    # Students: distinct students enrolled in these courses (excluding withdrawn)
+    students_count = (
+        StudentCourse.objects.filter(course_id__in=course_ids)
+        .exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
+        .values("student")
+        .distinct()
+        .count()
+    )
+
+    # --- Growth: % change in student count over last 6 months ---
+    # Current students (enrolled in courses created in last 6 months)
+    current_enrollments = StudentCourse.objects.filter(
+        course_id__in=course_ids,
+        course__created_at__gte=six_months_ago,
+    ).exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
+    current_students = current_enrollments.values("student").distinct().count()
+
+    # Past students (enrolled in courses created before that)
+    past_enrollments = StudentCourse.objects.filter(
+        course_id__in=course_ids,
+        course__created_at__lt=six_months_ago,
+    ).exclude(enrollment_status="WITHDRAWN")
+    past_students = past_enrollments.values("student").distinct().count()
+
+    if past_students > 0:
+        growth = ((current_students - past_students) / past_students) * 100
+    elif current_students > 0:
+        growth = 100.0  # started from zero
+    else:
+        growth = None
+
+    # --- Assignments ---
+    assignments = Assignment.objects.filter(course_id__in=course_ids)
+    assignments_count = assignments.count()
+
+    # Assignments per week: over lifetime since first assignment
+    first_assignment = assignments.order_by("created_at").first()
+    if first_assignment and assignments_count > 0:
+        weeks = (now - first_assignment.created_at).days / 7
+        assignments_per_week = assignments_count / weeks if weeks > 0 else 0
+    else:
+        assignments_per_week = None
+
+    # --- Turnaround (avg days from submission to grading) ---
+    submissions = StudentSubmission.objects.filter(
+        assignment__course_id__in=course_ids, graded_at__isnull=False
+    )
+    graded_count = submissions.count()
+    if graded_count > 0:
+        # Average duration in days
+        total_days = submissions.aggregate(
+            total=Sum(
+                ExpressionWrapper(
+                    F("graded_at") - F("submission_date"),
+                    output_field=DurationField(),
+                )
+            )
+        )["total"]
+        if total_days:
+            turnaround = total_days.total_seconds() / (graded_count * 86400)
+        else:
+            turnaround = None
+    else:
+        turnaround = None
+
+    # --- AI Confidence (average grading_confidence) ---
+    ai_confidence = submissions.aggregate(avg_conf=Avg("grading_confidence"))[
+        "avg_conf"
+    ]
+
+    # --- Rigor: average total_points per assignment, normalized to 5 ---
+    # We'll use the highest total_points across all assignments as max
+    max_points = (
+        assignments.aggregate(max=Coalesce(Max("total_points"), Value(0)))["max"] or 1
+    )
+    avg_points = assignments.aggregate(avg=Avg("total_points"))["avg"] or 0
+    if max_points > 0:
+        rigor = (avg_points / max_points) * 5
+    else:
+        rigor = None
+
+    return {
+        "id": teacher.id,
+        "name": teacher.get_full_name(),
+        "email": teacher.email,
+        "courses": courses_count,
+        "students": students_count,
+        "growth": round(growth, 1) if growth is not None else None,
+        "assignments_per_week": (
+            round(assignments_per_week, 1) if assignments_per_week is not None else None
+        ),
+        "turnaround": round(turnaround, 1) if turnaround is not None else None,
+        "ai_confidence": round(ai_confidence, 1) if ai_confidence is not None else None,
+        "rigor": round(rigor, 1) if rigor is not None else None,
+        "status": teacher.is_active,
+    }
+
+
 class SchoolAdminDashboardView(viewsets.ViewSet):
     permission_classes = [IsSchoolAdmin]
     # http_method_names = ["get", "head", "options"]
@@ -1694,117 +1805,8 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         six_months_ago = now - timedelta(days=180)
 
         for teacher in teachers:
-            # --- Basic counts ---
-            courses = teacher.courses.all()
-            course_ids = [c.id for c in courses]
-            courses_count = len(course_ids)
-
-            # Students: distinct students enrolled in these courses (excluding withdrawn)
-            students_count = (
-                StudentCourse.objects.filter(course_id__in=course_ids)
-                .exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
-                .values("student")
-                .distinct()
-                .count()
-            )
-
-            # --- Growth: % change in student count over last 6 months ---
-            # Current students (enrolled in courses created in last 6 months)
-            current_enrollments = StudentCourse.objects.filter(
-                course_id__in=course_ids,
-                course__created_at__gte=six_months_ago,
-            ).exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
-            current_students = current_enrollments.values("student").distinct().count()
-
-            # Past students (enrolled in courses created before that)
-            past_enrollments = StudentCourse.objects.filter(
-                course_id__in=course_ids,
-                course__created_at__lt=six_months_ago,
-            ).exclude(enrollment_status="WITHDRAWN")
-            past_students = past_enrollments.values("student").distinct().count()
-
-            if past_students > 0:
-                growth = ((current_students - past_students) / past_students) * 100
-            elif current_students > 0:
-                growth = 100.0  # started from zero
-            else:
-                growth = None
-
-            # --- Assignments ---
-            assignments = Assignment.objects.filter(course_id__in=course_ids)
-            assignments_count = assignments.count()
-
-            # Assignments per week: over lifetime since first assignment
-            first_assignment = assignments.order_by("created_at").first()
-            if first_assignment and assignments_count > 0:
-                weeks = (now - first_assignment.created_at).days / 7
-                assignments_per_week = assignments_count / weeks if weeks > 0 else 0
-            else:
-                assignments_per_week = None
-
-            # --- Turnaround (avg days from submission to grading) ---
-            submissions = StudentSubmission.objects.filter(
-                assignment__course_id__in=course_ids, graded_at__isnull=False
-            )
-            graded_count = submissions.count()
-            if graded_count > 0:
-                # Average duration in days
-                total_days = submissions.aggregate(
-                    total=Sum(
-                        ExpressionWrapper(
-                            F("graded_at") - F("submission_date"),
-                            output_field=DurationField(),
-                        )
-                    )
-                )["total"]
-                if total_days:
-                    turnaround = total_days.total_seconds() / (graded_count * 86400)
-                else:
-                    turnaround = None
-            else:
-                turnaround = None
-
-            # --- AI Confidence (average grading_confidence) ---
-            ai_confidence = submissions.aggregate(avg_conf=Avg("grading_confidence"))[
-                "avg_conf"
-            ]
-
-            # --- Rigor: average total_points per assignment, normalized to 5 ---
-            # We'll use the highest total_points across all assignments as max
-            max_points = (
-                assignments.aggregate(max=Coalesce(Max("total_points"), Value(0)))[
-                    "max"
-                ]
-                or 1
-            )
-            avg_points = assignments.aggregate(avg=Avg("total_points"))["avg"] or 0
-            if max_points > 0:
-                rigor = (avg_points / max_points) * 5
-            else:
-                rigor = None
-
             result.append(
-                {
-                    "id": teacher.id,
-                    "name": teacher.get_full_name(),
-                    "email": teacher.email,
-                    "courses": courses_count,
-                    "students": students_count,
-                    "growth": round(growth, 1) if growth is not None else None,
-                    "assignments_per_week": (
-                        round(assignments_per_week, 1)
-                        if assignments_per_week is not None
-                        else None
-                    ),
-                    "turnaround": (
-                        round(turnaround, 1) if turnaround is not None else None
-                    ),
-                    "ai_confidence": (
-                        round(ai_confidence, 1) if ai_confidence is not None else None
-                    ),
-                    "rigor": round(rigor, 1) if rigor is not None else None,
-                    "status": teacher.is_active,
-                }
+                compute_teacher_performance_stats(teacher, now, six_months_ago)
             )
 
         serializer = TeacherPerformanceDashboardSerializer(result, many=True)
@@ -1816,33 +1818,195 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
 
     @extend_schema(
         tags=["School Admin"],
+        operation_id="teacherDetailDashboard",
+        summary="Teacher Detail",
+        description="""
+    Retrieve the full detail view for a single teacher in the authenticated
+    School Admin's school: everything `dashboard/teachers` returns for that
+    teacher, plus credit usage.
+
+    - **credits_used** — All-time credits consumed by this teacher, net of
+    refunds.
+    - **credits_used_percentage** — Percentage of the CURRENT plan
+    allocation consumed (live non-overage buckets' used credits over
+    used + remaining). Excludes OVERAGE buckets
+    (purchased reactively after the plan is exhausted, not part of the
+    fixed allocation), so buying overage doesn't make this percentage
+    swing around.
+    - **days_active** — Distinct calendar days with credit usage in the
+    last 60 days.
+    - **daily_usage** — Credits consumed per day for the last 60 days,
+    zero-filled for days with no usage.
+    - **grading / creation / feedback / other** — Feature-mix breakdown of
+    `credits_used`, each with a raw `amount` and a `percent` of the total.
+    "other" covers any AI feature not mapped to one of the first three
+    (e.g. custom AI chat, weekly summaries).
+        """,
+        responses={
+            200: OpenApiResponse(
+                response=TeacherDetailSerializer,
+                description="Teacher detail retrieved successfully.",
+            ),
+            400: OpenApiResponse(
+                description="Authenticated School Admin is not associated with a school.",
+                examples=[
+                    OpenApiExample(
+                        "No School",
+                        value={
+                            "detail": "School admin must be associated with a school."
+                        },
+                    )
+                ],
+            ),
+            401: OpenApiResponse(
+                description="Authentication credentials were not provided."
+            ),
+            403: OpenApiResponse(
+                description="You do not have permission to access this resource."
+            ),
+            404: OpenApiResponse(
+                description="No teacher with that ID exists in this school."
+            ),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path=r"dashboard/teachers/(?P<teacher_id>[^/.]+)",
+    )
+    def teacher_detail(self, request, teacher_id=None, *args, **kwargs):
+        school = request.user.school
+        if not school:
+            return Response(
+                {"detail": "School admin must be associated with a school."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Scoped by school on the lookup itself, so a school admin can't
+        # pull another school's teacher by guessing a UUID.
+        teacher = get_object_or_404(
+            CustomUser, id=teacher_id, school=school, user_type=UserTypes.TEACHER
+        )
+
+        cache_key = f"teacher_detail_{school.id}_{teacher.id}"
+        data = cache.get(cache_key)
+        if data is not None:
+            return Response(data)
+
+        now = timezone.now()
+        six_months_ago = now - timedelta(days=180)
+        result = compute_teacher_performance_stats(teacher, now, six_months_ago)
+
+        # --- Feature mix, live from CreditUsageLog, net of refunds ---
+        category_by_field = {
+            "credits_used_grading": "grading",
+            "credits_used_creation": "creation",
+            "credits_used_feedback": "feedback",
+        }
+        feature_totals = (
+            CreditUsageLog.objects.filter(wallet__user=teacher, is_refunded=False)
+            .values("feature")
+            .annotate(total=Sum("amount"))
+        )
+        category_totals = {"grading": 0, "creation": 0, "feedback": 0, "other": 0}
+        for row in feature_totals:
+            analytics_field = FEATURE_TO_ANALYTICS_FIELD.get(row["feature"])
+            category = category_by_field.get(analytics_field, "other")
+            category_totals[category] += row["total"] or 0
+
+        credits_used = sum(category_totals.values())
+        divisor = credits_used or 1
+        for category, amount in category_totals.items():
+            result[category] = {
+                "amount": amount,
+                "percent": round((amount / divisor) * 100, 1),
+            }
+
+        # --- Credits used + % of plan consumed (excludes OVERAGE) ---
+        # The percentage numerator is CURRENT-plan usage (live buckets'
+        # used_credits), not the all-time `credits_used` shown above —
+        # mixing all-time usage with a current-balance denominator made
+        # this creep toward 100% forever regardless of the current cycle.
+        remaining = teacher.credit_wallet.plan_remaining_credits()
+        current_used = teacher.credit_wallet.plan_used_credits()
+        denominator = current_used + remaining
+        result["credits_used"] = credits_used
+        result["credits_used_percentage"] = (
+            round((current_used / denominator) * 100, 1) if denominator else 0.0
+        )
+
+        # --- Days active + daily usage (last 60 days) ---
+        window_start = now.date() - timedelta(days=60)
+        raw_usage = (
+            CreditUsageLog.objects.filter(
+                wallet__user=teacher,
+                is_refunded=False,
+                created_at__date__gte=window_start,
+            )
+            .annotate(day=TruncDay("created_at"))
+            .values("day")
+            .annotate(total=Sum("amount"))
+            .order_by("day")
+        )
+        usage_dict = {row["day"].date(): row["total"] for row in raw_usage}
+        daily_usage = [
+            {
+                "date": window_start + timedelta(days=i),
+                "credits": usage_dict.get(window_start + timedelta(days=i), 0),
+            }
+            for i in range(61)
+        ]
+        result["daily_usage"] = daily_usage
+        result["days_active"] = sum(1 for v in usage_dict.values() if v)
+
+        serializer = TeacherDetailSerializer(result)
+        data = serializer.data
+
+        cache.set(cache_key, data, 300)  # 5 minutes
+        return Response(data)
+
+    @extend_schema(
+        tags=["School Admin"],
+        operation_id="coursePerformanceDashboard",
         summary="Course Performance Table",
         description="""
-        Retrieve a paginated list of courses within the school with performance metrics.
+    Retrieve a paginated list of courses within the authenticated School Admin's
+    school, along with performance metrics for each course.
 
-        Metrics include:
-        - Course name and teacher
-        - Number of students (enrolled, not withdrawn)
-        - Number of assignments
-        - Average final grade
-        - Grade distribution (A, B, C, D, F counts)
+    Each result contains:
 
-        Supports filtering by department (category), searching by course/teacher name,
-        and ordering by any numeric metric.
-        """,
+    - **teacher** — Full name of the course's teacher.
+    - **students** — Enrollment breakdown by status:
+        - `enrolled` — Actively enrolled students.
+        - `completed` — Students who completed the course.
+        - `pending` — Invited students who haven't finished registration yet.
+        - `total` — `enrolled + completed + pending` (everyone except
+          withdrawn students).
+    - **assignments** — Number of **published** assignments in the course.
+    Draft/unpublished assignments (never shown to students) are excluded.
+    - **avg_grade** — Points-weighted average final grade
+    (`sum(score) / sum(max_points) * 100`) across `enrolled`/`completed`
+    students, on a 0-100 scale. `null` if none of them has a graded
+    submission yet. Pending/withdrawn students never contribute.
+    - **distribution** — Grade-letter breakdown (`A`/`B`/`C`/`D`/`F`) of
+    `enrolled`/`completed` students' final grades.
+
+    ### Notes
+
+    - `distribution` only includes keys for letters with at least one student —
+    a missing letter means zero students received that grade, not an error.
+    - `ordering` accepts either the response field name (`students`,
+    `assignments`) or the raw metric name (`student_count`, `assignment_count`)
+    interchangeably, and always falls back to a stable `name` + `id` order so
+    paging through results is deterministic.
+    """,
         parameters=[
-            OpenApiParameter(
-                name="category__name",
-                type=OpenApiTypes.STR,
-                location=OpenApiParameter.QUERY,
-                description="Filter by course category (department)",
-                required=False,
-            ),
             OpenApiParameter(
                 name="search",
                 type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
-                description="Search by course name or teacher name",
+                description="Case-insensitive search against course name, "
+                "teacher first name, and teacher last name.",
                 required=False,
             ),
             OpenApiParameter(
@@ -1850,8 +2014,10 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
                 description=(
-                    "Order by name, students, assignments, or avg_grade. "
-                    "Prefix with '-' for descending, e.g. `-avg_grade`."
+                    "Sort key: one of `name`, `students`, `assignments`, "
+                    "`avg_grade`. Prefix with '-' for descending, "
+                    "e.g. `-avg_grade`. Defaults to the model's natural "
+                    "ordering (by `name`) when omitted."
                 ),
                 required=False,
             ),
@@ -1859,18 +2025,72 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 name="page",
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
-                description="Page number",
+                description="Page number (1-indexed). Defaults to 1.",
                 required=False,
             ),
             OpenApiParameter(
                 name="page_size",
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
-                description="Number of results per page (max 100)",
+                description="Number of results per page. Defaults to 10, max 100.",
                 required=False,
             ),
         ],
-        responses={200: CoursePerformanceSerializer(many=True)},
+        responses={
+            200: OpenApiResponse(
+                response=CoursePerformanceDashboardPageSerializer,
+                description="Course performance metrics retrieved successfully.",
+                examples=[
+                    OpenApiExample(
+                        "Course performance page",
+                        value={
+                            "count": 1,
+                            "next": None,
+                            "previous": None,
+                            "results": [
+                                {
+                                    "id": "b3b3b3b3-1111-4b3b-8b3b-3b3b3b3b3b3b",
+                                    "name": "Algebra I - Period 2",
+                                    "teacher": "Jane Doe",
+                                    "students": {
+                                        "enrolled": 26,
+                                        "completed": 0,
+                                        "pending": 2,
+                                        "total": 28,
+                                    },
+                                    "assignments": 12,
+                                    "avg_grade": 84.5,
+                                    "distribution": {
+                                        "A": 6,
+                                        "B": 10,
+                                        "C": 8,
+                                        "D": 3,
+                                        "F": 1,
+                                    },
+                                }
+                            ],
+                        },
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                description="Authenticated School Admin is not associated with a school.",
+                examples=[
+                    OpenApiExample(
+                        "No School",
+                        value={
+                            "detail": "School admin must be associated with a school."
+                        },
+                    )
+                ],
+            ),
+            401: OpenApiResponse(
+                description="Authentication credentials were not provided."
+            ),
+            403: OpenApiResponse(
+                description="You do not have permission to access this resource."
+            ),
+        },
     )
     @action(detail=False, methods=["get"], url_path="dashboard/course-performance")
     def course_peformance(self, request, *args, **kwargs):
@@ -1888,25 +2108,56 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         paginator.max_page_size = 100
 
         # Base queryset: courses taught by teachers in this school
-        qs = Course.objects.filter(teacher__school=school)
+        qs = Course.objects.filter(teacher__school=school).select_related("teacher")
 
-        # Annotations
+        # A course's grade average/distribution should reflect students who
+        # actually engaged with the course - not enrollments still pending
+        # activation. "students.total" (below) counts every non-withdrawn
+        # enrollment, pending included, purely as a roster count.
+        active_enrollment_statuses = [
+            EnrollmentStatusType.ENROLLED,
+            EnrollmentStatusType.COMPLETED,
+        ]
+
+        # Annotations. Every Count() here uses distinct=True: this queryset
+        # also joins to `assignments`, and without distinct=True each of
+        # these would be silently multiplied by the course's assignment
+        # count (a classic Django multi-relation JOIN fan-out).
         qs = qs.annotate(
-            student_count=Count(
+            enrolled_count=Count(
                 "enrollments",
-                filter=~Q(enrollments__enrollment_status="WITHDRAWN"),
+                filter=Q(enrollments__enrollment_status=EnrollmentStatusType.ENROLLED),
                 distinct=True,
             ),
-            assignment_count=Count("assignments", distinct=True),
-            avg_grade=Avg(
-                "enrollments__final_grade",
+            completed_count=Count(
+                "enrollments",
+                filter=Q(enrollments__enrollment_status=EnrollmentStatusType.COMPLETED),
+                distinct=True,
+            ),
+            pending_count=Count(
+                "enrollments",
+                filter=Q(enrollments__enrollment_status=EnrollmentStatusType.PENDING),
+                distinct=True,
+            ),
+            student_count=Count(
+                "enrollments",
                 filter=~Q(
                     enrollments__enrollment_status=EnrollmentStatusType.WITHDRAWN
                 ),
+                distinct=True,
+            ),
+            assignment_count=Count(
+                "assignments",
+                filter=Q(assignments__status=AssignmentStatus.PUBLISHED),
+                distinct=True,
+            ),
+            avg_grade=Avg(
+                "enrollments__final_grade",
+                filter=Q(enrollments__enrollment_status__in=active_enrollment_statuses),
             ),
         )
 
-        # Grade distribution
+        # Grade distribution (active enrollments only - see comment above)
         grade_conditions = {
             "A": Q(enrollments__final_grade__gte=90, enrollments__final_grade__lte=100),
             "B": Q(enrollments__final_grade__gte=80, enrollments__final_grade__lt=90),
@@ -1921,17 +2172,15 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                     f"grade_{grade}": Count(
                         "enrollments",
                         filter=condition
-                        & ~Q(
-                            enrollments__enrollment_status=EnrollmentStatusType.WITHDRAWN
+                        & Q(
+                            enrollments__enrollment_status__in=active_enrollment_statuses
                         ),
+                        distinct=True,
                     )
                 }
             )
 
         # Apply filter backends manually because we're in a ViewSet action
-        filter_backend = DjangoFilterBackend()
-        qs = filter_backend.filter_queryset(request, qs, view=self)
-
         search_backend = filters.SearchFilter()
         search_backend.search_fields = [
             "name",
@@ -1940,14 +2189,43 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         ]
         qs = search_backend.filter_queryset(request, qs, view=self)
 
-        ordering_backend = filters.OrderingFilter()
-        ordering_backend.ordering_fields = [
+        # Callers may order by either the response field names ("students",
+        # "assignments") or the underlying annotated metric names.
+        allowed_ordering_fields = {
             "name",
+            "avg_grade",
             "student_count",
             "assignment_count",
-            "avg_grade",
-        ]
-        qs = ordering_backend.filter_queryset(request, qs, view=self)
+        }
+        ordering_aliases = {
+            "students": "student_count",
+            "assignments": "assignment_count",
+        }
+        raw_ordering = request.query_params.get("ordering")
+        ordering = []
+        seen_fields = set()
+        if raw_ordering:
+            for term in raw_ordering.split(","):
+                term = term.strip()
+                if not term:
+                    continue
+                prefix, field = ("-", term[1:]) if term.startswith("-") else ("", term)
+                field = ordering_aliases.get(field, field)
+                if field in allowed_ordering_fields and field not in seen_fields:
+                    ordering.append(f"{prefix}{field}")
+                    seen_fields.add(field)
+
+        # Annotate/aggregate queries drop Course's default Meta.ordering,
+        # leaving the queryset unordered - Django then paginates with a
+        # non-deterministic row order, so the same course can appear on
+        # two pages or be skipped entirely. Always fall back to `name`,
+        # and always append `id` as a tiebreaker so paging is stable even
+        # when ordering by a non-unique column like `avg_grade`.
+        if not ordering:
+            ordering = ["name"]
+        if "id" not in seen_fields:
+            ordering.append("id")
+        qs = qs.order_by(*ordering)
 
         # Paginate
         page = paginator.paginate_queryset(qs, request, view=self)

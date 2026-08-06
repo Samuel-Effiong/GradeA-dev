@@ -11,10 +11,18 @@ from ai_processor.services import ai_processor
 # from celery.exceptions import Ignore
 from AutoGrader.tasks import send_email_task
 from classrooms.models import Course, EnrollmentStatusType, Topic
-from students.exceptions import CannotAssociateStudentError, TaskCancelledError
+from students.exceptions import (
+    CannotAssociateStudentError,
+    SubmissionGradingInProgressError,
+    TaskCancelledError,
+)
 from students.models import BatchUploadSession, BatchUploadType, StudentSubmission
 from students.serializers import StudentSubmissionSerializer
-from students.services import grade_engine, upload_answers_engine
+from students.services import (
+    GRADING_TASK_TIME_LIMIT_SECONDS,
+    grade_engine,
+    upload_answers_engine,
+)
 from students.task_tracking import (
     cancellable_final_save,
     cleanup_cancelled_task_artifacts,
@@ -409,7 +417,18 @@ def extract_answer_background_task(
         raise
 
 
-@shared_task(bind=True)
+@shared_task(
+    bind=True,
+    # Hard kill point for a hung grading run. The grading claim's staleness
+    # window (students.services.GRADING_CLAIM_STALE_AFTER) is derived from
+    # this, so a RUNNING claim older than that window is guaranteed
+    # abandoned - the worker holding it has been killed - and reclaiming it
+    # can never double-bill a still-live run. soft_time_limit fires 60s
+    # earlier so the normal failure path (mark task failed, release the
+    # claim, refund in-flight charges) gets a chance to run before SIGKILL.
+    soft_time_limit=GRADING_TASK_TIME_LIMIT_SECONDS - 60,
+    time_limit=GRADING_TASK_TIME_LIMIT_SECONDS,
+)
 def grade_engine_async(
     self, user_id, submission_id, batch_id=None, processing_task_id=None
 ):
@@ -434,14 +453,12 @@ def grade_engine_async(
         self.update_state(state="PROGRESS", meta={"step": "Grading"})
         update_processing_task(processing_task_id, meta={"step": "Grading"})
         ensure_task_not_cancelled(processing_task_id)
+        # grade_engine performs the final (cancellation-guarded) save
+        # itself; a second full save here would race formatted_grade_async's
+        # write to the same row and clobber formatted_grade (H4).
         submission = grade_engine(
             user, submission, processing_task_id=processing_task_id
         )
-
-        self.update_state(state="PROGRESS", meta={"step": "Saving"})
-        update_processing_task(processing_task_id, meta={"step": "Saving"})
-        ensure_task_not_cancelled(processing_task_id)
-        submission.save()
 
         self.update_state(state="PROGRESS", meta={"step": "Completed"})
         mark_processing_task_success(
@@ -472,6 +489,27 @@ def grade_engine_async(
             meta={"step": "Grading cancelled", "submission_id": submission_id},
         )
         raise
+    except SubmissionGradingInProgressError:
+        # C3: this is a redelivered/duplicate task racing a still-running
+        # original - a clean skip, not a failure. Finish SUCCESS so Celery
+        # doesn't retry it and the user isn't shown an error for a run that
+        # is, in fact, happening.
+        mark_processing_task_success(
+            processing_task_id,
+            meta={
+                "step": "Skipped — already being graded",
+                "skipped": True,
+                "submission_id": submission_id,
+            },
+        )
+        return {
+            "status": states.SUCCESS,
+            "submission_id": submission_id,
+            "message": (
+                "This submission is already being graded by another worker — "
+                "duplicate run skipped."
+            ),
+        }
     except Exception as exc:
         mark_processing_task_failure(
             processing_task_id,
@@ -483,6 +521,61 @@ def grade_engine_async(
             ),
         )
         raise
+
+
+def _reconcile_formatted_grade_numbers(formatted, submission):
+    """
+    Force the student-facing formatted grade's numbers to agree with the
+    authoritative stored grade. GRADE_FORMATTER's prompt forbids altering
+    numbers, but nothing else guarantees an LLM restatement got them right —
+    and this text is shown directly to students with no other cross-check.
+    The overall score sentence is rebuilt deterministically from the stored
+    columns, and each per-question max_score is overwritten from the stored
+    feedback JSON. Purely corrective: unexpected shapes are left untouched.
+    """
+    if not isinstance(formatted, dict):
+        return formatted
+
+    summary = formatted.get("overall_performance_summary")
+    if (
+        isinstance(summary, dict)
+        and submission.score is not None
+        and submission.max_points
+        and submission.score_percentage is not None
+    ):
+        summary["score_statement"] = (
+            f"You scored {float(submission.score):g} out of "
+            f"{float(submission.max_points):g} points, giving you a final "
+            f"grade of {float(submission.score_percentage):.2f}%."
+        )
+
+    evaluations = (
+        submission.feedback.get("question_evaluations", [])
+        if isinstance(submission.feedback, dict)
+        else []
+    )
+    authoritative = {
+        ai_processor._question_number_key(ev.get("question_number")): ev
+        for ev in evaluations
+        if isinstance(ev, dict)
+    }
+
+    breakdown = formatted.get("question_by_question_breakdown")
+    if isinstance(breakdown, list):
+        for item in breakdown:
+            if not isinstance(item, dict):
+                continue
+            ev = authoritative.get(
+                ai_processor._question_number_key(item.get("question_number"))
+            )
+            if not ev:
+                continue
+            if "max_points" in ev:
+                item["max_score"] = ev["max_points"]
+            if "score_awarded" in item and "score_awarded" in ev:
+                item["score_awarded"] = ev["score_awarded"]
+
+    return formatted
 
 
 @shared_task(bind=True)
@@ -510,7 +603,9 @@ def format_grade(self, submission_id, prompt, processing_task_id=None):
         update_processing_task(
             processing_task_id, meta={"step": "Saving formatted grade"}
         )
-        submission.formatted_grade = formatted_grade
+        submission.formatted_grade = _reconcile_formatted_grade_numbers(
+            formatted_grade, submission
+        )
         with cancellable_final_save(processing_task_id):
             submission.save()
 
@@ -673,7 +768,9 @@ def formatted_grade_async(submission_id, user_prompt, processing_task_id=None):
             assignment_model=submission.assignment,
             processing_task_id=processing_task_id,
         )
-        submission.formatted_grade = formatted_grade
+        submission.formatted_grade = _reconcile_formatted_grade_numbers(
+            formatted_grade, submission
+        )
         with cancellable_final_save(processing_task_id):
             submission.save(update_fields=["formatted_grade"])
 

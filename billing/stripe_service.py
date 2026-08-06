@@ -1876,6 +1876,18 @@ class StripeOverageService:
         if plan.max_overage_blocks <= 0 or plan.overage_block_price <= 0:
             raise ValueError("This plan does not support overage credit purchases.")
 
+        # Per-cycle cap: without this, plan.max_overage_blocks is decorative
+        # (the request quantity is client-supplied and otherwise unbounded).
+        # Re-checked at grant time too, since creating a session doesn't
+        # reserve a slot against the cap.
+        remaining_blocks = plan.max_overage_blocks - (wallet.overage_blocks_used or 0)
+        if quantity > max(0, remaining_blocks):
+            raise ValueError(
+                f"This purchase would exceed your plan's overage limit of "
+                f"{plan.max_overage_blocks} block(s) per cycle "
+                f"({max(0, remaining_blocks)} remaining)."
+            )
+
         customer_id = StripeCustomerService.get_or_create_customer(user)
 
         try:
@@ -2537,36 +2549,37 @@ class StripeWebhookHandler:
         plan = SubscriptionPlan.objects.get(id=metadata["plan_id"])
         quantity = int(metadata["quantity"])
 
-        # if wallet.overage_blocks_used >= plan.max_overage_blocks:
-        #     logger.error(
-        #         "Overage checkout session %s completed for wallet %s but "
-        #         "the block cap (%d) was already reached by the time "
-        #         "payment was confirmed — credits NOT granted. Needs "
-        #         "manual reconciliation (refund the payment via the Stripe "
-        #         "dashboard).",
-        #         session["id"],
-        #         wallet.id,
-        #         plan.max_overage_blocks,
-        #     )
+        if (wallet.overage_blocks_used or 0) + quantity > plan.max_overage_blocks:
+            logger.error(
+                "Overage checkout session %s completed for wallet %s but "
+                "granting %d more block(s) would exceed the cap (%d used of "
+                "%d) — credits NOT granted. Needs manual reconciliation "
+                "(refund the payment via the Stripe dashboard).",
+                session["id"],
+                wallet.id,
+                quantity,
+                wallet.overage_blocks_used,
+                plan.max_overage_blocks,
+            )
 
-        #     BillingTransactionService.record(
-        #         source=BillingTransactionSource.INDIVIDUAL,
-        #         transaction_type=BillingTransactionType.INDIVIDUAL_OVERAGE_PURCHASE,
-        #         status=BillingTransactionStatus.PAID,
-        #         billing_method=BillingTransactionMethod.STRIPE,
-        #         amount_cents=session.get("amount_total") or 0,
-        #         currency=session.get("currency", "usd"),
-        #         user=wallet.user,
-        #         stripe_invoice_id=session.get("invoice"),
-        #         stripe_payment_intent_id=session.get("payment_intent"),
-        #         stripe_checkout_session_id=session.get("id"),
-        #         description=(
-        #             "Overage purchase paid but block cap already reached at "
-        #             "grant time — credits NOT granted, needs manual refund."
-        #         ),
-        #     )
+            BillingTransactionService.record(
+                source=BillingTransactionSource.INDIVIDUAL,
+                transaction_type=BillingTransactionType.INDIVIDUAL_OVERAGE_PURCHASE,
+                status=BillingTransactionStatus.PAID,
+                billing_method=BillingTransactionMethod.STRIPE,
+                amount_cents=session.get("amount_total") or 0,
+                currency=session.get("currency", "usd"),
+                user=wallet.user,
+                stripe_invoice_id=session.get("invoice"),
+                stripe_payment_intent_id=session.get("payment_intent"),
+                stripe_checkout_session_id=session.get("id"),
+                description=(
+                    "Overage purchase paid but block cap already reached at "
+                    "grant time — credits NOT granted, needs manual refund."
+                ),
+            )
 
-        #     return
+            return
 
         SubscriptionService.grant_overage_bucket(
             wallet=wallet,
@@ -3417,14 +3430,14 @@ class StripeWebhookHandler:
 
         updated_sub.stripe_subscription_id = stripe_subscription_id
         updated_sub.stripe_status = StripeSubscriptionStatus.ACTIVE
-        updated_sub.save(
-            update_fields=[
-                "stripe_subscription_id",
-                "stripe_status",
-                "stripe_schedule_id",
-                "updated_at",
-            ]
-        )
+        update_fields = ["stripe_subscription_id", "stripe_status", "updated_at"]
+        if not user_sub.is_trial and user_sub.stripe_schedule_id:
+            # Only the renewal branch carries the old row's schedule id over
+            # to the new row (assigned just above); including the field
+            # unconditionally would write the trial branch's untouched
+            # default over whatever the row already holds.
+            update_fields.append("stripe_schedule_id")
+        updated_sub.save(update_fields=update_fields)
 
     # ------------------------------------------------------------------
     # invoice.payment_failed

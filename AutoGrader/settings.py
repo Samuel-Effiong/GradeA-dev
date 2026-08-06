@@ -247,8 +247,22 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 
 CELERY_TIMEZONE = TIME_ZONE
+# With CELERY_TASK_ACKS_LATE=True, Redis redelivers a task's message to
+# another worker once visibility_timeout elapses without an ack — i.e. it
+# assumes the original worker died. A grading run (several sequential AI
+# calls, each with its own retries — see assignments.tasks.grade_engine_async)
+# can legitimately take longer than the previous 600s value, which caused
+# Redis to redeliver a still-running grading task to a second worker,
+# double-billing the teacher. Raised well above
+# students.services.GRADING_TASK_TIME_LIMIT_SECONDS (Celery's own hard kill
+# point for that task) so a healthy, still-running task is never mistaken
+# for a dead one. The grading claim in students.services
+# (_claim_submission_for_grading) is the actual correctness guarantee against
+# duplicate execution — this setting just keeps ordinary redeliveries rare
+# in the first place, since even a caught duplicate wastes a worker slot and
+# an API round trip before being skipped.
 CELERY_BROKER_TRANSPORT_OPTIONS = {
-    "visibility_timeout": 600,  # 10 minutes
+    "visibility_timeout": 3600,  # 1 hour
 }
 
 CELERY_TASK_ACKS_LATE = True

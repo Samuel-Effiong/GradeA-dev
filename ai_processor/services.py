@@ -30,6 +30,7 @@ from billing.access_control import (
     can_user_access_ai,
 )
 from billing.errors import InsufficientCreditsError
+from billing.refunds import billing_refund_scope, record_billing_task_id
 from billing.services import AnalyticsService
 from classrooms.models import StudentCourse
 from students.task_tracking import ensure_task_not_cancelled
@@ -76,7 +77,12 @@ with open("ai_processor/RUBRIC_EXTRACTION_PROMPT.txt", "r") as file:
 with open("ai_processor/ANSWERS_EXTRACTION_PROMPT_HTML_4.txt", "r") as file:
     ANSWERS_EXTRACTION_PROMPT = file.read()
 
-with open("ai_processor/GRADING_ASSIGNMENT_PROMPT_3.txt", "r") as file:
+# v4 replaces v3's open-ended "leniency"/"Holistic Uplift" system (which
+# invited scores above and between rubric levels, making grades both
+# inflated and non-reproducible) with rubric-anchored discrete scoring and
+# a single bounded Borderline Rule. It also fixes the input contract to
+# match what the pipeline actually sends (answer_html, not answer_text).
+with open("ai_processor/GRADING_ASSIGNMENT_PROMPT_4.txt", "r") as file:
     GRADING_ASSIGNMENT_PROMPT = file.read()
 
 with open("ai_processor/ASSIGNMENT_GENERATION_PROMPT_6.txt", "r") as file:
@@ -104,8 +110,35 @@ ANSWERS_EXTRACTION_PAGES_PER_CHUNK = 1
 
 GRADING_QUESTIONS_PER_CHUNK = 5
 
+MAIN_MODEL = "x-ai/grok-4.3"
+
+# OpenRouter silently routes to these when the main model is unavailable.
+DEFAULT_FALLBACK_MODELS = ["deepseek/deepseek-v4-pro", "openai/gpt-5.4-nano"]
+
+# Grading is the one task where a silent downgrade to a small model produces
+# scores of visibly different quality between two students in the same class,
+# with nothing recording why. Restrict grading fallbacks to models of
+# comparable capability - never a nano-tier model.
+GRADING_FALLBACK_MODELS = ["deepseek/deepseek-v4-pro"]
+
 
 MAX_TOOL_CALL_ROUNDS = 3
+
+
+def _strip_markdown_fences(raw: str) -> str:
+    raw = raw.strip()
+    if raw.startswith("```json"):
+        raw = raw[7:]
+    elif raw.startswith("```"):
+        raw = raw[3:]
+    if raw.endswith("```"):
+        raw = raw[:-3]
+    return raw.strip()
+
+
+def _int_if_whole(value):
+    return int(value) if float(value).is_integer() else value
+
 
 # fetch_url_content pulls text from a page the model chose based on
 # free-text in the teacher's prompt - i.e. content an attacker can
@@ -291,9 +324,11 @@ class AIProcessor:
         tool_schemas=None,
         respond_format=True,
         response_schema=None,
+        sub_models=None,
     ):
-        main_model = "x-ai/grok-4.3"
-        sub_models = ["deepseek/deepseek-v4-pro", "openai/gpt-5.4-nano"]
+        main_model = MAIN_MODEL
+        if sub_models is None:
+            sub_models = DEFAULT_FALLBACK_MODELS
 
         if response_schema:
             response_format = {"type": "json_schema", "json_schema": response_schema}
@@ -1443,6 +1478,139 @@ Do not include any explanatory text before or after the JSON
                     logger.info("Retrying...")
         raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
 
+    @staticmethod
+    def _question_number_key(value):
+        """
+        Normalize a question_number for cross-type matching. The rubric
+        stores ints, but extracted answers / model output are free-form JSON
+        and can quote the same number as a string ("3" vs 3). An exact-type
+        dict lookup between the two silently treats an answered question as
+        missing - and scores it 0 - so every join/membership check on
+        question_number must go through this.
+        """
+        s = str(value).strip()
+        return int(s) if s.isdigit() else s
+
+    @staticmethod
+    def _coerce_score(value):
+        """
+        Best-effort numeric coercion for a model-reported score. Anything
+        non-numeric (None, "eight", objects) becomes 0.0 rather than
+        crashing the run or poisoning the sum. NaN/inf are rejected for the
+        same reason.
+        """
+        if isinstance(value, bool):
+            return 0.0
+        try:
+            score = float(value)
+        except (TypeError, ValueError):
+            return 0.0
+        if math.isnan(score) or math.isinf(score):
+            return 0.0
+        return score
+
+    @staticmethod
+    def _response_model_name(response):
+        model_name = getattr(response, "model", None)
+        return model_name if isinstance(model_name, str) else None
+
+    def _missing_question_numbers(self, evaluations: list, questions: list) -> list:
+        """
+        Return the questions (subset of `questions`) that have no matching
+        entry in `evaluations`, matching by normalized question_number.
+
+        A model response that grades fewer questions than it was asked to is
+        not a partial success - every ungraded question still counts toward
+        max_total_points while contributing nothing to total_score, silently
+        deflating the grade. Callers treat a non-empty return as a retryable
+        failure, exactly like an unparseable response.
+        """
+        seen = {
+            self._question_number_key(ev.get("question_number"))
+            for ev in evaluations
+            if isinstance(ev, dict)
+        }
+        return [
+            q
+            for q in questions
+            if isinstance(q, dict)
+            and self._question_number_key(q.get("question_number")) not in seen
+        ]
+
+    def _finalize_grading_result(self, evaluations: list, questions: list) -> dict:
+        """
+        The single arithmetic authority for a grading run, shared by the
+        single-pass and batched paths. Never trusts totals the model
+        reported: every score_awarded is coerced to a number and clamped to
+        [0, question.points], and total_score / max_total_points /
+        percentage are recomputed from those clamped values. The returned
+        question_evaluations are corrected in the same pass, so a clamped
+        question's score never disagrees with the total that includes it.
+
+        An evaluation whose question_number matches no rubric question has
+        no known cap, so only the >= 0 floor applies to it (reconciling
+        stray evaluations against the rubric is the completeness check's
+        job, not this function's).
+        """
+        points_by_question = {}
+        for question in questions:
+            if isinstance(question, dict):
+                key = self._question_number_key(question.get("question_number"))
+                points_by_question[key] = max(
+                    0.0, self._coerce_score(question.get("points", 0))
+                )
+
+        corrected_evaluations = []
+        individual_scores = []
+        for evaluation in evaluations:
+            if not isinstance(evaluation, dict):
+                continue
+            corrected = dict(evaluation)
+            raw_score = corrected.get(
+                "score_awarded", corrected.get("points_awarded", 0)
+            )
+            score = max(0.0, self._coerce_score(raw_score))
+
+            key = self._question_number_key(corrected.get("question_number"))
+            if key in points_by_question:
+                cap = points_by_question[key]
+                score = min(score, cap)
+                corrected["max_points"] = _int_if_whole(cap)
+
+            score = _int_if_whole(score)
+            corrected["score_awarded"] = score
+            if "points_awarded" in corrected:
+                corrected["points_awarded"] = score
+
+            corrected_evaluations.append(corrected)
+            individual_scores.append(score)
+
+        total_score = _int_if_whole(sum(individual_scores))
+        max_total_points = _int_if_whole(sum(points_by_question.values()))
+        percentage = (
+            round((total_score / max_total_points) * 100, 2) if max_total_points else 0
+        )
+
+        verification = {
+            "individual_scores": individual_scores,
+            "manual_sum": total_score,
+            "verification_status": "PASS",
+            "calculation_notes": (
+                "Score arithmetic calculated by the system from the clamped "
+                "per-question scores: "
+                f"{' + '.join(str(s) for s in individual_scores) or '0'} "
+                f"= {total_score}. Model-reported totals are not used."
+            ),
+        }
+
+        return {
+            "total_score": total_score,
+            "max_total_points": max_total_points,
+            "percentage": percentage,
+            "question_evaluations": corrected_evaluations,
+            "score_calculation_verification": verification,
+        }
+
     def _pair_question_with_answers(self, rubric_json: str, answer_json: str) -> list:
         """
         Zips the rubric questions list and the answers list by question_number
@@ -1469,14 +1637,21 @@ Do not include any explanatory text before or after the JSON
         except (json.JSONDecodeError, TypeError) as e:
             raise Exception(f"Failed to parse rubric or answer JSON: {str(e)}") from e
 
-        # Build a lookup of answers by question_number
-        answer_map = {a.get("question_number"): a for a in answers}
+        # Build a lookup of answers by NORMALIZED question_number - the
+        # rubric stores ints while extracted answers can carry the same
+        # number as a string, and an exact-type miss here scores a real
+        # answer as not_attempted.
+        answer_map = {
+            self._question_number_key(a.get("question_number")): a
+            for a in answers
+            if isinstance(a, dict)
+        }
 
         pairs = []
         for question in questions:
             q_num = question.get("question_number")
             answer = answer_map.get(
-                q_num,
+                self._question_number_key(q_num),
                 {
                     "question_number": q_num,
                     "question_text": question.get("question_text", ""),
@@ -1486,8 +1661,9 @@ Do not include any explanatory text before or after the JSON
             )
             pairs.append({"question": question, "answer": answer})
 
-        # Sort by question_number to guarantee correct order
-        pairs.sort(key=lambda p: p["question"].get("question_number", 0))
+        # Sort by question_number to guarantee correct order. safe_sort_key
+        # (not the raw value) so a mixed int/str set can't raise TypeError.
+        pairs.sort(key=lambda p: safe_sort_key(p["question"].get("question_number", 0)))
         return pairs
 
     def _grade_question_batch(
@@ -1535,7 +1711,10 @@ Do not include any explanatory text before or after the JSON
 
         Grade ONLY the questions in this batch. Do not reference or grade any other questions.
         For each question, compare the student's answer directly against the rubric criteria
-        and assign the exact point value from the matching rubric level.
+        and assign the exact point value of the rubric level you select, applying the
+        Borderline Rule from your instructions when an answer genuinely sits between two levels.
+        You MUST return exactly one evaluation for every question in this batch — a response
+        missing any question will be rejected and retried.
 
         ### Questions and Rubrics (Batch {batch_number})
         {json.dumps(batch_rubric, indent=2)}
@@ -1585,6 +1764,18 @@ Do not include any explanatory text before or after the JSON
                         f"Batch {batch_number} returned no question_evaluations."
                     )
 
+                # H2: a batch that grades only SOME of its questions is not a
+                # partial success - the ungraded questions would silently
+                # contribute 0 to the total while still counting toward the
+                # maximum. Reject and retry, same as an unparseable response.
+                missing = self._missing_question_numbers(evaluations, batch_rubric)
+                if missing:
+                    missing_nums = [q.get("question_number") for q in missing]
+                    raise ValueError(
+                        f"Batch {batch_number} response is missing evaluations "
+                        f"for question(s) {missing_nums}."
+                    )
+
                 logger.info(
                     f"[Grading] Batch {batch_number}/{total_batches} complete — "
                     f"{len(evaluations)} question(s) graded."
@@ -1600,6 +1791,7 @@ Do not include any explanatory text before or after the JSON
                     f"parse failed — {str(e)}"
                 )
             except Exception as e:
+                last_error = e
                 logger.warning(
                     f"[Grading] Batch {batch_number}, attempt {attempt + 1}: "
                     f"AI call failed — {str(e)}"
@@ -1655,30 +1847,14 @@ Do not include any explanatory text before or after the JSON
         except (json.JSONDecodeError, TypeError):
             questions = []
 
-        max_total_points = sum(q.get("points", 0) for q in questions)
-
-        # Sum scores from the evaluations — use score_awarded field
-        individual_scores = []
-        for ev in all_evaluations:
-            score = ev.get("score_awarded", ev.get("points_awarded", 0))
-            individual_scores.append(score)
-
-        total_score = sum(individual_scores)
-        percentage = (
-            round((total_score / max_total_points) * 100, 2) if max_total_points else 0
-        )
-
-        # Build verification block — pass this to the model so it cannot alter
-        # the arithmetic
-        verification = {
-            "individual_scores": individual_scores,
-            "manual_sum": total_score,
-            "verification_status": "PASS",
-            "calculation_notes": (
-                f"Score arithmetic calculated by system: "
-                f"{' + '.join(str(s) for s in individual_scores)} = {total_score}"
-            ),
-        }
+        # Shared arithmetic authority: coerces + clamps every score and
+        # recomputes the totals - the same protection the single-pass path
+        # applies (see _finalize_grading_result).
+        finalized = self._finalize_grading_result(all_evaluations, questions)
+        total_score = finalized["total_score"]
+        max_total_points = finalized["max_total_points"]
+        percentage = finalized["percentage"]
+        verification = finalized["score_calculation_verification"]
 
         user_prompt = f"""
         All questions have been graded individually. Below are all the question evaluations
@@ -1745,6 +1921,10 @@ Do not include any explanatory text before or after the JSON
                 }
                 summary["score_calculation_verification"] = verification
 
+                model_name = self._response_model_name(response)
+                if model_name:
+                    summary["grading_model"] = model_name
+
                 return summary
 
             except (AIFeatureNotAvailableError, InsufficientCreditsError):
@@ -1756,6 +1936,7 @@ Do not include any explanatory text before or after the JSON
                     f"parse failed — {str(e)}"
                 )
             except Exception as e:
+                last_error = e
                 logger.warning(
                     f"[Grading] Summary call attempt {attempt + 1}: "
                     f"AI call failed — {str(e)}"
@@ -1765,7 +1946,6 @@ Do not include any explanatory text before or after the JSON
             f"[Grading] Summary call failed after 3 attempts. Last error: {last_error}"
         )
 
-    @transaction.atomic
     def grade_student_submission(
         self,
         user,
@@ -1777,10 +1957,50 @@ Do not include any explanatory text before or after the JSON
         """
         Main entry point for grading a student submission.
 
+        Deliberately NOT wrapped in @transaction.atomic: a grading run is
+        several sequential AI calls, and CreditWallet.consume_credits()
+        takes select_for_update() on the wallet row - one long transaction
+        would hold the teacher's wallet locked across every network call in
+        the run and serialize all their other grading tasks behind it (C2).
+        Each execute_graded_task call commits its charge independently;
+        billing_refund_scope restores the old rollback semantics by
+        refunding every committed charge if the run ultimately fails. The
+        refund boundary is ONE grade_student_submission call - each attempt
+        of extract_grade_with_retry's loop is billed and refunded
+        independently.
+        """
+        with billing_refund_scope(reason="grading run failed"):
+            return self._grade_student_submission_impl(
+                user=user,
+                rubric_json=rubric_json,
+                answer_json=answer_json,
+                assignment_model=assignment_model,
+                processing_task_id=processing_task_id,
+            )
+
+    def _grade_student_submission_impl(
+        self,
+        user,
+        rubric_json,
+        answer_json,
+        assignment_model=None,
+        processing_task_id=None,
+    ):
+        """
+        The actual grading pipeline (see grade_student_submission for the
+        billing/transaction contract).
+
         Automatically switches to per-batch grading when the assignment has
         more questions than GRADING_QUESTIONS_PER_CHUNK. For small assignments
         (≤ GRADING_QUESTIONS_PER_CHUNK questions) it runs all questions in
-        a single call — identical to the original behaviour.
+        a single call.
+
+        Both paths share the same output guarantees:
+          - Every rubric question has exactly one evaluation, or the
+            response is rejected as retryable (_missing_question_numbers).
+          - All score arithmetic is recomputed and clamped in Python
+            (_finalize_grading_result) — the model's totals are never
+            trusted, on either path.
 
         The batched pipeline:
           1. Pairs each question rubric with its matching student answer
@@ -1791,14 +2011,19 @@ Do not include any explanatory text before or after the JSON
           3. Merges all question_evaluation results.
           4. Runs one final AI call to produce the overall summary, patterns,
              and recommendations from the complete picture.
-          5. Recalculates all score arithmetic in Python and overwrites any
-             model-generated numbers — the model cannot introduce errors here.
         """
         try:
             questions = (
                 json.loads(rubric_json) if isinstance(rubric_json, str) else rubric_json
             )
         except (json.JSONDecodeError, TypeError):
+            questions = []
+
+        # Tolerate a full assignment object being passed instead of the
+        # bare questions array.
+        if isinstance(questions, dict):
+            questions = questions.get("questions", [])
+        if not isinstance(questions, list):
             questions = []
 
         total_questions = len(questions)
@@ -1826,9 +2051,13 @@ Do not include any explanatory text before or after the JSON
     Now, grade the student answers based on the rubric.
     Make sure to:
     1. Match each answer with its question in the rubric.
-    2. Award points according to the closest scoring level.
+    2. Assign the exact point value of the rubric level you select, applying the
+       Borderline Rule from your instructions when an answer genuinely sits
+       between two levels.
     3. Provide detailed feedback for each answer.
-    4. Calculate the total score and overall feedback.
+    4. Return exactly one evaluation for EVERY question in the rubric — a
+       response missing any question will be rejected and retried.
+    5. Calculate the total score and overall feedback.
     """
 
             user_prompts = [{"type": "text", "text": user_prompt}]
@@ -1847,11 +2076,44 @@ Do not include any explanatory text before or after the JSON
             grade = response.choices[0].message.content
 
             try:
-                json_data = json.loads(grade)
-                return json_data
+                json_data = json.loads(_strip_markdown_fences(grade))
             except json.JSONDecodeError as e:
                 logger.error(f"Error decoding JSON: {str(e)}")
-                raise Exception(f"Error decoding JSON: {str(e)}") from Exception
+                raise Exception(f"Error decoding JSON: {str(e)}") from e
+
+            evaluations = json_data.get("question_evaluations", [])
+            if not isinstance(evaluations, list):
+                evaluations = []
+
+            # H2: reject a response that graded fewer questions than the
+            # rubric contains - the outer extract_grade_with_retry wrapper
+            # retries it, instead of a silently deflated grade persisting.
+            missing = self._missing_question_numbers(evaluations, questions)
+            if missing:
+                missing_nums = [q.get("question_number") for q in missing]
+                raise ValueError(
+                    f"[Grading] Single-pass response is missing evaluations "
+                    f"for question(s) {missing_nums}."
+                )
+
+            # H1: never trust the model's arithmetic - coerce, clamp, and
+            # recompute every number from the per-question evaluations.
+            finalized = self._finalize_grading_result(evaluations, questions)
+            json_data["question_evaluations"] = finalized["question_evaluations"]
+            json_data["grading_summary"] = {
+                "total_score": finalized["total_score"],
+                "max_total_points": finalized["max_total_points"],
+                "percentage": finalized["percentage"],
+            }
+            json_data["score_calculation_verification"] = finalized[
+                "score_calculation_verification"
+            ]
+
+            model_name = self._response_model_name(response)
+            if model_name:
+                json_data["grading_model"] = model_name
+
+            return json_data
 
         # ── Batched path for large assignments ────────────────────────────────────
         logger.info(
@@ -1900,7 +2162,13 @@ Do not include any explanatory text before or after the JSON
             f"Building overall summary..."
         )
 
-        # Step 4: Build the overall summary from all evaluations
+        # Step 4: Clamp and correct the merged evaluations BEFORE the summary
+        # call, so the model summarises the same numbers that get persisted.
+        all_evaluations = self._finalize_grading_result(all_evaluations, questions)[
+            "question_evaluations"
+        ]
+
+        # Step 5: Build the overall summary from all evaluations
         summary = self._build_overall_grading_summary(
             user=user,
             all_evaluations=all_evaluations,
@@ -1910,7 +2178,7 @@ Do not include any explanatory text before or after the JSON
             processing_task_id=processing_task_id,
         )
 
-        # Step 5: Assemble the final result — evaluations + summary
+        # Step 6: Assemble the final result — evaluations + summary
         final_result = {
             **summary,
             "question_evaluations": all_evaluations,
@@ -2217,6 +2485,14 @@ Now, respond to the following teacher's instruction using the rules above
 
         ensure_task_not_cancelled(processing_task_id)
 
+        # Grading never falls back to a nano-tier model: two students in the
+        # same class must not be graded by models of visibly different
+        # capability depending on transient routing (see
+        # GRADING_FALLBACK_MODELS).
+        sub_models = (
+            GRADING_FALLBACK_MODELS if task_type == "grade_assignment" else None
+        )
+
         # --- Resolve WHO is billed for this call, AND enforce their
         # tier/feature access control, together in one branch. This is
         # deliberately a single pass (not two separate if/elif chains)
@@ -2278,6 +2554,7 @@ Now, respond to the following teacher's instruction using the rules above
                 tool_schemas,
                 respond_format,
                 response_schema,
+                sub_models=sub_models,
             )
             return response
 
@@ -2356,6 +2633,7 @@ Now, respond to the following teacher's instruction using the rules above
             tool_schemas,
             respond_format,
             response_schema,
+            sub_models=sub_models,
         )
 
         resolved_course = assignment.course if assignment else course
@@ -2369,6 +2647,11 @@ Now, respond to the following teacher's instruction using the rules above
                 task_type=task_type,
                 task_id=task_id,
                 course=resolved_course,
+                # Snapshot of the BILLED user's school at consumption time -
+                # school-level reporting must stay historically accurate
+                # even if the teacher later transfers schools, so this is
+                # resolved here rather than joined live at query time.
+                school=getattr(target_teacher, "school", None),
             )
 
             # Update the Beta Analytics Profile for the Teacher
@@ -2379,6 +2662,11 @@ Now, respond to the following teacher's instruction using the rules above
 
             # Mark the teacher as 'Active' today for the "Active in last 7 days" KPI
             AnalyticsService.track_activity(user=target_teacher)
+
+        # After the charge has committed: register it with the innermost
+        # billing_refund_scope (no-op when none is open) so a multi-call
+        # pipeline that fails later can refund it.
+        record_billing_task_id(task_id)
 
         return response
 

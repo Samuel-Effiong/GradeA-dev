@@ -29,13 +29,14 @@ from uuid import uuid4
 from django.test import TestCase
 from django.utils import timezone
 
-from ai_processor.services import AIProcessor
+from ai_processor.services import GRADING_FALLBACK_MODELS, AIProcessor
 from billing.access_control import AIFeatureNotAvailableError
 from billing.errors import InsufficientCreditsError
 from billing.models import (  # PlanFeature,; PlanFeatureInclusion,; PlanFeatureKey,
     BillingInterval,
     CreditBucket,
     CreditBucketType,
+    CreditUsageLog,
     CreditWallet,
     LicenseSubscription,
     PlanCategory,
@@ -188,8 +189,17 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
             response_schema=schema,
         )
 
+        # task_type="grade_assignment" restricts fallback routing to
+        # comparable-capability models (never nano-tier) - see
+        # GRADING_FALLBACK_MODELS.
         mock_ai_model.assert_called_once_with(
-            None, "short prompt", None, None, True, schema
+            None,
+            "short prompt",
+            None,
+            None,
+            True,
+            schema,
+            sub_models=GRADING_FALLBACK_MODELS,
         )
 
     @patch.object(AIProcessor, "_AIProcessor__ai_model")
@@ -412,7 +422,9 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
             response_schema=schema,
         )
 
-        mock_ai_model.assert_called_once_with(None, "prompt", None, None, True, schema)
+        mock_ai_model.assert_called_once_with(
+            None, "prompt", None, None, True, schema, sub_models=None
+        )
 
     def test_unrecognized_user_type_raises_clean_value_error(self):
         """
@@ -436,6 +448,144 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
             )
         self.assertIn("Unsupported user_type", str(ctx.exception))
         self.assertNotIsInstance(ctx.exception, UnboundLocalError)
+
+
+class CreditUsageLogSchoolSnapshotTests(ExecuteGradedTaskTestBase):
+    """
+    CreditUsageLog.school must be resolved from the BILLED user's school
+    at the moment of consumption, and never change retroactively once
+    written — even if that user is later reassigned to a different school.
+    This is what makes school-level token reporting immune to a teacher
+    transferring schools after the fact (see classrooms.views.SchoolViewSet
+    tokens_used computations, and CreditUsageLog.school's docstring).
+    """
+
+    @patch.object(AIProcessor, "_AIProcessor__ai_model")
+    def test_teacher_call_snapshots_teachers_school(self, mock_ai_model):
+        mock_ai_model.return_value = make_ai_response(tokens=500)
+        teacher = self._make_teacher_with_credits()
+        school = self._make_school()
+        teacher.school = school
+        teacher.save()
+
+        self.processor.execute_graded_task(
+            user=teacher,
+            feature="Grading Assignment",
+            task_type="grade_assignment",
+            user_prompt="prompt",
+        )
+
+        log = CreditUsageLog.objects.get(wallet__user=teacher)
+        self.assertEqual(log.school_id, school.id)
+
+    @patch.object(AIProcessor, "_AIProcessor__ai_model")
+    def test_school_admin_call_snapshots_admins_own_school(self, mock_ai_model):
+        mock_ai_model.return_value = make_ai_response(tokens=300)
+        plan = self._make_plan(PlanType.POWER_LICENSE, category=PlanCategory.LICENSE)
+        admin = self._make_user(UserTypes.SCHOOL_ADMIN, "admin@example.com")
+        license_sub = self._make_license(plan, admin)
+        self._make_allocation(license_sub, admin, is_admin=True)
+        self._give_credits(admin, 100000)
+        # _make_license doesn't set the admin's own `school` FK - only the
+        # LicenseSubscription's - so wire it up explicitly for this test.
+        admin.school = license_sub.school
+        admin.save()
+
+        self.processor.execute_graded_task(
+            user=admin,
+            feature="Weekly Course Summary",
+            task_type="weekly_course_summary",
+            user_prompt="prompt",
+        )
+
+        log = CreditUsageLog.objects.get(wallet__user=admin)
+        self.assertEqual(log.school_id, license_sub.school_id)
+
+    @patch.object(AIProcessor, "_AIProcessor__ai_model")
+    def test_student_submission_snapshots_teachers_school_not_students(
+        self, mock_ai_model
+    ):
+        mock_ai_model.return_value = make_ai_response(tokens=200)
+        school = self._make_school()
+        teacher = self._make_teacher_with_credits()
+        teacher.school = school
+        teacher.save()
+        student = self._make_user(UserTypes.STUDENT, "student-snapshot@example.com")
+
+        course = Course.objects.create(name="Course", teacher=teacher)
+        assignment = MagicMock()
+        assignment.course = course
+
+        self.processor.execute_graded_task(
+            user=student,
+            feature="Grading Assignment",
+            task_type="grade_assignment",
+            user_prompt="prompt",
+            assignment=assignment,
+        )
+
+        log = CreditUsageLog.objects.get(wallet__user=teacher)
+        # Billed to the TEACHER's school, not the student's (students have
+        # no school of their own in this flow).
+        self.assertEqual(log.school_id, school.id)
+
+    @patch.object(AIProcessor, "_AIProcessor__ai_model")
+    def test_teacher_with_no_school_snapshots_null(self, mock_ai_model):
+        mock_ai_model.return_value = make_ai_response(tokens=100)
+        teacher = self._make_teacher_with_credits()  # individual, no school
+
+        self.processor.execute_graded_task(
+            user=teacher,
+            feature="Grading Assignment",
+            task_type="grade_assignment",
+            user_prompt="prompt",
+        )
+
+        log = CreditUsageLog.objects.get(wallet__user=teacher)
+        self.assertIsNone(log.school_id)
+
+    @patch.object(AIProcessor, "_AIProcessor__ai_model")
+    def test_school_transfer_does_not_retroactively_move_earlier_usage(
+        self, mock_ai_model
+    ):
+        """
+        The core regression this field exists to fix: usage logged while a
+        teacher was at School A must stay attributed to School A forever,
+        even after the teacher moves to School B and generates new usage
+        there.
+        """
+        mock_ai_model.return_value = make_ai_response(tokens=500)
+        school_a = self._make_school()
+        school_b = School.objects.create(name="School B")
+        teacher = self._make_teacher_with_credits(credits=200000)
+        teacher.school = school_a
+        teacher.save()
+
+        self.processor.execute_graded_task(
+            user=teacher,
+            feature="Grading Assignment",
+            task_type="grade_assignment",
+            user_prompt="prompt one",
+        )
+
+        # Teacher transfers to School B.
+        teacher.school = school_b
+        teacher.save()
+
+        mock_ai_model.return_value = make_ai_response(tokens=300)
+        self.processor.execute_graded_task(
+            user=teacher,
+            feature="Grading Assignment",
+            task_type="grade_assignment",
+            user_prompt="prompt two",
+        )
+
+        logs = list(
+            CreditUsageLog.objects.filter(wallet__user=teacher).order_by("created_at")
+        )
+        self.assertEqual(len(logs), 2)
+        self.assertEqual(logs[0].school_id, school_a.id)
+        self.assertEqual(logs[1].school_id, school_b.id)
 
 
 class RetryWrapperRegressionTests(ExecuteGradedTaskTestBase):

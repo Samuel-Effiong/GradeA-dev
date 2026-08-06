@@ -321,7 +321,7 @@ def process_annual_plan_credit_grants(self):
     return summary
 
 
-@shared_task
+@shared_task(bind=True)
 def reconcile_subscription_renewals(self):
     """
     Daily safety net: ensures that all active individual subscriptions

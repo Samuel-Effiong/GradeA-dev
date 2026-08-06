@@ -368,6 +368,19 @@ class CreditWalletViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     ordering_fields = ["created_at", "updated_at"]
 
+    def get_permissions(self):
+        """
+        Reads: any authenticated non-student (scoped to their own wallet by
+        get_queryset). Writes: superadmin only - wallets are system-managed,
+        and a writable wallet endpoint would let a user reset their own
+        overage_blocks_used counter or delete billing state.
+        """
+        if self.action in ["list", "retrieve"]:
+            permission_classes = [IsAuthenticated, IsNotStudent]
+        else:
+            permission_classes = [IsAuthenticated, IsSuperAdmin]
+        return [permission() for permission in permission_classes]
+
     def get_queryset(self):
         queryset = super().get_queryset()
         if not (
@@ -424,6 +437,21 @@ class CreditBucketViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = ["bucket_type", "wallet"]
     ordering_fields = ["expires_at", "created_at"]
+
+    def get_permissions(self):
+        """
+        Reads: any authenticated non-student (scoped to their own buckets by
+        get_queryset). Writes: superadmin only - bucket rows ARE the credit
+        balance, so a writable endpoint here is equivalent to letting any
+        user mint unlimited credits into any wallet (the serializer's
+        `wallet` field is a plain PK field, and create() is not scoped by
+        get_queryset). The sanctioned grant path is ManualCreditService.
+        """
+        if self.action in ["list", "retrieve"]:
+            permission_classes = [IsAuthenticated, IsNotStudent]
+        else:
+            permission_classes = [IsAuthenticated, IsSuperAdmin]
+        return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -487,6 +515,19 @@ class CreditLedgerViewSet(viewsets.ModelViewSet):
     search_fields = ["reference"]
     ordering_fields = ["created_at"]
 
+    def get_permissions(self):
+        """
+        Reads: any authenticated non-student (scoped to their own entries by
+        get_queryset). Writes: superadmin only - the ledger is the immutable
+        audit trail of every grant/consumption/refund; letting users create
+        or delete rows makes billing history forgeable.
+        """
+        if self.action in ["list", "retrieve"]:
+            permission_classes = [IsAuthenticated, IsNotStudent]
+        else:
+            permission_classes = [IsAuthenticated, IsSuperAdmin]
+        return [permission() for permission in permission_classes]
+
     def get_queryset(self):
         queryset = super().get_queryset()
         if not (
@@ -518,7 +559,7 @@ class CreditUsageLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = CreditUsageLog.objects.all()
     serializer_class = CreditUsageLogSerializer
     permission_classes = [IsAuthenticated, IsNotStudent]
-    http_method_names = ["get", "head", "post", "patch", "delete", "options"]
+    http_method_names = ["get", "head", "options"]
 
     filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
     filterset_fields = ["wallet", "bucket", "feature", "task_type"]

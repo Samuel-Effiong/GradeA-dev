@@ -34,14 +34,68 @@ from .stripe_service import StripeWebhookHandler
 
 logger = logging.getLogger(__name__)
 
+# Single dispatch table shared by BOTH webhook endpoints. This used to be
+# duplicated inline in stripe_webhook and thin_webhook, which meant every
+# new event type had to be wired in two places or it silently no-op'd on
+# one of them.
+_EVENT_HANDLERS = {
+    "checkout.session.completed": StripeWebhookHandler.handle_checkout_completed,
+    "invoice.payment_succeeded": StripeWebhookHandler.handle_invoice_payment_succeeded,
+    "invoice.payment_failed": StripeWebhookHandler.handle_invoice_payment_failed,
+    "customer.subscription.deleted": StripeWebhookHandler.handle_subscription_deleted,
+    "charge.refunded": StripeWebhookHandler.handle_charge_refunded,
+    "payment_intent.succeeded": StripeWebhookHandler.handle_payment_intent_succeeded,
+    "payment_intent.payment_failed": StripeWebhookHandler.handle_payment_intent_failed,
+    "setup_intent.succeeded": StripeWebhookHandler.handle_setup_intent_succeeded,
+}
+
+
+def _record_and_dispatch(event, *, log_prefix):
+    """
+    Shared idempotency + dispatch core for both webhook endpoints.
+
+    Records the event id BEFORE processing (get_or_create is atomic at the
+    DB level, so two near-simultaneous redeliveries can't both pass), then
+    dispatches to the handler. On handler failure the StripeEvent record is
+    removed and 500 returned so Stripe's retry is processed as a fresh
+    delivery instead of being dropped as a duplicate forever.
+    """
+    _, created = StripeEvent.objects.get_or_create(
+        stripe_event_id=event["id"],
+        defaults={"event_type": event["type"], "payload": event["data"]},
+    )
+    if not created:
+        logger.info(
+            "%s: duplicate delivery of event %s, skipping.", log_prefix, event["id"]
+        )
+        return HttpResponse(status=200)
+
+    event_type = event["type"]
+    handler = _EVENT_HANDLERS.get(event_type)
+
+    try:
+        if handler is not None:
+            handler(event["data"]["object"])
+        else:
+            logger.debug("%s: unhandled event type %s.", log_prefix, event_type)
+    except Exception:
+        StripeEvent.objects.filter(stripe_event_id=event["id"]).delete()
+        logger.exception(
+            "%s: error processing event %s (%s).",
+            log_prefix,
+            event["id"],
+            event_type,
+        )
+        return HttpResponse(status=500)
+
+    return HttpResponse(status=200)
+
 
 @csrf_exempt
 @require_POST
 def stripe_webhook(request):
     payload = request.body
     sig_header = request.META.get("HTTP_STRIPE_SIGNATURE", "")
-
-    print("webhook linked successfully")
 
     try:
         event = stripe.Webhook.construct_event(
@@ -54,56 +108,7 @@ def stripe_webhook(request):
         logger.warning("Stripe webhook: signature verification failed.")
         return HttpResponseBadRequest("Invalid signature")
 
-    # Idempotency: record the event id BEFORE processing. get_or_create is
-    # atomic at the DB level, so two near-simultaneous redeliveries of the
-    # same event can't both pass this check.
-    _, created = StripeEvent.objects.get_or_create(
-        stripe_event_id=event["id"],
-        defaults={"event_type": event["type"], "payload": event["data"]},
-    )
-    if not created:
-        logger.info(
-            "Stripe webhook: duplicate delivery of event %s, skipping.", event["id"]
-        )
-        return HttpResponse(status=200)
-
-    event_type = event["type"]
-    data_object = event["data"]["object"]
-
-    try:
-        if event_type == "checkout.session.completed":
-            StripeWebhookHandler.handle_checkout_completed(data_object)
-        elif event_type == "invoice.payment_succeeded":
-            StripeWebhookHandler.handle_invoice_payment_succeeded(data_object)
-        elif event_type == "invoice.payment_failed":
-            StripeWebhookHandler.handle_invoice_payment_failed(data_object)
-        elif event_type == "customer.subscription.deleted":
-            StripeWebhookHandler.handle_subscription_deleted(data_object)
-        elif event_type == "charge.refunded":
-            StripeWebhookHandler.handle_charge_refunded(data_object)
-        elif event_type == "payment_intent.succeeded":
-            StripeWebhookHandler.handle_payment_intent_succeeded(data_object)
-        elif event_type == "payment_intent.payment_failed":
-            StripeWebhookHandler.handle_payment_intent_failed(data_object)
-        elif event_type == "setup_intent.succeeded":
-            StripeWebhookHandler.handle_setup_intent_succeeded(data_object)
-
-        else:
-            logger.debug("Stripe webhook: unhandled event type %s.", event_type)
-    except Exception:
-        # Returning 500 tells Stripe to retry. Since we already recorded the
-        # event id above, a retry would normally be treated as a duplicate —
-        # so on a genuine processing failure we remove the record to allow
-        # a real retry instead of silently dropping the event forever.
-        StripeEvent.objects.filter(stripe_event_id=event["id"]).delete()
-        logger.exception(
-            "Stripe webhook: error processing event %s (%s).",
-            event["id"],
-            event_type,
-        )
-        return HttpResponse(status=500)
-
-    return HttpResponse(status=200)
+    return _record_and_dispatch(event, log_prefix="Stripe webhook")
 
 
 @csrf_exempt
@@ -133,49 +138,4 @@ def thin_webhook(request):
         logger.exception("Stripe thin webhook: failed to retrieve event %s", event_id)
         return HttpResponseBadRequest("Failed to retrieve event")
 
-    # Idempotency: record the event id BEFORE processing
-    _, created = StripeEvent.objects.get_or_create(
-        stripe_event_id=event["id"],
-        defaults={"event_type": event["type"], "payload": event["data"]},
-    )
-    if not created:
-        logger.info(
-            "Stripe thin webhook: duplicate delivery of event %s, skipping.",
-            event["id"],
-        )
-        return HttpResponse(status=200)
-
-    event_type = event["type"]
-    data_object = event["data"]["object"]
-
-    try:
-        if event_type == "checkout.session.completed":
-            StripeWebhookHandler.handle_checkout_completed(data_object)
-        elif event_type == "invoice.payment_succeeded":
-            StripeWebhookHandler.handle_invoice_payment_succeeded(data_object)
-        elif event_type == "invoice.payment_failed":
-            StripeWebhookHandler.handle_invoice_payment_failed(data_object)
-        elif event_type == "customer.subscription.deleted":
-            StripeWebhookHandler.handle_subscription_deleted(data_object)
-        elif event_type == "charge.refunded":
-            StripeWebhookHandler.handle_charge_refunded(data_object)
-        elif event_type == "payment_intent.succeeded":
-            StripeWebhookHandler.handle_payment_intent_succeeded(data_object)
-        elif event_type == "payment_intent.payment_failed":
-            StripeWebhookHandler.handle_payment_intent_failed(data_object)
-        elif event_type == "setup_intent.succeeded":
-            StripeWebhookHandler.handle_setup_intent_succeeded(data_object)
-
-        else:
-            logger.debug("Stripe thin webhook: unhandled event type %s.", event_type)
-    except Exception:
-        # On processing failure, remove the record to allow retry
-        StripeEvent.objects.filter(stripe_event_id=event["id"]).delete()
-        logger.exception(
-            "Stripe thin webhook: error processing event %s (%s).",
-            event["id"],
-            event_type,
-        )
-        return HttpResponse(status=500)
-
-    return HttpResponse(status=200)
+    return _record_and_dispatch(event, log_prefix="Stripe thin webhook")

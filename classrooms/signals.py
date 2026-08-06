@@ -1,9 +1,12 @@
+from decimal import ROUND_HALF_UP, Decimal
+
 from django.core.cache import cache
 from django.db import transaction
-from django.db.models import Avg
+from django.db.models import Sum
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
+from assignments.models import Assignment
 from classrooms.models import Course, School, Session, StudentCourse, Topic
 from students.models import StudentSubmission
 
@@ -113,25 +116,74 @@ def clear_topic_cache(sender, instance, **kwargs):
     )
 
 
-@receiver(post_save, sender=StudentSubmission)
-def update_student_course_final_grade(sender, instance, **kwargs):
-    """
-    When a submission is graded, recalculate the student's final grade
-    using the average of all submission percentages.
-    """
+def _course_id_for_assignment(assignment_id):
+    return (
+        Assignment.objects.filter(id=assignment_id)
+        .values_list("course_id", flat=True)
+        .first()
+    )
 
-    student = instance.student
-    course = instance.assignment.course
 
+def _recalculate_final_grade(student_id, course_id):
+    """
+    Recomputes a student's final grade for a course as a points-weighted
+    average across all graded submissions: sum(score) / sum(max_points) * 100.
+
+    Weighted (not a plain mean of percentages) so a 100-point exam counts
+    more than a 5-point quiz. Runs after every submission save *and*
+    delete so `final_grade` can't drift from submissions that were
+    resubmitted, ungraded, or removed after an earlier grade was recorded.
+    """
     try:
-        enrollment = StudentCourse.objects.get(student=student, course=course)
+        enrollment = StudentCourse.objects.get(
+            student_id=student_id, course_id=course_id
+        )
     except StudentCourse.DoesNotExist:
         return
 
-    avg_percentage = StudentSubmission.objects.filter(
-        student=student, assignment__course=course, score_percentage__isnull=False
-    ).aggregate(Avg("score_percentage"))["score_percentage__avg"]
+    totals = StudentSubmission.objects.filter(
+        student_id=student_id,
+        assignment__course_id=course_id,
+        graded_at__isnull=False,
+        score__isnull=False,
+        max_points__gt=0,
+    ).aggregate(total_score=Sum("score"), total_max_points=Sum("max_points"))
 
-    if avg_percentage is not None:
-        enrollment.final_grade = round(avg_percentage, 2)
+    total_score = totals["total_score"]
+    total_max_points = totals["total_max_points"]
+
+    if not total_max_points:
+        new_final_grade = None
+    else:
+        raw_grade = (total_score / total_max_points) * 100
+        # Clamp to the documented 0-100 scale so bad upstream data (extra
+        # credit pushing a score over 100%, a negative adjustment) can't
+        # silently fall outside every grade band in grade-distribution
+        # reporting.
+        clamped = max(Decimal("0"), min(Decimal("100"), raw_grade))
+        new_final_grade = clamped.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+    if enrollment.final_grade != new_final_grade:
+        enrollment.final_grade = new_final_grade
         enrollment.save(update_fields=["final_grade"])
+
+
+@receiver(post_save, sender=StudentSubmission)
+def update_student_course_final_grade(sender, instance, **kwargs):
+    """When a submission is saved, recalculate the student's final grade."""
+    course_id = _course_id_for_assignment(instance.assignment_id)
+    if course_id is None:
+        return
+    _recalculate_final_grade(instance.student_id, course_id)
+
+
+@receiver(post_delete, sender=StudentSubmission)
+def recalculate_final_grade_on_submission_delete(sender, instance, **kwargs):
+    """
+    A deleted submission's contribution to the final grade must be removed
+    too, otherwise final_grade keeps counting work that no longer exists.
+    """
+    course_id = _course_id_for_assignment(instance.assignment_id)
+    if course_id is None:
+        return
+    _recalculate_final_grade(instance.student_id, course_id)

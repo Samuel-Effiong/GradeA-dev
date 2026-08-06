@@ -3280,14 +3280,19 @@ class LicenseSubscriptionService:
         plan = license_sub.plan
         wallet, _ = CreditWallet.objects.get_or_create(user=teacher)
         raw_credits = blocks * plan.overage_block_size
-        expiry = license_sub.billing_cycle_end
 
+        # Overage never expires (expires_at=None) — the same invariant as
+        # every other overage grant path (_grant_overage_blocks,
+        # SubscriptionService.grant_overage_bucket, and the
+        # test_overage_never_expires suite). This path used to set
+        # expires_at=license_sub.billing_cycle_end, silently expiring
+        # paid-for blocks at cycle end.
         bucket = CreditBucket.objects.create(
             wallet=wallet,
             bucket_type=CreditBucketType.OVERAGE,
             total_credits=raw_credits,
             used_credits=0,
-            expires_at=expiry,
+            expires_at=None,
         )
 
         CreditWallet.objects.filter(pk=wallet.pk).update(

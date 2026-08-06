@@ -29,7 +29,7 @@ from drf_spectacular.utils import (
 # from PIL.Image import Image
 from rest_framework import filters, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotAcceptable, NotFound, ParseError
+from rest_framework.exceptions import NotAcceptable, ParseError
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -38,6 +38,7 @@ from rest_framework.status import (
     HTTP_201_CREATED,
     HTTP_202_ACCEPTED,
     HTTP_400_BAD_REQUEST,
+    HTTP_409_CONFLICT,
     HTTP_500_INTERNAL_SERVER_ERROR,
 )
 
@@ -61,6 +62,7 @@ from users.mixins import UserCacheMixin
 from users.models import CustomUser, UserTypes
 from users.permissions import HasCreditBalance
 
+from .exceptions import SubmissionGradingInProgressError
 from .models import (
     BackgroundTaskType,
     BatchUploadSession,
@@ -81,6 +83,7 @@ from .serializers import (
     StudentSubmissionUploadAsyncSerializer,
 )
 from .services import (
+    _coerce_confidence,
     grade_engine,
     notify_student_of_graded_submission,
     student_submission_to_html,
@@ -516,6 +519,12 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 submission.raw_input = (
                     AssignmentProcessingService.html_to_prosemirror_json(answer_html)
                 )
+                # Persist the extractor's confidence - the dashboard
+                # threshold-flags low-confidence extractions, which stayed 0
+                # forever while this field was silently dropped here.
+                submission.extraction_confidence = _coerce_confidence(
+                    student_submission.get("extraction_confidence")
+                )
                 submission.save()
 
                 serializer = StudentSubmissionListSerializer(submission)
@@ -549,19 +558,30 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         url_path="grade",
     )
     def grade(self, request, pk=None):
-        # Validate submission id
-        try:
-            submission = StudentSubmission.objects.get(pk=pk)
-        except StudentSubmission.DoesNotExist:
-            raise NotFound(
-                detail="No Student Submission with this ID is found"
-            ) from StudentSubmission.DoesNotExist
+        # get_object() runs get_queryset() (which scopes teachers to their
+        # own courses) plus check_object_permissions — using the manager
+        # directly here would let any teacher grade any submission by pk.
+        submission = self.get_object()
 
         try:
             submission = grade_engine(request.user, submission)
             serializer = StudentSubmissionDetailSerializer(submission)
 
             return Response(serializer.data, status=HTTP_200_OK)
+
+        except SubmissionGradingInProgressError:
+            # Not a failure — another request or a redelivered Celery task
+            # is already grading this submission. Surface as a distinct,
+            # non-alarming status rather than a 500.
+            return Response(
+                {
+                    "error": (
+                        "This submission is already being graded. Please "
+                        "wait for it to finish before trying again."
+                    )
+                },
+                status=HTTP_409_CONFLICT,
+            )
 
         except Exception as e:
             logger.error("Grading failed", exc_info=e)
@@ -690,16 +710,18 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     @action(
         detail=True,
         methods=["GET"],
+        # NOTE: this kwarg is dead — get_permissions() below overrides it and
+        # actually runs this action as [IsAuthenticated, IsTeacher,
+        # HasCreditBalance]. Don't "fix" it to match without auditing that
+        # override; doing so would newly expose this endpoint to students.
         permission_classes=[IsAuthenticated, IsTeacherOrReadOnly],
         url_path="teacher_feedback",
     )
     def teacher_feedback(self, request, pk=None):
-        try:
-            submission = StudentSubmission.objects.get(pk=pk)
-        except StudentSubmission.DoesNotExist:
-            raise NotFound(
-                detail="No Student Submission with this ID is found"
-            ) from StudentSubmission.DoesNotExist
+        # get_object() runs get_queryset() (which scopes teachers to their
+        # own courses) plus check_object_permissions — using the manager
+        # directly here would let any teacher read any submission by pk.
+        submission = self.get_object()
 
         assignment = submission.assignment
 
@@ -794,15 +816,48 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
 
         score = float(serializer.validated_data["score"])
-        total_score = float(feedback["grading_summary"]["max_total_points"])
-        percentage = round((score / total_score) * 100, 2)
 
+        try:
+            max_total_points = float(feedback["grading_summary"]["max_total_points"])
+        except (KeyError, TypeError, ValueError):
+            max_total_points = float(submission.max_points or 0)
+
+        if max_total_points <= 0:
+            return Response(
+                {
+                    "error": (
+                        "This submission has no recorded maximum points, so "
+                        "a percentage cannot be calculated. Re-grade the "
+                        "submission first."
+                    )
+                },
+                status=HTTP_400_BAD_REQUEST,
+            )
+
+        # A manual override must stay within the assignment's bounds — an
+        # unclamped PATCH could store 500/10 (and a percentage >= 1000
+        # crashes at save time on the 5-digit decimal column).
+        if score < 0 or score > max_total_points:
+            return Response(
+                {
+                    "error": (
+                        f"Score must be between 0 and "
+                        f"{max_total_points:g} for this assignment."
+                    )
+                },
+                status=HTTP_400_BAD_REQUEST,
+            )
+
+        percentage = round((score / max_total_points) * 100, 2)
+
+        feedback.setdefault("grading_summary", {})
         feedback["grading_summary"]["total_score"] = score
         feedback["grading_summary"]["percentage"] = percentage
+        feedback["grading_summary"].setdefault("max_total_points", max_total_points)
 
         submission.score = float(score)
         submission.score_percentage = percentage
-        submission.max_points = total_score
+        submission.max_points = int(max_total_points)
 
         submission.feedback = feedback
         submission.was_regraded = True

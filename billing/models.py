@@ -639,6 +639,49 @@ class CreditWallet(models.Model):
 
         return result["total"] or 0
 
+    def plan_remaining_credits(self):
+        """
+        Like total_remaining_credits(), but excludes OVERAGE buckets.
+
+        OVERAGE buckets are purchased reactively, after a user has already
+        exhausted their plan — they aren't part of a fixed allocation, so
+        folding them into a "% of plan consumed" figure would make that
+        percentage swing unpredictably every time a user buys more, rather
+        than reflecting how much of their actual plan they've used.
+        """
+        now = timezone.now()
+        result = (
+            self.buckets.filter(
+                models.Q(expires_at__isnull=True) | models.Q(expires_at__gt=now)
+            )
+            .exclude(bucket_type=CreditBucketType.OVERAGE)
+            .aggregate(
+                total=models.Sum(models.F("total_credits") - models.F("used_credits"))
+            )
+        )
+        return result["total"] or 0
+
+    def plan_used_credits(self):
+        """
+        Credits consumed from the CURRENTLY LIVE non-overage buckets — the
+        companion numerator to plan_remaining_credits(): both are read from
+        the same live bucket rows, so used / (used + remaining) is a
+        coherent "% of current plan consumed". (Summing CreditUsageLog
+        instead would mix an all-time numerator with a current-cycle
+        denominator, inflating the percentage toward 100% as history
+        accumulates.) Refunds are already reflected here because
+        refund_credits decrements the bucket's used_credits directly.
+        """
+        now = timezone.now()
+        result = (
+            self.buckets.filter(
+                models.Q(expires_at__isnull=True) | models.Q(expires_at__gt=now)
+            )
+            .exclude(bucket_type=CreditBucketType.OVERAGE)
+            .aggregate(total=models.Sum("used_credits"))
+        )
+        return result["total"] or 0
+
     def live_carry_over_total(self, now=None, exclude_bucket_id=None, lock=True):
         """
         Sum of remaining (total_credits - used_credits) across every
@@ -769,7 +812,13 @@ class CreditWallet(models.Model):
 
     @transaction.atomic
     def consume_credits(
-        self, amount, feature=None, task_type=None, task_id=None, course=None
+        self,
+        amount,
+        feature=None,
+        task_type=None,
+        task_id=None,
+        course=None,
+        school=None,
     ):
         """
         Consumes credits from the user's wallet using a type-priority,
@@ -799,6 +848,10 @@ class CreditWallet(models.Model):
             task_id (str, optional): Task ID for refund traceability.
             course (Course, optional): Course the task was performed under,
                 when known, for per-session usage attribution.
+            school (School, optional): The billed user's school at the
+                moment of consumption — a snapshot for historically
+                accurate school-level reporting even if the user is later
+                reassigned to a different school.
 
         Returns:
             int: The amount consumed (always equals requested amount on success).
@@ -811,10 +864,9 @@ class CreditWallet(models.Model):
 
         total_available = self.total_remaining_credits()
 
-        while total_available < amount:
-
+        if total_available < amount:
             raise InsufficientCreditsError(
-                f"Insufficient credits and overage limit reached. "
+                f"Insufficient credits. "
                 f"Requested: {amount}, Available: {total_available}"
             )
 
@@ -877,6 +929,9 @@ class CreditWallet(models.Model):
             deducted = bucket.consume_credits(remaining)
             remaining -= deducted
 
+            if not deducted:
+                continue
+
             usage_log.append(
                 CreditUsageLog(
                     wallet=self,
@@ -886,6 +941,7 @@ class CreditWallet(models.Model):
                     task_type=task_type,
                     task_id=task_id,
                     course=course,
+                    school=school,
                 )
             )
 
@@ -907,10 +963,63 @@ class CreditWallet(models.Model):
                 )
             )
 
+        if remaining > 0:
+            # Defensive: total_remaining_credits() said the balance was
+            # sufficient, but the locked bucket scan couldn't cover the
+            # full amount (e.g. a bucket crossed its expires_at between the
+            # two reads). Raising here rolls the whole charge back rather
+            # than silently under-charging while reporting the full amount
+            # as consumed.
+            raise InsufficientCreditsError(
+                f"Insufficient credits. Requested: {amount}, "
+                f"Available: {amount - remaining}"
+            )
+
         CreditUsageLog.objects.bulk_create(usage_log)
         CreditLedger.objects.bulk_create(ledger_log)
 
+        # Explicit call, NOT a post_save signal: bulk_create never emits
+        # post_save, so a signal-based hook here silently never fires (which
+        # is exactly how license consumption tracking was broken before).
+        self._record_license_consumption(amount)
+
         return amount
+
+    def _record_license_consumption(self, amount):
+        """
+        Roll this consumption up into the owning LicenseSubscription's
+        per-cycle total_credits_consumed, if the wallet owner is an active
+        non-admin teacher seat under an active license. Admin analytics
+        allocations (is_admin_allocation=True) are deliberately excluded,
+        matching every other place that counts license consumption.
+
+        Runs inside consume_credits' transaction; the single-statement F()
+        update is atomic, so no extra row lock is needed. Acquired last —
+        after the wallet and bucket locks — in both the consume and refund
+        paths, so lock ordering stays consistent between them.
+        """
+        if amount <= 0:
+            return
+
+        allocation = (
+            SchoolCreditAllocation.objects.filter(
+                user=self.user,
+                is_active=True,
+                is_admin_allocation=False,
+                license_subscription__is_active=True,
+            )
+            .only("id", "license_subscription_id")
+            .first()
+        )
+        if not allocation:
+            return
+
+        LicenseSubscription.objects.filter(
+            pk=allocation.license_subscription_id
+        ).update(
+            total_credits_consumed=models.F("total_credits_consumed") + amount,
+            updated_at=timezone.now(),
+        )
 
     @property
     def display_balance(self):
@@ -1134,6 +1243,25 @@ class CreditUsageLog(models.Model):
             "existed."
         ),
     )
+    school = models.ForeignKey(
+        "classrooms.School",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="credit_usage_logs",
+        help_text=(
+            "The school the billed user (teacher or school admin) belonged "
+            "to at the moment these credits were consumed — a snapshot, "
+            "deliberately NOT derived by joining to the user's current "
+            "`school` FK. That field is mutable (a teacher can be "
+            "reassigned to a different school after the fact), so joining "
+            "live would retroactively misattribute historical usage to "
+            "whichever school the user happens to belong to today. Null "
+            "if the user had no school at consumption time (e.g. an "
+            "individual, non-license teacher), or for usage logged before "
+            "this field existed."
+        ),
+    )
     amount = models.IntegerField(help_text="Amount of credits consumed from the bucket")
     feature = models.CharField(
         max_length=200,
@@ -1159,6 +1287,9 @@ class CreditUsageLog(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["task_id"], name="billing_usagelog_task_idx"),
+        ]
 
 
 class BetaProfile(models.Model):

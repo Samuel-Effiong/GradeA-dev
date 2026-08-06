@@ -167,7 +167,17 @@ def encode_image(uploaded_file=None, image_byte=None):
 
 
 def safe_sort_key(x):
-    return int(x) if str(x).isdigit() else str(x)
+    """
+    Sort key for question_number values of unknown type. Returns a tuple so
+    a collection mixing ints and non-numeric strings (1, "2a", "3") sorts
+    deterministically - numeric values first in numeric order, then the
+    rest lexically - instead of raising TypeError the way a bare
+    int-or-str key does when Python compares int to str.
+    """
+    s = str(x).strip()
+    if s.isdigit():
+        return (0, int(s), "")
+    return (1, 0, s)
 
 
 def _to_rgb(image: Image.Image) -> Image.Image:

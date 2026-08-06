@@ -1,9 +1,11 @@
 import logging
+from collections import defaultdict
 
 from dateutil.relativedelta import relativedelta  # type: ignore
 from django.conf import settings
 from django.db import transaction
-from django.db.models import F, Q
+from django.db.models import F, Q, Value
+from django.db.models.functions import Greatest
 from django.template.loader import render_to_string
 from django.utils import timezone
 
@@ -20,9 +22,11 @@ from .models import (  # CreditUsageLog,; SubscriptionPlan,
     CreditLedgerType,
     CreditUsageLog,
     CreditWallet,
+    LicenseSubscription,
     PlanCategory,
     PlanTier,
     PlanType,
+    SchoolCreditAllocation,
     StripeSubscriptionStatus,
     SubscriptionPlan,
     UserSubscription,
@@ -1036,48 +1040,157 @@ class SubscriptionService:
         )
 
     @staticmethod
-    @transaction.atomic
-    def refund_credits(task_id):
+    def refund_credits(task_id, reason=None):
         """
-        Locates all consumption logs for a specific task and restores
-        the credits to their original buckets.
+        Restores credits consumed under `task_id` to their originating
+        buckets.
+
+        Idempotent: only logs with is_refunded=False are considered, and
+        both those logs and the buckets they point at are locked FOR UPDATE,
+        so a concurrent or Celery-redelivered caller cannot double-refund —
+        the second caller blocks on the first's row locks, then re-reads and
+        finds nothing left to do.
         """
-
-        # 1. Fetch all usage logs for this task
-        usage_logs = CreditUsageLog.objects.filter(task_id=task_id)
-
-        if not usage_logs.exists():
+        if not task_id:
             return 0
 
+        refund_note = reason or "failed task"
+        analytics_reversals = defaultdict(int)  # (user_id, feature) -> amount
+        users_by_id = {}
         total_refunded = 0
+        refunded_log_ids = []
 
-        for log in usage_logs:
-            bucket = log.bucket
-            amount_to_restore = log.amount
+        with transaction.atomic():
+            # Lock the usage logs first: this both claims them against a
+            # concurrent refunder and gives us the wallet/bucket set to lock.
+            # of=("self",) restricts the lock to the log rows themselves —
+            # without it, select_for_update + select_related locks every
+            # joined table (buckets, wallets, and even users) in join order,
+            # which both over-locks and defeats the deliberate wallet-then-
+            # bucket lock ordering established just below.
+            logs = list(
+                CreditUsageLog.objects.select_for_update(of=("self",))
+                .filter(task_id=task_id, is_refunded=False)
+                .select_related("bucket", "wallet__user")
+                .order_by("created_at")
+            )
+            if not logs:
+                return 0
 
-            # 2. Restore the credits to the original bucket
-            # Note: We decrease `used_credits` to increase `remaining_credits`
-            bucket.used_credits = F("used_credits") - amount_to_restore
-            bucket.save(update_fields=["used_credits", "updated_at"])
-
-            # 3. Creaate the REFUND ledger entry for audit integrity
-            CreditLedger.objects.create(
-                user=log.wallet.user,
-                bucket=bucket,
-                ledger_type=CreditLedgerType.REFUND,
-                amount=amount_to_restore,
-                reference=f"Refund for failed task {task_id}",
-                metadata={
-                    "original_task_id": task_id,
-                    "feature": log.feature,
-                    "original_usage_log_id": str(log.id),
-                },
+            # Lock wallet rows before bucket rows, in the same order
+            # CreditWallet.consume_credits does (select_for_update on the
+            # wallet, then on its buckets). Locking in the opposite order
+            # here would deadlock against a concurrent consume.
+            wallet_ids = sorted({log.wallet_id for log in logs})
+            list(
+                CreditWallet.objects.select_for_update()
+                .filter(pk__in=wallet_ids)
+                .order_by("pk")
             )
 
-            total_refunded += amount_to_restore
+            bucket_ids = sorted({log.bucket_id for log in logs})
+            buckets = (
+                CreditBucket.objects.select_for_update()
+                .filter(pk__in=bucket_ids)
+                .in_bulk()
+            )
 
-        usage_logs.update(is_refunded=True)
+            ledger_rows = []
 
+            for log in logs:
+                bucket = buckets.get(log.bucket_id)
+                if bucket is None:
+                    # Bucket vanished (CASCADE would normally have taken the
+                    # log with it, so this is defensive). Mark refunded
+                    # anyway so we don't keep retrying a dead reference.
+                    refunded_log_ids.append(log.id)
+                    continue
+
+                # used_credits is a PositiveIntegerField with a Postgres
+                # CHECK >= 0. Clamp to a concrete value rather than an
+                # F()-decrement so a partially-refunded or externally-reset
+                # bucket can never push it negative and raise IntegrityError.
+                amount = max(0, min(log.amount, bucket.used_credits))
+
+                if amount:
+                    bucket.used_credits -= amount
+                    bucket.save(update_fields=["used_credits", "updated_at"])
+
+                    user = log.wallet.user
+                    users_by_id[user.id] = user
+                    analytics_reversals[(user.id, log.feature)] += amount
+                    total_refunded += amount
+
+                    # Only a refund that actually moved credits earns a
+                    # ledger entry — a zero-amount clamp (bucket already
+                    # externally drained/reset) is just audit noise; the
+                    # is_refunded flip below still records that the log
+                    # was settled.
+                    ledger_rows.append(
+                        CreditLedger(
+                            user=log.wallet.user,
+                            bucket=bucket,
+                            ledger_type=CreditLedgerType.REFUND,
+                            amount=amount,
+                            reference=f"Refund for {refund_note} ({task_id})",
+                            metadata={
+                                "original_task_id": task_id,
+                                "feature": log.feature,
+                                "task_type": log.task_type,
+                                "original_usage_log_id": str(log.id),
+                                "logged_amount": log.amount,
+                                "refunded_amount": amount,
+                                "reason": refund_note,
+                            },
+                        )
+                    )
+                refunded_log_ids.append(log.id)
+
+            CreditLedger.objects.bulk_create(ledger_rows)
+            CreditUsageLog.objects.filter(id__in=refunded_log_ids).update(
+                is_refunded=True
+            )
+
+            for (user_id, feature), amount in analytics_reversals.items():
+                AnalyticsService.record_refund(
+                    user=users_by_id[user_id], amount=amount, feature=feature
+                )
+
+            # Reverse the per-cycle license consumption rollup that
+            # consume_credits recorded (CreditWallet._record_license_
+            # consumption). Clamped at zero: the counter may already have
+            # been reset by a cycle renewal between consume and refund.
+            license_reversals = defaultdict(int)  # user_id -> amount
+            for (user_id, _feature), amount in analytics_reversals.items():
+                license_reversals[user_id] += amount
+            for user_id, amount in license_reversals.items():
+                allocation = (
+                    SchoolCreditAllocation.objects.filter(
+                        user_id=user_id,
+                        is_active=True,
+                        is_admin_allocation=False,
+                        license_subscription__is_active=True,
+                    )
+                    .only("id", "license_subscription_id")
+                    .first()
+                )
+                if allocation:
+                    LicenseSubscription.objects.filter(
+                        pk=allocation.license_subscription_id
+                    ).update(
+                        total_credits_consumed=Greatest(
+                            F("total_credits_consumed") - amount, Value(0)
+                        ),
+                        updated_at=timezone.now(),
+                    )
+
+        logger.info(
+            "Refunded %s credits across %s usage log(s) for task %s (%s)",
+            total_refunded,
+            len(refunded_log_ids),
+            task_id,
+            refund_note,
+        )
         return total_refunded
 
     @staticmethod
@@ -1765,6 +1878,18 @@ class ManualCreditService:
         return grants
 
 
+# Shared by AnalyticsService.record_consumption and .record_refund so the
+# two paths can never drift apart — a refund must decrement the exact
+# per-feature counter its matching consumption incremented.
+FEATURE_TO_ANALYTICS_FIELD = {
+    "Grading Assignment": "credits_used_grading",
+    "Assignment Extraction": "credits_used_creation",
+    "Assignment Generation": "credits_used_creation",
+    "Formatted Grade": "credits_used_feedback",
+    "Student Summary": "credits_used_feedback",
+}
+
+
 class AnalyticsService:
 
     @staticmethod
@@ -1812,19 +1937,9 @@ class AnalyticsService:
         # 2. Update Raw Total using F() expressions to prevent race conditions
         profile.total_credits_used = F("total_credits_used") + amount
 
-        grading_categories = ["Grading Assignment"]
-        creation_categories = [
-            "Assignment Extraction",
-            "Assignment Generation",
-        ]
-        feedback_categories = ["Formatted Grade", "Student Summary"]
-
-        if feature in grading_categories:
-            profile.credits_used_grading = F("credits_used_grading") + amount
-        elif feature in creation_categories:
-            profile.credits_used_creation = F("credits_used_creation") + amount
-        elif feature in feedback_categories:
-            profile.credits_used_feedback = F("credits_used_feedback") + amount
+        analytics_field = FEATURE_TO_ANALYTICS_FIELD.get(feature)
+        if analytics_field:
+            setattr(profile, analytics_field, F(analytics_field) + amount)
 
         profile.save()
 
@@ -1847,6 +1962,49 @@ class AnalyticsService:
                 "days_to_first_action",
             ]
         )
+
+    @staticmethod
+    @transaction.atomic
+    def record_refund(user, amount, feature):
+        """
+        Reverses record_consumption for credits that were refunded (e.g. an
+        AI grading run that failed partway through — see
+        SubscriptionService.refund_credits, which calls this once per
+        (user, feature) it refunds).
+
+        Deliberately does NOT clear has_hit_cap / has_hit_80_percent: those
+        are "ever reached" signals used only by beta reporting (grep confirms
+        no read outside billing/serializers.py and billing/views.py) — not
+        access gates — so un-setting them would rewrite history for a teacher
+        who genuinely did burn through their allocation at some point.
+        """
+        if amount <= 0 or not user.is_beta_eligible():
+            return
+
+        profile = BetaProfile.objects.filter(user=user).first()
+        if profile is None:
+            return
+
+        # total_credits_used and the per-feature counters are all
+        # PositiveIntegerField (Postgres CHECK >= 0) — clamp at 0 rather than
+        # a bare F() decrement, since a refund can in principle outrun the
+        # counter (e.g. the profile was created after some consumption, or
+        # credits were reset out of band).
+        update_fields = ["total_credits_used"]
+        profile.total_credits_used = Greatest(
+            F("total_credits_used") - amount, Value(0)
+        )
+
+        analytics_field = FEATURE_TO_ANALYTICS_FIELD.get(feature)
+        if analytics_field:
+            setattr(
+                profile,
+                analytics_field,
+                Greatest(F(analytics_field) - amount, Value(0)),
+            )
+            update_fields.append(analytics_field)
+
+        profile.save(update_fields=update_fields)
 
     @staticmethod
     def calculate_conversion_probability(profile):

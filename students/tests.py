@@ -98,6 +98,125 @@ class StudentSubmissionGradeUpdateTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 
+class StudentSubmissionCrossTenantAccessTest(APITestCase):
+    """
+    Regression coverage for an IDOR: `grade` and `teacher_feedback` used to
+    fetch the submission with StudentSubmission.objects.get(pk=pk) directly,
+    bypassing get_queryset()'s `assignment__course__teacher=user` scoping
+    that every other teacher-only action on this viewset relies on. Any
+    authenticated teacher could grade or read any submission in the system
+    given only its UUID. Fixed by routing both actions through
+    self.get_object(), which applies get_queryset() + object permissions.
+    """
+
+    def setUp(self):
+        self.owning_teacher = CustomUser.objects.create_user(
+            email="owner@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            first_name="Owning",
+            last_name="Teacher",
+        )
+        self.other_teacher = CustomUser.objects.create_user(
+            email="other@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            first_name="Other",
+            last_name="Teacher",
+        )
+        self.student = CustomUser.objects.create_user(
+            email="student2@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.STUDENT,
+            first_name="Some",
+            last_name="Student",
+        )
+        session = Session.objects.create(
+            name="Test Session", teacher=self.owning_teacher
+        )
+        self.course = Course.objects.create(
+            name="Test Course", teacher=self.owning_teacher, session=session
+        )
+        self.assignment = Assignment.objects.create(
+            title="Test Assignment",
+            course=self.course,
+            questions={"q1": "What is 1+1?"},
+        )
+        self.submission = StudentSubmission.objects.create(
+            assignment=self.assignment,
+            student=self.student,
+            answers={"q1": "2"},
+        )
+
+        # HasCreditBalance runs before the object lookup — an attacker with
+        # an empty wallet gets a 403 either way, which would mask whether
+        # the IDOR fix is actually in place. Give the attacking teacher
+        # credits so a pass here can only mean the queryset scoping worked.
+        for teacher in (self.owning_teacher, self.other_teacher):
+            wallet, _ = CreditWallet.objects.get_or_create(user=teacher)
+            CreditBucket.objects.create(
+                wallet=wallet,
+                bucket_type=CreditBucketType.MONTHLY,
+                total_credits=100_000,
+                used_credits=0,
+                expires_at=timezone.now() + timedelta(days=30),
+            )
+
+        self.grade_url = reverse(
+            "student-submission-grade", kwargs={"pk": self.submission.pk}
+        )
+        self.feedback_url = reverse(
+            "student-submission-teacher-feedback", kwargs={"pk": self.submission.pk}
+        )
+
+    @patch("students.views.grade_engine")
+    def test_other_teacher_cannot_grade_submission(self, mock_grade_engine):
+        self.client.force_authenticate(user=self.other_teacher)
+        response = self.client.post(self.grade_url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        # The load-bearing assertion: a denied request must not reach the
+        # AI pipeline and spend the attacker's (or anyone's) credits.
+        mock_grade_engine.assert_not_called()
+
+    @patch("students.views.grade_engine")
+    def test_owning_teacher_can_grade_submission(self, mock_grade_engine):
+        mock_grade_engine.return_value = self.submission
+        self.client.force_authenticate(user=self.owning_teacher)
+        response = self.client.post(self.grade_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_grade_engine.assert_called_once()
+
+    def test_other_teacher_cannot_read_teacher_feedback(self):
+        self.submission.feedback = {
+            "grading_summary": {
+                "total_score": 8,
+                "max_total_points": 10,
+                "percentage": 80,
+            }
+        }
+        self.submission.formatted_grade = "Great work!"
+        self.submission.save(update_fields=["feedback", "formatted_grade"])
+
+        self.client.force_authenticate(user=self.other_teacher)
+        response = self.client.get(self.feedback_url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_owning_teacher_can_read_teacher_feedback(self):
+        self.submission.feedback = {
+            "grading_summary": {
+                "total_score": 8,
+                "max_total_points": 10,
+                "percentage": 80,
+            }
+        }
+        self.submission.formatted_grade = "Great work!"
+        self.submission.save(update_fields=["feedback", "formatted_grade"])
+
+        self.client.force_authenticate(user=self.owning_teacher)
+        response = self.client.get(self.feedback_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
 class StudentSubmissionNotificationTest(APITestCase):
     def setUp(self):
         self.teacher = CustomUser.objects.create_user(

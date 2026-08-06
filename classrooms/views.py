@@ -1,6 +1,7 @@
 import csv
 import io
 import logging
+import uuid
 
 from dateutil.relativedelta import relativedelta
 from django.conf import settings
@@ -138,6 +139,23 @@ def _parse_row_without_headers(row):
         "middle_name": name_parts[2] if len(name_parts) > 2 else "",
         "email": email,
     }
+
+
+def _validate_uuid_query_param(value, param_name):
+    """Validate a query-param string is a well-formed UUID.
+
+    Filtering directly on a malformed UUID (e.g. `.filter(school_id=value)`)
+    raises Django's `django.core.exceptions.ValidationError` deep inside the
+    ORM, which DRF's exception handler doesn't translate to a clean 400 —
+    it surfaces as an unhandled 500. Validate up front instead and raise
+    DRF's own `ValidationError` so it's a normal 400 response.
+    """
+    try:
+        uuid.UUID(str(value))
+    except (ValueError, TypeError, AttributeError) as exc:
+        raise ValidationError(
+            {param_name: [f"'{value}' is not a valid UUID."]}
+        ) from exc
 
 
 @extend_schema_view(
@@ -314,6 +332,15 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         detail=False,
         methods=["get"],
         url_path="admin-summary",
+        # Explicit, to avoid a url-name collision: DRF's default url_name
+        # comes from the method name ("admin-summary"), which combined with
+        # this viewset's "school" basename produces "school-admin-summary"
+        # - the exact same reverse() name that dashboard.SchoolAdminDashboardView's
+        # `summary` action (basename "school-admin") also produces by
+        # coincidence, even though the two endpoints share nothing (paths
+        # are /schools/admin-summary vs /school-admin/dashboard/summary).
+        # Whichever URL Django registered last silently wins on reverse().
+        url_name="admins-summary",
     )
     def admin_summary(self, request, *args, **kwargs):
         """
@@ -354,13 +381,19 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         # 3. Tokens used (sum of raw credits consumed by teachers and school
         # admins in the school — school admins can also directly trigger
-        # credit-consuming AI features, billed to their own wallet)
+        # credit-consuming AI features, billed to their own wallet).
+        # Scoped by CreditUsageLog.school — a snapshot of the billed user's
+        # school taken at consumption time — not wallet__user__school (the
+        # user's CURRENT school), so a teacher who later transfers to a
+        # different school doesn't retroactively drag their historical
+        # usage along with them.
         tokens_sub = Subquery(
             CreditUsageLog.objects.filter(
-                wallet__user__school=OuterRef("school"),
+                school=OuterRef("school"),
                 wallet__user__user_type__in=["TEACHER", "SCHOOL_ADMIN"],
+                is_refunded=False,
             )
-            .values("wallet__user__school")
+            .values("school")
             .annotate(total=Sum("amount"))
             .values("total"),
             output_field=IntegerField(),
@@ -470,13 +503,17 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         )
 
         # Tokens used (sum of raw credits consumed by teachers and school
-        # admins in the school)
+        # admins in the school). Scoped by CreditUsageLog.school (a
+        # snapshot at consumption time), not wallet__user__school (the
+        # user's current school) — see the tokens_sub comment in
+        # admin_summary() above for why that distinction matters.
         tokens_sub = Subquery(
             CreditUsageLog.objects.filter(
-                wallet__user__school=OuterRef("id"),
+                school=OuterRef("id"),
                 wallet__user__user_type__in=["TEACHER", "SCHOOL_ADMIN"],
+                is_refunded=False,
             )
-            .values("wallet__user__school")
+            .values("school")
             .annotate(total=Sum("amount"))
             .values("total"),
             output_field=IntegerField(),
@@ -627,28 +664,34 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # Every token consumed by the school's teachers and school admins —
         # school admins can also directly trigger credit-consuming AI
         # features (weekly summaries, custom prompts), billed to their own
-        # wallet, so they're included here too.
+        # wallet, so they're included here too. Scoped by
+        # CreditUsageLog.school — a snapshot of the billed user's school
+        # taken at consumption time — not wallet__user__school (the user's
+        # CURRENT school): a teacher who later transfers to a different
+        # school must not retroactively drag their historical usage along
+        # with them, nor vanish from the school they earned it under.
         school_wallet_filter = Q(
-            wallet__user__school=school,
+            school=school,
             wallet__user__user_type__in=["TEACHER", "SCHOOL_ADMIN"],
         )
         tokens_total = (
-            CreditUsageLog.objects.filter(school_wallet_filter).aggregate(
-                total=Sum("amount")
-            )["total"]
-            or 0
-        )
-        # Only the subset of usage logs tied to a Course (hence a Session)
-        # can be shown per-session below; the rest (school-admin actions,
-        # custom AI chat, pre-Assignment extraction) has no course context
-        # to attribute to and is surfaced separately as tokens_unattributed.
-        tokens_attributed = (
             CreditUsageLog.objects.filter(
-                school_wallet_filter, course__isnull=False
+                school_wallet_filter, is_refunded=False
             ).aggregate(total=Sum("amount"))["total"]
             or 0
         )
-        tokens_unattributed = tokens_total - tokens_attributed
+        # tokens_unattributed is computed further down, as tokens_total
+        # minus whatever ends up actually displayed in session_breakdown —
+        # not as a separate "course__isnull=False" query. That residual
+        # approach guarantees sum(session tokens) + tokens_unattributed ==
+        # tokens_used by construction, which a separate query can't: a
+        # usage log can have a real course attached and still not be
+        # displayable here, e.g. if the course's session no longer belongs
+        # to this school by current roster (a teacher transferred schools
+        # after the fact - assignments/students/sessions below are scoped
+        # by the teacher's CURRENT school, while tokens are scoped by the
+        # snapshot on CreditUsageLog.school, so the two can legitimately
+        # diverge for a transferred teacher's old activity).
         # SCHOOL-owned sessions have no `teacher` (see Session.clean()) -
         # they're shared across every teacher in the school - so counting
         # via teacher__school alone misses them entirely.
@@ -689,10 +732,19 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
             .values("course__session", "course__teacher")
             .annotate(count=Count("student", distinct=True))
         }
+        # course__isnull=False here is now load-bearing, not incidental:
+        # school_wallet_filter no longer implies a non-null course via an
+        # INNER JOIN the way `course__teacher__school=school` used to (that
+        # clause is gone — it was current-state-biased in the same way
+        # wallet__user__school was, via the course's teacher's CURRENT
+        # school rather than a snapshot). Without this filter, usage with
+        # no course context would group under a (None, None) key that's
+        # simply never looked up below — harmless, but wasteful and
+        # unclear; excluding it up front is both cheaper and more explicit.
         tokens_by_key = {
             (row["course__session"], row["course__teacher"]): row["total"]
             for row in CreditUsageLog.objects.filter(
-                school_wallet_filter, course__teacher__school=school
+                school_wallet_filter, course__isnull=False, is_refunded=False
             )
             .values("course__session", "course__teacher")
             .annotate(total=Sum("amount"))
@@ -762,6 +814,14 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 }
             )
 
+        # See the NOTE above tokens_total: computed as a residual so the
+        # invariant sum(session_breakdown[].tokens) + tokens_unattributed
+        # == tokens_used holds by construction, no matter what caused a
+        # given usage log to not show up in session_breakdown above.
+        tokens_unattributed = tokens_total - sum(
+            row["tokens"] for row in session_breakdown
+        )
+
         # ---- Assemble response ----
         data = {
             "id": str(school.id),
@@ -793,6 +853,15 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
             Returns a paginated list of teachers with aggregate stats
             (assignments, students, tokens used). Optionally filter by school
             and academic session.
+
+            Without session_id, tokens_used is the teacher's full personal
+            token total (every AI feature they've used, not just teaching
+            activity). With session_id, tokens_used is scoped to that
+            session's courses like assignments/students are, and the rest
+            of the teacher's total (other sessions, or usage with no course
+            context at all — custom AI chat, pre-Assignment extraction) is
+            reported separately as tokens_used_outside_session so it isn't
+            silently dropped.
         """,
         parameters=[
             OpenApiParameter(
@@ -805,7 +874,12 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 name="session_id",
                 type=str,
                 location="query",
-                description="Filter by academic session UUID (limits assignments and students to that session).",
+                description=(
+                    "Filter by academic session UUID (limits assignments, "
+                    "students, and tokens_used to that session; the "
+                    "remainder of the teacher's token usage outside this "
+                    "session is reported as tokens_used_outside_session)."
+                ),
             ),
             OpenApiParameter(
                 name="search",
@@ -840,11 +914,13 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # Optional filters
         school_id = request.query_params.get("school_id")
         if school_id:
+            _validate_uuid_query_param(school_id, "school_id")
             teachers = teachers.filter(school_id=school_id)
 
         session_id = request.query_params.get("session_id")
         session_filter = Q()
         if session_id:
+            _validate_uuid_query_param(session_id, "session_id")
             session_filter = Q(course__session_id=session_id)
 
         # --- Subqueries for teacher-level aggregates ---
@@ -867,9 +943,27 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
             .values("distinct_students"),
             output_field=IntegerField(),
         )
-        # 3. Tokens used (sum of CreditUsageLog amounts for this teacher)
+        # 3. Tokens used (sum of CreditUsageLog amounts for this teacher,
+        # filtered by session if provided — same course__session_id path as
+        # assignments/students above, now possible since CreditUsageLog has
+        # a `course` FK). Also compute the teacher's unfiltered lifetime
+        # total so the portion excluded by the session filter (other
+        # sessions, or usage with no course context at all) can be reported
+        # rather than silently dropped.
         total_tokens_sub = Subquery(
-            CreditUsageLog.objects.filter(wallet__user=OuterRef("id"))
+            CreditUsageLog.objects.filter(
+                wallet__user=OuterRef("id"), is_refunded=False
+            )
+            .filter(session_filter)
+            .values("wallet__user")
+            .annotate(total=Sum("amount"))
+            .values("total"),
+            output_field=IntegerField(),
+        )
+        full_tokens_sub = Subquery(
+            CreditUsageLog.objects.filter(
+                wallet__user=OuterRef("id"), is_refunded=False
+            )
             .values("wallet__user")
             .annotate(total=Sum("amount"))
             .values("total"),
@@ -881,6 +975,7 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
             assignment_count=Coalesce(assignments_count_sub, Value(0)),
             student_count=Coalesce(students_count_sub, Value(0)),
             total_tokens=Coalesce(total_tokens_sub, Value(0)),
+            full_tokens=Coalesce(full_tokens_sub, Value(0)),
         )
 
         # --- Search ---
@@ -899,7 +994,7 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
             "email": "email",
             "school": "school__name",
             "assignments": "assignment_count",
-            "students": "students_count",
+            "students": "student_count",
             "tokens_used": "total_tokens",
         }
         if ordering.startswith("-"):
@@ -936,6 +1031,8 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     "assignments": teacher.assignment_count,
                     "students": teacher.student_count,
                     "tokens_used": teacher.total_tokens,
+                    "tokens_used_outside_session": teacher.full_tokens
+                    - teacher.total_tokens,
                 }
             )
 
@@ -944,7 +1041,15 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
     @extend_schema(
         tags=["School"],
         summary="Monthly token usage",
-        description="Returns monthly token consumption for a school over the past 12 months (or custom range).",
+        description=(
+            "Returns monthly token consumption for a school over the past "
+            "12 months (or custom range). Scoped by CreditUsageLog.school "
+            "— a snapshot of each billed user's school taken at "
+            "consumption time — so a teacher transferring schools doesn't "
+            "retroactively move their historical usage, and a school's "
+            "history stays visible even if every teacher who generated it "
+            "has since left."
+        ),
         parameters=[
             OpenApiParameter(
                 name="school_id",
@@ -975,6 +1080,7 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # Determine school
         school_id = request.query_params.get("school_id")
         if school_id:
+            _validate_uuid_query_param(school_id, "school_id")
             # Superadmin can specify any school
             if not (
                 request.user.is_superuser or request.user.user_type == "SUPER_ADMIN"
@@ -995,31 +1101,37 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if not school_id:
             return Response({"detail": "School not found for this user."}, status=404)
 
+        if not School.objects.filter(id=school_id).exists():
+            return Response({"detail": "School not found."}, status=404)
+
         # Number of months to look back
         months = int(request.query_params.get("months", 12))
         if months < 1 or months > 36:
             months = 12
 
-        # Get teachers and school admins in this school — school admins can
-        # also directly trigger credit-consuming AI features, billed to
-        # their own wallet, so they're included for a complete picture.
-        school_user_ids = CustomUser.objects.filter(
-            school_id=school_id, user_type__in=["TEACHER", "SCHOOL_ADMIN"]
-        ).values_list("id", flat=True)
-
-        if not school_user_ids:
-            return Response(
-                {"detail": "No teachers found for this school."}, status=404
-            )
-
-        # Date range: from `months` months ago to now
+        # Date range: `months` months, ending with (and including) the
+        # current month. Regression note: this used to be
+        # `end_date - relativedelta(months=months)`, which — combined with
+        # the loop below starting at that month and only ever stepping
+        # forward `months - 1` more times — silently excluded the current
+        # month from every response. A "past 12 months" chart that never
+        # shows the current month is missing exactly the data point most
+        # likely to be looked at.
         end_date = timezone.now()
-        start_date = end_date - relativedelta(months=months)
+        start_date = end_date - relativedelta(months=months - 1)
 
-        # Aggregate monthly usage
+        # Aggregate monthly usage. Scoped directly by CreditUsageLog.school
+        # (the snapshot) rather than first resolving "which teachers/admins
+        # currently belong to this school" and filtering by wallet owner —
+        # that current-roster approach both misattributes historical usage
+        # after a transfer AND would 404 a school whose usage-generating
+        # teachers have since all left, even though its history is still
+        # perfectly real and worth showing.
         monthly_usage = (
             CreditUsageLog.objects.filter(
-                wallet__user_id__in=school_user_ids  # , created_at__gte=start_date
+                school_id=school_id,
+                wallet__user__user_type__in=["TEACHER", "SCHOOL_ADMIN"],
+                is_refunded=False,
             )
             .annotate(month=TruncMonth("created_at"))
             .values("month")
@@ -1027,9 +1139,17 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
             .order_by("month")
         )
 
-        # Build response, filling missing months with 0
+        # Build response, filling missing months with 0.
+        # NOTE: TruncMonth("created_at") always truncates to midnight on
+        # the 1st (confirmed directly against the DB: hour=minute=second=0)
+        # — `current` must match that exactly, or every lookup below misses
+        # and this endpoint silently returns all-zero tokens for every
+        # month regardless of actual usage. `start_date.replace(day=1)`
+        # alone only replaces the day, leaving today's current hour/minute/
+        # second/microsecond in place, so it practically never equalled a
+        # TruncMonth key. Explicitly zero the whole time-of-day too.
         result = []
-        current = start_date.replace(day=1)
+        current = start_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         usage_dict = {item["month"]: item["total"] for item in monthly_usage}
 
         for _ in range(months):

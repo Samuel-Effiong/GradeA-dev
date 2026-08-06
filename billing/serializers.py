@@ -9,7 +9,7 @@ from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from users.models import CustomUser
+from users.models import CustomUser, UserTypes
 
 from .license_service import LicenseSubscriptionService
 from .models import (
@@ -175,6 +175,37 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"plan": "The Beta plan can only be assigned to teachers."}
             )
+
+        # create() delegates straight to SubscriptionService.activate_
+        # subscription, which activates the plan AND grants its full
+        # monthly credit bucket with no payment step. Self-service through
+        # this serializer is therefore only ever legitimate for free plans
+        # (e.g. BETA onboarding) targeting the requester themselves - paid
+        # plans must go through the Stripe checkout flow
+        # (subscription/select-plan), and only a superadmin may activate a
+        # subscription on another user's behalf.
+        request = self.context.get("request")
+        requester = getattr(request, "user", None)
+        is_superadmin = bool(
+            requester
+            and requester.is_authenticated
+            and requester.is_superuser
+            and requester.user_type == UserTypes.SUPER_ADMIN
+        )
+        if not is_superadmin:
+            if user is not None and requester is not None and user != requester:
+                raise serializers.ValidationError(
+                    {"user": "You can only create a subscription for yourself."}
+                )
+            if plan is not None and (plan.price_cents or 0) > 0:
+                raise serializers.ValidationError(
+                    {
+                        "plan": (
+                            "Paid plans must be purchased through the "
+                            "checkout flow, not activated directly."
+                        )
+                    }
+                )
 
         return attrs
 
