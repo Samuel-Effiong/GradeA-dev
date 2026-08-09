@@ -288,6 +288,12 @@ class TeacherDetailNoWalletTest(GradingFixtureMixin, APITestCase):
         self.teacher = self._make_teacher("nowallet")
         self.teacher.school = self.school
         self.teacher.save(update_fields=["school"])
+        # The user-creation signal auto-provisions a wallet — delete it so
+        # this test actually exercises the DoesNotExist path (the real
+        # regression case: signal failure or pre-signal legacy data).
+        from billing.models import CreditWallet
+
+        CreditWallet.objects.filter(user=self.teacher).delete()
         self.url = reverse(
             "school-admin-teacher-detail", kwargs={"teacher_id": self.teacher.id}
         )
