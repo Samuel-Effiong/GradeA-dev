@@ -103,6 +103,38 @@ class StudentSubmission(models.Model):
     grading_confidence = models.IntegerField(null=False, blank=True, default=0)
     extraction_confidence = models.IntegerField(null=False, blank=True, default=0)
 
+    needs_review = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text=_(
+            "The two independent AI graders disagreed on at least one "
+            "question (see feedback['second_opinion']) — the teacher's "
+            "review queue filters on this. Cleared by mark-reviewed or a "
+            "manual grade override."
+        ),
+    )
+    review_reasons = models.JSONField(
+        null=True,
+        blank=True,
+        help_text=_(
+            "Why this submission needs (or needed) review — per-question "
+            "grader-disagreement entries, and the teacher's resolution "
+            "once reviewed."
+        ),
+    )
+    review_severity = models.FloatField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text=_(
+            "0-1: the worst grader-disagreement gap on this submission as "
+            "a fraction of that question's points. Lets the review queue "
+            "order 'definitely review' (excellent-vs-poor) ahead of "
+            "'borderline' (adjacent levels): "
+            "?needs_review=true&ordering=-review_severity."
+        ),
+    )
+
     ai_score = models.DecimalField(
         max_digits=6,
         decimal_places=2,

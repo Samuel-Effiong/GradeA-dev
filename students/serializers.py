@@ -159,6 +159,9 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
             "is_published",
             "grading_confidence",
             "grading_state",
+            "needs_review",
+            "review_reasons",
+            "review_severity",
             "scheduled_grading_at",
             "grading_task_name",
             "is_grading_scheduled",
@@ -170,6 +173,9 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
             "assignment_title",
             "course",
             "grading_state",
+            "needs_review",
+            "review_reasons",
+            "review_severity",
             "score",
             "score_percentage",
             "max_points",
@@ -230,6 +236,7 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
 
     grade_status = serializers.SerializerMethodField()
     remaining_attempts = serializers.SerializerMethodField()
+    second_opinion = serializers.SerializerMethodField()
 
     class Meta:
         model = StudentSubmission
@@ -255,6 +262,10 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
             "formatted_grade",
             "answers",
             "grading_state",
+            "needs_review",
+            "review_reasons",
+            "review_severity",
+            "second_opinion",
             "scheduled_grading_at",
             "grading_task_name",
             "is_grading_scheduled",
@@ -270,6 +281,10 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
             "submission_date",
             "raw_input",
             "grading_state",
+            "needs_review",
+            "review_reasons",
+            "review_severity",
+            "second_opinion",
             "score",
             "max_points",
             "score_percentage",
@@ -282,6 +297,14 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
             "grading_task_name",
             "is_grading_scheduled",
         ]
+
+    def get_second_opinion(self, obj):
+        """The stored second-opinion block (model, triggers, agreements,
+        disagreements with both graders' rationales and evidence) — the
+        payload the review UI renders side by side. Scoped read of the
+        feedback JSON rather than exposing the whole blob."""
+        feedback = obj.feedback if isinstance(obj.feedback, dict) else {}
+        return feedback.get("second_opinion")
 
     def get_email(self, obj):
         if "student.local" in obj.student.email:

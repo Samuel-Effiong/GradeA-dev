@@ -180,9 +180,15 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         "assignment",
         "grading_state",
         "is_published",
+        # The teacher's review queue: ?needs_review=true lists submissions
+        # where the two AI graders disagreed (indexed for this filter).
+        "needs_review",
     ]
     search_fields = ["student__first_name", "student__last_name"]
-    ordering_fields = ["student__first_name", "student__last_name"]
+    # review_severity: the queue triage order —
+    # ?needs_review=true&ordering=-review_severity puts critical
+    # disagreements (excellent-vs-poor) ahead of borderline ones.
+    ordering_fields = ["student__first_name", "student__last_name", "review_severity"]
     ordering = ["student__first_name"]
 
     # @method_decorator(cache_page(60 * 3, key_prefix="studentsubmissions:detail"))
@@ -890,7 +896,19 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         submission.feedback = feedback
         submission.was_regraded = True
         submission.regraded_at = timezone.now()
-        # submission.save(update_fields=["score", "feedback"])
+
+        # A manual override IS the teacher's resolution of any pending
+        # grader-disagreement review — clear the queue flag and record
+        # how it was resolved (labeled data for the eval loop).
+        if submission.needs_review:
+            submission.review_reasons = (submission.review_reasons or []) + [
+                {
+                    "resolved": "overridden",
+                    "by": str(request.user.id),
+                    "at": timezone.now().isoformat(),
+                }
+            ]
+        submission.needs_review = False
 
         # Update the formatted grade since the score/feedback changed
 
@@ -902,6 +920,8 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 "feedback",
                 "was_regraded",
                 "regraded_at",
+                "needs_review",
+                "review_reasons",
             ]
         )
 
@@ -1130,6 +1150,53 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         if newly_published:
             notify_student_of_graded_submission(submission)
+
+        serializer = StudentSubmissionDetailSerializer(
+            submission, context=self.get_serializer_context()
+        )
+        return Response(serializer.data, status=HTTP_200_OK)
+
+    @extend_schema(
+        tags=["07 Student Submissions"],
+        summary="Resolve a grader-disagreement review as 'AI grade confirmed'",
+        request=None,
+        responses={HTTP_200_OK: StudentSubmissionDetailSerializer},
+    )
+    @action(
+        detail=True,
+        methods=["POST"],
+        url_path="mark-reviewed",
+        url_name="mark-reviewed",
+    )
+    def mark_reviewed(self, request, pk=None):
+        """
+        The teacher looked at both graders' rationales and confirms the
+        stored grade stands. Clears the review-queue flag and records the
+        resolution — the "AI was right" label the future eval loop
+        consumes. (The other resolution path is update-grade, which
+        records "overridden".)
+        """
+        submission = self.get_object()
+
+        # Conditional UPDATE claim, same pattern as publish: of two racing
+        # requests only one matches needs_review=True, so the resolution
+        # entry is appended exactly once. Already-resolved submissions are
+        # an idempotent no-op, not an error.
+        resolved = StudentSubmission.objects.filter(
+            pk=submission.pk, needs_review=True
+        ).update(
+            needs_review=False,
+            review_reasons=(submission.review_reasons or [])
+            + [
+                {
+                    "resolved": "confirmed",
+                    "by": str(request.user.id),
+                    "at": timezone.now().isoformat(),
+                }
+            ],
+        )
+        if resolved:
+            submission.refresh_from_db(fields=["needs_review", "review_reasons"])
 
         serializer = StudentSubmissionDetailSerializer(
             submission, context=self.get_serializer_context()

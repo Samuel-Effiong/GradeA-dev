@@ -237,6 +237,42 @@ def _run_grading_pipeline(user, submission, processing_task_id):
     submission.graded_at = timezone.now()
     submission.grading_state = GradingState.DONE
 
+    # Review queue: when the blind second grader disagreed with grader A
+    # on any question, flag the submission for the teacher — with both
+    # sides' scores in review_reasons so the queue is self-describing.
+    # Explicitly RESET on every grading run: a re-grade whose graders now
+    # agree must clear a stale flag from an earlier run. (Second-opinion
+    # failures/skips deliberately do NOT flag — see
+    # AIProcessor._maybe_run_second_opinion.)
+    second_opinion = grading.get("second_opinion") or {}
+    disagreements = second_opinion.get("disagreements") or []
+    if disagreements:
+        submission.needs_review = True
+        reasons = []
+        severities = []
+        for d in disagreements:
+            severity = d.get("severity") or {}
+            # An unmeasurable gap (unknown points) is never treated as
+            # mild — it sorts mid-queue rather than last.
+            gap_fraction = severity.get("gap_fraction")
+            severities.append(0.5 if gap_fraction is None else gap_fraction)
+            reasons.append(
+                {
+                    "type": "grader_disagreement",
+                    "question_number": d.get("question_number"),
+                    "a_score": (d.get("a") or {}).get("score_awarded"),
+                    "b_score": (d.get("b") or {}).get("score_awarded"),
+                    "tier": severity.get("tier"),
+                    "gap_fraction": gap_fraction,
+                }
+            )
+        submission.review_reasons = reasons
+        submission.review_severity = max(severities)
+    else:
+        submission.needs_review = False
+        submission.review_reasons = None
+        submission.review_severity = None
+
     # update the raw_input
     ensure_task_not_cancelled(processing_task_id)
     answer_html = student_submission_to_html(submission)
