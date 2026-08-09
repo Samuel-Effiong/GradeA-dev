@@ -200,6 +200,7 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
             True,
             schema,
             sub_models=GRADING_FALLBACK_MODELS,
+            override_model=None,
         )
 
     @patch.object(AIProcessor, "_AIProcessor__ai_model")
@@ -423,7 +424,14 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
         )
 
         mock_ai_model.assert_called_once_with(
-            None, "prompt", None, None, True, schema, sub_models=None
+            None,
+            "prompt",
+            None,
+            None,
+            True,
+            schema,
+            sub_models=None,
+            override_model=None,
         )
 
     def test_unrecognized_user_type_raises_clean_value_error(self):

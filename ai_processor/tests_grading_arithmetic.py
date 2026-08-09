@@ -21,11 +21,12 @@ Run with:
     python manage.py test ai_processor.tests_grading_arithmetic
 """
 
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, override_settings
 
 from ai_processor.services import AIProcessor
 
 
+@override_settings(GRADING_SECOND_OPINION_ENABLED=False)
 class FinalizeGradingResultTest(SimpleTestCase):
     """Unit-level coverage of the arithmetic itself — pure function, no
     DB or AI calls needed."""
@@ -142,6 +143,7 @@ class FinalizeGradingResultTest(SimpleTestCase):
         self.assertEqual(result["total_score"], 6)
 
 
+@override_settings(GRADING_SECOND_OPINION_ENABLED=False)
 class SinglePassPathAppliesArithmeticProtectionTest(SimpleTestCase):
     """
     Integration-level proof that the single-pass path (<=
@@ -174,7 +176,13 @@ class SinglePassPathAppliesArithmeticProtectionTest(SimpleTestCase):
         # (15 > the 10 it's worth) AND reports an unrelated percentage.
         model_content = json.dumps(
             {
-                "question_evaluations": [{"question_number": 1, "score_awarded": 15}],
+                "question_evaluations": [
+                    {
+                        "question_number": 1,
+                        "score_awarded": 15,
+                        "evidence_quotes": ["x"],
+                    }
+                ],
                 "grading_summary": {
                     "total_score": 15,
                     "max_total_points": 10,

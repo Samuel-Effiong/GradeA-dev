@@ -21,10 +21,10 @@ import json
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
-from django.test import SimpleTestCase, TransactionTestCase
+from django.test import SimpleTestCase, TransactionTestCase, override_settings
 from django.utils import timezone
 
-from ai_processor.services import GRADING_QUESTIONS_PER_CHUNK, AIProcessor, ai_processor
+from ai_processor.services import AIProcessor, ai_processor
 from billing.models import (
     BillingInterval,
     CreditBucket,
@@ -46,6 +46,7 @@ def make_ai_response(tokens=100, content='{"result": "ok"}'):
     return response
 
 
+@override_settings(GRADING_SECOND_OPINION_ENABLED=False)
 class MissingQuestionNumbersTest(SimpleTestCase):
     """Unit-level coverage of the reconciliation check itself."""
 
@@ -83,6 +84,7 @@ class MissingQuestionNumbersTest(SimpleTestCase):
         )
 
 
+@override_settings(GRADING_SECOND_OPINION_ENABLED=False)
 class GradingCompletenessPipelineTestBase(TransactionTestCase):
     def setUp(self):
         self.processor = AIProcessor()
@@ -158,7 +160,11 @@ class BatchPathCompletenessTest(GradingCompletenessPipelineTestBase):
                 content = json.dumps(
                     {
                         "question_evaluations": [
-                            {"question_number": i, "score_awarded": 4}
+                            {
+                                "question_number": i,
+                                "score_awarded": 4,
+                                "evidence_quotes": ["x"],
+                            }
                             for i in range(1, 6)
                         ]
                     }
@@ -168,7 +174,11 @@ class BatchPathCompletenessTest(GradingCompletenessPipelineTestBase):
                 content = json.dumps(
                     {
                         "question_evaluations": [
-                            {"question_number": i, "score_awarded": 4}
+                            {
+                                "question_number": i,
+                                "score_awarded": 4,
+                                "evidence_quotes": ["x"],
+                            }
                             for i in range(6, 11)
                         ]
                     }
@@ -256,8 +266,16 @@ class SinglePassCompletenessTest(GradingCompletenessPipelineTestBase):
                 content = json.dumps(
                     {
                         "question_evaluations": [
-                            {"question_number": 1, "score_awarded": 8},
-                            {"question_number": 2, "score_awarded": 9},
+                            {
+                                "question_number": 1,
+                                "score_awarded": 8,
+                                "evidence_quotes": ["x"],
+                            },
+                            {
+                                "question_number": 2,
+                                "score_awarded": 9,
+                                "evidence_quotes": ["y"],
+                            },
                         ]
                     }
                 )

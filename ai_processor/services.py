@@ -33,9 +33,27 @@ from billing.errors import InsufficientCreditsError
 from billing.refunds import billing_refund_scope, record_billing_task_id
 from billing.services import AnalyticsService
 from classrooms.models import StudentCourse
+from students.exceptions import TaskCancelledError
 from students.task_tracking import ensure_task_not_cancelled
 from users.models import UserTypes
 
+from .evidence import MODE_STRICT, enforce_evidence
+from .grading_schemas import (
+    GRADING_BATCH_RESPONSE_SCHEMA,
+    GRADING_SINGLE_PASS_RESPONSE_SCHEMA,
+    GRADING_SUMMARY_RESPONSE_SCHEMA,
+)
+from .objective_grading import (
+    CLAIMED_OUTCOMES,
+    NOT_APPLICABLE,
+    build_objective_evaluation,
+    match_objective_answer,
+)
+from .second_opinion import (
+    compare_evaluations,
+    pick_second_model,
+    select_second_opinion_targets,
+)
 from .tools import safe_sort_key
 
 # from billing.services import SubscriptionService
@@ -82,7 +100,7 @@ with open("ai_processor/ANSWERS_EXTRACTION_PROMPT_HTML_4.txt", "r") as file:
 # inflated and non-reproducible) with rubric-anchored discrete scoring and
 # a single bounded Borderline Rule. It also fixes the input contract to
 # match what the pipeline actually sends (answer_html, not answer_text).
-with open("ai_processor/GRADING_ASSIGNMENT_PROMPT_4.txt", "r") as file:
+with open("ai_processor/GRADING_ASSIGNMENT_PROMPT_5.txt", "r") as file:
     GRADING_ASSIGNMENT_PROMPT = file.read()
 
 with open("ai_processor/ASSIGNMENT_GENERATION_PROMPT_6.txt", "r") as file:
@@ -353,8 +371,9 @@ class AIProcessor:
         respond_format=True,
         response_schema=None,
         sub_models=None,
+        override_model=None,
     ):
-        main_model = MAIN_MODEL
+        main_model = override_model or MAIN_MODEL
         if sub_models is None:
             sub_models = DEFAULT_FALLBACK_MODELS
 
@@ -1542,6 +1561,22 @@ Do not include any explanatory text before or after the JSON
         model_name = getattr(response, "model", None)
         return model_name if isinstance(model_name, str) else None
 
+    @staticmethod
+    def _grading_response_schema(schema):
+        """
+        The json_schema contract for a grading call, or None when the
+        kill switch is off (None falls back to free-form json_object in
+        __ai_model — the pre-schema behavior, kept as a rollback lever in
+        case a routed fallback model rejects json_schema).
+        """
+        if getattr(settings, "GRADING_RESPONSE_SCHEMA_ENABLED", True):
+            return schema
+        return None
+
+    @staticmethod
+    def _evidence_mode():
+        return getattr(settings, "GRADING_EVIDENCE_ENFORCEMENT", MODE_STRICT)
+
     def _missing_question_numbers(self, evaluations: list, questions: list) -> list:
         """
         Return the questions (subset of `questions`) that have no matching
@@ -1639,7 +1674,7 @@ Do not include any explanatory text before or after the JSON
             "score_calculation_verification": verification,
         }
 
-    def _pair_question_with_answers(self, rubric_json: str, answer_json: str) -> list:
+    def _pair_question_with_answers(self, rubric_json, answer_json) -> list:
         """
         Zips the rubric questions list and the answers list by question_number
         into a single list of paired dicts, sorted by question_number.
@@ -1702,6 +1737,7 @@ Do not include any explanatory text before or after the JSON
         total_batches: int,
         assignment_model=None,
         processing_task_id=None,
+        override_model=None,
     ) -> list:
         """
         Grades a small batch of questions (up to GRADING_QUESTIONS_PER_CHUNK)
@@ -1771,6 +1807,10 @@ Do not include any explanatory text before or after the JSON
                     user_prompt=user_prompts,
                     assignment=assignment_model,
                     processing_task_id=processing_task_id,
+                    response_schema=self._grading_response_schema(
+                        GRADING_BATCH_RESPONSE_SCHEMA
+                    ),
+                    override_model=override_model,
                 )
                 raw = response.choices[0].message.content
 
@@ -1792,6 +1832,23 @@ Do not include any explanatory text before or after the JSON
                         f"Batch {batch_number} returned no question_evaluations."
                     )
 
+                # Drop evaluations for questions OUTSIDE this batch: each
+                # question is graded by exactly one batch, so an extra
+                # evaluation here would be merged as a duplicate and
+                # silently double-counted by _finalize_grading_result's
+                # sum. (Its own batch grades it; dropping is safe.)
+                batch_keys = {
+                    self._question_number_key(q.get("question_number"))
+                    for q in batch_rubric
+                }
+                evaluations = [
+                    ev
+                    for ev in evaluations
+                    if isinstance(ev, dict)
+                    and self._question_number_key(ev.get("question_number"))
+                    in batch_keys
+                ]
+
                 # H2: a batch that grades only SOME of its questions is not a
                 # partial success - the ungraded questions would silently
                 # contribute 0 to the total while still counting toward the
@@ -1804,10 +1861,37 @@ Do not include any explanatory text before or after the JSON
                         f"for question(s) {missing_nums}."
                     )
 
+                # Evidence check: every points-awarding evaluation must
+                # cite at least one VERIFIED verbatim quote from the
+                # student's answer. Fabricated/absent justification is
+                # rejected and retried, exactly like a missing question.
+                answers_by_key = {
+                    self._question_number_key(
+                        pair["question"].get("question_number")
+                    ): (pair.get("answer") or {}).get("answer_html", "")
+                    for pair in question_pairs
+                }
+                violations = enforce_evidence(
+                    evaluations,
+                    answers_by_key,
+                    mode=self._evidence_mode(),
+                    key_fn=self._question_number_key,
+                )
+                if violations:
+                    raise ValueError(
+                        f"Batch {batch_number} evidence check failed: "
+                        f"{'; '.join(violations)}"
+                    )
+
                 logger.info(
                     f"[Grading] Batch {batch_number}/{total_batches} complete — "
                     f"{len(evaluations)} question(s) graded."
                 )
+                # Provenance marker for the future eval loop.
+                batch_model = self._response_model_name(response)
+                for ev in evaluations:
+                    if isinstance(ev, dict):
+                        ev.setdefault("graded_by", batch_model or "llm")
                 return evaluations
 
             except (AIFeatureNotAvailableError, InsufficientCreditsError):
@@ -1890,7 +1974,8 @@ Do not include any explanatory text before or after the JSON
         for the final grading report:
           - grading_summary
           - overall_performance_analysis
-          - grader_meta_analysis
+          - grader_meta_analysis (a STRING: a brief paragraph reflecting on
+            grading consistency and any patterns across the evaluations)
           - grading_confidence
           - recommendations
 
@@ -1925,6 +2010,9 @@ Do not include any explanatory text before or after the JSON
                     user_prompt=user_prompts,
                     assignment=assignment_model,
                     processing_task_id=processing_task_id,
+                    response_schema=self._grading_response_schema(
+                        GRADING_SUMMARY_RESPONSE_SCHEMA
+                    ),
                 )
                 raw = response.choices[0].message.content
 
@@ -1973,6 +2061,279 @@ Do not include any explanatory text before or after the JSON
         raise Exception(
             f"[Grading] Summary call failed after 3 attempts. Last error: {last_error}"
         )
+
+    def _partition_deterministic(self, questions, answers):
+        """
+        Tier 0 split: claim every OBJECTIVE question the deterministic
+        matcher can grade unambiguously; everything else stays on the LLM
+        path. Claim-only by construction — an ambiguous objective is
+        deferred, never zeroed — so this partition can only remove LLM
+        error, not add any (see ai_processor/objective_grading.py).
+
+        Returns (deterministic_evaluations, llm_questions, llm_answers).
+        llm_answers keeps any stray answers whose question_number matches
+        no rubric question, preserving the existing pipeline's behavior
+        for them.
+        """
+        answers = [a for a in (answers or []) if isinstance(a, dict)]
+        answer_by_key = {
+            self._question_number_key(a.get("question_number")): a for a in answers
+        }
+
+        deterministic_evaluations = []
+        llm_questions = []
+        claimed_keys = set()
+        ambiguous_objective_count = 0
+
+        for question in questions:
+            if not isinstance(question, dict):
+                llm_questions.append(question)
+                continue
+            key = self._question_number_key(question.get("question_number"))
+            answer = answer_by_key.get(key, {})
+            answer_html = answer.get("answer_html", "")
+
+            match = match_objective_answer(question, answer_html)
+            if match in CLAIMED_OUTCOMES:
+                deterministic_evaluations.append(
+                    build_objective_evaluation(question, answer_html, match)
+                )
+                claimed_keys.add(key)
+            else:
+                if match != NOT_APPLICABLE:
+                    ambiguous_objective_count += 1
+                llm_questions.append(question)
+
+        llm_answers = [
+            a
+            for a in answers
+            if self._question_number_key(a.get("question_number")) not in claimed_keys
+        ]
+
+        logger.info(
+            f"[Grading] Partition: {len(questions)} question(s) — "
+            f"{len(deterministic_evaluations)} graded deterministically, "
+            f"{ambiguous_objective_count} ambiguous objective(s) deferred to "
+            f"the AI, {len(llm_questions) - ambiguous_objective_count} "
+            f"subjective."
+        )
+        return deterministic_evaluations, llm_questions, llm_answers
+
+    def _deterministic_context_block(self, deterministic_evaluations):
+        """
+        Read-only context appended to the single-pass grading prompt when
+        some questions were already graded deterministically, so the
+        model's overall-summary fields can still reference the whole
+        assignment. Compact on purpose — scores only, no rubric/answers —
+        to keep the objective content from re-entering the grading task.
+        """
+        if not deterministic_evaluations:
+            return ""
+        compact = [
+            {
+                "question_number": ev.get("question_number"),
+                "question_text": ev.get("question_text", ""),
+                "score_awarded": ev.get("score_awarded"),
+                "max_points": ev.get("max_points"),
+                "level_achieved": ev.get("level_achieved"),
+            }
+            for ev in deterministic_evaluations
+        ]
+        return f"""
+    ### Already Graded Deterministically (context only — DO NOT re-grade)
+    The following objective questions were already graded by the system
+    directly against the answer key. Do NOT include them in
+    question_evaluations and do NOT alter their scores. You may reference
+    them when writing the overall summary fields.
+    {json.dumps(compact, indent=2)}
+    """
+
+    def _build_deterministic_only_result(self, deterministic_evaluations, questions):
+        """
+        Result for a submission whose every question was graded
+        deterministically: zero AI calls, zero credits. Mirrors the shape
+        the LLM paths return so grade_engine and formatted_grade cannot
+        tell the difference.
+        """
+        finalized = self._finalize_grading_result(deterministic_evaluations, questions)
+
+        counts = {"correct": 0, "incorrect": 0, "not_attempted": 0}
+        for evaluation in finalized["question_evaluations"]:
+            level = evaluation.get("level_achieved")
+            if level in counts:
+                counts[level] += 1
+
+        summary_text = (
+            f"All {len(finalized['question_evaluations'])} objective "
+            f"question(s) were graded deterministically against the answer "
+            f"key: {counts['correct']} correct, {counts['incorrect']} "
+            f"incorrect, {counts['not_attempted']} not attempted. "
+            f"Final score: {finalized['total_score']}/"
+            f"{finalized['max_total_points']} ({finalized['percentage']}%)."
+        )
+
+        return {
+            "question_evaluations": finalized["question_evaluations"],
+            "grading_summary": {
+                "total_score": finalized["total_score"],
+                "max_total_points": finalized["max_total_points"],
+                "percentage": finalized["percentage"],
+            },
+            "score_calculation_verification": finalized[
+                "score_calculation_verification"
+            ],
+            # Exact answer-key comparison — full confidence by definition.
+            "grading_confidence": 100,
+            "overall_performance_analysis": summary_text,
+            "recommendations": [],
+            "grading_model": "deterministic",
+        }
+
+    def _maybe_run_second_opinion(
+        self,
+        result,
+        llm_questions,
+        llm_answers,
+        user,
+        assignment_model=None,
+        processing_task_id=None,
+    ):
+        """
+        Selective blind second opinion (see ai_processor/second_opinion.py
+        for the trigger/comparison policy).
+
+        A different model re-grades only the TRIGGERED questions, blind —
+        the second pass reuses _grade_question_batch, whose prompt
+        contains nothing but questions and answers, so grader B can never
+        see grader A's scores. Agreement is recorded silently;
+        disagreement is attached to the result for the caller to surface
+        as needs_review. Grader A's scores are NEVER modified here.
+
+        Non-fatal by design: the grade already exists when this runs, so
+        any second-pass failure (model down, evidence rejection after
+        retries) logs, annotates result["second_opinion"]["error"], and
+        lets the run succeed. Only task cancellation propagates.
+        """
+        if not getattr(settings, "GRADING_SECOND_OPINION_ENABLED", True):
+            return result
+
+        try:
+            reasons_by_key = select_second_opinion_targets(
+                result,
+                llm_questions,
+                key_fn=self._question_number_key,
+                min_confidence=getattr(
+                    settings,
+                    "GRADING_SECOND_OPINION_MIN_CONFIDENCE",
+                    AI_CONFIDENCE_THRESHOLD,
+                ),
+                high_points_threshold=getattr(
+                    settings, "GRADING_SECOND_OPINION_HIGH_POINTS", 15
+                ),
+                sample_rate=getattr(
+                    settings, "GRADING_SECOND_OPINION_SAMPLE_RATE", 0.05
+                ),
+            )
+            if not reasons_by_key:
+                return result
+
+            # JSON keys must be strings (this block is persisted inside
+            # submission.feedback).
+            selected_readable = {
+                str(key): reasons for key, reasons in reasons_by_key.items()
+            }
+
+            second_model = pick_second_model(
+                result.get("grading_model"),
+                getattr(settings, "GRADING_SECOND_OPINION_MODELS", []),
+            )
+            if second_model is None:
+                logger.info(
+                    "[Grading] Second opinion skipped: no candidate model "
+                    "differs from grader A's (%s).",
+                    result.get("grading_model"),
+                )
+                result["second_opinion"] = {
+                    "skipped": "no independent model available",
+                    "selected": selected_readable,
+                }
+                return result
+
+            selected_questions = [
+                q
+                for q in llm_questions
+                if isinstance(q, dict)
+                and self._question_number_key(q.get("question_number"))
+                in reasons_by_key
+            ]
+            selected_answers = [
+                a
+                for a in llm_answers
+                if isinstance(a, dict)
+                and self._question_number_key(a.get("question_number"))
+                in reasons_by_key
+            ]
+
+            pairs = self._pair_question_with_answers(
+                selected_questions, selected_answers
+            )
+            batches = self._split_into_chunks(pairs, GRADING_QUESTIONS_PER_CHUNK)
+            b_evaluations = []
+            for batch_index, batch in enumerate(batches):
+                b_evaluations.extend(
+                    self._grade_question_batch(
+                        user=user,
+                        question_pairs=batch,
+                        batch_number=batch_index + 1,
+                        total_batches=len(batches),
+                        assignment_model=assignment_model,
+                        processing_task_id=processing_task_id,
+                        override_model=second_model,
+                    )
+                )
+
+            # Clamp B's scores exactly as A's were, so the comparison is
+            # between rubric levels, not raw model output.
+            b_evaluations = self._finalize_grading_result(
+                b_evaluations, selected_questions
+            )["question_evaluations"]
+
+            comparison = compare_evaluations(
+                result.get("question_evaluations", []),
+                b_evaluations,
+                key_fn=self._question_number_key,
+                # Severity grades each disagreement for teacher triage —
+                # it never suppresses one (equality stays the agreement
+                # test on discrete rubric levels).
+                questions=selected_questions,
+                critical_fraction=getattr(
+                    settings, "GRADING_DISAGREEMENT_CRITICAL_FRACTION", 0.5
+                ),
+                moderate_fraction=getattr(
+                    settings, "GRADING_DISAGREEMENT_MODERATE_FRACTION", 0.25
+                ),
+            )
+            result["second_opinion"] = {
+                "model": second_model,
+                "selected": selected_readable,
+                "agreements": comparison["agreements"],
+                "disagreements": comparison["disagreements"],
+            }
+            logger.info(
+                f"[Grading] Second opinion ({second_model}): "
+                f"{len(selected_questions)} question(s) re-graded — "
+                f"{len(comparison['agreements'])} agreement(s), "
+                f"{len(comparison['disagreements'])} disagreement(s)."
+            )
+        except TaskCancelledError:
+            raise
+        except Exception as e:
+            logger.exception(
+                "[Grading] Second-opinion pass failed — grader A's result "
+                "stands unflagged."
+            )
+            result["second_opinion"] = {"error": str(e)}
+        return result
 
     def grade_student_submission(
         self,
@@ -2054,13 +2415,69 @@ Do not include any explanatory text before or after the JSON
         if not isinstance(questions, list):
             questions = []
 
-        total_questions = len(questions)
         ensure_task_not_cancelled(processing_task_id)
 
-        # ── Single-pass path for small assignments ──────────
-        if total_questions <= GRADING_QUESTIONS_PER_CHUNK:
+        # Parse answers once — the deterministic partition needs the list
+        # form (the LLM prompt builders keep accepting either form).
+        try:
+            answers = (
+                json.loads(answer_json) if isinstance(answer_json, str) else answer_json
+            )
+        except (json.JSONDecodeError, TypeError):
+            answers = []
+        if not isinstance(answers, list):
+            answers = []
+
+        # ── Tier 0: deterministic objective grading (claim-only) ──────────
+        deterministic_evaluations = []
+        llm_questions = questions
+        llm_answers = answers
+        if questions and getattr(settings, "GRADING_DETERMINISTIC_OBJECTIVE", True):
+            deterministic_evaluations, llm_questions, llm_answers = (
+                self._partition_deterministic(questions, answers)
+            )
+
+        if deterministic_evaluations and not llm_questions:
+            # Every question was claimed deterministically: no AI call is
+            # made and no credits are consumed.
             logger.info(
-                f"[Grading] {total_questions} question(s) - using single pass grading"
+                "[Grading] All questions graded deterministically — "
+                "no AI call needed."
+            )
+            return self._build_deterministic_only_result(
+                deterministic_evaluations, questions
+            )
+
+        deterministic_keys = {
+            self._question_number_key(ev.get("question_number"))
+            for ev in deterministic_evaluations
+        }
+
+        # LLM prompts must contain ONLY the LLM-bound questions/answers.
+        # When nothing was claimed, pass the original inputs through
+        # untouched so this path stays byte-identical to the pre-Tier-0
+        # behavior (including with the feature flag off).
+        if deterministic_evaluations:
+            rubric_payload = json.dumps(llm_questions, indent=2)
+            answers_payload = json.dumps(llm_answers, indent=2)
+            deterministic_context = self._deterministic_context_block(
+                deterministic_evaluations
+            )
+        else:
+            rubric_payload = rubric_json
+            answers_payload = (
+                answer_json
+                if isinstance(answer_json, str)
+                else json.dumps(answer_json, indent=2)
+            )
+            deterministic_context = ""
+
+        # ── Single-pass path for small assignments ──────────
+        if len(llm_questions) <= GRADING_QUESTIONS_PER_CHUNK:
+            logger.info(
+                f"[Grading] {len(llm_questions)} question(s) for the AI "
+                f"({len(deterministic_evaluations)} already graded "
+                f"deterministically) - using single pass grading"
             )
 
             system_prompt = GRADING_ASSIGNMENT_PROMPT
@@ -2071,15 +2488,11 @@ Do not include any explanatory text before or after the JSON
     Return the results strictly in the JSON grading format shown in the background instructions.
 
     ### Rubric JSON
-    {rubric_json}
+    {rubric_payload}
 
     ### Student Answers JSON
-    {_wrap_student_answers_as_untrusted(
-        answer_json
-        if isinstance(answer_json, str)
-        else json.dumps(answer_json, indent=2)
-    )}
-
+    {_wrap_student_answers_as_untrusted(answers_payload)}
+    {deterministic_context}
     Now, grade the student answers based on the rubric.
     Make sure to:
     1. Match each answer with its question in the rubric.
@@ -2103,6 +2516,9 @@ Do not include any explanatory text before or after the JSON
                 user_prompt=user_prompts,
                 assignment=assignment_model,
                 processing_task_id=processing_task_id,
+                response_schema=self._grading_response_schema(
+                    GRADING_SINGLE_PASS_RESPONSE_SCHEMA
+                ),
             )
 
             grade = response.choices[0].message.content
@@ -2117,10 +2533,24 @@ Do not include any explanatory text before or after the JSON
             if not isinstance(evaluations, list):
                 evaluations = []
 
-            # H2: reject a response that graded fewer questions than the
-            # rubric contains - the outer extract_grade_with_retry wrapper
-            # retries it, instead of a silently deflated grade persisting.
-            missing = self._missing_question_numbers(evaluations, questions)
+            # If the model re-emitted a deterministically-graded question
+            # despite the DO-NOT-re-grade instruction, drop its version —
+            # the deterministic evaluation is authoritative for those.
+            if deterministic_keys:
+                evaluations = [
+                    ev
+                    for ev in evaluations
+                    if not isinstance(ev, dict)
+                    or self._question_number_key(ev.get("question_number"))
+                    not in deterministic_keys
+                ]
+
+            # H2: reject a response that graded fewer questions than it was
+            # given - the outer extract_grade_with_retry wrapper retries it,
+            # instead of a silently deflated grade persisting. Scoped to the
+            # LLM-bound questions: deterministically-graded ones were never
+            # in the prompt and must not count as "missing".
+            missing = self._missing_question_numbers(evaluations, llm_questions)
             if missing:
                 missing_nums = [q.get("question_number") for q in missing]
                 raise ValueError(
@@ -2128,8 +2558,41 @@ Do not include any explanatory text before or after the JSON
                     f"for question(s) {missing_nums}."
                 )
 
+            # Evidence check: fabricated/absent justification for awarded
+            # points is a retryable rejection (the outer
+            # extract_grade_with_retry loop re-runs the call), exactly
+            # like a missing question.
+            answers_by_key = {
+                self._question_number_key(a.get("question_number")): a.get(
+                    "answer_html", ""
+                )
+                for a in llm_answers
+                if isinstance(a, dict)
+            }
+            violations = enforce_evidence(
+                evaluations,
+                answers_by_key,
+                mode=self._evidence_mode(),
+                key_fn=self._question_number_key,
+            )
+            if violations:
+                raise ValueError(
+                    f"[Grading] Single-pass evidence check failed: "
+                    f"{'; '.join(violations)}"
+                )
+
+            # Provenance marker for the future eval loop: which grader
+            # produced each evaluation.
+            model_name = self._response_model_name(response)
+            for ev in evaluations:
+                if isinstance(ev, dict):
+                    ev.setdefault("graded_by", model_name or "llm")
+
+            evaluations = deterministic_evaluations + evaluations
+
             # H1: never trust the model's arithmetic - coerce, clamp, and
             # recompute every number from the per-question evaluations.
+            # `questions` (the FULL rubric) so totals cover the merged set.
             finalized = self._finalize_grading_result(evaluations, questions)
             json_data["question_evaluations"] = finalized["question_evaluations"]
             json_data["grading_summary"] = {
@@ -2141,27 +2604,36 @@ Do not include any explanatory text before or after the JSON
                 "score_calculation_verification"
             ]
 
-            model_name = self._response_model_name(response)
             if model_name:
                 json_data["grading_model"] = model_name
 
-            return json_data
+            return self._maybe_run_second_opinion(
+                json_data,
+                llm_questions,
+                llm_answers,
+                user,
+                assignment_model=assignment_model,
+                processing_task_id=processing_task_id,
+            )
 
         # ── Batched path for large assignments ────────────────────────────────────
         logger.info(
-            f"[Grading] {total_questions} questions — "
+            f"[Grading] {len(llm_questions)} questions for the AI "
+            f"({len(deterministic_evaluations)} already graded deterministically) — "
             f"switching to batched grading ({GRADING_QUESTIONS_PER_CHUNK} questions/batch)."
         )
 
-        # Step 1: Pair every question with its student answer
-        question_pairs = self._pair_question_with_answers(rubric_json, answer_json)
+        # Step 1: Pair every LLM-bound question with its student answer.
+        # Deterministically-graded questions are excluded — they must not
+        # re-enter any AI prompt.
+        question_pairs = self._pair_question_with_answers(llm_questions, llm_answers)
 
         # Step 2: Split into batches
         batches = self._split_into_chunks(question_pairs, GRADING_QUESTIONS_PER_CHUNK)
         total_batches = len(batches)
 
         logger.info(
-            f"[Grading] {total_questions} questions → "
+            f"[Grading] {len(llm_questions)} questions → "
             f"{total_batches} batches of up to {GRADING_QUESTIONS_PER_CHUNK}."
         )
 
@@ -2194,6 +2666,11 @@ Do not include any explanatory text before or after the JSON
             f"Building overall summary..."
         )
 
+        # Merge the deterministic evaluations in BEFORE finalize and the
+        # summary call, so the totals and the summary narrative cover the
+        # whole assignment, not just the LLM-graded part.
+        all_evaluations = deterministic_evaluations + all_evaluations
+
         # Step 4: Clamp and correct the merged evaluations BEFORE the summary
         # call, so the model summarises the same numbers that get persisted.
         all_evaluations = self._finalize_grading_result(all_evaluations, questions)[
@@ -2222,7 +2699,14 @@ Do not include any explanatory text before or after the JSON
             f"({summary['grading_summary']['percentage']}%)"
         )
 
-        return final_result
+        return self._maybe_run_second_opinion(
+            final_result,
+            llm_questions,
+            llm_answers,
+            user,
+            assignment_model=assignment_model,
+            processing_task_id=processing_task_id,
+        )
 
     def extract_grade_with_retry(
         self,
@@ -2517,6 +3001,7 @@ Now, respond to the following teacher's instruction using the rules above
         assignment=None,
         course=None,
         processing_task_id=None,
+        override_model=None,
     ):
         # I need the assignment to for students who are submitting
         # their assignment to know who the teacher that created
@@ -2531,6 +3016,12 @@ Now, respond to the following teacher's instruction using the rules above
         sub_models = (
             GRADING_FALLBACK_MODELS if task_type == "grade_assignment" else None
         )
+
+        # A caller that pins the model (the blind second grader) pins the
+        # fallbacks too: silently falling back to grader A's model would
+        # fake the independence the second opinion exists to provide.
+        if override_model:
+            sub_models = [override_model]
 
         # --- Resolve WHO is billed for this call, AND enforce their
         # tier/feature access control, together in one branch. This is
@@ -2594,6 +3085,7 @@ Now, respond to the following teacher's instruction using the rules above
                 respond_format,
                 response_schema,
                 sub_models=sub_models,
+                override_model=override_model,
             )
             return response
 
@@ -2673,6 +3165,7 @@ Now, respond to the following teacher's instruction using the rules above
             respond_format,
             response_schema,
             sub_models=sub_models,
+            override_model=override_model,
         )
 
         resolved_course = assignment.course if assignment else course

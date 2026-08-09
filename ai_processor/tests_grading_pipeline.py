@@ -29,7 +29,7 @@ from unittest.mock import MagicMock, patch
 
 from django.db import OperationalError, connection
 from django.db import transaction as django_transaction
-from django.test import TransactionTestCase
+from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
 
 from ai_processor.services import GRADING_QUESTIONS_PER_CHUNK, AIProcessor, ai_processor
@@ -91,7 +91,13 @@ def _batch_evaluations_json(batch_index, chunk_size=GRADING_QUESTIONS_PER_CHUNK)
     return json.dumps(
         {
             "question_evaluations": [
-                {"question_number": i, "score_awarded": 4}
+                {
+                    "question_number": i,
+                    "score_awarded": 4,
+                    # Evidence contract: awarded points must cite a
+                    # verbatim span of the student's answer.
+                    "evidence_quotes": [f"Answer to question {i}"],
+                }
                 for i in range(start, end + 1)
             ]
         }
@@ -108,6 +114,7 @@ SUMMARY_JSON = json.dumps(
 )
 
 
+@override_settings(GRADING_SECOND_OPINION_ENABLED=False)
 class GradingPipelineTestBase(TransactionTestCase):
     def setUp(self):
         self.processor = AIProcessor()
@@ -335,7 +342,11 @@ class PerAttemptRefundSemanticsTest(GradingPipelineTestBase):
                 content=json.dumps(
                     {
                         "question_evaluations": [
-                            {"question_number": 1, "score_awarded": 10}
+                            {
+                                "question_number": 1,
+                                "score_awarded": 10,
+                                "evidence_quotes": ["An answer"],
+                            }
                         ],
                     }
                 ),

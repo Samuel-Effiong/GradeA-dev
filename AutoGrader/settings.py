@@ -265,6 +265,54 @@ CELERY_BROKER_TRANSPORT_OPTIONS = {
     "visibility_timeout": 3600,  # 1 hour
 }
 
+# Tier 0 grading: OBJECTIVE questions whose answer matches an option
+# unambiguously are graded in Python against the stored answer key — no
+# AI call, no credits. Claim-only: any ambiguity defers to the AI, so
+# turning this on can only remove AI error. False restores the previous
+# behavior exactly (production rollback lever). See
+# ai_processor/objective_grading.py.
+GRADING_DETERMINISTIC_OBJECTIVE = True
+
+# Structured output for grading calls: enforce json_schema contracts
+# (ai_processor/grading_schemas.py) instead of free-form json_object.
+# Kill switch in case an OpenRouter fallback model rejects json_schema —
+# False restores the previous free-form behavior.
+GRADING_RESPONSE_SCHEMA_ENABLED = True
+
+# Mechanical evidence verification (ai_processor/evidence.py): every
+# points-awarding evaluation must cite at least one verbatim quote from
+# the student's answer, string-checked in code.
+#   "strict" — fabricated/absent evidence rejects the response (retried,
+#              like a completeness failure)
+#   "log"    — verify + annotate evaluations, never reject
+#   "off"    — evidence is not inspected at all
+GRADING_EVIDENCE_ENFORCEMENT = "strict"
+
+# Selective blind second opinion (ai_processor/second_opinion.py): a
+# DIFFERENT model re-grades triggered questions without seeing the first
+# grade; disagreement flags the submission needs_review for the teacher.
+# Grader A's score always stands — the second opinion can only flag.
+GRADING_SECOND_OPINION_ENABLED = True
+# Candidate models for grader B, in preference order. The first one that
+# differs from the model that ACTUALLY graded (fallback routing included)
+# is used; if none differs, the second opinion is skipped — a same-model
+# "second opinion" shares every blind spot of the first.
+GRADING_SECOND_OPINION_MODELS = ["deepseek/deepseek-v4-pro"]
+# Trigger thresholds. A run below this confidence gets a full second
+# read; individual questions trigger on a model-emitted flag_for_review
+# or points >= the high-points threshold; and a small random sample of
+# everything else keeps the easy cases measured.
+GRADING_SECOND_OPINION_MIN_CONFIDENCE = 80
+GRADING_SECOND_OPINION_HIGH_POINTS = 15
+GRADING_SECOND_OPINION_SAMPLE_RATE = 0.05
+# Disagreement severity tiers (teacher triage — never suppression): a
+# disagreement whose point gap is >= critical_fraction of the question's
+# points (or >= 2 rubric levels apart) is "critical"; >= moderate_fraction
+# is "moderate"; smaller gaps are "borderline". Feeds review_severity
+# ordering and the grading_eval segmentation.
+GRADING_DISAGREEMENT_CRITICAL_FRACTION = 0.5
+GRADING_DISAGREEMENT_MODERATE_FRACTION = 0.25
+
 CELERY_TASK_ACKS_LATE = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_RESULT_EXPIRES = 3600  # Delete results after 1 hour
@@ -311,6 +359,14 @@ CELERY_BEAT_SCHEDULE = {
     "reconcile-subscriptions-daily": {
         "task": "billing.tasks.reconcile_subscription_renewals",
         "schedule": crontab(minute=0, hour=4),
+    },
+    # Watchdog over the Stripe webhook ledger: settles claims abandoned by
+    # killed workers and raises an ERROR log for failures about to fall out
+    # of Stripe's ~3-day retry window. Hourly, so a failure is always seen
+    # with days to spare. Never re-runs handlers - see the task docstring.
+    "sweep-stale-stripe-events": {
+        "task": "billing.tasks.sweep_stale_stripe_events",
+        "schedule": crontab(minute=15),
     },
     "cleanup-expired-credit-buckets": {
         "task": "billing.tasks.cleanup_expired_credit_buckets",
@@ -551,8 +607,18 @@ CACHES = {
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         },
+        # Namespaces cache keys so wildcard delete_pattern calls (e.g.
+        # "*user*") can only ever match cache entries — never Celery
+        # broker/result keys living in the same Redis instance.
+        "KEY_PREFIX": "gaplus",
     }
 }
+
+# django-redis defaults to SCAN COUNT=10, i.e. one network round trip per
+# ~10 keys when delete_pattern walks the keyspace. Signal handlers call
+# delete_pattern on every user/course/enrollment save, so on a remote Redis
+# that default turns each save into seconds of scanning.
+DJANGO_REDIS_SCAN_ITERSIZE = 100_000
 
 CACHE_TTL = 60 * 5
 
@@ -618,3 +684,15 @@ EXEMPT_EMAIL_DOMAINS = [
 
 
 ENABLE_BILLING_TIME_TRAVEL = env.bool("ENABLE_BILLING_TIME_TRAVEL", default=False)
+
+# Email domains whose NEW Stripe customers get a fresh Stripe Test Clock
+# attached at creation. A Test Clock can only ever be attached when the
+# customer is created, so without this the billing time-travel tool can
+# never advance Stripe's clock for customers made through the normal
+# checkout flow. Only takes effect when ENABLE_BILLING_TIME_TRAVEL is on
+# AND the Stripe key is a test key. Empty (the default) means no customer
+# ever gets one. Use "*" to cover every customer in a dedicated QA
+# environment. Example: BILLING_TEST_CLOCK_EMAIL_DOMAINS=yopmail.com
+BILLING_TEST_CLOCK_EMAIL_DOMAINS = env.list(
+    "BILLING_TEST_CLOCK_EMAIL_DOMAINS", default=[]
+)

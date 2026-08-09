@@ -26,7 +26,7 @@ Run with:
 import json
 from unittest.mock import MagicMock, patch
 
-from django.test import SimpleTestCase, TestCase
+from django.test import SimpleTestCase, TestCase, override_settings
 
 from ai_processor.services import (
     DEFAULT_FALLBACK_MODELS,
@@ -37,6 +37,7 @@ from ai_processor.tools import safe_sort_key
 from users.models import CustomUser, UserTypes
 
 
+@override_settings(GRADING_SECOND_OPINION_ENABLED=False)
 class QuestionNumberJoinTest(SimpleTestCase):
     def setUp(self):
         self.processor = AIProcessor()
@@ -112,6 +113,7 @@ class QuestionNumberJoinTest(SimpleTestCase):
         self.assertEqual(pairs[0]["answer"]["answer_html"], "real")
 
 
+@override_settings(GRADING_SECOND_OPINION_ENABLED=False)
 class SafeSortKeyTest(SimpleTestCase):
     def test_mixed_collection_sorts_without_typeerror(self):
         values = [3, "2a", "10", 1, "b"]
@@ -122,6 +124,7 @@ class SafeSortKeyTest(SimpleTestCase):
         self.assertEqual(sorted(["10", "9", "2"], key=safe_sort_key), ["2", "9", "10"])
 
 
+@override_settings(GRADING_SECOND_OPINION_ENABLED=False)
 class GradingFallbackModelRestrictionTest(TestCase):
     """
     Proves execute_graded_task hands __ai_model the restricted fallback
