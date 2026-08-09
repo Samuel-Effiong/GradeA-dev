@@ -37,12 +37,110 @@ from .models import (
     LicenseBillingMethod,
     LicenseSubscription,
     SchoolCreditAllocation,
+    StripeEvent,
+    StripeEventStatus,
     StripeSubscriptionStatus,
     UserSubscription,
 )
 from .services import SubscriptionService
+from .stripe_service import RENEWAL_BILLING_REASONS, extract_invoice_billing_period
+from .webhooks import STRIPE_EVENT_CLAIM_STALE_AFTER, STRIPE_RETRY_WINDOW
 
 logger = logging.getLogger(__name__)
+
+# How many recent paid invoices to scan when the newest one isn't the
+# renewal we're looking for (e.g. an upgrade proration landed after it).
+_INVOICE_LOOKBACK_LIMIT = 10
+
+
+def _invoice_period_end(invoice):
+    """
+    Latest service-period end this invoice covers, as a Unix timestamp,
+    or None if the payload carries no usable period at all.
+
+    Reads the invoice-level `period_end` and every line item's
+    `period.end`, taking the max — a renewal invoice's line items carry
+    the authoritative subscription period even when the invoice-level
+    field is absent or narrower.
+    """
+    candidates = []
+
+    def _add(value):
+        if isinstance(value, bool):
+            return
+        if isinstance(value, (int, float)) and value > 0:
+            candidates.append(int(value))
+
+    _add(invoice.get("period_end"))
+
+    lines = invoice.get("lines") or {}
+    for line in lines.get("data") or []:
+        period = line.get("period") or {}
+        _add(period.get("end"))
+
+    return max(candidates) if candidates else None
+
+
+def _find_new_period_paid_invoice(
+    stripe_subscription_id, local_cycle_end, latest_invoice=None
+):
+    """
+    Finds a PAID renewal invoice whose service period extends BEYOND the
+    local billing_cycle_end — i.e. proof that Stripe has actually billed
+    a new cycle.
+
+    Why this exists: the reconcile sweeps used to accept any
+    `latest_invoice` with status="paid". That invoice is normally the
+    PREVIOUS cycle's, which is of course still paid — so whenever Stripe
+    had not yet renewed (a stalled test clock, a subscription paused on
+    Stripe's side, a schedule boundary not reached), the sweep would
+    "reconcile" a renewal that never happened: granting a fresh cycle of
+    credits the customer never paid for and pushing local
+    billing_cycle_end a month past Stripe's real period, after which the
+    genuine renewal webhook gets swallowed by the idempotency guard.
+
+    Checks `latest_invoice` first (already fetched, zero extra API
+    calls), then falls back to scanning recent paid invoices — the newest
+    invoice can legitimately be an upgrade proration that landed after
+    the cycle invoice.
+
+    Returns the qualifying invoice, or None. Never raises.
+    """
+    cutoff = int(local_cycle_end.timestamp())
+
+    def _qualifies(invoice):
+        if not invoice:
+            return False
+        if invoice.get("status") != "paid":
+            return False
+        if invoice.get("billing_reason") not in RENEWAL_BILLING_REASONS:
+            return False
+        period_end = _invoice_period_end(invoice)
+        return period_end is not None and period_end > cutoff
+
+    if _qualifies(latest_invoice):
+        return latest_invoice
+
+    try:
+        listed = stripe.Invoice.list(
+            subscription=stripe_subscription_id,
+            status="paid",
+            limit=_INVOICE_LOOKBACK_LIMIT,
+        )
+    except stripe.error.StripeError as exc:
+        logger.warning(
+            "Could not list invoices for subscription %s while verifying a "
+            "new billing period: %s",
+            stripe_subscription_id,
+            exc,
+        )
+        return None
+
+    for invoice in listed.get("data") or []:
+        if _qualifies(invoice):
+            return invoice
+
+    return None
 
 
 @shared_task(bind=True, max_retries=0)
@@ -114,6 +212,7 @@ def process_license_renewals(self):
     renewed_count = 0
     deactivated_count = 0
     skipped_not_paid = 0
+    skipped_no_new_period = 0
     failed_count = 0
 
     for license_sub in expired_licenses:
@@ -176,6 +275,27 @@ def process_license_renewals(self):
                 )
                 continue
 
+            # 2b. Same trap as the individual sweep: the PREVIOUS cycle's
+            # invoice is paid too. Require one covering a period beyond the
+            # local cycle end before treating this as a real renewal.
+            renewal_invoice = _find_new_period_paid_invoice(
+                license_sub.stripe_subscription_id,
+                license_sub.billing_cycle_end,
+                latest_invoice=invoice,
+            )
+            if renewal_invoice is None:
+                skipped_no_new_period += 1
+                logger.info(
+                    "License %s: latest invoice %s is paid but no paid "
+                    "renewal invoice covering a period beyond %s was found — "
+                    "Stripe has not billed a new cycle yet. Skipping rather "
+                    "than renewing off a previous-cycle invoice.",
+                    license_sub.id,
+                    invoice.get("id"),
+                    license_sub.billing_cycle_end.isoformat(),
+                )
+                continue
+
             # 3. Payment confirmed - but has renewal already happened?
             # The webhook should have done it, but if not, do it here
             # process_license_renewal is idempotent; it will skip if already renewed
@@ -209,6 +329,7 @@ def process_license_renewals(self):
         f"{renewed_count} renewed (fallback), "
         f"{deactivated_count} deactivated, "
         f"{skipped_not_paid} skipped (not paid), "
+        f"{skipped_no_new_period} skipped (no new-period invoice), "
         f"{failed_count} failed."
     )
     logger.info(summary)
@@ -340,6 +461,7 @@ def reconcile_subscription_renewals(self):
     reconciled_count = 0
     skipped_past_due = 0
     skipped_not_paid = 0
+    skipped_no_new_period = 0
     failed_count = 0
 
     for sub in subscriptions:
@@ -389,6 +511,29 @@ def reconcile_subscription_renewals(self):
                 sub.save(update_fields=["stripe_status", "updated_at"])
                 continue
 
+            # 4b. Paid is not enough: the PREVIOUS cycle's invoice is also
+            # paid. Require an invoice that actually covers a period past
+            # our local cycle end, or Stripe hasn't billed a new cycle and
+            # renewing here would grant an unpaid-for cycle of credits.
+            renewal_invoice = _find_new_period_paid_invoice(
+                sub.stripe_subscription_id,
+                sub.billing_cycle_end,
+                latest_invoice=invoice,
+            )
+            if renewal_invoice is None:
+                skipped_no_new_period += 1
+                logger.info(
+                    "Subscription %s (user %s): latest invoice %s is paid but "
+                    "no paid renewal invoice covering a period beyond %s was "
+                    "found — Stripe has not billed a new cycle yet. Skipping "
+                    "rather than renewing off a previous-cycle invoice.",
+                    sub.id,
+                    sub.user.email,
+                    invoice.get("id"),
+                    sub.billing_cycle_end.isoformat(),
+                )
+                continue
+
             # 5. Invoice is paid – but has local renewal already happened?
             # Double-check with a row lock.
             with transaction.atomic():
@@ -408,8 +553,15 @@ def reconcile_subscription_renewals(self):
                     # But just in case, skip.
                     continue
                 else:
+                    # renewal_invoice is the invoice we verified above as
+                    # covering a NEW period, so its line-item period is the
+                    # right anchor for the local cycle — the sweep produces
+                    # exactly the dates the webhook would have.
+                    period_start, period_end = extract_invoice_billing_period(
+                        renewal_invoice
+                    )
                     updated_sub = SubscriptionService.process_rollover_and_renewal(
-                        locked_sub
+                        locked_sub, period_start=period_start, period_end=period_end
                     )
 
                 # Re‑attach Stripe IDs and status.
@@ -445,6 +597,7 @@ def reconcile_subscription_renewals(self):
         f"{reconciled_count} renewed, "
         f"{skipped_past_due} skipped (past due), "
         f"{skipped_not_paid} skipped (not paid), "
+        f"{skipped_no_new_period} skipped (no new-period invoice), "
         f"{failed_count} failed."
     )
     logger.info(summary)
@@ -569,6 +722,94 @@ def expire_active_trials(self):
         f"{expired_by_credits_count} expired (credits exhausted), "
         f"{skipped_still_valid} still valid, "
         f"{failed_count} failed."
+    )
+    logger.info(summary)
+    return summary
+
+
+@shared_task(bind=True, max_retries=0)
+def sweep_stale_stripe_events(self):
+    """
+    Watchdog for the Stripe webhook idempotency ledger (billing/webhooks.py).
+
+    Two jobs, neither of which ever re-runs a handler:
+
+    1. Settle abandoned claims. A PROCESSING row whose claim is older than
+       STRIPE_EVENT_CLAIM_STALE_AFTER belongs to a worker that was killed
+       mid-handler. The claim logic already treats these as re-claimable,
+       so this is not needed for correctness — it exists so "needs
+       attention" collapses into a single queryable status (FAILED)
+       instead of being split across two.
+
+    2. Report failures, loudly once they are past saving. Stripe retries a
+       failed delivery for ~3 days and then gives up forever, so a FAILED
+       row that crosses STRIPE_RETRY_WINDOW will never be retried by
+       anyone but a human. That is the only case that needs someone NOW,
+       so it is the only case that logs at ERROR.
+
+    This task deliberately does NOT re-dispatch handlers. They reach
+    stripe.Refund.create and Subscription.modify, which a database
+    rollback cannot undo — an automatic replay loop could refund a
+    customer twice with nobody watching. Repair is human-gated via
+    `manage.py replay_stripe_events`, which defaults to --dry-run.
+    """
+    now = timezone.now()
+    stale_cutoff = now - STRIPE_EVENT_CLAIM_STALE_AFTER
+    unretriable_cutoff = now - STRIPE_RETRY_WINDOW
+
+    abandoned_count = 0
+    failed_count = 0
+
+    stale_claims = StripeEvent.objects.filter(
+        status=StripeEventStatus.PROCESSING,
+        claimed_at__lt=stale_cutoff,
+    ).iterator()
+
+    for event in stale_claims:
+        try:
+            # Fenced on claimed_at, same as _finish_stripe_event: if a
+            # delivery re-claimed this row between the query and now, its
+            # fresh claim must not be clobbered.
+            abandoned_count += StripeEvent.objects.filter(
+                pk=event.pk,
+                status=StripeEventStatus.PROCESSING,
+                claimed_at=event.claimed_at,
+            ).update(
+                status=StripeEventStatus.FAILED,
+                completed_at=now,
+                last_error="abandoned: processing claim went stale",
+            )
+        except Exception as exc:
+            failed_count += 1
+            logger.error(
+                "Failed to sweep stale StripeEvent %s: %s",
+                event.pk,
+                str(exc),
+                exc_info=True,
+            )
+            continue
+
+    failed_qs = StripeEvent.objects.filter(status=StripeEventStatus.FAILED)
+    failed_retriable = failed_qs.filter(completed_at__gte=unretriable_cutoff).count()
+    failed_unretriable = failed_qs.filter(completed_at__lt=unretriable_cutoff).count()
+
+    if failed_unretriable:
+        logger.error(
+            "%d Stripe webhook event(s) FAILED and are past Stripe's ~%d day "
+            "retry window — they will NEVER be retried automatically, so a "
+            "customer may have paid without receiving anything. Inspect them "
+            "in the admin (Billing > Stripe events, status=FAILED) and repair "
+            "with: manage.py replay_stripe_events --dry-run",
+            failed_unretriable,
+            STRIPE_RETRY_WINDOW.days,
+        )
+
+    summary = (
+        f"Stripe event sweep: "
+        f"{abandoned_count} abandoned claim(s) marked FAILED, "
+        f"{failed_retriable} FAILED within Stripe's retry window, "
+        f"{failed_unretriable} FAILED past it, "
+        f"{failed_count} sweep error(s)."
     )
     logger.info(summary)
     return summary

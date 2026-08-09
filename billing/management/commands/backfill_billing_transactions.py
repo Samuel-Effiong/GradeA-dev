@@ -24,6 +24,7 @@ from billing.models import (
     LicenseBillingRecordType,
     LicenseSubscription,
     StripeEvent,
+    StripeEventStatus,
     UserSubscription,
 )
 from users.models import CustomUser
@@ -60,13 +61,21 @@ class Command(BaseCommand):
     # -- StripeEvent -> BillingTransaction --------------------------------
 
     def _backfill_from_stripe_events(self, dry_run):
+        # status=SUCCEEDED is REQUIRED, not a refinement. This filter used
+        # to be event_type-only, which was safe only because the webhook
+        # dispatcher DELETED a row whenever its handler failed — so every
+        # surviving row was, by construction, one that had been handled.
+        # The ledger now keeps FAILED and PROCESSING rows too, and deriving
+        # a BillingTransaction from one of those would invent an invoice
+        # for money that never actually moved.
         events = StripeEvent.objects.filter(
+            status=StripeEventStatus.SUCCEEDED,
             event_type__in=[
                 "checkout.session.completed",
                 "invoice.payment_succeeded",
                 "invoice.payment_failed",
                 "charge.refunded",
-            ]
+            ],
         ).order_by("processed_at")
 
         count = 0

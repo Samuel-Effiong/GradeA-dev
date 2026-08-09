@@ -55,8 +55,98 @@ class SubscriptionService:
         return relativedelta(months=1)
 
     @staticmethod
+    def _resolve_billing_period(
+        plan, period_start=None, period_end=None, *, context=""
+    ):
+        """
+        Decides the local billing period for a new/renewed subscription.
+
+        WHY THIS EXISTS
+        ----------------
+        These dates used to be computed as `timezone.now() + one interval`,
+        where "now" is whenever OUR server happened to process the webhook —
+        not the period boundary Stripe actually billed. Local dates therefore
+        sat a webhook-latency behind Stripe's, and the offset changed every
+        cycle. That made the `billing_cycle_end > now` idempotency guard
+        probabilistic: after a slow cycle followed by a fast one, a genuine
+        renewal webhook lands while billing_cycle_end is still in the future
+        and is silently swallowed, so the customer's credits only arrive when
+        the next nightly reconcile sweep runs.
+
+        When Stripe's authoritative period is supplied, it wins. Everything
+        downstream keeps comparing `billing_cycle_end > timezone.now()`
+        against the local database exactly as before — Stripe is the source
+        of truth, this table is its synchronized projection, and no ordinary
+        billing decision needs a live Stripe call.
+
+        FALLBACK IS DELIBERATE, NOT DEFENSIVE PADDING
+        ----------------------------------------------
+        A malformed or nonsensical period is worse than no period at all: an
+        end date in the past would make the subscription instantly "due"
+        again (a renewal loop that re-grants credits every sweep), and a
+        wildly future one would hand out free service. So a period is used
+        only if it is internally consistent AND still open. Otherwise this
+        falls back to the old wall-clock computation and logs loudly, which
+        is the previous behaviour — never worse than today.
+
+        Returns (cycle_start, cycle_end, credit_grant_at).
+        """
+        now = timezone.now()
+
+        def _wall_clock():
+            cycle_end = now + SubscriptionService._billing_period_delta(plan)
+            grant_at = (
+                now + relativedelta(months=1)
+                if plan.interval == BillingInterval.ANNUAL
+                else cycle_end
+            )
+            return now, cycle_end, grant_at
+
+        if period_start is None or period_end is None:
+            # No Stripe period available (trial activation, offline flows,
+            # direct admin activation). Not an error — the wall clock is the
+            # correct authority when Stripe isn't driving the change.
+            return _wall_clock()
+
+        reason = None
+        if period_end <= period_start:
+            reason = "period_end is not after period_start"
+        elif period_end <= now:
+            reason = (
+                "period_end has already elapsed, which would leave the "
+                "subscription instantly due for renewal again"
+            )
+
+        if reason:
+            logger.warning(
+                "Ignoring Stripe billing period for %s (%s -> %s): %s. "
+                "Falling back to a wall-clock period. This should not happen "
+                "— investigate the Stripe payload rather than dismissing it.",
+                context or plan.name,
+                period_start.isoformat() if period_start else None,
+                period_end.isoformat() if period_end else None,
+                reason,
+            )
+            return _wall_clock()
+
+        if plan.interval == BillingInterval.ANNUAL:
+            # Credits still refresh monthly on an annual plan, anchored to
+            # the real period start so the monthly clock cannot drift either.
+            grant_at = period_start + relativedelta(months=1)
+            if grant_at <= now:
+                # A badly delayed webhook could otherwise mint a MONTHLY
+                # bucket that is already expired. Keep the grant in the
+                # future; process_annual_plan_credit_grants catches up.
+                grant_at = now + relativedelta(months=1)
+            grant_at = min(grant_at, period_end)
+        else:
+            grant_at = period_end
+
+        return period_start, period_end, grant_at
+
+    @staticmethod
     @transaction.atomic
-    def activate_subscription(user, plan):
+    def activate_subscription(user, plan, *, period_start=None, period_end=None):
         """
         Handles the entire lifecycle of a subscription change
 
@@ -73,18 +163,28 @@ class SubscriptionService:
         which for ANNUAL plans is intentionally shorter than billing_cycle_end
         — credits still refresh monthly even though Stripe only bills yearly.
         For MONTHLY plans these two dates are always the same value.
+
+        Args:
+            period_start / period_end: Stripe's authoritative billing period
+                for the cycle being activated. Callers driven by a Stripe
+                event (renewal invoice, interval-crossing upgrade) should
+                pass these so the local dates mirror Stripe exactly instead
+                of drifting by however long the webhook took to arrive; see
+                _resolve_billing_period. Omitting them keeps the historical
+                wall-clock behaviour, which stays correct for flows Stripe
+                does not drive.
         """
 
         if plan.name == PlanType.BETA and not user.is_beta_eligible():
             raise ValueError("The Beta plan is restricted to teacher accounts.")
 
-        now = timezone.now()
-        billing_end = now + SubscriptionService._billing_period_delta(plan)
-
-        monthly_bucket_expiry = (
-            now + relativedelta(months=1)
-            if plan.interval == BillingInterval.ANNUAL
-            else billing_end
+        cycle_start, billing_end, monthly_bucket_expiry = (
+            SubscriptionService._resolve_billing_period(
+                plan,
+                period_start,
+                period_end,
+                context=f"activate_subscription(user={user.email}, plan={plan.name})",
+            )
         )
 
         # 1. Deactivate any existing active subscriptions
@@ -97,7 +197,7 @@ class SubscriptionService:
             user=user,
             plan=plan,
             is_active=True,
-            billing_cycle_start=now,
+            billing_cycle_start=cycle_start,
             billing_cycle_end=billing_end,
             next_credit_grant_at=monthly_bucket_expiry,
             auto_renew=True,
@@ -512,9 +612,19 @@ class SubscriptionService:
 
     @staticmethod
     @transaction.atomic
-    def process_rollover_and_renewal(user_subscription):
+    def process_rollover_and_renewal(
+        user_subscription, *, period_start=None, period_end=None
+    ):
         """
-        Executed by Celery at billing_cycle_end
+        Executed at billing_cycle_end — by the invoice.payment_succeeded
+        webhook normally, or by the nightly reconcile sweep as a fallback.
+
+        `period_start`/`period_end` are Stripe's authoritative period for
+        the NEW cycle, taken from the renewal invoice. Passing them keeps
+        the local cycle aligned with Stripe's instead of drifting by the
+        webhook's processing latency every month; see
+        _resolve_billing_period for what happens when they are absent or
+        implausible.
         """
 
         # Lock the subscription row to prevent concurrent processing
@@ -595,7 +705,9 @@ class SubscriptionService:
             )
 
         # Trigger the new activation
-        return SubscriptionService.activate_subscription(user, target_plan)
+        return SubscriptionService.activate_subscription(
+            user, target_plan, period_start=period_start, period_end=period_end
+        )
 
     @staticmethod
     @transaction.atomic
@@ -1239,7 +1351,9 @@ class SubscriptionService:
 
     @staticmethod
     @transaction.atomic
-    def finalize_trial_conversion_via_stripe(trial_sub):
+    def finalize_trial_conversion_via_stripe(
+        trial_sub, *, period_start=None, period_end=None
+    ):
         """
         Called from invoice.payment_succeeded when a Stripe trial's first real
         charge succeeds (billing_reason=subscription_cycle, previous status was
@@ -1247,6 +1361,9 @@ class SubscriptionService:
         possibly to a different plan), the Stripe subscription here is unchanged —
         only its status moved trialing -> active — so we update the SAME
         UserSubscription row in place rather than deactivating + creating a new one.
+
+        `period_start`/`period_end` carry Stripe's authoritative period for
+        the first paid cycle; see _resolve_billing_period.
         """
 
         if not trial_sub.is_trial:
@@ -1261,7 +1378,14 @@ class SubscriptionService:
         plan = trial_sub.plan
 
         now = timezone.now()
-        billing_end = now + relativedelta(months=1)
+        cycle_start, billing_end, _grant_at = (
+            SubscriptionService._resolve_billing_period(
+                plan,
+                period_start,
+                period_end,
+                context=f"trial conversion (subscription={trial_sub.id})",
+            )
+        )
         wallet = user.credit_wallet
 
         trial_bucket = (
@@ -1295,7 +1419,7 @@ class SubscriptionService:
         trial_sub.is_trial = False
         trial_sub.trial_end = None
 
-        trial_sub.billing_cycle_start = now
+        trial_sub.billing_cycle_start = cycle_start
         trial_sub.billing_cycle_end = billing_end
         trial_sub.save(
             update_fields=[

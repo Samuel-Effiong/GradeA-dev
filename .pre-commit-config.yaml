@@ -17,6 +17,10 @@ repos:
     -   id: fix-byte-order-marker
     -   id: detect-private-key
     -   id: name-tests-test
+        # This repo names tests test_*.py / tests_*.py (Django's convention,
+        # 48 files). The hook's default expects the opposite (*_test.py), so
+        # without --django it rejects every test file in the project.
+        args: [--django]
     -   id: debug-statements
     -   id: check-symlinks
     -   id: requirements-txt-fixer

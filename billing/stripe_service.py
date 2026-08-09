@@ -30,6 +30,8 @@ Classes:
 
 import logging
 import re
+from datetime import datetime
+from datetime import timezone as dt_timezone
 from typing import Optional
 
 from django.core.cache import cache
@@ -84,6 +86,125 @@ from .subscription_resolver import (
 logger = logging.getLogger(__name__)
 
 
+# Stripe `billing_reason` values that mean "a genuinely new billing period
+# has started", i.e. the only ones allowed to drive a local renewal.
+# Deliberately EXCLUDES:
+#   subscription_create — handled by checkout.session.completed
+#   subscription_update — an immediate upgrade's proration invoice, applied
+#                         synchronously by the upgrade flow
+#   manual / subscription_threshold — never a cycle rollover
+# "subscription" is the legacy pre-2018 spelling of subscription_cycle,
+# kept so an older pinned API version behaves identically.
+RENEWAL_BILLING_REASONS = frozenset({"subscription_cycle", "subscription"})
+
+
+def _coerce_stripe_timestamp(value):
+    """
+    Stripe timestamps are positive Unix ints. Anything else — None, 0, a
+    string, a bool (an int subclass in Python, hence the explicit guard),
+    a MagicMock leaking in from a test — is treated as absent rather than
+    trusted. A bogus billing period is far worse than no period at all,
+    so this never guesses.
+    """
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        if value <= 0:
+            return None
+        return datetime.fromtimestamp(int(value), tz=dt_timezone.utc)
+    return None
+
+
+def _stripe_get(obj, key):
+    """Reads `key` off a StripeObject, a plain dict, or an attribute-only object."""
+    if obj is None:
+        return None
+    getter = getattr(obj, "get", None)
+    if callable(getter):
+        try:
+            return getter(key)
+        except TypeError:
+            pass
+    return getattr(obj, key, None)
+
+
+def extract_invoice_billing_period(invoice):
+    """
+    The billing period an invoice is paying FOR, as (start, end) datetimes,
+    or (None, None) when the payload does not carry a usable one.
+
+    Read from the invoice's LINE ITEMS rather than the invoice-level
+    `period_start`/`period_end`. For a subscription renewal the line item's
+    period is the new subscription cycle being charged, which is exactly
+    what our billing_cycle_start/end should mirror; the invoice-level
+    fields describe when invoice items were accumulated and are not
+    reliably the same window. The invoice-level pair is kept only as a
+    last-resort fallback.
+
+    Where several lines carry periods (proration lines alongside the
+    subscription line), the line covering the LONGEST span wins — a
+    proration is by definition a fragment of a cycle, while the renewal
+    line spans the whole one.
+
+    Purely a parser: no API calls, no exceptions, safe inside a webhook.
+    """
+    best = None
+    best_span = None
+
+    lines = _stripe_get(invoice, "lines") or {}
+    for line in _stripe_get(lines, "data") or []:
+        period = _stripe_get(line, "period") or {}
+        start = _coerce_stripe_timestamp(_stripe_get(period, "start"))
+        end = _coerce_stripe_timestamp(_stripe_get(period, "end"))
+        if start is None or end is None or end <= start:
+            continue
+        span = end - start
+        if best_span is None or span > best_span:
+            best, best_span = (start, end), span
+
+    if best is not None:
+        return best
+
+    start = _coerce_stripe_timestamp(_stripe_get(invoice, "period_start"))
+    end = _coerce_stripe_timestamp(_stripe_get(invoice, "period_end"))
+    if start is not None and end is not None and end > start:
+        return start, end
+
+    return None, None
+
+
+def extract_subscription_billing_period(stripe_subscription):
+    """
+    The CURRENT billing period of a Stripe Subscription, as (start, end)
+    datetimes, or (None, None).
+
+    Reads `items.data[].current_period_*` — Stripe moved these off the
+    top-level Subscription object in API version 2025-03-31 and this
+    project pins a release well past that — with the legacy top-level
+    fields kept as a fallback so an older pinned API still works.
+
+    Used after an interval-crossing plan change, where Stripe genuinely
+    resets the billing anchor and the local cycle must mirror the new one.
+    """
+    items = _stripe_get(stripe_subscription, "items") or {}
+    for item in _stripe_get(items, "data") or []:
+        start = _coerce_stripe_timestamp(_stripe_get(item, "current_period_start"))
+        end = _coerce_stripe_timestamp(_stripe_get(item, "current_period_end"))
+        if start is not None and end is not None and end > start:
+            return start, end
+
+    start = _coerce_stripe_timestamp(
+        _stripe_get(stripe_subscription, "current_period_start")
+    )
+    end = _coerce_stripe_timestamp(
+        _stripe_get(stripe_subscription, "current_period_end")
+    )
+    if start is not None and end is not None and end > start:
+        return start, end
+
+    return None, None
+
+
 def resolve_stripe_receipt_url(
     *,
     invoice=None,
@@ -136,6 +257,29 @@ class StripeCustomerService:
     """Get-or-create the Stripe Customer behind a CreditWallet."""
 
     @staticmethod
+    def _qa_test_clock_kwargs(email, label=None) -> dict:
+        """
+        QA-only hook. Returns `{"test_clock": <id>}` when this environment
+        is explicitly configured to put new customers on a Stripe Test
+        Clock, and `{}` otherwise — which is the default everywhere, so
+        production customer creation is byte-for-byte unchanged.
+
+        This exists at CREATION time because Stripe allows attaching a
+        Test Clock only when the Customer is created; there is no way to
+        add one later. See billing/qa_time_travel.py for the guardrails.
+
+        The import is local and ImportError-tolerant on purpose: that
+        module advertises itself as deletable in one piece (the file, one
+        urls.py line, and its settings flags) with zero impact on
+        production code, and this hook must not be what breaks that.
+        """
+        try:
+            from .qa_time_travel import new_customer_test_clock_kwargs
+        except ImportError:
+            return {}
+        return new_customer_test_clock_kwargs(email, label)
+
+    @staticmethod
     def get_or_create_customer(user) -> str:
         wallet, _ = CreditWallet.objects.get_or_create(user=user)
         if wallet.stripe_customer_id:
@@ -145,6 +289,9 @@ class StripeCustomerService:
             email=user.email,
             name=user.get_full_name() or user.email,
             metadata={"user_id": str(user.id)},
+            **StripeCustomerService._qa_test_clock_kwargs(
+                user.email, label=f"QA time travel — user {user.email}"
+            ),
         )
         wallet.stripe_customer_id = customer.id
         wallet.save(update_fields=["stripe_customer_id", "updated_at"])
@@ -170,6 +317,10 @@ class StripeCustomerService:
                 "license_id": str(license_sub.id),
                 "school_id": str(license_sub.school.id),
             },
+            **StripeCustomerService._qa_test_clock_kwargs(
+                contact.email,
+                label=f"QA time travel — license {license_sub.school.name}",
+            ),
         )
         license_sub.stripe_customer_id = customer.id
         license_sub.save(update_fields=["stripe_customer_id", "updated_at"])
@@ -1156,7 +1307,7 @@ class StripeSubscriptionMutationService:
             StripeSubscriptionScheduleService.release_schedule(user_sub)
 
         try:
-            stripe.Subscription.modify(
+            modified_sub = stripe.Subscription.modify(
                 user_sub.stripe_subscription_id,
                 items=[{"id": item_id, "price": new_plan.stripe_price_id}],
                 proration_behavior="none",
@@ -1174,9 +1325,15 @@ class StripeSubscriptionMutationService:
                 user_sub.stripe_subscription_id
             )
             # Stripe genuinely resets the billing cycle anchor as part of
-            # an interval change, so the local cycle must reset to match.
+            # an interval change, so the local cycle must reset to match —
+            # to the anchor Stripe just chose, read straight off the
+            # response, not to our clock at the moment we got here.
+            period_start, period_end = extract_subscription_billing_period(modified_sub)
             updated_sub = SubscriptionService.activate_subscription(
-                user_sub.user, new_plan
+                user_sub.user,
+                new_plan,
+                period_start=period_start,
+                period_end=period_end,
             )
         else:
             # Same-interval change: Stripe's anchor doesn't move, so the
@@ -2947,7 +3104,7 @@ class StripeWebhookHandler:
         if old_user_sub.stripe_schedule_id:
             StripeSubscriptionScheduleService.release_schedule(old_user_sub)
 
-        stripe.Subscription.modify(
+        modified_sub = stripe.Subscription.modify(
             stripe_subscription_id,
             items=[{"id": item_id, "price": new_plan.stripe_price_id}],
             proration_behavior="none",
@@ -2958,8 +3115,13 @@ class StripeWebhookHandler:
                 stripe_subscription_id
             )
             # Stripe genuinely resets the billing cycle anchor as part of
-            # an interval change, so the local cycle must reset to match.
-            updated_sub = SubscriptionService.activate_subscription(user, new_plan)
+            # an interval change, so the local cycle must reset to match —
+            # to the anchor Stripe just chose, read straight off the
+            # response, not to our clock at the moment we got here.
+            period_start, period_end = extract_subscription_billing_period(modified_sub)
+            updated_sub = SubscriptionService.activate_subscription(
+                user, new_plan, period_start=period_start, period_end=period_end
+            )
         else:
             # Same-interval change: Stripe's anchor doesn't move, so the
             # local cycle must not either — see apply_immediate_plan_change().
@@ -3317,12 +3479,27 @@ class StripeWebhookHandler:
                 description=f"License Stripe invoice paid ({billing_reason})",
             )
 
-            # Only act on actual renewal invoices
-            if billing_reason == "subscription_cycle":
+            # Only act on actual renewal invoices, and never on a license
+            # that is no longer active — an out-of-order or retried
+            # delivery arriving after cancellation must not revive it.
+            # (process_license_renewal also guards on is_active; this is
+            # the explicit outer guard so the intent is visible here and
+            # the status write below can be gated on the same condition.)
+            if not license_sub.is_active:
+                logger.warning(
+                    "invoice.payment_succeeded for license %s ignored for "
+                    "renewal: the license is no longer active. Invoice %s "
+                    "was still recorded.",
+                    license_sub.id,
+                    invoice.get("id"),
+                )
+                return
+
+            if billing_reason in RENEWAL_BILLING_REASONS:
                 # Renew credits - idempotent; will skip if billing_cycle_end already in future
                 LicenseSubscriptionService.process_license_renewal(license_sub)
 
-            # Always update status to reflect Stripe's state
+            # Update status to reflect Stripe's state
             license_sub.stripe_status = StripeSubscriptionStatus.ACTIVE
             license_sub.save(update_fields=["stripe_status", "updated_at"])
             logger.info("License %s monthly Stripe charge succeeded.", license_sub.id)
@@ -3335,24 +3512,42 @@ class StripeWebhookHandler:
 
     @staticmethod
     def _handle_individual_invoice_succeeded(user_sub, billing_reason, invoice):
-        # if billing_reason != "subscription_cycle":
-        #     # subscription_create is already handled by
-        #     # checkout.session.completed; subscription_update (immediate
-        #     # upgrade proration) is handled synchronously in
-        #     # StripeSubscriptionMutationService.change_plan(). Nothing
-        #     # further to do here for either.
-        #     return
+        """
+        Three independent conditions must ALL hold before this invoice is
+        allowed to drive a renewal. Any one failing means we record the
+        money, reconcile status/price, and stop:
 
+        1. billing_reason is a real new-period reason. Stripe fires this
+           event for upgrade prorations (subscription_update) and initial
+           charges (subscription_create) too. subscription_create is
+           already handled by checkout.session.completed, and an immediate
+           upgrade is applied synchronously by the upgrade flow — letting
+           either reach process_rollover_and_renewal grants a whole extra
+           cycle of credits and rolls the billing period forward off an
+           invoice that was never a renewal.
+        2. The local period has actually elapsed. This is the redelivery /
+           reconcile-already-won guard.
+        3. The subscription row is still active. Stripe does not guarantee
+           delivery order, so a retried payment_succeeded can legitimately
+           arrive AFTER customer.subscription.deleted. Renewing then would
+           resurrect a canceled subscription, because
+           process_rollover_and_renewal -> activate_subscription creates a
+           fresh active row.
+
+        The nightly reconcile_subscription_renewals sweep remains the
+        backstop for anything legitimately skipped here.
+        """
         now = timezone.now()
         stripe_subscription_id = user_sub.stripe_subscription_id
 
         logger.debug(
             "invoice.payment_succeeded for individual subscription %s "
-            "(billing_reason=%s, billing_cycle_end=%s, now=%s).",
+            "(billing_reason=%s, billing_cycle_end=%s, now=%s, is_active=%s).",
             user_sub.id,
             billing_reason,
             user_sub.billing_cycle_end.isoformat(),
             now.isoformat(),
+            user_sub.is_active,
         )
 
         txn_type = (
@@ -3361,38 +3556,94 @@ class StripeWebhookHandler:
             else BillingTransactionType.INDIVIDUAL_SUBSCRIPTION_CHARGE
         )
 
-        # Idempotency guard: if already renewed (billing_cycle_end > now), just update status
-        if user_sub.billing_cycle_end > now:
-            user_sub.stripe_status = StripeSubscriptionStatus.ACTIVE
-            user_sub.save(update_fields=["stripe_status", "updated_at"])
-
+        def _record(target_sub, record_txn_type):
             BillingTransactionService.record(
                 source=BillingTransactionSource.INDIVIDUAL,
-                transaction_type=txn_type,
+                transaction_type=record_txn_type,
                 status=BillingTransactionStatus.PAID,
                 billing_method=BillingTransactionMethod.STRIPE,
                 amount_cents=invoice.get("amount_paid") or 0,
                 currency=invoice.get("currency", "usd"),
-                user=user_sub.user,
-                user_subscription=user_sub,
+                user=target_sub.user,
+                user_subscription=target_sub,
                 stripe_invoice_id=invoice.get("id"),
                 stripe_subscription_id=stripe_subscription_id,
                 receipt_url=invoice.get("hosted_invoice_url"),
                 description=f"Subscription invoice paid ({billing_reason})",
             )
 
-            # Ensure the Stripe price is in sync (if a pending plan exist)
-            StripeSubscriptionMutationService.sync_price(
-                user_sub, stripe_subscription_id
+        skip_reason = None
+        if billing_reason not in RENEWAL_BILLING_REASONS:
+            skip_reason = (
+                f"billing_reason={billing_reason!r} is not a new-period "
+                "renewal reason"
             )
+        elif user_sub.billing_cycle_end > now:
+            skip_reason = (
+                "the local billing period has not elapsed yet — already "
+                "renewed by an earlier delivery or by the reconcile sweep"
+            )
+        elif not user_sub.is_active:
+            skip_reason = (
+                "the subscription row is no longer active (cancelled or "
+                "superseded) — renewing would resurrect it"
+            )
+
+        if skip_reason is not None:
+            # The money still happened, so it is always recorded.
+            _record(user_sub, txn_type)
+
+            if user_sub.is_active:
+                user_sub.stripe_status = StripeSubscriptionStatus.ACTIVE
+                user_sub.save(update_fields=["stripe_status", "updated_at"])
+
+                # Ensure the Stripe price is in sync (if a pending plan exist)
+                StripeSubscriptionMutationService.sync_price(
+                    user_sub, stripe_subscription_id
+                )
+                logger.info(
+                    "invoice.payment_succeeded for subscription %s recorded "
+                    "without renewal: %s.",
+                    user_sub.id,
+                    skip_reason,
+                )
+            else:
+                # Deliberately NOT flipping stripe_status back to ACTIVE:
+                # that would leave an is_active=False row claiming an
+                # active Stripe status.
+                logger.warning(
+                    "invoice.payment_succeeded for subscription %s (user %s) "
+                    "ignored for renewal: %s. Invoice %s was still recorded. "
+                    "This is the expected outcome for an out-of-order or "
+                    "retried delivery arriving after cancellation.",
+                    user_sub.id,
+                    user_sub.user.email,
+                    skip_reason,
+                    invoice.get("id"),
+                )
             return
+
+        # Stripe's authoritative period for the cycle this invoice pays for.
+        # Anchoring the local dates to it (instead of "whenever we processed
+        # the webhook") is what stops billing_cycle_end drifting a little
+        # further from Stripe's every month and turning the idempotency
+        # guard above into a coin flip.
+        period_start, period_end = extract_invoice_billing_period(invoice)
+        if period_start is None:
+            logger.warning(
+                "Invoice %s for subscription %s carries no usable billing "
+                "period; falling back to a wall-clock cycle. The local period "
+                "will be offset from Stripe's by this webhook's latency.",
+                invoice.get("id"),
+                user_sub.id,
+            )
 
         if user_sub.is_trial:
             # Trial just ended and the first real charge succeeded.
 
             txn_type = BillingTransactionType.INDIVIDUAL_TRIAL_CONVERSION_CHARGE
             updated_sub = SubscriptionService.finalize_trial_conversion_via_stripe(
-                user_sub
+                user_sub, period_start=period_start, period_end=period_end
             )
         else:
             # Normal monthly renewal. activate_subscription() (called inside
@@ -3400,7 +3651,9 @@ class StripeWebhookHandler:
             # row and deactivates this one — the Stripe subscription id has
             # to be re-attached to the new row, not this (now inactive) one.
 
-            updated_sub = SubscriptionService.process_rollover_and_renewal(user_sub)
+            updated_sub = SubscriptionService.process_rollover_and_renewal(
+                user_sub, period_start=period_start, period_end=period_end
+            )
 
             if user_sub.stripe_schedule_id:
                 updated_sub.stripe_schedule_id = user_sub.stripe_schedule_id
@@ -3413,20 +3666,7 @@ class StripeWebhookHandler:
                 updated_sub, stripe_subscription_id
             )
 
-        BillingTransactionService.record(
-            source=BillingTransactionSource.INDIVIDUAL,
-            transaction_type=txn_type,
-            status=BillingTransactionStatus.PAID,
-            billing_method=BillingTransactionMethod.STRIPE,
-            amount_cents=invoice.get("amount_paid") or 0,
-            currency=invoice.get("currency", "usd"),
-            user=updated_sub.user,
-            user_subscription=updated_sub,
-            stripe_invoice_id=invoice.get("id"),
-            stripe_subscription_id=stripe_subscription_id,
-            receipt_url=invoice.get("hosted_invoice_url"),
-            description=f"Subscription invoice paid ({billing_reason})",
-        )
+        _record(updated_sub, txn_type)
 
         updated_sub.stripe_subscription_id = stripe_subscription_id
         updated_sub.stripe_status = StripeSubscriptionStatus.ACTIVE

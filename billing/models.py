@@ -1829,6 +1829,26 @@ class SchoolCreditAllocation(models.Model):
         return self.monthly_allocation // CONVERSION_FACTOR
 
 
+class StripeEventStatus(models.TextChoices):
+    """
+    Lifecycle of one Stripe webhook delivery in the idempotency ledger.
+
+    PROCESSING with a fresh `claimed_at` IS the claim: a second, concurrent
+    redelivery of the same event sees it and backs off with 409 rather than
+    reporting success for work that has not finished yet.
+
+    SUCCEEDED is the ONLY state that suppresses a redelivery — that is the
+    whole safety property. FAILED is deliberately re-claimable so Stripe's
+    own retry (or a manual replay) does the work.
+
+    See billing/webhooks.py for the state machine.
+    """
+
+    PROCESSING = "PROCESSING", _("Processing")
+    SUCCEEDED = "SUCCEEDED", _("Succeeded")
+    FAILED = "FAILED", _("Failed")
+
+
 class StripeEvent(models.Model):
     """Idempotency ledger for Stripe webhook events - see billing/webhooks.py"""
 
@@ -1836,10 +1856,60 @@ class StripeEvent(models.Model):
     stripe_event_id = models.CharField(max_length=255, unique=True, db_index=True)
     event_type = models.CharField(max_length=100)
     payload = models.JSONField(null=True, blank=True)
-    processed_at = models.DateTimeField(auto_now_add=True)
+    processed_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text=_(
+            "When this event was FIRST seen. Write-once (auto_now_add) — it is "
+            "NOT the completion time; see completed_at for that. Kept under "
+            "this name because Meta.ordering and the "
+            "backfill_billing_transactions command both read it."
+        ),
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=StripeEventStatus.choices,
+        default=StripeEventStatus.PROCESSING,
+        db_index=True,
+        help_text=_(
+            "Processing claim state. Only SUCCEEDED suppresses a redelivery — "
+            "see StripeEventStatus."
+        ),
+    )
+    claimed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=_(
+            "When the current (or most recent) processing claim was acquired. "
+            "Doubles as the fencing token for the terminal write, and is what "
+            "identifies a claim abandoned by a killed worker."
+        ),
+    )
+    completed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=_("When processing reached a terminal state (SUCCEEDED/FAILED)."),
+    )
+    attempts = models.PositiveIntegerField(
+        default=0,
+        help_text=_("How many times a worker has claimed this event."),
+    )
+    last_error = models.TextField(
+        blank=True,
+        default="",
+        help_text=_("Truncated exception text from the most recent failed attempt."),
+    )
 
     class Meta:
         ordering = ["-processed_at"]
+        indexes = [
+            # The sweeper's two scans: stale-PROCESSING reclaim, and the
+            # FAILED report split by Stripe's retry window.
+            models.Index(fields=["status", "claimed_at"]),
+            models.Index(fields=["status", "completed_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.stripe_event_id} ({self.event_type}) - {self.status}"
 
 
 class BillingTransactionSource(models.TextChoices):

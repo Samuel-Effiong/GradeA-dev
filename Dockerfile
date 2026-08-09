@@ -75,4 +75,11 @@ USER wagtail
 #   PRACTICE. The database should be migrated manually or using the release
 #   phase facilities of your hosting platform. This is used only so the
 #   Wagtail instance can be started with a simple "docker run" command.
+# NOTE: --timeout 100 is mirrored by WEBHOOK_REQUEST_HARD_TIMEOUT_SECONDS in
+# billing/webhooks.py, which derives STRIPE_EVENT_CLAIM_STALE_AFTER from it —
+# the point at which a still-running Stripe webhook claim is treated as
+# abandoned by a killed worker and may be stolen by another delivery. If you
+# raise the timeout here, raise that constant too, or a slow-but-alive request
+# can have its claim stolen and run concurrently with the thief (which can
+# duplicate non-refundable Stripe side effects).
 CMD set -xe; gunicorn AutoGrader.wsgi:application --bind 0.0.0.0:${PORT} --timeout 100 --workers 9 --threads 4 --max-requests 1000 --worker-class gthread --keep-alive 5 --max-requests-jitter 200

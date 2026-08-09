@@ -32,6 +32,20 @@ WHAT THIS TOOL DOES
    the corresponding invoice/webhook on its own, without the tester
    touching the Stripe dashboard.
 
+   The clock is always advanced to (next billing boundary + 1 hour). The
+   boundary is read from `items.data[].current_period_end` — Stripe moved
+   it off the top-level Subscription in API version 2025-03-31, and this
+   codebase pins a stripe release well past that — falling back to the
+   legacy top-level `current_period_end`, then `trial_end`. If no
+   boundary can be determined, or the clock already sits past it, NO
+   advance is issued and an explicit error is returned. A short advance
+   that fails to cross a boundary is worse than none: Stripe emits no
+   invoice, so the renewal QA subsequently observes actually came from
+   the nightly reconcile Celery sweep (which renews off the PREVIOUS
+   cycle's already-paid invoice) while the response reads as success.
+   The response's top-level `warnings` list calls this out whenever the
+   boundary was not crossed.
+
 This tool NEVER calls renewal business logic directly (never invokes
 SubscriptionService.process_rollover_and_renewal, LicenseSubscriptionService.
 process_license_renewal, etc.) — doing so would test a shortcut, not the
@@ -54,7 +68,9 @@ mistakenly left on somewhere.
 
 import logging
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
+from typing import Any
 
 from django.conf import settings
 from django.db import transaction
@@ -103,6 +119,110 @@ def _time_travel_enabled() -> bool:
     if not api_key.startswith("sk_test_"):
         return False
     return True
+
+
+# ----------------------------------------------------------------------
+# Test Clock attachment at customer-creation time
+#
+# Stripe only allows a Test Clock to be attached when the Customer is
+# CREATED — there is no way to attach one later. So a customer made
+# through the ordinary checkout flow is permanently clockless, and every
+# advance attempt for it exits with "not attached to a Test Clock". That
+# left the clock half of this tool inert for everything except customers
+# hand-built in the Stripe dashboard.
+#
+# Opting in is deliberately narrow and explicit: the time-travel flag AND
+# a Stripe test key AND the customer's email domain being listed in
+# settings.BILLING_TEST_CLOCK_EMAIL_DOMAINS. That list defaults to empty,
+# so with no configuration this changes nothing for anyone.
+# ----------------------------------------------------------------------
+
+
+def _test_clock_email_domains():
+    """
+    Normalized lowercase domain set from settings. Accepts entries with
+    or without a leading '@'. The single entry "*" means "every customer
+    created in this environment", for a dedicated QA deployment.
+    """
+    raw = getattr(settings, "BILLING_TEST_CLOCK_EMAIL_DOMAINS", None) or []
+    if isinstance(raw, str):
+        raw = [part for part in raw.replace(",", " ").split() if part]
+    return {
+        str(entry).strip().lstrip("@").lower() for entry in raw if str(entry).strip()
+    }
+
+
+def should_attach_test_clock(email) -> bool:
+    """
+    Every guardrail that gates the time-travel endpoint gates this too —
+    a live Stripe key can never reach TestClock.create — plus the domain
+    allow-list. Safe to call from production code paths.
+    """
+    if not _time_travel_enabled():
+        return False
+
+    domains = _test_clock_email_domains()
+    if not domains:
+        return False
+    if "*" in domains:
+        return True
+
+    if not email or "@" not in str(email):
+        return False
+    return str(email).rsplit("@", 1)[-1].strip().lower() in domains
+
+
+def new_customer_test_clock_kwargs(email, label=None) -> dict:
+    """
+    Returns `{"test_clock": <id>}` to splice into a stripe.Customer.create
+    call, or `{}` when this customer should not get one.
+
+    Raises (rather than degrading to `{}`) if clock creation fails. A
+    customer created without a clock can NEVER be given one afterwards,
+    so silently falling back would hand QA a permanently un-simulatable
+    customer — the exact inert-tool failure this exists to remove. A
+    loud failure in an explicitly QA-configured environment is cheap and
+    retryable; a silent one costs a wasted test cycle to rediscover.
+    """
+    if not should_attach_test_clock(email):
+        return {}
+
+    if not (
+        hasattr(stripe, "test_helpers") and hasattr(stripe.test_helpers, "TestClock")
+    ):
+        raise ValueError(
+            "BILLING_TEST_CLOCK_EMAIL_DOMAINS matched this customer, but the "
+            "installed stripe library does not expose "
+            "stripe.test_helpers.TestClock. Upgrade the stripe package or "
+            "clear the setting."
+        )
+
+    try:
+        clock = stripe.test_helpers.TestClock.create(
+            frozen_time=int(time.time()),
+            name=(label or f"QA time travel — {email}")[:250],
+        )
+    except stripe.error.StripeError as exc:
+        raise ValueError(
+            "Could not create a Stripe Test Clock for this QA customer: "
+            f"{getattr(exc, 'user_message', None) or exc}. Refusing to create "
+            "a clockless customer, since a Test Clock cannot be attached "
+            "after the fact."
+        ) from exc
+
+    clock_id = QATimeTravelService._safe_get(clock, "id")
+    if not clock_id:
+        raise ValueError(
+            "Stripe returned a Test Clock with no id; refusing to create a "
+            "clockless QA customer."
+        )
+
+    logger.warning(
+        "[QA TIME TRAVEL] Created Test Clock %s for new Stripe customer (%s).",
+        clock_id,
+        email,
+    )
+    return {"test_clock": clock_id}
 
 
 # ----------------------------------------------------------------------
@@ -190,13 +310,137 @@ class QATimeTravelService:
     """
 
     _DEFAULT_BUFFER = timedelta(minutes=5)
-    _TEST_CLOCK_ADVANCE_BUFFER_SECONDS = 3600  # 1 hour past current_period_end
+    # Advance to 1 hour PAST the next billing boundary, never merely 1 hour
+    # past wherever the clock currently sits — see _resolve_billing_boundary.
+    _TEST_CLOCK_ADVANCE_BUFFER_SECONDS = 3600
     _TEST_CLOCK_POLL_INTERVAL_SECONDS = 1
     _TEST_CLOCK_POLL_TIMEOUT_SECONDS = 15
 
     @staticmethod
     def _resolve_target(target_datetime):
         return target_datetime or (timezone.now() - QATimeTravelService._DEFAULT_BUFFER)
+
+    # ------------------------------------------------------------------
+    # Stripe billing-boundary extraction
+    #
+    # Stripe moved `current_period_end` OFF the top-level Subscription
+    # object and onto each subscription ITEM in API version 2025-03-31.
+    # This codebase pins stripe==14.4.1, which is well past that cutover,
+    # so reading only the top-level field yields None — and an anchor of
+    # None used to silently degrade into "advance 1 hour from wherever the
+    # clock is", which never crosses a period boundary and therefore never
+    # makes Stripe emit the renewal invoice this whole tool exists to
+    # trigger. The same pre/post-2025-03-31 dual read already exists for
+    # invoices in stripe_service._extract_invoice_subscription_id; this is
+    # the subscription-side equivalent.
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _safe_get(obj, key):
+        """
+        Reads `key` off a Stripe object, a plain dict, or an attribute-only
+        object. Stripe's StripeObject supports both mapping and attribute
+        access, but tests (and older library versions) may hand us either
+        shape, and a missing key must never raise.
+        """
+        if obj is None:
+            return None
+        getter = getattr(obj, "get", None)
+        if callable(getter):
+            try:
+                return getter(key)
+            except TypeError:
+                pass
+        return getattr(obj, key, None)
+
+    @staticmethod
+    def _coerce_timestamp(value):
+        """
+        Stripe timestamps are positive Unix ints. Anything else — None,
+        0, a string, a bool (which is an int subclass in Python, hence the
+        explicit guard), a MagicMock leaking in from a test — is treated
+        as "absent" rather than trusted, since a bogus anchor is exactly
+        how the original defect stayed invisible.
+        """
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, (int, float)):
+            ts = int(value)
+            return ts if ts > 0 else None
+        return None
+
+    @staticmethod
+    def _collect_billing_boundaries(stripe_sub):
+        """
+        Every timestamp at which Stripe would advance this subscription's
+        billing, newest API shape first. Returns a list of
+        (unix_timestamp, source_label) — the label is echoed back in the
+        response so QA can see WHICH field drove the advance.
+
+        `trial_end` is included because a trialing subscription's next
+        billing event is the trial ending, and mode='trial_expiry' needs
+        the clock to cross exactly that.
+        """
+        candidates = []
+
+        items = QATimeTravelService._safe_get(stripe_sub, "items")
+        data = QATimeTravelService._safe_get(items, "data")
+        try:
+            item_list = list(data) if data is not None else []
+        except TypeError:
+            item_list = []
+
+        for index, item in enumerate(item_list):
+            ts = QATimeTravelService._coerce_timestamp(
+                QATimeTravelService._safe_get(item, "current_period_end")
+            )
+            if ts is not None:
+                candidates.append((ts, f"items.data[{index}].current_period_end"))
+
+        # Pre-2025-03-31 API versions (and some expanded payloads) still
+        # carry the top-level field — kept as a fallback so this keeps
+        # working if the stripe pin is ever rolled back.
+        top_level = QATimeTravelService._coerce_timestamp(
+            QATimeTravelService._safe_get(stripe_sub, "current_period_end")
+        )
+        if top_level is not None:
+            candidates.append((top_level, "current_period_end"))
+
+        trial_end = QATimeTravelService._coerce_timestamp(
+            QATimeTravelService._safe_get(stripe_sub, "trial_end")
+        )
+        if trial_end is not None:
+            candidates.append((trial_end, "trial_end"))
+
+        return candidates
+
+    @staticmethod
+    def _resolve_billing_boundary(stripe_sub, frozen_time):
+        """
+        Picks the boundary the clock must cross: the EARLIEST one still
+        ahead of the clock, so a single advance triggers exactly the next
+        billing event rather than skipping over several cycles at once.
+
+        If nothing is ahead of the clock, returns the latest boundary
+        found anyway — the caller compares it against `frozen_time` and
+        reports "already past" rather than issuing a pointless advance.
+
+        Returns (boundary_ts | None, source_label | None).
+        """
+        candidates = QATimeTravelService._collect_billing_boundaries(stripe_sub)
+        if not candidates:
+            return None, None
+
+        ahead = [c for c in candidates if c[0] > frozen_time]
+        if ahead:
+            return min(ahead, key=lambda c: c[0])
+        return max(candidates, key=lambda c: c[0])
+
+    @staticmethod
+    def _iso(timestamp):
+        if timestamp is None:
+            return None
+        return datetime.fromtimestamp(timestamp, tz=dt_timezone.utc).isoformat()
 
     # ------------------------------------------------------------------
     # INDIVIDUAL
@@ -451,14 +695,36 @@ class QATimeTravelService:
 
         Deliberately called AFTER the local-DB transaction has already
         committed — never holds a DB lock across this network call.
+
+        The advance target is always (next billing boundary + 1 hour), so
+        Stripe genuinely generates the renewal/trial-end invoice and fires
+        the webhook. An advance that would NOT cross a boundary is
+        reported as an explicit error with advanced=False rather than
+        being issued and reported as success — a short advance looks green
+        but leaves the real webhook path untested, with the nightly
+        reconcile_subscription_renewals sweep silently renewing off the
+        PREVIOUS cycle's already-paid invoice instead.
         """
-        result = {
+        # Annotated because the values are deliberately heterogeneous —
+        # booleans, ints, timestamps and human-readable strings share this
+        # structure so the endpoint can return one flat diagnostic object.
+        result: dict[str, Any] = {
             "attempted": False,
             "advanced": False,
             "test_clock_id": None,
             "previous_status": None,
             "new_status": None,
+            "previous_frozen_time": None,
+            "previous_frozen_time_iso": None,
+            "billing_boundary": None,
+            "billing_boundary_iso": None,
+            "billing_boundary_source": None,
             "target_frozen_time": None,
+            "target_frozen_time_iso": None,
+            "advanced_seconds": None,
+            "crossed_billing_boundary": False,
+            "observed_frozen_time": None,
+            "observed_frozen_time_iso": None,
             "waited": False,
             "error": None,
             "note": None,
@@ -483,8 +749,7 @@ class QATimeTravelService:
             result["attempted"] = True
 
             stripe_sub = stripe.Subscription.retrieve(stripe_subscription_id)
-            customer_id = stripe_sub.get("customer")
-            current_period_end = stripe_sub.get("current_period_end")
+            customer_id = QATimeTravelService._safe_get(stripe_sub, "customer")
 
             if not customer_id:
                 result["note"] = "Stripe subscription has no customer — skipped."
@@ -513,19 +778,82 @@ class QATimeTravelService:
                 )
                 return result
 
-            current_frozen_time = clock.get("frozen_time") or 0
-            anchor = current_period_end or current_frozen_time
+            current_frozen_time = QATimeTravelService._coerce_timestamp(
+                QATimeTravelService._safe_get(clock, "frozen_time")
+            )
+            if current_frozen_time is None:
+                result["error"] = (
+                    "Test clock reported no usable frozen_time, so there is "
+                    "no reference point to advance from. Inspect test clock "
+                    f"{test_clock_id} in the Stripe dashboard."
+                )
+                return result
+
+            result["previous_frozen_time"] = current_frozen_time
+            result["previous_frozen_time_iso"] = QATimeTravelService._iso(
+                current_frozen_time
+            )
+
+            boundary, boundary_source = QATimeTravelService._resolve_billing_boundary(
+                stripe_sub, current_frozen_time
+            )
+
+            if boundary is None:
+                result["error"] = (
+                    "Could not determine the next billing boundary for "
+                    f"{stripe_subscription_id} — neither "
+                    "items.data[].current_period_end, nor a top-level "
+                    "current_period_end, nor trial_end was present on the "
+                    "Stripe subscription. Without it, advancing the clock "
+                    "could not be guaranteed to cross a period boundary, so "
+                    "no advance was issued (advancing a short distance would "
+                    "produce no renewal invoice while still looking like a "
+                    "success)."
+                )
+                return result
+
+            result["billing_boundary"] = boundary
+            result["billing_boundary_iso"] = QATimeTravelService._iso(boundary)
+            result["billing_boundary_source"] = boundary_source
+
+            if boundary <= current_frozen_time:
+                result["error"] = (
+                    "The test clock is already at or past this "
+                    f"subscription's next billing boundary ({boundary_source}"
+                    f" = {QATimeTravelService._iso(boundary)}, clock = "
+                    f"{QATimeTravelService._iso(current_frozen_time)}), so "
+                    "advancing further cannot produce another renewal "
+                    "invoice — Stripe already generated it when the clock "
+                    "first crossed. Check webhook delivery for the invoice "
+                    "that was already issued rather than advancing again."
+                )
+                return result
+
             target_frozen_time = (
-                max(anchor, current_frozen_time)
-                + QATimeTravelService._TEST_CLOCK_ADVANCE_BUFFER_SECONDS
+                boundary + QATimeTravelService._TEST_CLOCK_ADVANCE_BUFFER_SECONDS
             )
             result["target_frozen_time"] = target_frozen_time
+            result["target_frozen_time_iso"] = QATimeTravelService._iso(
+                target_frozen_time
+            )
+            result["advanced_seconds"] = target_frozen_time - current_frozen_time
 
             advanced_clock = stripe.test_helpers.TestClock.advance(
                 test_clock_id, frozen_time=target_frozen_time
             )
             result["advanced"] = True
-            result["new_status"] = advanced_clock.get("status")
+            # True by construction: target = boundary + buffer, and we
+            # returned early above unless boundary > current_frozen_time.
+            result["crossed_billing_boundary"] = True
+            result["new_status"] = QATimeTravelService._safe_get(
+                advanced_clock, "status"
+            )
+            observed = QATimeTravelService._coerce_timestamp(
+                QATimeTravelService._safe_get(advanced_clock, "frozen_time")
+            )
+            if observed is not None:
+                result["observed_frozen_time"] = observed
+                result["observed_frozen_time_iso"] = QATimeTravelService._iso(observed)
 
             if wait_for_ready:
                 result["waited"] = True
@@ -536,8 +864,17 @@ class QATimeTravelService:
                 while time.monotonic() < deadline:
                     time.sleep(QATimeTravelService._TEST_CLOCK_POLL_INTERVAL_SECONDS)
                     polled = stripe.test_helpers.TestClock.retrieve(test_clock_id)
-                    result["new_status"] = polled.get("status")
-                    if polled.get("status") != "advancing":
+                    polled_status = QATimeTravelService._safe_get(polled, "status")
+                    result["new_status"] = polled_status
+                    polled_frozen = QATimeTravelService._coerce_timestamp(
+                        QATimeTravelService._safe_get(polled, "frozen_time")
+                    )
+                    if polled_frozen is not None:
+                        result["observed_frozen_time"] = polled_frozen
+                        result["observed_frozen_time_iso"] = QATimeTravelService._iso(
+                            polled_frozen
+                        )
+                    if polled_status != "advancing":
                         break
                 if result["new_status"] == "advancing":
                     result["note"] = (
@@ -562,6 +899,59 @@ class QATimeTravelService:
             )
             result["error"] = f"Unexpected error: {exc}"
             return result
+
+    # ------------------------------------------------------------------
+    # Response warnings
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def build_simulation_warnings(local_result, stripe_result):
+        """
+        Flags the specific silent-failure this module's clock handling
+        exists to prevent: the local rewind succeeded (so SOMETHING will
+        renew) but Stripe was never pushed across a billing boundary (so
+        no invoice, no invoice.payment_succeeded webhook). Whatever QA
+        observes next then comes from reconcile_subscription_renewals —
+        which reads the PREVIOUS cycle's already-paid invoice, sees
+        status="paid", and renews locally. Green result, wrong code path.
+
+        Returns a list of strings; empty means nothing to flag.
+        """
+        warnings = []
+
+        if not local_result.get("stripe_advancement_applicable"):
+            # Local/Celery-only mode (mid_cycle_grant) — no Stripe signal
+            # exists at any clock position, so silence is correct here.
+            return warnings
+
+        if stripe_result is None:
+            warnings.append(
+                "Stripe test clock advancement was skipped "
+                "(advance_stripe_test_clock=false). The local dates were "
+                "rewound, but Stripe will not emit an invoice webhook — any "
+                "renewal you observe will come from the nightly "
+                "reconcile/fallback Celery sweep, NOT the production "
+                "invoice.payment_succeeded path."
+            )
+            return warnings
+
+        if not stripe_result.get("crossed_billing_boundary"):
+            detail = (
+                stripe_result.get("error")
+                or stripe_result.get("note")
+                or "the test clock was not advanced past a billing boundary."
+            )
+            warnings.append(
+                "Stripe did NOT cross a billing boundary, so no renewal "
+                "invoice and no invoice.payment_succeeded webhook will be "
+                "generated. Any renewal you observe after this call came "
+                "from the Celery fallback sweep "
+                "(reconcile_subscription_renewals / process_license_renewals) "
+                "reading the previous cycle's already-paid invoice — NOT the "
+                f"production webhook path. Reason: {detail}"
+            )
+
+        return warnings
 
 
 # ----------------------------------------------------------------------
@@ -633,12 +1023,18 @@ class BillingTimeTravelView(APIView):
                 ),
             }
 
+        warnings = QATimeTravelService.build_simulation_warnings(
+            local_result, stripe_result
+        )
+
         logger.warning(
-            "[QA TIME TRAVEL] Executed by superadmin %s: type=%s id=%s " "mode=%s",
+            "[QA TIME TRAVEL] Executed by superadmin %s: type=%s id=%s "
+            "mode=%s warnings=%s",
             request.user.email,
             d["subscription_type"],
             d["subscription_id"],
             d["mode"],
+            warnings or "none",
         )
 
         return Response(
@@ -648,6 +1044,12 @@ class BillingTimeTravelView(APIView):
                 "mode": d["mode"],
                 "local_changes": local_result,
                 "stripe_test_clock": stripe_result,
+                # Non-empty means the local rewind landed but Stripe will
+                # NOT emit the corresponding webhook, so whatever renewal
+                # QA observes afterwards came from the Celery fallback
+                # sweep, not the production webhook path. HTTP is still
+                # 200 because the local rewind genuinely committed.
+                "warnings": warnings,
             },
             status=status.HTTP_200_OK,
         )

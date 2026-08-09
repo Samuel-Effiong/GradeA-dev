@@ -18,7 +18,53 @@ loop instead of the AI feature tier gate silently running in either an
 unintentionally-locked-out or an unintentionally-wide-open state.
 """
 
-from django.core.checks import Warning, register
+from django.core.checks import Error, Warning, register
+
+
+@register("billing")
+def check_atomic_requests_disabled(app_configs, **kwargs):
+    """
+    ATOMIC_REQUESTS must stay OFF for the Stripe webhook idempotency claim
+    to work at all.
+
+    billing/webhooks.py claims an event with a conditional UPDATE that must
+    COMMIT before the handler runs, so that a concurrent redelivery of the
+    same event can see the claim and back off with 409. Under
+    ATOMIC_REQUESTS the whole view runs in one transaction, so the claim
+    stays invisible until the response is returned — at which point the
+    racing delivery has already been told "duplicate, 200" for work that
+    had not finished. That is exactly the permanent event-loss bug the
+    status column was introduced to kill.
+
+    This is an ERROR rather than a comment because the failure mode is
+    invisible: every test would still pass (a Django TestCase wraps each
+    test in a transaction regardless), and the loss would only show up as
+    customers who paid and received nothing. `manage.py check` runs in
+    deploy pipelines, so this fails loudly instead of rotting.
+    """
+    from django.conf import settings
+
+    offenders = [
+        alias
+        for alias, config in settings.DATABASES.items()
+        if config.get("ATOMIC_REQUESTS")
+    ]
+    if not offenders:
+        return []
+
+    return [
+        Error(
+            f"ATOMIC_REQUESTS is enabled on database alias(es) {sorted(offenders)}. "
+            f"This silently breaks the Stripe webhook idempotency claim in "
+            f"billing/webhooks.py: the claim would no longer commit before the "
+            f"handler runs, so a concurrent redelivery cannot see it and gets "
+            f"told 'duplicate' for work that has not finished - the exact "
+            f"event-loss bug the StripeEvent.status column exists to prevent. "
+            f"Turn it off, or rework _claim_stripe_event to use its own "
+            f"connection first.",
+            id="billing.E001",
+        )
+    ]
 
 
 @register("billing")
