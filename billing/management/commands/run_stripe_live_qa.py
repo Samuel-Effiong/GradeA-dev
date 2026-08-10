@@ -72,6 +72,28 @@ class Command(BaseCommand):
             dest="list_only",
             help="List the available scenarios and exit without running anything.",
         )
+        parser.add_argument(
+            "--workers",
+            type=int,
+            default=1,
+            help=(
+                "Run this many scenarios concurrently. 1 (the default) uses "
+                "the original single-threaded path. Higher values route "
+                "events through a shared poller, which is what makes "
+                "long-horizon runs finish in reasonable wall-clock time — "
+                "each actor spends most of its life waiting on Stripe."
+            ),
+        )
+        parser.add_argument(
+            "--budget-seconds",
+            type=float,
+            default=None,
+            help=(
+                "Wall-clock budget. Scenarios not started before it expires "
+                "are reported as budget-exhausted rather than silently "
+                "dropped. Concurrent runs only."
+            ),
+        )
 
     def handle(self, *args, **options):
         if options["list_only"]:
@@ -81,10 +103,23 @@ class Command(BaseCommand):
                 self.stdout.write(f"  {name}: {summary}")
             return
 
+        workers = max(1, options["workers"])
         try:
-            result = run_suite(
-                options["scenarios"], keep_objects=options["keep_objects"]
-            )
+            if workers > 1:
+                # Imported lazily so the single-threaded path never pays
+                # for the concurrency package.
+                from billing.live_qa.runner import run_suite_concurrently
+
+                result = run_suite_concurrently(
+                    options["scenarios"],
+                    max_workers=workers,
+                    keep_objects=options["keep_objects"],
+                    budget_seconds=options["budget_seconds"],
+                )
+            else:
+                result = run_suite(
+                    options["scenarios"], keep_objects=options["keep_objects"]
+                )
         except LiveQARefused as exc:
             # A guardrail, not a bug. Say so plainly rather than dumping a
             # traceback that looks like a crash.
@@ -119,6 +154,13 @@ class Command(BaseCommand):
 
         for error in result.cleanup_errors:
             self.stdout.write(self.style.WARNING(f"CLEANUP {error}"))
+
+        # Notes are facts about how far the run got — a Stripe test-clock
+        # ceiling, an exhausted budget, a shared test account. They are
+        # never failures, so they print plainly and do not affect the exit
+        # code.
+        for note in getattr(result, "notes", []):
+            self.stdout.write(f"NOTE {note}")
 
         style = self.style.SUCCESS if result.passed else self.style.ERROR
         self.stdout.write(style(result.summary()))

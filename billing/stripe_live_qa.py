@@ -112,6 +112,17 @@ class LiveQATimeout(RuntimeError):
     """Stripe did not reach the expected state within the budget."""
 
 
+class LiveQAInfrastructureError(RuntimeError):
+    """The harness itself broke — a dead event poller, an exhausted event
+    cursor, a persistent 429.
+
+    Deliberately distinct from a scenario failure. A nightly run that
+    reports "billing is broken" when really the poller thread died sends
+    someone hunting a bug that does not exist, and the next real failure
+    is trusted less for it.
+    """
+
+
 # --------------------------------------------------------------------------
 # Guards
 # --------------------------------------------------------------------------
@@ -176,6 +187,19 @@ def qa_email_domain() -> str:
     return str(domain).strip().lstrip("@").lower() or DEFAULT_QA_EMAIL_DOMAIN
 
 
+# Optional account-wide throttle, installed by the concurrent runner.
+# It belongs HERE rather than in the worker pool because guarded_call is
+# already established — and test-enforced — as the only path to Stripe,
+# which makes the throttle unbypassable for free.
+_rate_limiter = None
+
+
+def set_rate_limiter(limiter) -> None:
+    """Install (or clear, with None) the process-wide Stripe throttle."""
+    global _rate_limiter
+    _rate_limiter = limiter
+
+
 def guarded_call(fn: Callable, /, *args, **kwargs):
     """
     The ONLY way this suite is allowed to reach Stripe.
@@ -183,7 +207,12 @@ def guarded_call(fn: Callable, /, *args, **kwargs):
     Re-asserts test mode immediately before every call. See the module
     docstring for why this is per-call rather than once at import.
     """
+    # Order matters: refuse FIRST, throttle second. A call that must not
+    # happen must not consume a rate-limit token or block on one.
     assert_test_mode(getattr(fn, "__qualname__", None) or repr(fn))
+    limiter = _rate_limiter
+    if limiter is not None:
+        limiter.acquire()
     return fn(*args, **kwargs)
 
 
@@ -223,6 +252,11 @@ class SuiteResult:
     run_id: str
     scenarios: list = field(default_factory=list)
     cleanup_errors: list = field(default_factory=list)
+    # Outcomes that are neither pass nor fail: "reached Stripe's test-clock
+    # ceiling at simulated year 3.4", "stopped at the wall-clock budget".
+    # These must never turn a run red — they are facts about how far the
+    # run got, not defects.
+    notes: list = field(default_factory=list)
 
     @property
     def passed(self) -> bool:
@@ -349,6 +383,7 @@ class LiveQAHarness:
     # subscription while it runs, so this is generous by design.
     CLOCK_READY_TIMEOUT = 300
     CLOCK_POLL_INTERVAL = 3
+    CLOCK_POLL_MAX_INTERVAL = 15
 
     # Events appear a beat after the objects that caused them. "Drain
     # until quiet" rather than "sleep N seconds": we stop when Stripe
@@ -461,6 +496,11 @@ class LiveQAHarness:
     def _wait_for_clock_ready(self, clock_id: str):
         deadline = time.monotonic() + self.CLOCK_READY_TIMEOUT
         last_status = None
+        # Exponential backoff rather than a flat interval: with a dozen
+        # actors advancing clocks concurrently, flat polling turns into a
+        # steady stream of retrieves that eats the account's rate limit
+        # while telling us nothing new.
+        interval = float(self.CLOCK_POLL_INTERVAL)
         while time.monotonic() < deadline:
             clock = guarded_call(stripe.test_helpers.TestClock.retrieve, clock_id)
             last_status = clock.get("status")
@@ -472,7 +512,8 @@ class LiveQAHarness:
                     "while advancing. This is a Stripe-side fault, not a "
                     "billing bug — re-run before investigating our code."
                 )
-            time.sleep(self.CLOCK_POLL_INTERVAL)
+            time.sleep(interval)
+            interval = min(interval * 1.6, self.CLOCK_POLL_MAX_INTERVAL)
         raise LiveQATimeout(
             f"Stripe test clock {clock_id} did not become ready within "
             f"{self.CLOCK_READY_TIMEOUT}s (last status: {last_status})."
