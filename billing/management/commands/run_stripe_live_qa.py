@@ -25,6 +25,8 @@ Usage:
     python manage.py run_stripe_live_qa
     python manage.py run_stripe_live_qa --scenario renewals
     python manage.py run_stripe_live_qa --scenario renewals --scenario failed_renewal
+    python manage.py run_stripe_live_qa --tier fast      # nightly set
+    python manage.py run_stripe_live_qa --tier deep --workers 8
     python manage.py run_stripe_live_qa --keep-objects   # debugging only
 
 Requires `ENABLE_STRIPE_LIVE_QA=True` and test-mode Stripe keys.
@@ -35,8 +37,18 @@ import logging
 
 from django.core.management.base import BaseCommand, CommandError
 
+# Importing the package is what REGISTERS the deep (long-horizon)
+# scenarios into the shared registry. Without it --list and --tier would
+# silently show only the fast ones, which is worse than an error: it
+# looks like complete information.
+import billing.live_qa  # noqa: F401
 from billing.stripe_live_qa import LiveQAConfigurationError, LiveQARefused
-from billing.stripe_live_qa_scenarios import SCENARIOS, run_suite
+from billing.stripe_live_qa_scenarios import (
+    SCENARIO_TIERS,
+    SCENARIOS,
+    run_suite,
+    scenarios_for_tier,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +85,16 @@ class Command(BaseCommand):
             help="List the available scenarios and exit without running anything.",
         )
         parser.add_argument(
+            "--tier",
+            choices=["fast", "deep"],
+            default=None,
+            help=(
+                "fast = the ~20-30 minute nightly set. deep = everything, "
+                "including multi-year horizon runs that take hours. Ignored "
+                "when --scenario is given."
+            ),
+        )
+        parser.add_argument(
             "--workers",
             type=int,
             default=1,
@@ -100,8 +122,14 @@ class Command(BaseCommand):
             self.stdout.write("Available scenarios:")
             for name, fn in sorted(SCENARIOS.items()):
                 summary = (fn.__doc__ or "").strip().splitlines()[0]
-                self.stdout.write(f"  {name}: {summary}")
+                tier = SCENARIO_TIERS.get(name, "fast")
+                self.stdout.write(f"  [{tier}] {name}: {summary}")
             return
+
+        scenarios = options["scenarios"]
+        if not scenarios and options["tier"]:
+            scenarios = scenarios_for_tier(options["tier"])
+            self.stdout.write(f"tier={options['tier']}: {len(scenarios)} scenario(s)")
 
         workers = max(1, options["workers"])
         try:
@@ -111,15 +139,13 @@ class Command(BaseCommand):
                 from billing.live_qa.runner import run_suite_concurrently
 
                 result = run_suite_concurrently(
-                    options["scenarios"],
+                    scenarios,
                     max_workers=workers,
                     keep_objects=options["keep_objects"],
                     budget_seconds=options["budget_seconds"],
                 )
             else:
-                result = run_suite(
-                    options["scenarios"], keep_objects=options["keep_objects"]
-                )
+                result = run_suite(scenarios, keep_objects=options["keep_objects"])
         except LiveQARefused as exc:
             # A guardrail, not a bug. Say so plainly rather than dumping a
             # traceback that looks like a crash.

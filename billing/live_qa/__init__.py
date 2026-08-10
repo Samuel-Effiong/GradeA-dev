@@ -22,7 +22,9 @@ user, one independent set of database rows. That is the only clean
 isolation boundary available, and everything here follows from it.
 """
 
+from . import scenarios_long  # noqa: F401,E402  (registers deep scenarios)
 from . import invariants_global, invariants_individual  # noqa: F401,E402  (registers)
+from .clock import HorizonOutcome, LongHorizonRunner, run_local_clock_tasks, sim_now
 from .concurrency import (
     Deadline,
     LiveQAWorkerPool,
@@ -55,13 +57,17 @@ __all__ = [
     "CustomerEventStream",
     "Deadline",
     "EventBus",
+    "HorizonOutcome",
     "InvariantContext",
     "LiveQAWorkerPool",
+    "LongHorizonRunner",
     "StepRecord",
     "StripeRateLimiter",
     "StripeSnapshot",
     "WorkItemResult",
     "evaluate",
+    "run_local_clock_tasks",
     "run_suite_concurrently",
+    "sim_now",
     "worker_db_connections",
 ]

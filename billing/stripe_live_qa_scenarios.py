@@ -562,6 +562,35 @@ SCENARIOS = {
     "failed_renewal": scenario_failed_renewal,
 }
 
+# Tiering. FAST scenarios fit a ~20-30 minute nightly envelope; DEEP ones
+# take hours and belong in a weekly run. Anything unlisted is treated as
+# FAST, so forgetting to tag a cheap scenario is harmless while a slow one
+# has to be declared.
+TIER_FAST = "fast"
+TIER_DEEP = "deep"
+SCENARIO_TIERS = {name: TIER_FAST for name in SCENARIOS}
+
+
+def register_scenarios(extra: dict, *, tier: str = TIER_FAST) -> None:
+    """Contribute scenarios into the SAME registry, so `--list` and
+    `--scenario` keep working from one place rather than growing a second
+    source of truth."""
+    for name, fn in extra.items():
+        if name in SCENARIOS:
+            raise ValueError(f"duplicate scenario name: {name}")
+        SCENARIOS[name] = fn
+        SCENARIO_TIERS[name] = tier
+
+
+def scenarios_for_tier(tier: str) -> list:
+    """FAST is a subset of DEEP: a weekly run does everything a nightly
+    run does, plus the slow work."""
+    if tier == TIER_DEEP:
+        return list(SCENARIOS)
+    return [
+        name for name in SCENARIOS if SCENARIO_TIERS.get(name, TIER_FAST) == TIER_FAST
+    ]
+
 
 # --------------------------------------------------------------------------
 # Runner
