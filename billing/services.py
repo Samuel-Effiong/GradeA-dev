@@ -515,9 +515,21 @@ class SubscriptionService:
         now = timezone.now()
         wallet = user.credit_wallet
 
+        # is_processed=False + explicit ordering, matching the two sibling
+        # rollover implementations (process_rollover_and_renewal below, and
+        # LicenseSubscriptionService._rollover_and_grant_monthly_bucket).
+        #
+        # Without BOTH of these this picks the wrong bucket from the second
+        # mid-cycle grant onward: CreditBucket.Meta.ordering is
+        # ["expires_at", "created_at"], and a retired bucket's expires_at is
+        # set to its retirement time — always earlier than the live bucket's
+        # expiry — so an unordered .first() keeps returning month 1's bucket
+        # for the rest of the year. That both re-rolls month 1 repeatedly and
+        # silently drops months 2..11's genuinely unused credits.
         old_monthly = (
             wallet.buckets.select_for_update()
-            .filter(bucket_type=CreditBucketType.MONTHLY)
+            .filter(bucket_type=CreditBucketType.MONTHLY, is_processed=False)
+            .order_by("-created_at")
             .first()
         )
 
@@ -566,7 +578,17 @@ class SubscriptionService:
                         cap_meta,
                     )
             old_monthly.expires_at = now
-            old_monthly.save(update_fields=["expires_at", "updated_at"])
+            # is_processed=True is what makes the selector above correct on
+            # the NEXT grant. It also means cleanup_expired_credit_buckets no
+            # longer writes an EXPIRE row for this bucket's post-rollover
+            # remainder — which is already how both renewal paths behave
+            # (process_rollover_and_renewal, _rollover_and_grant_monthly_bucket),
+            # so this makes mid-cycle consistent with them rather than
+            # introducing a new policy. Deliberately NOT expire_bucket(): that
+            # logs the full total-minus-used, including the slice just
+            # re-granted as CARRY_OVER, double-counting it in the ledger.
+            old_monthly.is_processed = True
+            old_monthly.save(update_fields=["expires_at", "is_processed", "updated_at"])
 
         next_grant_at = now + relativedelta(months=1)
         # Never let the bucket outlive the actual annual contract — in the
@@ -1378,7 +1400,7 @@ class SubscriptionService:
         plan = trial_sub.plan
 
         now = timezone.now()
-        cycle_start, billing_end, _grant_at = (
+        cycle_start, billing_end, grant_at = (
             SubscriptionService._resolve_billing_period(
                 plan,
                 period_start,
@@ -1421,12 +1443,19 @@ class SubscriptionService:
 
         trial_sub.billing_cycle_start = cycle_start
         trial_sub.billing_cycle_end = billing_end
+        # MUST be persisted. process_annual_plan_credit_grants filters
+        # next_credit_grant_at__lte=now, and SQL excludes NULL — so leaving
+        # this unset means an annual subscriber who converted from a trial
+        # is never picked up again and receives nothing for the remaining
+        # eleven months of a year they have paid for.
+        trial_sub.next_credit_grant_at = grant_at
         trial_sub.save(
             update_fields=[
                 "is_trial",
                 "trial_end",
                 "billing_cycle_start",
                 "billing_cycle_end",
+                "next_credit_grant_at",
                 "updated_at",
             ]
         )
@@ -1439,7 +1468,12 @@ class SubscriptionService:
             bucket_type=CreditBucketType.MONTHLY,
             total_credits=plan.monthly_credits,
             used_credits=0,
-            expires_at=billing_end,
+            # grant_at, NOT billing_end: on an ANNUAL plan billing_end is a
+            # year away, which would stretch a single month's allocation
+            # across twelve. _resolve_billing_period returns
+            # grant_at == period_end for MONTHLY plans, so monthly behaviour
+            # is bit-for-bit unchanged — that is what makes this safe.
+            expires_at=grant_at,
         )
 
         CreditLedger.objects.create(
@@ -1581,6 +1615,10 @@ class SubscriptionService:
                 "plan",
                 "billing_cycle_start",
                 "billing_cycle_end",
+                # Assigned just above. Omitting it here silently discarded
+                # the assignment — the in-memory object looked correct, so
+                # only a reload from the DB revealed it.
+                "next_credit_grant_at",
                 "stripe_subscription_id",
                 "stripe_status",
                 "updated_at",
