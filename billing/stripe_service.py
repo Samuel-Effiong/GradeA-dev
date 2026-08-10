@@ -1393,7 +1393,17 @@ class StripeSubscriptionMutationService:
                     else payment_intent
                 )
                 if pi_id:
-                    stripe.Refund.create(payment_intent=pi_id)
+                    # Idempotency key ties this refund to the specific
+                    # PaymentIntent being neutralized: if this compensating
+                    # control (or the replay_stripe_events command, or a
+                    # retried request) ever runs twice for the same
+                    # duplicate invoice, Stripe itself refuses to issue a
+                    # second refund rather than relying solely on human
+                    # judgment to catch it.
+                    stripe.Refund.create(
+                        payment_intent=pi_id,
+                        idempotency_key=f"interval-change-refund-{pi_id}",
+                    )
                     logger.warning(
                         "Refunded duplicate interval-change invoice %s "
                         "(PaymentIntent %s) for subscription %s — customer "
@@ -3952,6 +3962,7 @@ class StripeWebhookHandler:
         )
 
     @staticmethod
+    @transaction.atomic
     def handle_payment_intent_failed(payment_intent):
         """
         No credits were ever granted for this PaymentIntent — grant only
@@ -4023,6 +4034,7 @@ class StripeWebhookHandler:
         )
 
     @staticmethod
+    @transaction.atomic
     def handle_setup_intent_succeeded(setup_intent):
         """
         Optionally sets the newly-collected card as the customer's default
