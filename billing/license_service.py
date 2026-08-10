@@ -23,10 +23,8 @@ from dateutil.relativedelta import relativedelta  # type: ignore
 from django.conf import settings
 from django.core.cache import cache
 from django.db import models, transaction
-from django.db.models import F
+from django.db.models import F, Q
 from django.template.loader import render_to_string
-
-# from django.db.models import F, Q
 from django.utils import timezone
 
 from AutoGrader.error_messages import describe_stripe_error, describe_user_error
@@ -1259,8 +1257,21 @@ class LicenseSubscriptionService:
             remaining_budget = total_budget - consumed
 
             if remaining_budget <= 0:
-                # No budget left - no credits to grant
+                # No budget left - no credits to grant. WARNING, not INFO:
+                # this hands the teacher an empty month, and the only other
+                # trace is an is_capped ledger entry. It should never look
+                # routine in the logs.
                 grant_amount = 0
+                logger.warning(
+                    "License %s has no monthly budget left (%d of %d raw "
+                    "credits consumed this window); teacher %s is being "
+                    "enrolled with a 0-credit bucket and will receive "
+                    "nothing until the next monthly refresh.",
+                    license_sub.id,
+                    consumed,
+                    total_budget,
+                    teacher.email,
+                )
             else:
                 grant_amount = min(allocation.monthly_allocation, remaining_budget)
 
@@ -1692,7 +1703,16 @@ class LicenseSubscriptionService:
             )
 
             license_sub.total_credits_consumed = 0
-            license_sub.save(update_fields=["total_credits_consumed", "updated_at"])
+            # Open a fresh consumption window alongside the reset, so the
+            # monthly sweep does not immediately reset again on top of it.
+            license_sub.consumption_window_start = renewal_start
+            license_sub.save(
+                update_fields=[
+                    "total_credits_consumed",
+                    "consumption_window_start",
+                    "updated_at",
+                ]
+            )
         else:
             # No teacher could be renewed – deactivate the license to avoid endless retries
             logger.error(
@@ -3037,6 +3057,29 @@ class LicenseSubscriptionService:
         now = timezone.now()
         next_refresh = now + relativedelta(months=1)
 
+        # Open a new monthly consumption window, at most once per month per
+        # LICENSE. total_credits_consumed is measured against
+        # max_seats * plan.monthly_credits — a MONTHLY budget — but used to
+        # be reset only at contract renewal, i.e. once every
+        # contract_months. On a 12-month contract that meant one month's
+        # usage was charged against all twelve, so every teacher enrolled
+        # from month 2 onward received a 0-credit first month.
+        #
+        # Expressed as a single conditional UPDATE rather than a read-modify-
+        # write because this method runs once per TEACHER: the WHERE clause
+        # makes the first teacher's refresh win and every subsequent one in
+        # the same month a no-op, so consumption recorded between teachers
+        # refreshed on different days is never discarded.
+        LicenseSubscription.objects.filter(
+            Q(pk=license_sub.pk),
+            Q(consumption_window_start__isnull=True)
+            | Q(consumption_window_start__lte=now - relativedelta(months=1)),
+        ).update(
+            total_credits_consumed=0,
+            consumption_window_start=now,
+            updated_at=now,
+        )
+
         LicenseSubscriptionService._rollover_and_grant_monthly_bucket(
             teacher=teacher,
             wallet=wallet,
@@ -3056,9 +3099,15 @@ class LicenseSubscriptionService:
         allocation.save(update_fields=["next_credit_grant_at", "updated_at"])
 
         logger.info(
-            "Refreshed monthly credits for teacher %s under license %s. Amount: %d, next refresh: %s",
+            "Refreshed monthly credits for teacher %s under license %s. "
+            "Amount: %d, next refresh: %s",
             teacher.email,
             license_sub.id,
+            # Was missing: four placeholders, three arguments, so %d
+            # received the datetime and logging swallowed the resulting
+            # formatting error — making this line useless for verifying
+            # refresh behaviour.
+            allocation.monthly_allocation,
             next_refresh,
         )
 
@@ -3154,11 +3203,13 @@ class LicenseSubscriptionService:
         license_sub.billing_cycle_start = now
         license_sub.billing_cycle_end = new_billing_cycle_end
         license_sub.total_credits_consumed = 0
+        license_sub.consumption_window_start = now
         license_sub.save(
             update_fields=[
                 "billing_cycle_start",
                 "billing_cycle_end",
                 "total_credits_consumed",
+                "consumption_window_start",
                 "updated_at",
             ]
         )

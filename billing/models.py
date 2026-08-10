@@ -1452,7 +1452,23 @@ class LicenseSubscription(models.Model):
         default=0,
         help_text=(
             "Total raw credits consumed by all teachers under this "
-            "license in the current billing cycle. Used for global cap enforcement."
+            "license in the current MONTHLY consumption window (see "
+            "consumption_window_start). Measured against "
+            "max_seats * plan.monthly_credits, which is a monthly figure — "
+            "so this must be reset monthly, NOT once per contract."
+        ),
+    )
+
+    consumption_window_start = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=(
+            "Start of the monthly window total_credits_consumed is counting. "
+            "Exists so the reset is idempotent and self-serializing: the "
+            "monthly refresh runs once per TEACHER, so a naive reset would "
+            "fire N times a month and discard consumption recorded between "
+            "teachers refreshed on different days. Null means never reset "
+            "(pre-migration rows); it is backfilled to billing_cycle_start."
         ),
     )
 
