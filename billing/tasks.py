@@ -878,3 +878,73 @@ def process_license_monthly_credit_refreshes(self):
     )
     logger.info(summary)
     return summary
+
+
+@shared_task(bind=True, max_retries=0)
+def nightly_stripe_live_qa(self):
+    """
+    Run the billing QA scenarios against REAL Stripe test mode.
+
+    Every other billing test mocks Stripe, so they encode our beliefs
+    about its API rather than its behaviour. C1 is the proof that beliefs
+    go stale silently: a field moved in API 2025-03-31, the QA
+    time-travel tool broke, and hundreds of passing tests could not see
+    it because they all mocked the shape we expected. This task is the
+    thing that would have noticed.
+
+    Off unless ENABLE_STRIPE_LIVE_QA is set AND the Stripe keys are test
+    keys — so on a normal production worker this is a no-op that logs at
+    DEBUG and returns. It is meant for a staging/QA worker.
+
+    max_retries=0 on purpose: a failure here is a signal to investigate,
+    not a transient to paper over, and retrying would create a second set
+    of Stripe objects while the first set is still being diagnosed.
+
+    Escalation follows the sweep_stale_stripe_events convention — a
+    FAILURE logs at ERROR naming the scenario and the repair command,
+    because a broken billing assumption is exactly the class of bug that
+    reaches customers as lost money.
+    """
+    from .stripe_live_qa import LiveQAConfigurationError, LiveQARefused, live_qa_enabled
+
+    if not live_qa_enabled():
+        logger.debug(
+            "Stripe live QA is not enabled in this environment; skipping. "
+            "(Needs ENABLE_STRIPE_LIVE_QA and sk_test_ Stripe keys.)"
+        )
+        return "Stripe live QA skipped: not enabled in this environment."
+
+    from .stripe_live_qa_scenarios import run_suite
+
+    try:
+        result = run_suite()
+    except (LiveQARefused, LiveQAConfigurationError) as exc:
+        # Misconfiguration, not a billing bug. WARNING, not ERROR: nobody
+        # should be woken for a QA environment that is not set up.
+        logger.warning("Stripe live QA could not run: %s", exc)
+        return f"Stripe live QA could not run: {exc}"
+
+    for scenario in result.scenarios:
+        if scenario.passed:
+            continue
+        detail = scenario.error or "; ".join(
+            str(check) for check in scenario.failed_checks
+        )
+        logger.error(
+            "Stripe live QA scenario %s FAILED against real Stripe: %s. "
+            "This means real Stripe behaviour no longer matches what the "
+            "billing code assumes — mocked tests CANNOT catch this. "
+            "Reproduce with: manage.py run_stripe_live_qa --scenario %s",
+            scenario.name,
+            detail,
+            scenario.name,
+        )
+
+    for error in result.cleanup_errors:
+        # Leaked objects cost nothing in test mode but accumulate, and a
+        # leaked ledger row would make the event sweeper page falsely.
+        logger.warning("Stripe live QA cleanup problem: %s", error)
+
+    summary = result.summary()
+    logger.info(summary)
+    return summary

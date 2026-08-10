@@ -59,6 +59,24 @@ LOGGING = {
             "handlers": ["console"],
             "level": "ERROR",
         },
+        # The grading pipeline. Configured explicitly because there is no
+        # "root" logger entry here: without this, every logger in
+        # ai_processor/ (and students/) inherits nothing from Django and
+        # emits through whatever handler happens to exist. Until this was
+        # added, that handler came from a stray logging.basicConfig() at
+        # import time in ai_processor/validators.py — which also meant the
+        # whole pipeline logged under the name "ai_processor.validators",
+        # making it impossible to tell which stage produced a line.
+        "ai_processor": {
+            "handlers": ["console"],
+            "level": env.str("GRADING_LOG_LEVEL", default="INFO"),
+            "propagate": False,
+        },
+        "students": {
+            "handlers": ["console"],
+            "level": env.str("GRADING_LOG_LEVEL", default="INFO"),
+            "propagate": False,
+        },
     },
 }
 
@@ -265,19 +283,29 @@ CELERY_BROKER_TRANSPORT_OPTIONS = {
     "visibility_timeout": 3600,  # 1 hour
 }
 
+# All GRADING_* settings below read from the environment, defaulting to
+# today's values (zero behaviour change on deploy). This is what makes,
+# e.g., GRADING_EVIDENCE_ENFORCEMENT flippable strict -> log in production
+# without a code deploy — the single most useful operational lever for a
+# grading pipeline still building up a track record.
+
 # Tier 0 grading: OBJECTIVE questions whose answer matches an option
 # unambiguously are graded in Python against the stored answer key — no
 # AI call, no credits. Claim-only: any ambiguity defers to the AI, so
 # turning this on can only remove AI error. False restores the previous
 # behavior exactly (production rollback lever). See
 # ai_processor/objective_grading.py.
-GRADING_DETERMINISTIC_OBJECTIVE = True
+GRADING_DETERMINISTIC_OBJECTIVE = env.bool(
+    "GRADING_DETERMINISTIC_OBJECTIVE", default=True
+)
 
 # Structured output for grading calls: enforce json_schema contracts
 # (ai_processor/grading_schemas.py) instead of free-form json_object.
 # Kill switch in case an OpenRouter fallback model rejects json_schema —
 # False restores the previous free-form behavior.
-GRADING_RESPONSE_SCHEMA_ENABLED = True
+GRADING_RESPONSE_SCHEMA_ENABLED = env.bool(
+    "GRADING_RESPONSE_SCHEMA_ENABLED", default=True
+)
 
 # Mechanical evidence verification (ai_processor/evidence.py): every
 # points-awarding evaluation must cite at least one verbatim quote from
@@ -286,32 +314,59 @@ GRADING_RESPONSE_SCHEMA_ENABLED = True
 #              like a completeness failure)
 #   "log"    — verify + annotate evaluations, never reject
 #   "off"    — evidence is not inspected at all
-GRADING_EVIDENCE_ENFORCEMENT = "strict"
+GRADING_EVIDENCE_ENFORCEMENT = env.str("GRADING_EVIDENCE_ENFORCEMENT", default="strict")
 
 # Selective blind second opinion (ai_processor/second_opinion.py): a
 # DIFFERENT model re-grades triggered questions without seeing the first
 # grade; disagreement flags the submission needs_review for the teacher.
 # Grader A's score always stands — the second opinion can only flag.
-GRADING_SECOND_OPINION_ENABLED = True
+GRADING_SECOND_OPINION_ENABLED = env.bool(
+    "GRADING_SECOND_OPINION_ENABLED", default=True
+)
 # Candidate models for grader B, in preference order. The first one that
 # differs from the model that ACTUALLY graded (fallback routing included)
 # is used; if none differs, the second opinion is skipped — a same-model
 # "second opinion" shares every blind spot of the first.
-GRADING_SECOND_OPINION_MODELS = ["deepseek/deepseek-v4-pro"]
+#
+# Two entries deliberately: grader A (GRADING_FALLBACK_MODELS in
+# ai_processor/services.py) can itself fall back to deepseek-v4-pro. If
+# deepseek were the only second-opinion candidate, that fallback would
+# silently disable the second opinion at exactly the moment grader A is
+# already struggling. gemini-2.5-flash is the third, independent option
+# for that case — different vendor family from both x-ai (grader A) and
+# deepseek (grader A's fallback), comparable reasoning-tier positioning,
+# structured-output support, and (at the time this was set) priced at or
+# below both of the others. On the normal path (grader A = grok-4.3) this
+# resolves to deepseek exactly as before — gemini is only reached in the
+# previously-broken fallback case, so everyday spend is unchanged.
+GRADING_SECOND_OPINION_MODELS = env.list(
+    "GRADING_SECOND_OPINION_MODELS",
+    default=["deepseek/deepseek-v4-pro", "google/gemini-2.5-flash"],
+)
 # Trigger thresholds. A run below this confidence gets a full second
 # read; individual questions trigger on a model-emitted flag_for_review
 # or points >= the high-points threshold; and a small random sample of
 # everything else keeps the easy cases measured.
-GRADING_SECOND_OPINION_MIN_CONFIDENCE = 80
-GRADING_SECOND_OPINION_HIGH_POINTS = 15
-GRADING_SECOND_OPINION_SAMPLE_RATE = 0.05
+GRADING_SECOND_OPINION_MIN_CONFIDENCE = env.int(
+    "GRADING_SECOND_OPINION_MIN_CONFIDENCE", default=80
+)
+GRADING_SECOND_OPINION_HIGH_POINTS = env.int(
+    "GRADING_SECOND_OPINION_HIGH_POINTS", default=15
+)
+GRADING_SECOND_OPINION_SAMPLE_RATE = env.float(
+    "GRADING_SECOND_OPINION_SAMPLE_RATE", default=0.05
+)
 # Disagreement severity tiers (teacher triage — never suppression): a
 # disagreement whose point gap is >= critical_fraction of the question's
 # points (or >= 2 rubric levels apart) is "critical"; >= moderate_fraction
 # is "moderate"; smaller gaps are "borderline". Feeds review_severity
 # ordering and the grading_eval segmentation.
-GRADING_DISAGREEMENT_CRITICAL_FRACTION = 0.5
-GRADING_DISAGREEMENT_MODERATE_FRACTION = 0.25
+GRADING_DISAGREEMENT_CRITICAL_FRACTION = env.float(
+    "GRADING_DISAGREEMENT_CRITICAL_FRACTION", default=0.5
+)
+GRADING_DISAGREEMENT_MODERATE_FRACTION = env.float(
+    "GRADING_DISAGREEMENT_MODERATE_FRACTION", default=0.25
+)
 
 CELERY_TASK_ACKS_LATE = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
@@ -371,6 +426,35 @@ CELERY_BEAT_SCHEDULE = {
     "cleanup-expired-credit-buckets": {
         "task": "billing.tasks.cleanup_expired_credit_buckets",
         "schedule": crontab(minute=0, hour=5),
+    },
+    # Real-Stripe QA suite. A no-op unless ENABLE_STRIPE_LIVE_QA is set
+    # AND the keys are sk_test_, so this is inert on production workers
+    # and only does work on a staging/QA worker. Slow (it waits on Stripe
+    # test-clock advances), which is exactly why it is nightly and not in
+    # the commit path. Hour 1 keeps it clear of the other billing jobs.
+    "nightly-stripe-live-qa": {
+        "task": "billing.tasks.nightly_stripe_live_qa",
+        "schedule": crontab(minute=0, hour=1),
+    },
+    # Grading-quality checks (ai_processor/benchmark/). The nightly one
+    # replays recorded model responses: free, deterministic, and the only
+    # scheduled thing that catches a regression in OUR grading code —
+    # there is no CI in this repo, so Beat is the only place to hang it.
+    "nightly-grading-benchmark-replay": {
+        "task": "ai_processor.tasks.nightly_grading_benchmark_replay",
+        "schedule": crontab(minute=30, hour=1),
+    },
+    # The weekly one makes REAL, billed model calls, and is a no-op unless
+    # ENABLE_AI_LIVE_QA is set. It is the only check that can detect the
+    # provider changing behaviour underneath us — replayed responses
+    # cannot, by construction.
+    "weekly-grading-benchmark-live": {
+        "task": "ai_processor.tasks.weekly_grading_benchmark_live",
+        "schedule": crontab(
+            minute=0,
+            hour=3,
+            day_of_week=env.str("GRADING_BENCHMARK_DAY_OF_WEEK", default="0"),
+        ),
     },
     "expire-active-trials": {
         "task": "billing.tasks.expire_active_trials",
@@ -695,4 +779,26 @@ ENABLE_BILLING_TIME_TRAVEL = env.bool("ENABLE_BILLING_TIME_TRAVEL", default=Fals
 # environment. Example: BILLING_TEST_CLOCK_EMAIL_DOMAINS=yopmail.com
 BILLING_TEST_CLOCK_EMAIL_DOMAINS = env.list(
     "BILLING_TEST_CLOCK_EMAIL_DOMAINS", default=[]
+)
+
+# Nightly real-Stripe QA suite (billing/stripe_live_qa*.py). Unlike the
+# time-travel endpoint, which mostly READS, this suite CREATES Stripe
+# customers, subscriptions and invoices, plus real local users — so it is
+# off unless switched on deliberately. It additionally refuses to run
+# unless both stripe.api_key and STRIPE_SECRET_KEY are sk_test_ keys;
+# that check is enforced per Stripe call, not once at startup.
+ENABLE_STRIPE_LIVE_QA = env.bool("ENABLE_STRIPE_LIVE_QA", default=False)
+
+# Real-model grading benchmark (ai_processor/benchmark/). Default False so
+# a normal production worker never spends credits on QA. Set on a
+# staging/QA worker to get the weekly accuracy-drift report — it is the
+# only check that can detect the model provider changing behaviour, since
+# the nightly replay serves recorded responses by design.
+ENABLE_AI_LIVE_QA = env.bool("ENABLE_AI_LIVE_QA", default=False)
+
+# Email domain for users the live-QA suite creates. Defaults to a
+# .invalid domain (RFC 2606 reserves it as never-resolvable), so a QA
+# address can never receive mail even if some code path tries to send.
+STRIPE_LIVE_QA_EMAIL_DOMAIN = env.str(
+    "STRIPE_LIVE_QA_EMAIL_DOMAIN", default="stripe-live-qa.invalid"
 )

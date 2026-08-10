@@ -1,0 +1,124 @@
+"""
+Run the billing QA suite against REAL Stripe test mode.
+
+Every other billing test mocks Stripe, so they verify our BELIEFS about
+its API rather than its behaviour. This command checks the beliefs.
+
+WHAT IT COSTS
+-------------
+Nothing in money — it runs only against `sk_test_` keys and refuses
+outright otherwise. It costs TIME: each scenario advances a Stripe test
+clock, which Stripe processes asynchronously, so a full run takes
+minutes, not seconds. That is why it belongs in a nightly job and not in
+the commit path.
+
+WHAT IT CREATES
+---------------
+Real Stripe test-mode customers/subscriptions/invoices, and real local
+users on a non-routable `.invalid` domain. Everything is torn down at the
+end, including the StripeEvent ledger rows the run produced — those are
+deleted because a leftover FAILED QA event would make
+`sweep_stale_stripe_events` page about a customer who never existed.
+
+Usage:
+    python manage.py run_stripe_live_qa --list
+    python manage.py run_stripe_live_qa
+    python manage.py run_stripe_live_qa --scenario renewals
+    python manage.py run_stripe_live_qa --scenario renewals --scenario failed_renewal
+    python manage.py run_stripe_live_qa --keep-objects   # debugging only
+
+Requires `ENABLE_STRIPE_LIVE_QA=True` and test-mode Stripe keys.
+Exits non-zero if any scenario fails, so cron/CI can detect it.
+"""
+
+import logging
+
+from django.core.management.base import BaseCommand, CommandError
+
+from billing.stripe_live_qa import LiveQAConfigurationError, LiveQARefused
+from billing.stripe_live_qa_scenarios import SCENARIOS, run_suite
+
+logger = logging.getLogger(__name__)
+
+
+class Command(BaseCommand):
+    help = (
+        "Run the billing QA scenarios against real Stripe test mode. "
+        "Requires ENABLE_STRIPE_LIVE_QA and sk_test_ keys."
+    )
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--scenario",
+            action="append",
+            dest="scenarios",
+            help=(
+                "Run only this scenario. Repeatable. Defaults to all. "
+                f"Choices: {', '.join(sorted(SCENARIOS))}."
+            ),
+        )
+        parser.add_argument(
+            "--keep-objects",
+            action="store_true",
+            help=(
+                "Skip teardown so the Stripe objects can be inspected in the "
+                "dashboard. Debugging only — leaks test clocks, local users "
+                "and ledger rows that you must then remove by hand."
+            ),
+        )
+        parser.add_argument(
+            "--list",
+            action="store_true",
+            dest="list_only",
+            help="List the available scenarios and exit without running anything.",
+        )
+
+    def handle(self, *args, **options):
+        if options["list_only"]:
+            self.stdout.write("Available scenarios:")
+            for name, fn in sorted(SCENARIOS.items()):
+                summary = (fn.__doc__ or "").strip().splitlines()[0]
+                self.stdout.write(f"  {name}: {summary}")
+            return
+
+        try:
+            result = run_suite(
+                options["scenarios"], keep_objects=options["keep_objects"]
+            )
+        except LiveQARefused as exc:
+            # A guardrail, not a bug. Say so plainly rather than dumping a
+            # traceback that looks like a crash.
+            raise CommandError(str(exc)) from exc
+        except LiveQAConfigurationError as exc:
+            raise CommandError(f"Live QA cannot run here: {exc}") from exc
+
+        self._report(result)
+
+        if not result.passed:
+            raise CommandError(
+                f"Stripe live QA FAILED ({len(result.failed_scenarios)} scenario(s), "
+                f"{len(result.cleanup_errors)} cleanup error(s)). See the output above."
+            )
+
+    def _report(self, result):
+        for scenario in result.scenarios:
+            header = f"{scenario.name} ({scenario.duration_seconds:.1f}s)"
+            if scenario.passed:
+                self.stdout.write(self.style.SUCCESS(f"PASS {header}"))
+            else:
+                self.stdout.write(self.style.ERROR(f"FAIL {header}"))
+
+            if scenario.error:
+                self.stdout.write(f"      raised: {scenario.error}")
+
+            # Only failed checks by default — a passing scenario's checks
+            # are noise in a nightly log, and the ones that matter are the
+            # ones that broke.
+            for check in scenario.failed_checks:
+                self.stdout.write(f"      {check}")
+
+        for error in result.cleanup_errors:
+            self.stdout.write(self.style.WARNING(f"CLEANUP {error}"))
+
+        style = self.style.SUCCESS if result.passed else self.style.ERROR
+        self.stdout.write(style(result.summary()))
