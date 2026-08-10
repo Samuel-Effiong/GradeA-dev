@@ -22,6 +22,7 @@ user, one independent set of database rows. That is the only clean
 isolation boundary available, and everything here follows from it.
 """
 
+from . import invariants_global, invariants_individual  # noqa: F401,E402  (registers)
 from .concurrency import (
     Deadline,
     LiveQAWorkerPool,
@@ -31,17 +32,36 @@ from .concurrency import (
 )
 from .events import AccountEventPoller, CustomerEventStream, EventBus
 from .harness import ConcurrentLiveQAHarness
+
+# Importing the catalogues is what POPULATES the INVARIANTS registry. They
+# are imported here (rather than lazily at first use) so the registry is
+# always complete — an invariant that silently never registered would be
+# indistinguishable from one that always passes.
+from .invariants import (  # noqa: F401  (re-exported below)
+    INVARIANTS,
+    ActorHistory,
+    InvariantContext,
+    StepRecord,
+    StripeSnapshot,
+    evaluate,
+)
 from .runner import run_suite_concurrently
 
 __all__ = [
+    "INVARIANTS",
     "AccountEventPoller",
+    "ActorHistory",
     "ConcurrentLiveQAHarness",
     "CustomerEventStream",
     "Deadline",
     "EventBus",
+    "InvariantContext",
     "LiveQAWorkerPool",
+    "StepRecord",
     "StripeRateLimiter",
+    "StripeSnapshot",
     "WorkItemResult",
+    "evaluate",
     "run_suite_concurrently",
     "worker_db_connections",
 ]

@@ -46,14 +46,28 @@ def _run_scenario(harness, name, fn) -> ScenarioResult:
     records the outcome and the other actors keep going."""
     started = time.monotonic()
     result = ScenarioResult(name=name)
+
+    if harness.invariants is not None:
+        harness.invariants.begin_scenario()
+
     try:
         recorder = fn(harness)
-        result.checks = recorder.checks
+        result.checks = list(recorder.checks)
         result.passed = recorder.passed
     except Exception as exc:  # noqa: BLE001 - one scenario must not end the run
         result.passed = False
         result.error = repr(exc)
         logger.exception("[LIVE QA %s] Scenario %s raised.", harness.run_id, name)
+
+    # Invariant violations count against the scenario even when its own
+    # assertions all passed. A scenario that "succeeds" while leaving the
+    # database inconsistent has not succeeded.
+    if harness.invariants is not None:
+        violations = harness.invariants.collect()
+        if violations:
+            result.checks.extend(v.to_check() for v in violations)
+            result.passed = False
+
     result.duration_seconds = time.monotonic() - started
     return result
 

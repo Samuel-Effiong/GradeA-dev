@@ -175,6 +175,15 @@ def _establish_subscriber(
     # cannot be advanced and would silently break the scenario.
     CreditWallet.objects.filter(user=user).update(stripe_customer_id=customer["id"])
 
+    # Tell the invariant runner (when there is one — the single-threaded
+    # harness has none) which local objects belong to this Stripe
+    # customer. Everything else about invariant evaluation is automatic:
+    # it happens on every drain_events, which every scenario already does
+    # after every state-changing step.
+    register_actor = getattr(harness, "register_actor", None)
+    if register_actor is not None:
+        register_actor(customer["id"], user=user, subscription_id=stripe_sub["id"])
+
     return Subscriber(
         user=user,
         clock_id=clock["id"],

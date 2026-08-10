@@ -46,10 +46,32 @@ class ConcurrentLiveQAHarness(LiveQAHarness):
     (merging a stream's dispatched ids) takes an explicit lock.
     """
 
-    def __init__(self, run_id: Optional[str] = None, bus: Optional[EventBus] = None):
+    def __init__(
+        self,
+        run_id: Optional[str] = None,
+        bus: Optional[EventBus] = None,
+        *,
+        check_invariants: bool = True,
+        invariants_include_stripe: bool = True,
+    ):
         super().__init__(run_id=run_id)
         self.bus = bus or EventBus(log_prefix=f"[LIVE QA {self.run_id}]")
         self._merge_lock = threading.Lock()
+        # Imported here so the module graph stays one-directional.
+        from .checkpoints import InvariantRunner
+
+        self.invariants = (
+            InvariantRunner(self, include_stripe=invariants_include_stripe)
+            if check_invariants
+            else None
+        )
+
+    def register_actor(self, customer_id: str, **kwargs) -> None:
+        """Tell the invariant runner which local objects belong to this
+        Stripe customer. Called by _establish_subscriber; a customer that
+        is never registered simply has no invariants evaluated."""
+        if self.invariants is not None:
+            self.invariants.register_actor(customer_id, **kwargs)
 
     def create_customer(self, *, email: str, clock_id: str):
         customer = super().create_customer(email=email, clock_id=clock_id)
@@ -76,6 +98,13 @@ class ConcurrentLiveQAHarness(LiveQAHarness):
         # about a customer who never existed.
         with self._merge_lock:
             self.dispatched_event_ids |= stream.dispatched_event_ids
+
+        # Every scenario drains right after doing something that could
+        # change billing state, so this IS "after every step" — which is
+        # how the existing scenarios get invariant coverage without being
+        # rewritten.
+        if self.invariants is not None:
+            self.invariants.checkpoint(customer_id)
 
         return dispatched
 
