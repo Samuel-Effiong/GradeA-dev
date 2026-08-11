@@ -104,6 +104,7 @@ _EVENT_HANDLERS = {
     "invoice.payment_succeeded": StripeWebhookHandler.handle_invoice_payment_succeeded,
     "invoice.payment_failed": StripeWebhookHandler.handle_invoice_payment_failed,
     "customer.subscription.deleted": StripeWebhookHandler.handle_subscription_deleted,
+    "customer.subscription.updated": StripeWebhookHandler.handle_subscription_updated,
     "charge.refunded": StripeWebhookHandler.handle_charge_refunded,
     "payment_intent.succeeded": StripeWebhookHandler.handle_payment_intent_succeeded,
     "payment_intent.payment_failed": StripeWebhookHandler.handle_payment_intent_failed,

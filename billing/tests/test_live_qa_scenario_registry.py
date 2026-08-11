@@ -218,6 +218,14 @@ class ScenarioSmokeTests(TestCase):
                         self.user, SubscriptionPlan.objects.first()
                     ),
                 ), patch(
+                    "billing.live_qa.scenarios_clock.guarded_call",
+                    side_effect=self._fake_guarded_call,
+                ), patch(
+                    "billing.live_qa.scenarios_clock._establish_subscriber",
+                    return_value=FakeSubscriber(
+                        self.user, SubscriptionPlan.objects.first()
+                    ),
+                ), patch(
                     "billing.stripe_live_qa_scenarios.guarded_call",
                     side_effect=self._fake_guarded_call,
                 ), patch(

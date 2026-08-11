@@ -3771,6 +3771,128 @@ class StripeWebhookHandler:
             license_sub.save(update_fields=["stripe_status", "updated_at"])
 
     # ------------------------------------------------------------------
+    # customer.subscription.updated
+    # ------------------------------------------------------------------
+
+    # Only statuses we have a local enum value for are synced. Stripe also
+    # sends "paused" and "incomplete_expired", which have no local
+    # equivalent — those are logged and left alone rather than guessed at.
+    _SUBSCRIPTION_UPDATED_STATUS_MAP = {
+        "trialing": StripeSubscriptionStatus.TRIALING,
+        "active": StripeSubscriptionStatus.ACTIVE,
+        "past_due": StripeSubscriptionStatus.PAST_DUE,
+        "canceled": StripeSubscriptionStatus.CANCELED,
+        "incomplete": StripeSubscriptionStatus.INCOMPLETE,
+        "unpaid": StripeSubscriptionStatus.UNPAID,
+    }
+    _SUBSCRIPTION_UPDATED_DEACTIVATING_STATUSES = frozenset(
+        {StripeSubscriptionStatus.CANCELED, StripeSubscriptionStatus.UNPAID}
+    )
+
+    @staticmethod
+    @transaction.atomic
+    def handle_subscription_updated(stripe_subscription):
+        """
+        customer.subscription.updated fires for EVERY change to a
+        subscription on Stripe's side, including ones our own code just
+        made via Subscription.modify — so its arrival here is not itself
+        evidence of anything unexpected.
+
+        This handler deliberately syncs ONLY `stripe_status` (plus the
+        `is_active` flag when the new status is terminal). It does NOT
+        touch plan, price or billing period: those are already owned by
+        more specific paths (the upgrade/downgrade services, the renewal
+        webhook, the reconcile sweep) that know exactly which local
+        objects to create or how to attribute credits, and duplicating
+        that logic here would risk conflicting with — or double-running
+        — those decisions on the very same event.
+
+        The gap this closes is narrower and specific: a change made
+        directly on Stripe (dashboard, or Stripe itself e.g. pausing a
+        subscription for chargeback risk) with no other webhook and no
+        request from our own code. Before this handler existed, such a
+        status change was invisible to the app until the next daily
+        reconcile sweep — which reads status too, but only once every 24
+        hours.
+        """
+        stripe_subscription_id = stripe_subscription["id"]
+        new_status = StripeWebhookHandler._SUBSCRIPTION_UPDATED_STATUS_MAP.get(
+            stripe_subscription.get("status")
+        )
+        if new_status is None:
+            logger.info(
+                "customer.subscription.updated for %s reported status %r, "
+                "which has no local mapping — leaving local status "
+                "unchanged.",
+                stripe_subscription_id,
+                stripe_subscription.get("status"),
+            )
+            return
+
+        deactivate = (
+            new_status
+            in StripeWebhookHandler._SUBSCRIPTION_UPDATED_DEACTIVATING_STATUSES
+        )
+
+        user_sub = (
+            UserSubscription.objects.filter(
+                stripe_subscription_id=stripe_subscription_id, is_active=True
+            )
+            .select_for_update()
+            .first()
+        )
+        if user_sub:
+            if user_sub.stripe_status == new_status and not deactivate:
+                return
+            logger.info(
+                "customer.subscription.updated: subscription %s status %s -> " "%s%s.",
+                stripe_subscription_id,
+                user_sub.stripe_status,
+                new_status,
+                " (deactivating)" if deactivate else "",
+            )
+            user_sub.stripe_status = new_status
+            update_fields = ["stripe_status", "updated_at"]
+            if deactivate:
+                user_sub.is_active = False
+                update_fields.append("is_active")
+            user_sub.save(update_fields=update_fields)
+
+            if deactivate:
+                from users.tasks import sync_user_to_mailerlite
+
+                sync_user_to_mailerlite.delay(str(user_sub.user_id))
+            return
+
+        license_sub = (
+            LicenseSubscription.objects.filter(
+                stripe_subscription_id=stripe_subscription_id, is_active=True
+            )
+            .select_for_update()
+            .first()
+        )
+        if license_sub:
+            if license_sub.stripe_status == new_status and not deactivate:
+                return
+            logger.info(
+                "customer.subscription.updated: license subscription %s "
+                "status %s -> %s%s.",
+                stripe_subscription_id,
+                license_sub.stripe_status,
+                new_status,
+                " (deactivating)" if deactivate else "",
+            )
+            license_sub.stripe_status = new_status
+            update_fields = ["stripe_status", "updated_at"]
+            if deactivate:
+                license_sub.is_active = False
+                update_fields.append("is_active")
+            license_sub.save(update_fields=update_fields)
+
+            if deactivate:
+                sync_teachers_under_license_to_mailerlite(license_sub)
+
+    # ------------------------------------------------------------------
     # customer.subscription.deleted
     # ------------------------------------------------------------------
 
