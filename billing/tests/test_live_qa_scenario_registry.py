@@ -203,37 +203,55 @@ class ScenarioSmokeTests(TestCase):
             "payment_intent": {"id": "pi_fake"},
         }
 
-    def test_every_fast_scenario_runs_without_a_structural_error(self):
+    def _patches(self):
+        fake_sub = FakeSubscriber(self.user, SubscriptionPlan.objects.first())
+        return [
+            patch(
+                "billing.live_qa.scenarios_fast.guarded_call",
+                side_effect=self._fake_guarded_call,
+            ),
+            patch(
+                "billing.live_qa.scenarios_fast._establish_subscriber",
+                return_value=fake_sub,
+            ),
+            patch(
+                "billing.live_qa.scenarios_clock.guarded_call",
+                side_effect=self._fake_guarded_call,
+            ),
+            patch(
+                "billing.live_qa.scenarios_clock._establish_subscriber",
+                return_value=fake_sub,
+            ),
+            patch(
+                "billing.live_qa.scenarios_deep.guarded_call",
+                side_effect=self._fake_guarded_call,
+            ),
+            patch(
+                "billing.live_qa.scenarios_deep._establish_subscriber",
+                return_value=fake_sub,
+            ),
+            patch(
+                "billing.live_qa.clock.guarded_call",
+                side_effect=self._fake_guarded_call,
+            ),
+            patch(
+                "billing.stripe_live_qa_scenarios.guarded_call",
+                side_effect=self._fake_guarded_call,
+            ),
+            patch(
+                "billing.stripe_live_qa_scenarios._establish_subscriber",
+                return_value=fake_sub,
+            ),
+        ]
+
+    def _run_smoke(self, names):
         harness = self._harness()
 
-        for name in sorted(scenarios_for_tier("fast")):
+        for name in sorted(names):
             fn = SCENARIOS[name]
             with self.subTest(scenario=name):
-                with patch(
-                    "billing.live_qa.scenarios_fast.guarded_call",
-                    side_effect=self._fake_guarded_call,
-                ), patch(
-                    "billing.live_qa.scenarios_fast._establish_subscriber",
-                    return_value=FakeSubscriber(
-                        self.user, SubscriptionPlan.objects.first()
-                    ),
-                ), patch(
-                    "billing.live_qa.scenarios_clock.guarded_call",
-                    side_effect=self._fake_guarded_call,
-                ), patch(
-                    "billing.live_qa.scenarios_clock._establish_subscriber",
-                    return_value=FakeSubscriber(
-                        self.user, SubscriptionPlan.objects.first()
-                    ),
-                ), patch(
-                    "billing.stripe_live_qa_scenarios.guarded_call",
-                    side_effect=self._fake_guarded_call,
-                ), patch(
-                    "billing.stripe_live_qa_scenarios._establish_subscriber",
-                    return_value=FakeSubscriber(
-                        self.user, SubscriptionPlan.objects.first()
-                    ),
-                ):
+                patchers = [p.start() for p in self._patches()]
+                try:
                     try:
                         result = fn(harness)
                     except STRUCTURAL_ERRORS as exc:
@@ -245,10 +263,24 @@ class ScenarioSmokeTests(TestCase):
                         # Any other exception is the scenario reacting to
                         # implausible fake data — not a defect in itself.
                         continue
+                finally:
+                    for p in patchers:
+                        p.stop()
 
-                    self.assertIsInstance(
-                        result,
-                        CheckRecorder,
-                        f"{name} must return a CheckRecorder so its findings "
-                        "reach the report",
-                    )
+                self.assertIsInstance(
+                    result,
+                    CheckRecorder,
+                    f"{name} must return a CheckRecorder so its findings "
+                    "reach the report",
+                )
+
+    def test_every_fast_scenario_runs_without_a_structural_error(self):
+        self._run_smoke(scenarios_for_tier("fast"))
+
+    def test_every_deep_only_scenario_runs_without_a_structural_error(self):
+        """Everything scenarios_for_tier("fast") does not already cover —
+        including the many-cycle horizon scenarios, whose per-period logic
+        can still hit a structural error on the very first iteration."""
+        deep_only = set(scenarios_for_tier("deep")) - set(scenarios_for_tier("fast"))
+        self.assertTrue(deep_only, "expected at least one deep-only scenario")
+        self._run_smoke(deep_only)

@@ -23,6 +23,7 @@ isolation boundary available, and everything here follows from it.
 """
 
 from . import scenarios_clock  # noqa: F401,E402  (registers fast clock scenarios)
+from . import scenarios_deep  # noqa: F401,E402  (registers more deep scenarios)
 from . import scenarios_fast  # noqa: F401,E402  (registers fast scenarios)
 from . import scenarios_long  # noqa: F401,E402  (registers deep scenarios)
 from . import invariants_global, invariants_individual  # noqa: F401,E402  (registers)
