@@ -60,6 +60,7 @@ from billing.stripe_live_qa import (
     CARD_FAILS_ON_CHARGE,
     CARD_OK,
     CheckRecorder,
+    LiveQAHarness,
     LiveQAInfrastructureError,
     guarded_call,
     require_plan,
@@ -82,7 +83,16 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ChaosContext:
-    harness: ConcurrentLiveQAHarness
+    # LiveQAHarness (the base class), not ConcurrentLiveQAHarness
+    # specifically: run_chaos_walk always constructs the concurrent
+    # subclass (for its automatic invariant checkpointing), but
+    # billing/qa_console.py's interactive Console tab reuses these same
+    # action functions against a plain LiveQAHarness reconstructed fresh
+    # per HTTP request — every action here only calls methods that
+    # exist on the base class (attach_card, retrieve_subscription,
+    # advance_clock_to, drain_events), so the base type is what this
+    # dataclass actually needs.
+    harness: LiveQAHarness
     sub: Subscriber
     rec: CheckRecorder
     monthly_plan: SubscriptionPlan

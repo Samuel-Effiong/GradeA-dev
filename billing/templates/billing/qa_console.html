@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Billing QA Console</title>
+{% csrf_token %}
+<style>
+  body { font-family: -apple-system, Segoe UI, sans-serif; margin: 0; background: #111; color: #eee; }
+  header { padding: 12px 20px; background: #1b1b1b; border-bottom: 1px solid #333; display: flex; align-items: center; gap: 16px; }
+  header h1 { font-size: 16px; margin: 0; }
+  .tabs { display: flex; gap: 4px; padding: 0 20px; background: #1b1b1b; }
+  .tab { padding: 10px 16px; cursor: pointer; border-bottom: 2px solid transparent; color: #aaa; }
+  .tab.active { color: #fff; border-bottom-color: #4da3ff; }
+  main { padding: 20px; max-width: 1000px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  button { background: #2a2a2a; color: #eee; border: 1px solid #444; border-radius: 4px; padding: 8px 12px; cursor: pointer; margin: 3px; }
+  button:hover { background: #3a3a3a; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.danger { border-color: #a33; }
+  pre { background: #1a1a1a; border: 1px solid #333; border-radius: 4px; padding: 12px; overflow-x: auto; white-space: pre-wrap; }
+  .state-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
+  .card { background: #1a1a1a; border: 1px solid #333; border-radius: 6px; padding: 12px; }
+  .card h3 { margin-top: 0; font-size: 13px; text-transform: uppercase; color: #999; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #333; font-size: 13px; }
+  .status-PASSED { color: #4caf50; }
+  .status-FAILED { color: #e05252; }
+  .status-RUNNING, .status-PENDING { color: #d9a441; }
+  .log-line { font-size: 12px; }
+  .log-line.violation { color: #e05252; font-weight: bold; }
+  select, input[type=text], input[type=number] { background: #1a1a1a; color: #eee; border: 1px solid #444; border-radius: 4px; padding: 6px; }
+  fieldset { border: 1px solid #333; border-radius: 6px; margin-bottom: 16px; }
+  legend { color: #999; font-size: 12px; text-transform: uppercase; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Billing QA Console</h1>
+  <span style="color:#888; font-size:12px;">real Stripe test mode only</span>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-tab="console">Console</div>
+  <div class="tab" data-tab="dashboard">Dashboard</div>
+</div>
+
+<main>
+
+  <!-- ================= CONSOLE TAB ================= -->
+  <section id="panel-console" class="panel active">
+    <div>
+      <button id="btn-new-subscriber">New subscriber</button>
+      <button id="btn-reset" class="danger">Reset / teardown</button>
+      <button id="btn-refresh">Refresh state</button>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <h3>Actions</h3>
+      <div id="action-buttons">
+        {% for action in actions %}
+          <button class="action-btn" data-action="{{ action }}">{{ action }}</button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="state-grid">
+      <div class="card">
+        <h3>Subscriber state</h3>
+        <pre id="state-output">No test subscriber yet — click "New subscriber".</pre>
+      </div>
+      <div class="card">
+        <h3>Last action</h3>
+        <pre id="action-output">—</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= DASHBOARD TAB ================= -->
+  <section id="panel-dashboard" class="panel">
+    <fieldset>
+      <legend>Trigger a run</legend>
+      <label>
+        <input type="radio" name="kind" value="SCENARIO" checked> Scenario
+      </label>
+      <label>
+        <input type="radio" name="kind" value="CHAOS"> Chaos
+      </label>
+      <br><br>
+
+      <div id="scenario-fields">
+        <label>Tier:
+          <select id="tier-select">
+            <option value="">(none — pick scenarios instead)</option>
+            <option value="fast">fast</option>
+            <option value="deep">deep</option>
+          </select>
+        </label>
+        <br><br>
+        <label>Scenarios:</label><br>
+        <select id="scenario-select" multiple size="6" style="width:300px;">
+          {% for scenario in scenarios %}
+            <option value="{{ scenario }}">{{ scenario }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div id="chaos-fields" style="display:none;">
+        <label>Seed: <input type="number" id="seed-input" value="1"></label>
+        <label style="margin-left:12px;">Steps: <input type="number" id="steps-input" value="30"></label>
+        <label style="margin-left:12px;"><input type="checkbox" id="shrink-input"> Shrink instead of run</label>
+      </div>
+
+      <br>
+      <button id="btn-trigger-run">Run</button>
+      <span id="trigger-error" style="color:#e05252;"></span>
+    </fieldset>
+
+    <div class="card">
+      <h3>Live run</h3>
+      <div id="live-run-status">No run in progress.</div>
+      <pre id="live-run-log"></pre>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h3>History</h3>
+      <table id="history-table">
+        <thead>
+          <tr><th>Kind</th><th>Status</th><th>Summary</th><th>Created</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<script>
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    for (const raw of document.cookie.split(';')) {
+      const cookie = raw.trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+const CSRFTOKEN = getCookie('csrftoken');
+// A placeholder-UUID URL reversed server-side, then string-substituted with
+// the real run id at request time -- avoids hardcoding the /api/v1/ prefix.
+const RUN_DETAIL_TEMPLATE = '{% url "qa-console-runs-detail" run_id="00000000-0000-0000-0000-000000000000" %}';
+function runDetailUrl(runId) {
+  return RUN_DETAIL_TEMPLATE.replace('00000000-0000-0000-0000-000000000000', runId);
+}
+
+async function apiFetch(url, options) {
+  options = options || {};
+  options.headers = Object.assign({}, options.headers, {
+    'X-CSRFToken': CSRFTOKEN,
+    'Content-Type': 'application/json',
+  });
+  const resp = await fetch(url, options);
+  const body = await resp.json().catch(() => ({}));
+  if (!resp.ok) {
+    throw new Error(body.error || body.detail || JSON.stringify(body) || resp.statusText);
+  }
+  return body;
+}
+
+// -- tabs --------------------------------------------------------------
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// -- console tab ---------------------------------------------------------
+const stateOutput = document.getElementById('state-output');
+const actionOutput = document.getElementById('action-output');
+
+function renderState(subscriber) {
+  stateOutput.textContent = subscriber ? JSON.stringify(subscriber, null, 2)
+    : 'No test subscriber yet — click "New subscriber".';
+}
+
+async function refreshState() {
+  const data = await apiFetch('{% url "qa-console-state" %}');
+  renderState(data.subscriber);
+}
+
+document.getElementById('btn-new-subscriber').addEventListener('click', async () => {
+  actionOutput.textContent = 'Creating...';
+  try {
+    const data = await apiFetch('{% url "qa-console-new-subscriber" %}', { method: 'POST' });
+    renderState(data.subscriber);
+    actionOutput.textContent = (data.checks || []).join('\n') || 'Created.';
+  } catch (e) {
+    actionOutput.textContent = 'ERROR: ' + e.message;
+  }
+});
+
+document.getElementById('btn-reset').addEventListener('click', async () => {
+  actionOutput.textContent = 'Tearing down...';
+  try {
+    const data = await apiFetch('{% url "qa-console-reset" %}', { method: 'POST' });
+    renderState(null);
+    actionOutput.textContent = data.cleanup_errors && data.cleanup_errors.length
+      ? 'Cleanup errors:\n' + data.cleanup_errors.join('\n')
+      : 'Torn down.';
+  } catch (e) {
+    actionOutput.textContent = 'ERROR: ' + e.message;
+  }
+});
+
+document.getElementById('btn-refresh').addEventListener('click', refreshState);
+
+document.querySelectorAll('.action-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    actionOutput.textContent = 'Running ' + btn.dataset.action + '...';
+    try {
+      const data = await apiFetch('{% url "qa-console-action" %}', {
+        method: 'POST',
+        body: JSON.stringify({ action: btn.dataset.action }),
+      });
+      renderState(data.subscriber);
+      actionOutput.textContent = data.action + ': ' + data.note;
+    } catch (e) {
+      actionOutput.textContent = 'ERROR: ' + e.message;
+    }
+  });
+});
+
+refreshState().catch(() => {});
+
+// -- dashboard tab ---------------------------------------------------------
+document.querySelectorAll('input[name=kind]').forEach(radio => {
+  radio.addEventListener('change', () => {
+    const isChaos = document.querySelector('input[name=kind]:checked').value === 'CHAOS';
+    document.getElementById('scenario-fields').style.display = isChaos ? 'none' : 'block';
+    document.getElementById('chaos-fields').style.display = isChaos ? 'block' : 'none';
+  });
+});
+
+let pollTimer = null;
+
+function stopPolling() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+}
+
+function renderLiveRun(run) {
+  document.getElementById('live-run-status').innerHTML =
+    'Run <code>' + run.id + '</code> — <span class="status-' + run.status + '">' + run.status + '</span>';
+  const lines = [];
+  if (run.summary) lines.push(run.summary);
+  const executed = (run.result_data && run.result_data.executed) || [];
+  for (const step of executed) {
+    const violated = step.new_violations && step.new_violations.length;
+    lines.push((violated ? '!! ' : '   ') + '[' + step.index + '] ' + step.action + ': ' + step.note);
+  }
+  const scenarios = (run.result_data && run.result_data.scenarios) || [];
+  for (const s of scenarios) {
+    lines.push((s.passed ? 'PASS ' : 'FAIL ') + s.name);
+  }
+  document.getElementById('live-run-log').textContent = lines.join('\n');
+}
+
+function pollRun(runId) {
+  stopPolling();
+  pollTimer = setInterval(async () => {
+    try {
+      const run = await apiFetch(runDetailUrl(runId));
+      renderLiveRun(run);
+      if (run.status === 'PASSED' || run.status === 'FAILED') {
+        stopPolling();
+        loadHistory();
+      }
+    } catch (e) {
+      stopPolling();
+    }
+  }, 2000);
+}
+
+document.getElementById('btn-trigger-run').addEventListener('click', async () => {
+  const errorEl = document.getElementById('trigger-error');
+  errorEl.textContent = '';
+  const kind = document.querySelector('input[name=kind]:checked').value;
+  const payload = { kind };
+  if (kind === 'SCENARIO') {
+    const tier = document.getElementById('tier-select').value;
+    const selected = Array.from(document.getElementById('scenario-select').selectedOptions).map(o => o.value);
+    if (tier) payload.tier = tier;
+    if (selected.length) payload.scenario_names = selected;
+  } else {
+    payload.seed = parseInt(document.getElementById('seed-input').value, 10);
+    payload.steps = parseInt(document.getElementById('steps-input').value, 10);
+    payload.shrink = document.getElementById('shrink-input').checked;
+  }
+  try {
+    const data = await apiFetch('{% url "qa-console-runs-create" %}', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    renderLiveRun({ id: data.run_id, status: 'PENDING', summary: '', result_data: {} });
+    pollRun(data.run_id);
+  } catch (e) {
+    errorEl.textContent = e.message;
+  }
+});
+
+async function loadHistory() {
+  const data = await apiFetch('{% url "qa-console-runs-list" %}');
+  const tbody = document.querySelector('#history-table tbody');
+  tbody.innerHTML = '';
+  for (const run of data.runs) {
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + run.kind + '</td>' +
+      '<td class="status-' + run.status + '">' + run.status + '</td>' +
+      '<td>' + (run.summary || '') + '</td>' +
+      '<td>' + new Date(run.created_at).toLocaleString() + '</td>';
+    tbody.appendChild(tr);
+  }
+}
+
+loadHistory().catch(() => {});
+</script>
+
+</body>
+</html>

@@ -948,3 +948,81 @@ def nightly_stripe_live_qa(self):
     summary = result.summary()
     logger.info(summary)
     return summary
+
+
+@shared_task(bind=True, max_retries=0)
+def run_live_qa_console_job(self, run_id):
+    """
+    Executes ONE billing.models.LiveQARun triggered from the internal QA
+    web console (billing/qa_console.py) — a scenario/tier run via
+    run_suite, or a chaos walk (or shrink) via billing.live_qa.chaos.
+
+    max_retries=0 for the same reason as nightly_stripe_live_qa: a
+    retry here would create a second set of real Stripe objects while
+    the first run is still being looked at.
+
+    Wrapped end-to-end in try/except so an unexpected crash (not a
+    scenario failing — run_suite and run_chaos_walk already catch and
+    report those — but something failing before either even gets to
+    run, e.g. a bad run_id) still leaves the row in a terminal FAILED
+    state with the exception recorded, rather than stuck at RUNNING
+    forever with nothing to explain why.
+    """
+    from .models import LiveQARun, LiveQARunKind, LiveQARunStatus
+    from .qa_console import _serialize_result
+
+    run = LiveQARun.objects.get(id=run_id)
+    run.status = LiveQARunStatus.RUNNING
+    run.started_at = timezone.now()
+    run.save(update_fields=["status", "started_at", "updated_at"])
+
+    try:
+        if run.kind == LiveQARunKind.CHAOS:
+            from .live_qa.chaos import run_chaos_walk, shrink_chaos_failure
+
+            if run.shrink:
+                # A shrink's job is to find a minimal repro, not to
+                # report whether billing behaved correctly — that
+                # question was already answered by the ORIGINAL failing
+                # walk this shrink is minimizing. So "PASSED" here means
+                # "the shrink operation completed", regardless of
+                # whether it found a reproducing prefix; the actual
+                # finding is in the summary/result_data.
+                shrink_result = shrink_chaos_failure(run.seed, run.steps)
+                run.result_data = _serialize_result(shrink_result)
+                run.summary = shrink_result.summary()
+                passed = True
+            else:
+                walk_result = run_chaos_walk(run.seed, run.steps)
+                run.result_data = _serialize_result(walk_result)
+                run.summary = walk_result.summary()
+                passed = not walk_result.failed
+        else:
+            from .stripe_live_qa_scenarios import run_suite, scenarios_for_tier
+
+            names = run.scenario_names or (
+                scenarios_for_tier(run.tier) if run.tier else None
+            )
+            suite_result = run_suite(names)
+            run.result_data = _serialize_result(suite_result)
+            run.summary = suite_result.summary()
+            passed = suite_result.passed
+
+        run.status = LiveQARunStatus.PASSED if passed else LiveQARunStatus.FAILED
+    except Exception as exc:  # noqa: BLE001 - must not leave the row stuck RUNNING
+        run.status = LiveQARunStatus.FAILED
+        run.summary = f"Console run crashed before completing: {exc!r}"
+        logger.exception("[qa-console] run %s (%s) crashed.", run.id, run.kind)
+    finally:
+        run.finished_at = timezone.now()
+        run.save(
+            update_fields=[
+                "status",
+                "summary",
+                "result_data",
+                "finished_at",
+                "updated_at",
+            ]
+        )
+
+    return run.summary

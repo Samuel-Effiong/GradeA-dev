@@ -5,6 +5,16 @@ from .billing_transaction_views import BillingTransactionViewSet
 from .license_overage_offline_views import LicenseOverageOfflineRequestViewSet
 from .license_views import LicenseSubscriptionViewSet, SchoolCreditAllocationViewSet
 from .payment_method_views import PaymentMethodViewSet
+from .qa_console import (
+    qa_console_action,
+    qa_console_new_subscriber,
+    qa_console_page,
+    qa_console_reset,
+    qa_console_runs_create,
+    qa_console_runs_detail,
+    qa_console_runs_list,
+    qa_console_state,
+)
 from .qa_time_travel import BillingTimeTravelView
 from .views import (
     BetaAnalyticViewSet,
@@ -65,4 +75,24 @@ urlpatterns = router.urls + [
     path("stripe/webhooks", stripe_webhook, name="stripe-webhook"),
     path("stripe/webhooks/thin", thin_webhook, name="stripe-webhook-thin"),
     path("qa/time-travel", BillingTimeTravelView.as_view(), name="qa-time-travel"),
+    path("qa/console", qa_console_page, name="qa-console"),
+    path("qa/console/state", qa_console_state, name="qa-console-state"),
+    path(
+        "qa/console/subscriber",
+        qa_console_new_subscriber,
+        name="qa-console-new-subscriber",
+    ),
+    path("qa/console/action", qa_console_action, name="qa-console-action"),
+    path("qa/console/reset", qa_console_reset, name="qa-console-reset"),
+    path("qa/console/runs", qa_console_runs_list, name="qa-console-runs-list"),
+    path(
+        "qa/console/runs/create",
+        qa_console_runs_create,
+        name="qa-console-runs-create",
+    ),
+    path(
+        "qa/console/runs/<uuid:run_id>",
+        qa_console_runs_detail,
+        name="qa-console-runs-detail",
+    ),
 ]

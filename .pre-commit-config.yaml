@@ -37,7 +37,7 @@ repos:
     hooks:
     -   id: mypy
         args: [--ignore-missing-imports, --check-untyped-defs, --disable-error-code=var-annotated]
-        additional_dependencies: [types-requests,  types-redis, types-waitress, types-python-dateutil]
+        additional_dependencies: [types-requests,  types-redis, types-waitress, types-python-dateutil, types-bleach]
 
 -   repo: https://github.com/pycqa/flake8 # Linting with Flake8
     rev: 7.3.0

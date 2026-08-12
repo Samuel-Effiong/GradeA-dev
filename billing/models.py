@@ -2155,3 +2155,69 @@ class BillingTransaction(models.Model):
     @property
     def display_refunded_amount(self):
         return round(self.refunded_amount_cents / 100, 2)
+
+
+class LiveQARunKind(models.TextChoices):
+    SCENARIO = "SCENARIO", _("Scenario")
+    CHAOS = "CHAOS", _("Chaos")
+
+
+class LiveQARunStatus(models.TextChoices):
+    PENDING = "PENDING", _("Pending")
+    RUNNING = "RUNNING", _("Running")
+    PASSED = "PASSED", _("Passed")
+    FAILED = "FAILED", _("Failed")
+
+
+class LiveQARun(models.Model):
+    """
+    One triggered run of the real-Stripe QA suite from the internal QA
+    web console (billing/qa_console.py), persisted here because the
+    Celery result backend is Redis with a 1-hour expiry
+    (CELERY_RESULT_EXPIRES) — this is the durable record of what ran,
+    with what parameters, and what it found.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    kind = models.CharField(max_length=20, choices=LiveQARunKind.choices)
+    status = models.CharField(
+        max_length=20,
+        choices=LiveQARunStatus.choices,
+        default=LiveQARunStatus.PENDING,
+    )
+    celery_task_id = models.CharField(max_length=255, blank=True, default="")
+
+    # kind=SCENARIO
+    scenario_names = models.JSONField(default=list, blank=True)
+    tier = models.CharField(max_length=10, blank=True, default="")
+
+    # kind=CHAOS
+    seed = models.IntegerField(null=True, blank=True)
+    steps = models.IntegerField(null=True, blank=True)
+    shrink = models.BooleanField(default=False)
+
+    summary = models.TextField(blank=True, default="")
+    result_data = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Serialized SuiteResult / ChaosWalkResult / ShrinkResult.",
+    )
+
+    triggered_by = models.ForeignKey(
+        "users.CustomUser",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="live_qa_runs",
+    )
+
+    started_at = models.DateTimeField(null=True, blank=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.kind} run {self.id} ({self.status})"
