@@ -128,6 +128,28 @@ class FakeSubscriber:
         return 1
 
 
+class FakeLicenseActor:
+    """A stand-in for scenarios_license.LicenseActor whose .refresh()
+    finds nothing, so every scenario's own "does the license exist"
+    gate short-circuits it immediately — the same reason FakeSubscriber
+    never lets a scenario reach a raw, unguarded stripe.* call.
+
+    License mutations (update_seats, convert_license_to_offline) call
+    stripe.Subscription.* DIRECTLY rather than through guarded_call, so
+    patching guarded_call alone does not protect them; the None gate is
+    what keeps the smoke test from ever reaching those calls."""
+
+    customer_id = "cus_fake"
+    clock_id = "clock_fake"
+    admin = None
+
+    def refresh(self):
+        return None
+
+    def cleanup(self) -> None:
+        pass
+
+
 @override_settings(ENABLE_STRIPE_LIVE_QA=True, STRIPE_SECRET_KEY=TEST_KEY)
 class ScenarioSmokeTests(TestCase):
     """Execute every FAST scenario against a fully-faked Stripe.
@@ -147,6 +169,19 @@ class ScenarioSmokeTests(TestCase):
             BillingInterval.ANNUAL,
             "price_std_annual",
             9_999,
+        )
+        SubscriptionPlan.objects.create(
+            name="POWER_LICENSE",
+            display_name="Power License",
+            category=PlanCategory.LICENSE,
+            tier=PlanTier.PRO,
+            interval=BillingInterval.MONTHLY,
+            price_cents=19_900,
+            monthly_credits=20_000,
+            stripe_price_id="price_license_pro",
+            carry_over_percent=0,
+            carry_over_expiry_months=1,
+            is_active=True,
         )
 
         from django.contrib.auth import get_user_model
@@ -233,6 +268,14 @@ class ScenarioSmokeTests(TestCase):
             patch(
                 "billing.live_qa.clock.guarded_call",
                 side_effect=self._fake_guarded_call,
+            ),
+            patch(
+                "billing.live_qa.scenarios_license.guarded_call",
+                side_effect=self._fake_guarded_call,
+            ),
+            patch(
+                "billing.live_qa.scenarios_license._establish_license",
+                return_value=FakeLicenseActor(),
             ),
             patch(
                 "billing.stripe_live_qa_scenarios.guarded_call",
