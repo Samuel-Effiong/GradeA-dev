@@ -28,6 +28,9 @@ Usage:
     python manage.py run_stripe_live_qa --tier fast      # nightly set
     python manage.py run_stripe_live_qa --tier deep --workers 8
     python manage.py run_stripe_live_qa --keep-objects   # debugging only
+    python manage.py run_stripe_live_qa --chaos --seed 12345
+    python manage.py run_stripe_live_qa --chaos --seed 12345 --steps 60
+    python manage.py run_stripe_live_qa --chaos --seed 12345 --steps 60 --shrink
 
 Requires `ENABLE_STRIPE_LIVE_QA=True` and test-mode Stripe keys.
 Exits non-zero if any scenario fails, so cron/CI can detect it.
@@ -116,8 +119,48 @@ class Command(BaseCommand):
                 "dropped. Concurrent runs only."
             ),
         )
+        parser.add_argument(
+            "--chaos",
+            action="store_true",
+            help=(
+                "Run a seeded random walk of real actions (upgrade, "
+                "downgrade, payment failure, refund, cancel, ...) against "
+                "one real subscriber instead of a named scenario, checked "
+                "against the same invariant suite after every step. Use "
+                "--seed and --steps to control it; --shrink to reduce a "
+                "known-failing (seed, steps) pair to the shortest prefix "
+                "that still reproduces."
+            ),
+        )
+        parser.add_argument(
+            "--seed",
+            type=int,
+            default=None,
+            help="Chaos walk seed. Required with --chaos. Same seed -> same "
+            "sequence of actions, always.",
+        )
+        parser.add_argument(
+            "--steps",
+            type=int,
+            default=30,
+            help="Chaos walk length. Default 30.",
+        )
+        parser.add_argument(
+            "--shrink",
+            action="store_true",
+            help=(
+                "With --chaos --seed --steps: instead of running once, "
+                "binary-search for the shortest PREFIX of the sequence "
+                "that still reproduces a violation. Costs up to ~log2(steps) "
+                "real re-runs."
+            ),
+        )
 
     def handle(self, *args, **options):
+        if options["chaos"]:
+            self._handle_chaos(options)
+            return
+
         if options["list_only"]:
             self.stdout.write("Available scenarios:")
             for name, fn in sorted(SCENARIOS.items()):
@@ -160,6 +203,61 @@ class Command(BaseCommand):
                 f"Stripe live QA FAILED ({len(result.failed_scenarios)} scenario(s), "
                 f"{len(result.cleanup_errors)} cleanup error(s)). See the output above."
             )
+
+    def _handle_chaos(self, options):
+        if options["seed"] is None:
+            raise CommandError("--chaos requires --seed.")
+        seed = options["seed"]
+        steps = options["steps"]
+
+        # Imported lazily: chaos.py pulls in the concurrency package,
+        # which the plain scenario path never needs to pay for.
+        from billing.live_qa.chaos import run_chaos_walk, shrink_chaos_failure
+
+        try:
+            if options["shrink"]:
+                self.stdout.write(f"Shrinking seed={seed} from {steps} step(s)...")
+                shrink_result = shrink_chaos_failure(seed, steps)
+                for attempt in shrink_result.attempts:
+                    self._report_chaos_walk(attempt, verbose=False)
+                self.stdout.write(self.style.WARNING(shrink_result.summary()))
+                if shrink_result.minimal_steps is None:
+                    raise CommandError(
+                        "Nothing to shrink: the failure did not reproduce."
+                    )
+                return
+
+            result = run_chaos_walk(seed, steps)
+        except LiveQARefused as exc:
+            raise CommandError(str(exc)) from exc
+        except LiveQAConfigurationError as exc:
+            raise CommandError(f"Live QA cannot run here: {exc}") from exc
+
+        self._report_chaos_walk(result, verbose=True)
+
+        if result.failed:
+            raise CommandError(
+                f"Chaos walk FAILED: {result.summary()}. Re-run with the "
+                f"same --seed {seed} --steps {steps} to reproduce, or add "
+                f"--shrink to find the shortest reproducing prefix."
+            )
+
+    def _report_chaos_walk(self, result, *, verbose: bool) -> None:
+        if verbose:
+            for step in result.executed:
+                marker = "!!" if step.new_violations else "  "
+                self.stdout.write(f"{marker} [{step.index}] {step.action}: {step.note}")
+                for violation in step.new_violations:
+                    self.stdout.write(
+                        self.style.ERROR(
+                            f"       INVARIANT {violation.key}: "
+                            f"{violation.outcome.detail}"
+                        )
+                    )
+        for error in result.cleanup_errors:
+            self.stdout.write(self.style.WARNING(f"CLEANUP {error}"))
+        style = self.style.ERROR if result.failed else self.style.SUCCESS
+        self.stdout.write(style(result.summary()))
 
     def _report(self, result):
         for scenario in result.scenarios:
