@@ -27,6 +27,7 @@ import random as _random_module
 # by the future eval loop; do not rename casually).
 REASON_LOW_CONFIDENCE = "low_confidence"
 REASON_HIGH_STAKES = "high_stakes"
+REASON_BORDERLINE_LEVEL = "borderline_level"
 REASON_QA_SAMPLE = "qa_sample"
 REASON_FLAGGED_PREFIX = "flagged:"
 
@@ -41,6 +42,20 @@ def _coerce_number(value, default=0.0):
     if math.isnan(number) or math.isinf(number):
         return default
     return number
+
+
+def _is_borderline(evaluation):
+    """
+    True only for a literal "borderline" level_decision.
+
+    Anything else — missing key, null, "Borderline " with stray case or
+    spacing already normalized upstream, an unexpected value — reads as
+    "clear". The asymmetry is deliberate and points at the safe side:
+    an unrecognized value must never manufacture a billed second grading
+    call, whereas failing to escalate one genuinely close question costs
+    nothing beyond the status quo before this trigger existed.
+    """
+    return str(evaluation.get("level_decision", "")).strip().casefold() == "borderline"
 
 
 def _eligible_evaluations(result, key_fn):
@@ -81,6 +96,7 @@ def select_second_opinion_targets(
     min_confidence,
     high_points_threshold,
     sample_rate,
+    borderline_enabled=True,
     rng=None,
 ):
     """
@@ -94,10 +110,29 @@ def select_second_opinion_targets(
     - run grading_confidence < min_confidence (strict <): the grader
       itself wasn't sure, so EVERY eligible question is re-read.
     - a non-null flag_for_review on an evaluation: that question only.
+    - level_decision == "borderline": the grader says THIS answer sat
+      between two rubric levels and it had to choose. See below.
     - question points >= high_points_threshold: the expensive-to-get-
       wrong questions.
     - one rng draw per submission < sample_rate: full re-read as QA
       sampling — this is what keeps the "easy" cases measured.
+
+    On the borderline trigger. The submission-level grading_confidence
+    turned out to be useless for routing — a live benchmark run had 120
+    of 124 questions at confidence >= 80, so the low_confidence trigger
+    effectively never fires and there is no spread to threshold on. That
+    left high_points as the de-facto only deterministic trigger, which
+    selects for *expensive* questions rather than *doubtful* ones — the
+    two are unrelated, and the second-opinion budget was being spent on
+    the wrong questions.
+
+    level_decision asks the narrow, per-question version of the same
+    question, and a between-levels call is exactly where an independent
+    reader earns its cost: on a discrete ladder, one rung is the
+    difference between two adjacent grades. It is self-reported and so
+    could be gamed by a lazy grader answering "clear" to everything —
+    which is why the benchmark scores it against ground truth rather
+    than trusting it (see scoring.py's level_decision calibration block).
     """
     if rng is None:
         rng = _random_module
@@ -126,6 +161,8 @@ def select_second_opinion_targets(
         if isinstance(flag, dict):
             flag_type = flag.get("flag_type") or "UNSPECIFIED"
             add(key, f"{REASON_FLAGGED_PREFIX}{flag_type}")
+        if borderline_enabled and _is_borderline(evaluation):
+            add(key, REASON_BORDERLINE_LEVEL)
         if points_by_key.get(key, 0) >= high_points_threshold:
             add(key, REASON_HIGH_STAKES)
 
@@ -160,6 +197,11 @@ def _side(evaluation):
     return {
         "score_awarded": evaluation.get("score_awarded"),
         "level_achieved": evaluation.get("level_achieved"),
+        # Whether each grader thought the call was close is exactly the
+        # context a teacher needs when two graders disagree: two "clear"
+        # verdicts that differ is a genuine conflict, whereas one side
+        # saying "borderline" explains the split on its own.
+        "level_decision": evaluation.get("level_decision", "clear"),
         "evaluation_rationale": evaluation.get("evaluation_rationale", ""),
         "evidence_quotes": evaluation.get("evidence_quotes", []),
     }

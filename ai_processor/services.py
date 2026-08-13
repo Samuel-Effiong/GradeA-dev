@@ -1743,6 +1743,19 @@ Do not include any explanatory text before or after the JSON
             if "points_awarded" in corrected:
                 corrected["points_awarded"] = score
 
+            # level_decision is the per-question uncertainty signal the
+            # second-opinion selector escalates on. Anything other than a
+            # literal "borderline" normalizes to "clear": a missing or
+            # malformed value must not be read as a close call, or a model
+            # that simply omits the key would route every question to a
+            # paid second grader.
+            corrected["level_decision"] = (
+                "borderline"
+                if str(corrected.get("level_decision", "")).strip().casefold()
+                == "borderline"
+                else "clear"
+            )
+
             corrected_evaluations.append(corrected)
             individual_scores.append(score)
 
@@ -2669,6 +2682,9 @@ Do not include any explanatory text before or after the JSON
                 ),
                 sample_rate=getattr(
                     settings, "GRADING_SECOND_OPINION_SAMPLE_RATE", 0.05
+                ),
+                borderline_enabled=getattr(
+                    settings, "GRADING_SECOND_OPINION_ON_BORDERLINE", True
                 ),
             )
             if not reasons_by_key:

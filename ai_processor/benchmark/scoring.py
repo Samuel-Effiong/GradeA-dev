@@ -179,6 +179,7 @@ def score_run(run):
     deterministic_claimed = 0
     deterministic_correct = 0
     confidence_buckets = defaultdict(lambda: {"ok": 0, "total": 0})
+    decision_buckets = defaultdict(lambda: {"exact": 0, "ok": 0, "total": 0})
     second_opinion = {"ran": 0, "skipped": 0, "error": 0, "not_run": 0}
     disagreement_tiers = Counter()
     disagreements = 0
@@ -239,6 +240,29 @@ def score_run(run):
             by_subject[assignment.subject].append(judged)
 
             if evaluation:
+                # level_decision calibration. The whole justification for
+                # routing second opinions on "borderline" is that the
+                # grader knows when a call was close — which is a claim
+                # about the model, not something to take on faith. This
+                # bucket answers it directly: of the questions the grader
+                # called borderline, how many did it actually get wrong,
+                # versus the ones it called clear? A trustworthy signal
+                # has a visibly worse exact-match rate on "borderline".
+                # If the two rates are the same, the field is noise and
+                # the trigger is spending money for nothing — the same
+                # verdict this benchmark already reached about
+                # grading_confidence (see FINDINGS Finding 4).
+                # Deterministic grades are excluded: tier 0 hardcodes
+                # "clear" by construction, so counting them would dilute
+                # the clear bucket with guaranteed-correct rows.
+                if evaluation.get("graded_by") != "deterministic":
+                    decision = evaluation.get("level_decision") or "clear"
+                    decision_buckets[decision]["total"] += 1
+                    if judged["verdict"] == "exact":
+                        decision_buckets[decision]["exact"] += 1
+                    if judged["verdict"] in ("exact", "adjacent"):
+                        decision_buckets[decision]["ok"] += 1
+
                 graded_by = evaluation.get("graded_by")
                 if graded_by == "deterministic":
                     deterministic_claimed += 1
@@ -349,6 +373,21 @@ def score_run(run):
                 "rate": _rate(counts["ok"], counts["total"]),
             }
             for band_name, counts in sorted(confidence_buckets.items())
+        },
+        # Does self-reported "borderline" actually predict being wrong?
+        # Compare exact_rate across the two buckets: "borderline" should
+        # be materially LOWER than "clear" for the second-opinion trigger
+        # that reads this field to be worth its cost. LLM-graded
+        # questions only.
+        "level_decision_calibration": {
+            decision: {
+                "questions": counts["total"],
+                "exact": counts["exact"],
+                "exact_rate": _rate(counts["exact"], counts["total"]),
+                "graded_acceptably": counts["ok"],
+                "within_one_level_rate": _rate(counts["ok"], counts["total"]),
+            }
+            for decision, counts in sorted(decision_buckets.items())
         },
         "cost": {
             "total_tokens": tokens_total,

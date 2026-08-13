@@ -356,6 +356,15 @@ GRADING_SECOND_OPINION_HIGH_POINTS = env.int(
 GRADING_SECOND_OPINION_SAMPLE_RATE = env.float(
     "GRADING_SECOND_OPINION_SAMPLE_RATE", default=0.05
 )
+# Escalate a question when the grader itself reports that the answer sat
+# between two rubric levels (level_decision == "borderline"). This is the
+# per-question uncertainty signal that MIN_CONFIDENCE was supposed to be
+# and isn't — a live run had 120/124 questions at confidence >= 80, so
+# there was no spread to select on. Kill switch: turning this off costs
+# accuracy on close calls but reduces second-opinion spend.
+GRADING_SECOND_OPINION_ON_BORDERLINE = env.bool(
+    "GRADING_SECOND_OPINION_ON_BORDERLINE", default=True
+)
 # Disagreement severity tiers (teacher triage — never suppression): a
 # disagreement whose point gap is >= critical_fraction of the question's
 # points (or >= 2 rubric levels apart) is "critical"; >= moderate_fraction

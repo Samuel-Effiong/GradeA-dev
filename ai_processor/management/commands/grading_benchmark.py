@@ -329,7 +329,32 @@ class Command(BaseCommand):
             )
 
         out.write("")
-        out.write("9. COST")
+        out.write("9. LEVEL DECISION CALIBRATION (is 'borderline' predictive?)")
+        decisions = report["level_decision_calibration"]
+        for decision, block in decisions.items():
+            out.write(
+                f"   {decision:<16} n={block['questions']:<3} "
+                f"exact={_pct(block['exact_rate'])} "
+                f"within-1={_pct(block['within_one_level_rate'])}"
+            )
+        clear = decisions.get("clear", {}).get("exact_rate")
+        borderline = decisions.get("borderline", {}).get("exact_rate")
+        if clear is not None and borderline is not None:
+            verdict = (
+                "signal is useful — borderline is measurably worse"
+                if borderline < clear
+                else "NO SIGNAL — borderline grades are no worse than clear "
+                "ones, so the second-opinion trigger is buying nothing"
+            )
+            out.write(f"   -> {verdict}")
+        elif not decisions.get("borderline", {}).get("questions"):
+            out.write(
+                "   -> the grader never reported a borderline call; "
+                "nothing to calibrate yet"
+            )
+
+        out.write("")
+        out.write("10. COST")
         cost = report["cost"]
         out.write(
             f"   submissions={cost['submissions']} "

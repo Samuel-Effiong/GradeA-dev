@@ -225,7 +225,24 @@ MATHS_SUBMISSIONS = {
         ),
     ],
     "middling": [
-        AnswerSpec(1, "<p>A</p>", 3, exact=True, note="Correct."),
+        AnswerSpec(
+            1,
+            r"<p>$x^2 + 3x^2\ln x$</p>",
+            3,
+            exact=True,
+            note="CORRECT + DEFER PROBE. This is option A "
+            "($3x^2 \\ln(x) + x^2$) written mathematically identically but "
+            "textually differently: terms reordered and \\ln x without "
+            "parentheses. Tier 0 matches exact strings only, so it must "
+            "return AMBIGUOUS and hand this to the LLM rather than guess "
+            "— that defer is the safety invariant working, and it is the "
+            "only live coverage of the defer path in the dataset. The LLM "
+            "must then award full marks: the grading prompt's OBJECTIVE "
+            "section requires comparing mathematical equivalence, not "
+            "strings. A 0 here means the grader is string-matching. "
+            "(Replaced the earlier whitespace-based defer probe, which "
+            "collapse_math_whitespace now correctly claims.)",
+        ),
         AnswerSpec(
             2,
             "<p>B) $1$</p>",
@@ -385,14 +402,15 @@ MATHS_SUBMISSIONS = {
             r"<p>D) $x^2\ln(x) + 3x^2$</p>",
             0,
             exact=True,
-            note="ADVERSARIAL + DEFER PROBE: wrong option D. The retyped LaTeX "
-            "omits the space in option D's '$x^2 \\ln(x)$', and "
-            "objective_grading.normalize_text does not collapse internal "
-            "whitespace — so the letter says D but the text matches nothing, "
-            "and tier 0 correctly returns AMBIGUOUS and defers to the LLM "
-            "rather than guessing. This is the safety invariant working: the "
-            "expected score of 0 must still be reached, just by the LLM. Also "
-            "the realistic case, since students retype notation inconsistently.",
+            note="ADVERSARIAL + LATEX-WHITESPACE PROBE: wrong option D. The "
+            "retyped LaTeX omits the space in option D's '$x^2 \\ln(x)$'. "
+            "This used to defer to the LLM — letter said D, text matched "
+            "nothing — costing a billed call to reach an answer tier 0 "
+            "already had. collapse_math_whitespace now treats whitespace "
+            "inside '$...$' as insignificant (it is, in LaTeX), so the "
+            "letter and the text agree and tier 0 claims it as INCORRECT "
+            "for free. Realistic case: students retype notation "
+            "inconsistently.",
         ),
         AnswerSpec(
             2,

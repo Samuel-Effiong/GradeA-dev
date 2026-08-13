@@ -49,6 +49,40 @@ _MULTI_LETTER_RE = re.compile(r"\b([a-z])\b(?:\s*[,&+]\s*|\s+and\s+)\b([a-z])\b"
 _TRUE_SYNONYMS = frozenset({"t", "true", "correct", "yes"})
 _FALSE_SYNONYMS = frozenset({"f", "false", "incorrect", "no"})
 
+# Math spans, longest delimiter first so "$$...$$" is not consumed as two
+# empty "$...$" pairs. Non-greedy bodies, and no newline restriction:
+# normalize_text has already flattened every run of whitespace to a
+# single space by the time this runs.
+_MATH_SPAN_RE = re.compile(
+    r"\$\$.+?\$\$|\$.+?\$|\\\(.+?\\\)|\\\[.+?\\\]",
+)
+_WHITESPACE_RE = re.compile(r"\s+")
+
+
+def collapse_math_whitespace(text):
+    """
+    Remove whitespace INSIDE LaTeX math spans, leaving prose untouched.
+
+    In LaTeX, `$x^2 \\ln(x)$` and `$x^2\\ln(x)$` are the same expression —
+    the space merely terminates the `\\ln` control sequence and is
+    otherwise meaningless. Students retype notation inconsistently, so an
+    answer that is character-for-character the intended option except for
+    one such space used to fail the exact match and get deferred to the
+    LLM (costing a billed call to reach the same answer).
+
+    Whitespace is NOT collapsed outside math spans, and text with no math
+    delimiters is returned unchanged. That restriction is the whole
+    safety argument: stripping spaces from prose would make "not able"
+    and "notable" — genuinely different answers — compare equal, and this
+    module's core invariant is that it never claims a question it cannot
+    match unambiguously. Inside `$...$` there is no such pair.
+
+    Expects already-normalized text (see normalize_text).
+    """
+    if not text or "$" not in text and "\\" not in text:
+        return text
+    return _MATH_SPAN_RE.sub(lambda m: _WHITESPACE_RE.sub("", m.group(0)), text)
+
 
 def normalize_text(value):
     """
@@ -102,12 +136,16 @@ class OptionIndex:
     than guessed.
     """
 
-    __slots__ = ("by_text", "by_letter", "texts")
+    __slots__ = ("by_text", "by_letter", "texts", "by_math_text")
 
-    def __init__(self, by_text, by_letter, texts):
+    def __init__(self, by_text, by_letter, texts, by_math_text=None):
         self.by_text = by_text  # normalized body text -> option position
         self.by_letter = by_letter  # letter -> option position (or None if conflicted)
         self.texts = texts  # position -> normalized body text
+        # Fallback index over math-whitespace-collapsed bodies, consulted
+        # only when by_text misses. Keys that would map to more than one
+        # option are dropped rather than kept and guessed between.
+        self.by_math_text = by_math_text or {}
 
 
 def build_option_index(options):
@@ -136,6 +174,29 @@ def build_option_index(options):
 
     by_text = {text: position for position, text in enumerate(texts)}
 
+    # Math-collapsed fallback keys, consulted only when by_text misses.
+    # Built by counting first, then keeping only the unambiguous ones —
+    # two options that collapse to the same math string are
+    # indistinguishable under this relaxation, and the relaxation must
+    # not be what decides between them.
+    collapsed_texts = [collapse_math_whitespace(text) for text in texts]
+    math_counts = {}
+    for collapsed in collapsed_texts:
+        math_counts[collapsed] = math_counts.get(collapsed, 0) + 1
+
+    by_math_text = {}
+    for position, collapsed in enumerate(collapsed_texts):
+        if math_counts[collapsed] != 1:
+            continue
+        # A collapsed key that is some OTHER option's exact text would
+        # let the fallback contradict an exact match. by_text is tried
+        # first so it could not actually win, but leaving the key out
+        # keeps the two indexes from ever disagreeing.
+        exact_owner = by_text.get(collapsed)
+        if exact_owner is not None and exact_owner != position:
+            continue
+        by_math_text[collapsed] = position
+
     by_letter = {}
     for position in range(len(texts)):
         positional = string.ascii_lowercase[position] if position < 26 else None
@@ -146,12 +207,33 @@ def build_option_index(options):
             else:
                 by_letter.setdefault(letter, position)
 
-    return OptionIndex(by_text=by_text, by_letter=by_letter, texts=texts)
+    return OptionIndex(
+        by_text=by_text,
+        by_letter=by_letter,
+        texts=texts,
+        by_math_text=by_math_text,
+    )
 
 
 # resolve_to_option sentinel results
 _NO_MATCH = object()
 _AMBIGUOUS = object()
+
+
+def _lookup_body(body, index):
+    """
+    Option position for an answer body, or None.
+
+    Exact first, then the math-whitespace-collapsed fallback. Both are
+    exact lookups — the fallback widens what counts as "the same string"
+    for LaTeX only, it does not introduce fuzzy matching.
+    """
+    if not body:
+        return None
+    position = index.by_text.get(body)
+    if position is not None:
+        return position
+    return index.by_math_text.get(collapse_math_whitespace(body))
 
 
 def resolve_to_option(answer_text, index):
@@ -162,7 +244,7 @@ def resolve_to_option(answer_text, index):
     """
     letter, body = split_letter_prefix(answer_text)
 
-    body_position = index.by_text.get(body) if body else None
+    body_position = _lookup_body(body, index)
 
     if letter is not None:
         letter_position = index.by_letter.get(letter, _NO_MATCH)
@@ -333,6 +415,10 @@ def build_objective_evaluation(question, answer_html, match):
         "evidence_quotes": [],
         "evidence_verified": True,
         "flag_for_review": None,
+        # Shape parity again: a deterministic claim is by definition not a
+        # close call — this tier defers rather than deciding whenever the
+        # match is anything less than unambiguous.
+        "level_decision": "clear",
         "evaluation_rationale": rationale,
         "strengths": [],
         "weaknesses": [],

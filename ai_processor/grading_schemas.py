@@ -37,6 +37,7 @@ from typing import Any, Dict
 QUESTION_EVALUATION_SCHEMA: Dict[str, Any] = {
     "type": "object",
     "properties": {
+        # ── Context: echoed back from the input, no judgment yet. ────────
         # Echoed exactly from the input; extracted assignments sometimes
         # carry string question numbers, so both types are legal.
         "question_number": {"type": ["number", "string"]},
@@ -48,7 +49,38 @@ QUESTION_EVALUATION_SCHEMA: Dict[str, Any] = {
         "max_points": {"type": "number"},
         "student_answer": {"type": "string"},
         "model_answer": {"type": "string"},
-        "score_awarded": {"type": "number"},
+        # ── REASON FIRST, THEN SCORE. ────────────────────────────────────
+        # KEY ORDER IS BEHAVIOUR, NOT STYLE. Under strict structured
+        # output the model emits fields in the order declared here, and
+        # each token it writes conditions everything after it. When
+        # score_awarded came first (it did, until this ordering), the
+        # model named a number on instinct and then wrote a rationale to
+        # justify the number it had already committed to — the reasoning
+        # served the score instead of producing it.
+        #
+        # The order below forces the causal chain the prompt's GRADING
+        # PROCEDURE actually describes:
+        #   quote the evidence -> argue the case -> declare how close the
+        #   call was -> name the level -> emit that level's points.
+        #
+        # level_achieved before score_awarded matters for the same
+        # reason: Policy rule 1 requires score_awarded to be exactly the
+        # selected level's points, so the level must be chosen first for
+        # the number to be a consequence of it rather than a guess the
+        # level is then fitted to.
+        #
+        # Do not reorder these for tidiness.
+        # The mechanical-verification hook: verbatim spans from the
+        # student's answer. [] only for blank/not-attempted answers.
+        "evidence_quotes": {"type": "array", "items": {"type": "string"}},
+        "evaluation_rationale": {"type": "string"},
+        # PER-QUESTION uncertainty. The submission-level
+        # grading_confidence proved useless as a routing signal (120 of
+        # 124 answers came back >= 80 — no spread to select on), so this
+        # asks the narrow question instead: did this answer sit cleanly
+        # inside the level, or between two? "borderline" is what the
+        # second-opinion selector escalates on.
+        "level_decision": {"type": "string", "enum": ["clear", "borderline"]},
         "level_achieved": {
             "type": "string",
             "enum": [
@@ -61,10 +93,8 @@ QUESTION_EVALUATION_SCHEMA: Dict[str, Any] = {
                 "not_attempted",
             ],
         },
-        # The mechanical-verification hook: verbatim spans from the
-        # student's answer. [] only for blank/not-attempted answers.
-        "evidence_quotes": {"type": "array", "items": {"type": "string"}},
-        "evaluation_rationale": {"type": "string"},
+        "score_awarded": {"type": "number"},
+        # ── Feedback: written knowing the decision. ──────────────────────
         "strengths": {"type": "array", "items": {"type": "string"}},
         "weaknesses": {"type": "array", "items": {"type": "string"}},
         "improvement_suggestions": {"type": "array", "items": {"type": "string"}},
@@ -94,6 +124,9 @@ QUESTION_EVALUATION_SCHEMA: Dict[str, Any] = {
             ]
         },
     },
+    # Same order as `properties` above, deliberately — some providers key
+    # generation order off `required` rather than `properties`, so the two
+    # must not drift.
     "required": [
         "question_number",
         "question_text",
@@ -101,10 +134,11 @@ QUESTION_EVALUATION_SCHEMA: Dict[str, Any] = {
         "max_points",
         "student_answer",
         "model_answer",
-        "score_awarded",
-        "level_achieved",
         "evidence_quotes",
         "evaluation_rationale",
+        "level_decision",
+        "level_achieved",
+        "score_awarded",
         "strengths",
         "weaknesses",
         "improvement_suggestions",
@@ -196,23 +230,31 @@ GRADING_SINGLE_PASS_RESPONSE_SCHEMA: Dict[str, Any] = {
     "schema": {
         "type": "object",
         "properties": {
-            "grading_summary": _GRADING_SUMMARY_BLOCK,
+            # The per-question ordering rationale applies at the paper
+            # level too. grading_summary carries total_score, and it used
+            # to be emitted BEFORE any question had been evaluated — the
+            # model announced a total and then graded toward it. Every
+            # question is judged first; the totals, the analysis and the
+            # confidence are all consequences of that work.
             "question_evaluations": {
                 "type": "array",
                 "items": QUESTION_EVALUATION_SCHEMA,
             },
+            "grading_summary": _GRADING_SUMMARY_BLOCK,
             "score_calculation_verification": _VERIFICATION_BLOCK,
             "overall_performance_analysis": _PERFORMANCE_ANALYSIS_BLOCK,
-            "grading_confidence": {"type": "number"},
             "recommendations": _RECOMMENDATIONS_BLOCK,
+            # Last: how sure the grader is can only be judged once the
+            # grading exists to be sure about.
+            "grading_confidence": {"type": "number"},
         },
         "required": [
-            "grading_summary",
             "question_evaluations",
+            "grading_summary",
             "score_calculation_verification",
             "overall_performance_analysis",
-            "grading_confidence",
             "recommendations",
+            "grading_confidence",
         ],
         "additionalProperties": False,
     },

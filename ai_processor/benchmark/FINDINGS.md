@@ -216,6 +216,17 @@ Findings 2, 3, 4 and 5 remain open and are tracked for the next run.
   `test_both_grading_paths_are_exercised` locks this.
 - `GRADING_SECOND_OPINION_SAMPLE_RATE` is pinned to 0 for benchmark runs
   so cost and replay keys stay deterministic.
+- `--mode record` merges into the existing recordings file rather than
+  replacing it (deliberately, so a partial re-record can top up one
+  student without a full billed pass — see `_Tape.__init__`). Every
+  prompt/response text change therefore accumulates a new set of entries
+  under new hashes, and the old ones for retired prompt text are never
+  removed. 162 entries / 232KB after Round 3's prompt changes, still
+  well under the repo's 500KB large-file limit, so not yet worth
+  building a pruning step for — but if a future prompt rewrite pushes
+  this close to that limit, the fix is tracking which keys a run
+  actually looked up (`_Tape.wrap`) and dropping the rest on save,
+  not raising the size limit.
 
 ## Round 2 — root-cause fix plus four new capabilities
 
@@ -320,6 +331,161 @@ compound across a paper:
 
 None of this changes the recommendation from Finding 3: watch across
 runs, don't tune the Borderline Rule on one data point.
+
+**Correction (found while writing up Run 4):** the two labels above
+attributed to `strong` were wrong. `scoring.py`'s ranking table sorts
+student keys alphabetically (`excellent, fluent_wrong, middling,
+partial, strong, twin, weak`), not in dataset order, and this section
+was written by reading positions against the wrong order. Both swings
+actually belong to `fluent_wrong` — the deliberately confident-and-wrong
+student, not the strong one. That changes the reading substantially: a
+harsh mark on `humanities/fluent_wrong` is the adversarial probe working
+as intended (Finding 2 already documented this student being penalised
+in History & Literature), not an unexplained swing against a good
+student. Run 4 below reproduces the same pattern and is labelled
+correctly.
+
+## Round 3 — reason-before-score, borderline routing, LaTeX whitespace
+
+Three more changes, all aimed at the same root problem: the pipeline was
+structurally set up to let the model commit to a number before it had
+justified one.
+
+**Field order now forces evidence and reasoning before the score.**
+Under strict structured output the model fills a JSON schema's fields in
+the order they're declared, and every token written conditions the
+ones after it. `QUESTION_EVALUATION_SCHEMA` used to declare
+`score_awarded` and `level_achieved` *before* `evidence_quotes` and
+`evaluation_rationale` — so on every single question, across every run
+so far, the model was picking a score first and writing a rationale
+that agreed with it afterward. The order is now evidence → rationale →
+`level_decision` → level → score, and the prompt's numbered procedure
+was rewritten to match, with an explicit line telling the model not to
+decide a number and reason backwards to it. The same reordering was
+applied one level up, in the single-pass schema: `question_evaluations`
+now precedes `grading_summary`, so the model grades every question
+before it is asked for a paper total.
+
+**A new per-question uncertainty signal, `level_decision`.** Finding 4
+established that the run-level `grading_confidence` field is useless for
+routing — 120 of 124 questions came back ≥80, with no spread to
+threshold on. `level_decision` asks the narrower question directly: did
+*this* answer sit between two rubric levels? `"clear"` or
+`"borderline"`, self-reported per question, and it now drives a new
+second-opinion trigger (`REASON_BORDERLINE_LEVEL` in
+`second_opinion.py`) — a rubric ladder has one rung between adjacent
+grades, so a borderline call is exactly where a second, independent
+reader is worth its cost. It's a self-reported field and could be
+gamed by a grader that always says "clear", which is why the benchmark
+scores it against ground truth (`level_decision_calibration` in
+`scoring.py`) instead of trusting it — see below for what that showed.
+Defaults are the safe direction throughout: anything but a literal
+`"borderline"` normalizes to `"clear"` in
+`_finalize_grading_result`, so a model that omits the field, or an
+older recording predating it, escalates nothing rather than
+everything.
+
+**LaTeX whitespace no longer defeats deterministic matching.**
+Finding 5 identified `$x^2\ln(x)$` vs `$x^2 \ln(x)$` as a false-defer:
+mathematically the same expression, textually different, so tier 0 gave
+up and paid for an LLM call to reach an answer it could have had for
+free. `collapse_math_whitespace` now strips whitespace *inside* math
+delimiters (`$...$`, `$$...$$`, `\(...\)`, `\[...\]`) only — prose stays
+exactly as sensitive to spacing as before ("not able" must never compare
+equal to "notable"), and two options that happen to collapse to the same
+math string are deliberately left unresolvable by the fallback rather
+than guessed between. The old whitespace probe in the dataset
+(`maths/fluent_wrong` Q1) now correctly gets claimed by tier 0 instead of
+deferring; it was replaced with a new probe (`maths/middling` Q1) that is
+mathematically equivalent to the correct option but not exactly the same
+string even after whitespace collapsing (reordered terms, `\ln x` vs
+`\ln(x)`) — this one *should* still defer, and does, keeping the AMBIGUOUS
+path under live coverage.
+
+All three are unit-tested in `ai_processor/tests_reason_before_score.py`
+(37 tests: schema field-order assertions, `level_decision`
+normalization and trigger behaviour including the kill switch, and the
+math-whitespace matching including the collision-safety and
+prose-safety cases) without touching the model.
+
+## Run 4 — Round 3 fixes verified live
+
+Fresh `--mode record` pass, same 3 assignments / 7 students / 133
+questions as Run 3. `--mode replay` immediately after reproduced every
+accuracy number exactly (only tokens/wall-clock differ, as expected).
+
+| Metric | Run 3 | Run 4 |
+|---|---|---|
+| Questions graded | 133 | 133 |
+| Exact rubric-level match | 82.7% | **86.5%** |
+| Within one level | 100.0% | **100.0%** |
+| Out-of-band failures | 0 | **0** |
+| Submissions failing outright | 0 | **0** |
+| Deterministic tier 0 | 34/34 (100%) | **34/34 (100%)** |
+| Evidence verified | 95/98 | **90/98 (91.8%)** |
+| Identical-answer consistency | both consistent | **both consistent** |
+| Second-opinion disagreement rate | 10.0% (4/40) | **12.5% (5/40), all `moderate`** |
+| Cost | 617,213 tokens, ~56 min | **691,518 tokens, ~45 min** |
+
+**Read this the same honest way as Run 3.** The floor held again — zero
+out-of-band failures, zero failed submissions, tier 0 perfect, both
+consistency probes exact. Exact-match recovered and then some (82.7% →
+86.5%, now above the Run 2 baseline of 85.7%), which is consistent with
+reason-before-score helping, though one run still can't separate that
+from ordinary variance.
+
+**Evidence-verified kept falling, for a third run running: 97/98 → 95/98
+→ 90/98.** This is no longer a one-run wobble — it has moved the same
+direction three times since the Round 2 "fix the root cause" instruction
+shipped, and it is now noticeably worse than where it started. The
+degrade-on-final-retry safety net is doing its job (nothing fails
+outright), but the instruction meant to reduce *how often* it has to
+fire is not visibly working, and the evidence points the other way. This
+needs direct attention next, not another wait-and-see pass — possibly
+sub-span matching (accepting a quote when a long contiguous piece of it
+appears verbatim, from the original Finding 1 fix list) rather than more
+prompt wording.
+
+**`level_decision` got zero live use.** Every one of the 99 LLM-graded
+questions came back `"clear"`; `level_decision_calibration` has nothing
+to calibrate against, and the borderline second-opinion trigger never
+fired this run (the 5 disagreements this run all came from the existing
+high-stakes/flag triggers). Two honest readings, and this run can't
+distinguish them: either this benchmark's answers really are mostly
+unambiguous relative to their rubrics (plausible — they were authored to
+hit specific levels cleanly, which is good test design but not
+representative of messy real submissions), or the model defaults to
+"clear" the way it defaulted to confidence ≥80, and the field isn't
+discriminating anything yet. Real teacher-submitted answers are likely
+to produce more genuine borderline cases than a hand-authored benchmark
+ever will, so this is one to watch in production feedback and in the
+weekly live job rather than conclude anything from here.
+
+**The Run 3 outlier correction (see above) reproduces correctly
+labelled.** Two large per-paper swings, both `fluent_wrong`:
+
+- `maths/fluent_wrong`: expected 12, awarded 28 (+16) — same student,
+  same subject, same direction as Run 3's (mislabelled) outlier. The
+  confidently-wrong maths answer is being over-rewarded again;
+  Finding 2 called mathematics the weak spot for this probe and this is
+  the second run in a row backing that up.
+- `humanities/fluent_wrong`: expected 25, awarded 5 (-20) — harsher
+  than Run 1's -10 on the identical probe, but harsh in the *desired*
+  direction (penalising fabricated content), so not a concern on its
+  own. The size of the swing between runs on an unchanged probe is
+  itself a data point about full-paper-level variance, independent of
+  whether the direction is good.
+- `chemistry/strong` (+12) and `chemistry/twin` (+16) reproduce the
+  Finding 3 leniency pattern from Run 1 almost exactly (Run 1 had
+  `chemistry/twin` +16 as well).
+
+Findings 3, 4 and 5 (whitespace defer specifically closed by this round)
+update as follows: **Finding 5 is resolved** (see Round 3 above).
+Finding 4 remains open, now with a second dataset (`level_decision`) that
+also shows no spread — worth reading together rather than as two
+separate weak signals. Finding 3 keeps accumulating consistent evidence
+across three runs now and is close to worth acting on the Borderline
+Rule, though still on a 21-submission sample per run.
 
 ## Deferred to v2 — post-MVP
 
