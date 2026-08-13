@@ -207,6 +207,61 @@ class SubscriptionService:
         now = timezone.now()
         wallet, _ = CreditWallet.objects.get_or_create(user=user)
 
+        # --- Trial forfeiture phase ---
+        # activate_subscription is the generic "grant this user a real
+        # paid plan" entry point, reached from more than one caller
+        # (this fresh-signup path is also what
+        # StripeWebhookHandler._handle_individual_checkout falls back to
+        # whenever checkout completes WITHOUT a trial_subscription_id in
+        # its metadata). Every new teacher gets an automatic 14-day,
+        # 5,000-credit TRIAL bucket on signup (activate_automatic_free_
+        # trial), independent of what they do next — without this step,
+        # a user who converts to paid through any path that doesn't
+        # explicitly route through finalize_trial_to_paid_conversion
+        # keeps that trial balance stacked on top of their new plan's
+        # grant for whatever remains of the trial's 14 days. Mirrors
+        # finalize_trial_to_paid_conversion's own forfeiture step, which
+        # only covers the ONE path that already knows to call it.
+        trial_bucket = (
+            wallet.buckets.select_for_update()
+            .filter(
+                bucket_type=CreditBucketType.TRIAL,
+                is_processed=False,
+                expires_at__gt=now,
+            )
+            .first()
+        )
+        if trial_bucket:
+            unused = trial_bucket.remaining_credits
+            if unused > 0:
+                CreditLedger.objects.create(
+                    user=user,
+                    bucket=trial_bucket,
+                    ledger_type=CreditLedgerType.EXPIRE,
+                    amount=unused,
+                    reference=(
+                        f"Trial credits forfeited on activating "
+                        f"{plan.display_name or plan.name}"
+                    ),
+                    metadata={
+                        "expired_amount": unused,
+                        "new_plan_id": str(plan.id),
+                        "conversion_type": "ACTIVATE_SUBSCRIPTION_FALLBACK",
+                    },
+                )
+            trial_bucket.expires_at = now
+            trial_bucket.is_processed = True
+            trial_bucket.save(
+                update_fields=["expires_at", "is_processed", "updated_at"]
+            )
+            logger.info(
+                "Expired TRIAL bucket %s for user %s on activate_subscription "
+                "(forfeited %d credits).",
+                trial_bucket.id,
+                user.email,
+                unused,
+            )
+
         # --- The cleanup pahse (Handling existing credits for upgrades)
         active_monthly = (
             wallet.buckets.select_for_update()

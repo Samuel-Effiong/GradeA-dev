@@ -65,15 +65,78 @@
       </div>
     </div>
 
-    <div class="state-grid">
-      <div class="card">
-        <h3>Subscriber state</h3>
-        <pre id="state-output">No test subscriber yet — click "New subscriber".</pre>
+    <div id="state-empty" class="card" style="margin-top:12px;">
+      No test subscriber yet — click "New subscriber".
+    </div>
+
+    <div id="state-sections" style="display:none;">
+      <div class="state-grid" style="margin-top:12px;">
+        <div class="card">
+          <h3>Subscription</h3>
+          <table>
+            <tbody>
+              <tr><td>Plan</td><td id="f-plan"></td></tr>
+              <tr><td>Status</td><td id="f-status"></td></tr>
+              <tr><td>Active</td><td id="f-active"></td></tr>
+              <tr><td>Pending plan</td><td id="f-pending"></td></tr>
+              <tr><td>Cycle start</td><td id="f-cycle-start"></td></tr>
+              <tr><td>Cycle end</td><td id="f-cycle-end"></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h3>Wallet</h3>
+          <table>
+            <tbody>
+              <tr><td>Total remaining credits</td><td id="f-remaining"></td></tr>
+              <tr><td>Plan remaining credits <span style="color:#777;">(excl. overage)</span></td><td id="f-plan-remaining"></td></tr>
+              <tr><td>Overage blocks used</td><td id="f-overage-used"></td></tr>
+              <tr><td>Customer ID</td><td id="f-customer-id"></td></tr>
+              <tr><td>Stripe subscription ID</td><td id="f-sub-id"></td></tr>
+              <tr><td>Test clock ID</td><td id="f-clock-id"></td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-      <div class="card">
-        <h3>Last action</h3>
-        <pre id="action-output">—</pre>
+
+      <div class="card" style="margin-top:16px;">
+        <h3>Credit breakdown by bucket type</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Live remaining</th>
+              <th>Live buckets</th>
+              <th>All-time granted</th>
+              <th>All-time used</th>
+              <th>All buckets</th>
+            </tr>
+          </thead>
+          <tbody id="by-type-body"></tbody>
+          <tfoot id="by-type-foot"></tfoot>
+        </table>
+        <div id="by-type-reconcile" style="margin-top:8px; font-size:12px;"></div>
       </div>
+
+      <div class="card" style="margin-top:16px;">
+        <h3>Credit buckets <span style="color:#777; font-size:12px; text-transform:none;">(10 most recent)</span></h3>
+        <table>
+          <thead>
+            <tr><th>Type</th><th>Total</th><th>Used</th><th>Remaining</th><th>Expires</th><th>Processed</th><th>Created</th></tr>
+          </thead>
+          <tbody id="buckets-body"></tbody>
+        </table>
+      </div>
+
+      <details class="card" style="margin-top:16px;">
+        <summary style="cursor:pointer; color:#999; font-size:13px; text-transform:uppercase;">Raw JSON (as returned by the server)</summary>
+        <pre id="state-output-raw" style="margin-top:8px;"></pre>
+      </details>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h3>Last action</h3>
+      <pre id="action-output">—</pre>
     </div>
   </section>
 
@@ -183,12 +246,122 @@ document.querySelectorAll('.tab').forEach(tab => {
 });
 
 // -- console tab ---------------------------------------------------------
-const stateOutput = document.getElementById('state-output');
 const actionOutput = document.getElementById('action-output');
+const stateEmpty = document.getElementById('state-empty');
+const stateSections = document.getElementById('state-sections');
+
+function field(id, value) {
+  document.getElementById(id).textContent = (value === null || value === undefined || value === '')
+    ? '—' : value;
+}
+
+function num(n) { return (n === null || n === undefined) ? '—' : n.toLocaleString(); }
+
+function renderByType(rows, wallet) {
+  const body = document.getElementById('by-type-body');
+  const foot = document.getElementById('by-type-foot');
+  const reconcile = document.getElementById('by-type-reconcile');
+  body.innerHTML = '';
+  foot.innerHTML = '';
+  reconcile.textContent = '';
+
+  if (!rows.length) {
+    body.innerHTML = '<tr><td colspan="6">No credit buckets yet.</td></tr>';
+    return;
+  }
+
+  let liveTotal = 0, grantedTotal = 0, usedTotal = 0, liveCount = 0, allCount = 0;
+  for (const r of rows) {
+    liveTotal += r.live_remaining_credits;
+    grantedTotal += r.total_credits;
+    usedTotal += r.used_credits;
+    liveCount += r.live_bucket_count;
+    allCount += r.bucket_count;
+    const tr = document.createElement('tr');
+    // A type contributing nothing live is history -- dim it so the rows
+    // that actually explain the current total stand out.
+    if (r.live_remaining_credits === 0) tr.style.color = '#777';
+    tr.innerHTML =
+      '<td>' + r.type + '</td>' +
+      '<td><strong>' + num(r.live_remaining_credits) + '</strong></td>' +
+      '<td>' + r.live_bucket_count + '</td>' +
+      '<td>' + num(r.total_credits) + '</td>' +
+      '<td>' + num(r.used_credits) + '</td>' +
+      '<td>' + r.bucket_count + '</td>';
+    body.appendChild(tr);
+  }
+
+  foot.innerHTML =
+    '<tr style="border-top:2px solid #444;">' +
+    '<td><strong>TOTAL</strong></td>' +
+    '<td><strong>' + num(liveTotal) + '</strong></td>' +
+    '<td>' + liveCount + '</td>' +
+    '<td>' + num(grantedTotal) + '</td>' +
+    '<td>' + num(usedTotal) + '</td>' +
+    '<td>' + allCount + '</td></tr>';
+
+  // The subtotals are computed by a SEPARATE aggregate query from
+  // wallet.total_remaining_credits(). If the two ever disagree, the
+  // breakdown above is lying about where the total came from -- which
+  // is worse than showing no breakdown, so say so loudly rather than
+  // letting a plausible-looking table stand.
+  if (wallet && liveTotal !== wallet.total_remaining_credits) {
+    reconcile.innerHTML = '<span style="color:#e05252;">MISMATCH: live subtotals sum to ' +
+      num(liveTotal) + ' but the wallet reports ' + num(wallet.total_remaining_credits) +
+      '. One of the two is wrong — do not trust this breakdown until it is explained.</span>';
+  } else if (wallet) {
+    reconcile.innerHTML = '<span style="color:#4caf50;">Live subtotals reconcile with the wallet total.</span>';
+  }
+}
 
 function renderState(subscriber) {
-  stateOutput.textContent = subscriber ? JSON.stringify(subscriber, null, 2)
-    : 'No test subscriber yet — click "New subscriber".';
+  if (!subscriber) {
+    stateEmpty.style.display = 'block';
+    stateSections.style.display = 'none';
+    return;
+  }
+  stateEmpty.style.display = 'none';
+  stateSections.style.display = 'block';
+
+  document.getElementById('state-output-raw').textContent = JSON.stringify(subscriber, null, 2);
+
+  const sub = subscriber.local_subscription;
+  field('f-plan', sub ? sub.plan : 'no local row yet');
+  field('f-status', sub ? sub.status : null);
+  field('f-active', sub ? (sub.is_active ? 'yes' : 'no') : null);
+  field('f-pending', sub ? sub.pending_plan : null);
+  field('f-cycle-start', sub ? sub.billing_cycle_start : null);
+  field('f-cycle-end', sub ? sub.billing_cycle_end : null);
+
+  const wallet = subscriber.wallet;
+  field('f-remaining', wallet ? wallet.total_remaining_credits.toLocaleString() : 'no wallet yet');
+  field('f-plan-remaining', wallet ? wallet.plan_remaining_credits.toLocaleString() : null);
+  field('f-overage-used', wallet ? wallet.overage_blocks_used : null);
+  field('f-customer-id', subscriber.customer_id);
+  field('f-sub-id', subscriber.stripe_subscription_id);
+  field('f-clock-id', subscriber.clock_id);
+
+  renderByType((wallet && wallet.by_type) || [], wallet);
+
+  const bucketsBody = document.getElementById('buckets-body');
+  bucketsBody.innerHTML = '';
+  const buckets = (wallet && wallet.buckets) || [];
+  if (buckets.length === 0) {
+    bucketsBody.innerHTML = '<tr><td colspan="7">No credit buckets yet.</td></tr>';
+  }
+  for (const b of buckets) {
+    const remaining = b.total_credits - b.used_credits;
+    const tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + b.type + '</td>' +
+      '<td>' + b.total_credits.toLocaleString() + '</td>' +
+      '<td>' + b.used_credits.toLocaleString() + '</td>' +
+      '<td>' + remaining.toLocaleString() + '</td>' +
+      '<td>' + (b.expires_at || 'never') + '</td>' +
+      '<td>' + (b.is_processed ? 'yes' : 'no') + '</td>' +
+      '<td>' + b.created_at + '</td>';
+    bucketsBody.appendChild(tr);
+  }
 }
 
 async function refreshState() {

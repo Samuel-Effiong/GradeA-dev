@@ -91,6 +91,7 @@ class QaConsoleActionTests(TestCase):
     def _fake_harness(self):
         harness = MagicMock()
         harness.run_id = "console-test"
+        harness.started_at = 1_700_000_000
         harness.dispatched_event_ids = set()
         harness.drain_events.return_value = []
         return harness
@@ -127,6 +128,56 @@ class QaConsoleActionTests(TestCase):
         self.assertEqual(session_data["customer_id"], "cus_fake")
         self.assertEqual(session_data["local_user_id"], str(self.test_user.id))
         self.assertFalse(session_data["cancelled"])
+        self.assertEqual(session_data["started_at"], 1_700_000_000)
+
+    def test_action_restores_started_at_onto_the_fresh_harness(self, _mock_enabled):
+        """A fresh LiveQAHarness() defaults started_at to "now - 60s".
+        Without restoring the ORIGINAL subscriber's started_at from the
+        session on every click, the event-poll floor would silently
+        creep forward each request and could permanently miss a
+        renewal event drained too slowly on an earlier click -- this is
+        the exact bug reported against the console (state stuck while
+        Stripe's own subscription kept renewing)."""
+        session = self.client.session
+        session["qa_console_subscriber"] = {
+            "run_id": "console-test",
+            "started_at": 12345,
+            "local_user_id": str(self.test_user.id),
+            "clock_id": "clock_fake",
+            "customer_id": "cus_fake",
+            "stripe_subscription_id": "sub_fake",
+            "using_failing_card": False,
+            "cancelled": False,
+            "dispatched_event_ids": ["evt_already_seen"],
+        }
+        session.save()
+
+        harness = self._fake_harness()
+        harness.started_at = 999_999_999  # what a FRESH harness would default to
+        seen_states = []
+
+        def _capture(ctx):
+            seen_states.append(
+                (ctx.harness.started_at, set(ctx.harness.dispatched_event_ids))
+            )
+            return "ok"
+
+        with patch(
+            "billing.qa_console.LiveQAHarness", return_value=harness
+        ), patch.dict(
+            "billing.qa_console.DEFAULT_ACTIONS", {"add_payment_method": (5, _capture)}
+        ):
+            response = self._post("qa-console-action", {"action": "add_payment_method"})
+
+        self.assertEqual(response.status_code, 200)
+        started_at, dispatched_ids = seen_states[0]
+        self.assertEqual(
+            started_at,
+            12345,
+            "the harness's event-poll floor must be the subscriber's "
+            "ORIGINAL started_at, not a freshly-recomputed one",
+        )
+        self.assertEqual(dispatched_ids, {"evt_already_seen"})
 
     def test_new_subscriber_tears_down_the_previous_one_first(self, _mock_enabled):
         session = self.client.session

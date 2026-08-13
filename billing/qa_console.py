@@ -63,6 +63,7 @@ from typing import Optional
 
 from django.http import Http404, JsonResponse
 from django.shortcuts import render
+from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods
 from rest_framework import serializers
 
@@ -231,6 +232,20 @@ def _build_context(request, data: dict) -> ChaosContext:
         plan=_monthly_plan(),
     )
     harness = LiveQAHarness(run_id=data["run_id"])
+    # A fresh LiveQAHarness sets started_at to "now - 60s" and
+    # dispatched_event_ids to empty, since it's built to live for one
+    # whole suite run. The console instead builds a NEW harness on
+    # EVERY click, so without restoring these from the session, the
+    # event-poll floor silently creeps forward each request -- any
+    # renewal event not fully drained within its own click's request
+    # (e.g. Stripe hasn't emitted it yet, or more than 60s passed
+    # between clicks) falls below the next click's floor and is
+    # permanently invisible, leaving local state stuck while Stripe's
+    # own subscription keeps renewing correctly on its side.
+    # .get() with the pre-fix fallback: a session created before this
+    # restore existed has no "started_at" key at all.
+    harness.started_at = data.get("started_at", harness.started_at)
+    harness.dispatched_event_ids = set(data.get("dispatched_event_ids", []))
     rec = CheckRecorder()
     return ChaosContext(
         harness=harness,
@@ -247,8 +262,11 @@ def _build_context(request, data: dict) -> ChaosContext:
 def _describe_state(sub: Subscriber) -> dict:
     local = sub.local()
     wallet = sub.wallet()
-    buckets = []
+    buckets: list = []
+    by_type: list = []
     if wallet is not None:
+        from django.db.models import Count, F, Q, Sum
+
         from .models import CreditBucket
 
         buckets = [
@@ -256,12 +274,71 @@ def _describe_state(sub: Subscriber) -> dict:
                 "type": b.bucket_type,
                 "total_credits": b.total_credits,
                 "used_credits": b.used_credits,
+                "remaining_credits": b.remaining_credits,
                 "expires_at": b.expires_at.isoformat() if b.expires_at else None,
                 "is_processed": b.is_processed,
+                # is_expired is a plain METHOD on CreditBucket, not a
+                # property -- reading it without calling would put a
+                # bound method in this dict and blow up JsonResponse.
+                "is_expired": b.is_expired(),
+                "created_at": b.created_at.isoformat(),
             }
             for b in CreditBucket.objects.filter(wallet=wallet).order_by("-created_at")[
                 :10
             ]
+        ]
+
+        # The breakdown that makes a wrong total explainable at a glance:
+        # "10M MONTHLY + 5M TRIAL" reads as a stacking bug immediately,
+        # where a bare 15M total does not. Deliberately aggregated over
+        # ALL buckets, not just the 10 most recent shown above -- the
+        # subtotals must reconcile against the wallet totals, and a
+        # truncated aggregate that silently disagrees would be worse
+        # than no breakdown at all.
+        #
+        # LIVE deliberately restates CreditWallet.total_remaining_credits's
+        # filter EXACTLY -- "expires_at is null OR in the future", and
+        # notably NOT is_processed, which that aggregate ignores. Any
+        # other definition here would make the subtotals disagree with
+        # the wallet total for reasons that are an artifact of this
+        # console rather than a real billing fault, and the whole point
+        # of the breakdown is to explain that total.
+        rows = (
+            CreditBucket.objects.filter(wallet=wallet)
+            .values("bucket_type")
+            .annotate(
+                bucket_count=Count("id"),
+                total=Sum("total_credits"),
+                used=Sum("used_credits"),
+                remaining=Sum(F("total_credits") - F("used_credits")),
+            )
+            .order_by("bucket_type")
+        )
+        live_rows = {
+            r["bucket_type"]: r
+            for r in CreditBucket.objects.filter(wallet=wallet)
+            .filter(Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now()))
+            .values("bucket_type")
+            .annotate(
+                bucket_count=Count("id"),
+                remaining=Sum(F("total_credits") - F("used_credits")),
+            )
+        }
+        by_type = [
+            {
+                "type": r["bucket_type"],
+                "bucket_count": r["bucket_count"],
+                "total_credits": r["total"] or 0,
+                "used_credits": r["used"] or 0,
+                "remaining_credits": r["remaining"] or 0,
+                "live_bucket_count": live_rows.get(r["bucket_type"], {}).get(
+                    "bucket_count", 0
+                ),
+                "live_remaining_credits": (
+                    live_rows.get(r["bucket_type"], {}).get("remaining") or 0
+                ),
+            }
+            for r in rows
         ]
     return {
         "customer_id": sub.customer_id,
@@ -282,6 +359,18 @@ def _describe_state(sub: Subscriber) -> dict:
         "wallet": (
             {
                 "total_remaining_credits": wallet.total_remaining_credits(),
+                # Excludes OVERAGE buckets -- see plan_remaining_credits's
+                # own docstring. Differs from total_remaining_credits
+                # whenever an overage block or a leftover TRIAL bucket
+                # (see the forfeiture step in activate_subscription) is
+                # present, which is exactly the distinction worth seeing
+                # in this console.
+                "plan_remaining_credits": wallet.plan_remaining_credits(),
+                "overage_blocks_used": wallet.overage_blocks_used,
+                # Per-bucket-type subtotals over EVERY bucket, live and
+                # historical -- "buckets" below is only the 10 most
+                # recent, so it cannot be summed to reconcile a total.
+                "by_type": by_type,
                 "buckets": buckets,
             }
             if wallet is not None
@@ -337,6 +426,10 @@ def qa_console_new_subscriber(request):
 
     request.session[SESSION_KEY] = {
         "run_id": harness.run_id,
+        # Captured once, here, and restored into every later
+        # reconstructed harness by _build_context -- see the comment
+        # there for why this must NOT be recomputed per request.
+        "started_at": harness.started_at,
         # Subscriber.user is typed as `object` (it is a cross-app,
         # optional field shared with every other scenario in this
         # package) -- getattr rather than a direct attribute read keeps
