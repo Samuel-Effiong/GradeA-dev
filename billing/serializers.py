@@ -148,6 +148,10 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
     has_pending_change = serializers.SerializerMethodField(read_only=True)
     recommended_plan = serializers.SerializerMethodField(read_only=True)
 
+    has_pending_cancellation = serializers.SerializerMethodField(read_only=True)
+    cancellation_effective_date = serializers.SerializerMethodField(read_only=True)
+    cancellation_message = serializers.SerializerMethodField(read_only=True)
+
     def to_internal_value(self, data):
         """
         `plan` is declared read_only above so GET responses can nest the
@@ -228,6 +232,10 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
             "billing_cycle_start",
             "billing_cycle_end",
             "auto_renew",
+            "cancelled_at",
+            "has_pending_cancellation",
+            "cancellation_effective_date",
+            "cancellation_message",
             "pending_plan",
             "pending_plan_effective_date",
             "pending_change_type",
@@ -249,6 +257,7 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
             "billing_cycle_end",
             "subscription_type",
             "is_under_license",
+            "cancelled_at",
             "pending_plan",
             "pending_change_type",
         ]
@@ -312,6 +321,85 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
         if not obj.pending_plan_id:
             return None
         return obj.billing_cycle_end
+
+    def get_has_pending_cancellation(self, obj) -> bool:
+        """
+        True when this subscription is scheduled to stop renewing and
+        the resume flow would actually succeed right now — i.e. the one
+        boolean the frontend needs to decide whether to show a "Resume"
+        button.
+
+        Deliberately NOT the same as `not auto_renew`, which the
+        frontend must never use for this:
+
+          - Every TRIAL has auto_renew=False from birth (a trial never
+            converts to paid without an explicit action). Keying off the
+            raw flag would show "your subscription is cancelled" to
+            every trial user.
+          - Once billing_cycle_end has passed there is nothing left to
+            resume; the resume endpoint rejects it and directs the user
+            to select-plan instead.
+
+        The conditions below are exactly the ones
+        SubscriptionManagementViewSet.resume enforces, so this flag can
+        be read as "Resume will work", not merely "renewal is off".
+        A scheduled plan change does NOT set this — a downgrade still
+        renews, just onto a different plan; use has_pending_change for
+        that.
+        """
+        return bool(
+            obj.is_active
+            and not obj.is_trial
+            and not obj.auto_renew
+            and obj.billing_cycle_end
+            and obj.billing_cycle_end > timezone.now()
+        )
+
+    @extend_schema_field(serializers.DateTimeField(allow_null=True))
+    def get_cancellation_effective_date(self, obj):
+        """
+        When access actually ends — the end of the period already paid
+        for. Null unless a cancellation is pending.
+        """
+        if not self.get_has_pending_cancellation(obj):
+            return None
+        return obj.billing_cycle_end
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_cancellation_message(self, obj):
+        """
+        Ready-to-display explanation, mirroring `pending_change_message`
+        so the frontend renders both banners the same way. Null unless a
+        cancellation is pending.
+
+        Composed here rather than persisted (which is what the plan-change
+        note does) because there is only one kind of cancellation and no
+        wording that varies by case — so there is nothing to capture at
+        cancel time that could later go stale.
+
+        `cancelled_at` is included when known, but is genuinely optional:
+        rows cancelled before that field existed, and any row whose
+        auto_renew was set outside the cancel flow, legitimately have
+        none. The message degrades to the dateless form rather than
+        rendering "You cancelled on None".
+        """
+        if not self.get_has_pending_cancellation(obj):
+            return None
+
+        ends_on = obj.billing_cycle_end.date().isoformat()
+
+        if obj.cancelled_at:
+            return (
+                f"You cancelled this subscription on "
+                f"{obj.cancelled_at.date().isoformat()}. You keep your "
+                f"current plan and credits until {ends_on}, and it won't "
+                f"renew after that."
+            )
+        return (
+            f"This subscription is scheduled to end on {ends_on} and "
+            f"won't renew. You keep your current plan and credits until "
+            f"then."
+        )
 
     def get_has_pending_change(self, obj) -> bool:
         """

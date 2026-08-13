@@ -58,7 +58,6 @@ from .models import (
     CreditWallet,
     PlanCategory,
     PlanTier,
-    StripeSubscriptionStatus,
     SubscriptionPlan,
     UserSubscription,
 )
@@ -98,6 +97,8 @@ from .stripe_service import (  # StripeSubscriptionMutationService,; StripeCheck
     IndividualPlanChangeService,
     StripeOverageService,
     StripeSubscriptionScheduleService,
+    SubscriptionExpiredDuringRequest,
+    SubscriptionReactivationService,
 )
 from .stripe_view_schemas import CANCEL_SCHEMA
 from .subscription_resolver import (
@@ -830,7 +831,13 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
 
                 if user_subscription.auto_renew:
                     user_subscription.auto_renew = False
-                    update_fields.append("auto_renew")
+                    # Stamped ONLY on the True -> False transition, so a
+                    # repeat cancel keeps the original date rather than
+                    # sliding it forward, and a trial (whose auto_renew is
+                    # False from birth without any cancellation having
+                    # happened) never gets a fabricated one.
+                    user_subscription.cancelled_at = timezone.now()
+                    update_fields += ["auto_renew", "cancelled_at"]
 
                 if had_pending_change:
                     user_subscription.pending_plan = None
@@ -936,176 +943,54 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            warnings = []
-            stripe_changed = False
-
-            # --- Stripe reconciliation (network call, deliberately NOT
-            # inside a DB transaction — see module conventions established
-            # for overage purchases: never hold a DB lock across a Stripe
-            # round trip). Reads Stripe's LIVE state rather than trusting
-            # the local auto_renew flag, to correctly handle desync (e.g.
-            # a cancellation made directly in the Stripe dashboard). ---
-            if sub.stripe_subscription_id:
-                try:
-                    stripe_sub = stripe.Subscription.retrieve(
-                        sub.stripe_subscription_id
-                    )
-                except stripe.error.StripeError as exc:
-                    return Response(
-                        {
-                            "detail": (
-                                "Could not verify your subscription with our "
-                                "payment provider: "
-                                + describe_stripe_error(
-                                    exc, fallback_message="Please try again."
-                                )
-                            )
-                        },
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-
-                stripe_status_value = stripe_sub.get("status")
-                if stripe_status_value in ("canceled", "incomplete_expired"):
-                    return Response(
-                        {
-                            "detail": (
-                                "This subscription has already been fully "
-                                "canceled with our payment provider and "
-                                "cannot be resumed. Please subscribe again "
-                                "via select-plan."
-                            )
-                        },
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-
-                if stripe_status_value == StripeSubscriptionStatus.PAST_DUE.lower():
-                    warnings.append(
-                        "This subscription has an outstanding payment issue "
-                        "that resuming does not resolve on its own — the "
-                        "next renewal invoice will need to succeed for "
-                        "service to continue uninterrupted."
-                    )
-
-                if stripe_sub.get("cancel_at_period_end", False):
-                    try:
-                        stripe.Subscription.modify(
-                            sub.stripe_subscription_id,
-                            cancel_at_period_end=False,
-                        )
-                        stripe_changed = True
-                    except stripe.error.StripeError as exc:
-                        return Response(
-                            {
-                                "detail": (
-                                    "Could not resume your subscription with "
-                                    "our payment provider: "
-                                    + describe_stripe_error(
-                                        exc,
-                                        fallback_message="Please try again.",
-                                    )
-                                )
-                            },
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
-
-            # --- Locked re-validation + local write ---
-            local_changed = False
-
-            with transaction.atomic():
-                locked_sub = (
-                    UserSubscription.objects.select_for_update()
+            # --- Reactivation core (Stripe reconciliation + locked local
+            # write + compensating rollback) is shared with
+            # IndividualPlanChangeService.select_plan's auto-resume path —
+            # see SubscriptionReactivationService for the full behavior. ---
+            try:
+                result = SubscriptionReactivationService.reactivate_if_cancelling(
+                    sub, now=now
+                )
+            except SubscriptionExpiredDuringRequest:
+                # Superseded by a genuine renewal or expiry that completed
+                # during the Stripe round trip above. Not an error — report
+                # whatever the user's CURRENT state is.
+                current_active = (
+                    UserSubscription.objects.filter(user=request.user, is_active=True)
                     .select_related("plan")
-                    .filter(pk=sub.pk)
                     .first()
                 )
-
-                if not locked_sub or not locked_sub.is_active:
-                    # Superseded by a genuine renewal or expiry that
-                    # completed during the Stripe round trip above. Not an
-                    # error — report whatever the user's CURRENT state is.
-                    current_active = (
-                        UserSubscription.objects.filter(
-                            user=request.user, is_active=True
-                        )
-                        .select_related("plan")
-                        .first()
-                    )
-                    if current_active:
-                        return Response(
-                            {
-                                "status": "already_renewed",
-                                "message": (
-                                    "Your subscription already renewed during "
-                                    "this request — no action was needed."
-                                ),
-                                "subscription": UserSubscriptionSerializer(
-                                    current_active
-                                ).data,
-                            },
-                            status=status.HTTP_200_OK,
-                        )
+                if current_active:
                     return Response(
                         {
-                            "detail": (
-                                "Your subscription ended during this request. "
-                                "Please subscribe again via select-plan."
-                            )
+                            "status": "already_renewed",
+                            "message": (
+                                "Your subscription already renewed during "
+                                "this request — no action was needed."
+                            ),
+                            "subscription": UserSubscriptionSerializer(
+                                current_active
+                            ).data,
                         },
-                        status=status.HTTP_400_BAD_REQUEST,
+                        status=status.HTTP_200_OK,
                     )
-
-                if now >= locked_sub.billing_cycle_end:
-                    return Response(
-                        {
-                            "detail": (
-                                "This subscription's current billing period "
-                                "ended during this request. Please subscribe "
-                                "again via select-plan."
-                            )
-                        },
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-
-                update_fields = []
-                if not locked_sub.is_trial and not locked_sub.auto_renew:
-                    locked_sub.auto_renew = True
-                    update_fields.append("auto_renew")
-                    local_changed = True
-
-                if update_fields:
-                    update_fields.append("updated_at")
-                    try:
-                        locked_sub.save(update_fields=update_fields)
-                    except Exception:
-                        # Stripe was already updated (harmless flag flip,
-                        # not a charge) but the local write failed — this
-                        # would leave Stripe and our DB disagreeing about
-                        # whether this subscription will renew. Attempt a
-                        # compensating revert so Stripe matches the
-                        # (unchanged) local state; log loudly either way.
-                        logger.exception(
-                            "Resume: local save failed for subscription %s "
-                            "after Stripe was already updated. Attempting "
-                            "compensating revert.",
-                            locked_sub.id,
+                return Response(
+                    {
+                        "detail": (
+                            "Your subscription ended during this request. "
+                            "Please subscribe again via select-plan."
                         )
-                        if stripe_changed and sub.stripe_subscription_id:
-                            try:
-                                stripe.Subscription.modify(
-                                    sub.stripe_subscription_id,
-                                    cancel_at_period_end=True,
-                                )
-                            except stripe.error.StripeError:
-                                logger.exception(
-                                    "Resume: compensating Stripe revert ALSO "
-                                    "failed for subscription %s "
-                                    "(stripe_subscription_id=%s). MANUAL "
-                                    "RECONCILIATION NEEDED — Stripe and local "
-                                    "state now disagree about renewal.",
-                                    locked_sub.id,
-                                    sub.stripe_subscription_id,
-                                )
-                        raise
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            except ValueError as exc:
+                return Response(
+                    {"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST
+                )
+
+            stripe_changed = result.stripe_changed
+            local_changed = result.local_changed
+            warnings = result.warnings
 
             logger.info(
                 "Subscription %s resumed for user %s. stripe_changed=%s "
@@ -1118,7 +1003,8 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
             )
 
             # --- Build response message ---
-            locked_sub.refresh_from_db()
+            sub.refresh_from_db()
+            locked_sub = sub
 
             if sub.is_trial:
                 if stripe_changed:

@@ -475,6 +475,23 @@ class UserSubscription(models.Model):
     auto_renew = models.BooleanField(
         default=True, help_text="Whether the subscription auto-renews"
     )
+
+    cancelled_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=(
+            "When the user (or a Stripe-side action) scheduled this "
+            "subscription to stop renewing. Set alongside "
+            "auto_renew=False by the cancel endpoint and by the "
+            "customer.subscription.updated webhook; cleared again on "
+            "resume. Purely informational — auto_renew remains the "
+            "operative flag — but it is the only record of WHEN the "
+            "cancellation was requested, which the frontend shows back "
+            "to the user. Null for trials (whose auto_renew is False "
+            "from birth without any cancellation having happened) and "
+            "for rows cancelled before this field existed."
+        ),
+    )
     pending_plan = models.ForeignKey(
         "SubscriptionPlan",
         null=True,

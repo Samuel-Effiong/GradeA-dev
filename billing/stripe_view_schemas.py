@@ -491,17 +491,26 @@ current billing cycle. The user keeps their current plan and credits until
 then.
 
 **What happens**
-- `auto_renew` is set to `False` and `pending_plan` is set to the new plan
-  on the local `UserSubscription`.
+- `pending_plan`, `pending_change_type` and `pending_change_note` are set
+  on the local `UserSubscription`, and a Stripe `SubscriptionSchedule` is
+  created so Stripe itself switches price at the cycle boundary.
+- `auto_renew` is deliberately left `True`. A downgrade still renews — it
+  just renews onto a different plan. Only `cancel` sets `auto_renew` to
+  `False`.
 - At the next `invoice.payment_succeeded` webhook (end of cycle), the
-  renewal logic resolves `pending_plan`, applies rollover, grants credits
-  for the new plan, and calls `Stripe.Subscription.modify()` to update the
-  Stripe price — so Stripe starts billing the lower price from the next
-  cycle.
+  renewal logic resolves `pending_plan`, applies rollover, and grants
+  credits for the new plan.
 
 **No immediate charge or credit change.** The user is not charged or
 refunded anything immediately. The effective change date is the next
 `billing_cycle_end`.
+
+**Frontend note.** Read `has_pending_change` (with `pending_plan`,
+`pending_plan_effective_date` and `pending_change_message`) to show a
+scheduled-change banner. Do NOT infer a scheduled change — or a
+cancellation — from `auto_renew`: it is `False` for every free trial as
+well. `has_pending_cancellation` is the flag for "show the Resume
+button".
 """,
     request=inline_serializer(
         name="DowngradeRequest",
@@ -552,6 +561,21 @@ CANCEL_SCHEMA = extend_schema(
 Cancels the authenticated user's subscription at the **end of the current
 billing cycle** (not immediately). The user retains access and credits until
 `billing_cycle_end`.
+
+Sets `auto_renew=False` and stamps `cancelled_at` on the local
+`UserSubscription`, and sets `cancel_at_period_end=True` on Stripe. Any
+previously scheduled plan change is discarded (its Stripe
+`SubscriptionSchedule` is released) — the message says so when that happened.
+
+**Frontend note.** After this call the subscription serializer reports
+`has_pending_cancellation: true`, along with `cancellation_effective_date`
+(when access ends) and `cancellation_message` (ready to display, and
+includes the `cancelled_at` date when known). Gate the **Resume** button on
+`has_pending_cancellation` — it is true only while `POST
+/subscription/resume` would actually succeed.
+
+Do NOT gate it on `auto_renew`: that flag is `False` for every free trial
+too, so trial users would be shown a bogus "cancelled" state.
 """,
     request=None,
     responses={

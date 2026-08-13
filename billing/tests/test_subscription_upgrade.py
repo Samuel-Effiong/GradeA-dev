@@ -44,10 +44,26 @@ from billing.models import (
     SubscriptionPlan,
     UserSubscription,
 )
-from billing.stripe_service import StripeSubscriptionMutationService
+from billing.stripe_service import (
+    StripeSubscriptionMutationService,
+    StripeSubscriptionScheduleService,
+)
 from users.models import UserTypes
 
 CustomUser = get_user_model()
+
+
+class FakeStripeObject(dict):
+    """
+    Minimal stand-in for Stripe's response objects, which support both
+    dict-style (`obj["id"]`) and attribute-style (`obj.id`) access.
+    """
+
+    def __getattr__(self, item):
+        try:
+            return self[item]
+        except KeyError as exc:
+            raise AttributeError(item) from exc
 
 
 def make_plan(
@@ -570,11 +586,12 @@ class CreateUpgradeCheckoutSessionTestCase(TestCase):
     """
     StripeSubscriptionMutationService.create_upgrade_checkout_session() —
     the live upgrade path used by IndividualPlanChangeService.select_plan(),
-    distinct from change_plan() (tested above). Focused on the
-    cancel_at_period_end guard: a subscription scheduled to cancel has no
-    upcoming invoice for Stripe to preview, which otherwise surfaces as an
-    opaque "No upcoming invoices for customer" StripeError from
-    Invoice.create_preview.
+    distinct from change_plan() (tested above). This function trusts its
+    only caller (select_plan) to have already ensured, via
+    SubscriptionReactivationService.reactivate_if_cancelling, that the
+    subscription isn't scheduled to cancel — see
+    SelectPlanAutoResumeTestCase in test_subscription_reactivation.py for
+    coverage of that auto-resume behavior.
     """
 
     def setUp(self):
@@ -622,29 +639,6 @@ class CreateUpgradeCheckoutSessionTestCase(TestCase):
     @patch("stripe.checkout.Session")
     @patch("stripe.Invoice")
     @patch("stripe.Subscription")
-    def test_rejects_when_subscription_scheduled_to_cancel(
-        self, mock_subscription, mock_invoice, mock_checkout_session
-    ):
-        mock_subscription.retrieve.return_value = self._stripe_subscription_payload(
-            cancel_at_period_end=True
-        )
-
-        with self.assertRaises(ValueError) as ctx:
-            StripeSubscriptionMutationService.create_upgrade_checkout_session(
-                self.current_sub,
-                self.pro_plan,
-                success_url="https://example.com/success",
-                cancel_url="https://example.com/cancel",
-            )
-
-        self.assertIn("scheduled to cancel", str(ctx.exception))
-        self.assertIn("Resume your subscription", str(ctx.exception))
-        mock_invoice.create_preview.assert_not_called()
-        mock_checkout_session.create.assert_not_called()
-
-    @patch("stripe.checkout.Session")
-    @patch("stripe.Invoice")
-    @patch("stripe.Subscription")
     def test_proceeds_normally_when_not_scheduled_to_cancel(
         self, mock_subscription, mock_invoice, mock_checkout_session
     ):
@@ -666,3 +660,65 @@ class CreateUpgradeCheckoutSessionTestCase(TestCase):
         self.assertTrue(result["requires_checkout"])
         mock_invoice.create_preview.assert_called_once()
         mock_checkout_session.create.assert_called_once()
+
+
+class SchedulePlanChangeGuardTestCase(TestCase):
+    """
+    StripeSubscriptionScheduleService.schedule_plan_change_on_stripe() —
+    this backs every DEFERRED plan change (downgrade, upgrade_scheduled,
+    lateral_scheduled). It no longer checks cancel_at_period_end itself —
+    its only caller (select_plan) already ensures the subscription isn't
+    scheduled to cancel before calling in, via
+    SubscriptionReactivationService.reactivate_if_cancelling. See
+    SelectPlanAutoResumeTestCase in test_subscription_reactivation.py for
+    coverage of that auto-resume behavior.
+    """
+
+    def setUp(self):
+        self.user = CustomUser.objects.create_user(
+            email="downgrade-guard@example.com",
+            password="testpass123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+        )
+        self.pro_plan = make_plan(
+            "PRO",
+            PlanTier.PRO,
+            price_cents=2999,
+            monthly_credits=30_000_000,
+            stripe_price_id="price_pro",
+        )
+        self.standard_plan = make_plan(
+            "STANDARD",
+            PlanTier.STANDARD,
+            price_cents=999,
+            monthly_credits=10_000_000,
+            stripe_price_id="price_standard",
+        )
+        self.current_sub = UserSubscription.objects.create(
+            user=self.user,
+            plan=self.pro_plan,
+            is_active=True,
+            billing_cycle_start=timezone.now(),
+            billing_cycle_end=timezone.now() + relativedelta(months=1),
+            stripe_subscription_id="sub_sdg_1",
+            stripe_status=StripeSubscriptionStatus.ACTIVE,
+        )
+        CreditWallet.objects.get_or_create(
+            user=self.user, defaults={"stripe_customer_id": "cus_sdg_1"}
+        )
+
+    @patch("stripe.SubscriptionSchedule")
+    def test_proceeds_normally_when_not_scheduled_to_cancel(self, mock_schedule):
+        mock_schedule.create.return_value = FakeStripeObject(
+            id="sched_sdg_1",
+            phases=[
+                {"start_date": int(self.current_sub.billing_cycle_start.timestamp())}
+            ],
+        )
+
+        schedule_id = StripeSubscriptionScheduleService.schedule_plan_change_on_stripe(
+            self.current_sub, self.standard_plan
+        )
+
+        self.assertEqual(schedule_id, "sched_sdg_1")
+        mock_schedule.create.assert_called_once()

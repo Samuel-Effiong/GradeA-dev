@@ -30,6 +30,7 @@ Classes:
 
 import logging
 import re
+from dataclasses import dataclass
 from datetime import datetime
 from datetime import timezone as dt_timezone
 from typing import Optional
@@ -928,6 +929,188 @@ class StripeCheckoutService:
         return session
 
 
+class SubscriptionExpiredDuringRequest(ValueError):
+    """
+    Raised by SubscriptionReactivationService.reactivate_if_cancelling when
+    the subscription row is gone/inactive, or its billing cycle has ended,
+    by the time the locked re-check runs — i.e. it was superseded by a
+    genuine renewal or expiry that completed during the Stripe round trip.
+    A ValueError subclass so callers that don't care about this specific
+    race (e.g. IndividualPlanChangeService.select_plan) can treat it like
+    any other rejection via a plain `except ValueError`, while callers that
+    DO need to distinguish it (SubscriptionManagementViewSet.resume, to
+    reproduce its existing "already_renewed" response) can catch it
+    specifically.
+    """
+
+
+@dataclass(frozen=True)
+class ReactivationResult:
+    changed: bool
+    stripe_changed: bool
+    local_changed: bool
+    warnings: list
+
+
+class SubscriptionReactivationService:
+    """
+    Shared core of "undo a subscription's scheduled cancellation" —
+    used by both SubscriptionManagementViewSet.resume (an explicit,
+    standalone action) and IndividualPlanChangeService.select_plan (which
+    auto-resumes a cancelling subscription on the user's behalf before
+    applying a plan change, rather than making the user call resume first).
+
+    Deliberately does NOT acquire the `billing:planchange:{user_id}` cache
+    lock itself — both current callers already hold it before calling in.
+    """
+
+    @staticmethod
+    def reactivate_if_cancelling(user_sub, now=None):
+        """
+        Args:
+            user_sub (UserSubscription): the caller's current active
+                subscription row.
+            now (datetime | None): defaults to timezone.now() — accepted as
+                a parameter so callers that already computed `now` for an
+                earlier check (e.g. resume's pre-lock billing_cycle_end
+                check) can pass the SAME value through, rather than a
+                second, slightly later one.
+
+        Returns:
+            ReactivationResult
+
+        Raises:
+            ValueError: Stripe API failure, subscription fully canceled on
+                Stripe's side, or (only reachable when cancel_at_period_end
+                is True) the current billing period has already ended.
+            SubscriptionExpiredDuringRequest: the subscription was
+                superseded (renewed or expired) during the Stripe round
+                trip — a ValueError subclass, see its docstring.
+        """
+        if now is None:
+            now = timezone.now()
+
+        if not user_sub.stripe_subscription_id:
+            return ReactivationResult(
+                changed=False, stripe_changed=False, local_changed=False, warnings=[]
+            )
+
+        try:
+            stripe_sub = stripe.Subscription.retrieve(user_sub.stripe_subscription_id)
+        except stripe.error.StripeError as exc:
+            raise ValueError(
+                "Could not verify your subscription with our payment provider: "
+                + describe_stripe_error(exc, fallback_message="Please try again.")
+            ) from exc
+
+        stripe_status_value = stripe_sub.get("status")
+        if stripe_status_value in ("canceled", "incomplete_expired"):
+            raise ValueError(
+                "This subscription has already been fully canceled with "
+                "our payment provider and cannot be resumed. Please "
+                "subscribe again via select-plan."
+            )
+
+        warnings = []
+        if stripe_status_value == StripeSubscriptionStatus.PAST_DUE.lower():  # type: ignore[attr-defined]
+            warnings.append(
+                "This subscription has an outstanding payment issue that "
+                "resuming does not resolve on its own — the next renewal "
+                "invoice will need to succeed for service to continue "
+                "uninterrupted."
+            )
+
+        stripe_changed = False
+        local_changed = False
+
+        if stripe_sub.get("cancel_at_period_end", False):
+            if now >= user_sub.billing_cycle_end:
+                raise ValueError(
+                    "This subscription's current billing period has "
+                    "already ended. Please subscribe again via select-plan."
+                )
+
+            try:
+                stripe.Subscription.modify(
+                    user_sub.stripe_subscription_id,
+                    cancel_at_period_end=False,
+                )
+                stripe_changed = True
+            except stripe.error.StripeError as exc:
+                raise ValueError(
+                    "Could not resume your subscription with our payment "
+                    "provider: "
+                    + describe_stripe_error(exc, fallback_message="Please try again.")
+                ) from exc
+
+            with transaction.atomic():
+                locked_sub = (
+                    UserSubscription.objects.select_for_update()
+                    .filter(pk=user_sub.pk)
+                    .first()
+                )
+
+                if (
+                    not locked_sub
+                    or not locked_sub.is_active
+                    or now >= locked_sub.billing_cycle_end
+                ):
+                    raise SubscriptionExpiredDuringRequest(
+                        "Your subscription ended during this request. "
+                        "Please subscribe again via select-plan."
+                    )
+
+                local_update_fields = []
+                if not locked_sub.is_trial and not locked_sub.auto_renew:
+                    locked_sub.auto_renew = True
+                    local_update_fields.append("auto_renew")
+                if locked_sub.cancelled_at is not None:
+                    # Cleared unconditionally (not gated on the auto_renew
+                    # flip above) so a row whose auto_renew already drifted
+                    # back to True still sheds its stale cancellation date —
+                    # otherwise the frontend keeps rendering "you cancelled
+                    # on ..." for a subscription that is renewing normally.
+                    locked_sub.cancelled_at = None
+                    local_update_fields.append("cancelled_at")
+
+                if local_update_fields:
+                    local_changed = True
+                    try:
+                        locked_sub.save(
+                            update_fields=local_update_fields + ["updated_at"]
+                        )
+                    except Exception:
+                        logger.exception(
+                            "Reactivation: local save failed for "
+                            "subscription %s after Stripe was already "
+                            "updated. Attempting compensating revert.",
+                            locked_sub.id,
+                        )
+                        try:
+                            stripe.Subscription.modify(
+                                user_sub.stripe_subscription_id,
+                                cancel_at_period_end=True,
+                            )
+                        except stripe.error.StripeError:
+                            logger.exception(
+                                "Reactivation: compensating Stripe revert "
+                                "ALSO failed for subscription %s "
+                                "(stripe_subscription_id=%s). MANUAL "
+                                "RECONCILIATION NEEDED — Stripe and local "
+                                "state now disagree about renewal.",
+                                locked_sub.id,
+                                user_sub.stripe_subscription_id,
+                            )
+                        raise
+
+        return ReactivationResult(
+            changed=stripe_changed or local_changed,
+            stripe_changed=stripe_changed,
+            local_changed=local_changed,
+            warnings=warnings,
+        )
+
+
 class StripeSubscriptionMutationService:
     """
     For an EXISTING Stripe subscription only (card already on file —
@@ -1147,6 +1330,12 @@ class StripeSubscriptionMutationService:
             user_sub (UserSubscription): The current active subscription,
                 with `.plan` fresh (e.g. from
                 IndividualPlanChangeService._determine_branch's row lock).
+                The caller (IndividualPlanChangeService.select_plan) is
+                expected to have already ensured this subscription isn't
+                scheduled to cancel — via
+                SubscriptionReactivationService.reactivate_if_cancelling —
+                before calling in; this function does not itself check or
+                clear cancel_at_period_end.
             new_plan (SubscriptionPlan): The plan being upgraded to.
             success_url (str): Where Checkout redirects on success.
             cancel_url (str): Where Checkout redirects if the user backs out.
@@ -1180,23 +1369,6 @@ class StripeSubscriptionMutationService:
                     exc, fallback_message="Please try again in a moment."
                 )
             ) from exc
-
-        if stripe_sub.get("cancel_at_period_end"):
-            # A subscription scheduled to cancel has no upcoming invoice
-            # for Stripe to preview (Invoice.create_preview fails with
-            # "No upcoming invoices for customer" below if we proceed) —
-            # reject early with an actionable message instead of letting
-            # that opaque Stripe error surface. Deliberately does NOT
-            # clear cancel_at_period_end here itself: SubscriptionManagement
-            # ViewSet.resume (billing/views.py) already owns reactivation,
-            # with its own staleness/PAST_DUE/billing_cycle_end checks and
-            # locking — duplicating a slice of that here would risk the
-            # two implementations drifting apart.
-            raise ValueError(
-                "Your subscription is scheduled to cancel at the end of "
-                "the current billing period. Resume your subscription "
-                "first, then try changing plans again."
-            )
 
         item_id = stripe_sub["items"]["data"][0]["id"]
         customer_id = stripe_sub["customer"]
@@ -1743,6 +1915,12 @@ class StripeSubscriptionScheduleService:
                 with `.plan` and `.billing_cycle_end` already correct (the
                 caller is expected to have this fresh, e.g. from
                 IndividualPlanChangeService._determine_branch's row lock).
+                The caller (IndividualPlanChangeService.select_plan) is
+                expected to have already ensured this subscription isn't
+                scheduled to cancel — via
+                SubscriptionReactivationService.reactivate_if_cancelling —
+                before calling in; this function does not itself check or
+                clear cancel_at_period_end.
             new_plan (SubscriptionPlan): The plan to switch to at cycle end.
 
         Returns:
@@ -2178,6 +2356,37 @@ class IndividualPlanChangeService:
                 user, target_plan
             )
 
+            # Auto-resume: if the user's current subscription is scheduled
+            # to cancel, undo that first rather than making them call
+            # resume separately before picking a new plan. Scoped to the
+            # branches that actually mutate an existing paid Stripe
+            # subscription — "checkout" (no/trial/no-Stripe-id sub) and
+            # "cancel_pending" (undoing a DIFFERENT pending change) never
+            # have a cancelling subscription to reactivate.
+            resumed_from_cancellation = False
+            resume_warnings = []
+            if branch in (
+                "upgrade",
+                "downgrade",
+                "upgrade_scheduled",
+                "lateral_scheduled",
+            ):
+                reactivation = SubscriptionReactivationService.reactivate_if_cancelling(
+                    current_sub, now=timezone.now()
+                )
+                resumed_from_cancellation = reactivation.changed
+                resume_warnings = reactivation.warnings
+
+            def _with_resume_notice(message):
+                if resumed_from_cancellation:
+                    message = (
+                        "We've undone the scheduled cancellation on your "
+                        "subscription. " + message
+                    )
+                if resume_warnings:
+                    message = message + " " + " ".join(resume_warnings)
+                return message
+
             if branch == "cancel_pending":
                 # Release Stripe's side FIRST. If this raises, we deliberately
                 # do NOT proceed to clear local state — otherwise the user
@@ -2215,7 +2424,7 @@ class IndividualPlanChangeService:
                 )
                 return {
                     "action": "downgrade_scheduled",
-                    "message": note,
+                    "message": _with_resume_notice(note),
                     "pending_plan": target_plan,
                     "effective_date": updated_sub.billing_cycle_end,
                 }
@@ -2243,7 +2452,7 @@ class IndividualPlanChangeService:
                 )
                 return {
                     "action": "upgrade_scheduled",
-                    "message": note,
+                    "message": _with_resume_notice(note),
                     "pending_plan": target_plan,
                     "effective_date": updated_sub.billing_cycle_end,
                 }
@@ -2266,7 +2475,7 @@ class IndividualPlanChangeService:
                 )
                 return {
                     "action": "lateral_change_scheduled",
-                    "message": note,
+                    "message": _with_resume_notice(note),
                     "pending_plan": target_plan,
                     "effective_date": updated_sub.billing_cycle_end,
                 }
@@ -2311,7 +2520,7 @@ class IndividualPlanChangeService:
                 if result["requires_checkout"]:
                     return {
                         "action": "upgrade_checkout",
-                        "message": (
+                        "message": _with_resume_notice(
                             "Redirecting to secure checkout to confirm your upgrade "
                             "and the exact amount you'll be charged"
                         ),
@@ -2320,7 +2529,7 @@ class IndividualPlanChangeService:
                     }
                 return {
                     "action": "upgraded",
-                    "message": (
+                    "message": _with_resume_notice(
                         f"You've been upgraded to {target_plan.display_name or target_plan.name} "
                         f"No additional charge was needed right now."
                     ),
@@ -3733,8 +3942,21 @@ class StripeWebhookHandler:
             )
 
             if user_sub.is_trial:
-                # Card declined at trial end — mirrors expire_trial(), no conversion.
-                SubscriptionService.expire_trial(user_sub)
+                # Card declined at trial end — mirrors expire_trial(), no
+                # conversion.
+                #
+                # force=True deliberately. Stripe's word that the card was
+                # declined is authoritative regardless of what our clock
+                # says about trial_end, and the two disagree routinely
+                # (clock skew, webhook latency). With the default
+                # force=False, expire_trial raises whenever this event
+                # lands even a moment early — and because this handler is
+                # @transaction.atomic and webhooks.py turns any handler
+                # exception into a 500, that rolls back the audit row above
+                # and sends Stripe into a ~3-day retry loop that can never
+                # converge, since trial_end never moves. See
+                # billing/tests/test_invoice_payment_failed.py.
+                SubscriptionService.expire_trial(user_sub, force=True)
             else:
                 user_sub.stripe_status = StripeSubscriptionStatus.PAST_DUE
                 user_sub.save(update_fields=["stripe_status", "updated_at"])
@@ -3790,6 +4012,87 @@ class StripeWebhookHandler:
     )
 
     @staticmethod
+    def _stripe_timestamp_to_datetime(value):
+        """
+        Stripe sends timestamps as unix ints. Returns None for anything
+        missing or unparseable rather than raising — a malformed
+        timestamp must never be the reason a webhook 500s and retries
+        for three days.
+        """
+        if not value:
+            return None
+        try:
+            return datetime.fromtimestamp(int(value), tz=dt_timezone.utc)
+        except (TypeError, ValueError, OSError, OverflowError):
+            return None
+
+    @staticmethod
+    def _sync_cancellation_intent(user_sub, cancel_at_period_end, stripe_subscription):
+        """
+        Mirrors Stripe's `cancel_at_period_end` onto the local
+        `auto_renew` / `cancelled_at` pair, and returns the field names
+        it touched (empty when already in sync, so a replayed event
+        writes nothing).
+
+        Stripe is the source of truth here: this event fires for
+        cancellations made in the Stripe dashboard, which no other code
+        path in this app would ever hear about.
+
+        Args:
+            user_sub (UserSubscription): the locked local row.
+            cancel_at_period_end (bool): Stripe's current flag.
+            stripe_subscription (dict): the full event payload, read for
+                `canceled_at` so the recorded date is Stripe's own rather
+                than "whenever the webhook happened to land".
+
+        Returns:
+            list[str]: update_fields to include in the caller's save().
+        """
+        if user_sub.is_trial:
+            # A trial's auto_renew is False by design — it means "will
+            # not convert to paid without an explicit action", NOT "the
+            # user cancelled". Mirroring Stripe onto it would either
+            # fabricate a cancellation date or, in the un-cancel
+            # direction, flip a trial into looking like a renewing paid
+            # plan. Trials have no Stripe subscription in the current
+            # flows, so this is belt-and-braces.
+            return []
+
+        if cancel_at_period_end:
+            if not user_sub.auto_renew and user_sub.cancelled_at is not None:
+                return []
+            user_sub.auto_renew = False
+            if user_sub.cancelled_at is None:
+                # Only stamped when absent, so our own cancel endpoint's
+                # timestamp wins over the echo of the very Stripe call it
+                # just made, and a repeat event never slides the date.
+                user_sub.cancelled_at = (
+                    StripeWebhookHandler._stripe_timestamp_to_datetime(
+                        stripe_subscription.get("canceled_at")
+                    )
+                    or timezone.now()
+                )
+            logger.info(
+                "customer.subscription.updated: subscription %s is now "
+                "scheduled to cancel at period end on Stripe — mirroring "
+                "to auto_renew=False locally.",
+                user_sub.id,
+            )
+            return ["auto_renew", "cancelled_at"]
+
+        if user_sub.auto_renew and user_sub.cancelled_at is None:
+            return []
+        user_sub.auto_renew = True
+        user_sub.cancelled_at = None
+        logger.info(
+            "customer.subscription.updated: subscription %s is no longer "
+            "scheduled to cancel on Stripe — mirroring to auto_renew=True "
+            "locally.",
+            user_sub.id,
+        )
+        return ["auto_renew", "cancelled_at"]
+
+    @staticmethod
     @transaction.atomic
     def handle_subscription_updated(stripe_subscription):
         """
@@ -3799,13 +4102,15 @@ class StripeWebhookHandler:
         evidence of anything unexpected.
 
         This handler deliberately syncs ONLY `stripe_status` (plus the
-        `is_active` flag when the new status is terminal). It does NOT
-        touch plan, price or billing period: those are already owned by
-        more specific paths (the upgrade/downgrade services, the renewal
-        webhook, the reconcile sweep) that know exactly which local
-        objects to create or how to attribute credits, and duplicating
-        that logic here would risk conflicting with — or double-running
-        — those decisions on the very same event.
+        `is_active` flag when the new status is terminal) and, for
+        individual subscriptions, `cancel_at_period_end` -> `auto_renew`
+        / `cancelled_at`. It does NOT touch plan, price or billing
+        period: those are already owned by more specific paths (the
+        upgrade/downgrade services, the renewal webhook, the reconcile
+        sweep) that know exactly which local objects to create or how to
+        attribute credits, and duplicating that logic here would risk
+        conflicting with — or double-running — those decisions on the
+        very same event.
 
         The gap this closes is narrower and specific: a change made
         directly on Stripe (dashboard, or Stripe itself e.g. pausing a
@@ -3814,6 +4119,15 @@ class StripeWebhookHandler:
         status change was invisible to the app until the next daily
         reconcile sweep — which reads status too, but only once every 24
         hours.
+
+        `cancel_at_period_end` is synced here for exactly the same
+        reason, and is NOT covered by the status sync: setting a
+        subscription to cancel at period end leaves Stripe's `status` on
+        "active", so a cancellation made in the Stripe dashboard changes
+        no status at all and would otherwise never reach the database.
+        The local row would keep claiming auto_renew=True right up until
+        the subscription silently stopped renewing, and the user would
+        never be offered the resume flow.
         """
         stripe_subscription_id = stripe_subscription["id"]
         new_status = StripeWebhookHandler._SUBSCRIPTION_UPDATED_STATUS_MAP.get(
@@ -3827,12 +4141,18 @@ class StripeWebhookHandler:
                 stripe_subscription_id,
                 stripe_subscription.get("status"),
             )
-            return
 
         deactivate = (
-            new_status
+            new_status is not None
+            and new_status
             in StripeWebhookHandler._SUBSCRIPTION_UPDATED_DEACTIVATING_STATUSES
         )
+
+        # Read with .get() and checked against None rather than coerced:
+        # a thin or partial payload that OMITS the flag must not be read
+        # as "not cancelling", which would silently un-cancel a
+        # subscription the user genuinely asked to end.
+        cancel_at_period_end = stripe_subscription.get("cancel_at_period_end")
 
         user_sub = (
             UserSubscription.objects.filter(
@@ -3842,21 +4162,32 @@ class StripeWebhookHandler:
             .first()
         )
         if user_sub:
-            if user_sub.stripe_status == new_status and not deactivate:
-                return
-            logger.info(
-                "customer.subscription.updated: subscription %s status %s -> " "%s%s.",
-                stripe_subscription_id,
-                user_sub.stripe_status,
-                new_status,
-                " (deactivating)" if deactivate else "",
-            )
-            user_sub.stripe_status = new_status
-            update_fields = ["stripe_status", "updated_at"]
-            if deactivate:
-                user_sub.is_active = False
-                update_fields.append("is_active")
-            user_sub.save(update_fields=update_fields)
+            update_fields = []
+
+            if new_status is not None and (
+                user_sub.stripe_status != new_status or deactivate
+            ):
+                logger.info(
+                    "customer.subscription.updated: subscription %s status "
+                    "%s -> %s%s.",
+                    stripe_subscription_id,
+                    user_sub.stripe_status,
+                    new_status,
+                    " (deactivating)" if deactivate else "",
+                )
+                user_sub.stripe_status = new_status
+                update_fields.append("stripe_status")
+                if deactivate:
+                    user_sub.is_active = False
+                    update_fields.append("is_active")
+
+            if cancel_at_period_end is not None:
+                update_fields += StripeWebhookHandler._sync_cancellation_intent(
+                    user_sub, bool(cancel_at_period_end), stripe_subscription
+                )
+
+            if update_fields:
+                user_sub.save(update_fields=update_fields + ["updated_at"])
 
             if deactivate:
                 from users.tasks import sync_user_to_mailerlite
@@ -3872,6 +4203,8 @@ class StripeWebhookHandler:
             .first()
         )
         if license_sub:
+            if new_status is None:
+                return
             if license_sub.stripe_status == new_status and not deactivate:
                 return
             logger.info(
