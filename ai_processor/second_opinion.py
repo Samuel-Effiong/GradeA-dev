@@ -50,13 +50,22 @@ def _eligible_evaluations(result, key_fn):
     Deterministic evaluations are exact — second-guessing them buys
     nothing. not_attempted evaluations have no award to dispute (and the
     evidence rules already forbid awarding points to a blank), so a
-    second read of them is wasted spend.
+    second read of them is wasted spend. Cache-served evaluations
+    (ai_processor/grading_cache.py) are excluded the same way: they were
+    already fully graded (and, if triggered, already survived second
+    opinion) on a previous submission before ever being cached — and the
+    caller's `questions`/`llm_questions` for THIS submission no longer
+    carries their rubric content at all (they were partitioned out before
+    grading even started), so a fresh comparison here would have nothing
+    correct to compare against.
     """
     eligible = {}
     for evaluation in result.get("question_evaluations", []):
         if not isinstance(evaluation, dict):
             continue
         if evaluation.get("graded_by") == "deterministic":
+            continue
+        if evaluation.get("from_cache"):
             continue
         if evaluation.get("level_achieved") == "not_attempted":
             continue

@@ -26,7 +26,9 @@ from django.test import SimpleTestCase, override_settings
 from ai_processor.services import AIProcessor
 
 
-@override_settings(GRADING_SECOND_OPINION_ENABLED=False)
+@override_settings(
+    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+)
 class FinalizeGradingResultTest(SimpleTestCase):
     """Unit-level coverage of the arithmetic itself — pure function, no
     DB or AI calls needed."""
@@ -143,7 +145,9 @@ class FinalizeGradingResultTest(SimpleTestCase):
         self.assertEqual(result["total_score"], 6)
 
 
-@override_settings(GRADING_SECOND_OPINION_ENABLED=False)
+@override_settings(
+    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+)
 class SinglePassPathAppliesArithmeticProtectionTest(SimpleTestCase):
     """
     Integration-level proof that the single-pass path (<=

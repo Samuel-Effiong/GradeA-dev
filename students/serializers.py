@@ -162,6 +162,7 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
             "needs_review",
             "review_reasons",
             "review_severity",
+            "review_tier",
             "scheduled_grading_at",
             "grading_task_name",
             "is_grading_scheduled",
@@ -176,6 +177,7 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
             "needs_review",
             "review_reasons",
             "review_severity",
+            "review_tier",
             "score",
             "score_percentage",
             "max_points",
@@ -265,6 +267,7 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
             "needs_review",
             "review_reasons",
             "review_severity",
+            "review_tier",
             "second_opinion",
             "scheduled_grading_at",
             "grading_task_name",
@@ -284,6 +287,7 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
             "needs_review",
             "review_reasons",
             "review_severity",
+            "review_tier",
             "second_opinion",
             "score",
             "max_points",
@@ -423,9 +427,84 @@ class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerialize
             "feedback",
         ]
 
+    # Fields on a question_evaluations entry that are safe to show a
+    # student. Everything else — flag_for_review, graded_by provenance,
+    # snapped_from, evaluation_rationale (a teacher-directed note on level
+    # selection), and evidence_quotes (internal verification detail) — is
+    # stripped. second_opinion is not in this list at all: it is a second
+    # grader's dissenting score and rationale, meant for the teacher's
+    # review queue, never for a student to read as ammunition in a grade
+    # dispute.
+    _STUDENT_EVALUATION_FIELDS = (
+        "question_number",
+        "question_text",
+        "question_type",
+        "max_points",
+        "student_answer",
+        "score_awarded",
+        "level_achieved",
+        "strengths",
+        "weaknesses",
+        "improvement_suggestions",
+        "feedback_for_student",
+    )
+
+    @classmethod
+    def _student_safe_feedback(cls, feedback):
+        """
+        Whitelist projection of the grading feedback blob for student eyes.
+        Built explicitly rather than by exclusion, so a new key added to
+        the grading output (e.g. a future second_opinion-like block) is
+        hidden from students by default instead of leaking until someone
+        remembers to blocklist it.
+        """
+        if not isinstance(feedback, dict):
+            return feedback
+
+        summary = feedback.get("grading_summary")
+        safe_summary = None
+        if isinstance(summary, dict):
+            safe_summary = {
+                key: summary.get(key)
+                for key in ("total_score", "max_total_points", "percentage")
+                if key in summary
+            }
+
+        evaluations = feedback.get("question_evaluations")
+        safe_evaluations = None
+        if isinstance(evaluations, list):
+            safe_evaluations = [
+                {
+                    key: evaluation.get(key)
+                    for key in cls._STUDENT_EVALUATION_FIELDS
+                    if key in evaluation
+                }
+                for evaluation in evaluations
+                if isinstance(evaluation, dict)
+            ]
+
+        overall = feedback.get("overall_performance_analysis")
+        safe_overall = overall if isinstance(overall, dict) else None
+
+        recommendations = feedback.get("recommendations")
+        safe_for_student = None
+        if isinstance(recommendations, dict):
+            safe_for_student = recommendations.get("for_student")
+
+        safe: dict = {}
+        if safe_summary is not None:
+            safe["grading_summary"] = safe_summary
+        if safe_evaluations is not None:
+            safe["question_evaluations"] = safe_evaluations
+        if safe_overall is not None:
+            safe["overall_performance_analysis"] = safe_overall
+        if safe_for_student is not None:
+            safe["recommendations"] = {"for_student": safe_for_student}
+        return safe
+
     def get_feedback(self, obj):
         if obj.is_published:
-            return obj.feedback
+            return self._student_safe_feedback(obj.feedback)
 
     def get_score(self, obj):
         request = self.context.get("request")

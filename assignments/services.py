@@ -6,7 +6,7 @@ import re
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict
 from urllib.parse import urlparse
 
 import bleach
@@ -108,7 +108,7 @@ def _safe_link_attrs(dom):
     }
 
 
-AI_HTML_ALLOWED_ATTRIBUTES = {
+AI_HTML_ALLOWED_ATTRIBUTES: Dict[str, Any] = {
     "td": ["colspan", "rowspan"],
     "th": ["colspan", "rowspan"],
     "span": _allow_math_block_class,
@@ -570,10 +570,23 @@ class AssignmentProcessingService:
 
             # Question Image
             if image_url:
+                # Built as its own statement, not inlined into the f-string
+                # below: the double-quotes around the HTML attributes are
+                # deliberate markup, not Python repr formatting, so B907's
+                # !r suggestion doesn't apply — but a `# noqa` placed
+                # inside a multi-line f-string literal isn't a comment at
+                # all, it becomes literal string content and would leak
+                # into the rendered HTML. Isolating the tag onto its own
+                # line gives the suppression somewhere real to attach.
+                img_tag = (
+                    f'<img src="{escape_html(image_url)}" '  # noqa: B907
+                    f'style="max-width:100%; height:auto;" '
+                    f'alt="Question {q_no} image">'
+                )
                 html_output.append(
                     f"""
                 <div style="margin-top:12px; margin-bottom:12px; text-align:center;">
-                    <img src="{escape_html(image_url)}" style="max-width:100%; height:auto;" alt="Question {q_no} image">
+                    {img_tag}
                 </div>
                 """
                 )

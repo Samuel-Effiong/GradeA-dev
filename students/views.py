@@ -6,6 +6,7 @@ import uuid
 from django.conf import settings
 from django.core.cache import cache
 from django.core.files.uploadedfile import UploadedFile
+from django.db.models import F
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django_celery_beat.models import (  # , PeriodicTask, PeriodicTasks
@@ -33,6 +34,7 @@ from rest_framework.exceptions import NotAcceptable, ParseError
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.settings import api_settings
 from rest_framework.status import (
     HTTP_200_OK,
     HTTP_201_CREATED,
@@ -89,6 +91,7 @@ from .services import (
     student_submission_to_html,
     upload_answers_engine,
 )
+from .signals import delete_cache_patterns
 from .task_tracking import create_processing_task, launch_processing_task
 
 logger = logging.getLogger(__name__)
@@ -183,13 +186,49 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # The teacher's review queue: ?needs_review=true lists submissions
         # where the two AI graders disagreed (indexed for this filter).
         "needs_review",
+        # ...and ?review_tier=critical narrows that to the ones worth
+        # opening first. Denormalised onto its own indexed column because
+        # the tier lives inside review_reasons, a JSONField, which
+        # django-filter cannot filter on.
+        "review_tier",
     ]
     search_fields = ["student__first_name", "student__last_name"]
     # review_severity: the queue triage order —
     # ?needs_review=true&ordering=-review_severity puts critical
-    # disagreements (excellent-vs-poor) ahead of borderline ones.
+    # disagreements ahead of moderate ones, and orders by point gap within
+    # a tier (the stored value is tier-weighted; see
+    # students/services.py::_review_sort_key).
     ordering_fields = ["student__first_name", "student__last_name", "review_severity"]
     ordering = ["student__first_name"]
+
+    def filter_queryset(self, queryset):
+        queryset = super().filter_queryset(queryset)
+        # Postgres sorts NULLs FIRST on a DESC ordering, so an unqualified
+        # ?ordering=-review_severity returned every un-flagged submission
+        # (severity NULL) ahead of the actual review queue. Force NULLs
+        # last so the ordering is useful with or without needs_review=true.
+        raw = self.request.query_params.get(api_settings.ORDERING_PARAM)
+        if not raw:
+            return queryset
+        terms = [term.strip() for term in raw.split(",") if term.strip()]
+        if not any(term.lstrip("-") == "review_severity" for term in terms):
+            return queryset
+
+        # Re-validate against ordering_fields: this bypasses OrderingFilter,
+        # so an unvetted field name here would be an ORM injection point.
+        allowed = set(self.ordering_fields)
+        expressions = []
+        for term in terms:
+            name = term.lstrip("-")
+            if name not in allowed:
+                continue
+            field = F(name)
+            expressions.append(
+                field.desc(nulls_last=True)
+                if term.startswith("-")
+                else field.asc(nulls_last=True)
+            )
+        return queryset.order_by(*expressions) if expressions else queryset
 
     # @method_decorator(cache_page(60 * 3, key_prefix="studentsubmissions:detail"))
     # @method_decorator(vary_on_headers("Authorization"))
@@ -1150,6 +1189,20 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         if newly_published:
             notify_student_of_graded_submission(submission)
+            # .update() bypasses post_save, so the cache-invalidation
+            # signal (students.signals.clear_student_submission_cache)
+            # never fires — without this a student polling their
+            # submission keeps seeing it unpublished (and their grade
+            # withheld) for up to CACHE_TTL after the teacher published it.
+            delete_cache_patterns(
+                "*superadmin*",
+                "*schooladmin*",
+                "*teacheradmin*",
+                "*studentadmin*",
+                "courses:*",
+                "assignments:*",
+                "studentsubmissions:*",
+            )
 
         serializer = StudentSubmissionDetailSerializer(
             submission, context=self.get_serializer_context()
@@ -1197,6 +1250,19 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         )
         if resolved:
             submission.refresh_from_db(fields=["needs_review", "review_reasons"])
+            # .update() bypasses post_save, so the cache-invalidation
+            # signal (students.signals.clear_student_submission_cache)
+            # never fires — without this the cached detail payload keeps
+            # reporting needs_review=true for up to CACHE_TTL.
+            delete_cache_patterns(
+                "*superadmin*",
+                "*schooladmin*",
+                "*teacheradmin*",
+                "*studentadmin*",
+                "courses:*",
+                "assignments:*",
+                "studentsubmissions:*",
+            )
 
         serializer = StudentSubmissionDetailSerializer(
             submission, context=self.get_serializer_context()

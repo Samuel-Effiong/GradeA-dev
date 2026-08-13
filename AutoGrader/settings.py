@@ -367,6 +367,35 @@ GRADING_DISAGREEMENT_CRITICAL_FRACTION = env.float(
 GRADING_DISAGREEMENT_MODERATE_FRACTION = env.float(
     "GRADING_DISAGREEMENT_MODERATE_FRACTION", default=0.25
 )
+# A question's question_image (a teacher-supplied URL) is sent to the
+# grading model as an actual image content block when present, so a
+# question whose content IS a diagram is no longer graded blind. Capped
+# per call so one pathological assignment can't balloon a single AI
+# call's cost/size.
+GRADING_MAX_IMAGES_PER_CALL = env.int("GRADING_MAX_IMAGES_PER_CALL", default=5)
+# Assignment.custom_ai_prompt (teacher-authored supplementary grading
+# instructions, e.g. "always require units") is spliced into the grading
+# system prompt when set. Kill switch: unlike the assignment-context and
+# question-image additions above, this changes grading behavior per
+# assignment based on free-text a teacher wrote, so it needs an
+# off-without-a-deploy lever if a teacher's text ever causes a bad
+# interaction.
+GRADING_CUSTOM_INSTRUCTIONS_ENABLED = env.bool(
+    "GRADING_CUSTOM_INSTRUCTIONS_ENABLED", default=True
+)
+# Cross-student consistency cache (ai_processor/grading_cache.py): before
+# an LLM-graded question+answer pair is sent to the model, check Redis
+# for a prior evaluation keyed by the exact question content + exact
+# answer content + grading model. A hit is reused verbatim instead of a
+# fresh (and, at the margin, possibly divergent) model call — so two
+# students who submit byte-identical answers are GUARANTEED the same
+# score, not just usually consistent because temperature is 0. Also cuts
+# real cost on classes with a common wrong answer. Kill switch: False
+# restores today's behavior of a fresh call per submission.
+GRADING_ANSWER_CACHE_ENABLED = env.bool("GRADING_ANSWER_CACHE_ENABLED", default=True)
+GRADING_ANSWER_CACHE_TTL_SECONDS = env.int(
+    "GRADING_ANSWER_CACHE_TTL_SECONDS", default=60 * 60 * 24 * 3  # 3 days
+)
 
 CELERY_TASK_ACKS_LATE = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1

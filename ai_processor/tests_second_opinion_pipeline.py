@@ -41,6 +41,13 @@ SECOND_OPINION_SETTINGS = {
     "GRADING_SECOND_OPINION_MIN_CONFIDENCE": 80,
     "GRADING_SECOND_OPINION_HIGH_POINTS": 15,
     "GRADING_SECOND_OPINION_SAMPLE_RATE": 0,
+    # These tests assert exact AI call counts using the same small set of
+    # canned questions/answers across many test methods. The answer cache
+    # (ai_processor/grading_cache.py) is content-addressed, so a later
+    # test reusing identical fixture text would silently reuse an earlier
+    # test's cached evaluation and skip the AI call the assertion expects
+    # — unrelated to what these tests are actually about.
+    "GRADING_ANSWER_CACHE_ENABLED": False,
 }
 
 
@@ -54,6 +61,11 @@ def _ai_response(payload, model=A_MODEL):
 
 
 def _essay(number, points=10):
+    # Three levels, not two: _evaluation()'s default score (8) must be an
+    # exact rubric-level value, or AIProcessor._finalize_grading_result's
+    # rubric-level snapping (score corrected to the NEAREST level) would
+    # silently round every fixture score up to `points`, breaking these
+    # tests' deliberately-crafted A-vs-B disagreements.
     return {
         "question_number": number,
         "question_text": f"Essay question {number}?",
@@ -62,6 +74,7 @@ def _essay(number, points=10):
         "options": [],
         "rubric": [
             {"level": "excellent", "description": "Great", "points": points},
+            {"level": "good", "description": "Good", "points": 8},
             {"level": "poor", "description": "Poor", "points": 0},
         ],
         "model_answer": "A model essay.",
@@ -264,6 +277,31 @@ class SecondOpinionPipelineTest(SimpleTestCase):
         self.assertEqual(result["question_evaluations"][0]["score_awarded"], 8)
         self.assertEqual(result["grading_summary"]["total_score"], 8)
         self.assertIn("error", result["second_opinion"])
+        # A model outage is NOT a review-worthy event — nothing about the
+        # grade is in doubt, so it must not flood the teacher's queue.
+        self.assertNotIn("needs_review", result["second_opinion"])
+
+    def test_running_out_of_credits_flags_for_review_instead_of_passing_silently(self):
+        # Previously the broad `except Exception` swallowed this into an
+        # error blob, so a teacher whose wallet emptied mid-run got a
+        # normal-looking, unflagged grade and never learned the second
+        # opinion had stopped running.
+        from billing.errors import InsufficientCreditsError
+
+        def respond(**kwargs):
+            if _is_b_call(kwargs):
+                raise InsufficientCreditsError("out of credits")
+            return _ai_response(_a_payload([_evaluation(1)], confidence=50))
+
+        result, _ = self._run(respond)
+
+        # Grader A's grade still stands, exactly as with any other skip...
+        self.assertEqual(result["question_evaluations"][0]["score_awarded"], 8)
+        second_opinion = result["second_opinion"]
+        # ...but it is surfaced as unverified rather than silently confirmed.
+        self.assertTrue(second_opinion["needs_review"])
+        self.assertEqual(second_opinion["skipped_reason"], "insufficient_credits")
+        self.assertEqual(second_opinion["review_reason"], "second_opinion_unavailable")
 
     def test_b_is_subject_to_evidence_enforcement(self):
         # B fabricates evidence on every attempt → its batch fails after

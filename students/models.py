@@ -127,11 +127,26 @@ class StudentSubmission(models.Model):
         blank=True,
         db_index=True,
         help_text=_(
-            "0-1: the worst grader-disagreement gap on this submission as "
-            "a fraction of that question's points. Lets the review queue "
-            "order 'definitely review' (excellent-vs-poor) ahead of "
-            "'borderline' (adjacent levels): "
+            "0-1 tier-weighted sort key for the review queue: the tier "
+            "picks the band (critical 0.67-1.0, moderate 0.33-0.67, "
+            "borderline 0-0.33) and the disagreement's point gap orders "
+            "within it. Weighted rather than the raw gap fraction because "
+            "a disagreement is also 'critical' when the graders are 2+ "
+            "rubric levels apart, which can happen at a small gap - "
+            "ordering on the raw fraction buried those below milder ones. "
             "?needs_review=true&ordering=-review_severity."
+        ),
+    )
+    review_tier = models.CharField(
+        max_length=16,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text=_(
+            "Worst disagreement severity on this submission (critical / "
+            "moderate / borderline), denormalised from review_reasons so "
+            "the queue can filter on it - review_reasons is a JSONField "
+            "and cannot be filtered. ?needs_review=true&review_tier=critical."
         ),
     )
 

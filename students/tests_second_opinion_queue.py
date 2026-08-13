@@ -29,13 +29,13 @@ from users.models import CustomUser, UserTypes
 A_MODEL = "primary-model"
 B_MODEL = "second-model"
 
-SECOND_OPINION_SETTINGS = dict(
-    GRADING_SECOND_OPINION_ENABLED=True,
-    GRADING_SECOND_OPINION_MODELS=[B_MODEL],
-    GRADING_SECOND_OPINION_MIN_CONFIDENCE=80,
-    GRADING_SECOND_OPINION_HIGH_POINTS=15,
-    GRADING_SECOND_OPINION_SAMPLE_RATE=0,
-)
+SECOND_OPINION_SETTINGS = {
+    "GRADING_SECOND_OPINION_ENABLED": True,
+    "GRADING_SECOND_OPINION_MODELS": [B_MODEL],
+    "GRADING_SECOND_OPINION_MIN_CONFIDENCE": 80,
+    "GRADING_SECOND_OPINION_HIGH_POINTS": 15,
+    "GRADING_SECOND_OPINION_SAMPLE_RATE": 0,
+}
 
 
 def _ai_response(payload, model=A_MODEL):
@@ -115,8 +115,17 @@ class SecondOpinionQueueTest(APITestCase):
                     "question_type": "ESSAY",
                     "points": 20,
                     "options": [],
+                    # Four levels, not two: every score this file's tests use
+                    # (20, 15, 10, 0) must be an exact rubric-level value, or
+                    # AIProcessor._finalize_grading_result's rubric-level
+                    # snapping (score corrected to the NEAREST level) would
+                    # silently round a fixture score to the closest of only
+                    # two levels — breaking these deliberately-crafted
+                    # gap-fraction assertions (e.g. 15 vs 0 = 0.75).
                     "rubric": [
                         {"level": "excellent", "description": "Great", "points": 20},
+                        {"level": "good", "description": "Good", "points": 15},
+                        {"level": "fair", "description": "Fair", "points": 10},
                         {"level": "poor", "description": "Poor", "points": 0},
                     ],
                     "model_answer": "A model essay.",
@@ -156,9 +165,7 @@ class SecondOpinionQueueTest(APITestCase):
         self._grade(_responder(a_score=15, b_score=15))
         self.assertFalse(self.submission.needs_review)
         self.assertIsNone(self.submission.review_reasons)
-        self.assertEqual(
-            self.submission.feedback["second_opinion"]["agreements"], [1]
-        )
+        self.assertEqual(self.submission.feedback["second_opinion"]["agreements"], [1])
 
     def test_regrade_that_now_agrees_clears_stale_flag(self):
         # Ledger #7.
@@ -257,41 +264,53 @@ class SecondOpinionQueueTest(APITestCase):
 
     def test_disagreement_severity_is_persisted(self):
         # 15 vs 0 on a 20-point question: gap fraction 0.75 → critical.
+        # review_severity is the TIER-WEIGHTED sort key, not the raw
+        # fraction: critical's band starts at 2/3, plus 0.75/3 within it.
         self._grade(_responder(a_score=15, b_score=0))
 
         [reason] = self.submission.review_reasons
         self.assertEqual(reason["tier"], "critical")
         self.assertEqual(reason["gap_fraction"], 0.75)
-        self.assertEqual(self.submission.review_severity, 0.75)
+        self.assertAlmostEqual(self.submission.review_severity, 2 / 3 + 0.75 / 3, 5)
+        self.assertEqual(self.submission.review_tier, "critical")
 
         stored = self.submission.feedback["second_opinion"]["disagreements"][0]
         self.assertEqual(stored["severity"]["tier"], "critical")
 
     def test_agreement_resets_severity(self):
         self._grade(_responder(a_score=15, b_score=0))
-        self.assertEqual(self.submission.review_severity, 0.75)
+        self.assertIsNotNone(self.submission.review_severity)
+        self.assertEqual(self.submission.review_tier, "critical")
 
         self._grade(_responder(a_score=15, b_score=15))
         self.assertIsNone(self.submission.review_severity)
+        self.assertIsNone(self.submission.review_tier)
 
-    def test_queue_orders_by_severity(self):
-        # Ledger #9: critical disagreements surface before mild ones.
-        self._grade(_responder(a_score=15, b_score=0))  # severity 0.75
-
-        mild_student = CustomUser.objects.create_user(
-            email=f"mild-{timezone.now().timestamp()}@example.com",
+    def _grade_second_submission(self, responder, tag):
+        """Grade a second submission on the same assignment, leaving
+        self.submission pointing back at the original."""
+        other_student = CustomUser.objects.create_user(
+            email=f"{tag}-{timezone.now().timestamp()}@example.com",
             password="password123",  # pragma: allowlist secret
             user_type=UserTypes.STUDENT,
         )
-        mild = StudentSubmission.objects.create(
+        other = StudentSubmission.objects.create(
             assignment=self.submission.assignment,
-            student=mild_student,
+            student=other_student,
             answers=[{"question_number": 1, "answer_html": "<p>my essay answer</p>"}],
         )
         original = self.submission
-        self.submission = mild
-        self._grade(_responder(a_score=15, b_score=10))  # gap 5/20 → 0.25
+        self.submission = other
+        self._grade(responder)
+        graded = self.submission
         self.submission = original
+        return graded
+
+    def test_queue_orders_by_severity(self):
+        # Ledger #9: critical disagreements surface before mild ones.
+        self._grade(_responder(a_score=15, b_score=0))  # critical
+        # 15 vs 10 is one rubric level, gap 5/20 = 0.25 → moderate.
+        self._grade_second_submission(_responder(a_score=15, b_score=10), "mild")
 
         self.client.force_authenticate(user=self.teacher)
         response = self.client.get(
@@ -301,4 +320,54 @@ class SecondOpinionQueueTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         severities = [row["review_severity"] for row in response.data["results"]]
         self.assertEqual(severities, sorted(severities, reverse=True))
-        self.assertEqual(severities[0], 0.75)
+        tiers = [row["review_tier"] for row in response.data["results"]]
+        self.assertEqual(tiers, ["critical", "moderate"])
+
+    def test_critical_outranks_moderate_even_with_a_smaller_point_gap(self):
+        # Ledger #9, the case raw gap_fraction ordering got WRONG: this
+        # submission's disagreement is critical only because the graders
+        # are 2 rubric levels apart (20 vs 10 on the 20/15/10/0 ladder),
+        # while its gap fraction (0.5) is no larger than a moderate one.
+        # Tier must win the ordering regardless.
+        self._grade(_responder(a_score=20, b_score=10))
+        self.assertEqual(self.submission.review_tier, "critical")
+
+        moderate = self._grade_second_submission(
+            _responder(a_score=15, b_score=10), "moderate"
+        )
+        self.assertEqual(moderate.review_tier, "moderate")
+        # The critical one sorts higher despite both being measurable gaps.
+        self.assertGreater(self.submission.review_severity, moderate.review_severity)
+
+    def test_review_tier_filter_returns_only_criticals(self):
+        # Ledger #10.
+        self._grade(_responder(a_score=15, b_score=0))  # critical
+        moderate = self._grade_second_submission(
+            _responder(a_score=15, b_score=10), "tierfilter"
+        )
+
+        self.client.force_authenticate(user=self.teacher)
+        response = self.client.get(
+            reverse("student-submission-list"),
+            {"needs_review": "true", "review_tier": "critical"},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ids = [row["id"] for row in response.data["results"]]
+        self.assertIn(str(self.submission.id), ids)
+        self.assertNotIn(str(moderate.id), ids)
+
+    def test_severity_ordering_puts_unflagged_submissions_last(self):
+        # Postgres sorts NULLs FIRST on DESC, so without the nulls_last
+        # override an unqualified ?ordering=-review_severity listed every
+        # un-flagged submission ahead of the actual review queue.
+        self._grade(_responder(a_score=15, b_score=0))
+        self._grade_second_submission(_responder(a_score=15, b_score=15), "agreed")
+
+        self.client.force_authenticate(user=self.teacher)
+        response = self.client.get(
+            reverse("student-submission-list"), {"ordering": "-review_severity"}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        severities = [row["review_severity"] for row in response.data["results"]]
+        self.assertIsNotNone(severities[0])
+        self.assertIsNone(severities[-1])

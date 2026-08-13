@@ -26,9 +26,15 @@ a schema the model can't naturally satisfy trades parse failures for
 constraint failures and wins nothing.
 """
 
+from typing import Any, Dict
+
 # One evaluation object — shared verbatim by the batch and single-pass
 # response schemas so the two paths can never drift apart.
-QUESTION_EVALUATION_SCHEMA = {
+# Explicitly typed (not left to inference): these are deeply nested,
+# heterogeneous JSON-schema literals, so mypy narrows an unannotated `{}`
+# to something far too specific for every value actually stored in it,
+# and every subsequent index into a nested level then fails to type-check.
+QUESTION_EVALUATION_SCHEMA: Dict[str, Any] = {
     "type": "object",
     "properties": {
         # Echoed exactly from the input; extracted assignments sometimes
@@ -167,7 +173,7 @@ _RECOMMENDATIONS_BLOCK = {
 }
 
 # ── Batched path: _grade_question_batch asks for evaluations only. ───────
-GRADING_BATCH_RESPONSE_SCHEMA = {
+GRADING_BATCH_RESPONSE_SCHEMA: Dict[str, Any] = {
     "name": "grading_batch_response",
     "strict": True,
     "schema": {
@@ -184,7 +190,7 @@ GRADING_BATCH_RESPONSE_SCHEMA = {
 }
 
 # ── Single-pass path: the full grading report in one response. ───────────
-GRADING_SINGLE_PASS_RESPONSE_SCHEMA = {
+GRADING_SINGLE_PASS_RESPONSE_SCHEMA: Dict[str, Any] = {
     "name": "grading_single_pass_response",
     "strict": True,
     "schema": {
@@ -216,7 +222,7 @@ GRADING_SINGLE_PASS_RESPONSE_SCHEMA = {
 # grader_meta_analysis had no defined structure anywhere; it is pinned to
 # a string here (the summary user-prompt says so too). Its numeric
 # neighbors are overwritten by Python after the call regardless.
-GRADING_SUMMARY_RESPONSE_SCHEMA = {
+GRADING_SUMMARY_RESPONSE_SCHEMA: Dict[str, Any] = {
     "name": "grading_summary_response",
     "strict": True,
     "schema": {

@@ -114,7 +114,9 @@ SUMMARY_JSON = json.dumps(
 )
 
 
-@override_settings(GRADING_SECOND_OPINION_ENABLED=False)
+@override_settings(
+    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+)
 class GradingPipelineTestBase(TransactionTestCase):
     def setUp(self):
         self.processor = AIProcessor()
@@ -265,7 +267,11 @@ class FailedGradingRunRefundsEveryChargeTest(GradingPipelineTestBase):
             raise RuntimeError("model exploded")
 
         with patch.object(AIProcessor, "_AIProcessor__ai_model", side_effect=flaky):
-            with self.assertRaises(Exception):
+            # The retry-exhaustion path raises a bare Exception by design
+            # (see the matching note in tests_grading_completeness.py), so
+            # this matches on the wrapped failure reason rather than the
+            # type.
+            with self.assertRaisesRegex(Exception, "model exploded"):
                 ai_processor.grade_student_submission(teacher, RUBRIC_12Q, ANSWERS_12Q)
 
         wallet.refresh_from_db()

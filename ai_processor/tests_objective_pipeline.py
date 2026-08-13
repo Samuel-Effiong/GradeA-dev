@@ -59,6 +59,11 @@ def _objective(number, correct="Paris", answer_options=None, **overrides):
 
 
 def _essay(number, points=10):
+    # Three levels, not two: _essay_evaluation()'s default score (8) must
+    # be an exact rubric-level value, or AIProcessor's rubric-level
+    # snapping (score corrected to the NEAREST level in
+    # _finalize_grading_result) would round every fixture essay score up
+    # to `points`, breaking these merged-total assertions.
     return {
         "question_number": number,
         "question_text": f"Essay question {number}?",
@@ -67,6 +72,7 @@ def _essay(number, points=10):
         "options": [],
         "rubric": [
             {"level": "excellent", "description": "Great", "points": points},
+            {"level": "good", "description": "Good", "points": 8},
             {"level": "poor", "description": "Poor", "points": 0},
         ],
         "model_answer": "A model essay.",
@@ -102,7 +108,9 @@ def _single_pass_payload(evaluations):
     }
 
 
-@override_settings(GRADING_SECOND_OPINION_ENABLED=False)
+@override_settings(
+    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+)
 class HybridPartitionTest(SimpleTestCase):
     def setUp(self):
         self.processor = AIProcessor()
@@ -204,7 +212,9 @@ class HybridPartitionTest(SimpleTestCase):
             )
 
 
-@override_settings(GRADING_SECOND_OPINION_ENABLED=False)
+@override_settings(
+    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+)
 class AllDeterministicTest(SimpleTestCase):
     @patch.object(AIProcessor, "execute_graded_task")
     def test_zero_ai_calls_and_complete_result_shape(self, mock_execute):
@@ -252,7 +262,9 @@ class AllDeterministicTest(SimpleTestCase):
         self.assertEqual(result["grading_summary"]["total_score"], 5)
 
 
-@override_settings(GRADING_SECOND_OPINION_ENABLED=False)
+@override_settings(
+    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+)
 class AmbiguousFallbackTest(SimpleTestCase):
     @patch.object(AIProcessor, "execute_graded_task")
     def test_typoed_key_defers_to_llm_while_clean_sibling_does_not(self, mock_execute):
@@ -290,7 +302,9 @@ class AmbiguousFallbackTest(SimpleTestCase):
         self.assertEqual(len(result["question_evaluations"]), 2)
 
 
-@override_settings(GRADING_SECOND_OPINION_ENABLED=False)
+@override_settings(
+    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+)
 class ThresholdOnRemainderTest(SimpleTestCase):
     def _hybrid_12(self):
         # 8 clean objectives + 4 essays: 12 total, 4 LLM-bound.
@@ -391,7 +405,9 @@ class ThresholdOnRemainderTest(SimpleTestCase):
         self.assertNotIn("Already Graded Deterministically", prompt)
 
 
-@override_settings(GRADING_SECOND_OPINION_ENABLED=False)
+@override_settings(
+    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+)
 class BatchedHybridTest(SimpleTestCase):
     @patch.object(AIProcessor, "execute_graded_task")
     def test_merged_evaluations_reach_summary_and_totals(self, mock_execute):
@@ -452,7 +468,9 @@ class BatchedHybridTest(SimpleTestCase):
         self.assertEqual(result["grading_summary"]["max_total_points"], 110)
 
 
-@override_settings(GRADING_SECOND_OPINION_ENABLED=False)
+@override_settings(
+    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+)
 class GradeEngineEndToEndTest(TestCase):
     """Through students.services.grade_engine with a real submission row:
     the deterministic result persists and completes the claim state

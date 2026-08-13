@@ -204,6 +204,7 @@ tomlkit==0.13.3
 tornado==6.5.4
 tqdm==4.67.1
 typer==0.17.4
+types-bleach==6.2.0.20250514
 types-docutils==0.22.3.20260316
 types-python-dateutil==2.9.0.20250822
 types-pytz==2025.2.0.20250809

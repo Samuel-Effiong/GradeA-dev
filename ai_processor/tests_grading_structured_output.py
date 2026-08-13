@@ -44,6 +44,11 @@ def _ai_response(payload, model="test-model"):
 
 
 def _essay(number, points=10):
+    # Three levels, not two: _evaluation()'s default score (8) must be an
+    # exact rubric-level value, or AIProcessor's rubric-level snapping
+    # (score corrected to the NEAREST level in _finalize_grading_result)
+    # would round every fixture score up to `points`, breaking the
+    # per-question total assertions below.
     return {
         "question_number": number,
         "question_text": f"Essay question {number}?",
@@ -52,6 +57,7 @@ def _essay(number, points=10):
         "options": [],
         "rubric": [
             {"level": "excellent", "description": "Great", "points": points},
+            {"level": "good", "description": "Good", "points": 8},
             {"level": "poor", "description": "Poor", "points": 0},
         ],
         "model_answer": "A model essay.",
@@ -89,7 +95,9 @@ def _summary_payload():
     }
 
 
-@override_settings(GRADING_SECOND_OPINION_ENABLED=False)
+@override_settings(
+    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+)
 class SchemaWellFormednessTest(SimpleTestCase):
     ALL_SCHEMAS = [
         GRADING_BATCH_RESPONSE_SCHEMA,
@@ -163,7 +171,9 @@ class SchemaWellFormednessTest(SimpleTestCase):
         )
 
 
-@override_settings(GRADING_SECOND_OPINION_ENABLED=False)
+@override_settings(
+    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+)
 class SchemaCallSiteTest(SimpleTestCase):
     def setUp(self):
         self.processor = AIProcessor()
@@ -218,7 +228,254 @@ class SchemaCallSiteTest(SimpleTestCase):
         self.assertIsNone(mock_execute.call_args.kwargs["response_schema"])
 
 
-@override_settings(GRADING_SECOND_OPINION_ENABLED=False)
+def _fake_assignment(id=1, title="", instructions="", custom_ai_prompt=""):
+    """
+    Just enough of an Assignment to exercise the prompt-building helpers
+    (_assignment_context_block, _custom_instructions_block) — those only
+    ever read .id/.title/.instructions/.custom_ai_prompt via getattr, so
+    a real Django model instance isn't needed.
+    """
+    from types import SimpleNamespace
+
+    return SimpleNamespace(
+        id=id, title=title, instructions=instructions, custom_ai_prompt=custom_ai_prompt
+    )
+
+
+@override_settings(
+    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+)
+class AssignmentContextTest(SimpleTestCase):
+    """Fix 2: a batch previously saw only its own 5-question slice, with
+    no title/instructions/sense of the whole paper."""
+
+    def setUp(self):
+        self.processor = AIProcessor()
+
+    @patch.object(AIProcessor, "execute_graded_task")
+    def test_single_pass_prompt_carries_title_and_instructions(self, mock_execute):
+        mock_execute.return_value = _ai_response(_payload([_evaluation(1)]))
+        self.processor._grade_student_submission_impl(
+            user=MagicMock(),
+            rubric_json=[_essay(1)],
+            answer_json=[_answer(1, "<p>Essay 1</p>")],
+            assignment_model=_fake_assignment(
+                title="Midterm Essay Paper", instructions="Show your working."
+            ),
+        )
+        prompt = mock_execute.call_args.kwargs["user_prompt"][0]["text"]
+        self.assertIn("Midterm Essay Paper", prompt)
+        self.assertIn("Show your working.", prompt)
+
+    @patch.object(AIProcessor, "execute_graded_task")
+    def test_batch_prompt_carries_title_and_batch_position(self, mock_execute):
+        questions = [_essay(n) for n in range(1, 8)]  # 7 → batched path
+        answers = [_answer(n, f"<p>Essay {n}</p>") for n in range(1, 8)]
+
+        def respond(**kwargs):
+            prompt = kwargs["user_prompt"][0]["text"]
+            if SUMMARY_MARKER in prompt:
+                return _ai_response(_summary_payload())
+            asked = [n for n in range(1, 8) if f"Essay question {n}?" in prompt]
+            return _ai_response(_payload([_evaluation(n) for n in asked]))
+
+        mock_execute.side_effect = respond
+        self.processor._grade_student_submission_impl(
+            user=MagicMock(),
+            rubric_json=questions,
+            answer_json=answers,
+            assignment_model=_fake_assignment(title="Final Exam"),
+        )
+
+        batch_prompts = [
+            call.kwargs["user_prompt"][0]["text"]
+            for call in mock_execute.call_args_list
+            if SUMMARY_MARKER not in call.kwargs["user_prompt"][0]["text"]
+        ]
+        self.assertEqual(len(batch_prompts), 2)
+        for prompt in batch_prompts:
+            self.assertIn("Final Exam", prompt)
+        self.assertIn("This batch is 1 of 2", batch_prompts[0])
+        self.assertIn("This batch is 2 of 2", batch_prompts[1])
+
+    @patch.object(AIProcessor, "execute_graded_task")
+    def test_blank_title_and_instructions_add_no_block(self, mock_execute):
+        mock_execute.return_value = _ai_response(_payload([_evaluation(1)]))
+        self.processor._grade_student_submission_impl(
+            user=MagicMock(),
+            rubric_json=[_essay(1)],
+            answer_json=[_answer(1, "<p>Essay 1</p>")],
+            assignment_model=_fake_assignment(),
+        )
+        prompt = mock_execute.call_args.kwargs["user_prompt"][0]["text"]
+        self.assertNotIn("### Assignment Context", prompt)
+
+    @patch.object(AIProcessor, "execute_graded_task")
+    def test_no_assignment_model_adds_no_block_and_does_not_crash(self, mock_execute):
+        mock_execute.return_value = _ai_response(_payload([_evaluation(1)]))
+        self.processor._grade_student_submission_impl(
+            user=MagicMock(),
+            rubric_json=[_essay(1)],
+            answer_json=[_answer(1, "<p>Essay 1</p>")],
+        )
+        prompt = mock_execute.call_args.kwargs["user_prompt"][0]["text"]
+        self.assertNotIn("### Assignment Context", prompt)
+
+
+def _essay_with_image(number, image_url, points=10):
+    question = _essay(number, points=points)
+    question["question_image"] = image_url
+    return question
+
+
+@override_settings(
+    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+)
+class QuestionImageTest(SimpleTestCase):
+    """Fix 3: question_image existed on the schema but was never sent to
+    the grading model — a question whose content IS a diagram was graded
+    blind."""
+
+    def setUp(self):
+        self.processor = AIProcessor()
+
+    @patch.object(AIProcessor, "execute_graded_task")
+    def test_question_image_becomes_an_image_content_block(self, mock_execute):
+        mock_execute.return_value = _ai_response(_payload([_evaluation(1)]))
+        self.processor._grade_student_submission_impl(
+            user=MagicMock(),
+            rubric_json=[_essay_with_image(1, "https://example.com/diagram.png")],
+            answer_json=[_answer(1, "<p>Essay 1</p>")],
+        )
+        content = mock_execute.call_args.kwargs["user_prompt"]
+        image_blocks = [c for c in content if c.get("type") == "image_url"]
+        self.assertEqual(len(image_blocks), 1)
+        self.assertEqual(
+            image_blocks[0]["image_url"]["url"], "https://example.com/diagram.png"
+        )
+
+    @patch.object(AIProcessor, "execute_graded_task")
+    def test_blank_question_image_stays_text_only(self, mock_execute):
+        mock_execute.return_value = _ai_response(_payload([_evaluation(1)]))
+        self.processor._grade_student_submission_impl(
+            user=MagicMock(),
+            rubric_json=[_essay(1)],
+            answer_json=[_answer(1, "<p>Essay 1</p>")],
+        )
+        content = mock_execute.call_args.kwargs["user_prompt"]
+        self.assertEqual(len(content), 1)
+        self.assertEqual(content[0]["type"], "text")
+
+    @patch.object(AIProcessor, "execute_graded_task")
+    def test_non_http_url_is_rejected_not_sent(self, mock_execute):
+        mock_execute.return_value = _ai_response(_payload([_evaluation(1)]))
+        self.processor._grade_student_submission_impl(
+            user=MagicMock(),
+            rubric_json=[_essay_with_image(1, "javascript:alert(1)")],
+            answer_json=[_answer(1, "<p>Essay 1</p>")],
+        )
+        content = mock_execute.call_args.kwargs["user_prompt"]
+        image_blocks = [c for c in content if c.get("type") == "image_url"]
+        self.assertEqual(image_blocks, [])
+
+    @override_settings(GRADING_MAX_IMAGES_PER_CALL=2)
+    @patch.object(AIProcessor, "execute_graded_task")
+    def test_image_count_is_capped_per_call(self, mock_execute):
+        questions = [
+            _essay_with_image(n, f"https://example.com/{n}.png") for n in range(1, 4)
+        ]
+        answers = [_answer(n, f"<p>Essay {n}</p>") for n in range(1, 4)]
+        mock_execute.return_value = _ai_response(
+            _payload([_evaluation(n) for n in range(1, 4)])
+        )
+        self.processor._grade_student_submission_impl(
+            user=MagicMock(), rubric_json=questions, answer_json=answers
+        )
+        content = mock_execute.call_args.kwargs["user_prompt"]
+        image_blocks = [c for c in content if c.get("type") == "image_url"]
+        self.assertEqual(len(image_blocks), 2)
+
+
+@override_settings(
+    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+)
+class CustomInstructionsTest(SimpleTestCase):
+    """Fix 4: Assignment.custom_ai_prompt existed but was read by nothing
+    in the grading pipeline (its one reference was commented-out dead
+    code in dashboard/views.py)."""
+
+    def setUp(self):
+        self.processor = AIProcessor()
+
+    @patch.object(AIProcessor, "execute_graded_task")
+    def test_custom_prompt_appears_framed_as_non_overriding(self, mock_execute):
+        mock_execute.return_value = _ai_response(_payload([_evaluation(1)]))
+        self.processor._grade_student_submission_impl(
+            user=MagicMock(),
+            rubric_json=[_essay(1)],
+            answer_json=[_answer(1, "<p>Essay 1</p>")],
+            assignment_model=_fake_assignment(
+                custom_ai_prompt="Always require units on numeric answers."
+            ),
+        )
+        system_prompt = mock_execute.call_args.kwargs["system_prompt"][0]["text"]
+        self.assertIn("Always require units on numeric answers.", system_prompt)
+        self.assertIn("never overrides the rules above", system_prompt)
+
+    @patch.object(AIProcessor, "execute_graded_task")
+    def test_blank_custom_prompt_adds_nothing(self, mock_execute):
+        mock_execute.return_value = _ai_response(_payload([_evaluation(1)]))
+        self.processor._grade_student_submission_impl(
+            user=MagicMock(),
+            rubric_json=[_essay(1)],
+            answer_json=[_answer(1, "<p>Essay 1</p>")],
+            assignment_model=_fake_assignment(custom_ai_prompt=""),
+        )
+        system_prompt = mock_execute.call_args.kwargs["system_prompt"][0]["text"]
+        self.assertNotIn("Teacher's Additional Grading Instructions", system_prompt)
+
+    @override_settings(GRADING_CUSTOM_INSTRUCTIONS_ENABLED=False)
+    @patch.object(AIProcessor, "execute_graded_task")
+    def test_flag_off_suppresses_custom_prompt(self, mock_execute):
+        mock_execute.return_value = _ai_response(_payload([_evaluation(1)]))
+        self.processor._grade_student_submission_impl(
+            user=MagicMock(),
+            rubric_json=[_essay(1)],
+            answer_json=[_answer(1, "<p>Essay 1</p>")],
+            assignment_model=_fake_assignment(custom_ai_prompt="Always require units."),
+        )
+        system_prompt = mock_execute.call_args.kwargs["system_prompt"][0]["text"]
+        self.assertNotIn("Always require units.", system_prompt)
+
+    @patch.object(AIProcessor, "execute_graded_task")
+    def test_batch_path_also_carries_custom_prompt(self, mock_execute):
+        questions = [_essay(n) for n in range(1, 8)]  # 7 → batched path
+        answers = [_answer(n, f"<p>Essay {n}</p>") for n in range(1, 8)]
+
+        def respond(**kwargs):
+            prompt = kwargs["user_prompt"][0]["text"]
+            if SUMMARY_MARKER in prompt:
+                return _ai_response(_summary_payload())
+            asked = [n for n in range(1, 8) if f"Essay question {n}?" in prompt]
+            return _ai_response(_payload([_evaluation(n) for n in asked]))
+
+        mock_execute.side_effect = respond
+        self.processor._grade_student_submission_impl(
+            user=MagicMock(),
+            rubric_json=questions,
+            answer_json=answers,
+            assignment_model=_fake_assignment(
+                custom_ai_prompt="Accept British and American spelling."
+            ),
+        )
+        for call in mock_execute.call_args_list:
+            system_prompt = call.kwargs["system_prompt"][0]["text"]
+            self.assertIn("Accept British and American spelling.", system_prompt)
+
+
+@override_settings(
+    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+)
 class SinglePassEvidenceEnforcementTest(SimpleTestCase):
     def setUp(self):
         self.processor = AIProcessor()
@@ -306,7 +563,9 @@ class SinglePassEvidenceEnforcementTest(SimpleTestCase):
         self.assertNotIn("evidence_verified", evaluation)
 
 
-@override_settings(GRADING_SECOND_OPINION_ENABLED=False)
+@override_settings(
+    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+)
 class BatchEvidenceEnforcementTest(SimpleTestCase):
     def setUp(self):
         self.processor = AIProcessor()
@@ -315,9 +574,23 @@ class BatchEvidenceEnforcementTest(SimpleTestCase):
         self.answers = [_answer(n, f"<p>Essay {n} content.</p>") for n in range(1, 8)]
 
     @patch.object(AIProcessor, "execute_graded_task")
-    def test_fabricated_batch_evidence_retries_three_times_then_fails(
+    def test_fabricated_batch_evidence_retries_then_degrades_on_the_last_try(
         self, mock_execute
     ):
+        # CONTRACT CHANGED (see ai_processor/benchmark/FINDINGS.md #1).
+        # This used to assert the run ABORTED after 3 failed attempts.
+        # The first live benchmark run showed what that costs in
+        # practice: on long multi-step algebra the model quotes by
+        # eliding intermediate steps — textually not verbatim, so it
+        # reads as fabrication — and one maths submission in 21 ended up
+        # with no grade at all. The student most likely to trigger it is
+        # the one showing the most working.
+        #
+        # So strict enforcement still rejects attempts 1 and 2 (a re-ask
+        # usually fixes it), but the FINAL attempt degrades to "log":
+        # the grade is returned with the quote marked unverified rather
+        # than thrown away. Retry behaviour is unchanged; only the
+        # terminal case is.
         def respond(**kwargs):
             prompt = kwargs["user_prompt"][0]["text"]
             if SUMMARY_MARKER in prompt:
@@ -328,15 +601,23 @@ class BatchEvidenceEnforcementTest(SimpleTestCase):
             )
 
         mock_execute.side_effect = respond
-        with self.assertRaisesMessage(Exception, "failed after 3 attempts"):
-            self.processor._grade_student_submission_impl(
-                user=MagicMock(),
-                rubric_json=self.questions,
-                answer_json=self.answers,
-            )
-        # Batch 1 was attempted exactly 3 times, then the run aborted —
-        # the summary call must never have happened.
-        self.assertEqual(mock_execute.call_count, 3)
+        result = self.processor._grade_student_submission_impl(
+            user=MagicMock(),
+            rubric_json=self.questions,
+            answer_json=self.answers,
+        )
+
+        # Both batches fabricate, so both burn 3 attempts (2 rejected,
+        # the 3rd degraded): 3 + 3, plus the summary call — which now
+        # DOES happen, because the run survived instead of aborting.
+        self.assertEqual(mock_execute.call_count, 7)
+
+        evaluations = result["question_evaluations"]
+        self.assertEqual(len(evaluations), 7)
+        # Every quote was fabricated, so every evaluation must carry the
+        # unverified marker — the teacher can still tell.
+        for evaluation in evaluations:
+            self.assertFalse(evaluation.get("evidence_verified", True))
 
     @patch.object(AIProcessor, "execute_graded_task")
     def test_out_of_batch_evaluations_are_dropped_not_double_counted(

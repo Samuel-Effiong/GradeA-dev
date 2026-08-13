@@ -46,7 +46,9 @@ def make_ai_response(tokens=100, content='{"result": "ok"}'):
     return response
 
 
-@override_settings(GRADING_SECOND_OPINION_ENABLED=False)
+@override_settings(
+    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+)
 class MissingQuestionNumbersTest(SimpleTestCase):
     """Unit-level coverage of the reconciliation check itself."""
 
@@ -84,7 +86,9 @@ class MissingQuestionNumbersTest(SimpleTestCase):
         )
 
 
-@override_settings(GRADING_SECOND_OPINION_ENABLED=False)
+@override_settings(
+    GRADING_SECOND_OPINION_ENABLED=False, GRADING_ANSWER_CACHE_ENABLED=False
+)
 class GradingCompletenessPipelineTestBase(TransactionTestCase):
     def setUp(self):
         self.processor = AIProcessor()
@@ -228,8 +232,12 @@ class BatchPathCompletenessTest(GradingCompletenessPipelineTestBase):
         ):
             # The load-bearing assertion: this must raise (and, upstream,
             # get refunded) rather than silently return a deflated grade
-            # that's missing question 5's points from every batch.
-            with self.assertRaises(Exception):
+            # that's missing question 5's points from every batch. The
+            # retry-exhaustion path in _grade_question_batch raises a bare
+            # Exception by design (it's a retryable-failure signal to the
+            # outer wrapper, not a typed error callers branch on), so this
+            # matches on the message rather than narrowing the type.
+            with self.assertRaisesRegex(Exception, "failed after 3 attempts"):
                 self.processor._grade_student_submission_impl(
                     user=teacher, rubric_json=rubric, answer_json=answers
                 )

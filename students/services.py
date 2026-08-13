@@ -12,6 +12,7 @@ from ai_processor.services import ai_processor
 from assignments.models import Assignment, AssignmentStatus
 from assignments.services import AssignmentProcessingService
 from AutoGrader.tasks import send_email_task
+from billing.refunds import billing_refund_scope
 from classrooms.tasks import student_summary_async
 from users.models import CustomUser, UserTypes
 from users.services import get_opted_in_school_admins
@@ -157,6 +158,69 @@ def _mark_grading_claim_failed(submission_id):
     StudentSubmission.objects.filter(pk=submission_id).update(
         grading_state=GradingState.FAILED
     )
+    # .update() bypasses post_save, so the cache-invalidation signal
+    # (students.signals.clear_student_submission_cache) never fires —
+    # without this a failed submission keeps serving its cached
+    # pre-failure detail (grading_state RUNNING) for up to CACHE_TTL, and
+    # nobody sees that the run needs retrying. Imported lazily: signals is
+    # loaded at app-ready and importing it at module scope here would pull
+    # this module (and ai_processor) into that path.
+    from .signals import delete_cache_patterns
+
+    delete_cache_patterns(
+        "*superadmin*",
+        "*schooladmin*",
+        "*teacheradmin*",
+        "*studentadmin*",
+        "courses:*",
+        "assignments:*",
+        "studentsubmissions:*",
+    )
+
+
+# Review-queue ordering. review_severity used to store the raw
+# gap_fraction, which silently mis-ordered the queue: _severity classifies
+# a disagreement "critical" when the two graders are >= 2 rubric levels
+# apart EVEN IF the point gap is small (see ai_processor/second_opinion.py).
+# So 20-vs-18 on a (20,19,18,0) ladder is critical at fraction 0.10, while
+# 10-vs-6 on a (10,6,3,0) ladder is merely moderate at fraction 0.40 —
+# and ordering by raw fraction buried the critical one below the moderate.
+#
+# The fix is a tier-weighted key: tier picks the band, gap_fraction only
+# orders WITHIN a band. Bands are a third of the 0-1 range each, so a
+# critical always outranks any moderate, which always outranks any
+# borderline, and the value still fits the existing FloatField (no
+# migration, no column type change).
+_TIER_BASE = {
+    "critical": 2 / 3,
+    "moderate": 1 / 3,
+    "borderline": 0.0,
+}
+# Worst-first, for denormalising the per-submission review_tier.
+_TIER_RANK = {"critical": 3, "moderate": 2, "borderline": 1}
+
+
+def _review_sort_key(tier, gap_fraction):
+    """Tier-weighted 0-1 sort key for the review queue (see _TIER_BASE)."""
+    # An unmeasurable gap (unknown points) is never treated as mild — it
+    # sorts mid-band rather than at the bottom of it.
+    fraction = 0.5 if gap_fraction is None else gap_fraction
+    try:
+        fraction = min(1.0, max(0.0, float(fraction)))
+    except (TypeError, ValueError):
+        fraction = 0.5
+    # An unrecognised/missing tier is treated as moderate, matching
+    # _severity's own "never downgrade what we can't measure" rule.
+    base = _TIER_BASE.get(tier, _TIER_BASE["moderate"])
+    return round(base + fraction / 3, 6)
+
+
+def _worst_tier(tiers):
+    """The most severe tier across a submission's disagreements."""
+    ranked = [(_TIER_RANK.get(tier, 0), tier) for tier in tiers if tier]
+    if not ranked:
+        return None
+    return max(ranked)[1]
 
 
 def _coerce_confidence(value):
@@ -187,21 +251,16 @@ def grade_engine(user, submission, processing_task_id=None):
         raise
 
 
-def _run_grading_pipeline(user, submission, processing_task_id):
-    from assignments.tasks import formatted_grade_async
+def _populate_and_save_grade(submission, grading, processing_task_id):
+    """
+    Write an AI grading result onto the submission and persist it.
 
-    ensure_task_not_cancelled(processing_task_id)
-    answer_json = submission.get_answer()
-    submission.ai_graded_at = timezone.now()
-
-    grading = ai_processor.extract_grade_with_retry(
-        user,
-        submission.assignment.questions,
-        answer_json,
-        assignment_model=submission.assignment,
-        processing_task_id=processing_task_id,
-    )
-
+    Split out of _run_grading_pipeline so the whole grade-then-persist
+    sequence sits inside one billing_refund_scope: everything in here can
+    raise (a malformed summary, a ProseMirror conversion failure, the save
+    itself), and every one of those failures must refund the run rather
+    than charge for a grade that never landed.
+    """
     ensure_task_not_cancelled(processing_task_id)
     submission.ai_grading_completed_at = timezone.now()
 
@@ -249,29 +308,53 @@ def _run_grading_pipeline(user, submission, processing_task_id):
     if disagreements:
         submission.needs_review = True
         reasons = []
-        severities = []
+        sort_keys = []
+        tiers = []
         for d in disagreements:
             severity = d.get("severity") or {}
             # An unmeasurable gap (unknown points) is never treated as
             # mild — it sorts mid-queue rather than last.
             gap_fraction = severity.get("gap_fraction")
-            severities.append(0.5 if gap_fraction is None else gap_fraction)
+            tier = severity.get("tier")
+            tiers.append(tier)
+            sort_keys.append(_review_sort_key(tier, gap_fraction))
             reasons.append(
                 {
                     "type": "grader_disagreement",
                     "question_number": d.get("question_number"),
                     "a_score": (d.get("a") or {}).get("score_awarded"),
                     "b_score": (d.get("b") or {}).get("score_awarded"),
-                    "tier": severity.get("tier"),
+                    "tier": tier,
                     "gap_fraction": gap_fraction,
                 }
             )
         submission.review_reasons = reasons
-        submission.review_severity = max(severities)
+        submission.review_severity = max(sort_keys)
+        submission.review_tier = _worst_tier(tiers)
+    elif second_opinion.get("needs_review"):
+        # The second opinion couldn't run for a reason the teacher needs to
+        # know about — currently only "out of credits" (see
+        # AIProcessor._maybe_run_second_opinion). Grader A's grade stands,
+        # but it was never cross-checked, so it goes in the queue as
+        # unverified rather than passing as silently confirmed. Treated as
+        # moderate: unknowable, and _severity's own rule is to never
+        # downgrade what we can't measure.
+        submission.needs_review = True
+        submission.review_reasons = [
+            {
+                "type": second_opinion.get(
+                    "review_reason", "second_opinion_unavailable"
+                ),
+                "detail": second_opinion.get("skipped"),
+            }
+        ]
+        submission.review_severity = _review_sort_key("moderate", None)
+        submission.review_tier = "moderate"
     else:
         submission.needs_review = False
         submission.review_reasons = None
         submission.review_severity = None
+        submission.review_tier = None
 
     # update the raw_input
     ensure_task_not_cancelled(processing_task_id)
@@ -282,6 +365,37 @@ def _run_grading_pipeline(user, submission, processing_task_id):
 
     with cancellable_final_save(processing_task_id):
         submission.save()
+
+
+def _run_grading_pipeline(user, submission, processing_task_id):
+    from assignments.tasks import formatted_grade_async
+
+    ensure_task_not_cancelled(processing_task_id)
+    answer_json = submission.get_answer()
+    submission.ai_graded_at = timezone.now()
+
+    # The refund scope must cover PERSISTENCE, not just the AI call.
+    # ai_processor's own inner billing_refund_scope closes the moment the
+    # AI result exists, but everything after it here — the grading_summary
+    # shape guard, _coerce_confidence, the HTML/ProseMirror conversion,
+    # and the final save() — can still raise. Without this outer scope
+    # those failures charged the teacher in full for a grade that was
+    # never saved, and because FAILED is a re-claimable state, each retry
+    # charged again. billing_refund_scope re-parents: the inner scope
+    # hands its committed task_ids up to this one on success (see
+    # billing/refunds.py), so a later failure here reclaims them too.
+    with billing_refund_scope(
+        reason="grading run failed before the grade was persisted"
+    ):
+        grading = ai_processor.extract_grade_with_retry(
+            user,
+            submission.assignment.questions,
+            answer_json,
+            assignment_model=submission.assignment,
+            processing_task_id=processing_task_id,
+        )
+
+        _populate_and_save_grade(submission, grading, processing_task_id)
 
     # H4: follow-up tasks (formatted grade + AI summary refresh) dispatch
     # only after the grade's save has actually COMMITTED - via on_commit,
@@ -399,8 +513,11 @@ def notify_school_admins_of_grading_complete(assignment):
     html_message = render_to_string(
         "email/school_admin_grading_complete.html", context=context
     )
+    # Deliberate literal double-quotes around the title, not Python repr:
+    # this is student/teacher-facing email text, so !r (single-quoted,
+    # backslash-escaped repr() output) would read wrong.
     message = (
-        f'All {graded_count} submission(s) for "{assignment.title or "Untitled Assignment"}" '
+        f'All {graded_count} submission(s) for "{assignment.title or "Untitled Assignment"}" '  # noqa: B907
         f"in {course.name} have been graded."
     )
 

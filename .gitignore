@@ -23,3 +23,7 @@ scanenv/
 # 💾 OS stuff
 .DS_Store
 Thumbs.db
+
+# 📊 Grading benchmark PDF artifacts — fully regenerable via
+# `manage.py grading_benchmark --pdf`, not the source of truth.
+benchmark_artifacts/
