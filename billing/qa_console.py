@@ -402,11 +402,55 @@ def qa_console_page(request):
 @_qa_console_required
 @require_GET
 def qa_console_state(request):
+    """Read current state. `?drain=1` additionally pulls and dispatches
+    any Stripe webhook events outstanding for this customer.
+
+    That flag is what makes the page's auto-refresh worth anything.
+    Local state only moves when a webhook is DISPATCHED, so a poll that
+    merely re-read the database would sit frozen after a test-clock
+    advance while Stripe had already renewed on its side -- the exact
+    stale-state symptom this console was reported for. A plain (undrained)
+    read stays the default because it touches no network at all, which is
+    what a manual "Refresh state" click and every test wants.
+
+    Draining is a WRITE despite living on a GET: dispatched event ids
+    must be persisted back to the session or the next poll re-dispatches
+    the same events. Redundant dispatch is caught downstream by
+    _claim_stripe_event's idempotency, so a lost session write degrades
+    to wasted work rather than double-billing -- but only if we actually
+    try to persist it, which is why this is not fire-and-forget.
+    """
     data = _session_subscriber_data(request)
     if data is None:
-        return JsonResponse({"subscriber": None})
+        return JsonResponse({"subscriber": None, "drained": 0})
+
     ctx = _build_context(request, data)
-    return JsonResponse({"subscriber": _describe_state(ctx.sub)})
+    drained = 0
+    drain_error = None
+    if request.GET.get("drain") == "1":
+        try:
+            drained = len(ctx.harness.drain_events(customer_id=ctx.sub.customer_id))
+        except Exception as exc:  # noqa: BLE001
+            # A polling loop must not turn one transient Stripe blip into
+            # a dead page. Report it in-band so the UI can surface it and
+            # keep polling, rather than 500ing and killing the timer.
+            drain_error = repr(exc)
+            logger.warning("[qa-console] auto-refresh drain failed: %s", drain_error)
+        else:
+            data["dispatched_event_ids"] = sorted(
+                set(data.get("dispatched_event_ids", []))
+                | ctx.harness.dispatched_event_ids
+            )
+            request.session[SESSION_KEY] = data
+            request.session.modified = True
+
+    return JsonResponse(
+        {
+            "subscriber": _describe_state(ctx.sub),
+            "drained": drained,
+            "drain_error": drain_error,
+        }
+    )
 
 
 @_qa_console_required

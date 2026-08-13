@@ -78,7 +78,10 @@ class QaConsolePermissionTests(TestCase):
         self.client.force_login(admin)
         response = self._get()
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"subscriber": None})
+        # Asserts the payload's meaning, not its exact shape -- this test
+        # is about the permission gate letting a superadmin through, and
+        # should not fail every time the state endpoint grows a field.
+        self.assertIsNone(response.json()["subscriber"])
 
     @patch("billing.qa_console.live_qa_enabled", return_value=True)
     def test_console_page_itself_is_gated_the_same_way(self, _mock_enabled):

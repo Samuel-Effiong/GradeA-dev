@@ -16,6 +16,7 @@ from uuid import uuid4
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
+from billing.live_qa.chaos import DEFAULT_ACTIONS
 from billing.models import BillingInterval, PlanCategory, PlanTier, SubscriptionPlan
 from billing.stripe_live_qa_scenarios import Subscriber
 from users.models import CustomUser, UserTypes
@@ -213,6 +214,80 @@ class QaConsoleActionTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(response.json()["subscriber"])
 
+    def test_state_does_not_touch_stripe_unless_drain_is_asked_for(self, _mock_enabled):
+        """The plain read is what a manual "Refresh state" click and every
+        caller that just wants numbers uses -- it must stay free of network
+        calls, or merely looking at the page would cost Stripe requests."""
+        self._seed_session()
+        harness = self._fake_harness()
+
+        with patch("billing.qa_console.LiveQAHarness", return_value=harness):
+            response = self.client.get(reverse("qa-console-state"))
+
+        self.assertEqual(response.status_code, 200)
+        harness.drain_events.assert_not_called()
+        self.assertEqual(response.json()["drained"], 0)
+
+    def test_drain_flag_dispatches_events_and_reports_the_count(self, _mock_enabled):
+        """Auto-refresh polls with ?drain=1 because local state only moves
+        when a webhook is DISPATCHED -- a poll that merely re-read the DB
+        would sit frozen after a clock advance while Stripe had already
+        renewed."""
+        self._seed_session()
+        harness = self._fake_harness()
+        harness.drain_events.return_value = ["evt_a", "evt_b"]
+
+        with patch("billing.qa_console.LiveQAHarness", return_value=harness):
+            response = self.client.get(reverse("qa-console-state"), {"drain": "1"})
+
+        self.assertEqual(response.status_code, 200)
+        harness.drain_events.assert_called_once_with(customer_id="cus_fake")
+        self.assertEqual(response.json()["drained"], 2)
+
+    def test_drained_event_ids_are_persisted_back_to_the_session(self, _mock_enabled):
+        """Without this the next poll re-dispatches everything it already
+        handled. Downstream claiming makes that harmless rather than
+        double-billing, but it is wasted Stripe work on every single tick."""
+        self._seed_session()
+        harness = self._fake_harness()
+
+        # _build_context RESETS dispatched_event_ids from the session on
+        # every request, so seeding the mock up front would be overwritten.
+        # The real drain_events ADDS to that set as it dispatches, which is
+        # what has to be simulated for this to mean anything.
+        def _drain(customer_id):
+            harness.dispatched_event_ids.add("evt_new")
+            return ["evt_new"]
+
+        harness.drain_events.side_effect = _drain
+
+        with patch("billing.qa_console.LiveQAHarness", return_value=harness):
+            self.client.get(reverse("qa-console-state"), {"drain": "1"})
+
+        self.assertEqual(
+            self.client.session["qa_console_subscriber"]["dispatched_event_ids"],
+            ["evt_new"],
+        )
+
+    def test_a_failing_drain_is_reported_in_band_not_as_a_500(self, _mock_enabled):
+        """A polling loop must survive one transient Stripe blip. A 500
+        here would kill the page's timer and leave it silently frozen --
+        the same stale-state symptom auto-refresh exists to prevent."""
+        self._seed_session()
+        harness = self._fake_harness()
+        harness.drain_events.side_effect = RuntimeError("stripe timed out")
+
+        with patch("billing.qa_console.LiveQAHarness", return_value=harness):
+            response = self.client.get(reverse("qa-console-state"), {"drain": "1"})
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertIn("stripe timed out", body["drain_error"])
+        self.assertEqual(body["drained"], 0)
+        # State still comes back -- a failed drain costs you freshness,
+        # not the whole reading.
+        self.assertIsNotNone(body["subscriber"])
+
     # -- action dispatch -----------------------------------------------
 
     def _seed_session(self):
@@ -291,3 +366,52 @@ class QaConsoleActionTests(TestCase):
         self.assertEqual(response.status_code, 200)
         harness.cleanup.assert_called_once()
         self.assertNotIn("qa_console_subscriber", self.client.session)
+
+
+@override_settings(ENABLE_STRIPE_LIVE_QA=True, STRIPE_SECRET_KEY=TEST_KEY)
+@patch("billing.qa_console.live_qa_enabled", return_value=True)
+class QaConsolePageRenderTests(TestCase):
+    """The console page is the ONE part of this feature with no other
+    automated exercise: every other test calls the JSON endpoints
+    directly. A Django template error ({% url %} to a route that moved,
+    an unclosed tag) would therefore reach a browser before it reached
+    CI. These assert the page renders and still contains the hooks its
+    JavaScript addresses by id -- renaming one without updating the
+    script silently produces a page whose controls do nothing.
+    """
+
+    def setUp(self):
+        _make_plans()
+        self.admin = _make_user(UserTypes.SUPER_ADMIN, is_superuser=True)
+        self.client.force_login(self.admin)
+
+    def test_the_page_renders(self, _mock_enabled):
+        response = self.client.get(reverse("qa-console"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_it_contains_the_element_ids_its_javascript_drives(self, _mock_enabled):
+        html = self.client.get(reverse("qa-console")).content.decode()
+        for element_id in (
+            "state-sections",
+            "by-type-body",
+            "by-type-foot",
+            "by-type-reconcile",
+            "buckets-body",
+            "auto-refresh-toggle",
+            "auto-refresh-interval",
+            "refresh-dot",
+            "refresh-label",
+            "history-table",
+        ):
+            self.assertIn('id="' + element_id + '"', html, element_id)
+
+    def test_it_declares_a_viewport_so_it_is_usable_on_a_narrow_screen(
+        self, _mock_enabled
+    ):
+        html = self.client.get(reverse("qa-console")).content.decode()
+        self.assertIn('name="viewport"', html)
+
+    def test_every_registered_action_gets_a_button(self, _mock_enabled):
+        html = self.client.get(reverse("qa-console")).content.decode()
+        for action in DEFAULT_ACTIONS:
+            self.assertIn('data-action="' + action + '"', html, action)

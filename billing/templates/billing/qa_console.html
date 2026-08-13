@@ -2,36 +2,69 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Billing QA Console</title>
 {% csrf_token %}
 <style>
+  *, *::before, *::after { box-sizing: border-box; }
   body { font-family: -apple-system, Segoe UI, sans-serif; margin: 0; background: #111; color: #eee; }
-  header { padding: 12px 20px; background: #1b1b1b; border-bottom: 1px solid #333; display: flex; align-items: center; gap: 16px; }
+  header { padding: 12px 20px; background: #1b1b1b; border-bottom: 1px solid #333; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; }
   header h1 { font-size: 16px; margin: 0; }
   .tabs { display: flex; gap: 4px; padding: 0 20px; background: #1b1b1b; }
   .tab { padding: 10px 16px; cursor: pointer; border-bottom: 2px solid transparent; color: #aaa; }
   .tab.active { color: #fff; border-bottom-color: #4da3ff; }
-  main { padding: 20px; max-width: 1000px; }
+  main { padding: 20px; max-width: 1100px; margin: 0 auto; }
   .panel { display: none; }
   .panel.active { display: block; }
   button { background: #2a2a2a; color: #eee; border: 1px solid #444; border-radius: 4px; padding: 8px 12px; cursor: pointer; margin: 3px; }
   button:hover { background: #3a3a3a; }
   button:disabled { opacity: 0.4; cursor: not-allowed; }
   button.danger { border-color: #a33; }
-  pre { background: #1a1a1a; border: 1px solid #333; border-radius: 4px; padding: 12px; overflow-x: auto; white-space: pre-wrap; }
-  .state-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
-  .card { background: #1a1a1a; border: 1px solid #333; border-radius: 6px; padding: 12px; }
+  pre { background: #1a1a1a; border: 1px solid #333; border-radius: 4px; padding: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; }
+  /* auto-fit rather than a fixed 1fr 1fr: the two state cards sit side
+     by side when there is room for both and reflow to one column when
+     there is not, with no breakpoint to keep in sync. */
+  .state-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-top: 12px; }
+  .card { background: #1a1a1a; border: 1px solid #333; border-radius: 6px; padding: 12px; min-width: 0; }
   .card h3 { margin-top: 0; font-size: 13px; text-transform: uppercase; color: #999; }
+  /* Wide tables scroll INSIDE their card. Without this the page itself
+     scrolls sideways on a narrow screen and the nav goes with it. */
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   table { width: 100%; border-collapse: collapse; margin-top: 8px; }
   th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #333; font-size: 13px; }
+  /* Stripe/customer ids and ISO timestamps have no spaces to wrap on,
+     so they would otherwise force every table wider than the viewport. */
+  td.wrap-any { word-break: break-all; }
   .status-PASSED { color: #4caf50; }
   .status-FAILED { color: #e05252; }
   .status-RUNNING, .status-PENDING { color: #d9a441; }
   .log-line { font-size: 12px; }
   .log-line.violation { color: #e05252; font-weight: bold; }
-  select, input[type=text], input[type=number] { background: #1a1a1a; color: #eee; border: 1px solid #444; border-radius: 4px; padding: 6px; }
-  fieldset { border: 1px solid #333; border-radius: 6px; margin-bottom: 16px; }
+  select, input[type=text], input[type=number] { background: #1a1a1a; color: #eee; border: 1px solid #444; border-radius: 4px; padding: 6px; max-width: 100%; }
+  fieldset { border: 1px solid #333; border-radius: 6px; margin-bottom: 16px; min-width: 0; }
   legend { color: #999; font-size: 12px; text-transform: uppercase; }
+  .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .toolbar .spacer { flex: 1 1 auto; }
+  .refresh-status { font-size: 12px; color: #888; white-space: nowrap; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #555; margin-right: 6px; vertical-align: middle; }
+  .dot.live { background: #4caf50; }
+  .dot.busy { background: #d9a441; }
+  .dot.error { background: #e05252; }
+  /* A just-changed value flashes, so an auto-refresh that lands while
+     you are looking elsewhere is still noticeable after the fact. */
+  @keyframes flash { from { background: #37506b; } to { background: transparent; } }
+  .changed { animation: flash 1.4s ease-out; }
+  @media (prefers-reduced-motion: reduce) { .changed { animation: none; } }
+
+  @media (max-width: 700px) {
+    main { padding: 12px; }
+    header { padding: 10px 12px; }
+    .tabs { padding: 0 8px; }
+    .tab { padding: 10px 12px; }
+    th, td { font-size: 12px; padding: 5px 6px; }
+    button { padding: 9px 12px; }
+    .refresh-status { white-space: normal; }
+  }
 </style>
 </head>
 <body>
@@ -50,10 +83,21 @@
 
   <!-- ================= CONSOLE TAB ================= -->
   <section id="panel-console" class="panel active">
-    <div>
+    <div class="toolbar">
       <button id="btn-new-subscriber">New subscriber</button>
       <button id="btn-reset" class="danger">Reset / teardown</button>
       <button id="btn-refresh">Refresh state</button>
+      <span class="spacer"></span>
+      <label class="refresh-status">
+        <input type="checkbox" id="auto-refresh-toggle" checked> Auto-refresh
+      </label>
+      <select id="auto-refresh-interval" title="How often to poll Stripe for new events">
+        <option value="5000">5s</option>
+        <option value="10000" selected>10s</option>
+        <option value="30000">30s</option>
+        <option value="60000">60s</option>
+      </select>
+      <span class="refresh-status"><span id="refresh-dot" class="dot"></span><span id="refresh-label">idle</span></span>
     </div>
 
     <div class="card" style="margin-top:12px;">
@@ -91,9 +135,9 @@
               <tr><td>Total remaining credits</td><td id="f-remaining"></td></tr>
               <tr><td>Plan remaining credits <span style="color:#777;">(excl. overage)</span></td><td id="f-plan-remaining"></td></tr>
               <tr><td>Overage blocks used</td><td id="f-overage-used"></td></tr>
-              <tr><td>Customer ID</td><td id="f-customer-id"></td></tr>
-              <tr><td>Stripe subscription ID</td><td id="f-sub-id"></td></tr>
-              <tr><td>Test clock ID</td><td id="f-clock-id"></td></tr>
+              <tr><td>Customer ID</td><td class="wrap-any" id="f-customer-id"></td></tr>
+              <tr><td>Stripe subscription ID</td><td class="wrap-any" id="f-sub-id"></td></tr>
+              <tr><td>Test clock ID</td><td class="wrap-any" id="f-clock-id"></td></tr>
             </tbody>
           </table>
         </div>
@@ -101,31 +145,35 @@
 
       <div class="card" style="margin-top:16px;">
         <h3>Credit breakdown by bucket type</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Type</th>
-              <th>Live remaining</th>
-              <th>Live buckets</th>
-              <th>All-time granted</th>
-              <th>All-time used</th>
-              <th>All buckets</th>
-            </tr>
-          </thead>
-          <tbody id="by-type-body"></tbody>
-          <tfoot id="by-type-foot"></tfoot>
-        </table>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Live remaining</th>
+                <th>Live buckets</th>
+                <th>All-time granted</th>
+                <th>All-time used</th>
+                <th>All buckets</th>
+              </tr>
+            </thead>
+            <tbody id="by-type-body"></tbody>
+            <tfoot id="by-type-foot"></tfoot>
+          </table>
+        </div>
         <div id="by-type-reconcile" style="margin-top:8px; font-size:12px;"></div>
       </div>
 
       <div class="card" style="margin-top:16px;">
         <h3>Credit buckets <span style="color:#777; font-size:12px; text-transform:none;">(10 most recent)</span></h3>
-        <table>
-          <thead>
-            <tr><th>Type</th><th>Total</th><th>Used</th><th>Remaining</th><th>Expires</th><th>Processed</th><th>Created</th></tr>
-          </thead>
-          <tbody id="buckets-body"></tbody>
-        </table>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>Type</th><th>Total</th><th>Used</th><th>Remaining</th><th>Expires</th><th>Processed</th><th>Created</th></tr>
+            </thead>
+            <tbody id="buckets-body"></tbody>
+          </table>
+        </div>
       </div>
 
       <details class="card" style="margin-top:16px;">
@@ -188,12 +236,14 @@
 
     <div class="card" style="margin-top:16px;">
       <h3>History</h3>
-      <table id="history-table">
-        <thead>
-          <tr><th>Kind</th><th>Status</th><th>Summary</th><th>Created</th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+      <div class="table-scroll">
+        <table id="history-table">
+          <thead>
+            <tr><th>Kind</th><th>Status</th><th>Summary</th><th>Created</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
     </div>
   </section>
 
@@ -236,12 +286,20 @@ async function apiFetch(url, options) {
 }
 
 // -- tabs --------------------------------------------------------------
+function activeTab() {
+  const el = document.querySelector('.tab.active');
+  return el ? el.dataset.tab : 'console';
+}
+
 document.querySelectorAll('.tab').forEach(tab => {
   tab.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     tab.classList.add('active');
     document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+    // Each tab refreshes only while it is the one being looked at --
+    // defined below, both are hoisted function declarations.
+    onTabChanged();
   });
 });
 
@@ -251,8 +309,18 @@ const stateEmpty = document.getElementById('state-empty');
 const stateSections = document.getElementById('state-sections');
 
 function field(id, value) {
-  document.getElementById(id).textContent = (value === null || value === undefined || value === '')
-    ? '—' : value;
+  const el = document.getElementById(id);
+  const next = (value === null || value === undefined || value === '') ? '—' : String(value);
+  // Flash only on a real change. Re-rendering identical values every poll
+  // and flashing regardless would make the highlight meaningless -- the
+  // whole point is to catch the eye when an auto-refresh moved something
+  // while you were looking at another part of the page.
+  if (el.textContent !== next) {
+    el.textContent = next;
+    el.classList.remove('changed');
+    void el.offsetWidth;  // restart the animation
+    el.classList.add('changed');
+  }
 }
 
 function num(n) { return (n === null || n === undefined) ? '—' : n.toLocaleString(); }
@@ -364,54 +432,151 @@ function renderState(subscriber) {
   }
 }
 
-async function refreshState() {
-  const data = await apiFetch('{% url "qa-console-state" %}');
-  renderState(data.subscriber);
+// -- auto-refresh ----------------------------------------------------------
+// Local state only moves when a Stripe webhook is DISPATCHED, so the poll
+// asks the server to drain events too (?drain=1). A poll that merely
+// re-read the database would sit frozen after a test-clock advance while
+// Stripe had already renewed on its side.
+const STATE_URL = '{% url "qa-console-state" %}';
+const refreshDot = document.getElementById('refresh-dot');
+const refreshLabel = document.getElementById('refresh-label');
+const autoToggle = document.getElementById('auto-refresh-toggle');
+const autoInterval = document.getElementById('auto-refresh-interval');
+
+let autoTimer = null;
+// Every Stripe-touching request takes this, so a poll can never overlap an
+// action or another poll. Two concurrent drains would dispatch the same
+// events twice and race each other writing dispatched_event_ids back to
+// the session; the server survives it (event claiming is idempotent) but
+// it is wasted Stripe calls and a confusing log either way.
+let busy = false;
+
+function setRefreshState(kind, text) {
+  refreshDot.className = 'dot' + (kind ? ' ' + kind : '');
+  refreshLabel.textContent = text;
 }
 
-document.getElementById('btn-new-subscriber').addEventListener('click', async () => {
-  actionOutput.textContent = 'Creating...';
+async function refreshState({ drain = false, quiet = false } = {}) {
+  if (busy) return;
+  busy = true;
+  if (!quiet) setRefreshState('busy', drain ? 'draining…' : 'refreshing…');
   try {
-    const data = await apiFetch('{% url "qa-console-new-subscriber" %}', { method: 'POST' });
+    const data = await apiFetch(STATE_URL + (drain ? '?drain=1' : ''));
     renderState(data.subscriber);
-    actionOutput.textContent = (data.checks || []).join('\n') || 'Created.';
+    if (data.drain_error) {
+      // Reported in-band by the server precisely so one transient blip
+      // does not kill the polling loop.
+      setRefreshState('error', 'drain failed — retrying');
+    } else {
+      const drained = data.drained ? ' · drained ' + data.drained : '';
+      setRefreshState(autoToggle.checked ? 'live' : '',
+        'updated ' + new Date().toLocaleTimeString() + drained);
+    }
   } catch (e) {
-    actionOutput.textContent = 'ERROR: ' + e.message;
+    setRefreshState('error', 'error: ' + e.message);
+  } finally {
+    busy = false;
+  }
+}
+
+function restartAutoRefresh() {
+  if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+  if (!autoToggle.checked) {
+    setRefreshState('', 'auto-refresh off');
+    return;
+  }
+  setRefreshState('live', 'auto-refresh on');
+  autoTimer = setInterval(() => {
+    // Unlike the dashboard's history poll (local DB only), each of these
+    // costs a real Stripe call, so skip it whenever nobody is actually
+    // looking at this tab -- browser tab hidden, or the Dashboard tab
+    // showing instead.
+    if (document.hidden || activeTab() !== 'console') return;
+    refreshState({ drain: true, quiet: true });
+  }, parseInt(autoInterval.value, 10));
+}
+
+autoToggle.addEventListener('change', restartAutoRefresh);
+autoInterval.addEventListener('change', restartAutoRefresh);
+// Coming back to a tab that has been hidden for a while, the state on
+// screen is as old as the moment you left -- refresh immediately rather
+// than showing stale numbers until the next tick.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  if (activeTab() === 'console' && autoToggle.checked) {
+    refreshState({ drain: true, quiet: true });
+  } else if (activeTab() === 'dashboard') {
+    loadHistory().catch(() => {});
   }
 });
 
-document.getElementById('btn-reset').addEventListener('click', async () => {
-  actionOutput.textContent = 'Tearing down...';
+// Every Stripe-touching button funnels through here so that it takes the
+// same `busy` lock the poll does, disables the controls while it runs, and
+// -- the point of all this -- re-reads state with a drain once it lands.
+// An action's own response already carries fresh state, but the webhooks
+// it provoked usually arrive a beat LATER; without the follow-up drain the
+// page would show the pre-webhook world until the next tick.
+const consoleButtons = () => document.querySelectorAll(
+  '#btn-new-subscriber, #btn-reset, #btn-refresh, .action-btn');
+
+async function runConsoleOp(pendingText, fn, { thenRefresh = true } = {}) {
+  if (busy) return;
+  busy = true;
+  consoleButtons().forEach(b => { b.disabled = true; });
+  actionOutput.textContent = pendingText;
+  setRefreshState('busy', pendingText);
   try {
+    await fn();
+    setRefreshState(autoToggle.checked ? 'live' : '',
+      'updated ' + new Date().toLocaleTimeString());
+  } catch (e) {
+    actionOutput.textContent = 'ERROR: ' + e.message;
+    setRefreshState('error', 'error: ' + e.message);
+  } finally {
+    busy = false;
+    consoleButtons().forEach(b => { b.disabled = false; });
+  }
+  if (thenRefresh) {
+    await refreshState({ drain: true, quiet: true });
+  }
+}
+
+document.getElementById('btn-new-subscriber').addEventListener('click', () =>
+  runConsoleOp('Creating...', async () => {
+    const data = await apiFetch('{% url "qa-console-new-subscriber" %}', { method: 'POST' });
+    renderState(data.subscriber);
+    actionOutput.textContent = (data.checks || []).join('\n') || 'Created.';
+  }));
+
+document.getElementById('btn-reset').addEventListener('click', () =>
+  // No follow-up refresh: the subscriber is gone, and polling for state
+  // that was just deliberately torn down would only repaint the empty
+  // card and log a pointless Stripe call.
+  runConsoleOp('Tearing down...', async () => {
     const data = await apiFetch('{% url "qa-console-reset" %}', { method: 'POST' });
     renderState(null);
     actionOutput.textContent = data.cleanup_errors && data.cleanup_errors.length
       ? 'Cleanup errors:\n' + data.cleanup_errors.join('\n')
       : 'Torn down.';
-  } catch (e) {
-    actionOutput.textContent = 'ERROR: ' + e.message;
-  }
-});
+  }, { thenRefresh: false }));
 
-document.getElementById('btn-refresh').addEventListener('click', refreshState);
+document.getElementById('btn-refresh').addEventListener('click', () =>
+  refreshState({ drain: true }));
 
 document.querySelectorAll('.action-btn').forEach(btn => {
-  btn.addEventListener('click', async () => {
-    actionOutput.textContent = 'Running ' + btn.dataset.action + '...';
-    try {
+  btn.addEventListener('click', () =>
+    runConsoleOp('Running ' + btn.dataset.action + '...', async () => {
       const data = await apiFetch('{% url "qa-console-action" %}', {
         method: 'POST',
         body: JSON.stringify({ action: btn.dataset.action }),
       });
       renderState(data.subscriber);
       actionOutput.textContent = data.action + ': ' + data.note;
-    } catch (e) {
-      actionOutput.textContent = 'ERROR: ' + e.message;
-    }
-  });
+    }));
 });
 
 refreshState().catch(() => {});
+restartAutoRefresh();
 
 // -- dashboard tab ---------------------------------------------------------
 document.querySelectorAll('input[name=kind]').forEach(radio => {
@@ -503,7 +668,32 @@ async function loadHistory() {
   }
 }
 
+const HISTORY_INTERVAL_MS = 10000;
+let historyTimer = null;
+
+function startHistoryRefresh() {
+  if (historyTimer) return;
+  historyTimer = setInterval(() => {
+    if (document.hidden) return;
+    loadHistory().catch(() => {});
+  }, HISTORY_INTERVAL_MS);
+}
+
+function stopHistoryRefresh() {
+  if (historyTimer) { clearInterval(historyTimer); historyTimer = null; }
+}
+
+function onTabChanged() {
+  if (activeTab() === 'dashboard') {
+    loadHistory().catch(() => {});
+    startHistoryRefresh();
+  } else {
+    stopHistoryRefresh();
+  }
+}
+
 loadHistory().catch(() => {});
+onTabChanged();
 </script>
 
 </body>
