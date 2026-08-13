@@ -45,7 +45,7 @@ Authorization: Bearer <token>
 | **POST** | `/license-subscriptions/` | Create new license subscription | School Admin, Super Admin |
 | **GET** | `/license-subscriptions/{id}/` | Get license subscription details | School Admin, Super Admin |
 | **PATCH** | `/license-subscriptions/{id}/` | Update license subscription | School Admin, Super Admin |
-| **DELETE** | `/license-subscriptions/{id}/` | Cancel license subscription | School Admin, Super Admin |
+| **POST** | `/license-subscriptions/{id}/cancel/` | Cancel license subscription | Super Admin only |
 | **POST** | `/license-subscriptions/{id}/add-teachers/` | Enroll teachers to license | School Admin, Super Admin |
 | **POST** | `/license-subscriptions/{id}/remove-teachers/` | Remove teachers from license | School Admin, Super Admin |
 | **POST** | `/license-subscriptions/{id}/process-renewal/` | Manually trigger renewal | Super Admin only |
@@ -227,7 +227,10 @@ PATCH /api/billing/license-subscriptions/{id}/
 
 **Updatable Fields**:
 - `auto_renew` (bool) - Enable/disable auto-renewal
-- `is_active` (bool) - Activate/deactivate license
+- `custom_price_cents` (int, nullable) - Override price for this license
+
+`is_active` is read-only here — use `POST .../cancel/` to deactivate a
+license (it correctly stops a STRIPE subscription from renewing first).
 
 **Example Request**:
 ```bash

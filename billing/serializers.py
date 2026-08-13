@@ -1940,6 +1940,16 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
         "convert-to-stripe / convert-to-offline actions after creation, never "
         "via a plain PATCH — see LicenseSubscriptionSerializer.update().",
     )
+    is_active = serializers.BooleanField(
+        read_only=True,
+        help_text="Read-only. A plain PATCH used to be able to flip this "
+        "directly, which for a STRIPE-billed license deactivated the local "
+        "row without ever cancelling the real Stripe subscription -- the "
+        "school kept being billed with no local record left to reconcile "
+        "against. Use the dedicated cancel action instead, which forks on "
+        "billing_method and (for STRIPE) tells Stripe to actually stop "
+        "renewing before touching any local state.",
+    )
 
     class Meta:
         model = LicenseSubscription
@@ -1999,7 +2009,6 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
             "plan": {"write_only": True},
             "contract_months": {"write_only": True},
             "max_seats": {"write_only": True},
-            "is_active": {"required": False},
             "auto_renew": {"required": False},
         }
 
@@ -2080,15 +2089,18 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
         We do not support changing the plan, school, or admin via this endpoint.
         Those operations are handled by dedicated actions.
         """
-        # Allowed to update: is_active, auto_renew, custom_price_cents
-        instance.is_active = validated_data.get("is_active", instance.is_active)
+        # Allowed to update: auto_renew, custom_price_cents.
+        # is_active is deliberately NOT settable here -- see its field
+        # declaration above. Flipping it off must go through the cancel
+        # action so a STRIPE license's real subscription is told to stop
+        # renewing first; flipping it back on must go through a real
+        # renewal/reactivation path, not a bare PATCH.
         instance.auto_renew = validated_data.get("auto_renew", instance.auto_renew)
         instance.custom_price_cents = validated_data.get(
             "custom_price_cents", instance.custom_price_cents
         )
         instance.save(
             update_fields=[
-                "is_active",
                 "auto_renew",
                 "custom_price_cents",
                 "updated_at",
@@ -2427,6 +2439,10 @@ class RejectOverageOfflineRequestSerializer(serializers.Serializer):
 
 
 class ConvertToOfflineSerializer(serializers.Serializer):
+    notes = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+
+
+class CancelLicenseSerializer(serializers.Serializer):
     notes = serializers.CharField(required=False, allow_null=True, allow_blank=True)
 
 

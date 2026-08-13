@@ -126,6 +126,7 @@ class LicenseBillingRecordType(models.TextChoices):
         "OFFLINE_OVERAGE_REQUEST_APPROVED",
         _("Offline Overage Request Approved"),
     )
+    CANCELLED = "CANCELLED", _("Cancelled")
 
 
 class PendingChangeType(models.TextChoices):

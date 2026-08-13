@@ -41,6 +41,7 @@ from .models import (  # SubscriptionPlan,
     SchoolCreditAllocation,
 )
 from .serializers import (  # PlanCategory,
+    CancelLicenseSerializer,
     ChangeLicensePlanSerializer,
     ConvertToOfflineSerializer,
     CreditBucketSerializer,
@@ -127,10 +128,6 @@ class IsSchoolAdminOrSuperAdmin(IsAuthenticated):
         tags=["License Subscriptions"],
         summary="Partially update license subscription",
     ),
-    destroy=extend_schema(
-        tags=["License Subscriptions"],
-        summary="Cancel/delete license subscription",
-    ),
 )
 class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
     """
@@ -144,11 +141,20 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
     - POST /api/billing/license-subscriptions/ - Create new license
     - GET /api/billing/license-subscriptions/{id}/ - Get license details
     - PATCH /api/billing/license-subscriptions/{id}/ - Update license
-    - DELETE /api/billing/license-subscriptions/{id}/ - Cancel license
+    - POST /api/billing/license-subscriptions/{id}/cancel/ - Cancel license
     - POST /api/billing/license-subscriptions/{id}/add-teachers/ - Enroll teachers
     - POST /api/billing/license-subscriptions/{id}/remove-teachers/ - Remove teachers
     - POST /api/billing/license-subscriptions/{id}/process-renewal/ - Manual renewal
     - GET /api/billing/license-subscriptions/{id}/renewal-info/ - Get renewal status
+
+    There is deliberately NO DELETE route. ModelViewSet's default hard-delete
+    would CASCADE-wipe LicenseBillingRecord/LicenseOveragePurchaseIntent/
+    LicenseOverageOfflineRequest/SchoolCreditAllocation (billing/models.py)
+    without ever cancelling a live Stripe subscription first -- the school
+    would keep being billed with no local row left to reconcile against.
+    Use the cancel action above instead, which forks on billing_method and
+    (for STRIPE) tells Stripe to actually stop renewing before touching any
+    local state.
     """
 
     queryset = (
@@ -165,7 +171,9 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
     ordering_fields = ["created_at", "billing_cycle_end", "teacher_count"]
     ordering = ["-created_at"]
 
-    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
+    # No "delete" -- see the class docstring for why the hard-delete route
+    # is intentionally absent rather than merely unused.
+    http_method_names = ["get", "post", "patch", "head", "options"]
 
     def get_permissions(self):
         if self.action in [
@@ -855,6 +863,40 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
 
         try:
             updated = LicenseSubscriptionService.convert_license_to_offline(
+                license_sub,
+                performed_by=request.user,
+                notes=serializer.validated_data.get("notes"),
+            )
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(self.get_serializer(updated).data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        tags=["License Subscriptions"],
+        summary="Cancel a license subscription",
+        description=(
+            "Superadmin-only. Stops the license from renewing. For a "
+            "STRIPE-billed license this sets cancel_at_period_end=True on "
+            "Stripe and leaves the license active until the period already "
+            "paid for actually ends (deactivation follows from the real "
+            "customer.subscription.deleted webhook). For an OFFLINE license "
+            "it deactivates immediately, since there is no Stripe billing "
+            "cycle to let run its course and no automated sweep will ever "
+            "do it later. Rejects with 400 if the license is already "
+            "inactive or already scheduled to cancel."
+        ),
+        request=CancelLicenseSerializer,
+        responses={200: LicenseSubscriptionSerializer},
+    )
+    @action(detail=True, methods=["post"], url_path="cancel")
+    def cancel(self, request, pk=None):
+        license_sub = self.get_object()
+        serializer = CancelLicenseSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        try:
+            updated = LicenseSubscriptionService.cancel_license_subscription(
                 license_sub,
                 performed_by=request.user,
                 notes=serializer.validated_data.get("notes"),

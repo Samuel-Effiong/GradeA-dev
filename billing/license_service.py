@@ -1800,28 +1800,94 @@ class LicenseSubscriptionService:
         sync_teachers_under_license_to_mailerlite(license_sub)
 
     @staticmethod
-    def cancel_license_subscription(license_sub: LicenseSubscription) -> None:
+    @transaction.atomic
+    def cancel_license_subscription(
+        license_sub: LicenseSubscription,
+        performed_by: Optional[CustomUser] = None,
+        notes: Optional[str] = None,
+    ) -> LicenseSubscription:
         """
-        Cancels a License subscription.
+        Cancels a License subscription so it won't renew.
 
-        Sets is_active=False. Teachers keep their current credits until
-        billing cycle end, but the license won't auto-renew.
+        The two billing methods deliberately behave differently, mirroring
+        how every other mutation in this file forks on billing_method:
 
-        Args:
-            license_sub: License to cancel
+        STRIPE — sets cancel_at_period_end=True on the live Stripe
+        subscription and clears auto_renew locally, but leaves
+        is_active=True. Teachers keep access for the remainder of the
+        period they already paid for; the license is actually deactivated
+        later by the real customer.subscription.deleted webhook (or the
+        nightly process_license_renewals sweep as a fallback), exactly
+        like an individual subscription's cancel flow
+        (StripeSubscriptionService, billing/views.py "cancel" action).
+
+        OFFLINE — deactivates immediately (is_active=False). There is no
+        Stripe billing cycle to let run its course, and unlike STRIPE
+        licenses, an OFFLINE license past its billing_cycle_end is never
+        touched by any automated sweep (process_license_renewals
+        explicitly excludes billing_method=OFFLINE) -- so nothing else
+        will ever turn it off. This matches convert_license_to_offline's
+        existing precedent: OFFLINE-track mutations in this codebase are
+        immediate and superadmin-orchestrated, not deferred to a natural
+        Stripe boundary.
+
+        Raises ValueError if the license is already inactive or already
+        scheduled to cancel (auto_renew=False) -- idempotency guard,
+        matching change_license_plan/update_seats's "no-op" rejections
+        elsewhere in this file.
         """
-        license_sub.is_active = False
-        license_sub.auto_renew = False
-        license_sub.save(update_fields=["is_active", "auto_renew", "updated_at"])
+        license_sub = LicenseSubscription.objects.select_for_update().get(
+            pk=license_sub.pk
+        )
 
-        sync_teachers_under_license_to_mailerlite(license_sub)
+        if not license_sub.is_active:
+            raise ValueError("License is already inactive.")
+        if not license_sub.auto_renew:
+            raise ValueError("License is already scheduled to cancel.")
+
+        if license_sub.billing_method == LicenseBillingMethod.STRIPE:
+            if license_sub.stripe_subscription_id:
+                try:
+                    stripe.Subscription.modify(
+                        license_sub.stripe_subscription_id,
+                        cancel_at_period_end=True,
+                    )
+                except stripe.error.StripeError as exc:
+                    raise ValueError(
+                        f"Failed to schedule Stripe cancellation: {exc}"
+                    ) from exc
+            else:
+                logger.warning(
+                    "License %s is STRIPE-billed but has no "
+                    "stripe_subscription_id; cancelling locally only.",
+                    license_sub.id,
+                )
+            license_sub.auto_renew = False
+            license_sub.save(update_fields=["auto_renew", "updated_at"])
+            log_suffix = "Teachers keep access until billing_cycle_end."
+        else:
+            license_sub.is_active = False
+            license_sub.auto_renew = False
+            license_sub.save(update_fields=["is_active", "auto_renew", "updated_at"])
+            sync_teachers_under_license_to_mailerlite(license_sub)
+            log_suffix = "Teachers lose access immediately (OFFLINE billing)."
+
+        LicenseBillingRecord.objects.create(
+            license_subscription=license_sub,
+            record_type=LicenseBillingRecordType.CANCELLED,
+            notes=notes,
+            performed_by=performed_by,
+        )
 
         logger.info(
-            "Cancelled license subscription %s for school %s. "
-            "Teachers will lose access when billing cycle ends.",
+            "Cancelled license subscription %s for school %s (billing_method=%s). %s",
             license_sub.id,
             license_sub.school.name,
+            license_sub.billing_method,
+            log_suffix,
         )
+
+        return license_sub
 
     @staticmethod
     def get_teacher_allocation_info(teacher: CustomUser) -> Optional[dict]:

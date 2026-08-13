@@ -363,18 +363,21 @@ def scenario_license_cancellation_and_offline_conversion(harness) -> CheckRecord
         LicenseSubscriptionService.cancel_license_subscription(license_sub)
         cancelled = cancel_actor.refresh()
         rec.expect(
-            "cancel_license_subscription is LOCAL ONLY: is_active/auto_renew "
-            "flip off, but Stripe keeps billing until the sweep cancels it",
-            cancelled.is_active is False and cancelled.auto_renew is False,
+            "cancelling a STRIPE-billed license clears auto_renew but "
+            "leaves is_active=True -- teachers keep access for the "
+            "period they already paid for; deactivation happens later, "
+            "via the real customer.subscription.deleted webhook",
+            cancelled.is_active is True and cancelled.auto_renew is False,
             f"is_active={cancelled.is_active!r}, auto_renew={cancelled.auto_renew!r}",
         )
         stripe_sub = guarded_call(
             stripe.Subscription.retrieve, cancelled.stripe_subscription_id
         )
         rec.expect(
-            "the real Stripe subscription is untouched by a local-only cancel",
-            stripe_sub.get("status") == "active",
-            f"stripe status={stripe_sub.get('status')!r}",
+            "the real Stripe subscription is told to stop renewing "
+            "(cancel_at_period_end) rather than being silently ignored",
+            stripe_sub.get("cancel_at_period_end") is True,
+            f"cancel_at_period_end={stripe_sub.get('cancel_at_period_end')!r}",
         )
     finally:
         cancel_actor.cleanup()
