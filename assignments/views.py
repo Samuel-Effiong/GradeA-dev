@@ -1770,9 +1770,12 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             "questions": assignment.questions,
         }
 
-        # Generate the assignment HTML without hidden teacher content
+        # Generate the assignment HTML without hidden teacher content.
+        # include_document_header=False: the PDF template below already
+        # renders its own title/instructions/meta header, so the shared
+        # formatter shouldn't render them a second time.
         html_body = AssignmentProcessingService.format_assignment_standard_html(
-            data, include_rubric=include_rubric
+            data, include_rubric=include_rubric, include_document_header=False
         )
 
         # Extract course and teacher info
@@ -1788,6 +1791,19 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             if assignment.due_date
             else "Not set"
         )
+        display_title = assignment.title or "Assignment"
+        # Pre-quoted/escaped for direct embedding as a CSS string literal
+        # (the @top-center content property below) — json.dumps' escaping
+        # is a safe superset of CSS string escaping for plain text, and
+        # this also closes a latent bug: a title containing a literal "
+        # would otherwise break the generated CSS.
+        title_css_literal = json.dumps(display_title)
+        instructions_html = (
+            f'<div class="instructions-box"><strong>Instructions:</strong> '
+            f"{assignment.instructions}</div>"
+            if assignment.instructions
+            else ""
+        )
 
         # Build the full HTML with enhanced styling
         full_html = f"""
@@ -1795,24 +1811,40 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         <html>
         <head>
             <meta charset="UTF-8">
-            <title>{assignment.title or 'Assignment'}</title>
+            <title>{display_title}</title>
             <style>
-                /* --- Page setup --- */
+                /* --- Page setup ---
+                   Editorial layout patterned after the ground-truth
+                   benchmark PDFs (ai_processor/benchmark/render.py):
+                   quiet serif typesetting instead of a dashboard look.
+                   The @bottom-right box is a deliberately understated
+                   brand mark, not a page-count element. */
                 @page {{
                     size: A4;
-                    margin: 2.5cm 2cm 2cm 2cm;
+                    margin: 2.5cm 2cm 2.2cm 2cm;
                     @top-center {{
-                        content: " {assignment.title or 'Assignment'} ";
-                        font-size: 10pt;
-                        color: #5d6d7e;
-                        border-bottom: 1px solid #d5d8dc;
+                        content: {title_css_literal};
+                        font-family: Georgia, 'Times New Roman', serif;
+                        font-style: italic;
+                        font-size: 9pt;
+                        color: #7a8188;
+                        border-bottom: 1px solid #ddd8c8;
                         padding-bottom: 5px;
                     }}
                     @bottom-center {{
                         content: "Page " counter(page) " of " counter(pages);
-                        font-size: 9pt;
-                        color: #5d6d7e;
-                        border-top: 1px solid #d5d8dc;
+                        font-size: 8.5pt;
+                        color: #7a8188;
+                        border-top: 1px solid #ddd8c8;
+                        padding-top: 5px;
+                    }}
+                    @bottom-right {{
+                        content: "Grade A+";
+                        font-family: Georgia, 'Times New Roman', serif;
+                        font-size: 7.5pt;
+                        letter-spacing: 0.5px;
+                        color: #b5ab8f;
+                        border-top: 1px solid #ddd8c8;
                         padding-top: 5px;
                     }}
                 }}
@@ -1822,9 +1854,10 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     font-family: 'Georgia', 'Times New Roman', serif;
                     margin: 0;
                     padding: 0;
-                    line-height: 1.7;
-                    color: #1c1e21;
+                    line-height: 1.65;
+                    color: #20242b;
                     background: #ffffff;
+                    font-size: 11.5pt;
                 }}
 
                 .container {{
@@ -1834,130 +1867,99 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 /* --- Title block --- */
                 .assignment-header {{
                     text-align: center;
-                    margin-bottom: 30px;
-                    padding-bottom: 20px;
-                    border-bottom: 3px double #1a5276;
+                    margin-bottom: 28px;
+                    padding-bottom: 18px;
+                    border-bottom: 3px double #1a3a5c;
                 }}
                 .assignment-header .course-name {{
-                    font-size: 14pt;
+                    font-size: 10.5pt;
                     font-weight: 400;
-                    color: #5d6d7e;
-                    margin-bottom: 5px;
+                    letter-spacing: 1.5px;
+                    text-transform: uppercase;
+                    color: #96895f;
+                    margin-bottom: 6px;
                 }}
                 .assignment-header .assignment-title {{
-                    font-size: 28pt;
+                    font-size: 25pt;
                     font-weight: 700;
-                    color: #1a5276;
-                    margin: 10px 0 5px 0;
-                    letter-spacing: -0.5px;
+                    color: #1a3a5c;
+                    margin: 6px 0 10px 0;
                 }}
                 .assignment-header .meta {{
-                    font-size: 12pt;
-                    color: #2c3e50;
-                    display: flex;
-                    justify-content: center;
-                    gap: 30px;
-                    flex-wrap: wrap;
-                    margin-top: 12px;
+                    font-size: 10.5pt;
+                    color: #5a6472;
+                    font-style: italic;
                 }}
-                .assignment-header .meta span {{
-                    background: #eaf2f8;
-                    padding: 4px 14px;
-                    border-radius: 20px;
-                    font-weight: 500;
+                .assignment-header .meta span:not(:last-child)::after {{
+                    content: " \\00b7 ";
+                    font-style: normal;
+                    color: #b5ab8f;
                 }}
 
                 /* --- Instructions --- */
                 .instructions-box {{
-                    background: #f8f9fa;
-                    border-left: 6px solid #1a5276;
-                    padding: 18px 25px;
-                    margin-bottom: 35px;
-                    border-radius: 4px;
-                    font-size: 12.5pt;
+                    background: #f7f6f2;
+                    border-left: 3px solid #1a3a5c;
+                    padding: 14px 20px;
+                    margin-bottom: 28px;
+                    font-size: 11pt;
                 }}
                 .instructions-box strong {{
-                    color: #1a5276;
+                    color: #1a3a5c;
                 }}
 
-                /* --- Questions --- */
-                .question-item {{
-                    background: #ffffff;
-                    border: 1px solid #e5e8eb;
-                    border-radius: 8px;
-                    padding: 20px 25px;
-                    margin-bottom: 28px;
+                /* --- Section heading (services.py emits "Assignment
+                   Questions" as an h2 followed by a bare hr) --- */
+                h2 {{
+                    font-size: 13.5pt;
+                    color: #1a3a5c;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                    border-bottom: 1px solid #ddd8c8;
+                    padding-bottom: 6px;
+                    margin: 0 0 18px;
+                }}
+                h2 + hr {{
+                    display: none;
+                }}
+
+                /* --- Questions ---
+                   services.py renders each question as a plain div with
+                   inline styles (shared with the ProseMirror editor
+                   pipeline), so styling here targets the tags it
+                   actually emits rather than card classes. */
+                strong {{
+                    color: #1a3a5c;
+                }}
+                .container > div {{
                     page-break-inside: avoid;
-                    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
                 }}
-                .question-item .q-header {{
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: baseline;
-                    border-bottom: 1px dashed #d5d8dc;
-                    padding-bottom: 8px;
-                    margin-bottom: 14px;
-                }}
-                .question-item .q-number {{
-                    font-weight: 700;
-                    font-size: 14pt;
-                    color: #1a5276;
-                }}
-                .question-item .q-points {{
-                    font-weight: 500;
-                    font-size: 11pt;
-                    color: #5d6d7e;
-                    background: #eaf2f8;
-                    padding: 2px 12px;
-                    border-radius: 12px;
-                }}
-                .question-item .q-text {{
-                    font-size: 13pt;
-                    margin-bottom: 12px;
-                }}
-                .question-item .options {{
-                    padding-left: 25px;
-                    margin: 10px 0 5px 0;
-                }}
-                .question-item .options p {{
-                    margin: 4px 0;
-                    padding-left: 10px;
-                    border-left: 2px solid #d5d8dc;
-                }}
-                .question-item .options p:before {{
-                    content: "• ";
-                    color: #1a5276;
-                    font-weight: bold;
-                }}
+
                 /* Images */
-                .question-item img {{
+                img {{
                     max-width: 100%;
                     height: auto;
                     display: block;
-                    margin: 12px 0;
-                    border: 1px solid #d5d8dc;
-                    border-radius: 4px;
+                    margin: 12px auto;
+                    border: 1px solid #ddd8c8;
                 }}
-                /* Tables (if any) */
+                /* Tables (rubric, etc.) */
                 table {{
                     border-collapse: collapse;
                     width: 100%;
-                    margin: 15px 0;
-                    font-size: 12pt;
+                    margin: 14px 0;
+                    font-size: 10.5pt;
                 }}
                 th, td {{
-                    border: 1px solid #aeb6bf;
-                    padding: 8px 12px;
+                    border: 1px solid #ddd8c8;
+                    padding: 7px 10px;
                     text-align: left;
                     vertical-align: top;
                 }}
                 th {{
-                    background-color: #f0f3f5;
-                    font-weight: 600;
-                }}
-                /* Hide teacher-only content */
-                .rubric, .model-answer {{
-                    display: none !important;
+                    background-color: #f0eee7;
+                    font-weight: 700;
+                    color: #1a3a5c;
                 }}
                 /* Lists */
                 ul, ol {{
@@ -1971,16 +1973,16 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 <!-- Header Block -->
                 <div class="assignment-header">
                     <div class="course-name">{course_name}</div>
-                    <div class="assignment-title">{assignment.title or 'Assignment'}</div>
+                    <div class="assignment-title">{display_title}</div>
                     <div class="meta">
-                        <span>👨‍🏫 {teacher_name}</span>
-                        <span>📅 Due: {due_date_str}</span>
-                        <span>📊 Total Points: {assignment.total_points or 'N/A'}</span>
+                        <span>{teacher_name}</span>
+                        <span>Due {due_date_str}</span>
+                        <span>{assignment.total_points or 'N/A'} marks total</span>
                     </div>
                 </div>
 
                 <!-- Instructions -->
-                {f'<div class="instructions-box"><strong>📘 Instructions:</strong> {assignment.instructions}</div>' if assignment.instructions else ''}
+                {instructions_html}
 
                 <!-- Questions -->
                 {html_body}

@@ -237,8 +237,10 @@ class LaunchProcessingTaskBrokerFailureTest(TestCase):
         self.assertEqual(processing_task.status, BackgroundTaskStatus.FAILURE)
         # The raw broker exception is an implementation detail, not
         # something a grader can act on — it must not reach the frontend
-        # verbatim, only the generic human-readable fallback.
-        self.assertEqual(processing_task.error, DEFAULT_TASK_FAILURE_MESSAGE)
+        # verbatim. A bare ConnectionError is recognized as a connection
+        # failure and gets its own actionable message rather than the
+        # fully generic fallback (see classify_infra_error).
+        self.assertIn("lost connection", processing_task.error)
         self.assertNotIn("broker unreachable", processing_task.error)
         self.assertIsNone(processing_task.celery_task_id)
 

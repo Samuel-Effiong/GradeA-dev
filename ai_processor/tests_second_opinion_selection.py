@@ -26,6 +26,7 @@ from ai_processor.second_opinion import (
     REASON_HIGH_STAKES,
     REASON_LOW_CONFIDENCE,
     REASON_QA_SAMPLE,
+    REASON_SUBJECTIVE_TYPE,
     compare_evaluations,
     pick_second_model,
     select_second_opinion_targets,
@@ -55,8 +56,8 @@ def _evaluation(number, level="good", graded_by="some-model", flag=None, score=8
     }
 
 
-def _question(number, points=10):
-    return {"question_number": number, "points": points}
+def _question(number, points=10, question_type="OBJECTIVE"):
+    return {"question_number": number, "points": points, "question_type": question_type}
 
 
 def _select(result, questions, **overrides):
@@ -65,6 +66,7 @@ def _select(result, questions, **overrides):
         "min_confidence": 80,
         "high_points_threshold": 15,
         "sample_rate": 0,
+        "subjective_types": frozenset(),
         "rng": _FixedRng(0.99),
     }
     kwargs.update(overrides)
@@ -182,6 +184,40 @@ class SelectTargetsTest(SimpleTestCase):
             "question_evaluations": [_evaluation(1, level="not_attempted")],
         }
         self.assertEqual(_select(result, [_question(1, points=25)]), {})
+
+    def test_subjective_type_disabled_by_default_does_not_trigger(self):
+        result = {
+            "grading_confidence": 95,
+            "question_evaluations": [_evaluation(1)],
+        }
+        questions = [_question(1, question_type="ESSAY")]
+        self.assertEqual(_select(result, questions), {})
+
+    def test_subjective_type_selects_only_matching_type(self):
+        result = {
+            "grading_confidence": 95,
+            "question_evaluations": [_evaluation(1), _evaluation(2)],
+        }
+        questions = [
+            _question(1, question_type="ESSAY"),
+            _question(2, question_type="OBJECTIVE"),
+        ]
+        selected = _select(
+            result, questions, subjective_types=frozenset({"ESSAY", "SHORT-ANSWER"})
+        )
+        self.assertEqual(set(selected), {KEY_FN(1)})
+        self.assertEqual(selected[KEY_FN(1)], [REASON_SUBJECTIVE_TYPE])
+
+    def test_subjective_type_matches_short_answer_too(self):
+        result = {
+            "grading_confidence": 95,
+            "question_evaluations": [_evaluation(1)],
+        }
+        questions = [_question(1, question_type="short-answer")]
+        selected = _select(
+            result, questions, subjective_types=frozenset({"ESSAY", "SHORT-ANSWER"})
+        )
+        self.assertEqual(selected[KEY_FN(1)], [REASON_SUBJECTIVE_TYPE])
 
     def test_int_and_string_question_numbers_join(self):
         # Ledger #12: rubric says 1 (int), evaluation says "1" (str).

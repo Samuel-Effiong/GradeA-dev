@@ -675,11 +675,11 @@ class StudentListSerializer(serializers.ModelSerializer):
         if course:
             enrollment = obj.enrollments.filter(course=course).first()
             if enrollment and enrollment.final_grade is not None:
-                letter, gpa, remark = get_grade_details(enrollment.final_grade)
+                grade_details = get_grade_details(enrollment.final_grade)
                 return {
-                    "letter_grade": letter,
-                    "gpa": gpa,
-                    "remark": remark,
+                    "letter_grade": grade_details["letter_grade"],
+                    "gpa": grade_details["gpa"],
+                    "remark": grade_details["remark"],
                     "percentage": enrollment.final_grade,
                 }
         return None

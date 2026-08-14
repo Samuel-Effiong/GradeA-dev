@@ -41,6 +41,12 @@ SECOND_OPINION_SETTINGS = {
     "GRADING_SECOND_OPINION_MIN_CONFIDENCE": 80,
     "GRADING_SECOND_OPINION_HIGH_POINTS": 15,
     "GRADING_SECOND_OPINION_SAMPLE_RATE": 0,
+    # All fixture questions here are ESSAY (see _essay() below). Left at
+    # the settings.py default, every test in this suite would trigger on
+    # subjective_type alone, defeating the point of isolating each other
+    # trigger. Off here; test_subjective_type_trigger below re-enables it
+    # explicitly to cover that path.
+    "GRADING_SECOND_OPINION_SUBJECTIVE_TYPES": [],
     # These tests assert exact AI call counts using the same small set of
     # canned questions/answers across many test methods. The answer cache
     # (ai_processor/grading_cache.py) is content-addressed, so a later
@@ -249,6 +255,24 @@ class SecondOpinionPipelineTest(SimpleTestCase):
         result, mock_execute = self._run(respond)
         self.assertEqual(mock_execute.call_count, 2)
         self.assertIn("high_stakes", result["second_opinion"]["selected"][str(1)])
+
+    @override_settings(
+        GRADING_SECOND_OPINION_SUBJECTIVE_TYPES=["ESSAY", "SHORT-ANSWER"]
+    )
+    def test_subjective_type_trigger(self):
+        # Confident, unflagged, low-stakes — every OTHER trigger is quiet
+        # here (mirrors test_confident_clean_run_makes_no_second_opinion_
+        # calls) — only the question's own type (ESSAY) fires.
+        def respond(**kwargs):
+            if _is_b_call(kwargs):
+                return _ai_response(
+                    {"question_evaluations": [_evaluation(1)]}, model=B_MODEL
+                )
+            return _ai_response(_a_payload([_evaluation(1)], confidence=95))
+
+        result, mock_execute = self._run(respond)
+        self.assertEqual(mock_execute.call_count, 2)
+        self.assertIn("subjective_type", result["second_opinion"]["selected"][str(1)])
 
     def test_same_model_candidates_skip_without_b_calls(self):
         def respond(**kwargs):

@@ -13,9 +13,49 @@ from classrooms.models import Course, School, Session
 from students.models import StudentSubmission
 from students.services import (
     _maybe_notify_admins_grading_complete,
+    get_grade_details,
     upload_answers_engine,
 )
 from users.models import CustomUser, UserTypes
+
+
+class GetGradeDetailsScaleTest(TestCase):
+    """Locks get_grade_details to the approved percentage->GPA scale
+    (A+ 97-100/4.0 down through D 65-66/1.0, F below 65/0.0 with no D-)."""
+
+    def test_boundaries_match_approved_scale(self):
+        cases = [
+            (100, "A+", 4.0),
+            (97, "A+", 4.0),
+            (96, "A", 4.0),
+            (93, "A", 4.0),
+            (92, "A-", 3.7),
+            (90, "A-", 3.7),
+            (89, "B+", 3.3),
+            (87, "B+", 3.3),
+            (86, "B", 3.0),
+            (83, "B", 3.0),
+            (82, "B-", 2.7),
+            (80, "B-", 2.7),
+            (79, "C+", 2.3),
+            (77, "C+", 2.3),
+            (76, "C", 2.0),
+            (73, "C", 2.0),
+            (72, "C-", 1.7),
+            (70, "C-", 1.7),
+            (69, "D+", 1.3),
+            (67, "D+", 1.3),
+            (66, "D", 1.0),
+            (65, "D", 1.0),
+            (64.99, "F", 0.0),
+            (60, "F", 0.0),
+            (0, "F", 0.0),
+        ]
+        for pct, expected_letter, expected_gpa in cases:
+            with self.subTest(pct=pct):
+                details = get_grade_details(pct)
+                self.assertEqual(details["letter_grade"], expected_letter)
+                self.assertEqual(details["gpa"], expected_gpa)
 
 
 class StudentSubmissionGradeUpdateTest(APITestCase):

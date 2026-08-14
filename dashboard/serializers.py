@@ -465,6 +465,11 @@ class SchoolAdminSummarySerializer(serializers.Serializer):
     avg_class_size = serializers.FloatField(read_only=True)
     avg_assignments_per_course = serializers.FloatField(read_only=True)
 
+    student_growth_rate = serializers.FloatField(
+        allow_null=True,
+        read_only=True,
+    )
+
 
 class AtRiskTrendWeekSerializer(serializers.Serializer):
     """A single weekly data point for the at-risk trend chart."""

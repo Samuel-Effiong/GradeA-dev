@@ -2686,6 +2686,14 @@ Do not include any explanatory text before or after the JSON
                 borderline_enabled=getattr(
                     settings, "GRADING_SECOND_OPINION_ON_BORDERLINE", True
                 ),
+                subjective_types=frozenset(
+                    str(t).strip().upper()
+                    for t in getattr(
+                        settings,
+                        "GRADING_SECOND_OPINION_SUBJECTIVE_TYPES",
+                        ["ESSAY", "SHORT-ANSWER"],
+                    )
+                ),
             )
             if not reasons_by_key:
                 return result

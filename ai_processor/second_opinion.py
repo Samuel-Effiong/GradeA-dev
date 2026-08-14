@@ -28,6 +28,7 @@ import random as _random_module
 REASON_LOW_CONFIDENCE = "low_confidence"
 REASON_HIGH_STAKES = "high_stakes"
 REASON_BORDERLINE_LEVEL = "borderline_level"
+REASON_SUBJECTIVE_TYPE = "subjective_type"
 REASON_QA_SAMPLE = "qa_sample"
 REASON_FLAGGED_PREFIX = "flagged:"
 
@@ -97,6 +98,7 @@ def select_second_opinion_targets(
     high_points_threshold,
     sample_rate,
     borderline_enabled=True,
+    subjective_types=frozenset(),
     rng=None,
 ):
     """
@@ -114,6 +116,8 @@ def select_second_opinion_targets(
       between two rubric levels and it had to choose. See below.
     - question points >= high_points_threshold: the expensive-to-get-
       wrong questions.
+    - question_type in subjective_types: essay/short-answer questions,
+      unconditionally. See below.
     - one rng draw per submission < sample_rate: full re-read as QA
       sampling — this is what keeps the "easy" cases measured.
 
@@ -133,6 +137,19 @@ def select_second_opinion_targets(
     could be gamed by a lazy grader answering "clear" to everything —
     which is why the benchmark scores it against ground truth rather
     than trusting it (see scoring.py's level_decision calibration block).
+
+    On the subjective-type trigger. Every other trigger here depends on
+    grader A self-reporting something (a flag, a borderline call, a low
+    confidence) or on a fact unrelated to doubt (points). A question's
+    own type needs no self-report and is where independent judgment
+    actually diverges most — a rubric-graded essay or short answer is a
+    human-style judgment call the way a multiple-choice question isn't.
+    OBJECTIVE is deliberately never in subjective_types by default: most
+    OBJECTIVE questions are already resolved by the deterministic tier
+    (objective_grading.py) or the answer cache before an LLM ever grades
+    them, so a second read of a right/wrong call has little left to buy.
+    Pass an empty subjective_types (the default) to disable this trigger
+    entirely.
     """
     if rng is None:
         rng = _random_module
@@ -155,6 +172,13 @@ def select_second_opinion_targets(
         for q in questions
         if isinstance(q, dict)
     }
+    type_by_key = {
+        key_fn(q.get("question_number")): str(q.get("question_type", ""))
+        .strip()
+        .upper()
+        for q in questions
+        if isinstance(q, dict)
+    }
 
     for key, evaluation in eligible.items():
         flag = evaluation.get("flag_for_review")
@@ -165,6 +189,8 @@ def select_second_opinion_targets(
             add(key, REASON_BORDERLINE_LEVEL)
         if points_by_key.get(key, 0) >= high_points_threshold:
             add(key, REASON_HIGH_STAKES)
+        if subjective_types and type_by_key.get(key) in subjective_types:
+            add(key, REASON_SUBJECTIVE_TYPE)
 
     # One draw per submission (not per question): a sampled submission
     # gets a FULL second read, which is what makes the sample usable as a

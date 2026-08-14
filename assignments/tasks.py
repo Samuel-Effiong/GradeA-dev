@@ -522,7 +522,7 @@ def grade_engine_async(
             ),
         }
     except Exception as exc:
-        mark_processing_task_failure(
+        task = mark_processing_task_failure(
             processing_task_id,
             exc,
             meta={"step": "Grading failed", "submission_id": submission_id},
@@ -531,6 +531,21 @@ def grade_engine_async(
                 "contact support if this continues."
             ),
         )
+        if batch_id:
+            session = BatchUploadSession.objects.get(id=batch_id)
+            submission_obj = locals().get("submission")
+            file_name = (
+                f"Submission for {submission_obj.student.get_full_name()}"
+                if isinstance(submission_obj, StudentSubmission)
+                else f"Submission {submission_id}"
+            )
+            session.update_result(
+                file_name,
+                "FAILED",
+                error=task.error if task else None,
+                batch_type=BatchUploadType.GRADE,
+                submission_id=submission_id,
+            )
         raise
 
 

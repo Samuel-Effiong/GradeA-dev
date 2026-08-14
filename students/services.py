@@ -844,9 +844,8 @@ def get_grade_details(percentage):
       C   73-76   2.0  Pass
       C-  70-72   1.7  Pass
       D+  67-69   1.3  Poor
-      D   63-66   1.0  Poor
-      D-  60-62   0.7  Marginal Pass
-      F   0-59    0.0  Fail
+      D   65-66   1.0  Poor
+      F   0-64    0.0  Fail
     """
     pct = float(percentage)
     if pct >= 97:
@@ -869,9 +868,7 @@ def get_grade_details(percentage):
         return {"letter_grade": "C-", "gpa": 1.7, "remark": "Pass"}
     elif pct >= 67:
         return {"letter_grade": "D+", "gpa": 1.3, "remark": "Poor"}
-    elif pct >= 63:
+    elif pct >= 65:
         return {"letter_grade": "D", "gpa": 1.0, "remark": "Poor"}
-    elif pct >= 60:
-        return {"letter_grade": "D-", "gpa": 0.7, "remark": "Marginal Pass"}
     else:
         return {"letter_grade": "F", "gpa": 0.0, "remark": "Fail"}

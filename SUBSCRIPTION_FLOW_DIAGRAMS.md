@@ -80,13 +80,29 @@ flowchart TD
     GrantMonthly2 --> ActiveState
 
     %% ===================== TRIAL STATE & ITS OUTCOMES =====================
-    TrialState(["STATE: Trialing\nis_trial=True, auto_renew=False"]):::state
-    TrialState --> TrialOutcome{"How does the\ntrial end?"}
-    TrialOutcome -- "user explicitly upgrades\nmid-trial (trial_to_paid)" --> TrialCkSession
-    TrialOutcome -- "trial_end reached,\nStripe auto-charges card" --> InvoiceSucceededTrial
-    TrialOutcome -- "trial_end reached,\ncard declines" --> InvoiceFailedTrial
-    TrialOutcome -- "nightly sweep,\nStripe sub deleted mid-trial" --> SubDeletedTrial
-    TrialOutcome -- "nightly sweep:\nexpire_active_trials task" --> ExpireTrialTask
+    %% activate_automatic_free_trial() creates NO Stripe subscription at
+    %% all (its own docstring: "no Stripe, no card collection") — so a
+    %% trial reached that way can never receive invoice.payment_failed,
+    %% invoice.payment_succeeded, or a Stripe-side
+    %% customer.subscription.deleted. Only create_individual_trial_session
+    %% (path B, card collected upfront — itself marked legacy/FIXME) ever
+    %% attaches a real Stripe subscription to a trialing row. Kept as two
+    %% separate states rather than one shared "Trialing" node so this
+    %% distinction can't get lost.
+    AutoTrialState(["STATE: Trialing, automatic\nis_trial=True, auto_renew=False\nNO stripe_subscription_id"]):::state
+    AutoTrialState --> AutoTrialOutcome{"How does\nthis trial end?"}
+    AutoTrialOutcome -- "user explicitly subscribes\n(first real checkout)" --> DirectCheckoutEP
+    AutoTrialOutcome -- "credits exhausted\nbefore trial_end" --> ExpireTrialTask
+    AutoTrialOutcome -- "nightly sweep:\nexpire_active_trials task" --> ExpireTrialTask
+
+    CardTrialState(["STATE: Trialing, card-backed\nis_trial=True, auto_renew=False\nreal stripe_subscription_id\n(legacy entry path)"]):::state
+    CardTrialState --> CardTrialOutcome{"How does\nthis trial end?"}
+    CardTrialOutcome -- "user explicitly upgrades\nmid-trial (trial_to_paid)" --> TrialToPaidSession["create_trial_to_paid_session()\nstripe_service.py:776\n(a DIFFERENT checkout builder\nthan the trial-start session)"]
+    TrialToPaidSession --> CheckoutCompleted
+    CardTrialOutcome -- "trial_end reached,\nStripe auto-charges card" --> InvoiceSucceededTrial
+    CardTrialOutcome -- "trial_end reached,\ncard declines" --> InvoiceFailedTrial
+    CardTrialOutcome -- "Stripe sub deleted\nmid-trial" --> SubDeletedTrial
+    CardTrialOutcome -- "credits exhausted, or\nnightly sweep catches it\nbefore Stripe's own charge" --> ExpireTrialTask
 
     InvoiceSucceededTrial(["webhook: invoice.payment_succeeded\nbilling_reason=subscription_cycle"]):::webhook
     InvoiceSucceededTrial --> FinalizeTrialViaStripe["finalize_trial_conversion_via_stripe()\nservices.py:1431"]

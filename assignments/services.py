@@ -488,7 +488,10 @@ class AssignmentProcessingService:
 
     @classmethod
     def format_assignment_standard_html(
-        cls, data: dict, include_rubric: bool = True
+        cls,
+        data: dict,
+        include_rubric: bool = True,
+        include_document_header: bool = True,
     ) -> str:
         """
         Converts structured assignment data into a globally recognized academic format.
@@ -498,6 +501,10 @@ class AssignmentProcessingService:
             data: Structured assignment dict with title, instructions, questions, etc.
             include_rubric: When False, rubric tables and model answers are omitted.
                             Use False when generating the student-facing version.
+            include_document_header: When False, the title/instructions/meta blocks
+                            are omitted and only the questions are rendered. Use False
+                            when the caller already renders its own title/instructions
+                            (e.g. the PDF download endpoint), so they aren't duplicated.
         """
 
         title_html = cls.sanitize_ai_html(data.get("title", ""))
@@ -513,33 +520,34 @@ class AssignmentProcessingService:
 
         html_output = []
 
-        # Title
-        html_output.append(
-            f"""
-        <div style="text-align:center; margin-bottom:25px;">
-            {title_html}
-        </div>
-        """
-        )
+        if include_document_header:
+            # Title
+            html_output.append(
+                f"""
+            <div style="text-align:center; margin-bottom:25px;">
+                {title_html}
+            </div>
+            """
+            )
 
-        # Instructions
-        html_output.append(
-            f"""
-        <div style="margin-bottom:20px;">
-            {instructions_html}
-        </div>
-        """
-        )
+            # Instructions
+            html_output.append(
+                f"""
+            <div style="margin-bottom:20px;">
+                {instructions_html}
+            </div>
+            """
+            )
 
-        # Meta
-        html_output.append(
-            f"""
-        <div style="margin-bottom:30px;">
-            <p><strong>Total Marks:</strong> {total_points}</p>
-            {"<p><strong>Due Date:</strong> " + due_date + "</p>" if due_date else ""}
-        </div>
-        """
-        )
+            # Meta
+            html_output.append(
+                f"""
+            <div style="margin-bottom:30px;">
+                <p><strong>Total Marks:</strong> {total_points}</p>
+                {"<p><strong>Due Date:</strong> " + due_date + "</p>" if due_date else ""}
+            </div>
+            """
+            )
 
         # Questions Header
         html_output.append(

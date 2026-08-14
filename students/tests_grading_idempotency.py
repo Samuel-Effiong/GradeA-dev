@@ -42,6 +42,8 @@ from students.models import (
     BackgroundProcessingTask,
     BackgroundTaskStatus,
     BackgroundTaskType,
+    BatchUploadSession,
+    BatchUploadType,
     GradingState,
     StudentSubmission,
 )
@@ -363,3 +365,67 @@ class GradeEngineAsyncSkipHandlingTest(GradingClaimFixtureMixin, TestCase):
         mock_ai.extract_grade_with_retry.assert_called_once()
         submission.refresh_from_db()
         self.assertEqual(submission.grading_state, GradingState.DONE)
+
+
+class GradeEngineAsyncBatchFailureReportingTest(GradingClaimFixtureMixin, TestCase):
+    """
+    A "Grade All" run fans out one grade_engine_async task per submission
+    with a shared batch_id. Every other batch task type (upload, extraction,
+    cancellation) records a FAILED entry with the error on
+    BatchUploadSession.results when it fails; grading was the one exception
+    -- its except block never called session.update_result(), so a failed
+    submission in a "Grade All" run silently vanished from the batch
+    results instead of showing up as a failure with a reason.
+    """
+
+    @patch("students.services.ai_processor")
+    def test_grading_failure_records_a_failed_result_on_the_batch_session(
+        self, mock_ai
+    ):
+        teacher, submission = self._make_submission()
+        mock_ai.extract_grade_with_retry.side_effect = TimeoutError("timed out")
+        processing_task = BackgroundProcessingTask.objects.create(
+            requested_by=teacher,
+            task_type=BackgroundTaskType.SUBMISSION_GRADING,
+            submission=submission,
+        )
+        session = BatchUploadSession.objects.create(
+            teacher=teacher,
+            task_type=BatchUploadType.GRADE,
+            total_files=1,
+        )
+
+        with self.assertRaises(TimeoutError):
+            grade_engine_async.apply(
+                args=(str(teacher.id), str(submission.id)),
+                kwargs={
+                    "batch_id": str(session.id),
+                    "processing_task_id": str(processing_task.id),
+                },
+            ).get()
+
+        session.refresh_from_db()
+        self.assertEqual(len(session.results), 1)
+        entry = session.results[0]
+        self.assertEqual(entry["status"], "FAILED")
+        self.assertIn(submission.student.get_full_name(), entry["file_name"])
+        # The specific, classified reason -- not the generic catch-all.
+        self.assertIn("timed out", entry["error"])
+
+    @patch("students.services.ai_processor")
+    def test_grading_failure_without_batch_id_does_not_touch_any_session(self, mock_ai):
+        teacher, submission = self._make_submission()
+        mock_ai.extract_grade_with_retry.side_effect = RuntimeError("boom")
+        processing_task = BackgroundProcessingTask.objects.create(
+            requested_by=teacher,
+            task_type=BackgroundTaskType.SUBMISSION_GRADING,
+            submission=submission,
+        )
+
+        with self.assertRaises(RuntimeError):
+            grade_engine_async.apply(
+                args=(str(teacher.id), str(submission.id)),
+                kwargs={"processing_task_id": str(processing_task.id)},
+            ).get()
+
+        self.assertFalse(BatchUploadSession.objects.exists())

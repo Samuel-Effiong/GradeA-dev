@@ -365,6 +365,20 @@ GRADING_SECOND_OPINION_SAMPLE_RATE = env.float(
 GRADING_SECOND_OPINION_ON_BORDERLINE = env.bool(
     "GRADING_SECOND_OPINION_ON_BORDERLINE", default=True
 )
+# Escalate a question purely by its type, unconditionally: essay and
+# short-answer questions are rubric-graded judgment calls, the category
+# where two independent graders diverge most, and unlike every other
+# trigger above this one doesn't depend on grader A self-reporting
+# anything (a flag, a borderline call, low confidence). OBJECTIVE is
+# deliberately excluded by default — most OBJECTIVE questions never reach
+# an LLM at all (resolved by the deterministic tier in
+# objective_grading.py or the answer cache first), so a second read of a
+# right/wrong call has little left to buy. Empty list disables this
+# trigger entirely.
+GRADING_SECOND_OPINION_SUBJECTIVE_TYPES = env.list(
+    "GRADING_SECOND_OPINION_SUBJECTIVE_TYPES",
+    default=["ESSAY", "SHORT-ANSWER"],
+)
 # Disagreement severity tiers (teacher triage — never suppression): a
 # disagreement whose point gap is >= critical_fraction of the question's
 # points (or >= 2 rubric levels apart) is "critical"; >= moderate_fraction

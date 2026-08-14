@@ -1073,7 +1073,7 @@ class TeacherInactivityAlertTaskTest(TestCase):
     def test_teacher_who_never_logged_in_but_joined_long_ago_is_flagged(
         self, mock_send_email
     ):
-        teacher = self._make_teacher("F", date_joined=self.old_join_date)
+        self._make_teacher("F", date_joined=self.old_join_date)
         # No UserActivity rows at all.
 
         result = send_teacher_inactivity_alerts()
@@ -1457,6 +1457,81 @@ class StudentDashboardOverviewAPITest(APITestCase):
         self.assertEqual(response.data["assignments_submitted"], 2)
         self.assertEqual(response.data["assignments_pending_not_due"], 2)
         self.assertEqual(response.data["assignments_due_no_submission"], 1)
+
+
+class StudentDashboardOverviewGPAAPITest(APITestCase):
+    """Regression test for the overall_gpa=0 bug: GPA must be derived by
+    averaging each course's quality points, not by re-classifying a single
+    flattened average percentage across all submissions."""
+
+    def setUp(self):
+        self.now = timezone.now()
+
+        self.teacher = CustomUser.objects.create_user(
+            email="gpa-teacher@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            first_name="GPA",
+            last_name="Teacher",
+        )
+        self.student = CustomUser.objects.create_user(
+            email="gpa-student@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.STUDENT,
+            first_name="GPA",
+            last_name="Student",
+        )
+
+        self.session = Session.objects.create(name="GPA Term", teacher=self.teacher)
+
+        # Four courses, matching the QA repro: F 10%, F 0%, F 0%, D+ 68.75%
+        self.courses = [
+            Course.objects.create(
+                name=f"GPA Course {i}",
+                teacher=self.teacher,
+                session=self.session,
+                is_active=True,
+            )
+            for i in range(4)
+        ]
+        for course in self.courses:
+            StudentCourse.objects.create(
+                student=self.student,
+                course=course,
+                enrollment_status=EnrollmentStatusType.ENROLLED,
+            )
+
+        percentages = [10, 0, 0, 68.75]
+        for i, (course, pct) in enumerate(zip(self.courses, percentages, strict=True)):
+            assignment = Assignment.objects.create(
+                title=f"GPA Assignment {i}",
+                course=course,
+                status=AssignmentStatus.PUBLISHED,
+                due_date=self.now - timedelta(days=1),
+            )
+            StudentSubmission.objects.create(
+                assignment=assignment,
+                student=self.student,
+                answers={"q1": "a"},
+                score=pct,
+                score_percentage=pct,
+                graded_at=self.now,
+            )
+
+        self.client.force_authenticate(user=self.student)
+
+    def test_overall_gpa_reflects_per_course_quality_points(self):
+        url = reverse("student-overview")
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Per-course GPA points: F=0.0, F=0.0, F=0.0, D+=1.3
+        # Overall GPA must be the average of those quality points (0.325),
+        # not 0.0 (which is what re-classifying the flat 19.6875% average
+        # percentage incorrectly produced before the fix).
+        self.assertNotEqual(response.data["overall_gpa"], 0.0)
+        self.assertEqual(response.data["overall_gpa"], 0.33)
 
 
 class SchoolAtRiskTrendAPITest(APITestCase):

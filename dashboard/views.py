@@ -909,12 +909,9 @@ class SuperAdminDashboardView(viewsets.ViewSet):
                     Case(When(final_grade__gte=70, final_grade__lt=80, then=Value(1)))
                 ),
                 d=Count(
-                    Case(When(final_grade__gte=60, final_grade__lt=70, then=Value(1)))
+                    Case(When(final_grade__gte=65, final_grade__lt=70, then=Value(1)))
                 ),
-                e=Count(
-                    Case(When(final_grade__gte=50, final_grade__lt=60, then=Value(1)))
-                ),
-                f=Count(Case(When(final_grade__lt=50, then=Value(1)))),
+                f=Count(Case(When(final_grade__lt=65, then=Value(1)))),
             )
 
             total_graded = sum(distribution.values())
@@ -939,7 +936,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
                     "B": get_entry(distribution["b"]),
                     "C": get_entry(distribution["c"]),
                     "D": get_entry(distribution["d"]),
-                    "E": get_entry(distribution["e"]),
+                    "E": get_entry(0),
                     "F": get_entry(distribution["f"]),
                 },
                 "total_active_enrollments": stats["total_enrollments"],
@@ -1327,11 +1324,15 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
             #     is_active=True,
             # ).count()
 
-            active_students = CustomUser.objects.filter(
-                enrollments__course__teacher__school=school,
-                is_active=True,
-                user_type=UserTypes.STUDENT,
-            ).count()
+            active_students = (
+                CustomUser.objects.filter(
+                    enrollments__course__teacher__school=school,
+                    is_active=True,
+                    user_type=UserTypes.STUDENT,
+                )
+                .distinct()
+                .count()
+            )
 
             courses = Course.objects.filter(teacher__school=school, is_active=True)
             courses_count = courses.count()
@@ -1427,6 +1428,44 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 SchoolAdminWeeklySummaryService()._build_at_risk_students(school)[1]
             )
 
+            # Student growth rate: % change in distinct enrolled students,
+            # comparing courses created in the last 180 days ("current") to
+            # courses created before that ("past"), school-wide. Same window
+            # and formula as compute_teacher_performance_stats's per-teacher
+            # "growth" (line ~1197), just aggregated across the whole school
+            # instead of per-teacher.
+            six_months_ago = timezone.now() - timedelta(days=180)
+
+            current_student_enrollments = StudentCourse.objects.filter(
+                course__teacher__school=school,
+                course__created_at__gte=six_months_ago,
+            ).exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
+            current_growth_students = (
+                current_student_enrollments.values("student").distinct().count()
+            )
+
+            past_student_enrollments = StudentCourse.objects.filter(
+                course__teacher__school=school,
+                course__created_at__lt=six_months_ago,
+            ).exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
+            past_growth_students = (
+                past_student_enrollments.values("student").distinct().count()
+            )
+
+            if past_growth_students > 0:
+                student_growth_rate = round(
+                    (
+                        (current_growth_students - past_growth_students)
+                        / past_growth_students
+                    )
+                    * 100,
+                    1,
+                )
+            elif current_growth_students > 0:
+                student_growth_rate = 100.0  # started from zero
+            else:
+                student_growth_rate = None
+
             data = {
                 "school_name": school.name,
                 "teachers": active_teachers,
@@ -1444,7 +1483,8 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 "at_risk_students": at_risk_students,
                 "avg_courses_per_teacher": avg_courses_per_teacher,
                 "avg_class_size": avg_class_size,
-                "avg_assignment_per_course": assignments_per_course,
+                "avg_assignments_per_course": assignments_per_course,
+                "student_growth_rate": student_growth_rate,
             }
 
             serializer = SchoolAdminSummarySerializer(data)
@@ -1909,7 +1949,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         category_totals = {"grading": 0, "creation": 0, "feedback": 0, "other": 0}
         for row in feature_totals:
             analytics_field = FEATURE_TO_ANALYTICS_FIELD.get(row["feature"])
-            category = category_by_field.get(analytics_field, "other")
+            category = category_by_field.get(analytics_field or "", "other")
             category_totals[category] += row["total"] or 0
 
         credits_used = sum(category_totals.values())
@@ -2170,8 +2210,8 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
             "A": Q(enrollments__final_grade__gte=90, enrollments__final_grade__lte=100),
             "B": Q(enrollments__final_grade__gte=80, enrollments__final_grade__lt=90),
             "C": Q(enrollments__final_grade__gte=70, enrollments__final_grade__lt=80),
-            "D": Q(enrollments__final_grade__gte=60, enrollments__final_grade__lt=70),
-            "F": Q(enrollments__final_grade__lt=60),
+            "D": Q(enrollments__final_grade__gte=65, enrollments__final_grade__lt=70),
+            "F": Q(enrollments__final_grade__lt=65),
         }
 
         for grade, condition in grade_conditions.items():
@@ -2413,16 +2453,13 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                     Case(When(final_grade__gte=70, final_grade__lt=80, then=Value(1)))
                 ),
                 d=Count(
-                    Case(When(final_grade__gte=60, final_grade__lt=70, then=Value(1)))
+                    Case(When(final_grade__gte=65, final_grade__lt=70, then=Value(1)))
                 ),
-                e=Count(
-                    Case(When(final_grade__gte=50, final_grade__lt=60, then=Value(1)))
-                ),
-                f=Count(Case(When(final_grade__lt=50, then=Value(1)))),
+                f=Count(Case(When(final_grade__lt=65, then=Value(1)))),
             )
 
             total_graded = sum(
-                [stats["a"], stats["b"], stats["c"], stats["d"], stats["e"], stats["f"]]
+                [stats["a"], stats["b"], stats["c"], stats["d"], stats["f"]]
             )
 
             def get_entry(count):
@@ -2462,7 +2499,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                     "B": get_entry(stats["b"]),
                     "C": get_entry(stats["c"]),
                     "D": get_entry(stats["d"]),
-                    "E": get_entry(stats["e"]),
+                    "E": get_entry(0),
                     "F": get_entry(stats["f"]),
                 },
                 "total_active_enrollments": stats["total_enrollments"],
@@ -2873,15 +2910,10 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                     ),
                     d=Count(
                         Case(
-                            When(final_grade__gte=60, final_grade__lt=70, then=Value(1))
+                            When(final_grade__gte=65, final_grade__lt=70, then=Value(1))
                         )
                     ),
-                    e=Count(
-                        Case(
-                            When(final_grade__gte=50, final_grade__lt=60, then=Value(1))
-                        )
-                    ),
-                    f=Count(Case(When(final_grade__lt=50, then=Value(1)))),
+                    f=Count(Case(When(final_grade__lt=65, then=Value(1)))),
                 )
             )
 
@@ -3077,7 +3109,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                     "B": get_entry(grade_stats["b"]),
                     "C": get_entry(grade_stats["c"]),
                     "D": get_entry(grade_stats["d"]),
-                    "E": get_entry(grade_stats["e"]),
+                    "E": get_entry(0),
                     "F": get_entry(grade_stats["f"]),
                 },
                 "course_performance": list(course_performance),
@@ -4015,6 +4047,7 @@ class StudentAdminDashboardView(viewsets.ViewSet):
             course_submissions: dict = {course.id: [] for course in active_courses}
             all_percentages = []
             all_scores = []
+            graded_course_gpas = []
 
             for sub in submissions:
                 course_id = sub.assignment.course_id
@@ -4032,9 +4065,7 @@ class StudentAdminDashboardView(viewsets.ViewSet):
                     avg_score = sum(
                         float(s.score) for s in course_subs if s.score is not None
                     ) / len(course_subs)
-                    all_percentages.extend(
-                        float(s.score_percentage) for s in course_subs
-                    )
+                    all_percentages.append(avg_pct)
                     all_scores.extend(
                         float(s.score) for s in course_subs if s.score is not None
                     )
@@ -4053,8 +4084,12 @@ class StudentAdminDashboardView(viewsets.ViewSet):
                         "gpa": grade_details["gpa"],
                     }
                 )
+                if course_subs:
+                    graded_course_gpas.append(grade_details["gpa"])
 
-            # 6. Overall grade standing (across all graded submissions)
+            # 6. Overall grade standing (averaged per graded course, not per
+            # submission, and GPA averaged in quality-point space rather than
+            # re-derived from a flattened average percentage)
             if all_percentages:
                 overall_percentage = round(
                     sum(all_percentages) / len(all_percentages), 2
@@ -4064,7 +4099,11 @@ class StudentAdminDashboardView(viewsets.ViewSet):
 
             overall_grade_details = get_grade_details(overall_percentage)
             overall_grade = overall_grade_details["letter_grade"]
-            overall_gpa = overall_grade_details["gpa"]
+            overall_gpa = (
+                round(sum(graded_course_gpas) / len(graded_course_gpas), 2)
+                if graded_course_gpas
+                else 0.0
+            )
             overall_remark = overall_grade_details["remark"]
 
             overview_data = {

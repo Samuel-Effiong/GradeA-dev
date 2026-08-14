@@ -20,6 +20,7 @@ from assignments.models import Assignment, AssignmentStatus
 from classrooms.models import Course, EnrollmentStatusType, StudentCourse
 from dashboard.risk import RiskInputs, StudentRiskEvaluator
 from students.models import StudentSubmission
+from students.services import get_grade_details
 from users.models import CustomUser, UserTypes
 
 
@@ -265,31 +266,7 @@ class StudentWeeklySummaryService:
     def _letter_grade(self, percentage):
         if percentage is None:
             return None
-        if percentage >= 97:
-            return "A+"
-        if percentage >= 93:
-            return "A"
-        if percentage >= 90:
-            return "A-"
-        if percentage >= 87:
-            return "B+"
-        if percentage >= 83:
-            return "B"
-        if percentage >= 80:
-            return "B-"
-        if percentage >= 77:
-            return "C+"
-        if percentage >= 73:
-            return "C"
-        if percentage >= 70:
-            return "C-"
-        if percentage >= 67:
-            return "D+"
-        if percentage >= 63:
-            return "D"
-        if percentage >= 60:
-            return "D-"
-        return "F"
+        return get_grade_details(percentage)["letter_grade"]
 
 
 class WeeklyCourseSummaryService:

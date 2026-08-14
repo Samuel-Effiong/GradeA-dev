@@ -8,7 +8,10 @@ from django.db import transaction
 from django.utils import timezone
 
 from AutoGrader.celery import app as celery_app
-from AutoGrader.error_messages import DEFAULT_ERROR_MESSAGE, describe_user_error
+from AutoGrader.error_messages import (
+    DEFAULT_ERROR_MESSAGE,
+    describe_background_task_error,
+)
 
 from .exceptions import TaskCancelledError
 from .models import BackgroundProcessingTask, BackgroundTaskStatus, BackgroundTaskType
@@ -24,7 +27,7 @@ TERMINAL_TASK_STATUSES = {
 # Kept as aliases (rather than importing AutoGrader.error_messages directly
 # at every call site) so existing imports of these two names keep working.
 DEFAULT_TASK_FAILURE_MESSAGE = DEFAULT_ERROR_MESSAGE
-describe_task_error = describe_user_error
+describe_task_error = describe_background_task_error
 
 
 def create_processing_task(
