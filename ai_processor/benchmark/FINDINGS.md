@@ -487,6 +487,134 @@ separate weak signals. Finding 3 keeps accumulating consistent evidence
 across three runs now and is close to worth acting on the Borderline
 Rule, though still on a 21-submission sample per run.
 
+## Round 4 — root-causing the evidence-verified decline, not just re-running
+
+Run 4 left one thing unresolved: evidence-verified had fallen for three
+runs straight (97/98 → 95/98 → 90/98) despite Round 3's "quote short,
+unbroken spans" instruction. Rather than try a fourth prompt tweak on
+faith, the actual raw model quotes from Run 4 were pulled out of the
+recordings and diffed character-by-character against what the student
+actually wrote, before `enforce_evidence` had a chance to strip them.
+
+**The failures were not spread evenly.** Split by subject:
+Mathematics 41/42 (97.6%), Chemistry 21/28 (**75.0%**),
+History & Literature 28/28 (100%) — 7 of 8 total failures were
+Chemistry, and Humanities (pure prose, zero LaTeX) was perfect. That
+alone pointed at LaTeX notation as the mechanism, and reading the actual
+quotes confirmed it: the grade was correct in every single case, but the
+model kept **re-typesetting its own LaTeX while quoting it** — `[H_2]`
+became `[H2]`, `\frac{[HI]^2}{[H_2][I_2]}` became `[HI]² / [H2][I2]`,
+`\rightarrow` became `→`. Faithful to the meaning, a fabrication by the
+letter of a byte-for-byte check.
+
+**Fix, built and validated against the real failure corpus before
+shipping it** (`ai_processor/evidence.py::_desugar_latex`): both the
+quote and the answer are desugared the same way before comparison —
+subscript/superscript markers and `\text{}`-style wrappers stripped,
+`$`/`$$` delimiters removed, a fixed table of unambiguous LaTeX↔glyph
+synonyms folded (→, Δ, ×, · …), and `\frac{a}{b}` expanded to `a/b`
+**only** when neither operand has a top-level `+` or binary `-` — i.e.
+only where dropping the fraction bar cannot change how the expression
+reads. `\frac{a+1}{b}` stays untouched rather than risk equating it with
+the ambiguous `a+1/b`. Also: a quote joining two excerpts with `...`
+(still against the rules — GRADING_ASSIGNMENT_PROMPT_5's EVIDENCE
+section forbids it) is now split into fragments and each is verified
+independently, which is what the ellipsis already claims to mean.
+
+Validated by capturing every raw (quote, answer) pair from Run 4's
+actual failures and replaying them through drafts of the normalizer
+before touching the real module — the discipline this uncovered several
+real bugs a synthetic test never would have (NFKC decomposing the
+superscript minus U+207B into MINUS SIGN U+2212 rather than ASCII `-`,
+so a charge like `Nu^-` and the model's own `Nu⁻` landed on two
+different characters; a naive "delete all whitespace in `$...$`" version
+that broke plain-text arrows and `+` signs the model rendered with
+normal spacing outside any `$` span). Landed at 21 of 23 real
+previously-failing quotes now verifying; the 2 remaining are documented,
+deliberately unfixed edge cases (one pre-existing HTML-tag/punctuation
+boundary quirk unrelated to LaTeX, one case of the model adding
+protective parentheses around a multiplied denominator that this module
+doesn't try to guess at). 39 new tests in
+`ai_processor/tests_evidence_latex.py`, most pinning the exact captured
+production strings rather than idealized versions of them.
+
+The prompt also got a concrete before/after LaTeX-quoting example
+(GRADING_ASSIGNMENT_PROMPT_5's EVIDENCE section) — general instructions
+had already proven weak for this specific compulsion in Round 2/3, so
+this targets the mechanism, not just the model's compliance with a rule.
+
+## Run 5 — the evidence fix verified live
+
+Fresh `--mode record` pass, same 133 questions. `--mode replay`
+immediately after reproduced every metric exactly.
+
+| Metric | Run 4 | Run 5 |
+|---|---|---|
+| Questions graded | 133 | 133 |
+| Exact rubric-level match | 86.5% | 84.2% |
+| Within one level | 100.0% | **100.0%** |
+| Out-of-band failures | 0 | **0** |
+| Submissions failing outright | 0 | **0** |
+| Deterministic tier 0 | 34/34 (100%) | **34/34 (100%)** |
+| **Evidence verified** | **90/98 (91.8%)** | **97/98 (99.0%)** |
+| Identical-answer consistency | both consistent | **both consistent** |
+| Second-opinion disagreement rate | 12.5% (5/40) | **8.3% (7/84)** |
+| Cost | 691,518 tokens, ~45 min | **803,980 tokens, ~64 min** |
+
+**Read this the way the last two rounds were read: what moved, and
+whether it moved for the reason claimed.** Evidence-verified jumped
+from 91.8% to 99.0% — the single largest movement of that metric across
+all five runs, in the predicted direction, immediately after the
+targeted fix. Split by subject to check it moved where predicted:
+**Chemistry went from 75.0% to 100.0%**; Mathematics stayed at 97.6%
+(41/42 — the one remaining failure there is the long-derivation elision
+case from the original Finding 1, a different mechanism this round
+didn't target); Humanities stayed at 100%. This is the strongest
+before/after read of any fix in this benchmark so far, because it is
+the first one checked against the *specific* failures it was built to
+fix, not just an aggregate number.
+
+Exact-match dipped slightly (86.5% → 84.2%), within the same
+run-to-run noise band the last several rounds have shown on a
+21-submission sample — nothing here suggests it's connected to the
+evidence fix (LaTeX desugaring runs at verification time, after the
+score is already decided; it cannot change which level the model
+selected). Deterministic tier 0, both consistency probes, and the
+zero-failure floor all held.
+
+**`level_decision` still reported zero `"borderline"` calls**, now
+across two live runs (99 questions in Run 4, 99 in Run 5). Two runs
+with no spread is a stronger signal than one — worth treating this the
+same way as `grading_confidence` (Finding 4) rather than waiting for a
+third run to say the same thing: on ground-truth-authored benchmark
+answers specifically, the model isn't finding genuinely close calls, or
+it's defaulting to "clear" the way it defaulted to high confidence. Real
+teacher-submitted answers are the more likely place this signal
+actually earns its keep; production data is the next place to check it,
+not another benchmark run.
+
+**Per-student totals**, correctly labelled this time (see the Run 3
+correction above for how that went wrong before) — `chemistry/twin`
++16, matching Run 1 and Run 3 exactly, three runs in a row now on the
+same probe. Combined with `chemistry/strong` +12 this run, Finding 3
+(leniency on the strongest chemistry answers) now has three consistent
+data points and is close to worth a deliberate look at the Borderline
+Rule rather than continued watching. `humanities/fluent_wrong` -20
+reproduces Run 4 exactly (same probe, same direction, same magnitude —
+the harsh-on-fabrication behavior is stable). `maths/fluent_wrong` +8
+this run (was +16 in Run 4, +4 in Run 1) continues Finding 2's pattern
+of leniency on confidently-wrong maths, though the size keeps varying.
+Two swings appear for the first time this run — `humanities/twin` +17
+and `maths/weak` -8 — logged here rather than acted on; one new
+appearance is not yet a pattern.
+
+**Bottom line:** the evidence-verified regression that opened this
+round is fixed, and fixed for the reason claimed — the subject-level
+breakdown is exactly what the root-cause diagnosis predicted it would
+be. Findings 2 and 3 keep strengthening across runs; Finding 4 is ready
+to be written off as "not discriminative on this dataset" pending a
+production read.
+
 ## Deferred to v2 — post-MVP
 
 Everything above ships now. One thing is deliberately held back:

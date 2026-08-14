@@ -1,20 +1,20 @@
 {
   "overall": {
     "questions": 133,
-    "exact": 115,
-    "exact_rate": 0.8647,
+    "exact": 112,
+    "exact_rate": 0.8421,
     "within_one_level": 133,
     "within_one_level_rate": 1.0,
-    "mean_level_error": 0.0752
+    "mean_level_error": 0.0827
   },
   "by_question_type": {
     "ESSAY": {
       "questions": 28,
-      "exact": 21,
-      "exact_rate": 0.75,
+      "exact": 20,
+      "exact_rate": 0.7143,
       "within_one_level": 28,
       "within_one_level_rate": 1.0,
-      "mean_level_error": 0.1071
+      "mean_level_error": 0.1429
     },
     "OBJECTIVE": {
       "questions": 35,
@@ -26,8 +26,8 @@
     },
     "SHORT-ANSWER": {
       "questions": 70,
-      "exact": 59,
-      "exact_rate": 0.8429,
+      "exact": 57,
+      "exact_rate": 0.8143,
       "within_one_level": 70,
       "within_one_level_rate": 1.0,
       "mean_level_error": 0.1
@@ -44,11 +44,11 @@
     },
     "History and Literature": {
       "questions": 28,
-      "exact": 25,
-      "exact_rate": 0.8929,
+      "exact": 22,
+      "exact_rate": 0.7857,
       "within_one_level": 28,
       "within_one_level_rate": 1.0,
-      "mean_level_error": -0.0357
+      "mean_level_error": 0.0714
     },
     "Mathematics": {
       "questions": 63,
@@ -56,7 +56,7 @@
       "exact_rate": 0.9048,
       "within_one_level": 63,
       "within_one_level_rate": 1.0,
-      "mean_level_error": 0.0635
+      "mean_level_error": 0.0317
     }
   },
   "failures": [],
@@ -84,13 +84,43 @@
       "awarded_totals": [
         80.0,
         5.0,
-        35.0,
+        40.0,
         20.0,
         61.0,
-        61.0,
+        73.0,
         30.0
       ],
-      "spearman": 0.955
+      "spearman": 0.9286
+    },
+    "maths": {
+      "students": [
+        "excellent",
+        "fluent_wrong",
+        "middling",
+        "partial",
+        "strong",
+        "twin",
+        "weak"
+      ],
+      "expected_totals": [
+        87.0,
+        12.0,
+        38.0,
+        15.0,
+        63.0,
+        71.0,
+        8.0
+      ],
+      "awarded_totals": [
+        87.0,
+        20.0,
+        38.0,
+        15.0,
+        68.0,
+        79.0,
+        0.0
+      ],
+      "spearman": 0.9643
     },
     "chemistry": {
       "students": [
@@ -121,36 +151,6 @@
         4.0
       ],
       "spearman": 0.9727
-    },
-    "maths": {
-      "students": [
-        "excellent",
-        "fluent_wrong",
-        "middling",
-        "partial",
-        "strong",
-        "twin",
-        "weak"
-      ],
-      "expected_totals": [
-        87.0,
-        12.0,
-        38.0,
-        15.0,
-        63.0,
-        71.0,
-        8.0
-      ],
-      "awarded_totals": [
-        87.0,
-        28.0,
-        38.0,
-        15.0,
-        68.0,
-        76.0,
-        4.0
-      ],
-      "spearman": 0.9643
     }
   },
   "deterministic": {
@@ -160,8 +160,8 @@
   },
   "evidence": {
     "checked": 98,
-    "verified": 90,
-    "verified_rate": 0.9184
+    "verified": 97,
+    "verified_rate": 0.9898
   },
   "rubric_snapping": {
     "snapped_scores": 0,
@@ -170,16 +170,16 @@
   },
   "second_opinion": {
     "coverage": {
-      "ran": 21,
+      "ran": 20,
       "skipped": 0,
-      "error": 0,
+      "error": 1,
       "not_run": 0
     },
-    "questions_compared": 40,
-    "questions_disagreed": 5,
-    "disagreement_rate": 0.125,
+    "questions_compared": 84,
+    "questions_disagreed": 7,
+    "disagreement_rate": 0.0833,
     "tiers": {
-      "moderate": 5
+      "moderate": 7
     }
   },
   "confidence_calibration": {
@@ -192,15 +192,15 @@
   "level_decision_calibration": {
     "clear": {
       "questions": 99,
-      "exact": 81,
-      "exact_rate": 0.8182,
+      "exact": 78,
+      "exact_rate": 0.7879,
       "graded_acceptably": 99,
       "within_one_level_rate": 1.0
     }
   },
   "cost": {
-    "total_tokens": 637686,
-    "total_seconds": 1.92,
+    "total_tokens": 756427,
+    "total_seconds": 2.03,
     "submissions": 21
   },
   "consistency": [
@@ -223,8 +223,8 @@
   ],
   "meta": {
     "mode": "replay",
-    "generated_at": "2026-08-13T13:17:35.168573+00:00",
-    "model_calls": 62,
+    "generated_at": "2026-08-14T08:08:08.682549+00:00",
+    "model_calls": 65,
     "second_opinion_models": [
       "deepseek/deepseek-v4-pro",
       "google/gemini-2.5-flash"

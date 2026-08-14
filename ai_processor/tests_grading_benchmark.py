@@ -530,7 +530,16 @@ class EvidenceDegradesOnFinalAttemptTest(SimpleTestCase):
                     "max_points": 10,
                     # Elided quote: faithful in meaning, not verbatim —
                     # exactly what the live model produced on maths.
-                    "evidence_quotes": ["step one ... step two"],
+                    # Deliberately worded so it stays unverifiable even
+                    # after enforce_evidence splits "..." into separate
+                    # fragments (see evidence.py's ellipsis handling,
+                    # added later, which DOES rescue a quote when every
+                    # fragment is a genuine substring) — the second
+                    # fragment here paraphrases the answer's wording
+                    # rather than copying it, so this fixture still
+                    # exercises the "still can't be verified" path this
+                    # test is for.
+                    "evidence_quotes": ["step one ... arrives at the final result"],
                 }
             ],
             "grading_summary": {},

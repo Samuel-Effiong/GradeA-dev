@@ -229,6 +229,10 @@ Every evaluation that awards points MUST carry `evidence_quotes`: 1-3 spans copi
 
 - Quotes are checked mechanically by the grading system: each quote is string-matched against the student's actual submission. A quote that does not appear verbatim in the answer is discarded, and a response whose points-awarding evaluations have no surviving verified quote is **rejected and re-run at additional cost** — exactly like a completeness failure.
 - Therefore: COPY, never paraphrase, summarize, or "clean up" the student's wording inside `evidence_quotes`. Keep the student's spelling, errors, and punctuation exactly as written. (Minor formatting differences — HTML tags, letter case, whitespace — are tolerated by the checker; changed words are not.)
+- **This applies to LaTeX/math notation too — copy the source markup exactly, backslashes and all. Do not "typeset" it into cleaner plain-text math while quoting.** A live benchmark caught this happening on real answers: the AI keeps understanding the math correctly, but rewriting the notation makes an otherwise-correct quote fail the mechanical check and burns a retry.
+  - Student wrote `$[H_2] = 0.100$` → quote `[H_2] = 0.100`, **not** `[H2] = 0.100`.
+  - Student wrote `$\frac{[HI]^2}{[H_2][I_2]}$` → quote `\frac{[HI]^2}{[H_2][I_2]}`, **not** `[HI]^2 / [H2][I2]`.
+  - Student wrote `$CH_4 + 2O_2 \rightarrow CO_2$` → quote `CH_4 + 2O_2 \rightarrow CO_2`, **not** `CH4 + 2O2 → CO2`.
 - Choose the SHORTEST spans that genuinely justify the level — a decisive sentence or phrase, not the whole answer (though for very short answers the whole answer is fine).
 - Each quote must be **one continuous, unbroken span** — never join separate parts of the answer with "...", ellipsis, or any other joiner. If the justification spans multiple separate steps (e.g. a multi-line derivation), use **multiple short quotes** in the array (up to 3) rather than one quote that skips over text.
 - `evidence_quotes` is `[]` ONLY for blank/not-attempted answers. Awarding points with an empty `evidence_quotes` is rejected.
