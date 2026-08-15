@@ -7,9 +7,11 @@ explanation, the same way it already does for a scheduled plan change.
 
 Four moving parts, locked down here:
 
-1. UserSubscriptionSerializer's derived cancellation fields
-   (has_pending_cancellation / cancellation_effective_date /
-   cancellation_message), plus the persisted cancelled_at.
+1. UserSubscriptionSerializer's `cancellation` object — a single nested
+   dict grouping `cancelled_at`, `has_pending_cancellation`,
+   `cancellation_effective_date` and `cancellation_message` (previously
+   four separate top-level fields; grouped so the frontend reads one
+   object instead of four loose keys).
 2. The cancel endpoint stamping cancelled_at.
 3. The resume path clearing it again.
 4. customer.subscription.updated mirroring Stripe's
@@ -24,8 +26,8 @@ implementation is `auto_renew === false -> show Resume`. That is wrong:
 EVERY free trial has auto_renew=False from birth (a trial must never
 convert to paid without an explicit action), so keying off the raw flag
 shows a bogus "your subscription is cancelled" to every trial user.
-has_pending_cancellation exists precisely to be the safe flag, and
-several tests below exist only to keep it that way.
+`cancellation.has_pending_cancellation` exists precisely to be the safe
+flag, and several tests below exist only to keep it that way.
 """
 
 from datetime import datetime, timedelta
@@ -97,8 +99,9 @@ def stripe_sub_payload(status="active", **extra):
 
 class CancellationSerializerFieldTests(TestCase):
     """
-    The three derived fields. These are what the frontend actually
-    reads, so each state a real subscription can be in gets a case.
+    The `cancellation` object's derived fields. These are what the
+    frontend actually reads, so each state a real subscription can be in
+    gets a case.
     """
 
     def setUp(self):
@@ -139,10 +142,10 @@ class CancellationSerializerFieldTests(TestCase):
     def test_renewing_subscription_reports_no_cancellation(self):
         data = self._data(self._make_sub())
 
-        self.assertFalse(data["has_pending_cancellation"])
-        self.assertIsNone(data["cancellation_effective_date"])
-        self.assertIsNone(data["cancellation_message"])
-        self.assertIsNone(data["cancelled_at"])
+        self.assertFalse(data["cancellation"]["has_pending_cancellation"])
+        self.assertIsNone(data["cancellation"]["cancellation_effective_date"])
+        self.assertIsNone(data["cancellation"]["cancellation_message"])
+        self.assertIsNone(data["cancellation"]["cancelled_at"])
 
     # --- the cancelled case ------------------------------------------
 
@@ -151,9 +154,9 @@ class CancellationSerializerFieldTests(TestCase):
 
         data = self._data(sub)
 
-        self.assertTrue(data["has_pending_cancellation"])
-        self.assertIsNotNone(data["cancellation_effective_date"])
-        self.assertIsNotNone(data["cancellation_message"])
+        self.assertTrue(data["cancellation"]["has_pending_cancellation"])
+        self.assertIsNotNone(data["cancellation"]["cancellation_effective_date"])
+        self.assertIsNotNone(data["cancellation"]["cancellation_message"])
 
     def test_effective_date_is_the_end_of_the_paid_period(self):
         """
@@ -170,13 +173,15 @@ class CancellationSerializerFieldTests(TestCase):
         # render identically once actually encoded to JSON, so compare
         # against the model attribute directly rather than the
         # already-serialized sibling field.
-        self.assertEqual(data["cancellation_effective_date"], sub.billing_cycle_end)
+        self.assertEqual(
+            data["cancellation"]["cancellation_effective_date"], sub.billing_cycle_end
+        )
 
     def test_message_includes_both_the_cancel_date_and_the_end_date(self):
         cancelled_on = timezone.now() - timedelta(days=2)
         sub = self._make_sub(auto_renew=False, cancelled_at=cancelled_on)
 
-        message = self._data(sub)["cancellation_message"]
+        message = self._data(sub)["cancellation"]["cancellation_message"]
 
         self.assertIn(cancelled_on.date().isoformat(), message)
         self.assertIn(sub.billing_cycle_end.date().isoformat(), message)
@@ -191,8 +196,8 @@ class CancellationSerializerFieldTests(TestCase):
 
         data = self._data(sub)
 
-        self.assertTrue(data["has_pending_cancellation"])
-        message = data["cancellation_message"]
+        self.assertTrue(data["cancellation"]["has_pending_cancellation"])
+        message = data["cancellation"]["cancellation_message"]
         self.assertNotIn("None", message)
         self.assertNotIn("You cancelled", message)
         self.assertIn(sub.billing_cycle_end.date().isoformat(), message)
@@ -211,9 +216,9 @@ class CancellationSerializerFieldTests(TestCase):
 
         data = self._data(trial)
 
-        self.assertFalse(data["has_pending_cancellation"])
-        self.assertIsNone(data["cancellation_effective_date"])
-        self.assertIsNone(data["cancellation_message"])
+        self.assertFalse(data["cancellation"]["has_pending_cancellation"])
+        self.assertIsNone(data["cancellation"]["cancellation_effective_date"])
+        self.assertIsNone(data["cancellation"]["cancellation_message"])
 
     def test_trial_with_a_stray_cancelled_at_is_still_not_reported(self):
         """Belt-and-braces: is_trial wins over any stray date."""
@@ -221,7 +226,7 @@ class CancellationSerializerFieldTests(TestCase):
         trial.cancelled_at = timezone.now()
         trial.save(update_fields=["cancelled_at"])
 
-        self.assertFalse(self._data(trial)["has_pending_cancellation"])
+        self.assertFalse(self._data(trial)["cancellation"]["has_pending_cancellation"])
 
     # --- states where resume would fail, so the button must not show --
 
@@ -240,15 +245,15 @@ class CancellationSerializerFieldTests(TestCase):
 
         data = self._data(sub)
 
-        self.assertFalse(data["has_pending_cancellation"])
-        self.assertIsNone(data["cancellation_message"])
+        self.assertFalse(data["cancellation"]["has_pending_cancellation"])
+        self.assertIsNone(data["cancellation"]["cancellation_message"])
 
     def test_inactive_subscription_is_not_reported_as_cancelled(self):
         sub = self._make_sub(
             is_active=False, auto_renew=False, cancelled_at=timezone.now()
         )
 
-        self.assertFalse(self._data(sub)["has_pending_cancellation"])
+        self.assertFalse(self._data(sub)["cancellation"]["has_pending_cancellation"])
 
     # --- must not be confused with a scheduled plan change ------------
 
@@ -269,8 +274,8 @@ class CancellationSerializerFieldTests(TestCase):
         data = self._data(sub)
 
         self.assertTrue(data["has_pending_change"])
-        self.assertFalse(data["has_pending_cancellation"])
-        self.assertIsNone(data["cancellation_message"])
+        self.assertFalse(data["cancellation"]["has_pending_cancellation"])
+        self.assertIsNone(data["cancellation"]["cancellation_message"])
 
     def test_cancelled_subscription_reports_no_pending_change(self):
         """The mirror image — cancel discards any scheduled change."""
@@ -278,26 +283,44 @@ class CancellationSerializerFieldTests(TestCase):
 
         data = self._data(sub)
 
-        self.assertTrue(data["has_pending_cancellation"])
+        self.assertTrue(data["cancellation"]["has_pending_cancellation"])
         self.assertFalse(data["has_pending_change"])
 
     # --- contract ----------------------------------------------------
 
-    def test_cancellation_fields_are_present_and_read_only(self):
+    def test_cancellation_field_is_present_and_read_only(self):
+        """
+        The four fields used to be separate top-level SerializerMethodFields
+        (each inherently read-only). They're now grouped under one
+        `cancellation` SerializerMethodField instead — still inherently
+        read-only for the same reason, since a SerializerMethodField never
+        accepts input. This checks the one field that actually exists on
+        the serializer now; the sub-keys inside it are a plain dict built
+        by get_cancellation(), not separate DRF fields, so their presence
+        is checked behaviorally below rather than via field introspection.
+        """
         serializer = UserSubscriptionSerializer()
 
-        for field in (
+        self.assertIn("cancellation", serializer.fields)
+        self.assertTrue(
+            serializer.fields["cancellation"].read_only,
+            "cancellation must be read-only — it is owned by the "
+            "cancel/resume/webhook paths, not by API writes.",
+        )
+
+    def test_cancellation_object_always_has_all_four_keys(self):
+        """Behavioral equivalent of the old per-field presence check —
+        every key must be present (even if null) in every state, so the
+        frontend never has to guard against a missing key."""
+        data = self._data(self._make_sub())
+
+        for key in (
             "cancelled_at",
             "has_pending_cancellation",
             "cancellation_effective_date",
             "cancellation_message",
         ):
-            self.assertIn(field, serializer.fields, f"{field} missing from payload")
-            self.assertTrue(
-                serializer.fields[field].read_only,
-                f"{field} must be read-only — it is owned by the "
-                f"cancel/resume/webhook paths, not by API writes.",
-            )
+            self.assertIn(key, data["cancellation"], f"{key} missing from cancellation")
 
 
 class CancelEndpointStampsCancelledAtTests(APITestCase):
@@ -405,9 +428,9 @@ class CancelEndpointStampsCancelledAtTests(APITestCase):
 
         sub.refresh_from_db()
         data = UserSubscriptionSerializer(sub).data
-        self.assertTrue(data["has_pending_cancellation"])
-        self.assertIsNotNone(data["cancellation_effective_date"])
-        self.assertIn("You cancelled", data["cancellation_message"])
+        self.assertTrue(data["cancellation"]["has_pending_cancellation"])
+        self.assertIsNotNone(data["cancellation"]["cancellation_effective_date"])
+        self.assertIn("You cancelled", data["cancellation"]["cancellation_message"])
 
 
 class ResumeClearsCancelledAtTests(APITestCase):
@@ -494,9 +517,9 @@ class ResumeClearsCancelledAtTests(APITestCase):
 
         sub.refresh_from_db()
         data = UserSubscriptionSerializer(sub).data
-        self.assertFalse(data["has_pending_cancellation"])
-        self.assertIsNone(data["cancellation_message"])
-        self.assertIsNone(data["cancelled_at"])
+        self.assertFalse(data["cancellation"]["has_pending_cancellation"])
+        self.assertIsNone(data["cancellation"]["cancellation_message"])
+        self.assertIsNone(data["cancellation"]["cancelled_at"])
 
 
 class StripeDashboardCancellationSyncTests(TestCase):
@@ -564,8 +587,8 @@ class StripeDashboardCancellationSyncTests(TestCase):
         )
 
         data = UserSubscriptionSerializer(self._reload()).data
-        self.assertTrue(data["has_pending_cancellation"])
-        self.assertIsNotNone(data["cancellation_message"])
+        self.assertTrue(data["cancellation"]["has_pending_cancellation"])
+        self.assertIsNotNone(data["cancellation"]["cancellation_message"])
 
     # --- the recorded date -------------------------------------------
 
@@ -840,7 +863,9 @@ class CancelResumeRoundTripTests(APITestCase):
 
     def _flag(self):
         self.sub.refresh_from_db()
-        return UserSubscriptionSerializer(self.sub).data["has_pending_cancellation"]
+        return UserSubscriptionSerializer(self.sub).data["cancellation"][
+            "has_pending_cancellation"
+        ]
 
     @patch("stripe.Subscription")
     def test_cancel_then_resume_round_trip(self, mock_subscription):

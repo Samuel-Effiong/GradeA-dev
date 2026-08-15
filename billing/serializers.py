@@ -121,6 +121,22 @@ class SubscriptionPlanSerializer(serializers.ModelSerializer):
         return obj.display_overage_block_size
 
 
+class CancellationInfoSerializer(serializers.Serializer):
+    """
+    Schema-only shape for UserSubscriptionSerializer.get_cancellation()'s
+    return value — never instantiated to serialize real data (that dict is
+    built by hand in get_cancellation so the three fields can share one
+    `_has_pending_cancellation` check). This class exists purely so
+    drf-spectacular renders a real nested object in the OpenAPI schema
+    instead of a generic, undocumented JSON blob.
+    """
+
+    cancelled_at = serializers.DateTimeField(allow_null=True)
+    has_pending_cancellation = serializers.BooleanField()
+    cancellation_effective_date = serializers.DateTimeField(allow_null=True)
+    cancellation_message = serializers.CharField(allow_null=True)
+
+
 class UserSubscriptionSerializer(serializers.ModelSerializer):
     """
     Serializer for the UserSubscription model.
@@ -148,9 +164,7 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
     has_pending_change = serializers.SerializerMethodField(read_only=True)
     recommended_plan = serializers.SerializerMethodField(read_only=True)
 
-    has_pending_cancellation = serializers.SerializerMethodField(read_only=True)
-    cancellation_effective_date = serializers.SerializerMethodField(read_only=True)
-    cancellation_message = serializers.SerializerMethodField(read_only=True)
+    cancellation = serializers.SerializerMethodField(read_only=True)
 
     def to_internal_value(self, data):
         """
@@ -232,10 +246,7 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
             "billing_cycle_start",
             "billing_cycle_end",
             "auto_renew",
-            "cancelled_at",
-            "has_pending_cancellation",
-            "cancellation_effective_date",
-            "cancellation_message",
+            "cancellation",
             "pending_plan",
             "pending_plan_effective_date",
             "pending_change_type",
@@ -257,7 +268,6 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
             "billing_cycle_end",
             "subscription_type",
             "is_under_license",
-            "cancelled_at",
             "pending_plan",
             "pending_change_type",
         ]
@@ -322,7 +332,7 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
             return None
         return obj.billing_cycle_end
 
-    def get_has_pending_cancellation(self, obj) -> bool:
+    def _has_pending_cancellation(self, obj) -> bool:
         """
         True when this subscription is scheduled to stop renewing and
         the resume flow would actually succeed right now — i.e. the one
@@ -346,6 +356,11 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
         A scheduled plan change does NOT set this — a downgrade still
         renews, just onto a different plan; use has_pending_change for
         that.
+
+        Not a SerializerMethodField itself (no get_ prefix) — it is only
+        ever read through get_cancellation() below, which nests it
+        alongside the rest of the cancellation-related fields instead of
+        exposing it at the top level.
         """
         return bool(
             obj.is_active
@@ -355,21 +370,19 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
             and obj.billing_cycle_end > timezone.now()
         )
 
-    @extend_schema_field(serializers.DateTimeField(allow_null=True))
-    def get_cancellation_effective_date(self, obj):
+    def _cancellation_effective_date(self, obj):
         """
         When access actually ends — the end of the period already paid
-        for. Null unless a cancellation is pending.
+        for. None unless a cancellation is pending.
         """
-        if not self.get_has_pending_cancellation(obj):
+        if not self._has_pending_cancellation(obj):
             return None
         return obj.billing_cycle_end
 
-    @extend_schema_field(serializers.CharField(allow_null=True))
-    def get_cancellation_message(self, obj):
+    def _cancellation_message(self, obj):
         """
         Ready-to-display explanation, mirroring `pending_change_message`
-        so the frontend renders both banners the same way. Null unless a
+        so the frontend renders both banners the same way. None unless a
         cancellation is pending.
 
         Composed here rather than persisted (which is what the plan-change
@@ -383,7 +396,7 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
         none. The message degrades to the dateless form rather than
         rendering "You cancelled on None".
         """
-        if not self.get_has_pending_cancellation(obj):
+        if not self._has_pending_cancellation(obj):
             return None
 
         ends_on = obj.billing_cycle_end.date().isoformat()
@@ -400,6 +413,25 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
             f"won't renew. You keep your current plan and credits until "
             f"then."
         )
+
+    @extend_schema_field(CancellationInfoSerializer)
+    def get_cancellation(self, obj) -> dict:
+        """
+        Everything the frontend needs to render cancellation state, in
+        one place instead of four top-level fields — `cancelled_at`
+        (when the cancel action was taken, if known),
+        `has_pending_cancellation` (the one boolean gate for showing a
+        "Resume" button — see _has_pending_cancellation's docstring for
+        why this is not just `not auto_renew`), `cancellation_effective_
+        date` and `cancellation_message` (both null unless a
+        cancellation is actually pending).
+        """
+        return {
+            "cancelled_at": obj.cancelled_at,
+            "has_pending_cancellation": self._has_pending_cancellation(obj),
+            "cancellation_effective_date": self._cancellation_effective_date(obj),
+            "cancellation_message": self._cancellation_message(obj),
+        }
 
     def get_has_pending_change(self, obj) -> bool:
         """
@@ -2040,6 +2072,33 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
         if value <= 0:
             raise serializers.ValidationError("max_seats must be a positive integer.")
         return value
+
+    def validate(self, attrs):
+        """Reject an admin_user who doesn't belong to the license's school.
+
+        The service layer enforces this too (and is the real guard - the
+        Stripe webhook path never goes through this serializer). Repeating
+        it here is purely so an API caller gets a 400 naming the offending
+        field instead of the 500 an uncaught service-layer ValueError
+        would produce.
+        """
+        attrs = super().validate(attrs)
+
+        # On PATCH, either side of the pair may be absent from the payload;
+        # fall back to what's already stored so a partial update that
+        # changes only one of them is still checked against the other.
+        school = attrs.get("school") or getattr(self.instance, "school", None)
+        admin_user = attrs.get("admin_user") or getattr(
+            self.instance, "admin_user", None
+        )
+
+        if school and admin_user:
+            try:
+                LicenseSubscriptionService.validate_admin_user(admin_user, school)
+            except ValueError as exc:
+                raise serializers.ValidationError({"admin_user": str(exc)}) from exc
+
+        return attrs
 
     def create(self, validated_data):
         """

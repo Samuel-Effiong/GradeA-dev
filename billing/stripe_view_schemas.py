@@ -509,8 +509,8 @@ refunded anything immediately. The effective change date is the next
 `pending_plan_effective_date` and `pending_change_message`) to show a
 scheduled-change banner. Do NOT infer a scheduled change — or a
 cancellation — from `auto_renew`: it is `False` for every free trial as
-well. `has_pending_cancellation` is the flag for "show the Resume
-button".
+well. `cancellation.has_pending_cancellation` is the flag for "show the
+Resume button".
 """,
     request=inline_serializer(
         name="DowngradeRequest",
@@ -567,12 +567,12 @@ Sets `auto_renew=False` and stamps `cancelled_at` on the local
 previously scheduled plan change is discarded (its Stripe
 `SubscriptionSchedule` is released) — the message says so when that happened.
 
-**Frontend note.** After this call the subscription serializer reports
-`has_pending_cancellation: true`, along with `cancellation_effective_date`
-(when access ends) and `cancellation_message` (ready to display, and
-includes the `cancelled_at` date when known). Gate the **Resume** button on
-`has_pending_cancellation` — it is true only while `POST
-/subscription/resume` would actually succeed.
+**Frontend note.** After this call the subscription serializer's nested
+`cancellation` object reports `has_pending_cancellation: true`, along with
+`cancellation_effective_date` (when access ends) and `cancellation_message`
+(ready to display, and includes the `cancelled_at` date when known). Gate
+the **Resume** button on `cancellation.has_pending_cancellation` — it is
+true only while `POST /subscription/resume` would actually succeed.
 
 Do NOT gate it on `auto_renew`: that flag is `False` for every free trial
 too, so trial users would be shown a bogus "cancelled" state.
