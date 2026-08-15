@@ -97,10 +97,18 @@ class IsSchoolAdminOrSuperAdmin(IsAuthenticated):
         ):
             return True
 
-        # School admin can only manage licenses for their school
+        # School admin can only manage licenses for their school.
+        #
+        # Scoped by school membership, NOT by `obj.admin_user == request.user`.
+        # Keying off admin_user meant a school with two SCHOOL_ADMINs let only
+        # the named one in, and it disagreed with get_queryset() (which filters
+        # by school) - the license showed up in the list and then 403'd on
+        # retrieve. It also handed a wrongly-set admin_user the power to lock
+        # the school's real admin out of their own license entirely.
         if request.user.user_type == UserTypes.SCHOOL_ADMIN:
-            # Check if user is an admin for the license's school
-            return obj.admin_user == request.user
+            return bool(
+                request.user.school_id and obj.school_id == request.user.school_id
+            )
 
         return False
 
@@ -221,7 +229,9 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
         Request body:
         {
             "school": <school_id>,
-            "admin_user": <user_id>,
+            "admin_user": <user_id> (optional — defaults to the school's own
+                                     admin; only needed to designate one of
+                                     several admins),
             "plan": <plan_id>,
             "teacher_ids": [<user_id>, ...] (optional),
             "billing_method": "STRIPE" | "OFFLINE" (optional, default STRIPE)
@@ -269,7 +279,7 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
             session = StripeCheckoutService.create_license_session(
                 school=data["school"],
                 plan=data["plan"],
-                admin_user=data["admin_user"],
+                admin_user=data.get("admin_user"),
                 contract_months=data.get("contract_months", 12),
                 max_seats=data.get("max_seats", 0),
                 teacher_emails=data.get("teacher_emails", []),

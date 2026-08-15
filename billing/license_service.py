@@ -270,23 +270,97 @@ class LicenseSubscriptionService:
         """
         Validates that admin_user is authorized to manage licenses for the school.
 
+        admin_user is not just a bookkeeping field: it decides who receives
+        the school's admin credit allocation, whose email is reported as the
+        school's billing contact, and who may request/approve overage. So it
+        has to be someone who actually belongs to the school.
+
+        Membership is required, not merely "not contradicted". This used to
+        only reject an admin_user whose school was set AND different, which
+        let any user with school=None through - a SUPER_ADMIN is exactly
+        that, so a superadmin could name themselves as a school's license
+        admin, divert that school's admin credit allocation to their own
+        wallet, and (see IsSchoolAdminOrSuperAdmin.has_object_permission)
+        displace the school's real admin.
+
         Args:
-            admin_user: User attempting to manage the license
+            admin_user: User being named as the license's managing admin
             school: School the license belongs to
 
         Raises:
             ValueError: If admin_user is not authorized
         """
-        # Check if user is school admin and belongs to the school
-        if admin_user.user_type == "STUDENT":
+        if admin_user.user_type == UserTypes.STUDENT:
             raise ValueError("Student users cannot manage license subscriptions.")
 
-        # Optionally check if admin_user is associated with the school
-        if admin_user.school and admin_user.school != school:
+        # A superadmin is platform staff, not a tenant member. They create
+        # and administer licenses through their own elevated permissions and
+        # never need to be named as the license's admin_user to do so.
+        if admin_user.user_type == UserTypes.SUPER_ADMIN or admin_user.is_superuser:
+            raise ValueError(
+                f"User {admin_user.email} is a super admin and cannot be set "
+                f"as the license admin for school {school.name}. Name a school "
+                "admin belonging to that school instead."
+            )
+
+        if admin_user.school_id is None:
+            raise ValueError(
+                f"User {admin_user.email} does not belong to any school and "
+                f"cannot manage licenses for school {school.name}."
+            )
+
+        if admin_user.school_id != school.id:
             raise ValueError(
                 f"User {admin_user.email} is not authorized to manage "
                 f"licenses for school {school.name}."
             )
+
+    @staticmethod
+    def resolve_admin_user(school: School, admin_user=None) -> CustomUser:
+        """Return the user who should manage `school`'s license.
+
+        A license belongs to a school, and a school already knows who its
+        admin is - so the caller shouldn't have to tell us, and getting it
+        wrong shouldn't be possible. When admin_user is omitted this derives
+        it from the school; when one IS supplied (a school with several
+        admins may legitimately designate which of them holds billing) it's
+        still put through validate_admin_user().
+
+        Ordering mirrors the "first admin" convention the school list and
+        detail views already use (classrooms/views.py), with one addition:
+        an active admin outranks an inactive one. A school admin who was
+        invited but hasn't completed registration yet is a real, expected
+        state - schools are onboarded before they buy - so inactive admins
+        are still eligible rather than skipped; they're just not preferred
+        over someone who can actually sign in today.
+
+        Raises:
+            ValueError: If admin_user is invalid, or the school has no
+                school admin to fall back on.
+        """
+        if admin_user is not None:
+            LicenseSubscriptionService.validate_admin_user(admin_user, school)
+            return admin_user
+
+        resolved = (
+            CustomUser.objects.filter(school=school, user_type=UserTypes.SCHOOL_ADMIN)
+            .order_by("-is_active", "date_joined")
+            .first()
+        )
+
+        if resolved is None:
+            raise ValueError(
+                f"School {school.name} has no school admin, so there is "
+                "nobody to manage its license. Create the school's admin "
+                "first (POST /schools/create_with_admin/), then create the "
+                "license."
+            )
+
+        # Belt and braces: the derived user goes through exactly the same
+        # gate an explicitly-passed one does, so the two paths can never
+        # drift apart in what they accept.
+        LicenseSubscriptionService.validate_admin_user(resolved, school)
+        return resolved
 
     @staticmethod
     def _rollover_and_grant_monthly_bucket(
@@ -706,7 +780,7 @@ class LicenseSubscriptionService:
     def create_license_subscription(
         school: School,
         plan: SubscriptionPlan,
-        admin_user: CustomUser,
+        admin_user: Optional[CustomUser] = None,
         teacher_emails: Optional[List[str]] = None,
         contract_months: int = 12,
         max_seats: int = 0,
@@ -732,7 +806,10 @@ class LicenseSubscriptionService:
         Args:
             school: School receiving the license
             plan: LICENSE category plan
-            admin_user: User managing the license
+            admin_user: User managing the license. Optional - when omitted,
+                the school's own admin is resolved (see resolve_admin_user).
+                Pass one only to designate a specific admin at a school that
+                has several.
             teacher_emails: Optional list of teacher emails to enroll immediately
             contract_months: Billing period length (9, 10, or 12). Default 12.
             max_seats: Maximum number of teacher seats (0 = unlimited). Default 0.
@@ -751,9 +828,11 @@ class LicenseSubscriptionService:
             ValueError: If plan or admin validation fails, or contract_months is invalid
             School.DoesNotExist: If school doesn't exist
         """
-        # 1. Validate inputs
+        # 1. Validate inputs. admin_user may be omitted - the school's own
+        # admin is then used, which is what it should be in every ordinary
+        # case anyway.
         LicenseSubscriptionService.validate_license_plan(plan)
-        LicenseSubscriptionService.validate_admin_user(admin_user, school)
+        admin_user = LicenseSubscriptionService.resolve_admin_user(school, admin_user)
 
         # if contract_months not in (1, 9, 10, 12):
         #     raise ValueError(

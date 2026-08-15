@@ -2037,7 +2037,8 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
 
         extra_kwargs = {
             "school": {"write_only": True},
-            "admin_user": {"write_only": True},
+            # Optional: derived from the school when omitted. See validate().
+            "admin_user": {"write_only": True, "required": False},
             "plan": {"write_only": True},
             "contract_months": {"write_only": True},
             "max_seats": {"write_only": True},
@@ -2074,27 +2075,45 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
-        """Reject an admin_user who doesn't belong to the license's school.
+        """Fill in admin_user from the school, and vet it either way.
 
-        The service layer enforces this too (and is the real guard - the
-        Stripe webhook path never goes through this serializer). Repeating
-        it here is purely so an API caller gets a 400 naming the offending
-        field instead of the 500 an uncaught service-layer ValueError
-        would produce.
+        admin_user is optional: a license belongs to a school, and the
+        school already knows who its admin is, so omitting it is the normal
+        path and the server derives it. Supplying one is still allowed (a
+        school with several admins may designate which of them holds
+        billing) and is validated against the school.
+
+        The service layer enforces the same rules (and is the real guard -
+        the Stripe webhook path never goes through this serializer).
+        Repeating it here is so an API caller gets a 400 naming the
+        offending field instead of the 500 an uncaught service-layer
+        ValueError would produce.
         """
         attrs = super().validate(attrs)
 
-        # On PATCH, either side of the pair may be absent from the payload;
-        # fall back to what's already stored so a partial update that
-        # changes only one of them is still checked against the other.
+        explicit_admin = attrs.get("admin_user")
         school = attrs.get("school") or getattr(self.instance, "school", None)
-        admin_user = attrs.get("admin_user") or getattr(
-            self.instance, "admin_user", None
-        )
 
-        if school and admin_user:
+        if self.instance is None:
+            # Create: always resolve, so a caller who names nobody still
+            # ends up with the school's own admin on the license.
+            needs_resolving = True
+        else:
+            # Update: only when the caller actually touches one side of the
+            # pair. Re-validating an untouched stored admin_user on every
+            # PATCH would make unrelated edits (auto_renew, max_seats) fail
+            # on any legacy row that predates this guard - locking ops out
+            # of exactly the rows they need to repair. Changing `school`
+            # alone DOES re-check, since the stored admin belongs to the
+            # old school and would otherwise silently cross tenants.
+            needs_resolving = explicit_admin is not None or "school" in attrs
+
+        if needs_resolving and school:
+            candidate = explicit_admin or getattr(self.instance, "admin_user", None)
             try:
-                LicenseSubscriptionService.validate_admin_user(admin_user, school)
+                attrs["admin_user"] = LicenseSubscriptionService.resolve_admin_user(
+                    school, candidate
+                )
             except ValueError as exc:
                 raise serializers.ValidationError({"admin_user": str(exc)}) from exc
 
@@ -2115,7 +2134,9 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
         # The service expects these as arguments
         school = validated_data.pop("school")
         plan = validated_data.pop("plan")
-        admin_user = validated_data.pop("admin_user")
+        # Optional: validate() fills it in from the school, and the service
+        # resolves it again if it's still None.
+        admin_user = validated_data.pop("admin_user", None)
         contract_months = validated_data.pop("contract_months", 12)
         max_seats = validated_data.pop("max_seats", 0)
 

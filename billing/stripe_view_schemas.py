@@ -670,7 +670,15 @@ until that subscription is cancelled.
         fields={
             "school": serializers.UUIDField(help_text="UUID of the School."),
             "admin_user": serializers.UUIDField(
-                help_text="UUID of the school admin managing this license."
+                required=False,
+                help_text=(
+                    "UUID of the school admin managing this license. "
+                    "OPTIONAL - omit it and the school's own admin is used, "
+                    "which is correct in every ordinary case. Pass it only to "
+                    "designate a specific admin when the school has several. "
+                    "Must be a SCHOOL_ADMIN/teacher belonging to that school: "
+                    "a super admin or a member of another school is rejected."
+                ),
             ),
             "plan": serializers.UUIDField(
                 help_text="UUID of a LICENSE-category plan. Must not be contact-sales."

@@ -48,7 +48,13 @@ class CustomUserSerializer(serializers.ModelSerializer):
         write_only=True, required=True, validators=[validate_password]
     )
     school = serializers.PrimaryKeyRelatedField(
-        queryset=School.objects.all(), required=False
+        queryset=School.objects.all(),
+        required=False,
+        # The model column is nullable (users/models.py) and detaching a user
+        # from a school is a real operation - it's also the documented remedy
+        # for promoting a school member to SUPER_ADMIN, which validate()
+        # refuses while a school is still attached.
+        allow_null=True,
     )
     settings = SettingsSerializer(read_only=True)
     credit_wallet = CreditWalletSerializer(read_only=True)
@@ -121,6 +127,73 @@ class CustomUserSerializer(serializers.ModelSerializer):
             user_type = self.instance.user_type
         elif not user_type:
             user_type = UserTypes.TEACHER
+
+        # --- Platform staff are not tenant members ---
+        # A superadmin belongs to no school, and nothing should be able to
+        # give them one. Without this, a superadmin could PATCH themselves
+        # (or be PATCHed) to user_type=SCHOOL_ADMIN with a school attached,
+        # after which they show up as that school's admin on every school
+        # screen -- all of which select on user_type=SCHOOL_ADMIN
+        # (classrooms/views.py) -- while STILL holding is_superuser. It also
+        # silently revokes their own access, since IsSuperAdmin checks
+        # user_type: the account ends up able to administer neither the
+        # platform nor, legitimately, the school. The same invariant is
+        # enforced on the billing side by
+        # LicenseSubscriptionService.validate_admin_user().
+        tenant_user_types = {
+            UserTypes.SCHOOL_ADMIN,
+            UserTypes.TEACHER,
+            UserTypes.STUDENT,
+        }
+        target_is_platform_staff = bool(
+            self.instance
+            and (
+                self.instance.is_superuser
+                or self.instance.user_type == UserTypes.SUPER_ADMIN
+            )
+        )
+        requested_user_type = attrs.get("user_type")
+
+        if target_is_platform_staff:
+            if attrs.get("school") is not None:
+                raise serializers.ValidationError(
+                    {
+                        "school": (
+                            "A super admin cannot be assigned to a school. "
+                            "Super admins administer the platform across all "
+                            "schools; to make someone a school's admin, use a "
+                            "separate non-superuser account."
+                        )
+                    }
+                )
+            if requested_user_type in tenant_user_types:
+                raise serializers.ValidationError(
+                    {
+                        "user_type": (
+                            f"A super admin cannot be changed into a "
+                            f"{requested_user_type}. Demote the account's "
+                            "superuser status first, or use a separate "
+                            "account for that role."
+                        )
+                    }
+                )
+
+        # ...and the mirror image: promoting an account to SUPER_ADMIN must
+        # not leave a stale school attached to it.
+        if requested_user_type == UserTypes.SUPER_ADMIN:
+            effective_school = attrs.get(
+                "school", getattr(self.instance, "school", None)
+            )
+            if effective_school is not None:
+                raise serializers.ValidationError(
+                    {
+                        "user_type": (
+                            "This account belongs to a school and so cannot be "
+                            "made a super admin. Clear its school first "
+                            '(set "school": null in the same request).'
+                        )
+                    }
+                )
 
         email = attrs.get("email")
         if not email and self.instance:

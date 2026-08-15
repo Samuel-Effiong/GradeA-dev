@@ -626,7 +626,11 @@ class StripeCheckoutService:
             )
 
         LicenseSubscriptionService.validate_license_plan(plan)
-        LicenseSubscriptionService.validate_admin_user(admin_user, school)
+        # Resolve (or vet) the managing admin BEFORE creating the checkout
+        # session: the resolved id is what gets stamped into session
+        # metadata and read back by the webhook, and a school with no
+        # eligible admin must fail here rather than after it has paid.
+        admin_user = LicenseSubscriptionService.resolve_admin_user(school, admin_user)
 
         if custom_price_cents:
             line_item = {
@@ -3296,6 +3300,27 @@ class StripeWebhookHandler:
         carry_forward_teachers = (
             metadata.get("carry_forward_teachers", "true") == "true"
         )
+
+        # By the time this webhook fires the school HAS PAID, so an
+        # unusable admin_user must not turn into a hard failure that leaves
+        # them charged with no license. Sessions created before admin_user
+        # was guarded can still be in flight carrying, say, a superadmin's
+        # id. Vet it, and on rejection fall back to the school's own admin -
+        # which is what it should have been - rather than refusing to
+        # provision. Loud, because it means a stale session got through.
+        try:
+            LicenseSubscriptionService.validate_admin_user(admin_user, school)
+        except ValueError as exc:
+            logger.error(
+                "Checkout session %s named an invalid license admin_user (%s) "
+                "for school %s: %s. Falling back to the school's own admin so "
+                "the paid license is still provisioned.",
+                session.get("id"),
+                admin_user.email,
+                school.name,
+                exc,
+            )
+            admin_user = None
 
         license_sub = LicenseSubscriptionService.create_license_subscription(
             school=school,
