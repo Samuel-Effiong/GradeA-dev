@@ -24,11 +24,13 @@ produces a row that is both is_trial=True and carries a
 stripe_subscription_id — trials are local-only, and
 finalize_trial_to_paid_conversion clears is_trial in the same save that
 attaches the Stripe id. The one function that WOULD produce that state,
-_handle_individual_trial, is only dispatched by a checkout flow whose
-sole builder has no callers and is marked for deletion. The trial cases
-below therefore guard a path that is one code change away from live —
-specifically, adopting Stripe-native trials (trial_period_days), where
-the declined-card invoice lands exactly at trial_end.
+_handle_individual_trial, has been deleted (its sole builder,
+create_individual_trial_session, had no callers). The trial cases below
+guard handle_invoice_payment_failed's own defensive is_trial branch,
+which is deliberately kept as belt-and-braces — see its comment in
+stripe_service.py — in case Stripe-native trials (trial_period_days)
+are adopted later, where the declined-card invoice would land exactly
+at trial_end.
 
 All Stripe API calls are mocked by patching attributes on the real
 `stripe` module, leaving `stripe.error.*` as the real exception classes

@@ -14,14 +14,20 @@ Coverage targets:
 
 NOTE: this file used to also cover SubscriptionService.convert_trial_to_paid()
 and the /start-trial/ and /convert-trial/ API actions. Both were removed —
-convert_trial_to_paid() no longer exists (trial-to-paid conversion now goes
-through Stripe Checkout + webhook finalization, see
-StripeCheckoutService.create_trial_to_paid_session /
-SubscriptionService.finalize_trial_to_paid_conversion in stripe_service.py),
-and the start-trial/convert-trial ViewSet actions are commented out in
-views.py in favor of the same Checkout-based flow. The tests for them were
-dead weight testing removed code paths, so they were deleted rather than
-fixed.
+convert_trial_to_paid() no longer exists, and the start-trial/convert-trial
+ViewSet actions are commented out in views.py in favor of the unified
+Checkout-based flow. The tests for them were dead weight testing removed
+code paths, so they were deleted rather than fixed.
+
+Update: StripeCheckoutService.create_trial_to_paid_session (mentioned in an
+earlier version of this note as "the" trial-to-paid mechanism) has since
+been deleted too — its only caller in views.py was already commented out,
+so it was never reachable either. The live mid-trial-upgrade path today is
+create_individual_checkout_session (flow=individual_checkout), reached via
+select_plan's "checkout" branch whenever the current subscription is_trial,
+which finalizes through SubscriptionService.finalize_trial_to_paid_conversion.
+_handle_trial_to_paid itself is kept in stripe_service.py only as a
+replay-only target for an old FAILED webhook event — see its own docstring.
 """
 
 from datetime import timedelta

@@ -21,9 +21,7 @@ flowchart TD
 
     %% ===================== ENTRY POINTS =====================
     Signup(["Teacher account created\n(users/signals.py)"]):::entry
-    TrialCheckoutEP(["Explicit trial checkout\n(card required upfront)"]):::entry
     DirectCheckoutEP(["Direct checkout\n(no trial, incl. trial finalize)"]):::entry
-    LegacySubscribeEP(["Legacy subscribe\n(paid, no checkout builder)"]):::entry
     SelectPlanEP(["POST /select-plan\n(upgrade / downgrade / resubscribe)"]):::entry
     CancelEP(["POST /cancel"]):::entry
     ResumeEP(["POST /resume"]):::entry
@@ -31,41 +29,46 @@ flowchart TD
     PaymentMethodEP(["Payment method mgmt\n(setup intent / portal / delete / default)"]):::entry
 
     %% ===================== A. SIGNUP / AUTOMATIC TRIAL =====================
+    %% The only trial mechanism left. There used to be a second one —
+    %% create_individual_trial_session, a card-collected-upfront Stripe
+    %% Checkout with trial_period_days=14 — but it had zero callers
+    %% anywhere in the app (no view/URL ever wired to it) and has been
+    %% deleted, along with its webhook handler _handle_individual_trial.
+    %% A trial created here has NO Stripe subscription at all, so it can
+    %% never receive invoice.payment_succeeded, invoice.payment_failed,
+    %% or a Stripe-side customer.subscription.deleted — the only way out
+    %% is an explicit checkout (below) or the nightly sweep.
     Signup --> AutoTrialGuard{"Ever had a trial?\n(one-trial-ever guard)"}
     AutoTrialGuard -- "yes" --> AutoTrialReject["No trial granted"]:::error
-    AutoTrialGuard -- "no" --> AutoTrialGrant["activate_automatic_free_trial()\nservices.py:1741\nTRIAL bucket: 5,000,000 credits\nexpires_at = now + 14d"]:::success
+    AutoTrialGuard -- "no" --> AutoTrialGrant["activate_automatic_free_trial()\nservices.py:1741\nTRIAL bucket: 5,000,000 credits\nexpires_at = now + 14d\nNO Stripe subscription"]:::success
     AutoTrialGrant --> TrialState
 
-    %% ===================== B. EXPLICIT TRIAL CHECKOUT =====================
-    TrialCheckoutEP --> TrialCkGuard{"Active trial exists?\nOR active sub exists?\nOR plan is LICENSE?"}
-    TrialCkGuard -- "reject" --> TrialCkReject["Rejected"]:::error
-    TrialCkGuard -- "ok" --> TrialCkSession["Stripe Checkout\nmode=subscription\ntrial_period_days=14\npayment_method_collection=always"]
-    TrialCkSession --> CheckoutCompleted
-
-    %% ===================== C. DIRECT CHECKOUT (unified builder) =====================
+    %% ===================== B. DIRECT CHECKOUT (unified builder) =====================
+    %% This single builder covers every "must go through Stripe Checkout"
+    %% case, including converting an existing trial — see its own
+    %% docstring in stripe_service.py. It replaced three earlier,
+    %% separate checkout builders (individual_subscribe, individual_trial,
+    %% trial_to_paid), all now deleted; only their webhook DISPATCH
+    %% branches survive, as replay-only targets for any old FAILED event
+    %% from back when they were live — see the note on
+    %% handle_checkout_completed's "individual_subscribe"/"trial_to_paid"
+    %% branches in stripe_service.py. No live entry point reaches them,
+    %% so they are intentionally omitted from this diagram.
     DirectCheckoutEP --> DirectCkGuard{"Chargeable active\nnon-trial sub already exists?"}
     DirectCkGuard -- "yes" --> DirectCkReject["Rejected — use\nupgrade/downgrade instead"]:::error
     DirectCkGuard -- "no, or trial only" --> DirectCkSession["Stripe Checkout\n(snapshots trial_subscription_id\nin metadata if trial active)"]
     DirectCkSession --> CheckoutCompleted
 
-    LegacySubscribeEP --> LegacyCkSession["Stripe Checkout\nflow=individual_subscribe"]
-    LegacyCkSession --> CheckoutCompleted
-
     %% ===================== CHECKOUT WEBHOOK DISPATCH =====================
     CheckoutCompleted(["Stripe webhook:\ncheckout.session.completed"]):::webhook
     CheckoutCompleted --> FlowSwitch{"metadata.flow"}
     FlowSwitch -- "individual_checkout" --> HandleIndivCheckout["_handle_individual_checkout\nstripe_service.py:2807"]
-    FlowSwitch -- "individual_subscribe (legacy)" --> HandleIndivSubscribe["_handle_individual_subscribe\nstripe_service.py:3386"]
-    FlowSwitch -- "individual_trial (legacy)" --> HandleIndivTrial["_handle_individual_trial\nstripe_service.py:3423"]
-    FlowSwitch -- "trial_to_paid" --> HandleTrialToPaid["_handle_trial_to_paid\nstripe_service.py:3532"]
     FlowSwitch -- "individual_upgrade_checkout" --> HandleUpgradeCkCompleted
     FlowSwitch -- "overage_block_purchase_checkout" --> HandleOverageCk
 
     HandleIndivCheckout --> TrialMetaGuard{"trial_subscription_id\nin metadata?"}
     TrialMetaGuard -- "yes" --> FinalizeTrialToPaid["finalize_trial_to_paid_conversion()\nservices.py"]
     TrialMetaGuard -- "no" --> ActivateSub["activate_subscription()\nservices.py:149"]
-    HandleIndivSubscribe --> ActivateSub
-    HandleTrialToPaid --> FinalizeTrialToPaid
 
     ActivateSub --> BetaGate{"plan == BETA\nand NOT user.is_beta_eligible()?"}
     BetaGate -- "yes" --> BetaReject["Rejected:\nBeta restricted to teachers"]:::error
@@ -80,45 +83,13 @@ flowchart TD
     GrantMonthly2 --> ActiveState
 
     %% ===================== TRIAL STATE & ITS OUTCOMES =====================
-    %% activate_automatic_free_trial() creates NO Stripe subscription at
-    %% all (its own docstring: "no Stripe, no card collection") — so a
-    %% trial reached that way can never receive invoice.payment_failed,
-    %% invoice.payment_succeeded, or a Stripe-side
-    %% customer.subscription.deleted. Only create_individual_trial_session
-    %% (path B, card collected upfront — itself marked legacy/FIXME) ever
-    %% attaches a real Stripe subscription to a trialing row. Kept as two
-    %% separate states rather than one shared "Trialing" node so this
-    %% distinction can't get lost.
-    AutoTrialState(["STATE: Trialing, automatic\nis_trial=True, auto_renew=False\nNO stripe_subscription_id"]):::state
-    AutoTrialState --> AutoTrialOutcome{"How does\nthis trial end?"}
-    AutoTrialOutcome -- "user explicitly subscribes\n(first real checkout)" --> DirectCheckoutEP
-    AutoTrialOutcome -- "credits exhausted\nbefore trial_end" --> ExpireTrialTask
-    AutoTrialOutcome -- "nightly sweep:\nexpire_active_trials task" --> ExpireTrialTask
+    TrialState(["STATE: Trialing\nis_trial=True, auto_renew=False\nNO stripe_subscription_id"]):::state
+    TrialState --> TrialOutcome{"How does the\ntrial end?"}
+    TrialOutcome -- "user explicitly upgrades\nmid-trial" --> DirectCheckoutEP
+    TrialOutcome -- "credits exhausted\nbefore trial_end" --> ExpireTrialTask
+    TrialOutcome -- "trial_end reached\nwithout converting" --> ExpireTrialTask
 
-    CardTrialState(["STATE: Trialing, card-backed\nis_trial=True, auto_renew=False\nreal stripe_subscription_id\n(legacy entry path)"]):::state
-    CardTrialState --> CardTrialOutcome{"How does\nthis trial end?"}
-    CardTrialOutcome -- "user explicitly upgrades\nmid-trial (trial_to_paid)" --> TrialToPaidSession["create_trial_to_paid_session()\nstripe_service.py:776\n(a DIFFERENT checkout builder\nthan the trial-start session)"]
-    TrialToPaidSession --> CheckoutCompleted
-    CardTrialOutcome -- "trial_end reached,\nStripe auto-charges card" --> InvoiceSucceededTrial
-    CardTrialOutcome -- "trial_end reached,\ncard declines" --> InvoiceFailedTrial
-    CardTrialOutcome -- "Stripe sub deleted\nmid-trial" --> SubDeletedTrial
-    CardTrialOutcome -- "credits exhausted, or\nnightly sweep catches it\nbefore Stripe's own charge" --> ExpireTrialTask
-
-    InvoiceSucceededTrial(["webhook: invoice.payment_succeeded\nbilling_reason=subscription_cycle"]):::webhook
-    InvoiceSucceededTrial --> FinalizeTrialViaStripe["finalize_trial_conversion_via_stripe()\nservices.py:1431"]
-    FinalizeTrialViaStripe --> FTVSGuard{"subscription\nstill is_trial?"}
-    FTVSGuard -- "no (defensive,\nout-of-order webhook)" --> FTVSNoop["No-op, warning logged"]:::error
-    FTVSGuard -- "yes" --> FTVSForfeit["Forfeit TRIAL bucket\n+ Grant MONTHLY bucket"]:::credit
-    FTVSForfeit --> ActiveState
-
-    InvoiceFailedTrial(["webhook: invoice.payment_failed\n(card declined at trial end)"]):::webhook
-    InvoiceFailedTrial --> ExpireTrialForce["expire_trial(force=True)"]
-    ExpireTrialForce --> TrialLapsed
-
-    SubDeletedTrial(["webhook: customer.subscription.deleted\n(trial_end still in future)"]):::webhook
-    SubDeletedTrial --> TrialLapsed
-
-    ExpireTrialTask(["Celery: expire_active_trials\ntasks.py"]):::task
+    ExpireTrialTask(["Celery: expire_active_trials\ntasks.py:608\nby trial_end OR by credits\nexhausted, whichever first"]):::task
     ExpireTrialTask --> ExpireTrialNatural["expire_trial()\nservices.py:1130"]
     ExpireTrialNatural --> TrialLapsed
 
@@ -221,7 +192,7 @@ flowchart TD
     ActiveState -->|"billing period elapses"| InvoiceSucceededRenewal(["webhook: invoice.payment_succeeded\nbilling_reason=subscription_cycle"]):::webhook
     InvoiceSucceededRenewal --> RenewalCore{{"_handle_individual_invoice_succeeded\nstripe_service.py:3733"}}:::decision
     RenewalCore --> IsTrialCheck{"user_sub.is_trial?"}
-    IsTrialCheck -- "yes" --> FinalizeTrialViaStripe
+    IsTrialCheck -- "yes (defensive —\nno live path reaches this;\nthe only function that used to\nattach a Stripe id to a trial\nrow was deleted)" --> DeadTrialRenewal["finalize_trial_conversion_via_stripe()\nservices.py:1431 — kept, tested,\nbut currently unreachable"]:::error
     IsTrialCheck -- "no" --> RenewalGuards{"billing_reason in\n{subscription_cycle,subscription}\nAND billing_cycle_end<=now\nAND is_active?"}
     RenewalGuards -- "no (any fails)" --> RecordOnly["Record BillingTransaction only\n(no credit grant)"]
     RenewalGuards -- "yes" --> ProcessRollover["process_rollover_and_renewal()"]

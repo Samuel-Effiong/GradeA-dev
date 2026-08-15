@@ -118,7 +118,7 @@ class Command(BaseCommand):
             "license_create": BillingTransactionType.LICENSE_INITIAL_CHARGE,
         }
         if flow not in flow_to_type:
-            return False  # individual_trial / license_convert_to_stripe: no charge
+            return False  # license_convert_to_stripe: no charge
 
         amount_total = session.get("amount_total")
         if amount_total is None:

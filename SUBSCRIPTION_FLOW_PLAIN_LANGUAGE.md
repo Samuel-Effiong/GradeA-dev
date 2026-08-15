@@ -34,9 +34,7 @@ flowchart TD
 
     %% ===================== ENTRY POINTS =====================
     Signup(["New teacher\ncreates an account"]):::entry
-    TrialCheckoutEP(["Starts a trial and adds\na card up front"]):::entry
     DirectCheckoutEP(["Goes straight to checkout\n(no trial)"]):::entry
-    LegacySubscribeEP(["Subscribes directly\n(an older checkout path)"]):::entry
     SelectPlanEP(["Requests a plan change\n(upgrade / downgrade / resubscribe)"]):::entry
     CancelEP(["Clicks Cancel"]):::entry
     ResumeEP(["Clicks Resume\n(undo a cancellation)"]):::entry
@@ -44,42 +42,36 @@ flowchart TD
     PaymentMethodEP(["Manages their\npayment method"]):::entry
 
     %% ===================== A. SIGNUP / AUTOMATIC TRIAL =====================
+    %% This is the only trial there is — every teacher gets it, and it
+    %% never involves a card or Stripe at all until they actually choose
+    %% to subscribe. (There used to be a second, rarely-used trial that
+    %% collected a card up front, but it was never actually reachable
+    %% from the app and has been removed.)
     Signup --> AutoTrialGuard{"Has this person\never had a trial before?"}
     AutoTrialGuard -- "yes" --> AutoTrialReject["No trial given"]:::error
     AutoTrialGuard -- "no" --> AutoTrialGrant["14-day free trial starts\n5,000 credits included\nno card required"]:::credit
-    AutoTrialGrant --> AutoTrialState
+    AutoTrialGrant --> TrialState
 
-    %% ===================== B. EXPLICIT TRIAL CHECKOUT (rare — card upfront) =====================
-    TrialCheckoutEP --> TrialCkGuard{"Already on a trial, already\nsubscribed, or is this a\nschool/license plan?"}
-    TrialCkGuard -- "yes, blocked" --> TrialCkReject["Request blocked"]:::error
-    TrialCkGuard -- "no, ok to proceed" --> TrialCkSession["Stripe's checkout page opens\n(trial starts once the card is added)"]
-    TrialCkSession --> CheckoutCompleted
-
-    %% ===================== C. DIRECT CHECKOUT (unified builder) =====================
+    %% ===================== B. DIRECT CHECKOUT (unified builder) =====================
+    %% One builder handles every "must go through Stripe checkout" case,
+    %% including converting an existing trial. (Two older, separate
+    %% checkout paths for this used to exist -- they were never actually
+    %% reachable through the app and have been removed.)
     DirectCheckoutEP --> DirectCkGuard{"Does the teacher already\nhave a paid, active\nsubscription?"}
     DirectCkGuard -- "yes" --> DirectCkReject["Blocked — use Upgrade\nor Downgrade instead"]:::error
     DirectCkGuard -- "no, or only a trial" --> DirectCkSession["Stripe's checkout page opens"]
     DirectCkSession --> CheckoutCompleted
 
-    LegacySubscribeEP --> LegacyCkSession["Stripe's checkout page opens\n(older subscribe flow)"]
-    LegacyCkSession --> CheckoutCompleted
-
     %% ===================== CHECKOUT CONFIRMATION =====================
     CheckoutCompleted(["Stripe confirms:\ncheckout is complete"]):::webhook
     CheckoutCompleted --> FlowSwitch{"What kind of\ncheckout was this?"}
     FlowSwitch -- "a normal signup checkout" --> HandleIndivCheckout["Process the\ncompleted checkout"]
-    FlowSwitch -- "an older-style checkout" --> HandleIndivSubscribe["Process the\ncompleted checkout"]
-    FlowSwitch -- "an older-style trial checkout" --> HandleIndivTrial["Process the\ncompleted trial checkout"]
-    HandleIndivTrial --> CardTrialState
-    FlowSwitch -- "a mid-trial upgrade" --> HandleTrialToPaid["Process the\nmid-trial upgrade"]
     FlowSwitch -- "an upgrade payment" --> HandleUpgradeCkCompleted
     FlowSwitch -- "an extra-credits purchase" --> HandleOverageCk
 
     HandleIndivCheckout --> TrialMetaGuard{"Was this checkout\nconverting an existing trial?"}
     TrialMetaGuard -- "yes" --> FinalizeTrialToPaid["Convert the trial\nto a paid plan"]
     TrialMetaGuard -- "no, brand new" --> ActivateSub["Activate the new\npaid subscription"]
-    HandleIndivSubscribe --> ActivateSub
-    HandleTrialToPaid --> FinalizeTrialToPaid
 
     ActivateSub --> BetaGate{"Is this the special Beta\nplan, and the teacher isn't\neligible for it?"}
     BetaGate -- "yes, blocked" --> BetaReject["Blocked — the Beta plan\nis teachers-only"]:::error
@@ -94,40 +86,13 @@ flowchart TD
     GrantMonthly2 --> ActiveState
 
     %% ===================== TRIAL STATE & ITS OUTCOMES =====================
-    %% There are two DIFFERENT trials, and only one of them ever involves
-    %% Stripe. Keeping them as separate boxes (rather than one shared
-    %% "trial" state) is deliberate -- merging them would make it look
-    %% like a card could be declined on a trial that never had a card.
-    AutoTrialState(["Automatic trial\n(no card on file — nothing has\nbeen set up with Stripe yet)"]):::state
-    AutoTrialState --> AutoTrialOutcome{"How does\nthis trial end?"}
-    AutoTrialOutcome -- "teacher chooses to subscribe\n(their first real checkout)" --> DirectCheckoutEP
-    AutoTrialOutcome -- "credits run out\nbefore 14 days are up" --> ExpireTrialTask
-    AutoTrialOutcome -- "14 days pass\nwithout subscribing" --> ExpireTrialTask
+    TrialState(["Account is on the\nfree trial\n(no card, no Stripe involved yet)"]):::state
+    TrialState --> TrialOutcome{"How does the\ntrial end?"}
+    TrialOutcome -- "teacher upgrades early" --> DirectCheckoutEP
+    TrialOutcome -- "credits run out\nbefore 14 days are up" --> ExpireTrialTask
+    TrialOutcome -- "14 days pass\nwithout subscribing" --> ExpireTrialTask
 
-    CardTrialState(["Trial with a card on file\n(started through the optional,\nrarely-used upfront-card checkout)"]):::state
-    CardTrialState --> CardTrialOutcome{"How does\nthis trial end?"}
-    CardTrialOutcome -- "teacher upgrades early" --> TrialToPaidSession["Stripe's checkout page opens\nto convert the trial to paid"]
-    TrialToPaidSession --> CheckoutCompleted
-    CardTrialOutcome -- "trial ends, card is\ncharged automatically" --> InvoiceSucceededTrial
-    CardTrialOutcome -- "trial ends, card\nis declined" --> InvoiceFailedTrial
-    CardTrialOutcome -- "trial is cancelled from\nStripe's side early" --> SubDeletedTrial
-    CardTrialOutcome -- "credits run out, or 14 days\npass, before Stripe's own\ncharge attempt" --> ExpireTrialTask
-
-    InvoiceSucceededTrial(["Stripe confirms:\nthe trial's first\npayment succeeded"]):::webhook
-    InvoiceSucceededTrial --> FinalizeTrialViaStripe["Convert the trial\nto a paid subscription"]
-    FinalizeTrialViaStripe --> FTVSGuard{"Is this account still\nactually on a trial?"}
-    FTVSGuard -- "no — already handled" --> FTVSNoop["Nothing more to do"]:::error
-    FTVSGuard -- "yes" --> FTVSForfeit["Leftover trial credits forfeited,\nnew plan's credits added"]:::credit
-    FTVSForfeit --> ActiveState
-
-    InvoiceFailedTrial(["Stripe confirms:\nthe card was declined\nat the trial's end"]):::webhook
-    InvoiceFailedTrial --> ExpireTrialForce["The trial is closed out"]
-    ExpireTrialForce --> TrialLapsed
-
-    SubDeletedTrial(["Stripe confirms:\nthe trial was\ncancelled early"]):::webhook
-    SubDeletedTrial --> TrialLapsed
-
-    ExpireTrialTask(["Nightly check for trials that\nshould have ended — by time OR\nby running out of credits\n(applies to both trial types)"]):::task
+    ExpireTrialTask(["Nightly check for trials that\nshould have ended — by time OR\nby running out of credits"]):::task
     ExpireTrialTask --> ExpireTrialNatural["The trial is closed out"]
     ExpireTrialNatural --> TrialLapsed
 
@@ -229,7 +194,7 @@ flowchart TD
     ActiveState -->|"when it's time\nto renew"| InvoiceSucceededRenewal(["Stripe confirms:\nrenewal payment succeeded"]):::webhook
     InvoiceSucceededRenewal --> RenewalCore{{"Process\nthe renewal"}}:::decision
     RenewalCore --> IsTrialCheck{"Is this account\nactually still a trial?"}
-    IsTrialCheck -- "yes" --> FinalizeTrialViaStripe
+    IsTrialCheck -- "yes (in practice this\ncan't happen — trials never\nhave a Stripe subscription\nto renew in the first place)" --> DeadTrialRenewal["Nothing to do"]:::error
     IsTrialCheck -- "no" --> RenewalGuards{"Is this a genuine new\nbilling period, and is\nthe account still active?"}
     RenewalGuards -- "no" --> RecordOnly["Payment is recorded,\nbut no new credits given\n(already up to date)"]
     RenewalGuards -- "yes" --> ProcessRollover["Process\nthe renewal"]

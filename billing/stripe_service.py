@@ -593,95 +593,6 @@ class StripeCheckoutService:
         return session
 
     @staticmethod
-    def create_individual_subscribe_session(user, plan, success_url, cancel_url):
-        """Paid (non-trial) individual subscription checkout — new subscribers only.
-        Existing subscribers changing plans should use
-        StripeSubscriptionMutationService.change_plan() instead."""
-        if plan.category != PlanCategory.INDIVIDUAL:
-            raise ValueError("Checkout subscribe is only valid for INDIVIDUAL plans.")
-        if not plan.stripe_price_id:
-            raise ValueError(f"Plan {plan.name} has no stripe_price_id configured.")
-
-        existing_active = UserSubscription.objects.filter(
-            user=user, is_active=True
-        ).exists()
-        if existing_active:
-            raise ValueError(
-                "User already has an active subscription. Use change_plan() to "
-                "switch plans instead of creating a new checkout session."
-            )
-
-        customer_id = StripeCustomerService.get_or_create_customer(user)
-
-        session = stripe.checkout.Session.create(
-            customer=customer_id,
-            mode="subscription",
-            line_items=[{"price": plan.stripe_price_id, "quantity": 1}],
-            success_url=success_url,
-            cancel_url=cancel_url,
-            metadata={
-                "flow": "individual_subscribe",
-                "user_id": str(user.id),
-                "plan_id": str(plan.id),
-            },
-        )
-        return session
-
-    @staticmethod
-    def create_individual_trial_session(user, plan, success_url, cancel_url):
-        """
-        14-day free trial — card collected upfront via
-        payment_method_collection='always'. The first real charge fires
-        automatically when the trial ends; that's handled by
-        invoice.payment_succeeded / invoice.payment_failed in the webhook,
-        NOT by this method, which only ever creates the trialing session.
-        """
-        if plan.category != PlanCategory.INDIVIDUAL:
-            raise ValueError("Free trials are only available for INDIVIDUAL plans.")
-        if not plan.stripe_price_id:
-            raise ValueError(f"Plan {plan.name} has no stripe_price_id configured.")
-
-        # Mirror the existing guards from SubscriptionService.activate_free_trial
-        # so we fail fast before sending the user to Stripe at all.
-        already_trialled = UserSubscription.objects.filter(
-            user=user, is_trial=True
-        ).exists()
-        if already_trialled:
-            raise ValueError(
-                "This account has already used its free trial. "
-                "Please subscribe to a paid plan."
-            )
-
-        active_sub = UserSubscription.objects.filter(user=user, is_active=True).exists()
-        if active_sub:
-            raise ValueError(
-                "Cannot start a free trial while an active subscription exists."
-            )
-
-        customer_id = StripeCustomerService.get_or_create_customer(user)
-
-        session = stripe.checkout.Session.create(
-            customer=customer_id,
-            mode="subscription",
-            line_items=[{"price": plan.stripe_price_id, "quantity": 1}],
-            subscription_data={
-                "trial_period_days": SubscriptionService.TRIAL_DURATION_DAYS,
-                "trial_settings": {
-                    "end_behavior": {"missing_payment_method": "cancel"},
-                },
-            },
-            payment_method_collection="always",
-            success_url=success_url,
-            cancel_url=cancel_url,
-            metadata={
-                "flow": "individual_trial",
-                "user_id": str(user.id),
-                "plan_id": str(plan.id),
-            },
-        )
-        return session
-
-    @staticmethod
     def create_license_session(
         school,
         plan,
@@ -770,73 +681,6 @@ class StripeCheckoutService:
             session_kwargs["customer_email"] = admin_user.email
 
         return stripe.checkout.Session.create(**session_kwargs)
-
-    @staticmethod
-    @transaction.atomic
-    def create_trial_to_paid_session(user, new_plan, success_url, cancel_url):
-        # GUARD 1: User must have active trial (is_active=True and is_trial=True)
-        trial_sub = (
-            UserSubscription.objects.select_for_update()
-            .filter(user=user, is_active=True, is_trial=True)
-            .first()
-        )
-
-        if not trial_sub:
-            raise ValueError(
-                f"User {user.email} does not have an active free trial to convert."
-            )
-
-        # GUARD 2: Trial must not have ended
-        now = timezone.now()
-        if trial_sub.trial_end and trial_sub.trial_end <= now:
-            raise ValueError(
-                f"Trial has already ended (trial_end: {trial_sub.trial_end}). "
-                "User must sign up for a new subscription instead."
-            )
-
-        # GUARD 3: Plan must be INDIVIDUAL category
-        if new_plan.category != PlanCategory.INDIVIDUAL:
-            raise ValueError(
-                f"Plan {new_plan.name} is {new_plan.category}, not INDIVIDUAL. "
-                "Only individual plans are supported for trial conversion."
-            )
-
-        # GUARD 4: Plan must have Stripe price configured
-        if not new_plan.stripe_price_id:
-            raise ValueError(
-                f"Plan {new_plan.name} has no stripe_price_id configured. "
-                "Cannot create checkout session."
-            )
-
-        # Get or create the Stripe customer (reuse existing if present)
-        customer_id = StripeCustomerService.get_or_create_customer(user)
-
-        # Create the checkout session
-        # Metadata round-trips through Stripe to webhook handler
-        session = stripe.checkout.Session.create(
-            customer=customer_id,
-            mode="subscription",
-            line_items=[{"price": new_plan.stripe_price_id, "quantity": 1}],
-            success_url=success_url,
-            cancel_url=cancel_url,
-            metadata={
-                "flow": "trial_to_paid",  # Webhook dispatch key
-                "user_id": str(user.id),
-                "trial_subscription_id": str(trial_sub.id),  # The EXISTING trial sub
-                "new_plan_id": str(new_plan.id),  # The plan being converted to
-            },
-        )
-
-        logger.info(
-            "Created trial-to-paid checkout session for user %s. "
-            "Trial subscription: %s, New plan: %s, Checkout session: %s",
-            user.email,
-            trial_sub.id,
-            new_plan.name,
-            session.id,
-        )
-
-        return session
 
     @staticmethod
     def create_license_conversion_session(
@@ -2789,10 +2633,23 @@ class StripeWebhookHandler:
         elif flow == "overage_block_purchase_checkout":
             StripeWebhookHandler._handle_overage_checkout_completed(session, metadata)
         elif flow == "individual_subscribe":
+            # Retired flow — StripeCheckoutService.create_individual_subscribe_session
+            # (the only thing that ever set this metadata) has been deleted; its
+            # endpoint was removed even earlier. This branch is kept ONLY so that
+            # manage.py replay_stripe_events can still correctly reprocess an old,
+            # still-FAILED checkout.session.completed event from back when this
+            # flow was live (it replays by re-calling handle_checkout_completed
+            # with the stored payload, then this same metadata.flow dispatch
+            # decides where it goes). Deleting this branch would make such a
+            # replay silently no-op into the "else" warning below instead of
+            # completing a real subscription a customer already paid for.
             StripeWebhookHandler._handle_individual_subscribe(session, metadata)
-        elif flow == "individual_trial":
-            StripeWebhookHandler._handle_individual_trial(session, metadata)
         elif flow == "trial_to_paid":
+            # Retired flow, same reasoning as individual_subscribe above —
+            # StripeCheckoutService.create_trial_to_paid_session has been
+            # deleted (its only caller was already commented out), but this
+            # dispatch branch and _handle_trial_to_paid stay for
+            # replay_stripe_events to be able to reprocess an old FAILED event.
             StripeWebhookHandler._handle_trial_to_paid(session, metadata)
         elif flow == "license_create":
             StripeWebhookHandler._handle_license_create(session, metadata)
@@ -3384,6 +3241,10 @@ class StripeWebhookHandler:
 
     @staticmethod
     def _handle_individual_subscribe(session, metadata):
+        # Kept as a replay-only target for old FAILED events — see the
+        # comment on the "individual_subscribe" branch in
+        # handle_checkout_completed. Nothing creates new sessions with
+        # this flow anymore.
         user = CustomUser.objects.get(id=metadata["user_id"])
         plan = SubscriptionPlan.objects.get(id=metadata["plan_id"])
 
@@ -3415,25 +3276,6 @@ class StripeWebhookHandler:
 
         logger.info(
             "Stripe checkout completed: individual subscribe for user %s, plan %s.",
-            user.email,
-            plan.name,
-        )
-
-    @staticmethod
-    def _handle_individual_trial(session, metadata):
-        # FIXME: ALso delete this, replacement is handle trial to paid
-
-        user = CustomUser.objects.get(id=metadata["user_id"])
-        plan = SubscriptionPlan.objects.get(id=metadata["plan_id"])
-
-        trial_sub = SubscriptionService.activate_free_trial(user, plan)
-        trial_sub.stripe_subscription_id = session["subscription"]
-        trial_sub.stripe_status = StripeSubscriptionStatus.TRIALING
-        trial_sub.save(
-            update_fields=["stripe_subscription_id", "stripe_status", "updated_at"]
-        )
-        logger.info(
-            "Stripe checkout completed: trial started for user %s, plan %s.",
             user.email,
             plan.name,
         )
@@ -3532,6 +3374,15 @@ class StripeWebhookHandler:
     def _handle_trial_to_paid(session, metadata):
         """
         Webhook handler for checkout.session.completed (flow='trial_to_paid').
+
+        Kept as a replay-only target for an old FAILED event — see the
+        comment on this flow's branch in handle_checkout_completed.
+        create_trial_to_paid_session (the only thing that ever set this
+        metadata) has been deleted; its own caller in views.py was already
+        commented out before that. The LIVE mid-trial-upgrade path today
+        goes through create_individual_checkout_session instead (flow=
+        individual_checkout), reached via select_plan's "checkout" branch
+        whenever the current subscription is_trial.
 
         Called after a trial user successfully completes Stripe checkout to
         upgrade to a paid plan.
