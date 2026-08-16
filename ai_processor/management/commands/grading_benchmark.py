@@ -17,13 +17,16 @@ See ai_processor/benchmark/ for the dataset and the metric definitions.
 """
 
 import json
+import logging
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
-from ai_processor.benchmark import runner, scoring
+from ai_processor.benchmark import archive, history, runner, scoring
 from ai_processor.benchmark.dataset import IDENTICAL_ANSWER_PROBES, iter_all_errors
+
+logger = logging.getLogger(__name__)
 
 
 def _fmt(value, suffix=""):
@@ -80,6 +83,13 @@ class Command(BaseCommand):
             "--save-baseline",
             help="Write this run's metrics to the given path.",
         )
+        parser.add_argument(
+            "--no-history",
+            action="store_true",
+            help="Skip recording this run to the history files, the database "
+            "and the archive. The escape hatch: with this flag the command "
+            "behaves exactly as it did before run history existed.",
+        )
 
     # ── entry point ───────────────────────────────────────────────────────
 
@@ -130,14 +140,119 @@ class Command(BaseCommand):
             with open(options["baseline"]) as handle:
                 diff = compare_to_baseline(report, json.load(handle))
 
+        # Cheapest and most reliable first: the history rows and the local
+        # archive copy are written to disk BEFORE anything slow happens, so a
+        # paid run that took an hour is already safe if the upload later
+        # hangs. Every step is individually guarded — see _record_history.
+        recorded = self._record_history(run, report, options)
+
         if options["as_json"]:
             payload = dict(report)
             if diff:
                 payload["baseline_diff"] = diff
             self.stdout.write(json.dumps(payload, indent=2, default=str))
+        else:
+            self._render_text(report, diff)
+
+        # Slow and fragile last, after the operator has already seen the
+        # results.
+        self._finish_history(recorded)
+
+    # ── run history (Tiers 1-3) ───────────────────────────────────────────
+    #
+    # EVERYTHING in this section is best-effort. A benchmark run is the
+    # expensive thing; recording what it did is bookkeeping. Losing an hour
+    # of paid grading to a bug in the bookkeeping would be far worse than
+    # having no bookkeeping, so each step is caught individually and the
+    # command's report, --json output and exit code are identical whether
+    # any of it succeeds or fails.
+
+    def _record_history(self, run, report, options):
+        """Write Tier 1 + 2, then prepare (but do not upload) the archive."""
+        if options.get("no_history"):
+            return None
+
+        recorded = {
+            "run_record": None,
+            "question_records": [],
+            "blob": None,
+            "local_path": None,
+        }
+
+        try:
+            run_record, question_records = history.record_run(
+                run,
+                report,
+                scope_assignments=options.get("assignments"),
+                scope_students=options.get("students"),
+            )
+            recorded["run_record"] = run_record
+            recorded["question_records"] = question_records
+            if not options["as_json"]:
+                self.stdout.write(
+                    f"History: recorded run {run_record['run_id']} "
+                    f"({len(question_records)} question rows)"
+                )
+        except Exception as exc:
+            logger.warning("[Benchmark] Could not record run history: %s", exc)
+            if not options["as_json"]:
+                self.stdout.write(self.style.WARNING(f"History: not recorded ({exc})"))
+            return recorded
+
+        try:
+            blob, local_path, error = archive.prepare(
+                run, report, recorded["run_record"], recorded["question_records"]
+            )
+            recorded["blob"], recorded["local_path"] = blob, local_path
+            if error:
+                recorded["error"] = error
+        except Exception as exc:
+            logger.warning("[Benchmark] Could not prepare the run archive: %s", exc)
+
+        return recorded
+
+    def _finish_history(self, recorded):
+        """Mirror into the database, then upload the archive."""
+        if not recorded or not recorded.get("run_record"):
             return
 
-        self._render_text(report, diff)
+        run_record = recorded["run_record"]
+
+        # The files never depend on the database — a machine without one
+        # still gets a complete history on disk.
+        try:
+            history.sync_to_database(
+                [run_record], recorded.get("question_records") or []
+            )
+        except Exception as exc:
+            logger.warning("[Benchmark] Could not mirror history to the DB: %s", exc)
+
+        blob = recorded.get("blob")
+        if blob is None:
+            return
+
+        url, error = archive.publish(
+            run_record["run_id"], blob, local_path=recorded.get("local_path")
+        )
+        try:
+            history.update_run_archive(
+                run_record["run_id"], archive_url=url, archive_error=error
+            )
+            history.sync_to_database(
+                [{**run_record, "archive_url": url, "archive_error": error}], []
+            )
+        except Exception as exc:
+            logger.warning("[Benchmark] Could not record the archive result: %s", exc)
+
+        if url:
+            self.stdout.write(f"Archive: {url}")
+        else:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"Archive: upload failed ({error}). Local copy kept at "
+                    f"{recorded.get('local_path')}"
+                )
+            )
 
     # ── helpers ───────────────────────────────────────────────────────────
 

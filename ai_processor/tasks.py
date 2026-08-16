@@ -64,10 +64,67 @@ def _run(mode):
     report = scoring.score_run(run)
     report["consistency"] = scoring.check_consistency(run, IDENTICAL_ANSWER_PROBES)
 
+    _record_history(run, report, mode)
+
     diff = None
     if BASELINE_PATH.exists():
         diff = compare_to_baseline(report, json.loads(BASELINE_PATH.read_text()))
     return report, diff
+
+
+def _record_history(run, report, mode):
+    """
+    Persist this run to the history (and, for paid runs, the archive).
+
+    Wrapped whole: these scheduled jobs exist to detect grading regressions,
+    and the weekly one spends real credits. Failing a run because the
+    bookkeeping broke would destroy the thing the job exists to produce, so
+    every failure here is logged and swallowed.
+
+    This matters more on the server than locally. Celery cannot commit to
+    git, so the JSONL files it writes live only on that machine — the
+    database mirror and the Cloudinary archive are what actually make a
+    server-side run durable, and the archive carries its own history rows so
+    the files can be rebuilt from it later.
+    """
+    from ai_processor.benchmark import archive, history
+
+    try:
+        run_record, question_records = history.record_run(run, report)
+    except Exception:
+        logger.exception("[Benchmark] Could not record run history.")
+        return
+
+    try:
+        history.sync_to_database([run_record], question_records)
+    except Exception:
+        logger.warning(
+            "[Benchmark] Could not mirror run history to the database.",
+            exc_info=True,
+        )
+
+    url, error, local_path = archive.archive_run(
+        run, report, run_record, question_records
+    )
+    if url or error:
+        try:
+            history.update_run_archive(
+                run_record["run_id"], archive_url=url, archive_error=error
+            )
+            history.sync_to_database(
+                [{**run_record, "archive_url": url, "archive_error": error}], []
+            )
+        except Exception:
+            logger.warning(
+                "[Benchmark] Could not record the archive result.", exc_info=True
+            )
+    if error:
+        logger.warning(
+            "[Benchmark] Run %s was not archived (%s). Local copy: %s",
+            run_record["run_id"],
+            error,
+            local_path,
+        )
 
 
 def _escalate(mode, report, diff):

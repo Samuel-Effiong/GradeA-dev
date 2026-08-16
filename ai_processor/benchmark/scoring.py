@@ -109,6 +109,138 @@ def grade_one(question, spec, awarded):
     }
 
 
+def iter_graded_questions(result):
+    """
+    Yield (spec, question, evaluation, awarded) for one submission.
+
+    This is the "match a question to the grade it received" join, extracted
+    so that score_run() and the run-history recorder (benchmark/history.py)
+    share ONE implementation. They were previously at risk of drifting
+    apart, which would have made the stored history quietly disagree with
+    the report printed from the same run.
+
+    `evaluation` is None when the model returned nothing for that question,
+    and `awarded` is then None too — callers must handle that rather than
+    assume every question was graded.
+    """
+    assignment = result["assignment"]
+    evaluations = {}
+    for evaluation in (result.get("grading") or {}).get("question_evaluations") or []:
+        if isinstance(evaluation, dict):
+            evaluations[str(evaluation.get("question_number"))] = evaluation
+
+    for spec in result["specs"]:
+        question = assignment.question(spec.question_number)
+        evaluation = evaluations.get(str(spec.question_number))
+        awarded = evaluation.get("score_awarded") if evaluation else None
+        yield spec, question, evaluation, awarded
+
+
+def _second_opinion_index(grading):
+    """
+    Map question number (as str) -> what the second grader did with it.
+
+    Flattens the `second_opinion` block, whose three parts are shaped
+    differently: `selected` is {question: [reasons]}, `agreements` is a bare
+    list of question numbers, and `disagreements` is a list of dicts
+    carrying both graders' scores plus a severity tier.
+    """
+    block = grading.get("second_opinion") or {}
+    index = {}
+
+    for number, reasons in (block.get("selected") or {}).items():
+        index[str(number)] = {
+            "second_opinion_selected": True,
+            "second_opinion_reasons": list(reasons or []),
+            "second_opinion_disagreed": None,
+            "second_opinion_tier": None,
+            "second_opinion_b_score": None,
+        }
+
+    for number in block.get("agreements") or []:
+        entry = index.setdefault(str(number), {"second_opinion_selected": True})
+        entry["second_opinion_disagreed"] = False
+
+    for disagreement in block.get("disagreements") or []:
+        if not isinstance(disagreement, dict):
+            continue
+        entry = index.setdefault(
+            str(disagreement.get("question_number")),
+            {"second_opinion_selected": True},
+        )
+        entry["second_opinion_disagreed"] = True
+        entry["second_opinion_tier"] = (disagreement.get("severity") or {}).get("tier")
+        entry["second_opinion_b_score"] = (disagreement.get("b") or {}).get(
+            "score_awarded"
+        )
+
+    return index
+
+
+def iter_question_outcomes(run):
+    """
+    Yield one flat, JSON-safe row per graded question — the persisted form
+    of what score_run() computes and then throws away.
+
+    This is Tier 2 of the run history: enough per-question detail to ask
+    "has this question's grade changed between runs?", which no aggregate
+    metric can answer.
+
+    Shares iter_graded_questions() with score_run(), and skips errored
+    submissions exactly as score_run() does, so the row count always equals
+    report["overall"]["questions"] for the same run. A test pins that.
+    """
+    for result in run["results"]:
+        if result.get("error"):
+            continue
+
+        grading = result["grading"] or {}
+        confidence = grading.get("grading_confidence")
+        second_opinions = _second_opinion_index(grading)
+
+        for spec, question, evaluation, awarded in iter_graded_questions(result):
+            judged = grade_one(question, spec, awarded)
+            evaluation = evaluation or {}
+            quotes = evaluation.get("evidence_quotes")
+            flag = evaluation.get("flag_for_review")
+
+            row = {
+                "assignment_key": result["assignment_key"],
+                "student_key": result["student_key"],
+                "subject": result["assignment"].subject,
+                "question_number": question["question_number"],
+                "question_type": question["question_type"],
+                "points": question["points"],
+                "expected_points": judged["expected"],
+                "awarded_points": judged["awarded"],
+                "expected_level": judged["expected_level"],
+                "awarded_level": judged["awarded_level"],
+                "level_error": judged["level_error"],
+                "verdict": judged["verdict"],
+                "exact_required": judged["exact_required"],
+                "level_achieved": evaluation.get("level_achieved"),
+                "level_decision": evaluation.get("level_decision"),
+                "graded_by": evaluation.get("graded_by"),
+                "snapped_from": evaluation.get("snapped_from"),
+                "evidence_verified": evaluation.get("evidence_verified"),
+                "evidence_quote_count": len(quotes) if quotes is not None else None,
+                "unverified_evidence_count": evaluation.get(
+                    "unverified_evidence_count"
+                ),
+                "flag_type": (
+                    (flag or {}).get("flag_type") if isinstance(flag, dict) else None
+                ),
+                "grading_confidence": confidence,
+                "second_opinion_selected": False,
+                "second_opinion_reasons": [],
+                "second_opinion_disagreed": None,
+                "second_opinion_tier": None,
+                "second_opinion_b_score": None,
+            }
+            row.update(second_opinions.get(str(question["question_number"]), {}))
+            yield row
+
+
 def _rate(numerator, denominator):
     return None if not denominator else round(numerator / denominator, 4)
 
@@ -206,11 +338,6 @@ def score_run(run):
         tokens_total += result.get("tokens") or 0
         elapsed_total += result.get("elapsed_seconds") or 0.0
 
-        evaluations = {}
-        for evaluation in grading.get("question_evaluations") or []:
-            if isinstance(evaluation, dict):
-                evaluations[str(evaluation.get("question_number"))] = evaluation
-
         verification = (
             (grading.get("grading_summary") or {}).get("score_calculation_verification")
             or grading.get("score_calculation_verification")
@@ -221,10 +348,7 @@ def score_run(run):
         confidence = grading.get("grading_confidence")
 
         awarded_total = 0.0
-        for spec in result["specs"]:
-            question = assignment.question(spec.question_number)
-            evaluation = evaluations.get(str(spec.question_number))
-            awarded = evaluation.get("score_awarded") if evaluation else None
+        for spec, question, evaluation, awarded in iter_graded_questions(result):
             judged = grade_one(question, spec, awarded)
             judged["assignment_key"] = akey
             judged["student_key"] = skey

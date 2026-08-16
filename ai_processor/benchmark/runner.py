@@ -108,6 +108,13 @@ class _Tape:
         self.entries = {}
         self.tokens = 0
         self.calls = 0
+        # Keys this run actually touched. The entries dict deliberately
+        # accumulates across prompt versions (see the merge note below), so
+        # by now it holds far more than any single run uses — 223 stored
+        # entries against ~133 questions at the time of writing. The run
+        # archive must contain only what THIS run did, or every archive
+        # would carry a growing tail of responses from retired prompts.
+        self.used_keys = set()
         if mode == MODE_REPLAY:
             self.entries = self._load()
         elif mode == MODE_RECORD and self._path().exists():
@@ -157,6 +164,7 @@ class _Tape:
             override_model = args[7] if len(args) > 7 else kwargs.get("override_model")
             key = request_key(system_prompt, user_prompt, override_model)
             self.calls += 1
+            self.used_keys.add(key)
 
             if self.mode == MODE_REPLAY:
                 payload = self.entries.get(key)
@@ -173,7 +181,12 @@ class _Tape:
             response = original(inner_self, *args, **kwargs)
             tokens = getattr(getattr(response, "usage", None), "total_tokens", 0) or 0
             self.tokens += tokens
-            if self.mode == MODE_RECORD:
+            # Held in memory for BOTH live and record. Only `record` writes
+            # them to disk (see execute_benchmark) — a live run must not
+            # silently redefine what replay will serve — but keeping them
+            # means a live run's responses can still be archived, which is
+            # the only way an expensive live run is recoverable afterwards.
+            if self.mode in (MODE_RECORD, MODE_LIVE):
                 self.entries[key] = {
                     "content": response.choices[0].message.content,
                     "total_tokens": tokens,
@@ -294,4 +307,11 @@ def execute_benchmark(
         "model_calls": tape.calls,
         "total_tokens": tape.tokens,
         "recordings": str(Path(recordings_dir)),
+        # Exactly the model calls THIS run made, for the run archive.
+        # Filtered by used_keys because in record mode tape.entries also
+        # holds every response merged in from previous runs and retired
+        # prompt versions.
+        "responses": {
+            key: tape.entries[key] for key in tape.used_keys if key in tape.entries
+        },
     }

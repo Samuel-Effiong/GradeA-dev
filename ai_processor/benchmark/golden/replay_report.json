@@ -1,0 +1,223 @@
+{
+  "by_question_type": {
+    "ESSAY": {
+      "exact": 20,
+      "exact_rate": 0.7143,
+      "mean_level_error": 0.1429,
+      "questions": 28,
+      "within_one_level": 28,
+      "within_one_level_rate": 1.0
+    },
+    "OBJECTIVE": {
+      "exact": 35,
+      "exact_rate": 1.0,
+      "mean_level_error": 0.0,
+      "questions": 35,
+      "within_one_level": 35,
+      "within_one_level_rate": 1.0
+    },
+    "SHORT-ANSWER": {
+      "exact": 57,
+      "exact_rate": 0.8143,
+      "mean_level_error": 0.1,
+      "questions": 70,
+      "within_one_level": 70,
+      "within_one_level_rate": 1.0
+    }
+  },
+  "by_subject": {
+    "Chemistry": {
+      "exact": 33,
+      "exact_rate": 0.7857,
+      "mean_level_error": 0.1667,
+      "questions": 42,
+      "within_one_level": 42,
+      "within_one_level_rate": 1.0
+    },
+    "History and Literature": {
+      "exact": 22,
+      "exact_rate": 0.7857,
+      "mean_level_error": 0.0714,
+      "questions": 28,
+      "within_one_level": 28,
+      "within_one_level_rate": 1.0
+    },
+    "Mathematics": {
+      "exact": 57,
+      "exact_rate": 0.9048,
+      "mean_level_error": 0.0317,
+      "questions": 63,
+      "within_one_level": 63,
+      "within_one_level_rate": 1.0
+    }
+  },
+  "confidence_calibration": {
+    "high (80+)": {
+      "graded_acceptably": 133,
+      "questions": 133,
+      "rate": 1.0
+    }
+  },
+  "consistency": [
+    {
+      "assignment_key": "maths",
+      "consistent": true,
+      "question_number": 6,
+      "status": "consistent",
+      "strong": 20,
+      "twin": 20
+    },
+    {
+      "assignment_key": "chemistry",
+      "consistent": true,
+      "question_number": 5,
+      "status": "consistent",
+      "strong": 20,
+      "twin": 20
+    }
+  ],
+  "cost": {
+    "submissions": 21,
+    "total_tokens": 756427
+  },
+  "deterministic": {
+    "accuracy": 1.0,
+    "claimed": 34,
+    "correct": 34
+  },
+  "errors": [],
+  "evidence": {
+    "checked": 98,
+    "verified": 97,
+    "verified_rate": 0.9898
+  },
+  "failures": [],
+  "level_decision_calibration": {
+    "clear": {
+      "exact": 78,
+      "exact_rate": 0.7879,
+      "graded_acceptably": 99,
+      "questions": 99,
+      "within_one_level_rate": 1.0
+    }
+  },
+  "overall": {
+    "exact": 112,
+    "exact_rate": 0.8421,
+    "mean_level_error": 0.0827,
+    "questions": 133,
+    "within_one_level": 133,
+    "within_one_level_rate": 1.0
+  },
+  "ranking": {
+    "chemistry": {
+      "awarded_totals": [
+        60.0,
+        8.0,
+        27.0,
+        19.0,
+        56.0,
+        60.0,
+        4.0
+      ],
+      "expected_totals": [
+        60.0,
+        8.0,
+        27.0,
+        19.0,
+        44.0,
+        44.0,
+        4.0
+      ],
+      "spearman": 0.9727,
+      "students": [
+        "excellent",
+        "fluent_wrong",
+        "middling",
+        "partial",
+        "strong",
+        "twin",
+        "weak"
+      ]
+    },
+    "humanities": {
+      "awarded_totals": [
+        80.0,
+        5.0,
+        40.0,
+        20.0,
+        61.0,
+        73.0,
+        30.0
+      ],
+      "expected_totals": [
+        80.0,
+        25.0,
+        35.0,
+        20.0,
+        61.0,
+        56.0,
+        30.0
+      ],
+      "spearman": 0.9286,
+      "students": [
+        "excellent",
+        "fluent_wrong",
+        "middling",
+        "partial",
+        "strong",
+        "twin",
+        "weak"
+      ]
+    },
+    "maths": {
+      "awarded_totals": [
+        87.0,
+        20.0,
+        38.0,
+        15.0,
+        68.0,
+        79.0,
+        0.0
+      ],
+      "expected_totals": [
+        87.0,
+        12.0,
+        38.0,
+        15.0,
+        63.0,
+        71.0,
+        8.0
+      ],
+      "spearman": 0.9643,
+      "students": [
+        "excellent",
+        "fluent_wrong",
+        "middling",
+        "partial",
+        "strong",
+        "twin",
+        "weak"
+      ]
+    }
+  },
+  "rubric_snapping": {
+    "questions": 133,
+    "rate": 0.0,
+    "snapped_scores": 0
+  },
+  "second_opinion": {
+    "coverage": {
+      "error": 1,
+      "not_run": 0,
+      "ran": 20,
+      "skipped": 0
+    },
+    "disagreement_rate": 0.0833,
+    "questions_compared": 84,
+    "questions_disagreed": 7,
+    "tiers": {
+      "moderate": 7
+    }
+  }
+}
