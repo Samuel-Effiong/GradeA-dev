@@ -1028,7 +1028,14 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
         This endpoint allows registration of new users with TEACHER role only.
         """
-        request.data.pop("user_type", None)
+        # No need to strip user_type from the payload: CustomUserSerializer
+        # forces its PRIVILEGED_FIELDS read-only unless the serializer is
+        # built with a super admin in its context, and this one is built
+        # without any context at all - so a client-sent user_type is dropped
+        # on the floor either way. The strip that used to live here did it by
+        # mutating request.data, which raises AttributeError on the immutable
+        # QueryDict that a form-encoded or multipart body produces: every
+        # non-JSON registration 500'd, whether or not it mentioned user_type.
         serializer = CustomUserSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
