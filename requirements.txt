@@ -29,6 +29,7 @@ click-repl==0.3.0
 cloudinary==1.44.1
 codespell==2.4.1
 colorlog==6.9.0
+coverage==7.15.4
 cron_descriptor==2.0.6
 cryptography==45.0.7
 cssselect==1.4.0
@@ -184,6 +185,7 @@ ruamel.yaml.clib==0.2.12
 safetensors==0.6.2
 safety==3.6.1
 safety-schemas==0.0.14
+sentry-sdk==2.68.0
 setuptools==80.9.0
 shapely==2.1.1
 shellingham==1.5.4

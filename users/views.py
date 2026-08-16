@@ -17,8 +17,10 @@ from django.conf import settings
 from django.core.cache import cache
 from django.core.mail import send_mail
 from django.db import transaction
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.utils.crypto import constant_time_compare
 
 # from django.utils.decorators import method_decorator
 # from django.views.decorators.cache import cache_page
@@ -38,7 +40,12 @@ from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action  # , api_view
-from rest_framework.exceptions import NotFound, ParseError, ValidationError
+from rest_framework.exceptions import (
+    NotFound,
+    ParseError,
+    PermissionDenied,
+    ValidationError,
+)
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -99,6 +106,13 @@ from users.serializers import (  # BatchSessionResultTaskEntrySerializer,; TaskC
 )
 from users.services import send_user_activation_email
 from users.tasks import sync_user_to_mailerlite
+from users.throttling import (
+    GoogleAuthThrottle,
+    LoginThrottle,
+    OTPRequestThrottle,
+    PasswordResetThrottle,
+    RegisterThrottle,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -260,12 +274,73 @@ class CustomUserViewSet(UserCacheMixin, viewsets.ModelViewSet):
         Allow unauthenticated access only for POST endpoints (public actions).
         All other requests require authentication.
         """
-        if self.action in ["list", "create"]:
+        if self.action in ["list", "create", "destroy"]:
             permission_classes = [IsAuthenticated, IsSuperAdmin]
         else:
             permission_classes = [IsAuthenticated]
 
         return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        """
+        Limit which users a request may see or act on.
+
+        Without this the viewset exposed `CustomUser.objects.all()` behind a
+        bare `IsAuthenticated`, so any logged-in user could read, edit or
+        delete any other user by guessing a UUID.
+
+        Roles get the narrowest set that keeps their existing flows working.
+        Students carry `school=NULL` (they are attached to a course, not a
+        school), so a school admin has to reach them through the course's
+        teacher rather than through `school_id`.
+
+        Never raise from here: `UserCacheMixin.get_cache_key` calls
+        `get_queryset()` for the model name before permissions run, so an
+        exception would surface as a 500 instead of a 401/403.
+        """
+        queryset = CustomUser.objects.all()
+        user = self.request.user
+
+        if not user or not user.is_authenticated:
+            return CustomUser.objects.none()
+
+        # Mirrors classrooms.permissions.IsSuperAdmin, which requires both
+        # flags. Checking only is_superuser would let the two disagree.
+        if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:
+            return queryset
+
+        if user.user_type == UserTypes.SCHOOL_ADMIN and user.school_id:
+            return queryset.filter(
+                Q(pk=user.pk)
+                | Q(school_id=user.school_id)
+                | Q(enrollments__course__teacher__school_id=user.school_id)
+            ).distinct()
+
+        if user.user_type == UserTypes.TEACHER:
+            return queryset.filter(
+                Q(pk=user.pk) | Q(enrollments__course__teacher=user)
+            ).distinct()
+
+        return queryset.filter(pk=user.pk)
+
+    def partial_update(self, request, *args, **kwargs):
+        """
+        Being able to *see* a user is not permission to *edit* them.
+
+        The queryset above deliberately lets teachers and school admins read
+        their students, so without this check that read access would also
+        grant write access over those accounts.
+        """
+        instance = self.get_object()
+        is_super_admin = (
+            request.user.is_superuser
+            and request.user.user_type == UserTypes.SUPER_ADMIN
+        )
+
+        if instance.pk != request.user.pk and not is_super_admin:
+            raise PermissionDenied("You can only modify your own account.")
+
+        return super().partial_update(request, *args, **kwargs)
 
     # @extend_schema(exclude=True)
     def create(self, request, *args, **kwargs):
@@ -665,6 +740,7 @@ class AuthViewSet(viewsets.ViewSet):
         url_path="otp",
         url_name="otp",
         permission_classes=[AllowAny],
+        throttle_classes=[OTPRequestThrottle],
     )
     def otp(self, request, **kwargs):
         serializer = OTPSerializer(data=request.data)
@@ -748,6 +824,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         url_path="reset-password",
         url_name="reset-password",
         permission_classes=[AllowAny],
+        throttle_classes=[PasswordResetThrottle],
     )
     def reset_password(self, request, **kwargs):
         serializer = ResetPasswordSerializer(data=request.data)
@@ -757,14 +834,32 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         otp = serializer.validated_data.get("otp")
         new_password = serializer.validated_data.get("new_password")
 
+        # Look the OTP up by user rather than by (user, code) so that a
+        # wrong guess is attributable to a row and can be counted. The old
+        # (user, code) lookup made every failure indistinguishable from
+        # "no OTP exists", which is why the attempts budget could not be
+        # enforced.
         try:
             user = CustomUser.objects.get(email=email)
-            otp_obj = PasswordResetOTP.objects.get(user=user, code=otp)
+            otp_obj = PasswordResetOTP.objects.get(user=user)
         except (CustomUser.DoesNotExist, PasswordResetOTP.DoesNotExist):
             raise ParseError("Invalid email, OTP code, or new password.") from Exception
 
+        if otp_obj.is_locked():
+            raise ParseError(
+                "Too many incorrect codes. Request a new code and try again later."
+            )
+
         if not otp_obj.is_valid():
             otp_obj.delete()
+            raise ParseError("Invalid email, OTP code, or new password.")
+
+        # Constant-time compare so the response latency does not leak how
+        # much of the code was correct. Every non-lockout failure returns
+        # the identical message, to avoid confirming which of email / code
+        # / password was the wrong one.
+        if not constant_time_compare(str(otp_obj.code), str(otp)):
+            otp_obj.register_failure()
             raise ParseError("Invalid email, OTP code, or new password.")
 
         user.set_password(new_password)
@@ -1020,6 +1115,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         detail=False,
         methods=["post"],
         permission_classes=[AllowAny],
+        throttle_classes=[RegisterThrottle],
         url_path="register",
     )
     def register(self, request, *args, **kwargs):
@@ -1067,6 +1163,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         detail=False,
         methods=["post"],
         permission_classes=[AllowAny],
+        throttle_classes=[RegisterThrottle],
         url_path="register/student",
     )
     def register_student(self, request, *args, **kwargs):
@@ -1194,6 +1291,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         detail=False,
         methods=["post"],
         permission_classes=[AllowAny],
+        throttle_classes=[RegisterThrottle],
         url_path="register/school-admin",
         url_name="register-school-admin",
     )
@@ -1318,6 +1416,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         detail=False,
         methods=["post"],
         permission_classes=[AllowAny],
+        throttle_classes=[GoogleAuthThrottle],
         url_path="google-auth",
     )
     def google_auth(self, request, *args, **kwargs):
@@ -1463,6 +1562,7 @@ class TokenObtainPairView(BaseTokenObtainPairView):
     """
 
     serializer_class = CustomTokenObtainPairSerializer
+    throttle_classes = [LoginThrottle]
 
 
 @extend_schema(
@@ -2065,7 +2165,7 @@ class BetaWhitelistViewSet(viewsets.ModelViewSet):
 
     queryset = BetaWhitelist.objects.all()
     serializer_class = BetaWhitelistSerializer
-    permission_classes = [AllowAny]  # [IsAuthenticated, IsSuperAdmin]
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
     pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -2116,7 +2216,7 @@ class WaitlistViewSet(viewsets.ModelViewSet):
 
     queryset = Waitlist.objects.all()
     serializer_class = WaitlistSerializer
-    permission_classes = [AllowAny]  # [IsAuthenticated, IsSuperAdmin]
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
     pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "post", "delete", "head", "options"]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]

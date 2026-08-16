@@ -68,6 +68,7 @@ from users.models import CustomUser, UserTypes
 from users.permissions import HasCreditBalance
 from users.serializers import CustomUserSerializer
 from users.services import otp_manager
+from users.throttling import RegisterThrottle
 
 from .models import (  # , Classroom, ClassroomSettings
     Course,
@@ -154,7 +155,7 @@ def _validate_uuid_query_param(value, param_name):
         uuid.UUID(str(value))
     except (ValueError, TypeError, AttributeError) as exc:
         raise ValidationError(
-            {param_name: [f"'{value}' is not a valid UUID."]}
+            {param_name: [f"{value!r} is not a valid UUID."]}
         ) from exc
 
 
@@ -2072,6 +2073,10 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         detail=False,
         methods=["POST"],
         permission_classes=[AllowAny],
+        # Unauthenticated, guesses at an activation token, and sends an
+        # email on success - so it is both a token-guessing oracle and a
+        # free outbound-mail trigger. Shares the registration bucket.
+        throttle_classes=[RegisterThrottle],
         url_path=r"renew-student-token",
         url_name="renew-activation-token",
     )

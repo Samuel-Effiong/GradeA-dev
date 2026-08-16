@@ -318,11 +318,20 @@ class UserActivity(models.Model):
 
 
 class PasswordResetOTP(models.Model):
+    # How many wrong codes may be submitted before this OTP stops being
+    # usable at all, and how long that freeze lasts. Without these, the
+    # 15-minute validity window is a brute-force budget: a short numeric
+    # code plus unlimited attempts is an account-takeover path.
+    MAX_ATTEMPTS = 5
+    LOCKOUT_DURATION = timezone.timedelta(minutes=30)
+
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     code = models.CharField(
         max_length=100, unique=True, null=True, blank=True, db_index=True
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    locked_until = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         constraints = [
@@ -334,8 +343,25 @@ class PasswordResetOTP(models.Model):
     def is_valid(self):
         return (timezone.now() - self.created_at) < timezone.timedelta(minutes=15)
 
+    def is_locked(self):
+        return bool(self.locked_until and timezone.now() < self.locked_until)
+
+    def register_failure(self):
+        """Record a wrong-code guess, freezing the OTP once the budget runs out."""
+        self.attempts += 1
+        if self.attempts >= self.MAX_ATTEMPTS:
+            self.locked_until = timezone.now() + self.LOCKOUT_DURATION
+        self.save(update_fields=["attempts", "locked_until"])
+
     def generate_code(self):
+        # Issuing a fresh code clears the lockout, so this is the intended
+        # recovery route for a legitimate user who mistyped too often. It
+        # is also why users.throttling.OTPRequestThrottle has to stay on
+        # the endpoint that calls this - otherwise an attacker just
+        # re-requests a code to wipe the counter and keeps guessing.
         self.code = otp_manager.generate_otp()
+        self.attempts = 0
+        self.locked_until = None
         self.save()
 
         return self.code

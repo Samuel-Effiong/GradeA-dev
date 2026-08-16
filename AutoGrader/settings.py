@@ -14,6 +14,7 @@ love God
 
 # import logging
 import os
+import sys
 from datetime import timedelta
 from pathlib import Path
 
@@ -100,6 +101,60 @@ elif ENVIRONMENT == "local":
 
 APPEND_SLASH = False
 
+# Error reporting.
+#
+# Until this existed, the only log handler was `console` (see LOGGING
+# above), which under systemd means an unhandled exception in a web worker
+# or a Celery task is written to a file nobody is watching. A production
+# failure was, in practice, invisible.
+#
+# Enabled only when SENTRY_DSN is set, so local and test runs stay offline
+# and no DSN is required to boot. The import is guarded so that a
+# deployment which has not installed the package yet degrades to "no error
+# reporting" rather than failing to start.
+SENTRY_DSN = env.str("SENTRY_DSN", default="")
+
+if SENTRY_DSN and ENVIRONMENT in ("prod", "dev"):
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.celery import CeleryIntegration
+        from sentry_sdk.integrations.django import DjangoIntegration
+        from sentry_sdk.integrations.logging import LoggingIntegration
+
+        sentry_sdk.init(
+            dsn=SENTRY_DSN,
+            environment=ENVIRONMENT,
+            integrations=[
+                DjangoIntegration(),
+                CeleryIntegration(),
+                # Breadcrumbs from INFO, events from ERROR - so a report
+                # arrives with the log lines that led up to it.
+                LoggingIntegration(level=None, event_level="ERROR"),
+            ],
+            # Enable sending logs to Sentry
+            enable_logs=True,
+            # Traces are sampled low: this project's grading requests are
+            # long-running, and full tracing on every one would be costly
+            # without telling us much. Errors are always captured.
+            traces_sample_rate=env.float("SENTRY_TRACES_SAMPLE_RATE", default=0.05),
+            # These carry student work, grades, and billing identifiers.
+            # Keep them out of the error reports.
+            send_default_pii=False,
+            # Set profile_session_sample_rate to 1.0 to profile 100%
+            # of profile sessions.
+            profile_session_sample_rate=1.0,
+            # Set profile_lifecycle to "trace" to automatically
+            # run the profiler on when there is an active transaction
+            profile_lifecycle="trace",
+        )
+    except ImportError:  # pragma: no cover - depends on deploy state
+        import logging
+
+        logging.getLogger(__name__).warning(
+            "SENTRY_DSN is set but sentry-sdk is not installed; "
+            "error reporting is disabled. Run `pip install -r requirements.txt`."
+        )
+
 ALLOWED_HOSTS = ["*"]
 
 CORS_ALLOWED_ORIGINS = [
@@ -116,6 +171,35 @@ CSRF_TRUSTED_ORIGINS = [
 
 CORS_ALLOW_CREDENTIALS = False
 CORS_ALLOW_ALL_ORIGINS = True
+
+
+# Transport security. Applied only in prod so that local development over
+# plain HTTP keeps working - a secure-only cookie is simply never sent back
+# by the browser on http://localhost, which looks like a broken login.
+#
+# These correspond to the warnings `manage.py check --deploy` raises
+# (security.W004 / W012 / W016).
+if ENVIRONMENT == "prod":
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
+    SECURE_HSTS_SECONDS = 60 * 60 * 24 * 30  # 30 days
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    # Not preloading: submission to the browser preload list is effectively
+    # irreversible and should be a deliberate decision once HTTPS has been
+    # stable for a while, not something switched on at first deploy.
+    SECURE_HSTS_PRELOAD = False
+
+    # Gunicorn sits behind a proxy that terminates TLS, so Django has to be
+    # told how to recognise an already-secure request. Without this,
+    # SECURE_SSL_REDIRECT below sees every proxied request as plain HTTP and
+    # redirects forever.
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+    # Left off by default and opt-in via env: enabling it before the proxy
+    # is confirmed to set X-Forwarded-Proto takes the whole site down with a
+    # redirect loop. Turn on once that header is verified in production.
+    SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=False)
 
 
 # Application definition
@@ -623,6 +707,27 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "EXCEPTION_HANDLER": "users.exceptions.custom_exception_handler",
     "DEFAULT_ROUTER_TRAILING_SLASH": False,
+    # Throttling. Deliberately anonymous-only: `UserRateThrottle` is NOT
+    # enabled because the authenticated dashboard and grading views are
+    # chatty (the overview endpoints fan out into many sub-queries per
+    # page load) and a global per-user cap would throttle legitimate use.
+    # The threats being closed here - OTP brute force, login stuffing,
+    # registration spam - are all unauthenticated, so scoping the limits
+    # to anonymous traffic covers them without touching working flows.
+    # Counters live in the default cache, which is already Redis.
+    "DEFAULT_THROTTLE_CLASSES": (
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.ScopedRateThrottle",
+    ),
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "60/min",
+        # Named buckets, attached per-view via users/throttling.py.
+        "login": "10/min",
+        "otp_request": "5/hour",
+        "password_reset": "10/hour",  # pragma: allowlist secret
+        "register": "10/hour",
+        "google_auth": "20/hour",
+    },
 }
 
 
@@ -658,16 +763,12 @@ DJOSER = {
         # "confirmation": "home.emails.ConfirmationEmail",
         # "password_reset": "home.emails.PasswordResetEmail",
     },
-    # Limit who can do what:
-    # - Anyone can register
-    # - Only authenticated users can retrieve/update themselves
-    # - Only admins can list or delete other users
-    # "PERMISSIONS": {
-    #     "user_create": ["rest_framework.permissions.AllowAny"],
-    #     "user": ["rest_framework.permissions.IsAuthenticated"],
-    #     "user_list": ["rest_framework.permissions.IsAdminUser"],
-    #     "user_delete": ["rest_framework.permissions.IsAdminUser"],
-    # }
+    # NOTE: djoser's URLs are not wired up (see the commented include in
+    # AutoGrader/urls.py) - authentication is served by users.views.AuthViewSet
+    # instead. A commented-out "PERMISSIONS" block used to sit here and read
+    # like live access control, including an AllowAny entry; it was removed
+    # because nothing in it was ever in effect. Authorization for the real
+    # endpoints lives on the viewsets in users/views.py.
 }
 
 SPECTACULAR_SETTINGS = {
@@ -847,6 +948,36 @@ ENABLE_STRIPE_LIVE_QA = env.bool("ENABLE_STRIPE_LIVE_QA", default=False)
 # only check that can detect the model provider changing behaviour, since
 # the nightly replay serves recorded responses by design.
 ENABLE_AI_LIVE_QA = env.bool("ENABLE_AI_LIVE_QA", default=False)
+
+# ── Benchmark run archive (Tier 3 of the run history) ────────────────────
+#
+# A full paid benchmark run costs real money and about an hour, and its raw
+# model responses are the only material that can answer a question we have
+# not thought of yet — the LaTeX evidence bug was found by re-reading them.
+# Keeping them in git is not viable (~1 MB per run, and the repo has a 500KB
+# large-file guard), so they go to Cloudinary, which this project already
+# requires and configures (see CLOUDINARY_STORAGE below).
+#
+# RawMediaCloudinaryStorage, not the default MediaCloudinaryStorage: the
+# default is image-typed and mishandles a .json.gz.
+BENCHMARK_ARCHIVE_STORAGE = env.str(
+    "BENCHMARK_ARCHIVE_STORAGE",
+    default="cloudinary_storage.storage.RawMediaCloudinaryStorage",
+)
+BENCHMARK_ARCHIVE_PREFIX = env.str(
+    "BENCHMARK_ARCHIVE_PREFIX", default="benchmark_archives"
+)
+
+# Uploading is off during tests, and that default is deliberate rather than
+# convenient. ENVIRONMENT is "local" in .env, and "local" resolves to REAL
+# Cloudinary (see STORAGES above), so a test that saved a file would make a
+# live network call using real credentials. Individual tests still override
+# the storage backend explicitly; this is the backstop for the test someone
+# forgets to.
+_RUNNING_TESTS = "test" in sys.argv or "pytest" in sys.modules
+BENCHMARK_ARCHIVE_ENABLED = env.bool(
+    "BENCHMARK_ARCHIVE_ENABLED", default=not _RUNNING_TESTS
+)
 
 # Email domain for users the live-QA suite creates. Defaults to a
 # .invalid domain (RFC 2606 reserves it as never-resolvable), so a QA

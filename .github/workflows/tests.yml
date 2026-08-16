@@ -1,0 +1,109 @@
+name: Tests
+
+# Runs the Django test suite on every push and pull request to the
+# long-lived branches. Before this existed, the project's ~1,500 tests only
+# ran when a developer remembered to type the command, and the pre-commit
+# test hook was commented out - so nothing anywhere enforced a green suite.
+on:
+  push:
+    branches: [main, beta, dev]
+  pull_request:
+    branches: [main, beta, dev]
+
+concurrency:
+  # A newer push to the same branch makes an in-flight run irrelevant.
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres  # pragma: allowlist secret
+          POSTGRES_DB: gradeaplus_ci
+        ports:
+          - 5432:5432
+        # Without this the job races the container and fails on connect.
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      # settings.py reads ENVIRONMENT to choose which DB/Redis/Stripe keys
+      # to look up; "local" is the branch that points at the *_LOCAL vars
+      # wired to the service containers above.
+      ENVIRONMENT: local
+      SECRET_KEY: ci-secret-key-not-used-outside-ci  # pragma: allowlist secret
+      FRONTEND_DOMAIN: http://localhost:3000
+      DATABASE_URI_LOCAL: postgres://postgres:postgres@localhost:5432/gradeaplus_ci  # pragma: allowlist secret
+      REDIS_LOCAL_URL: redis://localhost:6379/0
+      # Every value below is required at import time by settings.py. They
+      # are deliberately fake: the suite mocks all outbound calls, and a CI
+      # run must never be able to reach a real Stripe, Cloudinary, or
+      # mail provider.
+      LOCAL_STRIPE_PUBLIC_KEY: pk_test_ci
+      LOCAL_STRIPE_SECRET_KEY: sk_test_ci  # pragma: allowlist secret
+      LOCAL_STRIPE_WEBHOOK_SECRET: whsec_ci  # pragma: allowlist secret
+      CLOUDINARY_CLOUD_NAME: ci
+      CLOUDINARY_API_KEY: ci  # pragma: allowlist secret
+      CLOUDINARY_API_SECRET: ci  # pragma: allowlist secret
+      MAILSEND_API_KEY: ci  # pragma: allowlist secret
+      GOOGLE_OAUTH_CLIENT_ID: ci
+      GOOGLE_OAUTH_CLIENT_SECRET: ci  # pragma: allowlist secret
+      GOOGLE_REDIRECT_URI: http://localhost:3000/auth/google
+      # 32-byte urlsafe base64 key for encrypted_model_fields.
+      FIELD_ENCRYPTION_KEY: dGVzdC1rZXktZm9yLWNpLW9ubHktMzJieXRlcyE=  # pragma: allowlist secret
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install system dependencies
+        # Mirrors the Dockerfile: OCR and PDF handling need these present
+        # before the Python packages that bind to them will import.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            tesseract-ocr poppler-utils libgl1 libglib2.0-0
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Check for missing migrations
+        # Catches a model change committed without its migration, which
+        # otherwise surfaces as a confusing failure on deploy.
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Run tests
+        run: coverage run manage.py test --noinput
+
+      - name: Coverage report
+        # Reported for visibility only - deliberately NOT failing the build
+        # on a coverage threshold. A percentage gate pressures people into
+        # writing assertion-free tests that raise the number without
+        # catching anything.
+        run: coverage report -m

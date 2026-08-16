@@ -59,6 +59,37 @@ class CustomUserSerializer(serializers.ModelSerializer):
     credit_wallet = CreditWalletSerializer(read_only=True)
     is_system_generated_email = serializers.SerializerMethodField()
 
+    # Fields that decide what a user is allowed to do. They must never be
+    # settable by the account holder: this serializer backs PATCH
+    # /users/<id>, so a writable user_type is a self-service promotion to
+    # SUPER_ADMIN, and a writable school is a jump into another tenant.
+    # Read-only by default; re-opened in __init__ for a genuine super admin
+    # so that POST /users (SuperAdmin-only) can still mint non-teacher
+    # accounts. Server-side callers that legitimately set these -
+    # register_student, register_school_admin, license_service - assign
+    # them on the model directly and never go through this serializer.
+    PRIVILEGED_FIELDS = ("user_type", "school")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        is_super_admin = bool(
+            user
+            and user.is_authenticated
+            and user.user_type == UserTypes.SUPER_ADMIN
+            and user.is_superuser
+        )
+
+        # Set both directions explicitly rather than relying on
+        # Meta.read_only_fields: DRF ignores read_only_fields for fields
+        # declared on the class, and `school` is declared above, so listing
+        # it in Meta alone would leave it writable.
+        for field_name in self.PRIVILEGED_FIELDS:
+            if field_name in self.fields:
+                self.fields[field_name].read_only = not is_super_admin
+
     class Meta:
         model = CustomUser
         fields = [
@@ -79,7 +110,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             "credit_wallet",
             "is_system_generated_email",
         ]
-        # read_only_fields = ['id', 'user_type']
+        read_only_fields = ["id", "user_type", "school", "date_joined"]
 
         extra_kwargs = {
             "email": {"required": True},
