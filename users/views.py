@@ -1269,8 +1269,8 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         description="""
         Verifies a Google ID token (credential) sent from the frontend.
 
-        - If the user does not exist: Creates a new user (if they are in the Beta Whitelist),
-        assigns an unusable password, marks their email as verified, and logs them in.
+        - If the user does not exist: Creates a new user, assigns an unusable
+        password, marks their email as verified, and logs them in.
         - If the user exists: Authenticates them if their registration method is `GOOGLE`.
         - Returns a pair of JWT (JSON Web Tokens) access and refresh tokens, along with user details.
         """,
@@ -1302,7 +1302,6 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 "- Missing code\n"
                 "- Invalid or expired authorization code\n"
                 "- Email address has not been verified by Google\n"
-                "- Email is not whitelisted in the Beta system\n"
                 "- User already registered via standard Email instead of Google"
             ),
             500: OpenApiResponse(description="Internal Server Error"),

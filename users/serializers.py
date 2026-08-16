@@ -11,7 +11,6 @@ from billing.services import AnalyticsService
 from classrooms.models import School
 
 # from students.task_context import get_session_context, get_task_context
-from users.exceptions import NotInBetaException
 from users.models import (
     BetaWhitelist,
     CustomUser,
@@ -92,28 +91,19 @@ class CustomUserSerializer(serializers.ModelSerializer):
 
     def validate_email(self, value):
         """
-        Check if the email is in the BetaWhitelist.
-        If not, add to Waitlist and block registration.
+        Normalise the email.
+
+        Signup is open: this used to reject any address missing from
+        `BetaWhitelist`, park it on `Waitlist` and raise NotInBetaException,
+        which gated BOTH email and Google registration (GoogleUserSerializer
+        subclasses this) plus any superadmin-created account. That gate is
+        gone. `BetaWhitelist`/`Waitlist` and their superadmin endpoints are
+        kept as records - nothing reads them to allow or deny access.
+
+        Case-folding stays: the rest of the stack (login, uniqueness,
+        invitation lookups) assumes stored emails are lowercase.
         """
-        # We only enforce this for new registrations.
-        # Update logic usually won't trigger this unless the email changes,
-        # but for safety let's focus on the check itself.
-
-        email = value.lower().strip()
-
-        # Check if the email exists in BetaWhitelist and is active
-        allowed = BetaWhitelist.objects.filter(
-            email__iexact=email, is_active=True
-        ).exists()
-
-        if not allowed:
-            # Record user in Waitlist
-            Waitlist.objects.get_or_create(email=email)
-
-            # Raise the exception that informs the user they are now on the waitlist
-            raise NotInBetaException()
-
-        return email
+        return value.lower().strip()
 
     def get_is_system_generated_email(self, obj) -> bool:
         return bool(obj.email and str(obj.email).endswith("@student.local"))
