@@ -50,6 +50,7 @@ def _ai_response(payload, model=A_MODEL):
 def _evaluation(score):
     return {
         "question_number": 1,
+        "question_text": "Discuss.",
         "score_awarded": score,
         "max_points": 20,
         "level_achieved": "good",
@@ -205,6 +206,39 @@ class SecondOpinionQueueTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.data["needs_review"])
         self.assertEqual(len(response.data["second_opinion"]["disagreements"]), 1)
+
+    def test_detail_exposes_question_breakdown_always(self):
+        # The full per-question breakdown is present regardless of
+        # needs_review — a disagreement in second_opinion should be
+        # readable in the context of the whole submission, not in
+        # isolation, and a teacher should be able to inspect any
+        # submission in full detail, not only flagged ones.
+        self._grade(_responder(a_score=15, b_score=15))  # agreement, no flag
+        self.client.force_authenticate(user=self.teacher)
+
+        response = self.client.get(
+            reverse("student-submission-detail", kwargs={"pk": self.submission.pk})
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["needs_review"])
+        [entry] = response.data["question_breakdown"]
+        self.assertEqual(str(entry["question_number"]), "1")
+        self.assertEqual(entry["score_awarded"], 15)
+        self.assertEqual(entry["question_text"], "Discuss.")
+
+    def test_disagreement_joins_to_question_breakdown_by_question_number(self):
+        self._grade(_responder(a_score=15, b_score=0))
+        self.client.force_authenticate(user=self.teacher)
+
+        response = self.client.get(
+            reverse("student-submission-detail", kwargs={"pk": self.submission.pk})
+        )
+        [disagreement] = response.data["second_opinion"]["disagreements"]
+        [breakdown_entry] = response.data["question_breakdown"]
+        self.assertEqual(
+            str(disagreement["question_number"]),
+            str(breakdown_entry["question_number"]),
+        )
 
     def test_mark_reviewed_confirms_and_is_idempotent(self):
         # Ledger #15.

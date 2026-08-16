@@ -1,9 +1,14 @@
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from users.models import CustomUser
 
 from .models import StudentSubmission
+from .second_opinion_serializers import (
+    QuestionEvaluationSerializer,
+    SecondOpinionSerializer,
+)
 from .services import get_grade_details
 
 
@@ -239,6 +244,7 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
     grade_status = serializers.SerializerMethodField()
     remaining_attempts = serializers.SerializerMethodField()
     second_opinion = serializers.SerializerMethodField()
+    question_breakdown = serializers.SerializerMethodField()
 
     class Meta:
         model = StudentSubmission
@@ -269,6 +275,7 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
             "review_severity",
             "review_tier",
             "second_opinion",
+            "question_breakdown",
             "scheduled_grading_at",
             "grading_task_name",
             "is_grading_scheduled",
@@ -289,6 +296,7 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
             "review_severity",
             "review_tier",
             "second_opinion",
+            "question_breakdown",
             "score",
             "max_points",
             "score_percentage",
@@ -302,6 +310,7 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
             "is_grading_scheduled",
         ]
 
+    @extend_schema_field(SecondOpinionSerializer)
     def get_second_opinion(self, obj):
         """The stored second-opinion block (model, triggers, agreements,
         disagreements with both graders' rationales and evidence) — the
@@ -309,6 +318,18 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
         feedback JSON rather than exposing the whole blob."""
         feedback = obj.feedback if isinstance(obj.feedback, dict) else {}
         return feedback.get("second_opinion")
+
+    @extend_schema_field(QuestionEvaluationSerializer(many=True))
+    def get_question_breakdown(self, obj):
+        """The full per-question grade (question text, student answer,
+        rationale, evidence, score) for every question — always present,
+        not only when needs_review is set, so a disagreement in
+        second_opinion can be read in the context of the whole submission
+        rather than in isolation. Teacher-facing only: see
+        StudentSubmissionDetailStudentVersionSerializer's separately
+        whitelisted student-safe subset of these same fields."""
+        feedback = obj.feedback if isinstance(obj.feedback, dict) else {}
+        return feedback.get("question_evaluations", [])
 
     def get_email(self, obj):
         if "student.local" in obj.student.email:

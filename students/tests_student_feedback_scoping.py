@@ -166,6 +166,21 @@ class StudentFeedbackScopingTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("second_opinion", response.data)
         self.assertTrue(response.data["second_opinion"]["ran"])
+        # The full per-question breakdown is teacher-only, same reasoning
+        # as second_opinion: it carries evaluation_rationale/graded_by/
+        # snapped_from, none of which are in the student-safe whitelist.
+        [entry] = response.data["question_breakdown"]
+        self.assertEqual(
+            entry["evaluation_rationale"], "Internal note on level selection."
+        )
+        self.assertEqual(entry["graded_by"], "x-ai/grok-4.3")
+
+    def test_question_breakdown_is_never_visible_to_the_student(self):
+        self.client.force_authenticate(user=self.student)
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotIn("question_breakdown", response.data)
 
     def test_unpublished_submission_still_returns_no_feedback_at_all(self):
         StudentSubmission.objects.filter(pk=self.submission.pk).update(
