@@ -1,4 +1,5 @@
 """Academic rigor scoring.
+Love God with all your heart
 
 Rigor is modelled as a composite of three independently-meaningful signals,
 each on a 0-5 scale:
