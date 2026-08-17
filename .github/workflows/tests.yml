@@ -69,6 +69,10 @@ jobs:
       GOOGLE_OAUTH_CLIENT_ID: ci
       GOOGLE_OAUTH_CLIENT_SECRET: ci  # pragma: allowlist secret
       GOOGLE_REDIRECT_URI: http://localhost:3000/auth/google
+      # ai_processor/services.py reads this at module import with no default,
+      # and users.views -> ... -> ai_processor.services is on the URLconf
+      # import chain, so without it Django cannot even load urls.py.
+      OPENROUTER_API_KEY: sk-or-ci-not-a-real-key  # pragma: allowlist secret
       # Fernet key for encrypted_model_fields: must base64-decode to EXACTLY
       # 32 bytes or users/models.py fails at import and every step dies
       # before it runs. This one decodes to b"ci-test-key-not-for-production!!".
