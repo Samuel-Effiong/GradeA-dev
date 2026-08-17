@@ -479,7 +479,7 @@ class Command(BaseCommand):
 
         if report["failures"]:
             out.write("")
-            out.write(f"10. OUT-OF-BAND FAILURES ({len(report['failures'])})")
+            out.write(f"11. OUT-OF-BAND FAILURES ({len(report['failures'])})")
             for failure in report["failures"]:
                 out.write(
                     f"   {failure['assignment_key']}/{failure['student_key']} "
@@ -495,7 +495,7 @@ class Command(BaseCommand):
 
         if report["errors"]:
             out.write("")
-            out.write(f"11. RUN ERRORS ({len(report['errors'])})")
+            out.write(f"12. RUN ERRORS ({len(report['errors'])})")
             for error in report["errors"]:
                 out.write(
                     f"   {error['assignment_key']}/{error['student_key']}: "
@@ -504,7 +504,7 @@ class Command(BaseCommand):
 
         if diff:
             out.write("")
-            out.write("12. VS BASELINE")
+            out.write("13. VS BASELINE")
             for line in diff["lines"]:
                 out.write(f"   {line}")
             if diff["regressed"]:
