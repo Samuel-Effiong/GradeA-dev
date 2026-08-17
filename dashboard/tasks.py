@@ -765,6 +765,23 @@ def _build_plaintext_student_summary(summary):
     return "\n".join(lines)
 
 
+def _format_rigor_plaintext(teacher):
+    """Render a teacher's rigor for the plain-text digest.
+
+    Mirrors the HTML table's "3.4/5 (D 4.2 / E 2.1 / S 3.8)" shape so the two
+    bodies of the same email cannot tell an admin different things. Components
+    that have no data yet render as a dash rather than being dropped, so the
+    absence is visible instead of silently narrowing the number.
+    """
+    breakdown = teacher.get("rigor_breakdown") or {}
+    label = breakdown.get("label")
+
+    if teacher.get("rigor") is None:
+        return label or "rigor not yet scoreable"
+
+    return f"rigor: {label} ({teacher['rigor']}/5)"
+
+
 def _build_plaintext_school_admin_summary(school, summary):
     overall = summary["overall"]
     at_risk_students = summary["at_risk_students"]
@@ -826,7 +843,8 @@ def _build_plaintext_school_admin_summary(school, summary):
                 )
                 lines.append(
                     f"- {teacher['name']}: {teacher['courses']} course(s), "
-                    f"{teacher['students']} student(s), {assignments_per_week}"
+                    f"{teacher['students']} student(s), {assignments_per_week}, "
+                    f"{_format_rigor_plaintext(teacher)}"
                 )
     else:
         lines.append("- No teachers found for this school.")

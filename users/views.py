@@ -1469,7 +1469,11 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 raise ParseError("Google has not verified your email")
 
             with transaction.atomic():
-                email = id_info["email"]
+                # Lowercased to match how every other path stores and looks up
+                # emails (CustomUserSerializer.validate_email). Without it, a
+                # mixed-case Google address misses the lookup below, falls into
+                # the create branch, and dies on the unique constraint.
+                email = id_info["email"].strip().lower()
                 first_name = id_info.get("given_name", "")
                 last_name = id_info.get("family_name", "")
                 middle_name = id_info.get("middle_name", "")
@@ -1502,6 +1506,20 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
                         sync_user_to_mailerlite.delay(str(user.id))
                     else:
+                        # A Google account on a business domain lands here:
+                        # signing in with Google creates an individual TEACHER
+                        # account, and those require a personal address. The
+                        # raw serializer error dict reads as a bug to the
+                        # user, so say what actually happened - their school
+                        # account is created by their school admin, not by
+                        # this button.
+                        email_errors = serializer.errors.get("email")
+                        if email_errors:
+                            raise ParseError(
+                                f"{email_errors[0]} If you are joining a "
+                                "school, ask your school admin to invite you "
+                                "and use the link in that invitation instead."
+                            )
                         raise ValidationError(serializer.errors)
 
                 expiry = timezone.now() + timedelta(seconds=expires_in)

@@ -558,6 +558,14 @@ class StripeCheckoutService:
                 "upgrade/downgrade flow instead of checkout."
             )
 
+        # Same shape of backstop for the other track: never open a Stripe
+        # checkout for someone a school license already covers. The routing
+        # decision is made in IndividualPlanChangeService.select_plan, but
+        # this is the last point before money changes hands, and a license
+        # holder charged for an individual plan gets nothing for it (access
+        # resolves license-first).
+        IndividualPlanChangeService._assert_not_on_the_license_track(user)
+
         customer_id = StripeCustomerService.get_or_create_customer(user)
 
         # Only an *active* trial is eligible for in-place finalize at webhook
@@ -2172,6 +2180,61 @@ class IndividualPlanChangeService:
         )
 
     @staticmethod
+    def _assert_not_on_the_license_track(user) -> None:
+        """
+        Refuse an individual plan purchase by someone their school's license
+        already covers.
+
+        The two tracks are deliberately separate, and the license side
+        guards that separation carefully -- both _get_or_invite_teacher and
+        _enroll_teacher_internal raise IndividualSubscriptionConflictError
+        rather than let an individual subscriber be pulled onto a license.
+        That guard was one-directional: nothing stopped the same person
+        going the OTHER way and buying an individual plan while actively
+        holding a license seat.
+
+        This is not just a tidiness rule, it takes real money. Access is
+        resolved license-first (see resolve_billing_context: an active
+        allocation wins over any UserSubscription), so a license teacher who
+        buys an individual plan is charged every month by Stripe for credits
+        they can never spend -- their allocation answers every request. The
+        first sign of it is a refund request.
+
+        Scoped to ACTIVE allocations on ACTIVE licenses: a teacher who has
+        been removed from their school's license, or whose school's license
+        lapsed, is back on their own and must be able to subscribe.
+        """
+        allocation = (
+            SchoolCreditAllocation.objects.filter(
+                user=user,
+                is_active=True,
+                license_subscription__is_active=True,
+            )
+            .select_related("license_subscription__school")
+            .first()
+        )
+
+        if not allocation:
+            return
+
+        school = allocation.license_subscription.school
+
+        if allocation.is_admin_allocation:
+            raise ValueError(
+                f"Your account is the license administrator for "
+                f"{school.name}, so it is already covered by that school's "
+                "license. Individual plans are for personal accounts and "
+                "cannot be combined with a school license."
+            )
+
+        raise ValueError(
+            f"Your account is covered by {school.name}'s license, so an "
+            "individual plan would be charged on top of a seat you already "
+            "have. If you want a personal subscription as well, use a "
+            "separate account on a personal email address."
+        )
+
+    @staticmethod
     def select_plan(user, target_plan, success_url=None, cancel_url=None):
         """
         Args:
@@ -2190,6 +2253,10 @@ class IndividualPlanChangeService:
                 failure to schedule/release the Stripe-side
                 SubscriptionSchedule for a deferred change.
         """
+        # Checked before the lock: a rejection here is about who the user is,
+        # not about concurrent plan changes, so there is nothing to serialise.
+        IndividualPlanChangeService._assert_not_on_the_license_track(user)
+
         lock_key = f"billing:planchange:{user.id}"
         if not cache.add(
             lock_key, "1", timeout=IndividualPlanChangeService._LOCK_TIMEOUT_SECONDS

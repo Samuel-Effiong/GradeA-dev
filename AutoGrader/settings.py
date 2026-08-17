@@ -275,32 +275,64 @@ WSGI_APPLICATION = "AutoGrader.wsgi.application"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASE_CONFIG = {
-    "conn_max_age": 0,
+    # Persistent connections. At 0, every HTTP request paid a full TCP +
+    # TLS + auth round trip to the managed Postgres before running its
+    # first query -- tens of milliseconds of pure overhead on every
+    # request, on every endpoint.
+    "conn_max_age": 600,
+    # Only meaningful now that connections persist: Django pings a reused
+    # connection before handing it to a request, so a connection dropped
+    # by the pooler surfaces as a retry rather than a 500.
     "conn_health_checks": True,
+    # MUST be passed here rather than as a module-level setting. Django
+    # reads it from the per-database settings_dict (see
+    # QuerySet.iterator()), so the old module-level
+    # `DISABLE_SERVER_SIDE_CURSORS = True` silently did nothing and
+    # server-side cursors stayed enabled -- which breaks .iterator() when
+    # running behind a transaction-mode connection pooler.
+    "disable_server_side_cursors": True,
 }
 
-if ENVIRONMENT == "local":
-    DATABASES = {
-        "default": dj_database_url.config(
-            default=env.str("DATABASE_URI_LOCAL"), **DATABASE_CONFIG
-        )
-    }
-elif ENVIRONMENT == "dev":
-    DATABASES = {
-        "default": dj_database_url.config(
-            default=env.str("DATABASE_URI_DEV"), **DATABASE_CONFIG
-        )
-    }
-else:
-    DATABASES = {
-        "default": dj_database_url.config(
-            default=env.str("DATABASE_URI"), **DATABASE_CONFIG
-        ),
-        "OPTIONS": {
-            "prepare_threshold": None,  # or psycopg2 alternative
-        },
-    }
-DISABLE_SERVER_SIDE_CURSORS = True
+#: All environments differ only in which variable holds the URL. Keeping one
+#: construction path means a fix like the OPTIONS placement below cannot be
+#: applied to some environments and missed in others -- which is exactly how
+#: production ended up as the only environment carrying a broken OPTIONS key.
+DATABASE_URI_ENV_VAR = {
+    "local": "DATABASE_URI_LOCAL",
+    "dev": "DATABASE_URI_DEV",
+}.get(ENVIRONMENT, "DATABASE_URI")
+
+DATABASES = {
+    "default": dj_database_url.config(
+        default=env.str(DATABASE_URI_ENV_VAR), **DATABASE_CONFIG
+    )
+}
+
+# Server-side guard rails, applied to every connection.
+#
+# idle_in_transaction_session_timeout: kills a session that has opened a
+#   transaction and then gone idle. An abandoned transaction holds its row
+#   and table locks indefinitely; when a migration's ALTER TABLE then queues
+#   behind it for an ACCESS EXCLUSIVE lock, every later query on that table
+#   queues behind the ALTER -- turning one stuck session into a site-wide
+#   stall. Safe at 60s because this codebase deliberately keeps slow external
+#   work (AI calls) outside transactions.
+#
+# lock_timeout: a statement waits at most 10s to acquire a lock, then fails.
+#   Deliberately generous, so ordinary row contention (e.g. the
+#   select_for_update in students/task_tracking.py) never trips it, while a
+#   blocked DDL statement fails fast instead of taking the site down with it.
+#
+# Note this is the psycopg2 `options` connection parameter, nested under
+# OPTIONS. The previous code put an OPTIONS key alongside "default" rather
+# than inside it, which declared a bogus database alias named "OPTIONS" and
+# applied nothing to the real connection.
+DATABASES["default"].setdefault("OPTIONS", {})["options"] = " ".join(
+    [
+        "-c idle_in_transaction_session_timeout=60000",
+        "-c lock_timeout=10000",
+    ]
+)
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -886,38 +918,34 @@ else:
     STRIPE_WEBHOOK_SECRET = env.str("LOCAL_STRIPE_WEBHOOK_SECRET")
 
 
-ALLOWED_BUSINESS_EMAIL_DOMAINS = None
-DISALLOWED_EMAIL_DOMAINS = [
-    "gmail.com",
-    "yahoo.com",
-    "hotmail.com",
-    "outlook.com",
-    "aol.com",
-    "icloud.com",
-    "mail.com",
-    "protonmail.com",
-    "zoho.com",
-    "yandex.com",
-    "live.com",
-    "msn.com",
-    "qq.com",
-    "163.com",
-    "mail.ru",
-    "inbox.lv",
-    "rediffmail.com",
-    "lycos.com",
-    "gmx.com",
-    "fastmail.com",
-    "hushmail.com",
-    "yopmail.com",
-]
+# --- Personal vs business email rules ---------------------------------------
+#
+# The canonical consumer-provider and disposable-provider lists live in
+# users/utils.py (PERSONAL_EMAIL_DOMAINS / DISPOSABLE_EMAIL_DOMAINS). They
+# used to be duplicated here, which meant the settings copy silently won and
+# the module copy was dead code waiting to drift. The settings below only
+# EXTEND those lists, so an environment can add domains without having to
+# restate the built-in ones.
 
-# Domains exempt from the personal/business email restriction above -
-# accepted for both individual teacher (personal) and school admin/licensed
-# (business) account creation. Used for QA/testing addresses.
-EXEMPT_EMAIL_DOMAINS = [
-    "yopmail.com",
-]
+# Optional strict allowlist. When non-empty, ONLY these domains (and their
+# subdomains) count as business emails, so school admin / license enrollment
+# is limited to known schools. Empty means "anything that isn't a consumer or
+# disposable provider".
+ALLOWED_BUSINESS_EMAIL_DOMAINS = env.list("ALLOWED_BUSINESS_EMAIL_DOMAINS", default=[])
+
+# Extra consumer domains to treat as personal (individual accounts only).
+DISALLOWED_EMAIL_DOMAINS = env.list("DISALLOWED_EMAIL_DOMAINS", default=[])
+
+# Extra throwaway-mailbox domains, refused on BOTH tracks.
+DISPOSABLE_EMAIL_DOMAINS = env.list("DISPOSABLE_EMAIL_DOMAINS", default=[])
+
+# Domains exempt from the personal/business restriction entirely - accepted
+# for both individual teacher (personal) and school admin/licensed (business)
+# accounts. This is a QA lever and it opens BOTH gates, so it defaults to
+# empty; yopmail.com used to sit here permanently, which meant anyone could
+# mint a school admin with a public throwaway address. Set it per-environment
+# (e.g. EXEMPT_EMAIL_DOMAINS=yopmail.com on QA, unset in production).
+EXEMPT_EMAIL_DOMAINS = env.list("EXEMPT_EMAIL_DOMAINS", default=[])
 
 
 ENABLE_BILLING_TIME_TRAVEL = env.bool("ENABLE_BILLING_TIME_TRAVEL", default=False)

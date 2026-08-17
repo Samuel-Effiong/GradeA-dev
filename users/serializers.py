@@ -140,7 +140,11 @@ class CustomUserSerializer(serializers.ModelSerializer):
         return bool(obj.email and str(obj.email).endswith("@student.local"))
 
     def validate(self, attrs):
-        from users.utils import is_business_email, is_exempt_email_domain
+        from users.utils import (
+            is_business_email,
+            is_exempt_email_domain,
+            is_personal_email,
+        )
 
         # Determine user_type and email for this operation
         user_type = attrs.get("user_type")
@@ -231,15 +235,39 @@ class CustomUserSerializer(serializers.ModelSerializer):
                         {field: "Students are not allowed to edit their name."}
                     )
 
-        # Enforce email domain rules on account creation or when changing their email
+        # A user_type change re-decides which rule applies to an email that was
+        # already accepted under the other one. Without this, PATCHing an
+        # existing teacher on jane@gmail.com to SCHOOL_ADMIN sailed through --
+        # the guard below only fired on creation or on an email change -- and
+        # left a school admin sitting on a personal address, exactly the state
+        # these rules exist to prevent. (PRIVILEGED_FIELDS means only a super
+        # admin can make that request, but "only a super admin can do it" is
+        # not the same as "it is allowed".)
+        user_type_changed = bool(
+            self.instance
+            and requested_user_type
+            and requested_user_type != self.instance.user_type
+        )
+
+        # System-generated student addresses (@student.local) are placeholders,
+        # not mailboxes anyone owns, and they are never personal OR business.
+        # They must not be dragged into this check by a user_type change.
+        is_system_generated = bool(email and email.endswith("@student.local"))
+
+        # Enforce email domain rules on account creation, on an email change,
+        # or when the account is being moved between tracks.
         if (
             email
-            and (is_creating or email_changed)
+            and (is_creating or email_changed or user_type_changed)
+            and not is_system_generated
             and not is_exempt_email_domain(email)
         ):
             if user_type == UserTypes.TEACHER:
-                # Teachers (individual track) MUST use personal email
-                if is_business_email(email):
+                # Teachers (individual track) MUST use a personal email. This
+                # is a positive test now: an unrecognised domain is not
+                # personal, so it is refused here rather than treated as
+                # "well, it isn't on the consumer list".
+                if not is_personal_email(email):
                     raise serializers.ValidationError(
                         {
                             "email": (
@@ -259,6 +287,37 @@ class CustomUserSerializer(serializers.ModelSerializer):
                             )
                         }
                     )
+
+        # Attaching a school is the other half of the crossing. The rules
+        # above police the email against the user_type, but `school` was
+        # never checked against either: a super admin (the only actor for
+        # whom `school` is writable - see PRIVILEGED_FIELDS) could attach a
+        # school to a teacher sitting on a personal address, making an
+        # individual-track account a member of a school tenant. It does not
+        # by itself hand over a license seat - enrollment re-checks the
+        # email in LicenseSubscriptionService._get_or_invite_teacher - but it
+        # satisfies the school-membership half of that check and leaves the
+        # account half-way across a line that is supposed to be absolute.
+        incoming_school = attrs.get("school")
+        if (
+            incoming_school is not None
+            and "school" in attrs
+            and email
+            and not is_system_generated
+            and not is_exempt_email_domain(email)
+            and user_type == UserTypes.TEACHER
+            and not is_business_email(email)
+        ):
+            raise serializers.ValidationError(
+                {
+                    "school": (
+                        "This account uses a personal email address and so "
+                        "belongs to the individual track. A teacher can only "
+                        "be attached to a school on a business email address "
+                        "- invite them through the school's license instead."
+                    )
+                }
+            )
 
         return attrs
 

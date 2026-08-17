@@ -54,6 +54,46 @@ class Assignment(models.Model):
         default=AssignmentTypes.OBJECTIVE,
     )
     questions = models.JSONField(null=True, blank=True)
+
+    # --- Denormalized rigor components (see assignments/rigor.py) ---
+    # Derived from `questions` and kept in sync by the pre_save hook in
+    # assignments/signals.py. Stored rather than computed on read because the
+    # school-admin dashboard and weekly digest aggregate these across every
+    # assignment of every teacher in a school, and re-parsing the questions
+    # JSON per request made that an N+1 over JSON blobs. Both are null when
+    # the source data cannot support a score.
+    rigor_demand = models.FloatField(
+        null=True,
+        blank=True,
+        # Deliberately unindexed: the dashboard roll-up filters by
+        # course__teacher_id and status (both already indexed) and only
+        # aggregates this column, so a standalone index on it would never be
+        # chosen -- while its non-concurrent CREATE INDEX would hold an
+        # exclusive write lock over the whole table at deploy time.
+        help_text=(
+            "Points-weighted mean Bloom's taxonomy level across this "
+            "assignment's questions, 0-5. Null when Bloom's coverage is below "
+            "assignments.rigor.MIN_BLOOMS_COVERAGE."
+        ),
+    )
+    rigor_standards = models.FloatField(
+        null=True,
+        blank=True,
+        help_text=(
+            "Share of open-ended questions carrying a usable rubric, scaled "
+            "0-5. Null when the assignment has no open-ended questions."
+        ),
+    )
+    rigor_blooms_coverage = models.FloatField(
+        null=True,
+        blank=True,
+        help_text=(
+            "Fraction of question points that carried a recognised "
+            "blooms_level, 0.0-1.0. Reported alongside the score so a "
+            "confident-looking number drawn from sparse data is visible."
+        ),
+    )
+
     due_date = models.DateTimeField(null=True, blank=True)
     auto_grade_on_due_date = models.BooleanField(
         default=False,

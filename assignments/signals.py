@@ -9,6 +9,7 @@ from django.utils import timezone
 from django_celery_beat.models import ClockedSchedule, PeriodicTask
 
 from assignments.models import Assignment, AssignmentGenerationSession, AssignmentStatus
+from assignments.rigor import score_assignment
 
 ASSIGNMENT_DUE_REMINDER_OFFSETS = (24, 1)
 
@@ -119,6 +120,29 @@ def schedule_auto_grading(sender, instance, created, **kwargs):
             "args": json.dumps([str(instance.id)]),
         },
     )
+
+
+@receiver(pre_save, sender=Assignment)
+def sync_assignment_rigor(sender, instance, update_fields=None, **kwargs):
+    """Keep the denormalized rigor columns in step with `questions`.
+
+    Runs on every full save, so any write path -- the DRF serializers, the AI
+    extraction tasks, the admin, a shell -- lands consistent values without
+    having to remember to call anything.
+
+    A partial save that does not touch `questions` is skipped: the recomputed
+    values could not be persisted by that UPDATE anyway (Django writes only
+    the named columns), so doing the work would just burn CPU. No Assignment
+    save path currently passes `questions` in update_fields; if one is ever
+    added it must include the three rigor_* columns alongside it.
+    """
+    if update_fields is not None and "questions" not in update_fields:
+        return
+
+    demand, standards, coverage = score_assignment(instance.questions)
+    instance.rigor_demand = demand
+    instance.rigor_standards = standards
+    instance.rigor_blooms_coverage = coverage
 
 
 @receiver(pre_save, sender=Assignment)

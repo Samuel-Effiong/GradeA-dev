@@ -69,10 +69,20 @@ class QuestionSerializer(serializers.Serializer):
         return value
 
     def validate_blooms_level(self, value):
+        # An unset level is allowed (the field is optional and allow_blank),
+        # and must pass through untouched -- rejecting "" here would have
+        # contradicted allow_blank=True on the field itself.
+        if not value:
+            return value
+
         if value not in self.BLOOMS_LEVEL:
             raise serializers.ValidationError(
                 f"Invalid blooms_level `{value}`. Allow types: {', '.join(self.BLOOMS_LEVEL)}"
             )
+        # Without this return DRF stores None for every *valid* level, which
+        # silently strips the cognitive-demand signal that rigor scoring
+        # (assignments/rigor.py) is built on.
+        return value
 
 
 class AssignmentSerializer(serializers.ModelSerializer):

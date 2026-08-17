@@ -63,6 +63,33 @@
         .status-inactive {
             color: #b91c1c;
         }
+        .rigor-parts {
+            color: #64748b;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .rigor-label {
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .tone-good {
+            color: #15803d;
+        }
+        .tone-watch {
+            color: #b45309;
+        }
+        .tone-concern {
+            color: #b91c1c;
+        }
+        .tone-neutral, .tone-unknown {
+            color: #475569;
+        }
+        .legend {
+            color: #475569;
+            font-size: 12px;
+            margin-top: 8px;
+            line-height: 1.6;
+        }
     </style>
 </head>
 <body>
@@ -180,7 +207,16 @@
                                 <td>{% if teacher.assignments_per_week != None %}{{ teacher.assignments_per_week }}{% else %}—{% endif %}</td>
                                 <td>{% if teacher.turnaround != None %}{{ teacher.turnaround }}d{% else %}—{% endif %}</td>
                                 <td>{% if teacher.ai_confidence != None %}{{ teacher.ai_confidence }}%{% else %}—{% endif %}</td>
-                                <td>{% if teacher.rigor != None %}{{ teacher.rigor }}/5{% else %}—{% endif %}</td>
+                                <td>
+                                    <div class="rigor-label tone-{{ teacher.rigor_breakdown.tone }}">
+                                        {{ teacher.rigor_breakdown.label }}
+                                    </div>
+                                    {% if teacher.rigor != None %}
+                                        <div class="rigor-parts">
+                                            scores {{ teacher.rigor }}/5
+                                        </div>
+                                    {% endif %}
+                                </td>
                                 <td{% if not teacher.status %} class="status-inactive"{% endif %}>
                                     {% if teacher.status %}Active{% else %}Inactive{% endif %}
                                 </td>
@@ -188,6 +224,112 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                {% for teacher in teacher_activity %}
+                    {% if teacher.rigor_breakdown.standards_note or teacher.rigor_breakdown.coverage_note %}
+                        <div class="legend">
+                            <strong>{{ teacher.name }}:</strong>
+                            {{ teacher.rigor_breakdown.standards_note|default_if_none:"" }}
+                            {{ teacher.rigor_breakdown.coverage_note|default_if_none:"" }}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+
+                <div class="card">
+                    <h3 style="margin-top:0;">What the Rigor column means</h3>
+                    <p class="muted" style="margin-top:0;">
+                        Rigor answers one question: <em>is this teacher asking enough of
+                        their students, and is it landing?</em> Every teacher gets a short
+                        verdict below, based on the three things we can measure.
+                    </p>
+
+                    <table class="activity">
+                        <thead>
+                            <tr>
+                                <th>Verdict</th>
+                                <th>What it means</th>
+                                <th>What to do</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="tone-good">Stretching students</td>
+                                <td>Questions ask students to analyse and judge, and results show they are being pushed without being lost.</td>
+                                <td>Nothing — this is the pattern you want.</td>
+                            </tr>
+                            <tr>
+                                <td class="tone-good">Demanding questions</td>
+                                <td>The questions ask for real thinking, but not enough work has been graded yet to know how students cope.</td>
+                                <td>Check back once marking catches up.</td>
+                            </tr>
+                            <tr>
+                                <td class="tone-watch">Check the marking</td>
+                                <td>The questions are hard, yet nearly every student scores top marks.</td>
+                                <td>Read a few marked scripts. Marking may be too generous, or answers may be circulating.</td>
+                            </tr>
+                            <tr>
+                                <td class="tone-watch">Too easy</td>
+                                <td>Questions mainly ask students to remember facts, and they score highly.</td>
+                                <td>Encourage questions that ask students to explain, compare or justify.</td>
+                            </tr>
+                            <tr>
+                                <td class="tone-concern">Very hard going</td>
+                                <td>Demanding questions and students are scoring low.</td>
+                                <td>Students may need more preparation before work at this level.</td>
+                            </tr>
+                            <tr>
+                                <td class="tone-concern">Struggling on basics</td>
+                                <td>Questions only ask for recall, and students still score low.</td>
+                                <td>Look at teaching support rather than difficulty.</td>
+                            </tr>
+                            <tr>
+                                <td class="tone-neutral">Balanced / Moderate / Comfortable</td>
+                                <td>Middle of the road on both difficulty and results.</td>
+                                <td>No action needed, but there is room to push further.</td>
+                            </tr>
+                            <tr>
+                                <td>Not enough data yet</td>
+                                <td>This teacher has no assignments with difficulty data recorded.</td>
+                                <td>Usually a new teacher. No action needed.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <p class="muted" style="margin-bottom:4px;">
+                        The 0–5 score under each verdict blends three measurements:
+                    </p>
+                    <table class="activity">
+                        <thead>
+                            <tr>
+                                <th>Measurement</th>
+                                <th>Plain meaning</th>
+                                <th>Where it comes from</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Demand</strong></td>
+                                <td>How much thinking the questions ask for — remembering a date is low, arguing a case is high.</td>
+                                <td>The thinking level recorded on each question, weighted by how many marks it carries.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Evidence</strong></td>
+                                <td>Whether students were actually stretched. A class averaging 95% was not.</td>
+                                <td>Average score achieved across all graded work. Needs at least 5 graded submissions.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Standards</strong></td>
+                                <td>Whether essay-type questions say what a good answer looks like.</td>
+                                <td>Share of open-ended questions that carry a marking rubric.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p class="muted" style="margin-bottom:0;">
+                        Use the verdict, not the number, when comparing teachers. A teacher
+                        who sets harder questions but marks generously can score lower than
+                        one who sets easier questions and marks honestly — the verdict tells
+                        those two apart, the number does not.
+                    </p>
+                </div>
             {% else %}
                 <div class="card">
                     <p>No teachers found for this school.</p>

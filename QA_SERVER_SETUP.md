@@ -1,15 +1,20 @@
-# QA Server Setup — Billing Nightly Run + Grader Weekly Run
+# QA Server Setup — Full Server on QA/Test Infrastructure
 
-Step-by-step instructions for standing up a **separate testing server** that runs only two
-scheduled jobs against isolated infrastructure, never touching production:
+Step-by-step instructions for standing up a **complete, separate copy of the application** —
+web server, Celery worker, and Celery beat, exactly like production — pointed at isolated QA
+infrastructure (its own database, its own Redis, Stripe **test mode**) instead of production's.
+Real end-to-end testing (signup, checkout, webhooks, the admin, everything a user can do)
+happens here without ever touching production data or spending real money.
+
+This box also runs two scheduled jobs that only make sense on a QA/staging worker and are hard
+no-ops everywhere else in the fleet unless explicitly enabled:
 
 - `billing.tasks.nightly_stripe_live_qa` — real-Stripe billing QA suite (test mode)
 - `ai_processor.tasks.weekly_grading_benchmark_live` — real-model grading accuracy benchmark
 
-Both tasks are hard no-ops everywhere else in the fleet unless explicitly enabled, which is what
-makes it safe to point the *same* codebase and settings module (`AutoGrader.settings`) at this box
-instead of maintaining a second one. [`QA.env`](QA.env) in the repo root holds the environment
-variables this document walks through filling in and loading.
+[`QA.env`](QA.env) in the repo root holds the environment variables this document walks through
+filling in and loading. Its sibling, [`live.env`](live.env), is the equivalent template for the
+**real** production server — never mix values between the two.
 
 Read [`QA.env`](QA.env)'s own header comments alongside this document — they cover the same ground
 from the "what does each variable do" angle; this document covers "what do I actually run, in what
@@ -19,23 +24,29 @@ order."
 
 ## 0. Before you start: what this server needs, and what it must NOT share with production
 
-- **Its own PostgreSQL database.** Both jobs create real rows — Stripe customers/subscriptions
-  mirrored locally, real `CustomUser` accounts, real `AssignmentSubmission` rows for the grading
-  benchmark. None of that belongs anywhere near the production database.
+- **Its own PostgreSQL database.** Real rows get created here — Stripe customers/subscriptions,
+  real `CustomUser` accounts, real `AssignmentSubmission` rows, everything a QA tester or the
+  automated suites do. None of that belongs anywhere near the production database.
 - **Its own Redis instance** (or at minimum a dedicated logical DB index on a shared one) — it's
   both the Celery broker/result backend and the Django cache.
-- **A Stripe account (or a dedicated test-mode-only setup) with a `sk_test_...` secret key.**
-  `ENABLE_STRIPE_LIVE_QA` re-checks this prefix on every single Stripe call the suite makes, not
-  just at startup — it refuses to run against anything else. Never put a live (`sk_live_`) key
-  anywhere in `QA.env`.
+- **A Stripe account (or a dedicated test-mode-only setup) with a `sk_test_...` secret key**, and
+  its own **live-mode-style webhook endpoint configured in Stripe's TEST-mode dashboard**, pointed
+  at this box's public URL, so checkout/subscription webhooks actually reach it during manual QA
+  testing (not just the automated nightly suite, which doesn't need a reachable endpoint).
+  `ENABLE_STRIPE_LIVE_QA` re-checks the `sk_test_` prefix on every single Stripe call the nightly
+  suite makes, not just at startup — it refuses to run against anything else. Never put a live
+  (`sk_live_`) key anywhere in `QA.env`.
+- **A real, working Google OAuth client + redirect URI** registered for this box's domain, if
+  anyone will test Google sign-in here — unlike a background-jobs-only deployment, this flow is
+  actually reachable and a placeholder value will visibly break it for a real tester.
 - **An OpenRouter (or whichever provider `ai_processor` is configured against) API key with its
-  own spend limit**, separate from production's. The weekly benchmark makes real, billed model
-  calls on purpose — that's the entire point of the job — so give it a budget it can't blow past
-  production's.
-- Everything else in `QA.env` (Cloudinary, Google OAuth, MailerSend/MailerLite, `SECRET_KEY`) is
-  required only because `AutoGrader/settings.py` reads them unconditionally at import time — Django
-  won't boot without them, even though neither job touches most of them. Dummy-but-valid values are
-  fine for these; see [`QA.env`](QA.env)'s comments for which ones.
+  own spend limit**, separate from production's. Every submission a QA tester grades through this
+  box makes a real, billed call, and the weekly benchmark adds to that — so give it a budget it
+  can't blow past production's.
+- Everything else in `QA.env` (Cloudinary, MailerSend/MailerLite, `SECRET_KEY`,
+  `FIELD_ENCRYPTION_KEY`) is required for `AutoGrader/settings.py` to import at all, and — unlike a
+  background-jobs-only deployment — is now genuinely exercised by real traffic on this box, not
+  just sitting unused. See [`QA.env`](QA.env)'s comments for specifics.
 
 ---
 
@@ -256,26 +267,34 @@ python manage.py grading_benchmark --mode live --json
 creates automatically (pass `--teacher-email` to bill an existing one instead). Run it once
 deliberately here so you know it works before Celery Beat starts firing it weekly unattended.
 
-## 11. Start the Celery worker and Beat scheduler
+## 11. Start the web server, Celery worker, and Beat scheduler
 
 ```bash
+# The actual web server — same entry point production uses.
+gunicorn AutoGrader.wsgi:application --bind 0.0.0.0:8000 --timeout 100 \
+  --workers 4 --threads 4 --worker-class gthread \
+  --access-logfile /var/log/gradeaplus-qa/access.log \
+  --error-logfile  /var/log/gradeaplus-qa/gunicorn.log &
+
 celery -A AutoGrader worker --loglevel=info --logfile=/var/log/gradeaplus-qa/worker.log &
 celery -A AutoGrader beat   --loglevel=info --logfile=/var/log/gradeaplus-qa/beat.log &
 ```
 
 (Use a real process manager — systemd, supervisor — for anything beyond a manual smoke test; see
-the example unit files below.)
+the example unit files below, and add a matching `gradeaplus-qa-web` unit calling the `gunicorn`
+line above.)
 
-**Read this before you walk away:** `CELERY_BEAT_SCHEDULE` (`AutoGrader/settings.py`) is **one
-shared schedule**, not a per-environment one. Starting Beat here runs *every* periodic task the app
-defines — dashboard summaries, at-risk-student alerts, teacher-inactivity emails, credit-bucket
-cleanup, MailerLite syncs, `record_concurrent_users`, and so on — not just the two jobs this
-document is about. Against an isolated, otherwise-empty QA database those should mostly find
-nothing to do and no-op harmlessly, but that's an assumption worth actually confirming (watch the
-worker log for the first day) rather than trusting blindly. If you need this box to run *only* the
-two named tasks, don't use the stock `beat` scheduler at all — use `celery -A AutoGrader worker` with
-`cron`/`systemd timer` entries that call `nightly_stripe_live_qa.delay()` /
-`weekly_grading_benchmark_live.delay()` directly instead.
+**`CELERY_BEAT_SCHEDULE` (`AutoGrader/settings.py`) is one shared schedule, not a per-environment
+one.** Starting Beat here runs *every* periodic task the app defines — dashboard summaries,
+at-risk-student alerts, teacher-inactivity emails, credit-bucket cleanup, MailerLite syncs,
+`record_concurrent_users`, and so on — not just the two QA-only jobs. On a full QA server that's
+usually *wanted*: it's exercising the same background behavior production has. The one thing worth
+being deliberate about is that several of these send real emails (weekly summaries, at-risk
+alerts) — they'll go to whatever real address a QA tester signed up with, so make sure that's
+expected before this box has been running unattended for a while. If you specifically want a box
+that runs *only* the two named QA tasks and nothing else, don't use the stock `beat` scheduler at
+all — use `celery -A AutoGrader worker` with `cron`/`systemd timer` entries that call
+`nightly_stripe_live_qa.delay()` / `weekly_grading_benchmark_live.delay()` directly instead.
 
 **Confirm results land where you'll see them.** Neither task writes to a dashboard or a DB row —
 they log at `INFO` on success and `ERROR` on a real failure (matching the
@@ -286,6 +305,24 @@ somewhere you actually check — even a daily `grep ERROR worker.log | mail -s "
 cron entry is better than nothing until real alerting exists.
 
 ### Example systemd units (adjust paths/user)
+
+```ini
+# /etc/systemd/system/gradeaplus-qa-web.service
+[Unit]
+Description=GradeA+ QA web server
+After=network.target
+
+[Service]
+User=gradeaplus
+WorkingDirectory=/opt/gradeaplus-qa
+EnvironmentFile=/opt/gradeaplus-qa/QA.env
+ExecStart=/opt/gradeaplus-qa/venv/bin/gunicorn AutoGrader.wsgi:application \
+  --bind 0.0.0.0:8000 --timeout 100 --workers 4 --threads 4 --worker-class gthread
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
 
 ```ini
 # /etc/systemd/system/gradeaplus-qa-worker.service
@@ -323,7 +360,7 @@ WantedBy=multi-user.target
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable --now gradeaplus-qa-worker gradeaplus-qa-beat
+sudo systemctl enable --now gradeaplus-qa-web gradeaplus-qa-worker gradeaplus-qa-beat
 ```
 
 ## 12. Confirm the schedule itself

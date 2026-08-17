@@ -562,6 +562,89 @@ class SchoolAdminStudentPerformanceSerializer(serializers.Serializer):
     total_active_enrollments = serializers.IntegerField(read_only=True)
 
 
+class RigorBreakdownSerializer(serializers.Serializer):
+    """The components behind the blended `rigor` headline.
+
+    Reported separately because the blend alone cannot be acted on: a teacher
+    at demand 4.2 / evidence 2.1 (hard questions, everyone scoring highly) and
+    one at demand 1.5 / evidence 4.0 (easy questions students still fail) are
+    pedagogically opposite situations that collapse to a similar single score.
+    """
+
+    score = serializers.FloatField(
+        allow_null=True,
+        help_text=(
+            "Blended 0-5 rigor. Weighted 0.6 demand / 0.25 evidence / 0.15 "
+            "standards, renormalized over whichever components are available. "
+            "Null when there is no usable Bloom's data."
+        ),
+    )
+    demand = serializers.FloatField(
+        allow_null=True,
+        help_text=(
+            "Mean cognitive demand, 0-5, from per-question Bloom's taxonomy "
+            "levels weighted by question points. Remember=0 ... Create=5."
+        ),
+    )
+    evidence = serializers.FloatField(
+        allow_null=True,
+        help_text=(
+            "Difficulty implied by achieved results, 0-5, as "
+            "5 * (1 - average score percentage / 100). Null until the teacher "
+            "has at least 5 graded submissions."
+        ),
+    )
+    standards = serializers.FloatField(
+        allow_null=True,
+        help_text=(
+            "Share of open-ended questions carrying a rubric of 3+ levels, "
+            "scaled 0-5. Null when the teacher sets no open-ended questions."
+        ),
+    )
+    coverage = serializers.FloatField(
+        allow_null=True,
+        help_text=(
+            "Fraction (0.0-1.0) of the teacher's non-draft assignments that "
+            "carried usable Bloom's data. Low coverage means the score rests "
+            "on a minority of their work."
+        ),
+    )
+    assignments_scored = serializers.IntegerField(
+        help_text="Non-draft assignments that contributed to `demand`."
+    )
+    submissions_scored = serializers.IntegerField(
+        help_text="Graded submissions that contributed to `evidence`."
+    )
+    label = serializers.CharField(
+        help_text=(
+            "Short plain-language verdict for display, e.g. 'Stretching "
+            "students', 'Check the marking', 'Not enough data yet'. Prefer "
+            "this over `score` when showing rigor to a human: two scores "
+            "that are close can describe opposite situations."
+        )
+    )
+    meaning = serializers.CharField(
+        help_text="One-sentence explanation of the verdict, in plain English."
+    )
+    tone = serializers.ChoiceField(
+        choices=["good", "watch", "concern", "neutral", "unknown"],
+        help_text="Severity of the verdict, for colour-coding the label.",
+    )
+    standards_note = serializers.CharField(
+        allow_null=True,
+        help_text=(
+            "Set when most open-ended questions carry no rubric; null " "otherwise."
+        ),
+    )
+    coverage_note = serializers.CharField(
+        allow_null=True,
+        help_text=(
+            "Set when the verdict rests on a minority of the teacher's "
+            "assignments; null otherwise."
+        ),
+    )
+
+
 class TeacherPerformanceDashboardSerializer(serializers.Serializer):
     id = serializers.UUIDField()
     name = serializers.CharField()
@@ -572,7 +655,14 @@ class TeacherPerformanceDashboardSerializer(serializers.Serializer):
     assignments_per_week = serializers.FloatField(allow_null=True)
     turnaround = serializers.FloatField(allow_null=True)
     ai_confidence = serializers.FloatField(allow_null=True)
-    rigor = serializers.FloatField(allow_null=True)
+    rigor = serializers.FloatField(
+        allow_null=True,
+        help_text=(
+            "Blended academic rigor, 0-5. Same value as "
+            "`rigor_breakdown.score`, kept flat for existing consumers."
+        ),
+    )
+    rigor_breakdown = RigorBreakdownSerializer()
     status = serializers.CharField()
 
 

@@ -7,17 +7,15 @@ from django.db.models import (
     DurationField,
     ExpressionWrapper,
     F,
-    Max,
     Prefetch,
     Q,
     Sum,
-    Value,
 )
-from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from assignments.models import Assignment, AssignmentStatus
 from classrooms.models import Course, EnrollmentStatusType, StudentCourse
+from dashboard.rigor import build_rigor_by_teacher, empty_rigor_payload
 from dashboard.risk import RiskInputs, StudentRiskEvaluator
 from students.models import StudentSubmission
 from students.services import get_grade_details
@@ -1055,19 +1053,23 @@ class SchoolAdminWeeklySummaryService:
         window-scoped to this week — mirrors SchoolAdminDashboardView
         .teacher_performance intentionally, since a single week is too
         short a window for meaningful growth/rigor/turnaround trends."""
+        # Only `courses` is prefetched: every metric below runs through fresh
+        # manager queries and aggregates, so the previous
+        # courses__enrollments / courses__assignments / ...__submissions
+        # prefetch pulled every submission row in the school into memory and
+        # was then never read.
         teachers = (
             CustomUser.objects.filter(school=school, user_type=UserTypes.TEACHER)
             .distinct()
-            .prefetch_related(
-                "courses",
-                "courses__enrollments",
-                "courses__assignments",
-                "courses__assignments__submissions",
-            )
+            .prefetch_related("courses")
         )
 
         now = timezone.now()
         six_months_ago = now - timedelta(days=self.TEACHER_GROWTH_WINDOW_DAYS)
+
+        teachers = list(teachers)
+        # Two queries for the whole school, rather than two per teacher.
+        rigor_by_teacher = build_rigor_by_teacher([teacher.id for teacher in teachers])
 
         result = []
         for teacher in teachers:
@@ -1142,14 +1144,10 @@ class SchoolAdminWeeklySummaryService:
                 avg_conf=Avg("grading_confidence")
             )["avg_conf"]
 
-            max_points = (
-                assignments.aggregate(max=Coalesce(Max("total_points"), Value(0)))[
-                    "max"
-                ]
-                or 1
-            )
-            avg_points = assignments.aggregate(avg=Avg("total_points"))["avg"] or 0
-            rigor = (avg_points / max_points) * 5 if max_points > 0 else None
+            # Composite rigor (dashboard/rigor.py): cognitive demand from
+            # per-question Bloom's levels, achieved outcomes, and rubric
+            # coverage. Precomputed in bulk above.
+            rigor = rigor_by_teacher.get(teacher.id) or empty_rigor_payload()
 
             result.append(
                 {
@@ -1170,7 +1168,8 @@ class SchoolAdminWeeklySummaryService:
                     "ai_confidence": (
                         round(ai_confidence, 1) if ai_confidence is not None else None
                     ),
-                    "rigor": round(rigor, 1) if rigor is not None else None,
+                    "rigor": rigor.get("score"),
+                    "rigor_breakdown": rigor,
                     "status": teacher.is_active,
                 }
             )

@@ -12,7 +12,6 @@ from django.db.models import (
     ExpressionWrapper,
     F,
     FloatField,
-    Max,
     Prefetch,
     Q,
     Sum,
@@ -55,6 +54,7 @@ from classrooms.permissions import IsSchoolAdmin, IsStudent, IsSuperAdmin, IsTea
 
 # from dashboard.services import analyze_question_difficulty
 from dashboard.models import SchoolAtRiskSnapshot
+from dashboard.rigor import build_rigor_by_teacher, build_rigor_for_teacher
 from dashboard.risk import RiskInputs, StudentRiskEvaluator
 from dashboard.serializers import (  # SchoolAdminTeacherPerformanceSerializer,
     AssignmentActivityOverTimeChartSerializer,
@@ -1158,11 +1158,16 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         return Response(serializer.data)
 
 
-def compute_teacher_performance_stats(teacher, now, six_months_ago):
+def compute_teacher_performance_stats(teacher, now, six_months_ago, rigor=None):
     """
     Per-teacher performance stats shared by SchoolAdminDashboardView's
     teacher_performance (list) and teacher_detail (single-teacher) actions,
     so the two can never drift apart on these fields.
+
+    `rigor` accepts a prebuilt payload from dashboard.rigor so a list view can
+    resolve every teacher on the page in two queries and hand each row its
+    slice, instead of paying two more queries per teacher. Left as None (the
+    single-teacher case) it is computed here.
     """
     # --- Basic counts ---
     courses = teacher.courses.all()
@@ -1239,16 +1244,13 @@ def compute_teacher_performance_stats(teacher, now, six_months_ago):
         "avg_conf"
     ]
 
-    # --- Rigor: average total_points per assignment, normalized to 5 ---
-    # We'll use the highest total_points across all assignments as max
-    max_points = (
-        assignments.aggregate(max=Coalesce(Max("total_points"), Value(0)))["max"] or 1
-    )
-    avg_points = assignments.aggregate(avg=Avg("total_points"))["avg"] or 0
-    if max_points > 0:
-        rigor = (avg_points / max_points) * 5
-    else:
-        rigor = None
+    # --- Rigor (see dashboard/rigor.py and assignments/rigor.py) ---
+    # Composite of cognitive demand (Bloom's level per question, points
+    # weighted), achieved outcomes, and rubric coverage. Replaces the former
+    # avg(total_points)/max(total_points) ratio, which measured how uniform a
+    # teacher's point values were rather than how demanding their work was.
+    if rigor is None:
+        rigor = build_rigor_for_teacher(teacher.id)
 
     return {
         "id": teacher.id,
@@ -1262,7 +1264,11 @@ def compute_teacher_performance_stats(teacher, now, six_months_ago):
         ),
         "turnaround": round(turnaround, 1) if turnaround is not None else None,
         "ai_confidence": round(ai_confidence, 1) if ai_confidence is not None else None,
-        "rigor": round(rigor, 1) if rigor is not None else None,
+        # `rigor` stays a plain 0-5 float so every existing consumer of this
+        # payload keeps working unchanged; the diagnostic components that make
+        # the number actionable ride alongside it in `rigor_breakdown`.
+        "rigor": rigor["score"],
+        "rigor_breakdown": rigor,
         "status": teacher.is_active,
     }
 
@@ -1752,8 +1758,31 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
     - **ai_confidence** — Average AI grading confidence score across all graded
     submissions.
 
-    - **rigor** — Average assignment difficulty score normalized to a
-    **0–5 scale**, based on assignment total points.
+    - **rigor** — Blended academic rigor on a **0–5 scale**. Same value as
+    `rigor_breakdown.score`; kept as a flat field for convenience.
+
+    - **rigor_breakdown** — The components behind that number, because the
+    blend alone is not actionable:
+        - `demand` — Cognitive demand, 0–5, from each question's Bloom's
+        taxonomy level (Remember=0 … Create=5), weighted by question points.
+        This is the definitional core of rigor: what level of thinking the
+        work asks for.
+        - `evidence` — Difficulty implied by results, `5 * (1 - avg score
+        percentage / 100)`. Null until the teacher has at least 5 graded
+        submissions, since it is a sample statistic.
+        - `standards` — Share of open-ended questions carrying a rubric of
+        3+ levels, scaled 0–5. Null when the teacher sets no open-ended
+        questions (a multiple-choice quiz is not failing at rubric design).
+        - `coverage` — Fraction of the teacher's non-draft assignments that
+        carried usable Bloom's data. Low coverage means the score rests on a
+        minority of their work.
+        - `assignments_scored`, `submissions_scored` — Sample sizes behind
+        `demand` and `evidence`.
+
+    Weights are 0.6 demand / 0.25 evidence / 0.15 standards, renormalized
+    over whichever components are present. `demand` is required: without it
+    `rigor` is null, rather than silently reporting an outcome-only proxy
+    under the same label. Draft assignments are excluded throughout.
 
     - **status**
         - `true` → Teacher account is active.
@@ -1842,9 +1871,18 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         now = timezone.now()
         six_months_ago = now - timedelta(days=180)
 
+        # Resolve rigor for the whole page in two queries rather than two per
+        # teacher, then hand each row its own slice.
+        rigor_by_teacher = build_rigor_by_teacher([teacher.id for teacher in teachers])
+
         for teacher in teachers:
             result.append(
-                compute_teacher_performance_stats(teacher, now, six_months_ago)
+                compute_teacher_performance_stats(
+                    teacher,
+                    now,
+                    six_months_ago,
+                    rigor=rigor_by_teacher.get(teacher.id),
+                )
             )
 
         serializer = TeacherPerformanceDashboardSerializer(result, many=True)
