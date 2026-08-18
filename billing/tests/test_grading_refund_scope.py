@@ -132,7 +132,7 @@ class GradingRefundScopeTest(TestCase):
             patches.append(
                 patch(
                     "students.services.AssignmentProcessingService."
-                    "html_to_prosemirror_json",
+                    "html_to_prosemirror_text",
                     side_effect=persist_error,
                 )
             )

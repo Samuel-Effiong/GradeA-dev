@@ -242,7 +242,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         if not submission.raw_input:
             answer_html = student_submission_to_html(submission)
-            submission.raw_input = AssignmentProcessingService.html_to_prosemirror_json(
+            submission.raw_input = AssignmentProcessingService.html_to_prosemirror_text(
                 answer_html
             )
             # Queryset .update(), NOT instance.save(): this is a lazy
@@ -575,7 +575,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
                 answer_html = student_submission_to_html(submission)
                 submission.raw_input = (
-                    AssignmentProcessingService.html_to_prosemirror_json(answer_html)
+                    AssignmentProcessingService.html_to_prosemirror_text(answer_html)
                 )
                 # Persist the extractor's confidence - the dashboard
                 # threshold-flags low-confidence extractions, which stayed 0

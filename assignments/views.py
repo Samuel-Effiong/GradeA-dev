@@ -1012,10 +1012,9 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         assignment_html = AssignmentProcessingService.format_assignment_standard_html(
             assignment_data
         )
-        raw_input = AssignmentProcessingService.html_to_prosemirror_json(
-            assignment_html
+        assignment_data["raw_input"] = (
+            AssignmentProcessingService.html_to_prosemirror_text(assignment_html)
         )
-        assignment_data["raw_input"] = json.dumps(raw_input)
         return assignment_data
 
     def _compact_assignment_generation_snapshot(self, snapshot):
@@ -1470,10 +1469,9 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     assignment_data
                 )
             )
-            raw_input = AssignmentProcessingService.html_to_prosemirror_json(
-                assignment_html
+            assignment_data["raw_input"] = (
+                AssignmentProcessingService.html_to_prosemirror_text(assignment_html)
             )
-            assignment_data["raw_input"] = json.dumps(raw_input)
 
             assignment_serializer = AssignmentSerializer(data=assignment_data)
             assignment_serializer.is_valid(raise_exception=True)

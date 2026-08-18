@@ -284,12 +284,16 @@ DATABASE_CONFIG = {
     # connection before handing it to a request, so a connection dropped
     # by the pooler surfaces as a retry rather than a 500.
     "conn_health_checks": True,
-    # MUST be passed here rather than as a module-level setting. Django
-    # reads it from the per-database settings_dict (see
-    # QuerySet.iterator()), so the old module-level
-    # `DISABLE_SERVER_SIDE_CURSORS = True` silently did nothing and
-    # server-side cursors stayed enabled -- which breaks .iterator() when
-    # running behind a transaction-mode connection pooler.
+    # Load-bearing in production, which runs behind pgbouncer in TRANSACTION
+    # pooling mode: a server-side cursor outlives the transaction that
+    # declared it, but the pooler hands that server connection to another
+    # client at commit, so the cursor is gone by the time .iterator() fetches
+    # the next chunk.
+    #
+    # MUST be passed here rather than as a module-level setting. Django reads
+    # it from the per-database settings_dict (see QuerySet.iterator()), so the
+    # old module-level `DISABLE_SERVER_SIDE_CURSORS = True` silently did
+    # nothing and server-side cursors stayed enabled.
     "disable_server_side_cursors": True,
 }
 
@@ -308,31 +312,29 @@ DATABASES = {
     )
 }
 
-# Server-side guard rails, applied to every connection.
+# Server-side guard rails (lock_timeout, idle_in_transaction_session_timeout)
+# are NOT set here. They live on the database role, applied with ALTER ROLE --
+# see docs/ops/postgres-guard-rails.md.
 #
-# idle_in_transaction_session_timeout: kills a session that has opened a
-#   transaction and then gone idle. An abandoned transaction holds its row
-#   and table locks indefinitely; when a migration's ALTER TABLE then queues
-#   behind it for an ACCESS EXCLUSIVE lock, every later query on that table
-#   queues behind the ALTER -- turning one stuck session into a site-wide
-#   stall. Safe at 60s because this codebase deliberately keeps slow external
-#   work (AI calls) outside transactions.
+# Production connects through pgbouncer in transaction pooling mode, and a
+# pooler exists precisely to hand one server connection to many clients in
+# turn. Anything session-scoped that the app sets would therefore leak into
+# some later request, so pgbouncer refuses to pass startup parameters it does
+# not track. Setting these as psycopg2's `options` connection parameter made
+# every connection attempt die at connect time with
 #
-# lock_timeout: a statement waits at most 10s to acquire a lock, then fails.
-#   Deliberately generous, so ordinary row contention (e.g. the
-#   select_for_update in students/task_tracking.py) never trips it, while a
-#   blocked DDL statement fails fast instead of taking the site down with it.
+#   FATAL: unsupported startup parameter in options:
+#          idle_in_transaction_session_timeout
 #
-# Note this is the psycopg2 `options` connection parameter, nested under
-# OPTIONS. The previous code put an OPTIONS key alongside "default" rather
-# than inside it, which declared a bogus database alias named "OPTIONS" and
-# applied nothing to the real connection.
-DATABASES["default"].setdefault("OPTIONS", {})["options"] = " ".join(
-    [
-        "-c idle_in_transaction_session_timeout=60000",
-        "-c lock_timeout=10000",
-    ]
-)
+# taking down web and Celery alike. Local and dev talk to Postgres directly,
+# so the breakage was invisible outside production.
+#
+# The rule this leaves behind: connection-level Postgres configuration is
+# infrastructure, not application config. It belongs on the role (or the
+# database), never in DATABASES["default"]["OPTIONS"]. Role defaults survive
+# the pooler because pgbouncer's server_reset_query issues DISCARD ALL, whose
+# RESET ALL restores each parameter to its session-start default -- which is
+# exactly what ALTER ROLE sets.
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

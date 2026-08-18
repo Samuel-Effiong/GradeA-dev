@@ -1,6 +1,5 @@
 import base64
-import json
-import re
+import logging
 
 # import string
 from datetime import datetime
@@ -15,11 +14,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile, UploadedFile
 from django.db import transaction
 from django.utils import timezone
 from django.utils.html import escape as escape_html
-from lxml import html
 from PIL import Image
-from prosemirror.model import DOMParser, Schema
-from prosemirror.schema.basic import schema as basic_schema
-from prosemirror.schema.list import add_list_nodes
 from rest_framework.exceptions import ParseError
 
 from ai_processor.services import ai_processor, pdf_service
@@ -28,18 +23,24 @@ from ai_processor.tools import (
     compress_image_for_upload,
     encode_image,
 )
+from assignments.prosemirror_converter import (
+    html_to_prosemirror_json,
+    html_to_prosemirror_text,
+    strip_control_chars,
+    strip_raw_text_elements,
+)
 from students.task_tracking import (
     ensure_task_not_cancelled,
     lock_processing_task_for_final_save,
 )
+
+logger = logging.getLogger(__name__)
 
 # from docutils.transforms.universal import Validate
 
 # from ai_processor.services import ai_processor
 
 # from assignments.models import Assignment
-
-INVALID_XML_CHARS = re.compile(r"[\x00-\x08\x0b-\x0c\x0e-\x1f]")
 
 # AI-generated content is untrusted input. It's only ever supposed to use
 # plain formatting markup (see the "HTML Must Be Clean" rules in
@@ -86,33 +87,69 @@ def _allow_math_block_class(tag, name, value):
     return name == "class" and value == "math-block"
 
 
-LINK_ALLOWED_SCHEMES = ("http", "https", "mailto")
-
-
-def _safe_link_attrs(dom):
-    """
-    parseDOM getAttrs for the ProseMirror 'link' mark. Returning False
-    tells ProseMirror the rule doesn't match, so an unsafe href (e.g.
-    javascript:, data:) is dropped instead of being preserved verbatim.
-    """
-    href = (dom.get("href") or "").strip()
-    scheme = urlparse(href).scheme.lower()
-    if scheme and scheme not in LINK_ALLOWED_SCHEMES:
-        return False
-
-    return {
-        "href": href,
-        "title": dom.get("title"),
-        "style": dom.get("style"),
-        "class": dom.get("class"),
-    }
-
-
 AI_HTML_ALLOWED_ATTRIBUTES: Dict[str, Any] = {
     "td": ["colspan", "rowspan"],
     "th": ["colspan", "rowspan"],
     "span": _allow_math_block_class,
 }
+
+
+def _none_default(value, default):
+    """
+    Coalesce to `default` on None only - never on another falsy value like 0,
+    False, or "".
+
+    `dict.get(key, default)` only substitutes when `key` is absent; it passes
+    an explicit `None` straight through. That distinction matters here because
+    several of the fields read by format_assignment_standard_html come from
+    columns that are null=True (Assignment.title/.instructions/.total_points/
+    .questions) or from AI extraction, which can emit an explicit `null` for
+    an optional field - so `None` is exactly as live as a missing key. Using
+    `value or default` instead would be wrong in the other direction: it would
+    replace a legitimate `0` (e.g. a 0-point rubric level) with the default.
+    """
+    return default if value is None else value
+
+
+def _list_or_empty(value, field_name):
+    """
+    `_none_default` to [], then coerce a non-list survivor (e.g. AI extraction
+    returning a string where a list was expected) to [] as well, logging
+    once so the malformed shape is visible without failing the document.
+    """
+    value = _none_default(value, [])
+    if not isinstance(value, list):
+        logger.warning(
+            "format_assignment_standard_html: '%s' was %r, not a list; "
+            "treating as empty.",
+            field_name,
+            type(value).__name__,
+        )
+        return []
+    return value
+
+
+def _parse_due_date(due_date):
+    """
+    Render `due_date` as "Month DD, YYYY", or None if absent/unparsable.
+
+    A malformed due_date (wrong type, or a string fromisoformat rejects) is
+    logged and treated as absent rather than raising - assignment generation
+    sits downstream of a billed AI call, and a due-date typo should not fail
+    the entire document.
+    """
+    if not due_date:
+        return None
+    try:
+        return datetime.fromisoformat(str(due_date).replace("Z", "+00:00")).strftime(
+            "%B %d, %Y"
+        )
+    except (ValueError, TypeError, OverflowError):
+        logger.warning(
+            "format_assignment_standard_html: unparsable due_date %r; omitting.",
+            due_date,
+        )
+        return None
 
 
 class PDFService:
@@ -211,9 +248,7 @@ class AssignmentProcessingService:
 
     @classmethod
     def clean_xml_text(cls, value):
-        if not isinstance(value, str):
-            return value
-        return INVALID_XML_CHARS.sub("", value)
+        return strip_control_chars(value)
 
     @classmethod
     def sanitize_ai_html(cls, value):
@@ -229,7 +264,10 @@ class AssignmentProcessingService:
             return value
 
         cleaned = bleach.clean(
-            cls.clean_xml_text(value),
+            # Raw-text elements are dropped whole first: bleach removes the
+            # <script>/<style> tags but keeps their source, which would
+            # otherwise surface as visible prose in the rendered assignment.
+            strip_raw_text_elements(cls.clean_xml_text(value)),
             tags=AI_HTML_ALLOWED_TAGS,
             attributes=AI_HTML_ALLOWED_ATTRIBUTES,
             protocols=[],
@@ -278,213 +316,31 @@ class AssignmentProcessingService:
     @classmethod
     def html_to_prosemirror_json(cls, html_string: str) -> dict:
         """
-        Convert an HTML string into ProseMirror-compatible JSON using prosemirror-py.
+        Convert an HTML string into a ProseMirror document (as a dict).
 
-        Args:
-            html_string (str): Raw HTML content.
-
-        Returns:
-            dict: ProseMirror JSON document.
+        Thin delegate to assignments.prosemirror_converter, which owns the
+        schema. Prefer html_to_prosemirror_text() when the result is headed
+        for a raw_input column - see that method for why.
 
         Raises:
-            ValueError: If input is empty or invalid.
-            RuntimeError: If HTML parsing or ProseMirror conversion fails.
+            ValueError: input is not a non-empty string.
+            prosemirror_converter.ProseMirrorConversionError: conversion
+                failed. Subclasses RuntimeError, so existing handlers keep
+                working.
         """
+        return html_to_prosemirror_json(html_string)
 
-        if not isinstance(html_string, str) or not html_string.strip():
-            raise ValueError("Input must be a non-empty string.")
+    @classmethod
+    def html_to_prosemirror_text(cls, html_string: str) -> str:
+        """
+        Convert an HTML string into a ProseMirror document serialised as JSON.
 
-        try:
-            # 1. Start with base nodes and marks
-            nodes_spec = add_list_nodes(
-                basic_schema.spec["nodes"], "paragraph block*", "block"
-            )
-            marks_spec = basic_schema.spec["marks"]
-
-            # 2. Update Paragraph AND Headings to preserve alignment/styles
-            # We loop through headings 1-6 to apply the same CSS-preservation logic
-            updated_nodes = {}
-
-            # Paragraph Override
-            updated_nodes["paragraph"] = {
-                "content": "inline*",
-                "group": "block",
-                "attrs": {"textAlign": {"default": "left"}, "style": {"default": None}},
-                "parseDOM": [
-                    {
-                        "tag": "p",
-                        "getAttrs": lambda dom: {
-                            "textAlign": (
-                                next(
-                                    (
-                                        s.split(":")[1].strip()
-                                        for s in dom.get("style", "").split(";")
-                                        if "text-align" in s.lower()
-                                    ),
-                                    "left",
-                                )
-                            ),
-                            "style": dom.get("style"),
-                        },
-                    }
-                ],
-                "toDOM": lambda node: [
-                    "p",
-                    {
-                        "style": node.attrs.get("style")
-                        or f"text-align: {node.attrs['textAlign']}"
-                    },
-                    0,
-                ],
-            }
-
-            # Heading Override (h1 through h6)
-            updated_nodes["heading"] = {
-                "attrs": {
-                    "level": {"default": 1},
-                    "textAlign": {"default": "left"},
-                    "style": {"default": None},
-                },
-                "content": "inline*",
-                "group": "block",
-                "defining": True,
-                "parseDOM": [
-                    {
-                        "tag": f"h{i}",
-                        "attrs": {"level": i},
-                        "getAttrs": lambda dom: {
-                            "textAlign": (
-                                next(
-                                    (
-                                        s.split(":")[1].strip()
-                                        for s in dom.get("style", "").split(";")
-                                        if "text-align" in s.lower()
-                                    ),
-                                    "left",
-                                )
-                            ),
-                            "style": dom.get("style"),
-                        },
-                    }
-                    for i in range(1, 7)
-                ],
-                "toDOM": lambda node: [
-                    f"h{node.attrs['level']}",
-                    {"style": node.attrs.get("style")},
-                    0,
-                ],
-            }
-
-            # Apply updates to the nodes spec
-            nodes_spec.update(updated_nodes)
-
-            nodes_spec.update(
-                {
-                    "table": {
-                        "content": "table_row*",
-                        "tableRole": "table",
-                        "group": "block",
-                        "parseDOM": [{"tag": "table"}],
-                        "toDOM": lambda _: ["table", ["tbody", 0]],
-                    },
-                    "table_row": {
-                        "content": "(table_cell | table_header)*",
-                        "tableRole": "row",
-                        "parseDOM": [{"tag": "tr"}],
-                        "toDOM": lambda _: ["tr", 0],
-                    },
-                    "table_cell": {
-                        "content": "block+",
-                        "attrs": {"style": {"default": None}},
-                        "tableRole": "cell",
-                        "parseDOM": [
-                            {
-                                "tag": "td",
-                                "getAttrs": lambda dom: {"style": dom.get("style")},
-                            }
-                        ],
-                        "toDOM": lambda node: ["td", {"style": node.attrs["style"]}, 0],
-                    },
-                    "table_header": {
-                        "content": "block+",
-                        "attrs": {"style": {"default": None}},
-                        "tableRole": "header_cell",
-                        "parseDOM": [
-                            {
-                                "tag": "th",
-                                "getAttrs": lambda dom: {"style": dom.get("style")},
-                            }
-                        ],
-                        "toDOM": lambda node: ["th", {"style": node.attrs["style"]}, 0],
-                    },
-                }
-            )
-
-            # 3. Update Marks (Links and Spans)
-            # We add 'textStyle' as a catch-all for spans and preserve style on links
-            marks_spec.update(
-                {
-                    "link": {
-                        "attrs": {
-                            "href": {},
-                            "title": {"default": None},
-                            "style": {"default": None},
-                            "class": {"default": None},
-                        },
-                        "inclusive": False,
-                        "parseDOM": [
-                            {
-                                "tag": "a[href]",
-                                "getAttrs": _safe_link_attrs,
-                            }
-                        ],
-                        "toDOM": lambda node: [
-                            "a",
-                            {
-                                "href": node.attrs["href"],
-                                "title": node.attrs["title"],
-                                "style": node.attrs["style"],
-                                "class": node.attrs["class"],
-                            },
-                            0,
-                        ],
-                    }
-                }
-            )
-
-            # Add the 'textStyle' mark to catch general <span> CSS (colors, font-size, etc.)
-            marks_spec.update(
-                {
-                    "textStyle": {
-                        "attrs": {"style": {"default": None}},
-                        "parseDOM": [
-                            {
-                                "tag": "span",
-                                "getAttrs": lambda dom: {"style": dom.get("style")},
-                            }
-                        ],
-                        "toDOM": lambda mark: [
-                            "span",
-                            {"style": mark.attrs["style"]},
-                            0,
-                        ],
-                    }
-                }
-            )
-
-            # 4. Construct the Schema using our CUSTOMIZED specs
-            my_schema = Schema({"nodes": nodes_spec, "marks": marks_spec})
-
-            # 5. Parse the HTML
-            safe_html = cls.clean_xml_text(html_string)
-            dom = html.fromstring(f"<div>{safe_html}</div>")
-            doc = DOMParser.from_schema(my_schema).parse(dom)
-
-            return doc.to_json()
-        except Exception as e:
-            raise RuntimeError(
-                f"Failed to convert HTML to ProseMirror JSON: {str(e)}"
-            ) from e
+        This is the correct entry point for anything persisting to a
+        `raw_input` column. Both columns are TextFields: assigning the dict
+        form lets Django coerce it with str(), which stores a Python repr
+        ("{'type': 'doc', ...}") that no JSON parser can read back.
+        """
+        return html_to_prosemirror_text(html_string)
 
     @classmethod
     def format_assignment_standard_html(
@@ -505,18 +361,37 @@ class AssignmentProcessingService:
                             are omitted and only the questions are rendered. Use False
                             when the caller already renders its own title/instructions
                             (e.g. the PDF download endpoint), so they aren't duplicated.
+
+        Every field read here can legitimately be None, not just absent: the
+        Assignment columns this data is built from (title, instructions,
+        total_points, questions) are all null=True, and per-question fields
+        come from AI extraction, which can emit an explicit `null`. A bare
+        `dict.get(key, default)` only substitutes on a *missing* key, so an
+        explicit None previously either rendered the literal text "None"
+        into a document a student or teacher sees, or crashed the whole
+        assignment (e.g. `None.upper()`) - taking down a page that usually
+        sits downstream of a billed AI call. Every read below goes through
+        `_none_default` instead, and malformed per-item data (a non-dict
+        question/rubric entry, a non-list options/rubric, an unparsable
+        due_date) is logged and skipped rather than allowed to fail the
+        entire document.
         """
 
-        title_html = cls.sanitize_ai_html(data.get("title", ""))
-        instructions_html = cls.sanitize_ai_html(data.get("instructions", ""))
-        due_date = data.get("due_date")
-        total_points = escape_html(str(data.get("total_points", 0)))
-        questions = data.get("questions", [])
-
-        if due_date:
-            due_date = datetime.fromisoformat(due_date.replace("Z", "+00:00")).strftime(
-                "%B %d, %Y"
+        questions = _none_default(data.get("questions"), [])
+        if not isinstance(questions, list):
+            logger.warning(
+                "format_assignment_standard_html: 'questions' was %r, not a "
+                "list; treating as empty.",
+                type(questions).__name__,
             )
+            questions = []
+
+        title_html = cls.sanitize_ai_html(_none_default(data.get("title"), ""))
+        instructions_html = cls.sanitize_ai_html(
+            _none_default(data.get("instructions"), "")
+        )
+        due_date = _parse_due_date(data.get("due_date"))
+        total_points = escape_html(str(_none_default(data.get("total_points"), 0)))
 
         html_output = []
 
@@ -559,13 +434,23 @@ class AssignmentProcessingService:
 
         # Questions
         for q in questions:
-            q_no = escape_html(str(q.get("question_number", "")))
-            q_points = escape_html(str(q.get("points", "")))
-            q_text = cls.sanitize_ai_html(q.get("question_text", ""))
-            q_type = q.get("question_type", "").upper()
-            options = q.get("options", [])
-            rubric = q.get("rubric", [])
-            model_answer = cls.sanitize_ai_html(q.get("model_answer", ""))
+            if not isinstance(q, dict):
+                logger.warning(
+                    "format_assignment_standard_html: skipping non-dict "
+                    "question entry %r.",
+                    q,
+                )
+                continue
+
+            q_no = escape_html(str(_none_default(q.get("question_number"), "")))
+            q_points = escape_html(str(_none_default(q.get("points"), "")))
+            q_text = cls.sanitize_ai_html(_none_default(q.get("question_text"), ""))
+            q_type = str(_none_default(q.get("question_type"), "")).upper()
+            options = _list_or_empty(q.get("options"), "options")
+            rubric = _list_or_empty(q.get("rubric"), "rubric")
+            model_answer = cls.sanitize_ai_html(
+                _none_default(q.get("model_answer"), "")
+            )
             image_url = cls.sanitize_ai_image_url(q.get("question_image", ""))
 
             html_output.append(
@@ -607,11 +492,10 @@ class AssignmentProcessingService:
                 """
                 )
 
-                for _, opt in enumerate(options):
-                    # letter = string.ascii_uppercase[idx]
+                for opt in options:
                     html_output.append(
                         f"""
-                        <p>{cls.sanitize_ai_html(opt)}</p>
+                        <p>{cls.sanitize_ai_html(_none_default(opt, ""))}</p>
                     """
                     )
 
@@ -636,9 +520,19 @@ class AssignmentProcessingService:
                 )
 
                 for r in rubric:
-                    level = cls.sanitize_ai_html(r.get("level", "").title())
-                    points = escape_html(str(r.get("points", "")))
-                    desc = cls.sanitize_ai_html(r.get("description", ""))
+                    if not isinstance(r, dict):
+                        logger.warning(
+                            "format_assignment_standard_html: skipping "
+                            "non-dict rubric entry %r.",
+                            r,
+                        )
+                        continue
+
+                    level = cls.sanitize_ai_html(
+                        str(_none_default(r.get("level"), "")).title()
+                    )
+                    points = escape_html(str(_none_default(r.get("points"), "")))
+                    desc = cls.sanitize_ai_html(_none_default(r.get("description"), ""))
 
                     html_output.append(
                         f"""
@@ -741,8 +635,9 @@ class AssignmentProcessingService:
         if generate_raw_input:
             ensure_task_not_cancelled(processing_task_id)
             assignment_html = cls.format_assignment_standard_html(assignment_questions)
-            raw_input = cls.html_to_prosemirror_json(assignment_html)
-            assignment_questions["raw_input"] = json.dumps(raw_input)
+            assignment_questions["raw_input"] = cls.html_to_prosemirror_text(
+                assignment_html
+            )
 
         return assignment_questions
 

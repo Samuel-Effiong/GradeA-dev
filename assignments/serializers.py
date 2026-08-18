@@ -431,8 +431,7 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
             student_html = AssignmentProcessingService.format_assignment_standard_html(
                 data, include_rubric=False
             )
-            pm_json = AssignmentProcessingService.html_to_prosemirror_json(student_html)
-            return json.dumps(pm_json)
+            return AssignmentProcessingService.html_to_prosemirror_text(student_html)
 
         return obj.raw_input
 
@@ -577,8 +576,7 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
         student_html = AssignmentProcessingService.format_assignment_standard_html(
             data, include_rubric=False
         )
-        pm_json = AssignmentProcessingService.html_to_prosemirror_json(student_html)
-        return json.dumps(pm_json)
+        return AssignmentProcessingService.html_to_prosemirror_text(student_html)
 
     def get_remaining_attempts(self, obj):
         submission = self._get_submission(obj)

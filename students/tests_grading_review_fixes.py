@@ -257,12 +257,12 @@ class RetrieveBackfillSignalTest(GradingFixtureMixin, APITestCase):
         )
         self.client.force_authenticate(user=self.teacher)
 
-    @patch("students.views.AssignmentProcessingService.html_to_prosemirror_json")
+    @patch("students.views.AssignmentProcessingService.html_to_prosemirror_text")
     @patch("classrooms.signals._recalculate_final_grade")
     def test_get_backfills_raw_input_without_firing_post_save(
         self, mock_recalc, mock_convert
     ):
-        mock_convert.return_value = {"type": "doc", "content": []}
+        mock_convert.return_value = '{"type": "doc", "content": []}'
         self.assertFalse(self.submission.raw_input)
 
         response = self.client.get(self.url)

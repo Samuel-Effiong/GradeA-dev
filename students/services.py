@@ -36,18 +36,29 @@ def student_submission_to_html(submission) -> str:
     """
     Converts student submission JSON into a globally standard HTML format
     suitable for rich-text editors (ProseMirror, TinyMCE, Quill, CKEditor, etc).
+
+    Two different escapes are used on purpose. `safe()` escapes plain values
+    that must never be markup. `rich()` runs the allowlist over the fields that
+    legitimately *are* markup - question_text and answer_html come from the AI
+    extractor reading a student-uploaded PDF or image, which makes them
+    attacker-influenced, and they land in raw_input and are later rendered in a
+    teacher's browser. The assignment renderer has always sanitised the
+    equivalent fields; this one did not.
     """
 
     def safe(val):
         return escape(str(val)) if val else ""
+
+    def rich(val):
+        return AssignmentProcessingService.sanitize_ai_html(val) if val else ""
 
     student_name = submission.student.get_full_name()
 
     meta_html = f"""
     <section>
 
-        {submission.assignment.title}
-        <p><strong>Due Date:</strong> {submission.assignment.due_date}</p>
+        {rich(submission.assignment.title)}
+        <p><strong>Due Date:</strong> {safe(submission.assignment.due_date)}</p>
 
 
         <h3>Student Information</h3>
@@ -72,13 +83,13 @@ def student_submission_to_html(submission) -> str:
 
             questions_html += f"""
             <article style="margin-bottom: 24px;">
-                <h4>Question {ans.get('question_number')}</h4>
-                {ans.get('question_text')}
+                <h4>Question {safe(ans.get('question_number'))}</h4>
+                {rich(ans.get('question_text'))}
 
                 <div>
                     <strong>Student Answer:</strong>
                     <div style="margin:8px 0; padding:10px; border-left:4px solid #ccc;">
-                        {ans.get('answer_html') or "<em>No answer submitted.</em>"}
+                        {rich(ans.get('answer_html')) or "<em>No answer submitted.</em>"}
                     </div>
                 </div>
 
@@ -359,7 +370,7 @@ def _populate_and_save_grade(submission, grading, processing_task_id):
     # update the raw_input
     ensure_task_not_cancelled(processing_task_id)
     answer_html = student_submission_to_html(submission)
-    submission.raw_input = AssignmentProcessingService.html_to_prosemirror_json(
+    submission.raw_input = AssignmentProcessingService.html_to_prosemirror_text(
         answer_html
     )
 
@@ -811,7 +822,7 @@ def upload_answers_engine(
         # ----------------------------------------------------------------
         ensure_task_not_cancelled(processing_task_id)
         answer_html = student_submission_to_html(submission)
-        submission.raw_input = AssignmentProcessingService.html_to_prosemirror_json(
+        submission.raw_input = AssignmentProcessingService.html_to_prosemirror_text(
             answer_html
         )
         # Persist the extractor's confidence - the dashboard threshold-flags
