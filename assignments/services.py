@@ -485,21 +485,26 @@ class AssignmentProcessingService:
                 )
 
             # Objective Options
+            #
+            # Rendered as a real <ul>/<li> list, not a <div style="padding-
+            # left"> of bare <p> tags. The schema has no `div` node, so that
+            # wrapper was silently dropped on conversion - its children got
+            # hoisted to the top level as unindented, ungrouped paragraphs,
+            # which is indentation the student never sees. `bullet_list` and
+            # `list_item` ARE schema nodes (from add_list_nodes), so this
+            # survives conversion and the editor's own list CSS supplies the
+            # indentation instead of a stripped inline style.
+            #
+            # `<ul>`, not `<ol>`: option letters ("A) ...", "B) ...") are
+            # already baked into each option's text by the AI, so an <ol>'s
+            # own auto-numbering would double up against them.
             if q_type == "OBJECTIVE" and options:
-                html_output.append(
-                    """
-                <div style="margin-top:12px; padding-left:25px;">
-                """
-                )
-
+                html_output.append("<ul>")
                 for opt in options:
                     html_output.append(
-                        f"""
-                        <p>{cls.sanitize_ai_html(_none_default(opt, ""))}</p>
-                    """
+                        f"<li>{cls.sanitize_ai_html(_none_default(opt, ''))}</li>"
                     )
-
-                html_output.append("</div>")
+                html_output.append("</ul>")
 
             # Rubric (for essay & short answer) — hidden from students
             if include_rubric and rubric:

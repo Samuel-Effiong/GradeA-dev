@@ -1416,9 +1416,14 @@ The `$` and `$$` delimiters are NOT escaped — they pass through JSON as-is. On
 
 Every question must be fully represented in HTML.
 
+Do NOT include a "Question N" or "Question N (M marks)" heading inside
+`question_text` — the rendering template already prepends that label from
+the question's `question_number` and `points` fields. A heading inside
+`question_text` duplicates it, so the label appears twice in the rendered
+assignment.
+
 Example:
 
-<h2>Question 1</h2>
 <p>Explain the difference between <em>social structure</em> and <em>social system</em>.</p>
 
 
@@ -1449,7 +1454,7 @@ Example (shortened):
   "instructions": "<p>Answer all questions...</p>",
   "questions": [
     {
-      "question_text": "<h2>Question 1</h2><p>Explain...</p>",
+      "question_text": "<p>Explain...</p>",
       "model_answer": "<p>This occurs because...</p>"
     }
   ]

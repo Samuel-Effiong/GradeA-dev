@@ -20,10 +20,28 @@ Run with:
     python manage.py test assignments.tests_format_assignment_html
 """
 
+import json
+
 from django.test import SimpleTestCase
 
+from assignments.prosemirror_converter import PROSEMIRROR_SCHEMA
 from assignments.services import AssignmentProcessingService as A
 from assignments.services import _list_or_empty, _none_default, _parse_due_date
+
+
+def find_nodes(node, node_type):
+    found = []
+    if node.get("type") == node_type:
+        found.append(node)
+    for child in node.get("content", []):
+        found.extend(find_nodes(child, node_type))
+    return found
+
+
+def text_of(node):
+    if node.get("type") == "text":
+        return node.get("text", "")
+    return "".join(text_of(child) for child in node.get("content", []))
 
 
 def base_question(**overrides):
@@ -223,10 +241,11 @@ class OptionsNoneHandlingTest(SimpleTestCase):
             )
         )
         # A string was previously iterated character-by-character by
-        # `enumerate(options)`, rendering "<p>A</p><p>B</p>" instead of being
-        # treated as the malformed, not-really-a-list value it is.
-        self.assertNotIn("<p>A</p>", html)
-        self.assertNotIn("<p>B</p>", html)
+        # `enumerate(options)`, rendering "<li>A</li><li>B</li>" instead of
+        # being treated as the malformed, not-really-a-list value it is.
+        self.assertNotIn("<li>A</li>", html)
+        self.assertNotIn("<li>B</li>", html)
+        self.assertNotIn("<ul>", html)
 
     def test_none_item_within_options_does_not_leak_none(self):
         html = A.format_assignment_standard_html(
@@ -255,6 +274,183 @@ class OptionsNoneHandlingTest(SimpleTestCase):
         )
         self.assertIn("Choice A", html)
         self.assertIn("Choice B", html)
+
+
+class OptionsListStructureTest(SimpleTestCase):
+    """
+    Regression: options were rendered as bare <p> tags inside a <div
+    style="padding-left:25px">. `div` has no schema node, so it was silently
+    dropped on conversion, its children hoisted to the top level as flat,
+    unindented, ungrouped paragraphs - indentation the student never actually
+    saw. Options are now a real <ul>/<li> list, which the schema does support
+    (bullet_list/list_item, via add_list_nodes), so grouping and indentation
+    survive conversion and come from the editor's own list styling.
+    """
+
+    def test_options_render_as_a_bullet_list_in_the_html(self):
+        html = A.format_assignment_standard_html(
+            base_data(
+                questions=[
+                    base_question(
+                        question_type="OBJECTIVE",
+                        options=["A) one", "B) two"],
+                    )
+                ]
+            )
+        )
+        self.assertIn("<ul>", html)
+        self.assertIn("<li>A) one</li>", html)
+        self.assertIn("<li>B) two</li>", html)
+        self.assertNotIn("padding-left", html)
+
+    def test_options_convert_to_a_single_bullet_list_with_one_item_per_option(self):
+        html = A.format_assignment_standard_html(
+            base_data(
+                questions=[
+                    base_question(
+                        question_type="OBJECTIVE",
+                        options=["A) one", "B) two", "C) three", "D) four"],
+                    )
+                ]
+            )
+        )
+        doc = json.loads(A.html_to_prosemirror_text(html))
+
+        lists = find_nodes(doc, "bullet_list")
+        items = find_nodes(doc, "list_item")
+
+        self.assertEqual(len(lists), 1)
+        self.assertEqual(len(items), 4)
+        self.assertEqual(
+            [text_of(item) for item in items],
+            ["A) one", "B) two", "C) three", "D) four"],
+        )
+
+    def test_option_order_is_preserved(self):
+        """Option order carries the correct answer's position - must not shuffle."""
+        options = [f"{letter}) option" for letter in "ABCDEFGH"]
+        html = A.format_assignment_standard_html(
+            base_data(
+                questions=[base_question(question_type="OBJECTIVE", options=options)]
+            )
+        )
+        doc = json.loads(A.html_to_prosemirror_text(html))
+        items = find_nodes(doc, "list_item")
+
+        self.assertEqual([text_of(item) for item in items], options)
+
+    def test_option_html_formatting_is_preserved_inside_the_list_item(self):
+        html = A.format_assignment_standard_html(
+            base_data(
+                questions=[
+                    base_question(
+                        question_type="OBJECTIVE",
+                        options=["<strong>Bold option</strong>"],
+                    )
+                ]
+            )
+        )
+        doc = json.loads(A.html_to_prosemirror_text(html))
+        items = find_nodes(doc, "list_item")
+
+        self.assertEqual(len(items), 1)
+        found_marks = set()
+
+        def walk(node):
+            for mark in node.get("marks", []):
+                found_marks.add(mark["type"])
+            for child in node.get("content", []):
+                walk(child)
+
+        walk(items[0])
+        self.assertIn("strong", found_marks)
+        self.assertIn("Bold option", text_of(items[0]))
+
+    def test_a_single_option_still_produces_a_valid_list(self):
+        html = A.format_assignment_standard_html(
+            base_data(
+                questions=[
+                    base_question(question_type="OBJECTIVE", options=["Only one"])
+                ]
+            )
+        )
+        doc = json.loads(A.html_to_prosemirror_text(html))
+
+        self.assertEqual(len(find_nodes(doc, "bullet_list")), 1)
+        self.assertEqual(len(find_nodes(doc, "list_item")), 1)
+
+    def test_no_options_list_is_emitted_for_a_non_objective_question(self):
+        html = A.format_assignment_standard_html(
+            base_data(
+                questions=[
+                    base_question(
+                        question_type="ESSAY", options=["should", "be", "ignored"]
+                    )
+                ]
+            )
+        )
+        self.assertNotIn("<ul>", html)
+
+    def test_no_options_list_is_emitted_when_options_is_empty(self):
+        html = A.format_assignment_standard_html(
+            base_data(questions=[base_question(question_type="OBJECTIVE", options=[])])
+        )
+        self.assertNotIn("<ul>", html)
+
+    def test_hostile_option_content_is_still_sanitised(self):
+        html = A.format_assignment_standard_html(
+            base_data(
+                questions=[
+                    base_question(
+                        question_type="OBJECTIVE",
+                        options=['<img src=x onerror="alert(1)">A) danger'],
+                    )
+                ]
+            )
+        )
+        self.assertNotIn("onerror", html)
+        self.assertIn("A) danger", html)
+
+    def test_options_with_hostile_answer_from_a_real_end_to_end_document(self):
+        """
+        Mirrors the shape of a live chemistry MCQ (see the production sample
+        that surfaced this bug): a paragraph question followed by lettered
+        options, going through the full render -> sanitize -> convert path.
+        """
+        data = base_data(
+            title="<h1>Physical Chemistry — Assessment</h1>",
+            questions=[
+                {
+                    "question_number": 1,
+                    "points": 3,
+                    "question_text": "<p>What is the conjugate base of H2SO4?</p>",
+                    "question_type": "OBJECTIVE",
+                    "options": [
+                        "A) SO4^2-",
+                        "B) HSO4^-",
+                        "C) H3SO4^+",
+                        "D) H2SO3",
+                    ],
+                }
+            ],
+        )
+        html = A.format_assignment_standard_html(data)
+        doc = json.loads(A.html_to_prosemirror_text(html))
+
+        items = find_nodes(doc, "list_item")
+        self.assertEqual(len(items), 4)
+        self.assertEqual(text_of(items[1]), "B) HSO4^-")
+
+        def check_known(node):
+            node_type = node.get("type")
+            if node_type != "text":
+                self.assertIn(node_type, PROSEMIRROR_SCHEMA.nodes, node_type)
+            for mark in node.get("marks", []):
+                self.assertIn(mark["type"], PROSEMIRROR_SCHEMA.marks, mark["type"])
+            for child in node.get("content", []):
+                check_known(child)
+
+        check_known(doc)
 
 
 class RubricNoneHandlingTest(SimpleTestCase):
