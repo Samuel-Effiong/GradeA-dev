@@ -155,22 +155,67 @@ if SENTRY_DSN and ENVIRONMENT in ("prod", "dev"):
             "error reporting is disabled. Run `pip install -r requirements.txt`."
         )
 
-ALLOWED_HOSTS = ["*"]
+# Host-header allowlist. Gated by ENVIRONMENT like the CORS settings below -
+# previously this was "*" in every environment, including prod, which
+# permits Host-header injection (cache poisoning, poisoned password-reset
+# links from anything that builds absolute URLs off request.get_host(),
+# confused-deployment routing behind the proxy).
+if ENVIRONMENT == "prod":
+    ALLOWED_HOSTS = [
+        "grade-automator-plus-production.up.railway.app",
+        "grade-automator-beta-production.up.railway.app",
+    ]
+elif ENVIRONMENT == "dev":
+    ALLOWED_HOSTS = []
+else:  # local
+    ALLOWED_HOSTS = ["*"]
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-]
+if ENVIRONMENT in ("prod", "dev"):
+    # Railway auto-injects these per-service at runtime (public domain for
+    # normal traffic, private domain for internal networking - which is
+    # also what Railway's healthcheck hits). Appending them means a new
+    # service doesn't need a code change to pass its own healthcheck.
+    for _host_var in ("RAILWAY_PUBLIC_DOMAIN", "RAILWAY_PRIVATE_DOMAIN"):
+        _host = env.str(_host_var, default="")
+        if _host and _host not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(_host)
 
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https?://([a-z0-9-]+\.)?localhost(:[0-9]+)?$",
-]
+# Origins allowed to call the API cross-origin. Gated by ENVIRONMENT the
+# same way the cookie-security block below is - previously
+# CORS_ALLOW_ALL_ORIGINS = True overrode this allowlist unconditionally in
+# every environment, including prod, letting any website call the API with
+# a stolen/phished bearer token.
+if ENVIRONMENT in ("prod", "dev"):
+    CORS_ALLOWED_ORIGINS = [
+        "https://teacher.gradeautomator.com",
+        "https://www.teacher.gradeautomator.com",
+        "https://test.student.gradeautomator.com",
+        "https://www.test.student.gradeautomator.com",
+        "https://student-app-qa-production-ae1.up.railway.app",
+        "https://super-admin-web-app-qa-production.up.railway.app",
+        "https://www.test.super.gradeautomator.com",
+        "https://test.super.gradeautomator.com",
+        "https://teacher-app-qa-billing-production.up.railway.app",
+        "https://teacher-web-app-qa-production.up.railway.app",
+        "https://www.test.teacher.gradeautomator.com",
+        "https://test.teacher.gradeautomator.com",
+        "https://school-admin-app-qa-production.up.railway.app",
+        "https://test.admin.gradeautomator.com",
+        "https://www.test.admin.gradeautomator.com",
+        "https://teacher-web-app-beta-production.up.railway.app",
+    ]
+    CORS_ALLOWED_ORIGIN_REGEXES = []
+else:  # local
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:3000",
+    ]
+    CORS_ALLOWED_ORIGIN_REGEXES = [
+        r"^https?://([a-z0-9-]+\.)?localhost(:[0-9]+)?$",
+    ]
 
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3000",
-]
+CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 
 CORS_ALLOW_CREDENTIALS = False
-CORS_ALLOW_ALL_ORIGINS = True
 
 
 # Transport security. Applied only in prod so that local development over
@@ -239,6 +284,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    # TEMPORARY - remove once SECURE_PROXY_SSL_HEADER is confirmed correct
+    # in prod. See AutoGrader/debug_middleware.py and settings.py:176-202.
+    "AutoGrader.debug_middleware.DebugProxyHeadersMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "users.middleware.UserActivityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
