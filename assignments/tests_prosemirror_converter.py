@@ -497,7 +497,7 @@ class InputValidationTest(SimpleTestCase):
         for value in ("", "   ", "\n\t", None, 42, {}, []):
             with self.subTest(value=value):
                 with self.assertRaises(ValueError):
-                    html_to_prosemirror_json(value)
+                    html_to_prosemirror_json(value)  # type: ignore[arg-type]
 
     def test_conversion_error_still_subclasses_runtime_error(self):
         self.assertTrue(issubclass(ProseMirrorConversionError, RuntimeError))
@@ -693,7 +693,7 @@ class ConversionCacheTest(SimpleTestCase):
         for value in ({}, [], None, "", "   "):
             with self.subTest(value=value):
                 with self.assertRaises(ValueError):
-                    html_to_prosemirror_text(value)
+                    html_to_prosemirror_text(value)  # type: ignore[arg-type]
 
     def test_a_cached_result_is_an_immutable_string(self):
         """

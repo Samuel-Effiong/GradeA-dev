@@ -261,9 +261,7 @@ class Command(BaseCommand):
             segments["question_type"][question_type][1] += 1
 
             evaluation = evaluations.get(key) or {}
-            band = _score_band(
-                evaluation.get("score_awarded"), question.get("points")
-            )
+            band = _score_band(evaluation.get("score_awarded"), question.get("points"))
             segments["a_score_band"][band][0] += hit
             segments["a_score_band"][band][1] += 1
 
@@ -341,9 +339,7 @@ class Command(BaseCommand):
                 "by_confidence_band": segment(
                     metrics["disagreement_by"]["confidence_band"]
                 ),
-                "by_a_score_band": segment(
-                    metrics["disagreement_by"]["a_score_band"]
-                ),
+                "by_a_score_band": segment(metrics["disagreement_by"]["a_score_band"]),
                 "by_course": segment(metrics["disagreement_by"]["course"]),
                 "by_model_pair": segment(metrics["disagreement_by"]["model_pair"]),
             },

@@ -217,7 +217,7 @@ class PaymentMethodViewSet(viewsets.ViewSet):
         default_pm_id = (customer.get("invoice_settings") or {}).get(
             "default_payment_method"
         )
-        if hasattr(default_pm_id, "id"):
+        if default_pm_id is not None and hasattr(default_pm_id, "id"):
             default_pm_id = default_pm_id.id
 
         data = [

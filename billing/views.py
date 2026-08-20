@@ -1394,9 +1394,19 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
         context = resolve_user_billing_context(user)
 
         if context.source == SOURCE_INDIVIDUAL:
+            if context.user_subscription is None:
+                raise ValueError(
+                    "UserBillingContext with source=SOURCE_INDIVIDUAL must "
+                    "have user_subscription set."
+                )
             start = context.user_subscription.billing_cycle_start
             end = context.user_subscription.billing_cycle_end
         elif context.source == SOURCE_LICENSE_TEACHER:
+            if context.allocation is None or context.license_subscription is None:
+                raise ValueError(
+                    "UserBillingContext with source=SOURCE_LICENSE_TEACHER "
+                    "must have allocation and license_subscription set."
+                )
             # A teacher's OWN credit-refresh cycle governs when THEIR
             # usage window resets — not the license's multi-month/year
             # contract window. Falls back to the license's billing_cycle_
@@ -1407,6 +1417,11 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                 context.allocation.next_credit_grant_at or license_sub.billing_cycle_end
             )
         elif context.source == SOURCE_LICENSE_ADMIN:
+            if context.license_subscription is None:
+                raise ValueError(
+                    "UserBillingContext with source=SOURCE_LICENSE_ADMIN "
+                    "must have license_subscription set."
+                )
             start = context.license_subscription.billing_cycle_start
             end = context.license_subscription.billing_cycle_end
         else:
