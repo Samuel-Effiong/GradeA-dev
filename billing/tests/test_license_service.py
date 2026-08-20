@@ -4,7 +4,7 @@ Tests for LicenseSubscriptionService
 Validates all core functionality and edge cases.
 """
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import pytest
 from django.db import transaction
@@ -13,11 +13,8 @@ from django.utils import timezone
 
 from billing.license_service import LicenseSubscriptionService
 from billing.models import (
-    CONVERSION_FACTOR,
     CreditBucket,
     CreditBucketType,
-    CreditLedger,
-    CreditLedgerType,
     CreditWallet,
     LicenseSubscription,
     PlanCategory,

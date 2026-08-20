@@ -56,7 +56,7 @@ def _assert_url_is_publicly_fetchable(url: str) -> None:
     scheme = (parsed.scheme or "").lower()
     if scheme not in FETCH_URL_ALLOWED_SCHEMES:
         raise BlockedURLError(
-            f"Only http/https URLs can be fetched (got scheme '{scheme or 'none'}')."
+            f"Only http/https URLs can be fetched (got scheme {scheme or 'none'!r})."
         )
 
     hostname = parsed.hostname
@@ -65,13 +65,13 @@ def _assert_url_is_publicly_fetchable(url: str) -> None:
 
     if hostname.lower() in FETCH_URL_BLOCKED_HOSTNAMES:
         raise BlockedURLError(
-            f"'{hostname}' is a restricted host and cannot be fetched."
+            f"{hostname!r} is a restricted host and cannot be fetched."
         )
 
     try:
         addr_infos = socket.getaddrinfo(hostname, None)
     except socket.gaierror as e:
-        raise BlockedURLError(f"Could not resolve host '{hostname}': {e}") from e
+        raise BlockedURLError(f"Could not resolve host {hostname!r}: {e}") from e
 
     for _family, _type, _proto, _canonname, sockaddr in addr_infos:
         ip = ipaddress.ip_address(sockaddr[0])
@@ -84,7 +84,7 @@ def _assert_url_is_publicly_fetchable(url: str) -> None:
             or ip.is_unspecified
         ):
             raise BlockedURLError(
-                f"'{hostname}' resolves to a restricted address and cannot be fetched."
+                f"{hostname!r} resolves to a restricted address and cannot be fetched."
             )
 
 

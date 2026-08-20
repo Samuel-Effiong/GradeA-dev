@@ -35,7 +35,6 @@ from django.utils import timezone
 
 from billing.models import (
     BillingInterval,
-    CreditBucketType,
     CreditWallet,
     PlanCategory,
     PlanTier,

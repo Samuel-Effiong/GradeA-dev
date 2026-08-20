@@ -98,29 +98,29 @@ class BillingTransactionService:
             stripe_invoice_id, stripe_payment_intent_id, license_billing_record
         )
 
-        defaults = dict(
-            source=source,
-            transaction_type=transaction_type,
-            status=status,
-            billing_method=billing_method,
-            amount_cents=amount_cents or 0,
-            currency=currency or "usd",
-            user=user,
-            user_subscription=user_subscription,
-            license_subscription=license_subscription,
-            school=school,
-            stripe_invoice_id=stripe_invoice_id,
-            stripe_payment_intent_id=stripe_payment_intent_id,
-            stripe_checkout_session_id=stripe_checkout_session_id,
-            stripe_charge_id=stripe_charge_id,
-            stripe_subscription_id=stripe_subscription_id,
-            receipt_url=receipt_url,
-            license_billing_record=license_billing_record,
-            description=description,
-            metadata=metadata or {},
-            performed_by=performed_by,
-            occurred_at=occurred_at,
-        )
+        defaults = {
+            "source": source,
+            "transaction_type": transaction_type,
+            "status": status,
+            "billing_method": billing_method,
+            "amount_cents": amount_cents or 0,
+            "currency": currency or "usd",
+            "user": user,
+            "user_subscription": user_subscription,
+            "license_subscription": license_subscription,
+            "school": school,
+            "stripe_invoice_id": stripe_invoice_id,
+            "stripe_payment_intent_id": stripe_payment_intent_id,
+            "stripe_checkout_session_id": stripe_checkout_session_id,
+            "stripe_charge_id": stripe_charge_id,
+            "stripe_subscription_id": stripe_subscription_id,
+            "receipt_url": receipt_url,
+            "license_billing_record": license_billing_record,
+            "description": description,
+            "metadata": metadata or {},
+            "performed_by": performed_by,
+            "occurred_at": occurred_at,
+        }
 
         if lookup is None:
             logger.warning(

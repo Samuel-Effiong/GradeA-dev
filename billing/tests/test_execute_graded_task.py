@@ -641,7 +641,7 @@ class RetryWrapperRegressionTests(ExecuteGradedTaskTestBase):
         mock_execute.side_effect = Exception("transient network blip")
         teacher = self._make_teacher_with_credits()
 
-        with self.assertRaises(Exception):
+        with self.assertRaisesRegex(Exception, "transient network blip"):
             self.processor.generate_assignment_from_prompt_with_retry(
                 user=teacher, prompt="write an assignment", max_retries=3
             )
@@ -670,7 +670,7 @@ class RetryWrapperRegressionTests(ExecuteGradedTaskTestBase):
         mock_execute.side_effect = Exception("flaky")
         admin = self._make_user(UserTypes.SUPER_ADMIN, "retrysuper2@example.com")
 
-        with self.assertRaises(Exception):
+        with self.assertRaisesRegex(Exception, "flaky"):
             self.processor.custom_ai_prompt_retry(
                 user=admin,
                 user_prompt="hello",
