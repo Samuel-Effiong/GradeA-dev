@@ -164,185 +164,7 @@ webhook — not when this endpoint is called.
 
 
 # ---------------------------------------------------------------------------
-# 2. start_trial
-# POST /api/v1/subscription/start-trial
-# ---------------------------------------------------------------------------
-CONVERT_TRIAL_TO_PAID_SCHEMA = extend_schema(
-    tags=["Subscription — Stripe"],
-    summary="Convert an active free trial to a paid subscription mid-trial",
-    description="""
-Upgrades an **active free trial** to a full paid subscription before the
-14-day trial ends. Use this when the user decides to pay early rather than
-waiting for the trial to expire at day 14 or credit exhaustion.
-
-**What happens**
-- Remaining trial credits are immediately forfeited (trial is a bounded
-  experience — no carry-over to the paid plan).
-""",
-    request=inline_serializer(
-        name="ConvertTrialRequest",
-        fields={
-            "plan": serializers.UUIDField(
-                help_text=(
-                    "UUID of the INDIVIDUAL plan to activate. Can be the same "
-                    "plan the trial is on, or a different INDIVIDUAL plan."
-                )
-            )
-        },
-    ),
-    responses={
-        201: OpenApiResponse(
-            description=(
-                "Checkout Session created. Redirect the user to `checkout_url` "
-                "to collect their card. The trial is not active yet — it starts "
-                "after `checkout.session.completed` fires."
-            ),
-            response=inline_serializer(
-                name="StartTrialResponse",
-                fields={
-                    "checkout_url": serializers.URLField(
-                        help_text=(
-                            "Stripe Checkout URL. Redirect the user here to "
-                            "enter their card details."
-                        )
-                    )
-                },
-            ),
-            examples=[
-                OpenApiExample(
-                    "Trial checkout session created",
-                    value={
-                        "checkout_url": (
-                            "https://checkout.stripe.com/pay/cs_test_trial_x9y8z7..."
-                        )
-                    },
-                    response_only=True,
-                )
-            ],
-        ),
-        400: OpenApiResponse(
-            description=(
-                "Validation error. Possible reasons:\n"
-                "- `plan` field missing\n"
-                "- Plan is not `INDIVIDUAL` category\n"
-                "- User already has an active subscription\n"
-                "- Plan has no `stripe_price_id` configured"
-            ),
-        ),
-        404: OpenApiResponse(description="Plan not found or is not active."),
-        409: OpenApiResponse(
-            description="This account has already used its free trial.",
-            examples=[
-                OpenApiExample(
-                    "Trial already used",
-                    value={
-                        "detail": (
-                            "This account has already used its free trial. "
-                            "Please subscribe to a paid plan."
-                        )
-                    },
-                    response_only=True,
-                )
-            ],
-        ),
-    },
-)
-
-
-# ---------------------------------------------------------------------------
-# 3. convert_trial
-# POST /api/v1/subscription/convert-trial
-# ---------------------------------------------------------------------------
-CONVERT_TRIAL_SCHEMA = extend_schema(
-    tags=["Subscription — Stripe"],
-    summary="Convert an active free trial to a paid subscription mid-trial",
-    description="""
-Upgrades an **active free trial** to a full paid subscription before the
-14-day trial ends. Use this when the user decides to pay early rather than
-waiting for the trial to expire at day 14 or credit exhaustion.
-
-**What happens**
-- Remaining trial credits are immediately forfeited (trial is a bounded
-  experience — no carry-over to the paid plan).
-""",
-    request=inline_serializer(
-        name="ConvertTrialRequest",
-        fields={
-            "plan": serializers.UUIDField(
-                help_text=(
-                    "UUID of the INDIVIDUAL plan to activate. Can be the same "
-                    "plan the trial is on, or a different INDIVIDUAL plan."
-                )
-            )
-        },
-    ),
-    responses={
-        200: OpenApiResponse(
-            response=inline_serializer(
-                name="ConvertTrialResponse",
-                fields={
-                    "id": serializers.UUIDField(),
-                    "user": serializers.UUIDField(),
-                    "plan": serializers.UUIDField(),
-                    "is_active": serializers.BooleanField(),
-                    "is_trial": serializers.BooleanField(
-                        help_text="Always False after conversion."
-                    ),
-                    "billing_cycle_start": serializers.DateTimeField(),
-                    "billing_cycle_end": serializers.DateTimeField(),
-                    "stripe_subscription_id": serializers.CharField(),
-                    "stripe_status": serializers.CharField(),
-                },
-            ),
-            description=(
-                "Conversion successful. Returns the new paid subscription. "
-                "`is_trial` will be `false`; `stripe_status` will be `active`."
-            ),
-            examples=[
-                OpenApiExample(
-                    "Successful trial conversion",
-                    value={
-                        "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-                        "user": "7cb85f64-1234-4562-b3fc-2c963f66afa6",
-                        "plan": "9ab85f64-9999-4562-b3fc-2c963f66afa6",
-                        "is_active": True,
-                        "is_trial": False,
-                        "billing_cycle_start": "2025-06-01T00:00:00Z",
-                        "billing_cycle_end": "2025-07-01T00:00:00Z",
-                        "stripe_subscription_id": "sub_1OzXXX",
-                        "stripe_status": "active",
-                    },
-                    response_only=True,
-                )
-            ],
-        ),
-        400: OpenApiResponse(
-            description=(
-                "Validation error. Possible reasons:\n"
-                "- User has no active trial to convert\n"
-                "- `plan` is not `INDIVIDUAL` category\n"
-                "- `plan` field missing"
-            ),
-            examples=[
-                OpenApiExample(
-                    "No active trial",
-                    value={
-                        "detail": (
-                            "User teacher@school.com does not have an active "
-                            "free trial to convert."
-                        )
-                    },
-                    response_only=True,
-                )
-            ],
-        ),
-        404: OpenApiResponse(description="Plan not found or is not active."),
-    },
-)
-
-
-# ---------------------------------------------------------------------------
-# 4. upgrade
+# 2. upgrade
 # POST /api/v1/subscription/upgrade
 # ---------------------------------------------------------------------------
 UPGRADE_SCHEMA = extend_schema(
@@ -479,7 +301,7 @@ is actually cheaper (use downgrade) → subscription has no
 
 
 # ---------------------------------------------------------------------------
-# 5. downgrade
+# 3. downgrade
 # POST /api/v1/subscription/downgrade
 # ---------------------------------------------------------------------------
 DOWNGRADE_SCHEMA = extend_schema(
@@ -551,7 +373,7 @@ Resume button".
 
 
 # ---------------------------------------------------------------------------
-# 6. cancel
+# 4. cancel
 # POST /api/v1/subscription/cancel
 # ---------------------------------------------------------------------------
 CANCEL_SCHEMA = extend_schema(
@@ -623,7 +445,7 @@ too, so trial users would be shown a bogus "cancelled" state.
 
 
 # ---------------------------------------------------------------------------
-# 7. purchase_overage
+# 5. purchase_overage
 # POST /api/v1/subscription/credits/overage/purchase
 # ---------------------------------------------------------------------------
 
@@ -633,7 +455,7 @@ too, so trial users would be shown a bogus "cancelled" state.
 # ===========================================================================
 
 # ---------------------------------------------------------------------------
-# 8. create (license)
+# 6. create (license)
 # POST /api/v1/license-subscriptions
 # ---------------------------------------------------------------------------
 LICENSE_CREATE_SCHEMA = extend_schema(
@@ -802,7 +624,7 @@ until that subscription is cancelled.
 
 
 # ---------------------------------------------------------------------------
-# 9. add_teachers (unchanged logic, schema added for completeness)
+# 7. add_teachers (unchanged logic, schema added for completeness)
 # POST /api/v1/license-subscriptions/{id}/add-teachers
 # ---------------------------------------------------------------------------
 ADD_TEACHERS_SCHEMA = extend_schema(

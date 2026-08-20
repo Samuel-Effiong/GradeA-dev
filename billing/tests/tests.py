@@ -1,5 +1,4 @@
 import threading
-import unittest
 from datetime import timedelta
 
 from django.test import TransactionTestCase
@@ -402,55 +401,6 @@ class ConcurrentRegistrationTest(TransactionTestCase):
 
         # Should mention failed count
         assert "failed" in result.lower()
-
-    @unittest.skip(
-        "SubscriptionService.convert_trial_to_paid no longer exists (trial "
-        "conversion moved to a Stripe-checkout-based flow) - this test needs "
-        "to be rewritten against the current conversion path before "
-        "re-enabling."
-    )
-    def test_concurrent_trial_expiration_and_conversion(self):
-        import threading
-
-        user = CustomUser.objects.create_user(
-            email="concurrent_expire@test.com",
-            password="test",  # pragma: allowlist secret
-            user_type="TEACHER",
-        )
-
-        paid_plan = SubscriptionPlan.objects.first()
-        errors = []
-
-        def expire():
-            try:
-                from billing.tasks import expire_active_trials
-
-                expire_active_trials()
-            except Exception as e:
-                errors.append(("expire", e))
-
-        def convert():
-            try:
-                from billing.services import SubscriptionService
-
-                SubscriptionService.convert_trial_to_paid(  # type: ignore[attr-defined]
-                    user, paid_plan
-                )
-            except Exception as e:
-                errors.append(("convert", e))
-
-        t1 = threading.Thread(target=expire)
-        t2 = threading.Thread(target=convert)
-        t1.start()
-        t2.start()
-        t1.join()
-        t2.join()
-
-        # At most one operation should complete
-        # (or both complete, but subscription ends up in valid state)
-        user.refresh_from_db()
-        active_subs = user.subscriptions.filter(is_active=True).count()
-        assert active_subs in [0, 1]  # Either expired or converted
 
     def test_settings_creation_failure_doesnt_block_trial(self):
         from unittest.mock import patch

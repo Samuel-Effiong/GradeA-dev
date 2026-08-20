@@ -1435,8 +1435,9 @@ class SubscriptionService:
         """
         Called from invoice.payment_succeeded when a Stripe trial's first real
         charge succeeds (billing_reason=subscription_cycle, previous status was
-        trialing). Unlike convert_trial_to_paid (user manually upgrades mid-trial,
-        possibly to a different plan), the Stripe subscription here is unchanged —
+        trialing). Unlike finalize_trial_to_paid_conversion (user manually
+        upgrades mid-trial, possibly to a different plan), the Stripe
+        subscription here is unchanged —
         only its status moved trialing -> active — so we update the SAME
         UserSubscription row in place rather than deactivating + creating a new one.
 
