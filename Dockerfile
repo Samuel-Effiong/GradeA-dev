@@ -28,6 +28,8 @@ RUN apt-get update --yes --quiet && \
         libgl1 \
         libglib2.0-0 \
         poppler-utils \
+        libpango-1.0-0 \
+        libpangoft2-1.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install the application server.
