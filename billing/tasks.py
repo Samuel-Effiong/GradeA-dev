@@ -5,14 +5,14 @@ Celery tasks for the billing pipeline.
 
 Three independent tasks — each with a single, well-defined responsibility:
 
-1. process_subscription_renewals
-   Handles INDIVIDUAL UserSubscription renewals and trial expiry.
-   Runs nightly (recommended: every hour so billing_cycle_end is caught promptly).
+1. expire_active_trials
+   Handles INDIVIDUAL trial expiry (by time or by credit exhaustion).
+   Runs every 6 hours.
 
 2. process_license_renewals
    Handles LicenseSubscription renewals for institutional plans.
    Completely separate from the individual pipeline.
-   Runs nightly (recommended: same cadence as process_subscription_renewals).
+   Runs nightly.
 
 3. cleanup_expired_credit_buckets
    Formalizes expired CreditBucket entries in the ledger.
@@ -141,51 +141,6 @@ def _find_new_period_paid_invoice(
             return invoice
 
     return None
-
-
-@shared_task(bind=True, max_retries=0)
-def process_subscription_renewals(self):
-    """
-    Process expired trials for INDIVIDUAL subscriptions.
-    Paid renewals are handled by Stripe webhooks.
-    """
-    now = timezone.now()
-
-    # Only fetch trials that have ended.
-    expired_trials = UserSubscription.objects.filter(
-        is_active=True,
-        is_trial=True,
-        billing_cycle_end__lte=now,
-    ).select_related("user", "plan")
-
-    trial_expired_count = 0
-    failed_count = 0
-
-    for sub in expired_trials:
-        try:
-            # expire_trial() writes the EXPIRE ledger entry and deactivates the sub
-            SubscriptionService.expire_trial(sub)
-            trial_expired_count += 1
-            logger.info(
-                "Trial expired for user %s (subscription %s).",
-                sub.user.email,
-                sub.id,
-            )
-        except Exception as exc:
-            failed_count += 1
-            logger.error(
-                f"Failed to expire trial {sub.id} for user {sub.user.email}: {str(exc)}",
-                exc_info=True,
-            )
-            # Continue — one bad subscription must not block the rest.
-
-    summary = (
-        f"Individual trial subscriptions processed: "
-        f"{trial_expired_count} trials expired, "
-        f"{failed_count} failed."
-    )
-    logger.info(summary)
-    return summary
 
 
 @shared_task(bind=True, max_retries=0)
@@ -397,7 +352,7 @@ def process_annual_plan_credit_grants(self):
     For ANNUAL-interval individual plans only: grants the next month's
     MONTHLY credit bucket mid-cycle, since Stripe only bills once a year
     but credits still refresh monthly. Separate from
-    process_subscription_renewals, which handles the actual once-a-year
+    reconcile_subscription_renewals, which handles the actual once-a-year
     billing-cycle renewal (rollover into a new UserSubscription row, plan
     changes, Stripe price sync) for ALL plans including annual ones —
     that still happens correctly at billing_cycle_end regardless of this task.

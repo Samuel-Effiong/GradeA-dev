@@ -42,6 +42,7 @@ from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor  # pdf_service
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
+from AutoGrader.uploads import PayloadTooLarge, validate_upload_size
 from billing.access_control import AIFeatureNotAvailableError
 from billing.errors import InsufficientCreditsError
 
@@ -790,6 +791,12 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 )
                 continue
 
+            try:
+                validate_upload_size(uploaded_file)
+            except PayloadTooLarge as exc:
+                failed.append({"file_name": file_name, "error": str(exc.detail)})
+                continue
+
             content = AssignmentProcessingService.prepare_ai_content(
                 uploaded_file, prompt_text
             )
@@ -961,6 +968,8 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                         "uploading again."
                     )
                 )
+
+            validate_upload_size(uploaded_file)
 
             prompt_text = """
             Analyze the image of an educational assignment and return a JSON

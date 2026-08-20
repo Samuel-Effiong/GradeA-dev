@@ -218,6 +218,24 @@ class StudentSubmission(models.Model):
 
         ordering = ["-submission_date"]
 
+        indexes = [
+            # Backs assignment.submissions / assignment__course__teacher=user
+            # queries that then sort by the default ordering above -
+            # Meta.ordering alone does not create a DB index, so without
+            # this the sort had nothing to use once a teacher had enough
+            # submissions for it to matter.
+            models.Index(
+                fields=["assignment", "-submission_date"],
+                name="submission_assignment_date_idx",
+            ),
+            # graded_at had no index at all despite being the filter column
+            # for "ungraded submissions" checks (assignments/views.py,
+            # assignments/tasks.py, dashboard/views.py,
+            # students/services.py) and range queries in the grading
+            # benchmark eval command.
+            models.Index(fields=["graded_at"], name="submission_graded_at_idx"),
+        ]
+
     def get_answer(self):
         return self.answers
 

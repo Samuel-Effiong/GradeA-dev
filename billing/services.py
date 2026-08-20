@@ -9,6 +9,7 @@ from django.db.models.functions import Greatest
 from django.template.loader import render_to_string
 from django.utils import timezone
 
+from AutoGrader.dispatch import safe_delay
 from AutoGrader.tasks import send_email_task
 from users.mailerlite_service import queue_sync
 
@@ -1219,7 +1220,7 @@ class SubscriptionService:
 
         from users.tasks import sync_user_to_mailerlite
 
-        sync_user_to_mailerlite.delay(str(user.id))
+        safe_delay(sync_user_to_mailerlite, str(user.id))
 
         logger.info(
             "Free trial expired for user %s (subscription %s). "

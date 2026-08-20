@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch
 from django.test import TestCase
 
 from assignments.models import Assignment
+from AutoGrader.dispatch import ProcessingTemporarilyUnavailable
 from billing.access_control import AIFeatureNotAvailableError
 from billing.errors import InsufficientCreditsError
 from classrooms.models import Course
@@ -230,19 +231,48 @@ class LaunchProcessingTaskBrokerFailureTest(TestCase):
         broken_task = Mock()
         broken_task.delay.side_effect = ConnectionError("broker unreachable")
 
-        with self.assertRaises(ConnectionError):
+        # A broker-connection failure is a distinct, expected condition
+        # (Redis unreachable) — not a generic bug — so it surfaces as a
+        # typed, clean exception a view can turn into a 503 with an
+        # actionable message, rather than the raw ConnectionError leaking
+        # straight out of the request.
+        with self.assertRaises(ProcessingTemporarilyUnavailable) as ctx:
             launch_processing_task(broken_task, processing_task)
+
+        self.assertEqual(ctx.exception.status_code, 503)
 
         processing_task.refresh_from_db()
         self.assertEqual(processing_task.status, BackgroundTaskStatus.FAILURE)
-        # The raw broker exception is an implementation detail, not
+        # The raw broker exception is still an implementation detail, not
         # something a grader can act on — it must not reach the frontend
-        # verbatim. A bare ConnectionError is recognized as a connection
+        # verbatim, whether via the response or the tracked task's stored
+        # error. A bare ConnectionError is recognized as a connection
         # failure and gets its own actionable message rather than the
         # fully generic fallback (see classify_infra_error).
         self.assertIn("lost connection", processing_task.error)
         self.assertNotIn("broker unreachable", processing_task.error)
         self.assertIsNone(processing_task.celery_task_id)
+
+    def test_non_broker_failure_still_propagates_unchanged(self):
+        # Regression guard: only broker-connection failures get the typed
+        # "temporarily unavailable" treatment. A bug in our own code
+        # building the dispatch call (or any other unexpected exception)
+        # must keep propagating as itself, exactly like before this
+        # behavior was added — swallowing/rewriting it would hide real
+        # bugs behind a misleading "try again later" message.
+        processing_task = BackgroundProcessingTask.objects.create(
+            requested_by=self.teacher,
+            task_type=BackgroundTaskType.SUBMISSION_GRADING,
+            status=BackgroundTaskStatus.PENDING,
+        )
+        broken_task = Mock()
+        broken_task.delay.side_effect = TypeError("unexpected keyword argument")
+
+        with self.assertRaises(TypeError):
+            launch_processing_task(broken_task, processing_task)
+
+        processing_task.refresh_from_db()
+        self.assertEqual(processing_task.status, BackgroundTaskStatus.FAILURE)
 
 
 class CancellableFinalSaveTest(TestCase):

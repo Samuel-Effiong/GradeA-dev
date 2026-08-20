@@ -60,6 +60,7 @@ from rest_framework_simplejwt.views import (
 )
 from rest_framework_simplejwt.views import TokenRefreshView as BaseTokenRefreshView
 
+from AutoGrader.dispatch import safe_delay
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.tasks import send_email_task
@@ -112,6 +113,7 @@ from users.throttling import (
     OTPRequestThrottle,
     PasswordResetThrottle,
     RegisterThrottle,
+    VerifyEmailThrottle,
 )
 
 logger = logging.getLogger(__name__)
@@ -675,6 +677,12 @@ class AuthViewSet(viewsets.ViewSet):
         url_path="verify",
         url_name="verify",
         permission_classes=[AllowAny],
+        # The token being checked is a 6-digit numeric code (by design, see
+        # users.models.ACTIVATION_TOKEN_VALIDITY) - without a dedicated,
+        # tight throttle this falls back to the generic 60/min anon rate,
+        # which does not meaningfully slow down guessing it for a known
+        # email.
+        throttle_classes=[VerifyEmailThrottle],
     )
     def verify(self, request, **kwargs):
         email = request.data.get("email").strip()
@@ -698,7 +706,7 @@ class AuthViewSet(viewsets.ViewSet):
         user.is_active = True
         user.save()
 
-        sync_user_to_mailerlite.delay(str(user.id))
+        safe_delay(sync_user_to_mailerlite, str(user.id))
 
         user_data = CustomUserSerializer(user).data
 
@@ -793,7 +801,8 @@ The Grade A+ Team
 Need help? Contact us at {settings.SUPPORT_EMAIL}
             """
 
-            send_email_task.delay(
+            safe_delay(
+                send_email_task,
                 subject="Your Grade A+ password reset code",
                 message=message,
                 from_email=settings.DEFAULT_FROM_EMAIL,
@@ -1240,7 +1249,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 user.email_verified_at = timezone.now()
                 user.save()
 
-                sync_user_to_mailerlite.delay(str(user.id))
+                safe_delay(sync_user_to_mailerlite, str(user.id))
 
                 for enrollment in pending_enrollments:
                     enrollment.enrollment_status = EnrollmentStatusType.ENROLLED
@@ -1337,7 +1346,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 user.activation_expires = None
                 user.save()
 
-            sync_user_to_mailerlite.delay(str(user.id))
+            safe_delay(sync_user_to_mailerlite, str(user.id))
 
             refresh = RefreshToken.for_user(user)
 
@@ -1504,7 +1513,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                         user.set_unusable_password()
                         user.save(update_fields=["password", "is_active"])
 
-                        sync_user_to_mailerlite.delay(str(user.id))
+                        safe_delay(sync_user_to_mailerlite, str(user.id))
                     else:
                         # A Google account on a business domain lands here:
                         # signing in with Google creates an individual TEACHER

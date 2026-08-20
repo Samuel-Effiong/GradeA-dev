@@ -34,12 +34,23 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
-            "format": "\n\n{name} {levelname} {asctime} {module} {process:d} {thread:d} {message}\n\n",
+            # request_id is injected by RequestIDLogFilter below, on every
+            # record regardless of which logger emitted it (not just ones
+            # from a request - it reads "-" outside any request/task).
+            "format": (
+                "\n\n{name} {levelname} {asctime} {module} {process:d} {thread:d} "
+                "[request_id={request_id}] {message}\n\n"
+            ),
             "style": "{",
         },
         "simple": {
-            "format": "\n\n[%(asctime)s] %(levelname)s %(message)s\n\n",
+            "format": "\n\n[%(asctime)s] %(levelname)s [request_id=%(request_id)s] %(message)s\n\n",
             "datefmt": "%Y-%m-%d %H:%M:%S",
+        },
+    },
+    "filters": {
+        "request_id": {
+            "()": "AutoGrader.request_context.RequestIDLogFilter",
         },
     },
     "handlers": {
@@ -47,6 +58,7 @@ LOGGING = {
             "class": "logging.StreamHandler",
             "level": "INFO",
             "formatter": "verbose",
+            "filters": ["request_id"],
         },
     },
     "loggers": {
@@ -98,6 +110,19 @@ elif ENVIRONMENT == "dev":
     DEBUG = False
 elif ENVIRONMENT == "local":
     DEBUG = True
+else:
+    # A typo'd ENVIRONMENT value used to leave DEBUG unassigned, raising a
+    # NameError at import (fails closed - the app just won't boot). This
+    # keeps that fail-closed behavior but makes the cause obvious instead
+    # of a bare stack trace pointing at whatever line reads DEBUG first.
+    DEBUG = False
+    import logging
+
+    logging.getLogger(__name__).error(
+        "Unrecognized ENVIRONMENT=%r (expected 'prod', 'dev', or 'local'); "
+        "defaulting DEBUG=False.",
+        ENVIRONMENT,
+    )
 
 APPEND_SLASH = False
 
@@ -204,18 +229,31 @@ if ENVIRONMENT in ("prod", "dev"):
         "https://www.test.admin.gradeautomator.com",
         "https://teacher-web-app-beta-production.up.railway.app",
     ]
-    CORS_ALLOWED_ORIGIN_REGEXES = []
 else:  # local
     CORS_ALLOWED_ORIGINS = [
         "http://localhost:3000",
     ]
-    CORS_ALLOWED_ORIGIN_REGEXES = [
-        r"^https?://([a-z0-9-]+\.)?localhost(:[0-9]+)?$",
-    ]
+
+# Frontend devs run their frontend on localhost (any port/subdomain) while
+# pointing it at a deployed backend (dev or prod), not just a locally-run
+# one - so this is allowed in every environment, not gated behind
+# ENVIRONMENT like the origin allowlist above. CORS_ALLOW_CREDENTIALS is
+# False, so this can't be used to ride a logged-in session/cookie; it only
+# lets localhost JS read responses to bearer-token requests it already
+# had to have the token to make.
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https?://([a-z0-9-]+\.)?localhost(:[0-9]+)?$",
+]
 
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 
 CORS_ALLOW_CREDENTIALS = False
+
+# Browsers hide all response headers from cross-origin JS by default except
+# a small CORS-safelisted set; X-Request-ID isn't in it, so it must be
+# explicitly exposed for a frontend to read it and surface it in a support
+# ticket ("attach this id when reporting a bug").
+CORS_EXPOSE_HEADERS = ["X-Request-ID"]
 
 
 # Transport security. Applied only in prod so that local development over
@@ -284,9 +322,10 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    # TEMPORARY - remove once SECURE_PROXY_SSL_HEADER is confirmed correct
-    # in prod. See AutoGrader/debug_middleware.py and settings.py:176-202.
-    "AutoGrader.debug_middleware.DebugProxyHeadersMiddleware",
+    # First, so the correlation id it assigns is set before every other
+    # middleware/view/signal handler runs, and torn down only after all of
+    # them have returned - see AutoGrader.middleware.RequestIDMiddleware.
+    "AutoGrader.middleware.RequestIDMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "users.middleware.UserActivityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -590,6 +629,14 @@ CELERY_TASK_ACKS_LATE = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_RESULT_EXPIRES = 3600  # Delete results after 1 hour
 
+# Workers keep retrying to connect to the broker on startup instead of
+# giving up after the first failed attempt - relevant specifically for a
+# worker/beat process that starts (or restarts) while Redis is briefly
+# unavailable, e.g. during a Redis plugin restart on Railway. This is
+# Celery 6's default; setting it explicitly also silences the deprecation
+# warning Celery 5.5 raises when it's unset.
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+
 WEEKLY_COURSE_SUMMARY_DAY_OF_WEEK = env.str(
     "WEEKLY_COURSE_SUMMARY_DAY_OF_WEEK", default="6"
 )
@@ -613,10 +660,6 @@ CELERY_BEAT_SCHEDULE = {
         "task": "dashboard.tasks.record_concurrent_users",
         "schedule": 60.0,
     },
-    # "reconcile-trial-expiration": {
-    #     "task": "billing.tasks.process_subscription_renewals",
-    #     "schedule": crontab(minute=0, hour=0),
-    # },
     "process-license-renewals": {
         "task": "billing.tasks.process_license_renewals",
         "schedule": crontab(minute=0, hour=0),
@@ -713,8 +756,48 @@ CELERY_BEAT_SCHEDULE = {
             hour=TEACHER_INACTIVITY_ALERT_HOUR,
         ),
     },
+    # Watchdog over Beat itself - see AutoGrader/beat_health.py. Runs every
+    # 15 minutes so a dead/duplicated Beat is caught quickly regardless of
+    # how infrequently the schedule it's checking fires.
+    "check-beat-health": {
+        "task": "AutoGrader.beat_health.check_beat_health",
+        "schedule": crontab(minute="*/15"),
+    },
 }
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+
+# Expected cadence for the tasks above, read by AutoGrader/beat_health.py's
+# check_beat_health. Deliberately hand-maintained rather than derived from
+# CELERY_BEAT_SCHEDULE's crontab objects (computing "next expected fire
+# time" generically from an arbitrary crontab is real work for schedules
+# this project doesn't need the generality of) - whoever adds/changes an
+# entry above should add/update its row here too.
+#
+# alert_threshold is intentionally well above expected_interval so a
+# routine few-minutes scheduling delay never fires a false alarm - see the
+# task docstring for exactly what "overdue" means.
+BEAT_HEALTH_EXPECTATIONS = {
+    # name: (expected_interval, alert_threshold)
+    "record-concurrent-users-every-minute": (
+        timedelta(minutes=1),
+        timedelta(minutes=10),
+    ),
+    "sweep-stale-stripe-events": (timedelta(hours=1), timedelta(hours=3)),
+    "expire-active-trials": (timedelta(hours=6), timedelta(hours=15)),
+    "process-license-renewals": (timedelta(days=1), timedelta(days=2)),
+    "process-annual_plan-credit-grants": (timedelta(days=1), timedelta(days=2)),
+    "process-license-monthly-credit-refreshes": (timedelta(days=1), timedelta(days=2)),
+    "reconcile-subscriptions-daily": (timedelta(days=1), timedelta(days=2)),
+    "cleanup-expired-credit-buckets": (timedelta(days=1), timedelta(days=2)),
+    "nightly-stripe-live-qa": (timedelta(days=1), timedelta(days=2)),
+    "nightly-grading-benchmark-replay": (timedelta(days=1), timedelta(days=2)),
+    "send-at-risk-student-alerts": (timedelta(days=1), timedelta(days=2)),
+    "send-teacher-inactivity-alerts": (timedelta(days=1), timedelta(days=2)),
+    "weekly-grading-benchmark-live": (timedelta(weeks=1), timedelta(days=10)),
+    "send-weekly-course-summaries": (timedelta(weeks=1), timedelta(days=10)),
+    "send-weekly-student-summaries": (timedelta(weeks=1), timedelta(days=10)),
+    "send-weekly-school-admin-summaries": (timedelta(weeks=1), timedelta(days=10)),
+}
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
@@ -805,6 +888,7 @@ REST_FRAMEWORK = {
         "anon": "60/min",
         # Named buckets, attached per-view via users/throttling.py.
         "login": "10/min",
+        "verify_email": "5/hour",
         "otp_request": "5/hour",
         "password_reset": "10/hour",  # pragma: allowlist secret
         "register": "10/hour",

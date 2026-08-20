@@ -17,6 +17,22 @@ from users.services import OTPManager
 
 otp_manager = OTPManager()
 
+# How long an invite/renewal activation_token (a 6-digit code, by design -
+# short enough for a teacher or school admin to read out or a student to
+# retype from memory) stays valid. Previously 7 days with no throttle on
+# the verify endpoint, which made the 1,000,000-value code space brute-
+# forceable well within its lifetime for a known email. The verify endpoint
+# is now throttled (see users.throttling.VerifyEmailThrottle) - this cuts
+# the attack window on top of that, while staying long enough that a
+# legitimate invite sitting unread for most of a day still works. A user
+# who misses the window can always request a fresh code via the existing
+# renew-token flow.
+#
+# NOTE: the "expires in 7 days"/"24 hours" wording in the invite email
+# templates (classrooms/views.py, billing/license_service.py) is a literal
+# string, not derived from this constant - update both together.
+ACTIVATION_TOKEN_VALIDITY = timezone.timedelta(hours=24)
+
 
 # Create your models here.
 class CustomUserManager(BaseUserManager):
@@ -248,7 +264,7 @@ class CustomUser(AbstractUser):
         self.activation_token = otp_manager.generate_otp()
 
         if self.user_type == UserTypes.STUDENT:
-            self.activation_expires = timezone.now() + timezone.timedelta(days=7)
+            self.activation_expires = timezone.now() + ACTIVATION_TOKEN_VALIDITY
         else:
             raise ValueError(
                 "Activation token renewal is only for students. Use OTP (VERIFY_EMAIL) endpoint for teachers."

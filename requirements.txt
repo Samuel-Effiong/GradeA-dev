@@ -52,7 +52,6 @@ django-fernet-fields==0.6
 django-filter==25.1
 django-js-asset==3.1.2
 django-picklefield==3.3
-django-q2==1.8.0
 django-redis==6.0.0
 django-stubs==5.2.8
 django-stubs-ext==5.2.8
@@ -125,9 +124,6 @@ openai==1.107.1
 opencv-contrib-python==4.10.0.84
 opt-einsum==3.3.0
 packaging==25.0
-paddleocr==3.2.0
-paddlepaddle==3.2.0
-paddlex==3.2.1
 pandas==2.3.2
 pathspec==0.12.1
 pdf2image==1.17.0
@@ -164,7 +160,6 @@ PyMuPDFb==1.23.7
 pypdfium2==4.30.0
 pyperclip==1.9.0
 pyphen==0.17.2
-pytesseract==0.3.13
 pytest==9.1.1
 python-crontab==3.3.0
 python-dateutil==2.9.0.post0

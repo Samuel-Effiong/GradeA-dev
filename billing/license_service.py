@@ -16,7 +16,6 @@ Key principles:
 """
 
 import logging
-from datetime import timedelta
 from typing import Any, Dict, List, Optional
 
 from dateutil.relativedelta import relativedelta  # type: ignore
@@ -27,11 +26,17 @@ from django.db.models import F, Q
 from django.template.loader import render_to_string
 from django.utils import timezone
 
+from AutoGrader.dispatch import safe_delay
 from AutoGrader.error_messages import describe_stripe_error, describe_user_error
 from AutoGrader.tasks import send_email_task
 from classrooms.models import School
 from users.mailerlite_service import queue_sync
-from users.models import CustomUser, RegistrationMethod, UserTypes
+from users.models import (
+    ACTIVATION_TOKEN_VALIDITY,
+    CustomUser,
+    RegistrationMethod,
+    UserTypes,
+)
 from users.services import otp_manager
 from users.utils import is_business_email, is_exempt_email_domain
 
@@ -88,7 +93,7 @@ def sync_teachers_under_license_to_mailerlite(license_sub: LicenseSubscription) 
         is_active=True, user__is_active=True
     ).values_list("user_id", flat=True)
     for user_id in teacher_ids:
-        sync_user_to_mailerlite.delay(str(user_id))
+        safe_delay(sync_user_to_mailerlite, str(user_id))
 
 
 class IndividualSubscriptionConflictError(Exception):
@@ -1125,7 +1130,7 @@ class LicenseSubscriptionService:
                     or user.activation_expires < timezone.now()
                 ):
                     user.activation_token = otp_manager.generate_otp()
-                    user.activation_expires = timezone.now() + timedelta(days=7)
+                    user.activation_expires = timezone.now() + ACTIVATION_TOKEN_VALIDITY
                     user.save(update_fields=["activation_token", "activation_expires"])
 
                 LicenseSubscriptionService._send_teacher_invitation(
@@ -1145,7 +1150,7 @@ class LicenseSubscriptionService:
                 is_active=False,
                 registration_method=RegistrationMethod.EMAIL,
                 activation_token=activation_token,
-                activation_expires=timezone.now() + timedelta(days=7),
+                activation_expires=timezone.now() + ACTIVATION_TOKEN_VALIDITY,
             )
 
             # Set a dummy unusable password (they will set it via activation)
@@ -1176,7 +1181,7 @@ class LicenseSubscriptionService:
                 f"{admin_user.get_full_name()} has invited you to teach at {school.name}.\n\n"
                 "Complete your registration to set up your password and start using Grade A+."
             ),
-            "bottom_content": "This invitation link expires in 7 days.",
+            "bottom_content": "This invitation link expires in 24 hours.",
             "activation_url": activation_link,
             "current_year": timezone.now().year,
             "support_email": settings.SUPPORT_EMAIL,
@@ -1648,7 +1653,7 @@ class LicenseSubscriptionService:
 
         from users.tasks import sync_user_to_mailerlite
 
-        sync_user_to_mailerlite.delay(str(teacher.id))
+        safe_delay(sync_user_to_mailerlite, str(teacher.id))
 
         # 2. Expire all active credit buckets for this teacher
         wallet = teacher.credit_wallet

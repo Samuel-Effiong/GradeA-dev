@@ -22,7 +22,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from users.views import TokenObtainPairView, TokenRefreshView  # , task_status
 
 from .handlers import json_400, json_403, json_404, json_500
-from .health import health
+from .health import beat_health_check, health
 
 handler400 = json_400
 handler403 = json_403
@@ -48,6 +48,9 @@ core_urlpatterns = [
     path("auth/login", TokenObtainPairView.as_view(), name="login"),
     path("auth/refresh", TokenRefreshView.as_view(), name="refresh"),
     path("health", health, name="health"),
+    # Separate from "health" on purpose - see AutoGrader/health.py's module
+    # docstring for why Beat's liveness must not gate web deploys.
+    path("health/beat", beat_health_check, name="beat-health"),
     # path("tasks/<str:task_id>/status/", task_status, name="task_status"),
 ]
 

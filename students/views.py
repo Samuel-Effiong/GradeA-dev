@@ -59,6 +59,7 @@ from assignments.tasks import (
 )
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
+from AutoGrader.uploads import validate_upload_size
 from classrooms.permissions import IsStudent, IsTeacher, IsTeacherOrReadOnly
 from users.mixins import UserCacheMixin
 from users.models import CustomUser, UserTypes
@@ -415,6 +416,8 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 "Invalid file upload. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed."
             )
 
+        validate_upload_size(uploaded_file)
+
         prompt = """
         Analyze the image of an educational assignment and return a JSON
 
@@ -488,6 +491,8 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             raise ParseError(
                 "Invalid file upload. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed."
             )
+
+        validate_upload_size(uploaded_file)
 
         prompt = """
         Analyze the image of an educational assignment and return a JSON
@@ -1087,6 +1092,12 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         if not files:
             raise ParseError("No files uploaded. Please try again.")
+
+        # Validate every file up front, before the session/Celery tasks for
+        # any of them are created - one oversized file in a batch shouldn't
+        # leave a half-queued session behind.
+        for uploaded_file in files:
+            validate_upload_size(uploaded_file)
 
         session = BatchUploadSession.objects.create(
             teacher=request.user,

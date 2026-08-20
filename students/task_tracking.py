@@ -8,6 +8,10 @@ from django.db import transaction
 from django.utils import timezone
 
 from AutoGrader.celery import app as celery_app
+from AutoGrader.dispatch import (
+    BROKER_UNAVAILABLE_ERRORS,
+    ProcessingTemporarilyUnavailable,
+)
 from AutoGrader.error_messages import (
     DEFAULT_ERROR_MESSAGE,
     describe_background_task_error,
@@ -64,6 +68,12 @@ def launch_processing_task(task_callable, processing_task, *args, **kwargs):
     kwargs["processing_task_id"] = str(processing_task.id)
     try:
         async_result = task_callable.delay(*args, **kwargs)
+    except BROKER_UNAVAILABLE_ERRORS as exc:
+        # The broker (Redis) is unreachable. This is not the task failing -
+        # it never got dispatched - so the caller gets a clean, typed error
+        # instead of a raw connection traceback surfacing as a generic 500.
+        mark_processing_task_failure(processing_task.id, exc)
+        raise ProcessingTemporarilyUnavailable() from exc
     except Exception as exc:
         mark_processing_task_failure(processing_task.id, exc)
         raise

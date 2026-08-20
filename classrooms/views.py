@@ -56,6 +56,11 @@ from rest_framework.response import Response
 # from ai_processor.services import ai_processor
 from assignments.models import Assignment
 from assignments.serializers import TaskInfoSerializer
+from AutoGrader.dispatch import (
+    BROKER_UNAVAILABLE_ERRORS,
+    ProcessingTemporarilyUnavailable,
+    safe_delay,
+)
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.tasks import send_email_task
@@ -64,7 +69,7 @@ from classrooms.permissions import CanManageSession
 from students.models import StudentSubmission
 from students.serializers import StudentListSerializer
 from users.mixins import UserCacheMixin
-from users.models import CustomUser, UserTypes
+from users.models import ACTIVATION_TOKEN_VALIDITY, CustomUser, UserTypes
 from users.permissions import HasCreditBalance
 from users.serializers import CustomUserSerializer
 from users.services import otp_manager
@@ -1321,10 +1326,23 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         email = serializer.validated_data["email"]
 
         """Onboard students to a section."""
-        course = Course.objects.select_for_update().get(pk=self.kwargs["pk"])
+        # Scoped through get_queryset() (teacher=user for a teacher, .none()
+        # for anyone else) so a teacher can't enroll a student into another
+        # teacher's course by guessing/incrementing a course id - a bare
+        # Course.objects.get(pk=...) here would bypass that entirely, since
+        # this custom @action never calls self.get_object().
+        course = get_object_or_404(self.get_queryset(), pk=self.kwargs["pk"])
 
         try:
             with transaction.atomic():
+                # Re-fetch and lock now that ownership is already confirmed
+                # above. select_for_update() requires an open transaction -
+                # doing the initial lookup before entering this atomic()
+                # block (rather than locking the unscoped row up front) is
+                # what lets the ownership check's Http404 propagate as a
+                # clean 404 instead of being swallowed by the except Exception
+                # below.
+                course = Course.objects.select_for_update().get(pk=course.pk)
                 student = CustomUser.objects.filter(email=email).first()
 
                 if student:
@@ -1383,7 +1401,8 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                             "support_email": settings.SUPPORT_EMAIL,
                         }
 
-                        send_email_task.delay(
+                        safe_delay(
+                            send_email_task,
                             subject=f"You have been added to {course.name}",
                             message="",
                             from_email=settings.DEFAULT_FROM_EMAIL,
@@ -1425,7 +1444,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                         """
 
                         bottom_content = f"""
-                        This invitation link expires in 7 days.<br><br>
+                        This invitation link expires in 24 hours.<br><br>
 
                         If you were not expecting this invitation, you can ignore this email.<br><br>
                         Questions about this course? Contact {course.teacher.email}.<br><br>
@@ -1461,7 +1480,8 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                         #     html_message=html_content,
                         # )
 
-                        send_email_task.delay(
+                        safe_delay(
+                            send_email_task,
                             subject="Your course invitation is ready. Finish setup and join your class",
                             message="",
                             from_email=settings.DEFAULT_FROM_EMAIL,
@@ -1481,7 +1501,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                         is_active=False,
                         school=course.teacher.school,
                         activation_token=activation_token,
-                        activation_expires=timezone.now() + timezone.timedelta(days=7),
+                        activation_expires=timezone.now() + ACTIVATION_TOKEN_VALIDITY,
                     )
 
                     # Create pending enrollment
@@ -1512,7 +1532,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     """
 
                     bottom_content = f"""
-                    This invitation link expires in 7 days.<br><br>
+                    This invitation link expires in 24 hours.<br><br>
 
                     If you were not expecting this invitation, you can ignore this email.<br><br>
                     Questions about this course? Contact {course.teacher.email}.<br><br>
@@ -1540,7 +1560,8 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                         "support_email": settings.SUPPORT_EMAIL,
                     }
 
-                    send_email_task.delay(
+                    safe_delay(
+                        send_email_task,
                         subject="Your course invitation is ready. Finish setup and join your class",
                         message="",
                         from_email=settings.DEFAULT_FROM_EMAIL,
@@ -1753,7 +1774,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                                 school=course.teacher.school,
                                 activation_token=activation_token,
                                 activation_expires=timezone.now()
-                                + timezone.timedelta(days=7),
+                                + ACTIVATION_TOKEN_VALIDITY,
                             )
 
                         if StudentCourse.objects.filter(
@@ -1901,7 +1922,8 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 "current_year": timezone.now().year,
                 "support_email": settings.SUPPORT_EMAIL,
             }
-            send_email_task.delay(
+            safe_delay(
+                send_email_task,
                 subject=f"You have been added to {course.name}",
                 message="",
                 from_email=settings.DEFAULT_FROM_EMAIL,
@@ -1918,12 +1940,13 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 "title": f"Complete your registration for {course.name}",
                 "name": student.get_full_name(),
                 "top_content": f"{course.teacher.get_full_name()} has invited you to join {course.name}.",
-                "bottom_content": "This invitation link expires in 7 days.",
+                "bottom_content": "This invitation link expires in 24 hours.",
                 "activation_url": registration_link,
                 "current_year": timezone.now().year,
                 "support_email": settings.SUPPORT_EMAIL,
             }
-            send_email_task.delay(
+            safe_delay(
+                send_email_task,
                 subject="Complete Your Registration for the Course",
                 message="",
                 from_email=settings.DEFAULT_FROM_EMAIL,
@@ -2030,7 +2053,8 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     "support_email": settings.SUPPORT_EMAIL,
                 }
 
-                send_email_task.delay(
+                safe_delay(
+                    send_email_task,
                     subject="You are no longer enrolled in this course",
                     message="",
                     from_email=settings.DEFAULT_FROM_EMAIL,
@@ -2109,7 +2133,9 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
             registration_link = (
                 f"https://{settings.FRONTEND_DOMAIN}/register/student/{new_token}"
             )
-            expiry_date = timezone.now() + timezone.timedelta(days=7)
+            # Matches the real expiry renew_activation_token() just set on
+            # `user` above (see users.models.ACTIVATION_TOKEN_VALIDITY).
+            expiry_date = timezone.now() + ACTIVATION_TOKEN_VALIDITY
 
             student_context = {
                 "course": enrollment.course,
@@ -2122,7 +2148,8 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
 
             # Notify student
-            send_email_task.delay(
+            safe_delay(
+                send_email_task,
                 subject="Course Registration Link Renewed",
                 message="",
                 from_email=settings.DEFAULT_FROM_EMAIL,
@@ -2142,7 +2169,8 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
 
             # Notify teacher
-            send_email_task.delay(
+            safe_delay(
+                send_email_task,
                 subject=f"Registration Link Renewed - {user.email}",
                 message="",
                 from_email=settings.DEFAULT_FROM_EMAIL,
@@ -2152,7 +2180,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
             return Response(
                 {
-                    "detail": "A new activation link has been sent to the student's email. Expires in 7 days"
+                    "detail": "A new activation link has been sent to the student's email. Expires in 24 hours"
                 },
                 status=status.HTTP_200_OK,
             )
@@ -2310,9 +2338,12 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 status=status.HTTP_200_OK,
             )
 
-        task_id = student_summary_async.delay(
-            student_id, str(request.user.id), str(course.id)
-        )
+        try:
+            task_id = student_summary_async.delay(
+                student_id, str(request.user.id), str(course.id)
+            )
+        except BROKER_UNAVAILABLE_ERRORS as exc:
+            raise ProcessingTemporarilyUnavailable() from exc
 
         data = {
             "file_name": "Student summary generation started",

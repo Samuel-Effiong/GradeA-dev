@@ -69,8 +69,9 @@ def queue_new_assignment_posted_notification(instance, created):
 
     def enqueue_notification():
         from assignments.tasks import send_new_assignment_posted_notification
+        from AutoGrader.dispatch import safe_delay
 
-        send_new_assignment_posted_notification.delay(assignment_id)
+        safe_delay(send_new_assignment_posted_notification, assignment_id)
 
     transaction.on_commit(enqueue_notification)
 

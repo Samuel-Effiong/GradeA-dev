@@ -41,6 +41,7 @@ from django.core.cache import cache
 from django.db import transaction
 from django.utils import timezone
 
+from AutoGrader.dispatch import safe_delay
 from AutoGrader.error_messages import describe_stripe_error
 from classrooms.models import School
 from users.models import CustomUser
@@ -4135,7 +4136,7 @@ class StripeWebhookHandler:
             if deactivate:
                 from users.tasks import sync_user_to_mailerlite
 
-                sync_user_to_mailerlite.delay(str(user_sub.user_id))
+                safe_delay(sync_user_to_mailerlite, str(user_sub.user_id))
             return
 
         license_sub = (
@@ -4196,7 +4197,7 @@ class StripeWebhookHandler:
 
                     from users.tasks import sync_user_to_mailerlite
 
-                    sync_user_to_mailerlite.delay(str(user_sub.user_id))
+                    safe_delay(sync_user_to_mailerlite, str(user_sub.user_id))
                 else:
                     SubscriptionService.expire_trial(user_sub)
             else:
@@ -4208,7 +4209,7 @@ class StripeWebhookHandler:
 
                 from users.tasks import sync_user_to_mailerlite
 
-                sync_user_to_mailerlite.delay(str(user_sub.user_id))
+                safe_delay(sync_user_to_mailerlite, str(user_sub.user_id))
             return
 
         license_sub = (

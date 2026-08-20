@@ -78,9 +78,10 @@ def notify_admins_of_teacher_first_course(sender, instance, created, **kwargs):
     course_id = str(instance.id)
 
     def enqueue():
+        from AutoGrader.dispatch import safe_delay
         from dashboard.tasks import send_teacher_first_course_milestone_alert
 
-        send_teacher_first_course_milestone_alert.delay(course_id)
+        safe_delay(send_teacher_first_course_milestone_alert, course_id)
 
     transaction.on_commit(enqueue)
 

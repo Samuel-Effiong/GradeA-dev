@@ -2,6 +2,9 @@ import base64
 import json
 import logging
 import math
+import os
+import shutil
+import tempfile
 import uuid
 from io import BytesIO
 from typing import Any, Dict, Optional
@@ -17,7 +20,7 @@ from environ import Env
 from openai import OpenAI
 
 # from paddleocr import PaddleOCR
-from pdf2image import convert_from_bytes
+from pdf2image import convert_from_bytes, convert_from_path
 from PIL import Image
 
 # from ai_processor.models import ChatMessage, ChatSession
@@ -4150,6 +4153,17 @@ Turn this data into concise school-admin-facing narration.
 class PDFService:
     MAX_PAGE_COUNT = 1000
 
+    # How many pages are rasterized by a single pdftoppm invocation before
+    # their compressed bytes are kept and the raw page files are deleted.
+    # convert_from_path(..., paths_only=True) below already keeps Python's
+    # own memory at "one decoded page at a time" regardless of this value -
+    # it only bounds *disk* usage (each raw rasterized page is a few MB
+    # before compression). 50 pages is a few hundred MB of transient disk
+    # per chunk, which comfortably fits a worker's ephemeral storage even
+    # at MAX_PAGE_COUNT, while keeping the number of pdftoppm subprocess
+    # calls for a 1000-page upload at a reasonable 20 rather than 1000.
+    EXTRACT_CHUNK_SIZE = 50
+
     def __init__(self, uploaded_file: UploadedFile = None):
         # self.ocr_service = OCRService()
 
@@ -4165,7 +4179,27 @@ class PDFService:
         self.uploaded_file = uploaded_file
 
     def extract(self):
-        """Extract data from the uploaded pdf"""
+        """Extract data from the uploaded pdf.
+
+        Rasterizes and compresses one page at a time instead of decoding
+        the whole document into memory up front. The previous
+        implementation called convert_from_bytes(pdf_bytes) with no page
+        range, which decodes every page into an uncompressed in-memory
+        bitmap before a single one gets compressed - measured at ~33MB of
+        peak process memory per page. A legitimate upload anywhere near
+        MAX_PAGE_COUNT would exceed a worker's available memory long
+        before the per-image compression cap in ai_processor.tools
+        (IMAGE_COMPRESSION_HARD_CAP_BYTES) ever got a chance to help,
+        because that cap only bounds the OUTPUT of compression, not the
+        raw decode that happens before it runs.
+
+        Here, pdftoppm writes rasterized pages straight to a temp
+        directory (paths_only=True means pdf2image never loads them into
+        Python) in EXTRACT_CHUNK_SIZE-page batches; each page is opened,
+        compressed, and deleted from disk before the next one is touched.
+        Peak Python memory for image data is now one page, regardless of
+        how many pages the PDF has.
+        """
         self.clear_extracted_data()
 
         if self.uploaded_file.content_type != "application/pdf":
@@ -4175,20 +4209,57 @@ class PDFService:
 
         pdf_bytes = self.uploaded_file.read()
 
-        images = convert_from_bytes(pdf_bytes)
+        try:
+            with fitz.open(stream=pdf_bytes, filetype="pdf") as pdf:
+                page_count = pdf.page_count
+        except Exception as e:
+            raise ValueError(f"Could not read this PDF: {e}") from e
 
-        if len(images) > self.MAX_PAGE_COUNT:
+        if page_count == 0:
+            raise ValueError("This PDF has no pages.")
+
+        if page_count > self.MAX_PAGE_COUNT:
             raise ValueError(
-                f"PDF has {len(images)} pages, which exceeds the maximum "
+                f"PDF has {page_count} pages, which exceeds the maximum "
                 f"of {self.MAX_PAGE_COUNT} pages allowed per upload."
             )
 
         images_byte = []
+        tmp_dir = tempfile.mkdtemp(prefix="pdf_extract_")
+        try:
+            pdf_path = os.path.join(tmp_dir, "source.pdf")
+            with open(pdf_path, "wb") as f:
+                f.write(pdf_bytes)
 
-        for image in images:
-            image_byte = compress_image_for_upload(image)
-            encoded_image_byte = encode_image(image_byte=image_byte)
-            images_byte.append(encoded_image_byte)
+            rendered_dir = os.path.join(tmp_dir, "pages")
+            os.makedirs(rendered_dir, exist_ok=True)
+
+            for chunk_start in range(1, page_count + 1, self.EXTRACT_CHUNK_SIZE):
+                chunk_end = min(chunk_start + self.EXTRACT_CHUNK_SIZE - 1, page_count)
+                page_paths = convert_from_path(
+                    pdf_path,
+                    first_page=chunk_start,
+                    last_page=chunk_end,
+                    output_folder=rendered_dir,
+                    paths_only=True,
+                )
+                for page_path in page_paths:
+                    try:
+                        with Image.open(page_path) as page_image:
+                            page_image.load()
+                            image_byte = compress_image_for_upload(page_image)
+                    finally:
+                        # Freed immediately rather than left for the
+                        # tmp_dir cleanup below, so disk usage never
+                        # exceeds one chunk's worth even mid-chunk.
+                        try:
+                            os.remove(page_path)
+                        except OSError:
+                            pass
+                    encoded_image_byte = encode_image(image_byte=image_byte)
+                    images_byte.append(encoded_image_byte)
+        finally:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
 
         return images_byte
 

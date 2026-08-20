@@ -14,9 +14,6 @@ EXPOSE 8000
 ENV PYTHONUNBUFFERED=1 \
     PORT=8000 \
     HOME=/tmp \
-    PADDLE_HOME=/tmp/.paddle \
-    XDG_CACHE_HOME=/tmp/.cache \
-    PDX_CACHE_DIR=/tmp/.paddlex \
     TMPDIR=/tmp
 
 # Install system packages required by Wagtail and Django.
@@ -31,9 +28,6 @@ RUN apt-get update --yes --quiet && \
         libgl1 \
         libglib2.0-0 \
         poppler-utils \
-        tesseract-ocr \
-        libtesseract-dev \
-        libleptonica-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install the application server.
@@ -54,15 +48,8 @@ RUN chown wagtail:wagtail /app
 # Copy the source code of the project into the container.
 COPY --chown=wagtail:wagtail . .
 
-# Pre-create PaddleX/PaddleOCR cache directories and give user access
-RUN mkdir -p /tmp/.paddle /tmp/.cache && \
-    chown -R wagtail:wagtail /tmp/.paddle /tmp/.cache
-
 # Use user "wagtail" to run the build commands below and the server itself.
 USER wagtail
-
-# Run the PaddleOCR initialization and model download as the wagtail user
-# RUN python -c "from paddleocr import PaddleOCR; ocr = PaddleOCR(use_angle_cls=True); print('PaddleOCR successfully')"
 
 # Collect static files.
 

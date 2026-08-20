@@ -17,6 +17,7 @@ import logging
 import requests
 from django.conf import settings
 
+from AutoGrader.dispatch import safe_delay
 from users.models import UserTypes
 
 logger = logging.getLogger(__name__)
@@ -119,4 +120,4 @@ def queue_sync(user):
 
     from users.tasks import sync_user_to_mailerlite
 
-    sync_user_to_mailerlite.delay(str(user.id))
+    safe_delay(sync_user_to_mailerlite, str(user.id))

@@ -177,6 +177,15 @@ class Assignment(models.Model):
             )
         ]
 
+        indexes = [
+            # Backs course__teacher=user (assignments/views.py) sorted by
+            # the default ordering above - Meta.ordering alone doesn't
+            # create a DB index.
+            models.Index(
+                fields=["course", "title"], name="assignment_course_title_idx"
+            ),
+        ]
+
 
 class AssignmentGenerationHistory(models.Model):
     """

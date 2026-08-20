@@ -19,6 +19,20 @@ class LoginThrottle(AnonRateThrottle):
     scope = "login"
 
 
+class VerifyEmailThrottle(AnonRateThrottle):
+    """
+    Guards the account-activation verify endpoint (AuthViewSet.verify).
+
+    The token it checks is intentionally a 6-digit numeric code (see
+    users.models.ACTIVATION_TOKEN_VALIDITY for why), which is a small
+    enough keyspace to brute-force for a known email address if this
+    endpoint is left unthrottled - it previously fell back to the generic
+    60/min AnonRateThrottle, which does essentially nothing to stop that.
+    """
+
+    scope = "verify_email"
+
+
 class OTPRequestThrottle(AnonRateThrottle):
     """
     Guards the OTP *issuing* endpoint.

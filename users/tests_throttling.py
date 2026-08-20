@@ -73,6 +73,25 @@ class AuthThrottlingTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
 
+    def test_verify_is_throttled(self):
+        # Regression guard for the account-takeover path: verify checks a
+        # 6-digit numeric activation_token against a known email with no
+        # password step, so it must never fall back to the generic anon
+        # rate the way it did before VerifyEmailThrottle was added.
+        url = reverse("auth-verify")
+        payload = {"email": self.user.email, "token": "000000"}
+
+        with tightened_rate("verify_email", "3/hour"):
+            for _ in range(3):
+                response = self.client.post(url, payload)
+                self.assertNotEqual(
+                    response.status_code, status.HTTP_429_TOO_MANY_REQUESTS
+                )
+
+            response = self.client.post(url, payload)
+
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
     def test_login_is_throttled(self):
         url = reverse("login")
         payload = {

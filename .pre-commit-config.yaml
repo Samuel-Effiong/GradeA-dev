@@ -86,3 +86,16 @@ repos:
       - id: detect-secrets
         args: ['--baseline', '.secrets.baseline']
         exclude: 'tests/|examples/|docs/'
+
+  # gunicorn's --timeout and billing/webhooks.py's
+  # WEBHOOK_REQUEST_HARD_TIMEOUT_SECONDS are the same load-bearing value in
+  # two files - see the comments at both sites. This catches one being
+  # changed without the other.
+-   repo: local
+    hooks:
+      - id: check-gunicorn-timeout-sync
+        name: Check gunicorn timeout stays in sync with Stripe webhook claim window
+        entry: python scripts/check_gunicorn_timeout_sync.py
+        language: system
+        files: ^(Dockerfile|billing/webhooks\.py)$
+        pass_filenames: false
