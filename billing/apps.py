@@ -6,4 +6,5 @@ class BillingConfig(AppConfig):
     name = "billing"
 
     def ready(self):
+        import billing.checks  # noqa
         import billing.signals  # noqa

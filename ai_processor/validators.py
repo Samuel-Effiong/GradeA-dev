@@ -5,7 +5,13 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field, validator
 
-logging.basicConfig(level=logging.INFO)
+# NOTE: no logging.basicConfig() here. This module used to call it at
+# import time, which installed a root handler for the whole process as a
+# side effect of importing a validators module — that was the only reason
+# grading logs appeared at all, and it meant every grading module logged
+# under the name "ai_processor.validators". Handler/formatter configuration
+# belongs to LOGGING in AutoGrader/settings.py, which now configures the
+# "ai_processor" logger explicitly.
 logger = logging.getLogger(__name__)
 
 
@@ -47,8 +53,13 @@ class Question(BaseModel):
     )
 
     @validator("options")
-    def validate_options(cls, v, values):
-        """Ensure options are provided only for objective questions"""
+    def validate_options(cls, v, values):  # noqa: B902
+        """Ensure options are provided only for objective questions.
+
+        cls is the correct first argument here, not self — pydantic v1's
+        @validator implicitly treats the method as a classmethod, and
+        flake8-bugbear's B902 doesn't recognize that decorator pattern.
+        """
         if values.get("queston_type") == QuestionType.OBJECTIVE:
             if not v or len(v) < 2:
                 logger.warning("Objective questions must have at multiple options")
@@ -57,7 +68,7 @@ class Question(BaseModel):
             QuestionType.SHORT_ANSWER,
         ]:
             if v is not None:
-                logger.warning(f"Non-objective questions should not have options")
+                logger.warning("Non-objective questions should not have options")
 
         return v
 

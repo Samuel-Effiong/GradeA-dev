@@ -45,6 +45,8 @@ from drf_spectacular.utils import (
 )
 from rest_framework import serializers
 
+from billing.serializers import LicenseSubscriptionSerializer
+
 # ===========================================================================
 # SubscriptionManagementViewSet — Stripe actions
 # ===========================================================================
@@ -162,232 +164,7 @@ webhook — not when this endpoint is called.
 
 
 # ---------------------------------------------------------------------------
-# 2. start_trial
-# POST /api/v1/subscription/start-trial
-# ---------------------------------------------------------------------------
-START_TRIAL_SCHEMA = extend_schema(
-    tags=["Subscription — Stripe"],
-    summary="Start a 14-day free trial (card required upfront)",
-    description="""
-Creates a Stripe Checkout Session for a **14-day free trial**. A valid card
-is collected upfront (`payment_method_collection=always`) but is **not
-charged** until the trial ends. If the card is declined at trial end, the
-trial expires automatically and no subscription is created.
-
-**What happens during the trial**
-- Stripe creates a subscription in `trialing` status.
-- On `checkout.session.completed`, the webhook activates the local
-  `UserSubscription(is_trial=True)` and grants **5,000 trial credits**
-  valid for 14 days.
-- At day 14, Stripe attempts the first real charge:
-  - **Card succeeds** → `invoice.payment_succeeded` fires → trial credits
-    expire, first monthly credit bucket is granted, `is_trial` flips to
-    `False`.
-  - **Card fails** → `invoice.payment_failed` fires → trial expires,
-    no subscription created (same as natural trial expiry).
-
-**Rules**
-- One trial per user account, ever. Returns `409` if already used.
-- Only `INDIVIDUAL` category plans are eligible.
-- User must not already have an active subscription.
-- Plan must have `stripe_price_id` configured.
-
-**⚠️ Breaking change from pre-Stripe behaviour**
-Previously this endpoint returned a `FreeTrialStatusSerializer` payload and
-activated the trial synchronously. It now returns a `checkout_url` — the
-trial is not active until the user completes Stripe Checkout and the webhook
-fires. Poll `GET /subscription/me` after redirect to confirm activation.
-""",
-    request=inline_serializer(
-        name="StartTrialRequest",
-        fields={
-            "plan": serializers.UUIDField(
-                help_text="UUID of the INDIVIDUAL plan to trial."
-            ),
-            "success_url": serializers.URLField(
-                required=False,
-                help_text=(
-                    "Redirect URL after card is saved. Defaults to "
-                    "FRONTEND_DOMAIN/billing/trial-success."
-                ),
-            ),
-            "cancel_url": serializers.URLField(
-                required=False,
-                help_text=(
-                    "Redirect URL if user abandons checkout. Defaults to "
-                    "FRONTEND_DOMAIN/billing/trial-cancelled."
-                ),
-            ),
-        },
-    ),
-    responses={
-        201: OpenApiResponse(
-            description=(
-                "Checkout Session created. Redirect the user to `checkout_url` "
-                "to collect their card. The trial is not active yet — it starts "
-                "after `checkout.session.completed` fires."
-            ),
-            response=inline_serializer(
-                name="StartTrialResponse",
-                fields={
-                    "checkout_url": serializers.URLField(
-                        help_text=(
-                            "Stripe Checkout URL. Redirect the user here to "
-                            "enter their card details."
-                        )
-                    )
-                },
-            ),
-            examples=[
-                OpenApiExample(
-                    "Trial checkout session created",
-                    value={
-                        "checkout_url": (
-                            "https://checkout.stripe.com/pay/cs_test_trial_x9y8z7..."
-                        )
-                    },
-                    response_only=True,
-                )
-            ],
-        ),
-        400: OpenApiResponse(
-            description=(
-                "Validation error. Possible reasons:\n"
-                "- `plan` field missing\n"
-                "- Plan is not `INDIVIDUAL` category\n"
-                "- User already has an active subscription\n"
-                "- Plan has no `stripe_price_id` configured"
-            ),
-        ),
-        404: OpenApiResponse(description="Plan not found or is not active."),
-        409: OpenApiResponse(
-            description="This account has already used its free trial.",
-            examples=[
-                OpenApiExample(
-                    "Trial already used",
-                    value={
-                        "detail": (
-                            "This account has already used its free trial. "
-                            "Please subscribe to a paid plan."
-                        )
-                    },
-                    response_only=True,
-                )
-            ],
-        ),
-    },
-)
-
-
-# ---------------------------------------------------------------------------
-# 3. convert_trial
-# POST /api/v1/subscription/convert-trial
-# ---------------------------------------------------------------------------
-CONVERT_TRIAL_SCHEMA = extend_schema(
-    tags=["Subscription — Stripe"],
-    summary="Convert an active free trial to a paid subscription mid-trial",
-    description="""
-Upgrades an **active free trial** to a full paid subscription before the
-14-day trial ends. Use this when the user decides to pay early rather than
-waiting for the trial to auto-convert at day 14.
-
-**What happens**
-- Remaining trial credits are immediately forfeited (trial is a bounded
-  experience — no carry-over to the paid plan).
-- The trial `UserSubscription` is deactivated.
-- `SubscriptionService.activate_subscription()` creates a new paid
-  `UserSubscription` and grants the first monthly credit bucket.
-- The Stripe subscription transitions from `trialing` to `active`
-  immediately (charge happens now, not at day 14).
-- The new billing cycle starts from the moment of conversion.
-
-**Difference from natural trial end**
-Natural trial end (day 14) is handled automatically by the
-`invoice.payment_succeeded` webhook — you do **not** call this endpoint for
-that. This endpoint is only for the user-initiated "pay now" action.
-
-**Plan flexibility**
-The `plan` in the request can differ from the plan the trial was on.
-For example: trialled Standard Grader, now upgrading directly to Pro Grader.
-""",
-    request=inline_serializer(
-        name="ConvertTrialRequest",
-        fields={
-            "plan": serializers.UUIDField(
-                help_text=(
-                    "UUID of the INDIVIDUAL plan to activate. Can be the same "
-                    "plan the trial is on, or a different INDIVIDUAL plan."
-                )
-            )
-        },
-    ),
-    responses={
-        200: OpenApiResponse(
-            response=inline_serializer(
-                name="ConvertTrialResponse",
-                fields={
-                    "id": serializers.UUIDField(),
-                    "user": serializers.UUIDField(),
-                    "plan": serializers.UUIDField(),
-                    "is_active": serializers.BooleanField(),
-                    "is_trial": serializers.BooleanField(
-                        help_text="Always False after conversion."
-                    ),
-                    "billing_cycle_start": serializers.DateTimeField(),
-                    "billing_cycle_end": serializers.DateTimeField(),
-                    "stripe_subscription_id": serializers.CharField(),
-                    "stripe_status": serializers.CharField(),
-                },
-            ),
-            description=(
-                "Conversion successful. Returns the new paid subscription. "
-                "`is_trial` will be `false`; `stripe_status` will be `active`."
-            ),
-            examples=[
-                OpenApiExample(
-                    "Successful trial conversion",
-                    value={
-                        "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-                        "user": "7cb85f64-1234-4562-b3fc-2c963f66afa6",
-                        "plan": "9ab85f64-9999-4562-b3fc-2c963f66afa6",
-                        "is_active": True,
-                        "is_trial": False,
-                        "billing_cycle_start": "2025-06-01T00:00:00Z",
-                        "billing_cycle_end": "2025-07-01T00:00:00Z",
-                        "stripe_subscription_id": "sub_1OzXXX",
-                        "stripe_status": "active",
-                    },
-                    response_only=True,
-                )
-            ],
-        ),
-        400: OpenApiResponse(
-            description=(
-                "Validation error. Possible reasons:\n"
-                "- User has no active trial to convert\n"
-                "- `plan` is not `INDIVIDUAL` category\n"
-                "- `plan` field missing"
-            ),
-            examples=[
-                OpenApiExample(
-                    "No active trial",
-                    value={
-                        "detail": (
-                            "User teacher@school.com does not have an active "
-                            "free trial to convert."
-                        )
-                    },
-                    response_only=True,
-                )
-            ],
-        ),
-        404: OpenApiResponse(description="Plan not found or is not active."),
-    },
-)
-
-
-# ---------------------------------------------------------------------------
-# 4. upgrade
+# 2. upgrade
 # POST /api/v1/subscription/upgrade
 # ---------------------------------------------------------------------------
 UPGRADE_SCHEMA = extend_schema(
@@ -524,7 +301,7 @@ is actually cheaper (use downgrade) → subscription has no
 
 
 # ---------------------------------------------------------------------------
-# 5. downgrade
+# 3. downgrade
 # POST /api/v1/subscription/downgrade
 # ---------------------------------------------------------------------------
 DOWNGRADE_SCHEMA = extend_schema(
@@ -536,17 +313,26 @@ current billing cycle. The user keeps their current plan and credits until
 then.
 
 **What happens**
-- `auto_renew` is set to `False` and `pending_plan` is set to the new plan
-  on the local `UserSubscription`.
+- `pending_plan`, `pending_change_type` and `pending_change_note` are set
+  on the local `UserSubscription`, and a Stripe `SubscriptionSchedule` is
+  created so Stripe itself switches price at the cycle boundary.
+- `auto_renew` is deliberately left `True`. A downgrade still renews — it
+  just renews onto a different plan. Only `cancel` sets `auto_renew` to
+  `False`.
 - At the next `invoice.payment_succeeded` webhook (end of cycle), the
-  renewal logic resolves `pending_plan`, applies rollover, grants credits
-  for the new plan, and calls `Stripe.Subscription.modify()` to update the
-  Stripe price — so Stripe starts billing the lower price from the next
-  cycle.
+  renewal logic resolves `pending_plan`, applies rollover, and grants
+  credits for the new plan.
 
 **No immediate charge or credit change.** The user is not charged or
 refunded anything immediately. The effective change date is the next
 `billing_cycle_end`.
+
+**Frontend note.** Read `has_pending_change` (with `pending_plan`,
+`pending_plan_effective_date` and `pending_change_message`) to show a
+scheduled-change banner. Do NOT infer a scheduled change — or a
+cancellation — from `auto_renew`: it is `False` for every free trial as
+well. `cancellation.has_pending_cancellation` is the flag for "show the
+Resume button".
 """,
     request=inline_serializer(
         name="DowngradeRequest",
@@ -587,7 +373,7 @@ refunded anything immediately. The effective change date is the next
 
 
 # ---------------------------------------------------------------------------
-# 6. cancel
+# 4. cancel
 # POST /api/v1/subscription/cancel
 # ---------------------------------------------------------------------------
 CANCEL_SCHEMA = extend_schema(
@@ -598,17 +384,20 @@ Cancels the authenticated user's subscription at the **end of the current
 billing cycle** (not immediately). The user retains access and credits until
 `billing_cycle_end`.
 
-**What happens**
-- `auto_renew` is set to `False` locally.
-- `Stripe.Subscription.modify(cancel_at_period_end=True)` is called so
-  Stripe stops attempting renewal at cycle end.
-- No credits are revoked now — `cleanup_expired_credit_buckets` handles
-  expiry at `billing_cycle_end`.
-- The `customer.subscription.deleted` webhook fires when the period ends,
-  which sets `is_active=False` on the local row.
+Sets `auto_renew=False` and stamps `cancelled_at` on the local
+`UserSubscription`, and sets `cancel_at_period_end=True` on Stripe. Any
+previously scheduled plan change is discarded (its Stripe
+`SubscriptionSchedule` is released) — the message says so when that happened.
 
-**To immediately cancel** (rare — e.g. fraud), a superadmin should cancel
-the Stripe subscription directly in the Stripe Dashboard.
+**Frontend note.** After this call the subscription serializer's nested
+`cancellation` object reports `has_pending_cancellation: true`, along with
+`cancellation_effective_date` (when access ends) and `cancellation_message`
+(ready to display, and includes the `cancelled_at` date when known). Gate
+the **Resume** button on `cancellation.has_pending_cancellation` — it is
+true only while `POST /subscription/resume` would actually succeed.
+
+Do NOT gate it on `auto_renew`: that flag is `False` for every free trial
+too, so trial users would be shown a bogus "cancelled" state.
 """,
     request=None,
     responses={
@@ -656,140 +445,9 @@ the Stripe subscription directly in the Stripe Dashboard.
 
 
 # ---------------------------------------------------------------------------
-# 7. purchase_overage
+# 5. purchase_overage
 # POST /api/v1/subscription/credits/overage/purchase
 # ---------------------------------------------------------------------------
-PURCHASE_OVERAGE_SCHEMA = extend_schema(
-    tags=["Subscription — Stripe"],
-    summary="Purchase an overage credit block (explicit confirmation)",
-    description="""
-Charges the user's **saved card** for one overage block immediately via a
-Stripe PaymentIntent. The user must confirm this purchase explicitly — there
-is no automatic top-up.
-
-**Overage block size and price** are defined on the user's active
-`SubscriptionPlan` (`overage_block_size`, `overage_block_price`).
-
-**Prerequisites**
-- User must have an active paid subscription.
-- User must have a saved default payment method (automatically saved when
-  subscribing or starting a trial via Stripe Checkout).
-- `overage_blocks_used < plan.max_overage_blocks`.
-
-**Possible response shapes**
-
-| `status` | Meaning | What to do |
-|---|---|---|
-| `succeeded` | Charge confirmed, bucket granted immediately | Show updated balance |
-| `requires_action` | 3DS / bank authentication needed | Redirect user to Stripe's auth
-    URL using the returned `client_secret` via Stripe.js |
-
-**After `requires_action`**
-Use the `client_secret` with `stripe.confirmPaymentIntent()` (Stripe.js).
-Once authentication completes, the `payment_intent.succeeded` webhook fires
-and grants the bucket server-side — no second API call needed.
-""",
-    request=None,
-    responses={
-        201: OpenApiResponse(
-            response=inline_serializer(
-                name="OveragePurchaseSucceededResponse",
-                fields={
-                    "id": serializers.UUIDField(help_text="New CreditBucket UUID."),
-                    "bucket_type": serializers.CharField(help_text="Always 'OVERAGE'."),
-                    "total_credits": serializers.IntegerField(
-                        help_text="Raw credits added (display value × 1000)."
-                    ),
-                    "used_credits": serializers.IntegerField(),
-                    "remaining_credits": serializers.IntegerField(),
-                    "expires_at": serializers.DateTimeField(
-                        help_text="Expires at current billing_cycle_end."
-                    ),
-                },
-            ),
-            description=(
-                "Payment succeeded. Returns the new OVERAGE CreditBucket. "
-                "Only returned when `status=succeeded`."
-            ),
-            examples=[
-                OpenApiExample(
-                    "Purchase succeeded",
-                    value={
-                        "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-                        "bucket_type": "OVERAGE",
-                        "total_credits": 5000000,
-                        "used_credits": 0,
-                        "remaining_credits": 5000000,
-                        "expires_at": "2025-07-01T00:00:00Z",
-                    },
-                    response_only=True,
-                )
-            ],
-        ),
-        200: OpenApiResponse(
-            response=inline_serializer(
-                name="OveragePurchaseRequiresActionResponse",
-                fields={
-                    "status": serializers.CharField(
-                        help_text="Always 'requires_action' in this shape."
-                    ),
-                    "client_secret": serializers.CharField(
-                        help_text=(
-                            "Stripe PaymentIntent client secret. Pass to "
-                            "stripe.confirmPaymentIntent() in your frontend "
-                            "to complete 3DS authentication."
-                        )
-                    ),
-                },
-            ),
-            description=(
-                "3DS / bank authentication required. Use `client_secret` with "
-                "Stripe.js. The overage bucket is granted by the "
-                "`payment_intent.succeeded` webhook once authentication completes."
-            ),
-            examples=[
-                OpenApiExample(
-                    "3DS required",
-                    value={
-                        "status": "requires_action",
-                        "client_secret": "pi_3OzXXX_secret_YYY",  # pragma: allowlist secret
-                    },
-                    response_only=True,
-                )
-            ],
-        ),
-        400: OpenApiResponse(
-            description=(
-                "Purchase could not be initiated. Possible reasons:\n"
-                "- No active subscription\n"
-                "- No default payment method saved (user must go through Checkout)\n"
-                "- `overage_blocks_used >= plan.max_overage_blocks`\n"
-                "- Stripe payment declined (`status` will describe the failure)"
-            ),
-            examples=[
-                OpenApiExample(
-                    "No payment method",
-                    value={
-                        "detail": (
-                            "No default payment method on file. Add a card "
-                            "before purchasing overage credits."
-                        )
-                    },
-                    response_only=True,
-                ),
-                OpenApiExample(
-                    "Block limit reached",
-                    value={
-                        "detail": (
-                            "Maximum overage blocks reached for this billing cycle."
-                        )
-                    },
-                    response_only=True,
-                ),
-            ],
-        ),
-    },
-)
 
 
 # ===========================================================================
@@ -797,7 +455,7 @@ and grants the bucket server-side — no second API call needed.
 # ===========================================================================
 
 # ---------------------------------------------------------------------------
-# 8. create (license)
+# 6. create (license)
 # POST /api/v1/license-subscriptions
 # ---------------------------------------------------------------------------
 LICENSE_CREATE_SCHEMA = extend_schema(
@@ -834,13 +492,20 @@ until that subscription is cancelled.
         fields={
             "school": serializers.UUIDField(help_text="UUID of the School."),
             "admin_user": serializers.UUIDField(
-                help_text="UUID of the school admin managing this license."
+                required=False,
+                help_text=(
+                    "UUID of the school admin managing this license. "
+                    "OPTIONAL - omit it and the school's own admin is used, "
+                    "which is correct in every ordinary case. Pass it only to "
+                    "designate a specific admin when the school has several. "
+                    "Must be a SCHOOL_ADMIN/teacher belonging to that school: "
+                    "a super admin or a member of another school is rejected."
+                ),
             ),
             "plan": serializers.UUIDField(
                 help_text="UUID of a LICENSE-category plan. Must not be contact-sales."
             ),
-            "contract_months": serializers.ChoiceField(
-                choices=[1, 9, 10, 12],
+            "contract_months": serializers.IntegerField(
                 default=12,
                 help_text="Contract duration. Determines how far ahead billing_cycle_end is set.",
             ),
@@ -881,12 +546,21 @@ until that subscription is cancelled.
                     "Defaults to FRONTEND_DOMAIN/billing/license-cancelled."
                 ),
             ),
+            "billing_method": serializers.ChoiceField(
+                choices=["STRIPE", "OFFLINE"],
+                required=False,
+                help_text="The billing method for this license. Defaults to STRIPE.",
+            ),
         },
     ),
     responses={
+        201: OpenApiResponse(
+            description=("License created immediately (OFFLINE billing method)."),
+            response=LicenseSubscriptionSerializer,
+        ),
         200: OpenApiResponse(
             description=(
-                "Checkout Session created. Redirect the school admin to "
+                "Checkout Session created (STRIPE billing method). Redirect the school admin to "
                 "`checkout_url`. The license does not exist yet — it is "
                 "created by the webhook after payment."
             ),
@@ -915,7 +589,7 @@ until that subscription is cancelled.
                 "Validation error. Possible reasons:\n"
                 "- Plan is `is_contact_sales=true` (manual setup required)\n"
                 "- Plan is not `LICENSE` category\n"
-                "- `contract_months` not in (1, 9, 10, 12)\n"
+                "- `contract_months` < 1\n"
                 "- `teacher_emails` exceeds `max_seats`\n"
                 "- Admin user not authorized for this school"
             ),
@@ -950,7 +624,7 @@ until that subscription is cancelled.
 
 
 # ---------------------------------------------------------------------------
-# 9. add_teachers (unchanged logic, schema added for completeness)
+# 7. add_teachers (unchanged logic, schema added for completeness)
 # POST /api/v1/license-subscriptions/{id}/add-teachers
 # ---------------------------------------------------------------------------
 ADD_TEACHERS_SCHEMA = extend_schema(

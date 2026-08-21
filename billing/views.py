@@ -2,7 +2,9 @@ import logging
 import time
 from datetime import timedelta
 
-from django.conf import settings
+from django.core.cache import cache
+
+# from django.conf import settings
 from django.db import transaction
 from django.db.models import Case, F, Q, Sum, Value, When
 from django.db.models.aggregates import Avg, Count
@@ -27,6 +29,7 @@ from drf_spectacular.utils import (  # inline_serializer,
 )
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 
 # from rest_framework.exceptions import ParseError
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -35,12 +38,14 @@ from rest_framework.response import Response
 
 from ai_processor.models import AssistantType, ChatMessage, ChatSession, RoleType
 from ai_processor.services import ai_processor
+from AutoGrader.error_messages import describe_stripe_error, describe_user_error
 from classrooms.permissions import IsNotStudent, IsSuperAdmin, IsTeacher
 from dashboard.serializers import (
     CustomAIPrompt,
     CustomAIReply,
     DashboardChatSessionSerializer,
 )
+from dashboard.throttling import CustomAIPromptThrottle
 from users.models import UserTypes
 
 from .imports import stripe
@@ -57,7 +62,7 @@ from .models import (
     SubscriptionPlan,
     UserSubscription,
 )
-from .serializers import (  # SubscriptionSerializer,; BetaUsageTrendSerializer,; FreeTrialStatusSerializer,
+from .serializers import (
     BetaCohortStatsSerializer,
     BetaFeatureMixSerializer,
     BetaProfileSerializer,
@@ -70,32 +75,38 @@ from .serializers import (  # SubscriptionSerializer,; BetaUsageTrendSerializer,
     CreditUsageDistributionResponseSerializer,
     CreditUsageLogSerializer,
     CreditWalletSerializer,
-    CreditWalletSummarySerializer,
     DailyTimeSeriesSerializer,
     FeatureConsumptionTimeSeriesSerializer,
     IntentSignalResponseSerializer,
+    MyLicenseAdminSubscriptionSerializer,
+    MyLicenseTeacherSubscriptionSerializer,
+    MySubscriptionSerializer,
+    OverageCheckoutRequestSerializer,
+    OverageCheckoutSessionSerializer,
     OverageStatusSerializer,
     PeakUsageHourSerializer,
+    PlanChangeResultSerializer,
+    SelectIndividualPlanSerializer,
     SubscriptionPlanSerializer,
     UsageQuintileResponseSerializer,
     UsageSummarySerializer,
     UserSubscriptionSerializer,
     WeeklyGrowthSerializer,
 )
-from .services import AnalyticsService, SubscriptionService
-from .stripe_service import (  # StripeSubscriptionMutationService,
-    StripeCheckoutService,
+from .services import AnalyticsService
+from .stripe_service import (  # StripeSubscriptionMutationService,; StripeCheckoutService,
+    IndividualPlanChangeService,
     StripeOverageService,
-    StripeSubscriptionMutationService,
+    StripeSubscriptionScheduleService,
+    SubscriptionExpiredDuringRequest,
+    SubscriptionReactivationService,
 )
-from .stripe_view_schemas import (
-    CANCEL_SCHEMA,
-    CHECKOUT_SCHEMA,
-    CONVERT_TRIAL_SCHEMA,
-    DOWNGRADE_SCHEMA,
-    PURCHASE_OVERAGE_SCHEMA,
-    START_TRIAL_SCHEMA,
-    UPGRADE_SCHEMA,
+from .stripe_view_schemas import CANCEL_SCHEMA
+from .subscription_resolver import (
+    SOURCE_INDIVIDUAL,
+    SOURCE_LICENSE_ADMIN,
+    SOURCE_LICENSE_TEACHER,
+    resolve_user_billing_context,
 )
 
 logger = logging.getLogger(__name__)
@@ -182,7 +193,7 @@ class SubscriptionPlanViewSet(viewsets.ModelViewSet):
         if self.action in ["list", "retrieve"]:
             permission_classes = [IsAuthenticated]
         else:
-            permission_classes = [IsAuthenticated, IsNotStudent]
+            permission_classes = [IsAuthenticated, IsSuperAdmin]
         return [permission() for permission in permission_classes]
 
     def get_queryset(self):
@@ -359,6 +370,19 @@ class CreditWalletViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     ordering_fields = ["created_at", "updated_at"]
 
+    def get_permissions(self):
+        """
+        Reads: any authenticated non-student (scoped to their own wallet by
+        get_queryset). Writes: superadmin only - wallets are system-managed,
+        and a writable wallet endpoint would let a user reset their own
+        overage_blocks_used counter or delete billing state.
+        """
+        if self.action in ["list", "retrieve"]:
+            permission_classes = [IsAuthenticated, IsNotStudent]
+        else:
+            permission_classes = [IsAuthenticated, IsSuperAdmin]
+        return [permission() for permission in permission_classes]
+
     def get_queryset(self):
         queryset = super().get_queryset()
         if not (
@@ -415,6 +439,21 @@ class CreditBucketViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = ["bucket_type", "wallet"]
     ordering_fields = ["expires_at", "created_at"]
+
+    def get_permissions(self):
+        """
+        Reads: any authenticated non-student (scoped to their own buckets by
+        get_queryset). Writes: superadmin only - bucket rows ARE the credit
+        balance, so a writable endpoint here is equivalent to letting any
+        user mint unlimited credits into any wallet (the serializer's
+        `wallet` field is a plain PK field, and create() is not scoped by
+        get_queryset). The sanctioned grant path is ManualCreditService.
+        """
+        if self.action in ["list", "retrieve"]:
+            permission_classes = [IsAuthenticated, IsNotStudent]
+        else:
+            permission_classes = [IsAuthenticated, IsSuperAdmin]
+        return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -478,6 +517,19 @@ class CreditLedgerViewSet(viewsets.ModelViewSet):
     search_fields = ["reference"]
     ordering_fields = ["created_at"]
 
+    def get_permissions(self):
+        """
+        Reads: any authenticated non-student (scoped to their own entries by
+        get_queryset). Writes: superadmin only - the ledger is the immutable
+        audit trail of every grant/consumption/refund; letting users create
+        or delete rows makes billing history forgeable.
+        """
+        if self.action in ["list", "retrieve"]:
+            permission_classes = [IsAuthenticated, IsNotStudent]
+        else:
+            permission_classes = [IsAuthenticated, IsSuperAdmin]
+        return [permission() for permission in permission_classes]
+
     def get_queryset(self):
         queryset = super().get_queryset()
         if not (
@@ -509,7 +561,7 @@ class CreditUsageLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = CreditUsageLog.objects.all()
     serializer_class = CreditUsageLogSerializer
     permission_classes = [IsAuthenticated, IsNotStudent]
-    http_method_names = ["get", "head", "post", "patch", "delete", "options"]
+    http_method_names = ["get", "head", "options"]
 
     filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
     filterset_fields = ["wallet", "bucket", "feature", "task_type"]
@@ -536,15 +588,35 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
     permission_classes = [IsAuthenticated, IsNotStudent]
     http_method_names = ["get", "head", "post", "patch", "delete", "options"]
 
+    # Shared TTL with IndividualPlanChangeService._LOCK_TIMEOUT_SECONDS since
+    # both lock the same key (billing:planchange:{user_id}).
+    _BILLING_MUTATION_LOCK_TIMEOUT_SECONDS = 30
+
     def get_queryset(self):
         return UserSubscription.objects.filter(user=self.request.user, is_active=True)
 
     @extend_schema(
         tags=["Subscription"],
         summary="Get my subscription",
-        description="Get my subscription.",
+        description=(
+            "Resolves the caller's current billing context regardless of "
+            "track. An INDIVIDUAL subscriber gets the existing "
+            "UserSubscription-shaped payload (unchanged). A teacher "
+            "actively enrolled under a school LICENSE gets a "
+            "LICENSE_TEACHER-shaped payload. A school admin managing an "
+            "active LICENSE gets a LICENSE_ADMIN-shaped payload. Check "
+            "`subscription_source` in the response to know which shape "
+            "was returned."
+        ),
         responses={
-            200: OpenApiResponse(response=UserSubscriptionSerializer),
+            200: OpenApiResponse(
+                description=(
+                    "One of MySubscriptionSerializer, "
+                    "MyLicenseTeacherSubscriptionSerializer, or "
+                    "MyLicenseAdminSubscriptionSerializer — discriminated "
+                    "by `subscription_source`."
+                )
+            ),
             404: OpenApiResponse(
                 description="No active subscription found",
                 examples=[
@@ -561,15 +633,32 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
     )
     @action(detail=False, methods=["get"], url_path="me")
     def get_my_subscription(self, request, *args, **kwargs):
-        subscription = self.get_queryset().first()
-        if not subscription:
+        context = resolve_user_billing_context(request.user)
 
-            return Response(
-                {"detail": "No active subscription found"},
-                status=status.HTTP_404_NOT_FOUND,
+        if context.source == SOURCE_INDIVIDUAL:
+            serializer = MySubscriptionSerializer(
+                context.user_subscription, context={"request": request}
             )
-        serializer = self.get_serializer(subscription)
-        return Response(serializer.data)
+            return Response(serializer.data)
+
+        if context.source == SOURCE_LICENSE_TEACHER:
+            serializer = MyLicenseTeacherSubscriptionSerializer(context.allocation)
+            return Response(serializer.data)
+
+        if context.source == SOURCE_LICENSE_ADMIN:
+            serializer = MyLicenseAdminSubscriptionSerializer(
+                context.license_subscription,
+                context={
+                    "admin_user": request.user,
+                    "managed_license_count": context.managed_license_count,
+                },
+            )
+            return Response(serializer.data)
+
+        return Response(
+            {"detail": "No active subscription found"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
 
     @extend_schema(
         tags=["Subscription"],
@@ -639,310 +728,425 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
         serializer = self.get_serializer(user_subscription)
         return Response(serializer.data)
 
+    @staticmethod
+    def _billing_mutation_lock_key(user_id) -> str:
+        """
+        Shared with IndividualPlanChangeService.select_plan's lock key
+        (billing:planchange:{user_id}) — deliberately the SAME key, not a
+        separate one, so a plan change, a cancellation, and a resume can
+        never run concurrently for the same user. All three are
+        billing-mutating decisions about the same UserSubscription row.
+        """
+        return f"billing:planchange:{user_id}"
+
     @CANCEL_SCHEMA
     @action(detail=False, methods=["POST"])
     def cancel(self, request, *args, **kwargs):
-        user_subscription = self.get_queryset().first()
-        if not user_subscription:
+        lock_key = self._billing_mutation_lock_key(request.user.id)
+        if not cache.add(
+            lock_key, "1", timeout=self._BILLING_MUTATION_LOCK_TIMEOUT_SECONDS
+        ):
             return Response(
                 {
-                    "status": "inactive",
-                    "message": "No active subscription found to cancel",
+                    "detail": "A billing change is already being processed for "
+                    "your account. Please wait a moment and try again."
                 },
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        user_subscription.auto_renew = False
-        user_subscription.save(update_fields=["auto_renew", "updated_at"])
-
-        if user_subscription.stripe_subscription_id:
-            stripe.Subscription.modify(
-                user_subscription.stripe_subscription_id, cancel_at_period_end=True
-            )
-
-        return Response(
-            {
-                "status": "cancelled",
-                "message": "Subscription will not renew at the end of the current billing cycle",
-            },
-            status=status.HTTP_200_OK,
-        )
-
-    @UPGRADE_SCHEMA
-    @action(detail=False, methods=["POST"])
-    def upgrade(self, request, *args, **kwargs):
-        """
-        Upgrade the user's active individual subscription to a new plan immediately.
-        The user must have an active subscription and a valid Stripe subscription ID.
-        """
-        plan_id = request.data.get("plan")
-
-        if not plan_id:
-            return Response(
-                {"detail": "The 'plan' field is required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         try:
-            new_plan = SubscriptionPlan.objects.get(id=plan_id)
-        except SubscriptionPlan.DoesNotExist:
-            return Response(
-                {"detail": "Plan not found or is not active."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            with transaction.atomic():
 
-        # Only individual plans can be upgradd via this endpoint
-        if new_plan.category != PlanCategory.INDIVIDUAL:
+                user_subscription = (
+                    UserSubscription.objects.select_for_update()
+                    .filter(user=request.user, is_active=True)
+                    .first()
+                )
+                if not user_subscription:
+                    return Response(
+                        {
+                            "status": "inactive",
+                            "message": "No active subscription found to cancel",
+                        },
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
+
+                had_pending_change = bool(user_subscription.pending_plan_id)
+                had_stripe_schedule = bool(user_subscription.stripe_schedule_id)
+                was_already_not_renewing = (
+                    not user_subscription.auto_renew
+                    and not had_pending_change
+                    and not user_subscription.stripe_schedule_id
+                )
+
+                schedule_released = False
+
+                if user_subscription.stripe_schedule_id:
+                    try:
+                        StripeSubscriptionScheduleService.release_schedule(
+                            user_subscription
+                        )
+                        schedule_released = True
+                    except ValueError as exc:
+                        return Response(
+                            {"detail": str(exc)},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+
+                if user_subscription.stripe_subscription_id:
+                    try:
+                        stripe.Subscription.modify(
+                            user_subscription.stripe_subscription_id,
+                            cancel_at_period_end=True,
+                        )
+                    except stripe.error.StripeError as exc:
+                        if schedule_released:
+                            user_subscription.pending_plan = None
+                            user_subscription.pending_change_type = None
+                            user_subscription.pending_change_note = None
+                            user_subscription.stripe_schedule_id = None
+                            user_subscription.save(
+                                update_fields=[
+                                    "pending_plan",
+                                    "pending_change_type",
+                                    "pending_change_note",
+                                    "stripe_schedule_id",
+                                    "updated_at",
+                                ]
+                            )
+                        return Response(
+                            {
+                                "detail": (
+                                    "Could not cancel your subscription with "
+                                    "our payment provider: "
+                                    + describe_stripe_error(
+                                        exc,
+                                        fallback_message="Please try again.",
+                                    )
+                                )
+                            },
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+
+                update_fields = []
+
+                if user_subscription.auto_renew:
+                    user_subscription.auto_renew = False
+                    # Stamped ONLY on the True -> False transition, so a
+                    # repeat cancel keeps the original date rather than
+                    # sliding it forward, and a trial (whose auto_renew is
+                    # False from birth without any cancellation having
+                    # happened) never gets a fabricated one.
+                    user_subscription.cancelled_at = timezone.now()
+                    update_fields += ["auto_renew", "cancelled_at"]
+
+                if had_pending_change:
+                    user_subscription.pending_plan = None
+                    user_subscription.pending_change_type = None
+                    user_subscription.pending_change_note = None
+                    user_subscription.stripe_schedule_id = None
+                    update_fields += [
+                        "pending_plan",
+                        "pending_change_type",
+                        "pending_change_note",
+                        "stripe_schedule_id",
+                    ]
+
+                if had_stripe_schedule and schedule_released:
+                    user_subscription.stripe_schedule_id = None
+                    update_fields.append("stripe_schedule_id")
+
+                if update_fields:
+                    update_fields.append("updated_at")
+                    user_subscription.save(update_fields=update_fields)
+
+            if was_already_not_renewing:
+                message = (
+                    "Subscription is already set to not renew at the end of "
+                    "the current billing cycle"
+                )
+            else:
+                message = (
+                    "Subscription will not renew at the end of the current "
+                    "billing cycle"
+                )
+                if had_pending_change:
+                    message += (
+                        ". Your previously scheduled plan change has also "
+                        "been cancelled"
+                    )
+
             return Response(
-                {"detail": f"Plan {new_plan.name} is not an INDIVIDUAL plan."},
+                {"status": "cancelled", "message": message},
+                status=status.HTTP_200_OK,
+            )
+        finally:
+            cache.delete(lock_key)
+
+    @extend_schema(
+        tags=["Subscription"],
+        summary="Resume a cancelled subscription",
+        description=(
+            "Reverses a previous cancel() call — as long as the current "
+            "billing period has not yet ended (billing_cycle_end is still "
+            "in the future)."
+        ),
+        responses={
+            200: OpenApiResponse(
+                description="Resumed, already active, or renewed during the request."
+            ),
+            400: OpenApiResponse(
+                description="Nothing to resume, period already ended, or a Stripe error."
+            ),
+            404: OpenApiResponse(description="No active subscription found."),
+        },
+    )
+    @action(detail=False, methods=["POST"])
+    def resume(self, request, *args, **kwargs):
+        lock_key = self._billing_mutation_lock_key(request.user.id)
+        if not cache.add(
+            lock_key, "1", timeout=self._BILLING_MUTATION_LOCK_TIMEOUT_SECONDS
+        ):
+            return Response(
+                {
+                    "detail": "A billing change is already being processed for "
+                    "your account. Please wait a moment and try again."
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        user_sub = self.get_queryset().filter(user=request.user, is_active=True).first()
-        if not user_sub:
-            return Response(
-                {"status": "error", "message": "No active subscription found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        # select_for_update() is held for the duration of the Stripe call below
-        # (deliberate, not an oversight) — low-frequency, single-user action,
-        # and holding the lock across the network round-trip is what stops two
-        # rapid double-clicks from both passing validation and both hitting Stripe.
-
-        with transaction.atomic():
-            current_sub = (
-                UserSubscription.objects.select_for_update()
-                .filter(user=request.user, is_active=True)
+        try:
+            # --- Unlocked read: cheap validation before any Stripe call ---
+            sub = (
+                UserSubscription.objects.filter(user=request.user, is_active=True)
+                .select_related("plan")
                 .first()
             )
-
-            if not current_sub:
+            if not sub:
                 return Response(
-                    {"detail": "No active subscription found"},
+                    {
+                        "status": "inactive",
+                        "message": "No active subscription found to resume",
+                    },
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            now = timezone.now()
+            if now >= sub.billing_cycle_end:
+                return Response(
+                    {
+                        "detail": (
+                            "This subscription's current billing period has "
+                            "already ended. Please subscribe again via "
+                            "select-plan."
+                        )
+                    },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            if current_sub.is_trial:
+            # --- Reactivation core (Stripe reconciliation + locked local
+            # write + compensating rollback) is shared with
+            # IndividualPlanChangeService.select_plan's auto-resume path —
+            # see SubscriptionReactivationService for the full behavior. ---
+            try:
+                result = SubscriptionReactivationService.reactivate_if_cancelling(
+                    sub, now=now
+                )
+            except SubscriptionExpiredDuringRequest:
+                # Superseded by a genuine renewal or expiry that completed
+                # during the Stripe round trip above. Not an error — report
+                # whatever the user's CURRENT state is.
+                current_active = (
+                    UserSubscription.objects.filter(user=request.user, is_active=True)
+                    .select_related("plan")
+                    .first()
+                )
+                if current_active:
+                    return Response(
+                        {
+                            "status": "already_renewed",
+                            "message": (
+                                "Your subscription already renewed during "
+                                "this request — no action was needed."
+                            ),
+                            "subscription": UserSubscriptionSerializer(
+                                current_active
+                            ).data,
+                        },
+                        status=status.HTTP_200_OK,
+                    )
                 return Response(
-                    {"detail": "You're on a free trial."},
+                    {
+                        "detail": (
+                            "Your subscription ended during this request. "
+                            "Please subscribe again via select-plan."
+                        )
+                    },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-
-            if current_sub.plan_id == new_plan.id:
+            except ValueError as exc:
                 return Response(
-                    {"detail": "You are already on this plan."},
-                    status=status.HTTP_400_BAD_REQUEST,
+                    {"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST
                 )
 
-            if new_plan.price_cents < current_sub.plan.price_cents:
-                return Response(
-                    {"detail": "That plan is cheaper than your current plan."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+            stripe_changed = result.stripe_changed
+            local_changed = result.local_changed
+            warnings = result.warnings
 
-        # Ensure the subscription has a Stripe reference
-        if not user_sub.stripe_subscription_id:
+            logger.info(
+                "Subscription %s resumed for user %s. stripe_changed=%s "
+                "local_changed=%s is_trial=%s.",
+                sub.id,
+                request.user.email,
+                stripe_changed,
+                local_changed,
+                sub.is_trial,
+            )
+
+            # --- Build response message ---
+            sub.refresh_from_db()
+            locked_sub = sub
+
+            if sub.is_trial:
+                if stripe_changed:
+                    message = (
+                        "Your trial will continue as normal and convert to "
+                        "a paid subscription when it ends, unless you "
+                        "cancel again before then."
+                    )
+                else:
+                    message = (
+                        "Free trials don't require resuming — yours will "
+                        "simply run its course and end automatically at "
+                        "its scheduled end date unless you subscribe to a "
+                        "paid plan before then."
+                    )
+            elif not stripe_changed and not local_changed:
+                message = "Your subscription is already active and set to renew — nothing to resume."
+            else:
+                message = "Your subscription has been resumed and will renew normally."
+
             return Response(
                 {
-                    "detail": "This subscription is not linked to Stripe; cannot upgrade."
+                    "status": (
+                        "resumed"
+                        if (stripe_changed or local_changed)
+                        else "already_active"
+                    ),
+                    "message": message,
+                    "warnings": warnings,
+                    "subscription": UserSubscriptionSerializer(locked_sub).data,
                 },
-                status=status.HTTP_400_BAD_REQUEST,
+                status=status.HTTP_200_OK,
             )
+        finally:
+            cache.delete(lock_key)
+
+    @extend_schema(
+        tags=["Subscription — Stripe"],
+        summary="Select an individual subscription plan",
+        description=(
+            "Single endpoint for moving from the free trial to a paid plan, "
+            "or for upgrading/downgrading an existing paid plan."
+        ),
+        request=SelectIndividualPlanSerializer,
+        responses={
+            200: OpenApiResponse(
+                response=PlanChangeResultSerializer,
+                description="Plan change resolved — see `action` for which outcome occurred.",
+            ),
+            400: OpenApiResponse(
+                description=(
+                    "Invalid plan selection, or a business-rule rejection "
+                    "(e.g. already on this plan, payment issue needs "
+                    "resolving first, a plan change is already in progress)."
+                )
+            ),
+        },
+    )
+    @action(detail=False, methods=["POST"], url_path="select-plan")
+    def select_plan(self, request, *args, **kwargs):
+        serializer = SelectIndividualPlanSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        target_plan = serializer.validated_data["plan_id"]  # resolved instance
+        success_url = serializer.validated_data["success_url"]
+        cancel_url = serializer.validated_data["cancel_url"]
 
         try:
-            # Perform the upgrade via Stripe and local service layer
-            updated_sub = StripeSubscriptionMutationService.change_plan(
-                user_sub, new_plan, proration_behavior="always_invoice"
+            result = IndividualPlanChangeService.select_plan(
+                user=request.user,
+                target_plan=target_plan,
+                success_url=success_url,
+                cancel_url=cancel_url,
             )
         except ValueError as exc:
-            # Catch specific errors from the service (e.g., payment failed, invalid plan)
-            return Response(
-                {"detail": str(exc)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        except Exception:
-            # Catch any unexpected errors (e.g., Stripe API errors)
-            logger.exception(
-                "Unexpected error during upgrade for user %s", request.user.email
-            )
+            raise ValidationError({"detail": str(exc)}) from exc
 
+        response_serializer = PlanChangeResultSerializer(result)
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        tags=["Subscription — Stripe"],
+        operation_id="purchaseOverageCredits",
+        summary="Purchase overage credit blocks",
+        description=(
+            "Creates a Stripe Checkout Session for purchasing one or more "
+            "overage credit blocks. The authenticated user's active "
+            "subscription determines the price per block and the maximum "
+            "number of blocks that may be purchased during the current "
+            "billing cycle.\n\n"
+            "This endpoint **does not grant credits immediately**. Instead, "
+            "it returns a Checkout URL that the frontend should redirect the "
+            "customer to. Credits are granted only after Stripe confirms a "
+            "successful payment via the `checkout.session.completed` webhook."
+        ),
+        request=OverageCheckoutRequestSerializer,
+        responses={
+            200: OpenApiResponse(
+                response=OverageCheckoutSessionSerializer,
+                description=(
+                    "Checkout Session created successfully. Redirect the user "
+                    "to `checkout_url` to complete payment."
+                ),
+            ),
+        },
+    )
+    @action(detail=False, methods=["POST"], url_path="credits/overage/purchase")
+    def purchase_overage(self, request, *args, **kwargs):
+        serializer = OverageCheckoutRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        success_url = serializer.validated_data["success_url"]
+        cancel_url = serializer.validated_data["cancel_url"]
+        quantity = serializer.validated_data["quantity"]
+
+        try:
+
+            result = StripeOverageService.create_overage_checkout_session(
+                request.user, success_url, cancel_url, quantity
+            )
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception:
+            logger.exception(
+                "Unexpected error during overage purchase for user %s",
+                request.user.email,
+            )
             return Response(
                 {"detail": "An unexpected error occurred. Please try again later."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        serializer = self.get_serializer(updated_sub)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    @DOWNGRADE_SCHEMA
-    @action(detail=False, methods=["POST"])
-    def downgrade(self, request, *args, **kwargs):
-        plan_id = request.data.get("plan_id")
-
-        try:
-            new_plan = SubscriptionPlan.objects.get(id=plan_id)
-        except SubscriptionPlan.DoesNotExist:
-            return Response(
-                {"status": "error", "message": "Plan not found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        # Downgrade is scheduled for the end of the cycle
-        SubscriptionService.schedule_downgrade(request.user, new_plan)
-
+        response_data = {
+            "checkout_url": result.url,
+            "checkout_session_id": result.id,
+            "message": "Redirecting to secure checkout to complete your overage purchase.",
+        }
         return Response(
-            {
-                "status": "scheduled",
-                "message": "Downgrade scheduled for the end of the current billing cycle",
-            },
+            OverageCheckoutSessionSerializer(response_data).data,
             status=status.HTTP_200_OK,
         )
-
-    @START_TRIAL_SCHEMA
-    @action(
-        detail=False, methods=["POST"], url_path="start-trial", url_name="start-trial"
-    )
-    def start_trial(self, request, *args, **kwargs):
-        plan_id = request.data.get("plan")
-
-        if not plan_id:
-            return Response(
-                {"detail": "The 'plan' field is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        try:
-            plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
-        except SubscriptionPlan.DoesNotExist:
-            return Response(
-                {"detail": "Plan not found or is not active"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        success_url = (
-            request.data.get("success_url")
-            or f"https://{settings.FRONTEND_DOMAIN}/billing/trial-success"
-        )
-        cancel_url = (
-            request.data.get("cancel_url")
-            or f"https://{settings.FRONTEND_DOMAIN}/billing/trial-cancelled"
-        )
-
-        try:
-            session = StripeCheckoutService.create_individual_trial_session(
-                user=request.user,
-                plan=plan,
-                success_url=success_url,
-                cancel_url=cancel_url,
-            )
-        except ValueError as exc:
-            error_msg = str(exc)
-
-            status_code = (
-                status.HTTP_409_CONFLICT
-                if "already used it's free trial" in error_msg
-                else status.HTTP_400_BAD_REQUEST
-            )
-            return Response(
-                {"detail": error_msg},
-                status=status_code,
-            )
-
-        return Response({"checkout_url", session.url}, status=status.HTTP_201_CREATED)
-
-    @CHECKOUT_SCHEMA
-    @action(detail=False, methods=["POST"], url_path="checkout")
-    def checkout(self, request, *args, **kwargs):
-        plan_id = request.data.get("plan")
-        if not plan_id:
-            return Response(
-                {"detail": "The 'plan' field is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        try:
-            plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
-        except SubscriptionPlan.DoesNotExist:
-            return Response(
-                {"detail": "Plan not found or is not active."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        success_url = (
-            request.data.get("success_url")
-            or f"https://{settings.FRONTEND_DOMAIN}/billing/success"
-        )
-        cancel_url = (
-            request.data.get("cancel_url")
-            or f"https://{settings.FRONTEND_DOMAIN}/billing/cancelled"
-        )
-
-        try:
-            session = StripeCheckoutService.create_individual_subscribe_session(
-                user=request.user,
-                plan=plan,
-                success_url=success_url,
-                cancel_url=cancel_url,
-            )
-        except ValueError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-
-        return Response({"checkout_url": session.url}, status=status.HTTP_200_OK)
-
-    @PURCHASE_OVERAGE_SCHEMA
-    @action(detail=False, methods=["POST"], url_path="credits/overage/purchase")
-    def purchase_overage(self, request, *args, **kwargs):
-        try:
-            result = StripeOverageService.purchase_overage_block(request.user)
-        except ValueError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-
-        if result["status"] == "requires_action":
-            return Response(result, status=status.HTTP_200_OK)
-        return Response(
-            CreditBucketSerializer(result["bucket"]).data,
-            status=status.HTTP_201_CREATED,
-        )
-
-    @CONVERT_TRIAL_SCHEMA
-    @action(
-        detail=False,
-        methods=["POST"],
-        url_path="convert-trial",
-        url_name="convert-trial",
-    )
-    def convert_trial(self, request, *args, **kwargs):
-        """
-        POST /api/billing/subscriptions/convert-trial/
-        Body: { "plan": "<uuid>" }
-        """
-        plan_id = request.data.get("plan")
-        if not plan_id:
-            return Response(
-                {"detail": "The 'plan' field is required."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        try:
-            plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
-        except SubscriptionPlan.DoesNotExist:
-            return Response(
-                {"detail": "Plan not found or is not active."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        try:
-            new_sub = SubscriptionService.convert_trial_to_paid(
-                user=request.user, plan=plan
-            )
-        except ValueError as exc:
-            return Response(
-                {"detail": str(exc)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        serializer = self.get_serializer(new_sub)
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(
         tags=["Subscription"],
@@ -999,7 +1203,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
         summary="Get credit wallet summary",
         description="Get credit wallet summary for the user.",
         responses={
-            200: OpenApiResponse(response=CreditWalletSummarySerializer),
+            200: OpenApiResponse(response=CreditWalletSerializer),
             404: OpenApiResponse(
                 description="No wallet found",
                 examples=[
@@ -1025,7 +1229,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
             expires_at__gt=timezone.now()
         ).count()
 
-        serializer = CreditWalletSummarySerializer(wallet)
+        serializer = CreditWalletSerializer(wallet)
         return Response(serializer.data)
 
     @extend_schema(
@@ -1056,31 +1260,60 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
     )
     def summary(self, request, *args, **kwargs):
         user = request.user
-        wallet = user.credit_wallet
+        try:
+            wallet = user.credit_wallet
+        except CreditWallet.DoesNotExist:
+            return Response(
+                {"status": "inactive", "message": "No credit wallet found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
-        # 1. Identify the current billing window
-        subscription = self.get_queryset().first()
-        if not subscription:
+        context = resolve_user_billing_context(user)
+
+        if context.source == SOURCE_INDIVIDUAL:
+            if context.user_subscription is None:
+                raise ValueError(
+                    "UserBillingContext with source=SOURCE_INDIVIDUAL must "
+                    "have user_subscription set."
+                )
+            start = context.user_subscription.billing_cycle_start
+            end = context.user_subscription.billing_cycle_end
+        elif context.source == SOURCE_LICENSE_TEACHER:
+            if context.allocation is None or context.license_subscription is None:
+                raise ValueError(
+                    "UserBillingContext with source=SOURCE_LICENSE_TEACHER "
+                    "must have allocation and license_subscription set."
+                )
+            # A teacher's OWN credit-refresh cycle governs when THEIR
+            # usage window resets — not the license's multi-month/year
+            # contract window. Falls back to the license's billing_cycle_
+            # end defensively if next_credit_grant_at is somehow unset.
+            license_sub = context.license_subscription
+            start = license_sub.billing_cycle_start
+            end = (
+                context.allocation.next_credit_grant_at or license_sub.billing_cycle_end
+            )
+        elif context.source == SOURCE_LICENSE_ADMIN:
+            if context.license_subscription is None:
+                raise ValueError(
+                    "UserBillingContext with source=SOURCE_LICENSE_ADMIN "
+                    "must have license_subscription set."
+                )
+            start = context.license_subscription.billing_cycle_start
+            end = context.license_subscription.billing_cycle_end
+        else:
             return Response(
                 {"status": "inactive", "message": "No subscription found"},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        start = subscription.billing_cycle_start
-        end = subscription.billing_cycle_end
-
-        # 2 Aggregate logs within this window
         logs = CreditUsageLog.objects.filter(
             wallet=wallet, created_at__range=[start, end]
         )
-
         total_consumed = logs.aggregate(total=Sum("amount"))["total"] or 0
 
-        # 3 Break down by feature (e.g.)
         by_feature = logs.values("feature").annotate(total=Sum("amount"))
         feature_map = {item["feature"]: item["total"] for item in by_feature}
-
-        # 4 Break down by bucket type (.e.g., "MONTHLY", "CARRY_OVER", "OVERAGE")
 
         by_bucket_type = logs.values("bucket__bucket_type").annotate(
             total=Sum("amount")
@@ -1862,6 +2095,18 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                 required=False,
                 description="Search by user's first name, last name, middle name, or email",
             ),
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page (max 100)",
+            ),
         ],
         responses={
             200: OpenApiResponse(
@@ -1959,6 +2204,9 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             )
         )
 
+        page = self.paginate_queryset(leads)
+        leads = page if page is not None else leads
+
         # 3. Structure the response for the Sales Team
         data = []
         for p in leads:
@@ -1999,6 +2247,8 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             )
 
         serializer = ConversionLeadSerializer(data, many=True)
+        if page is not None:
+            return self.get_paginated_response(serializer.data)
         return Response(serializer.data)
 
     @extend_schema(
@@ -2112,7 +2362,12 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         request=CustomAIPrompt,
         responses={200: CustomAIReply},
     )
-    @action(detail=False, methods=["POST"], url_path="beta/custom-ai-prompt")
+    @action(
+        detail=False,
+        methods=["POST"],
+        url_path="beta/custom-ai-prompt",
+        throttle_classes=[CustomAIPromptThrottle],
+    )
     def custom_ai_prompt(self, request, *args, **kwargs):
         serializer = CustomAIPrompt(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -2238,25 +2493,14 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
 
         """
 
-        user_prompt = f"""
-        #### CONTEXT DATA
-        {context_template}
-
-        #### END OF CONTEXT DATA
-
-
-        #### USER QUERY
-        {prompt}
-
-        """
-
         try:
             with transaction.atomic():
 
                 append_dashboard_chat_message(chat_session, RoleType.USER, prompt)
                 ai_feedback = ai_processor.custom_ai_prompt_retry(
                     request.user,
-                    user_prompt,
+                    context_template,
+                    prompt,
                     UserTypes.SUPER_ADMIN,
                     feature="Superadmin Custom AI Prompt",
                     task_type="custom_ai_prompt:superadmin",
@@ -2276,8 +2520,17 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                 return Response(serializer.data)
 
         except Exception as e:
+            logger.error("Custom AI prompt failed", exc_info=e)
             return Response(
-                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {
+                    "error": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "The AI couldn't process your request. Please " "try again."
+                        ),
+                    )
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     @extend_schema(

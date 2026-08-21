@@ -17,6 +17,22 @@ from users.services import OTPManager
 
 otp_manager = OTPManager()
 
+# How long an invite/renewal activation_token (a 6-digit code, by design -
+# short enough for a teacher or school admin to read out or a student to
+# retype from memory) stays valid. Previously 7 days with no throttle on
+# the verify endpoint, which made the 1,000,000-value code space brute-
+# forceable well within its lifetime for a known email. The verify endpoint
+# is now throttled (see users.throttling.VerifyEmailThrottle) - this cuts
+# the attack window on top of that, while staying long enough that a
+# legitimate invite sitting unread for most of a day still works. A user
+# who misses the window can always request a fresh code via the existing
+# renew-token flow.
+#
+# NOTE: the "expires in 7 days"/"24 hours" wording in the invite email
+# templates (classrooms/views.py, billing/license_service.py) is a literal
+# string, not derived from this constant - update both together.
+ACTIVATION_TOKEN_VALIDITY = timezone.timedelta(hours=24)
+
 
 # Create your models here.
 class CustomUserManager(BaseUserManager):
@@ -248,7 +264,7 @@ class CustomUser(AbstractUser):
         self.activation_token = otp_manager.generate_otp()
 
         if self.user_type == UserTypes.STUDENT:
-            self.activation_expires = timezone.now() + timezone.timedelta(days=7)
+            self.activation_expires = timezone.now() + ACTIVATION_TOKEN_VALIDITY
         else:
             raise ValueError(
                 "Activation token renewal is only for students. Use OTP (VERIFY_EMAIL) endpoint for teachers."
@@ -295,6 +311,12 @@ class Settings(models.Model):
     notify_new_assignment_posted = models.BooleanField(
         default=False, null=True, blank=True
     )
+    notify_teacher_activity_alerts = models.BooleanField(
+        default=False, null=True, blank=True
+    )
+    notify_at_risk_student_alerts = models.BooleanField(
+        default=False, null=True, blank=True
+    )
 
 
 class UserActivity(models.Model):
@@ -312,11 +334,20 @@ class UserActivity(models.Model):
 
 
 class PasswordResetOTP(models.Model):
+    # How many wrong codes may be submitted before this OTP stops being
+    # usable at all, and how long that freeze lasts. Without these, the
+    # 15-minute validity window is a brute-force budget: a short numeric
+    # code plus unlimited attempts is an account-takeover path.
+    MAX_ATTEMPTS = 5
+    LOCKOUT_DURATION = timezone.timedelta(minutes=30)
+
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     code = models.CharField(
         max_length=100, unique=True, null=True, blank=True, db_index=True
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    locked_until = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         constraints = [
@@ -328,8 +359,25 @@ class PasswordResetOTP(models.Model):
     def is_valid(self):
         return (timezone.now() - self.created_at) < timezone.timedelta(minutes=15)
 
+    def is_locked(self):
+        return bool(self.locked_until and timezone.now() < self.locked_until)
+
+    def register_failure(self):
+        """Record a wrong-code guess, freezing the OTP once the budget runs out."""
+        self.attempts += 1
+        if self.attempts >= self.MAX_ATTEMPTS:
+            self.locked_until = timezone.now() + self.LOCKOUT_DURATION
+        self.save(update_fields=["attempts", "locked_until"])
+
     def generate_code(self):
+        # Issuing a fresh code clears the lockout, so this is the intended
+        # recovery route for a legitimate user who mistyped too often. It
+        # is also why users.throttling.OTPRequestThrottle has to stay on
+        # the endpoint that calls this - otherwise an attacker just
+        # re-requests a code to wipe the counter and keeps guessing.
         self.code = otp_manager.generate_otp()
+        self.attempts = 0
+        self.locked_until = None
         self.save()
 
         return self.code

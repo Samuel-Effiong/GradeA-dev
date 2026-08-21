@@ -11,11 +11,20 @@ from ai_processor.services import ai_processor
 # from celery.exceptions import Ignore
 from AutoGrader.tasks import send_email_task
 from classrooms.models import Course, EnrollmentStatusType, Topic
-from students.exceptions import CannotAssociateStudentError, TaskCancelledError
+from students.exceptions import (
+    CannotAssociateStudentError,
+    SubmissionGradingInProgressError,
+    TaskCancelledError,
+)
 from students.models import BatchUploadSession, BatchUploadType, StudentSubmission
 from students.serializers import StudentSubmissionSerializer
-from students.services import grade_engine, upload_answers_engine
+from students.services import (
+    GRADING_TASK_TIME_LIMIT_SECONDS,
+    grade_engine,
+    upload_answers_engine,
+)
 from students.task_tracking import (
+    cancellable_final_save,
     cleanup_cancelled_task_artifacts,
     ensure_task_not_cancelled,
     get_processing_task_by_id,
@@ -41,8 +50,19 @@ logger = logging.getLogger(__name__)
 
 @shared_task(bind=True)
 def grade_all_submissions(self, user_id, assignment_id, processing_task_id=None):
-    """love God"""
-    submissions = StudentSubmission.objects.filter(assignment_id=assignment_id)
+    """
+    Legacy bulk-grading task. No code dispatches this anymore (the
+    grade-all view fans out per-submission grade_engine_async tasks, and
+    scheduled batches use grade_batch_async) — kept only because a
+    celery-beat PeriodicTask row could still reference it by dotted path.
+
+    Scoped to UNGRADED submissions, matching every live bulk path: the old
+    unfiltered query re-ran the full billed AI pipeline over already-graded
+    submissions on every invocation.
+    """
+    submissions = StudentSubmission.objects.filter(
+        assignment_id=assignment_id, graded_at__isnull=True
+    )
     submissions_count = submissions.count()
 
     user = CustomUser.objects.get(id=user_id)
@@ -130,6 +150,10 @@ def grade_all_submissions(self, user_id, assignment_id, processing_task_id=None)
                     "assignment_id": assignment_id,
                     "current_submission_id": str(submission.id),
                 },
+                fallback_message=(
+                    "We couldn't finish grading all submissions. Please try "
+                    "again, or contact support if this continues."
+                ),
             )
             raise
 
@@ -233,14 +257,19 @@ def extract_assignment_background_task(
         processing_task = get_processing_task_by_id(processing_task_id)
         cleanup_cancelled_task_artifacts(processing_task)
         raise
-    except Exception:
+    except Exception as exc:
         mark_processing_task_failure(
             processing_task_id,
-            "Assignment extraction failed",
+            exc,
             meta={
                 "step": "Assignment extraction failed",
                 "assignment_id": assignment_id,
             },
+            fallback_message=(
+                "We couldn't extract the assignment content from your file. "
+                "Please check the file and try again, or contact support if "
+                "this continues."
+            ),
         )
         raise
 
@@ -307,14 +336,18 @@ def update_assignment_background_task(
         processing_task = get_processing_task_by_id(processing_task_id)
         cleanup_cancelled_task_artifacts(processing_task)
         raise
-    except Exception:
+    except Exception as exc:
         mark_processing_task_failure(
             processing_task_id,
-            "Assignment re-extraction failed",
+            exc,
             meta={
                 "step": "Assignment re-extraction failed",
                 "assignment_id": assignment_id,
             },
+            fallback_message=(
+                "We couldn't re-extract the updated assignment content. "
+                "Please try again, or contact support if this continues."
+            ),
         )
         raise
 
@@ -355,12 +388,12 @@ def extract_answer_background_task(
         submission.extraction_started_at = extraction_started_at
         submission.extraction_completed_at = extraction_completed_at
 
-        ensure_task_not_cancelled(processing_task_id)
         serializer = StudentSubmissionSerializer(
             submission, data=answer_json, partial=True
         )
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        with cancellable_final_save(processing_task_id):
+            serializer.save()
 
         print("Answer saved successfully")
         mark_processing_task_success(
@@ -381,16 +414,32 @@ def extract_answer_background_task(
             processing_task_id, meta={"step": "Answer extraction cancelled"}
         )
         raise
-    except Exception:
+    except Exception as exc:
         mark_processing_task_failure(
             processing_task_id,
-            "Answer extraction failed",
+            exc,
             meta={"step": "Answer extraction failed", "submission_id": submission_id},
+            fallback_message=(
+                "We couldn't extract the answers from this submission. The "
+                "file may be corrupted or in an unsupported format — please "
+                "try re-uploading, or contact support if this continues."
+            ),
         )
         raise
 
 
-@shared_task(bind=True)
+@shared_task(
+    bind=True,
+    # Hard kill point for a hung grading run. The grading claim's staleness
+    # window (students.services.GRADING_CLAIM_STALE_AFTER) is derived from
+    # this, so a RUNNING claim older than that window is guaranteed
+    # abandoned - the worker holding it has been killed - and reclaiming it
+    # can never double-bill a still-live run. soft_time_limit fires 60s
+    # earlier so the normal failure path (mark task failed, release the
+    # claim, refund in-flight charges) gets a chance to run before SIGKILL.
+    soft_time_limit=GRADING_TASK_TIME_LIMIT_SECONDS - 60,
+    time_limit=GRADING_TASK_TIME_LIMIT_SECONDS,
+)
 def grade_engine_async(
     self, user_id, submission_id, batch_id=None, processing_task_id=None
 ):
@@ -415,14 +464,12 @@ def grade_engine_async(
         self.update_state(state="PROGRESS", meta={"step": "Grading"})
         update_processing_task(processing_task_id, meta={"step": "Grading"})
         ensure_task_not_cancelled(processing_task_id)
+        # grade_engine performs the final (cancellation-guarded) save
+        # itself; a second full save here would race formatted_grade_async's
+        # write to the same row and clobber formatted_grade (H4).
         submission = grade_engine(
             user, submission, processing_task_id=processing_task_id
         )
-
-        self.update_state(state="PROGRESS", meta={"step": "Saving"})
-        update_processing_task(processing_task_id, meta={"step": "Saving"})
-        ensure_task_not_cancelled(processing_task_id)
-        submission.save()
 
         self.update_state(state="PROGRESS", meta={"step": "Completed"})
         mark_processing_task_success(
@@ -453,13 +500,108 @@ def grade_engine_async(
             meta={"step": "Grading cancelled", "submission_id": submission_id},
         )
         raise
-    except Exception:
-        mark_processing_task_failure(
+    except SubmissionGradingInProgressError:
+        # C3: this is a redelivered/duplicate task racing a still-running
+        # original - a clean skip, not a failure. Finish SUCCESS so Celery
+        # doesn't retry it and the user isn't shown an error for a run that
+        # is, in fact, happening.
+        mark_processing_task_success(
             processing_task_id,
-            "Grading failed",
-            meta={"step": "Grading failed", "submission_id": submission_id},
+            meta={
+                "step": "Skipped — already being graded",
+                "skipped": True,
+                "submission_id": submission_id,
+            },
         )
+        return {
+            "status": states.SUCCESS,
+            "submission_id": submission_id,
+            "message": (
+                "This submission is already being graded by another worker — "
+                "duplicate run skipped."
+            ),
+        }
+    except Exception as exc:
+        task = mark_processing_task_failure(
+            processing_task_id,
+            exc,
+            meta={"step": "Grading failed", "submission_id": submission_id},
+            fallback_message=(
+                "We couldn't grade this submission. Please try again, or "
+                "contact support if this continues."
+            ),
+        )
+        if batch_id:
+            session = BatchUploadSession.objects.get(id=batch_id)
+            submission_obj = locals().get("submission")
+            file_name = (
+                f"Submission for {submission_obj.student.get_full_name()}"
+                if isinstance(submission_obj, StudentSubmission)
+                else f"Submission {submission_id}"
+            )
+            session.update_result(
+                file_name,
+                "FAILED",
+                error=task.error if task else None,
+                batch_type=BatchUploadType.GRADE,
+                submission_id=submission_id,
+            )
         raise
+
+
+def _reconcile_formatted_grade_numbers(formatted, submission):
+    """
+    Force the student-facing formatted grade's numbers to agree with the
+    authoritative stored grade. GRADE_FORMATTER's prompt forbids altering
+    numbers, but nothing else guarantees an LLM restatement got them right —
+    and this text is shown directly to students with no other cross-check.
+    The overall score sentence is rebuilt deterministically from the stored
+    columns, and each per-question max_score is overwritten from the stored
+    feedback JSON. Purely corrective: unexpected shapes are left untouched.
+    """
+    if not isinstance(formatted, dict):
+        return formatted
+
+    summary = formatted.get("overall_performance_summary")
+    if (
+        isinstance(summary, dict)
+        and submission.score is not None
+        and submission.max_points
+        and submission.score_percentage is not None
+    ):
+        summary["score_statement"] = (
+            f"You scored {float(submission.score):g} out of "
+            f"{float(submission.max_points):g} points, giving you a final "
+            f"grade of {float(submission.score_percentage):.2f}%."
+        )
+
+    evaluations = (
+        submission.feedback.get("question_evaluations", [])
+        if isinstance(submission.feedback, dict)
+        else []
+    )
+    authoritative = {
+        ai_processor._question_number_key(ev.get("question_number")): ev
+        for ev in evaluations
+        if isinstance(ev, dict)
+    }
+
+    breakdown = formatted.get("question_by_question_breakdown")
+    if isinstance(breakdown, list):
+        for item in breakdown:
+            if not isinstance(item, dict):
+                continue
+            ev = authoritative.get(
+                ai_processor._question_number_key(item.get("question_number"))
+            )
+            if not ev:
+                continue
+            if "max_points" in ev:
+                item["max_score"] = ev["max_points"]
+            if "score_awarded" in item and "score_awarded" in ev:
+                item["score_awarded"] = ev["score_awarded"]
+
+    return formatted
 
 
 @shared_task(bind=True)
@@ -487,9 +629,11 @@ def format_grade(self, submission_id, prompt, processing_task_id=None):
         update_processing_task(
             processing_task_id, meta={"step": "Saving formatted grade"}
         )
-        ensure_task_not_cancelled(processing_task_id)
-        submission.formatted_grade = formatted_grade
-        submission.save()
+        submission.formatted_grade = _reconcile_formatted_grade_numbers(
+            formatted_grade, submission
+        )
+        with cancellable_final_save(processing_task_id):
+            submission.save()
 
         self.update_state(
             state="PROGRESS", meta={"step": "Grade formatted successfully"}
@@ -512,20 +656,31 @@ def format_grade(self, submission_id, prompt, processing_task_id=None):
             meta={"step": "Formatted grade generation cancelled"},
         )
         raise
-    except Exception:
+    except Exception as exc:
         mark_processing_task_failure(
             processing_task_id,
-            "Formatted grade generation failed",
+            exc,
             meta={"step": "Formatted grade generation failed"},
+            fallback_message=(
+                "We couldn't generate the formatted grade for this "
+                "submission. Please try again, or contact support if this "
+                "continues."
+            ),
         )
         raise
 
 
-@shared_task(bind=True, max_retries=3)
+# soft/hard limits sized against ai_processor.services.PDFService.MAX_PAGE_COUNT
+# (300) and ANSWERS_EXTRACTION_PAGES_PER_CHUNK (3) - see the comments on
+# both for the real-endpoint timing this is derived from. Re-derive this
+# alongside those two if either changes; it must stay safely under
+# CELERY_BROKER_TRANSPORT_OPTIONS' visibility_timeout=3600s in settings.py.
+@shared_task(bind=True, max_retries=3, soft_time_limit=2700, time_limit=3000)
 def upload_answers_engine_async(
     self,
     assignment_id,
-    content,
+    file_payload,
+    prompt,
     user_id,
     session_id=None,
     file_name=None,
@@ -542,6 +697,16 @@ def upload_answers_engine_async(
         user = CustomUser.objects.get(id=user_id)
 
         is_teacher = user.user_type == UserTypes.TEACHER
+
+        self.update_state(
+            state="PROGRESS", meta={"step": "Preparing submission content"}
+        )
+        update_processing_task(
+            processing_task_id, meta={"step": "Preparing submission content"}
+        )
+        ensure_task_not_cancelled(processing_task_id)
+        uploaded_file = AssignmentProcessingService.rebuild_uploaded_file(file_payload)
+        content = AssignmentProcessingService.prepare_ai_content(uploaded_file, prompt)
 
         self.update_state(state="PROGRESS", meta={"step": "Extracting answers"})
         update_processing_task(processing_task_id, meta={"step": "Extracting answers"})
@@ -606,6 +771,11 @@ def upload_answers_engine_async(
             processing_task_id,
             exc,
             meta={"step": "Answer extraction failed", "assignment_id": assignment_id},
+            fallback_message=(
+                "We couldn't process this submission upload. Please check "
+                "the file and try again, or contact support if this "
+                "continues."
+            ),
         )
         if self.request.retries < self.max_retries:
             raise self.retry(exc=exc, countdown=3) from Exception
@@ -629,9 +799,11 @@ def formatted_grade_async(submission_id, user_prompt, processing_task_id=None):
             assignment_model=submission.assignment,
             processing_task_id=processing_task_id,
         )
-        ensure_task_not_cancelled(processing_task_id)
-        submission.formatted_grade = formatted_grade
-        submission.save(update_fields=["formatted_grade"])
+        submission.formatted_grade = _reconcile_formatted_grade_numbers(
+            formatted_grade, submission
+        )
+        with cancellable_final_save(processing_task_id):
+            submission.save(update_fields=["formatted_grade"])
 
         mark_processing_task_success(
             processing_task_id,
@@ -651,11 +823,16 @@ def formatted_grade_async(submission_id, user_prompt, processing_task_id=None):
             meta={"step": "Formatted grade generation cancelled"},
         )
         raise
-    except Exception:
+    except Exception as exc:
         mark_processing_task_failure(
             processing_task_id,
-            "Formatted grade generation failed",
+            exc,
             meta={"step": "Formatted grade generation failed"},
+            fallback_message=(
+                "We couldn't generate the formatted grade for this "
+                "submission. Please try again, or contact support if this "
+                "continues."
+            ),
         )
         raise
 
@@ -668,7 +845,8 @@ def upload_assignment_async(
     course_id,
     topic_id=None,
     session_id=None,
-    content=None,
+    file_payload=None,
+    prompt_text=None,
     file_name=None,
     processing_task_id=None,
 ):
@@ -682,6 +860,15 @@ def upload_assignment_async(
         user = CustomUser.objects.get(id=user_id)
         course = Course.objects.get(id=course_id, teacher=user)
         topic = Topic.objects.get(id=topic_id) if topic_id else None
+
+        update_processing_task(
+            processing_task_id, meta={"step": "Preparing assignment content"}
+        )
+        ensure_task_not_cancelled(processing_task_id)
+        uploaded_file = AssignmentProcessingService.rebuild_uploaded_file(file_payload)
+        content = AssignmentProcessingService.prepare_ai_content(
+            uploaded_file, prompt_text
+        )
 
         update_processing_task(
             processing_task_id, meta={"step": "Extracting assignment"}
@@ -752,6 +939,11 @@ def upload_assignment_async(
             processing_task_id,
             e,
             meta={"step": "Assignment upload failed", "file_name": file_name},
+            fallback_message=(
+                "We couldn't upload and save this assignment. Please check "
+                "the file and try again, or contact support if this "
+                "continues."
+            ),
         )
         # if self.request.retries == self.max_retries:
         #     raise self.retry(exc=e, countdown=3) from Exception
@@ -765,16 +957,29 @@ def upload_assignment_async(
 def grade_batch_async(
     self, user_id, assignment_id, batch_id=None, processing_task_id=None
 ):
-    submissions = StudentSubmission.objects.filter(assignment_id=assignment_id)
+    submissions = StudentSubmission.objects.filter(
+        assignment_id=assignment_id, graded_at__isnull=True
+    )
 
-    # Clear assignment-level scheduling info
+    # Clear assignment-level scheduling info and create BatchUploadSession if missing
     try:
         assignment = Assignment.objects.get(id=assignment_id)
         if assignment.scheduled_grading_at or assignment.grading_task_name:
             assignment.scheduled_grading_at = None
             assignment.grading_task_name = None
             assignment.save(update_fields=["scheduled_grading_at", "grading_task_name"])
-    except Assignment.DoesNotExist:
+
+        if not batch_id and submissions.exists():
+            user = CustomUser.objects.get(id=user_id)
+            session = BatchUploadSession.objects.create(
+                teacher=user,
+                course=assignment.course,
+                task_type=BatchUploadType.GRADE,
+                total_files=submissions.count(),
+            )
+            batch_id = str(session.id)
+    except Exception as e:
+        logger.error(f"Failed to clear scheduling info or create session: {e}")
         pass
 
     for submission in submissions:

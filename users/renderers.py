@@ -8,6 +8,8 @@ from typing import Any, Dict, Optional
 from django.conf import settings
 from rest_framework.renderers import JSONRenderer
 
+from AutoGrader.error_messages import describe_user_error
+
 
 def api_response(
     *,
@@ -91,7 +93,7 @@ def flatten_errors(data) -> str:
                     _collect(value)
                 else:
                     # Turn snake_case / CamelCase field names into readable labels
-                    label = field.replace("_", " ").capitalize()
+                    label = str(field).replace("_", " ").capitalize()
                     _collect(value, prefix=f"{label}: ")
 
     _collect(data)
@@ -142,7 +144,9 @@ class APIJSONRenderer(JSONRenderer):
         else:
             # Unhandled 500
             exc = getattr(response, "_raw_exc", None)
-            message = str(exc) or "Internal server error"
+            message = describe_user_error(
+                exc, fallback_message="An unexpected error occurred. Please try again."
+            )
             if exc and settings.DEBUG:
                 tb = "".join(
                     traceback.format_exception(type(exc), exc, exc.__traceback__)

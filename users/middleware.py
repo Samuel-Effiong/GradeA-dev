@@ -2,6 +2,8 @@ import time
 
 from django.core.cache import cache
 
+from billing.models import CreditWallet
+
 from .models import UserActivity
 
 ACTIVE_WINDOW_SECONDS = 300
@@ -26,6 +28,7 @@ class UserActivityMiddleware:
                 # We try creating the activity. If the user was deleted in the view,
                 # this will fail because of the foreign key constraint.
                 UserActivity.objects.create(user=user)
+                CreditWallet.objects.get_or_create(user=user)
 
                 now = int(time.time())
 

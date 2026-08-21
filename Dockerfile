@@ -14,9 +14,6 @@ EXPOSE 8000
 ENV PYTHONUNBUFFERED=1 \
     PORT=8000 \
     HOME=/tmp \
-    PADDLE_HOME=/tmp/.paddle \
-    XDG_CACHE_HOME=/tmp/.cache \
-    PDX_CACHE_DIR=/tmp/.paddlex \
     TMPDIR=/tmp
 
 # Install system packages required by Wagtail and Django.
@@ -31,9 +28,8 @@ RUN apt-get update --yes --quiet && \
         libgl1 \
         libglib2.0-0 \
         poppler-utils \
-        tesseract-ocr \
-        libtesseract-dev \
-        libleptonica-dev \
+        libpango-1.0-0 \
+        libpangoft2-1.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install the application server.
@@ -54,15 +50,8 @@ RUN chown wagtail:wagtail /app
 # Copy the source code of the project into the container.
 COPY --chown=wagtail:wagtail . .
 
-# Pre-create PaddleX/PaddleOCR cache directories and give user access
-RUN mkdir -p /tmp/.paddle /tmp/.cache && \
-    chown -R wagtail:wagtail /tmp/.paddle /tmp/.cache
-
 # Use user "wagtail" to run the build commands below and the server itself.
 USER wagtail
-
-# Run the PaddleOCR initialization and model download as the wagtail user
-# RUN python -c "from paddleocr import PaddleOCR; ocr = PaddleOCR(use_angle_cls=True); print('PaddleOCR successfully')"
 
 # Collect static files.
 
@@ -75,4 +64,11 @@ USER wagtail
 #   PRACTICE. The database should be migrated manually or using the release
 #   phase facilities of your hosting platform. This is used only so the
 #   Wagtail instance can be started with a simple "docker run" command.
+# NOTE: --timeout 100 is mirrored by WEBHOOK_REQUEST_HARD_TIMEOUT_SECONDS in
+# billing/webhooks.py, which derives STRIPE_EVENT_CLAIM_STALE_AFTER from it —
+# the point at which a still-running Stripe webhook claim is treated as
+# abandoned by a killed worker and may be stolen by another delivery. If you
+# raise the timeout here, raise that constant too, or a slow-but-alive request
+# can have its claim stolen and run concurrently with the thief (which can
+# duplicate non-refundable Stripe side effects).
 CMD set -xe; gunicorn AutoGrader.wsgi:application --bind 0.0.0.0:${PORT} --timeout 100 --workers 9 --threads 4 --max-requests 1000 --worker-class gthread --keep-alive 5 --max-requests-jitter 200

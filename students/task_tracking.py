@@ -1,12 +1,21 @@
 from __future__ import annotations
 
 import logging
+from contextlib import contextmanager
 
 from celery.result import AsyncResult
 from django.db import transaction
 from django.utils import timezone
 
 from AutoGrader.celery import app as celery_app
+from AutoGrader.dispatch import (
+    BROKER_UNAVAILABLE_ERRORS,
+    ProcessingTemporarilyUnavailable,
+)
+from AutoGrader.error_messages import (
+    DEFAULT_ERROR_MESSAGE,
+    describe_background_task_error,
+)
 
 from .exceptions import TaskCancelledError
 from .models import BackgroundProcessingTask, BackgroundTaskStatus, BackgroundTaskType
@@ -18,6 +27,11 @@ TERMINAL_TASK_STATUSES = {
     BackgroundTaskStatus.SUCCESS,
     BackgroundTaskStatus.FAILURE,
 }
+
+# Kept as aliases (rather than importing AutoGrader.error_messages directly
+# at every call site) so existing imports of these two names keep working.
+DEFAULT_TASK_FAILURE_MESSAGE = DEFAULT_ERROR_MESSAGE
+describe_task_error = describe_background_task_error
 
 
 def create_processing_task(
@@ -46,19 +60,36 @@ def attach_celery_task(processing_task_id, celery_task_id):
         return
 
     BackgroundProcessingTask.objects.filter(id=processing_task_id).update(
-        celery_task_id=str(celery_task_id)
+        celery_task_id=str(celery_task_id), updated_at=timezone.now()
     )
 
 
 def launch_processing_task(task_callable, processing_task, *args, **kwargs):
     kwargs["processing_task_id"] = str(processing_task.id)
-    async_result = task_callable.delay(*args, **kwargs)
+    try:
+        async_result = task_callable.delay(*args, **kwargs)
+    except BROKER_UNAVAILABLE_ERRORS as exc:
+        # The broker (Redis) is unreachable. This is not the task failing -
+        # it never got dispatched - so the caller gets a clean, typed error
+        # instead of a raw connection traceback surfacing as a generic 500.
+        mark_processing_task_failure(processing_task.id, exc)
+        raise ProcessingTemporarilyUnavailable() from exc
+    except Exception as exc:
+        mark_processing_task_failure(processing_task.id, exc)
+        raise
     attach_celery_task(processing_task.id, async_result.id)
     return async_result
 
 
 def get_processing_task(task_id, requested_by=None):
-    queryset = BackgroundProcessingTask.objects.all()
+    queryset = BackgroundProcessingTask.objects.select_related(
+        "assignment",
+        "submission",
+        "batch_session",
+        "submission__assignment",
+        "assignment__course",
+        "submission__student",
+    )
     if requested_by is not None:
         queryset = queryset.filter(requested_by=requested_by)
     return queryset.filter(celery_task_id=str(task_id)).first()
@@ -98,9 +129,9 @@ def update_processing_task(
         if not task:
             return None
 
-        if task.status == BackgroundTaskStatus.CANCELLED and status not in {
+        if task.status in TERMINAL_TASK_STATUSES and status not in {
             None,
-            BackgroundTaskStatus.CANCELLED,
+            task.status,
         }:
             if meta:
                 task.meta = merge_task_meta(task.meta, meta)
@@ -125,7 +156,7 @@ def update_processing_task(
             task.started_at = timezone.now()
             update_fields.append("started_at")
 
-        if finished:
+        if finished and not task.finished_at:
             task.finished_at = timezone.now()
             update_fields.append("finished_at")
 
@@ -152,12 +183,21 @@ def mark_processing_task_success(processing_task_id, meta=None):
     )
 
 
-def mark_processing_task_failure(processing_task_id, error, meta=None):
+def mark_processing_task_failure(
+    processing_task_id, error, meta=None, *, fallback_message=None
+):
+    if isinstance(error, BaseException):
+        logger.error(
+            "Background task %s failed",
+            processing_task_id,
+            exc_info=error,
+        )
+
     return update_processing_task(
         processing_task_id,
         status=BackgroundTaskStatus.FAILURE,
         meta=meta,
-        error=str(error),
+        error=describe_task_error(error, fallback_message),
         finished=True,
     )
 
@@ -207,6 +247,22 @@ def lock_processing_task_for_final_save(processing_task_id, *, message=None):
     return task
 
 
+@contextmanager
+def cancellable_final_save(processing_task_id, *, message=None):
+    """
+    Wrap a cancellable task's final DB write in the same lock+atomic pattern
+    used for assignment creation, so a cancellation observed after the last
+    cooperative check can't be raced by a save using stale in-memory data.
+
+    Usage:
+        with cancellable_final_save(processing_task_id):
+            submission.save()
+    """
+    with transaction.atomic():
+        task = lock_processing_task_for_final_save(processing_task_id, message=message)
+        yield task
+
+
 def _is_cancellable_assignment_artifact(processing_task):
     return processing_task.task_type in {
         BackgroundTaskType.ASSIGNMENT_EXTRACTION,
@@ -226,7 +282,16 @@ def cleanup_cancelled_task_artifacts(processing_task):
     if not processing_task or not _is_cancellable_assignment_artifact(processing_task):
         return None
 
-    assignment = processing_task.assignment
+    if not processing_task.assignment_id:
+        return None
+
+    from assignments.models import Assignment
+
+    assignment = (
+        Assignment.objects.select_for_update()
+        .filter(id=processing_task.assignment_id)
+        .first()
+    )
     if not assignment:
         return None
 
@@ -282,7 +347,7 @@ def cancel_processing_task(processing_task):
         cleanup_cancelled_task_artifacts(processing_task)
 
     if processing_task.celery_task_id:
-        AsyncResult(processing_task.celery_task_id).revoke(
+        AsyncResult(processing_task.celery_task_id, app=celery_app).revoke(
             terminate=True,
             signal="SIGTERM",
         )
@@ -302,7 +367,7 @@ def normalize_processing_task_status(processing_task):
     if not processing_task.celery_task_id:
         return processing_task.status
 
-    state = AsyncResult(processing_task.celery_task_id).state
+    state = AsyncResult(processing_task.celery_task_id, app=celery_app).state
 
     if state == "REVOKED":
         processing_task = mark_processing_task_cancelled(
@@ -313,8 +378,12 @@ def normalize_processing_task_status(processing_task):
     if state == "FAILURE":
         processing_task = mark_processing_task_failure(
             processing_task.id,
-            error="Task failed",
+            error=None,
             meta={"celery_state": state},
+            fallback_message=(
+                "This task stopped unexpectedly before it could finish. "
+                "Please try again, or contact support if this continues."
+            ),
         )
         return processing_task.status
 

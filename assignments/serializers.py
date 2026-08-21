@@ -32,7 +32,8 @@ class StudentSubmissionStatusSerializer(serializers.Serializer):
 
     submission_id = serializers.UUIDField(read_only=True, allow_null=True)
     name = serializers.CharField(read_only=True)
-    email = serializers.EmailField(read_only=True)
+    email = serializers.EmailField(read_only=True, allow_null=True)
+    is_system_generated_email = serializers.BooleanField(read_only=True)
     submission_status = serializers.CharField(read_only=True)
     grade = serializers.FloatField(read_only=True, allow_null=True)
     grade_percentage = serializers.FloatField(read_only=True, allow_null=True)
@@ -49,7 +50,7 @@ class QuestionSerializer(serializers.Serializer):
     question_number = serializers.IntegerField(required=True)
     question_text = serializers.CharField(required=True)
     question_type = serializers.CharField(required=True)
-    question_image = serializers.CharField(required=True, allow_blank=True)
+    question_image = serializers.CharField(required=False, allow_blank=True)
     points = serializers.FloatField(required=True)
     blooms_level = serializers.CharField(required=False, allow_blank=True)
     options = serializers.ListField(
@@ -68,10 +69,20 @@ class QuestionSerializer(serializers.Serializer):
         return value
 
     def validate_blooms_level(self, value):
+        # An unset level is allowed (the field is optional and allow_blank),
+        # and must pass through untouched -- rejecting "" here would have
+        # contradicted allow_blank=True on the field itself.
+        if not value:
+            return value
+
         if value not in self.BLOOMS_LEVEL:
             raise serializers.ValidationError(
                 f"Invalid blooms_level `{value}`. Allow types: {', '.join(self.BLOOMS_LEVEL)}"
             )
+        # Without this return DRF stores None for every *valid* level, which
+        # silently strips the cognitive-demand signal that rigor scoring
+        # (assignments/rigor.py) is built on.
+        return value
 
 
 class AssignmentSerializer(serializers.ModelSerializer):
@@ -198,7 +209,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
         except Exception as e:
             raise serializers.ValidationError(
                 f"Failed to create assignment and rubric: {e}"
-            ) from Exception
+            ) from e
 
     def normalize(self, obj):
         return json.loads(json.dumps(obj, sort_keys=True))
@@ -284,6 +295,7 @@ class AssignmentListStudentSerializer(serializers.ModelSerializer):
     score = serializers.SerializerMethodField()
     grade_letter = serializers.SerializerMethodField()
     course_title = serializers.CharField(source="course.name", read_only=True)
+    remaining_attempts = serializers.SerializerMethodField()
 
     class Meta:
         model = Assignment
@@ -298,6 +310,7 @@ class AssignmentListStudentSerializer(serializers.ModelSerializer):
             "score",
             "total_points",
             "grade_letter",
+            "remaining_attempts",
         ]
 
     def _get_submission(self, obj):
@@ -343,6 +356,12 @@ class AssignmentListStudentSerializer(serializers.ModelSerializer):
             grade_details = get_grade_details(submission.score_percentage)
             return grade_details.get("letter_grade")
         return None
+
+    def get_remaining_attempts(self, obj):
+        submission = self._get_submission(obj)
+        if submission:
+            return max(0, 3 - (submission.attempt_count or 0))
+        return 3
 
 
 class AssignmentDetailSerializer(serializers.ModelSerializer):
@@ -412,8 +431,7 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
             student_html = AssignmentProcessingService.format_assignment_standard_html(
                 data, include_rubric=False
             )
-            pm_json = AssignmentProcessingService.html_to_prosemirror_json(student_html)
-            return json.dumps(pm_json)
+            return AssignmentProcessingService.html_to_prosemirror_text(student_html)
 
         return obj.raw_input
 
@@ -462,11 +480,16 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
                 else:
                     grade_status = "GRADED"
 
+            is_system_generated_email = bool(
+                student.email and student.email.endswith("@student.local")
+            )
+
             result.append(
                 {
                     "submission_id": submission_id,
                     "name": student.get_full_name(),
-                    "email": student.email,
+                    "email": None if is_system_generated_email else student.email,
+                    "is_system_generated_email": is_system_generated_email,
                     "submission_status": submission_status,
                     "grade": grade,
                     "grade_percentage": grade_percentage,
@@ -495,11 +518,13 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
     student_submission_id = serializers.SerializerMethodField()
     student_submission_raw_input = serializers.SerializerMethodField()
     assignment_raw_input = serializers.SerializerMethodField()
+    remaining_attempts = serializers.SerializerMethodField()
     # answers = serializers.SerializerMethodField()
     # submissions = serializers.SerializerMethodField()
 
     class Meta(AssignmentListStudentSerializer.Meta):
         fields = AssignmentListStudentSerializer.Meta.fields + [
+            # "remaining_attempts",
             "performance_summary",
             "student_submission_id",
             "student_submission_raw_input",
@@ -551,8 +576,13 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
         student_html = AssignmentProcessingService.format_assignment_standard_html(
             data, include_rubric=False
         )
-        pm_json = AssignmentProcessingService.html_to_prosemirror_json(student_html)
-        return json.dumps(pm_json)
+        return AssignmentProcessingService.html_to_prosemirror_text(student_html)
+
+    def get_remaining_attempts(self, obj):
+        submission = self._get_submission(obj)
+        if submission:
+            return max(0, 3 - (submission.attempt_count or 0))
+        return 3
 
 
 class GeneratedAssignmentSerializer(serializers.Serializer):
@@ -562,6 +592,7 @@ class GeneratedAssignmentSerializer(serializers.Serializer):
     session_id = serializers.UUIDField(required=False, allow_null=True)
     message_id = serializers.UUIDField(required=False, allow_null=True)
     is_draft = serializers.BooleanField(required=False)
+    needs_clarification = serializers.BooleanField(required=False, default=False)
 
 
 class SaveGeneratedAssignmentDraftSerializer(serializers.Serializer):
@@ -824,7 +855,11 @@ class AssignmentGenerationSessionSerializer(serializers.ModelSerializer):
         if not latest_message:
             return None
 
-        metadata = getattr(latest_message, "metadata", {})
+        # metadata is a nullable JSONField - a USER-role message (or an
+        # ASSISTANT message from before this field existed) never sets it,
+        # so it's None rather than a missing attribute; getattr's default
+        # only covers the latter.
+        metadata = latest_message.metadata or {}
         reply = metadata.get("reply", "")
 
         if reply:

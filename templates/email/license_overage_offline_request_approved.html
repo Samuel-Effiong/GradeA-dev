@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        .container {
+            font-family: "Inter", -apple-system, BlinkMacSystemFont,"Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #1f2937;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .header {
+            background-color: #00723A;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .section {
+            margin-top: 24px;
+        }
+        .card {
+            background-color: #f8fafc;
+            border-left: 4px solid #00723A;
+            padding: 16px;
+            margin-top: 12px;
+            border-radius: 4px;
+        }
+        .card-warning {
+            background-color: #fffbeb;
+            border-left: 4px solid #b45309;
+            padding: 16px;
+            margin-top: 12px;
+            border-radius: 4px;
+        }
+        .muted {
+            color: #475569;
+        }
+        ul.plain {
+            margin: 8px 0 0 0;
+            padding-left: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Overage Request Approved</h1>
+            <p>{{ school.name }}</p>
+        </div>
+
+        <div class="section">
+            <div class="card">
+                <p>
+                    Your request for <strong>{{ total_blocks }}</strong> overage block(s)
+                    has been approved{% if reviewed_by %} by {{ reviewed_by.get_full_name|default:reviewed_by.email }}{% endif %}.
+                </p>
+                <p>
+                    Confirmed amount: <strong>${{ amount_confirmed_display }}</strong>
+                    {% if payment_reference %}(reference: {{ payment_reference }}){% endif %}
+                </p>
+            </div>
+        </div>
+
+        {% if fulfilled_allocations %}
+        <div class="section">
+            <p><strong>Credited</strong></p>
+            <ul class="plain">
+                {% for row in fulfilled_allocations %}
+                <li>{{ row.teacher_email }} — {{ row.blocks }} block(s), {{ row.credits_granted }} credits</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if skipped_allocations %}
+        <div class="section">
+            <div class="card-warning">
+                <p><strong>Not credited</strong> — these teachers are no longer active under the license and were skipped. Contact support if this needs manual follow-up.</p>
+                <ul class="plain">
+                    {% for row in skipped_allocations %}
+                    <li>{{ row.teacher_id }} — {{ row.blocks }} block(s)</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="section">
+            <p class="muted">Questions? Reach us at {{ support_email }}.</p>
+        </div>
+
+        <div class="section">
+            <p>Best regards,<br>GradeA+ Team</p>
+        </div>
+    </div>
+</body>
+</html>

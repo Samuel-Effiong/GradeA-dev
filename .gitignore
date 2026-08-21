@@ -16,6 +16,7 @@ scanenv/
 
 # 🔐 Environment variables / secrets
 .env
+*.env
 
 # 🛠 VSCode settings
 .vscode/
@@ -23,3 +24,16 @@ scanenv/
 # 💾 OS stuff
 .DS_Store
 Thumbs.db
+
+# 📊 Grading benchmark PDF artifacts — fully regenerable via
+# `manage.py grading_benchmark --pdf`, not the source of truth.
+benchmark_artifacts/
+
+# 🗄️ Local safety copies of benchmark run archives. The durable copy lives
+# in Cloudinary (URL recorded in benchmark/history/runs.jsonl); these exist
+# only so an upload failure never loses an expensive paid run.
+ai_processor/benchmark/archives/
+
+# Coverage artifacts
+.coverage
+htmlcov/
