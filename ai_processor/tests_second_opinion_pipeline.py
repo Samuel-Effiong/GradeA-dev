@@ -28,7 +28,13 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase, override_settings
 
-from ai_processor.services import AIProcessor
+from ai_processor.services import GRADING_QUESTIONS_PER_CHUNK, AIProcessor
+
+# Forces the batched path (2 batches) regardless of the chunk-size
+# setting - a hardcoded question count desynced from
+# GRADING_QUESTIONS_PER_CHUNK once before (moved 5 -> 10), silently
+# turning a "batched path" test into a single-pass one.
+_BATCH_QUESTION_COUNT = GRADING_QUESTIONS_PER_CHUNK + 3
 
 A_MODEL = "primary-model"
 B_MODEL = "second-model"
@@ -368,13 +374,19 @@ class SecondOpinionBatchedPathTest(SimpleTestCase):
 
     def test_batched_run_with_low_confidence_gets_second_opinion(self):
         processor = AIProcessor()
-        questions = [_essay(n) for n in range(1, 8)]  # 7 → batched path
-        answers = [_answer(n) for n in range(1, 8)]
+        questions = [
+            _essay(n) for n in range(1, _BATCH_QUESTION_COUNT + 1)
+        ]  # batched path
+        answers = [_answer(n) for n in range(1, _BATCH_QUESTION_COUNT + 1)]
 
         def respond(**kwargs):
             prompt = kwargs["user_prompt"][0]["text"]
             if _is_b_call(kwargs):
-                asked = [n for n in range(1, 8) if f"Essay question {n}?" in prompt]
+                asked = [
+                    n
+                    for n in range(1, _BATCH_QUESTION_COUNT + 1)
+                    if f"Essay question {n}?" in prompt
+                ]
                 return _ai_response(
                     {"question_evaluations": [_evaluation(n) for n in asked]},
                     model=B_MODEL,
@@ -390,7 +402,11 @@ class SecondOpinionBatchedPathTest(SimpleTestCase):
                         "recommendations": [],
                     }
                 )
-            asked = [n for n in range(1, 8) if f"Essay question {n}?" in prompt]
+            asked = [
+                n
+                for n in range(1, _BATCH_QUESTION_COUNT + 1)
+                if f"Essay question {n}?" in prompt
+            ]
             return _ai_response(
                 {"question_evaluations": [_evaluation(n) for n in asked]}
             )
@@ -402,7 +418,9 @@ class SecondOpinionBatchedPathTest(SimpleTestCase):
                 user=MagicMock(), rubric_json=questions, answer_json=answers
             )
 
-        # 2 A batches + 1 summary + 2 B batches (7 questions re-read).
+        # 2 A batches + 1 summary + 2 B batches (all questions re-read).
         self.assertEqual(mock_execute.call_count, 5)
-        self.assertEqual(len(result["second_opinion"]["agreements"]), 7)
+        self.assertEqual(
+            len(result["second_opinion"]["agreements"]), _BATCH_QUESTION_COUNT
+        )
         self.assertEqual(result["second_opinion"]["disagreements"], [])

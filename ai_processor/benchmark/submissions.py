@@ -159,6 +159,55 @@ MATHS_SUBMISSIONS = {
             note="Product rule handled, general expression derived, evaluated "
             "correctly to -1.",
         ),
+        AnswerSpec(
+            10,
+            r"<p>$V = x^2h = 32 \Rightarrow h = 32/x^2$. Surface area (no top): "
+            r"$S = x^2 + 4xh = x^2 + 128/x$. $dS/dx = 2x - 128/x^2 = 0 "
+            r"\Rightarrow x^3 = 64 \Rightarrow x = 4$. Since $d^2S/dx^2 = "
+            r"2 + 256/x^3 > 0$, this is a minimum. $h = 32/16 = 2$, and "
+            r"$S = 16 + 32 = 48\ \text{cm}^2$.</p>",
+            12,
+            exact=True,
+            note="Correct setup, critical point, second-derivative check, and "
+            "minimum area.",
+        ),
+        AnswerSpec(
+            11,
+            r"<p>With $u=x^2, dv=e^{-x}dx$: $\int x^2e^{-x}dx = -x^2e^{-x} + "
+            r"2\int xe^{-x}dx$. With $u=x, dv=e^{-x}dx$: $\int xe^{-x}dx = "
+            r"-xe^{-x} - e^{-x}$. So the antiderivative is "
+            r"$-e^{-x}(x^2+2x+2)$. From $0$ to $1$: $2 - 5/e$.</p>",
+            12,
+            exact=True,
+            note="Both integration-by-parts steps shown, correct exact answer.",
+        ),
+        AnswerSpec(
+            12,
+            r"<p>Integral test with $u=\ln x$: $\int \frac{dx}{x(\ln x)^2} = "
+            r"-\frac{1}{\ln x}$. From $2$ to $\infty$: $0 - (-1/\ln 2) = "
+            r"1/\ln 2$, finite, so the series converges.</p>",
+            12,
+            exact=True,
+            note="Correct substitution, correct evaluation, correct conclusion.",
+        ),
+        AnswerSpec(
+            13,
+            r"<p>$f(0)=0, f'(0)=1, f''(0)=-1, f'''(0)=2$, so "
+            r"$f(x) = x - \frac{x^2}{2} + \frac{x^3}{3} - \cdots$. First three "
+            r"nonzero terms: $x - \frac{x^2}{2} + \frac{x^3}{3}$.</p>",
+            10,
+            exact=True,
+            note="Derived from the derivatives at 0, correct signs.",
+        ),
+        AnswerSpec(
+            14,
+            r"<p>$\frac{dy}{y} = x\,dx \Rightarrow \ln|y| = \frac{x^2}{2} + C "
+            r"\Rightarrow y = Ae^{x^2/2}$. With $y(0)=2$, $A=2$, so "
+            r"$y = 2e^{x^2/2}$.</p>",
+            10,
+            exact=True,
+            note="Correct separation, integration, and initial condition.",
+        ),
     ],
     "strong": [
         AnswerSpec(1, "<p>A</p>", 3, exact=True, note="Correct."),
@@ -222,6 +271,50 @@ MATHS_SUBMISSIONS = {
             note="Correct differentiation and correct value, but substituted "
             "immediately instead of deriving the general expression first — "
             "the 'good' descriptor.",
+        ),
+        AnswerSpec(
+            10,
+            r"<p>$h = 32/x^2$, so $S = x^2 + 128/x$. Setting $dS/dx = 2x - "
+            r"128/x^2 = 0$ gives $x=4$, $h=2$, and $S = 48\ \text{cm}^2$.</p>",
+            8,
+            note="Correct setup, critical point, and minimum area, but never "
+            "checks that $x=4$ actually gives a minimum rather than a maximum "
+            "— the 'good' descriptor.",
+        ),
+        AnswerSpec(
+            11,
+            r"<p>Using integration by parts twice, the antiderivative works out "
+            r"to $-e^{-x}(x^2+2x+2)$, so the definite integral is "
+            r"$2 - 5/e$.</p>",
+            8,
+            note="Correct method and correct final answer, but the second "
+            "integration-by-parts application is asserted rather than shown "
+            "— 'good'.",
+        ),
+        AnswerSpec(
+            12,
+            r"<p>By the integral test with $u = \ln x$, the resulting integral "
+            r"is finite, so the series converges.</p>",
+            8,
+            note="Correct test and correct conclusion, but the integral's value "
+            "is never actually evaluated — 'good'.",
+        ),
+        AnswerSpec(
+            13,
+            r"<p>The Maclaurin series for $\ln(1+x)$ is "
+            r"$x - \frac{x^2}{2} + \frac{x^3}{3} - \cdots$, so the first three "
+            r"nonzero terms are $x - \frac{x^2}{2} + \frac{x^3}{3}$.</p>",
+            7,
+            note="Correct three terms, but quoted from memory rather than "
+            "derived from $f(0), f'(0), f''(0), f'''(0)$ — 'good'.",
+        ),
+        AnswerSpec(
+            14,
+            r"<p>Separating: $dy/y = x\,dx$, integrating: $\ln y = x^2/2 + C$. "
+            r"Using $y(0)=2$ gives $y = 2e^{x^2/2}$.</p>",
+            7,
+            note="Correct throughout, but drops the absolute value on $\\ln y$ "
+            "and compresses the constant-of-integration step — 'good'.",
         ),
     ],
     "middling": [
@@ -307,6 +400,55 @@ MATHS_SUBMISSIONS = {
             "rule on $6xy$ is mishandled (the $6x\\frac{dy}{dx}$ term is "
             "dropped), giving a wrong value — 'fair'.",
         ),
+        AnswerSpec(
+            10,
+            r"<p>$S = x^2 + 128/x$. Setting $dS/dx = 0$: $2x = 128/x^2$, so "
+            r"$x^3 = 64$, $x = 4$. Then $h = 32/x = 8$, and $S = 16 + 32 = "
+            r"48$.</p>",
+            4,
+            note="Correct volume constraint and correct critical point, but "
+            "computes $h = 32/x$ instead of $32/x^2$, giving the wrong height "
+            "— 'fair'.",
+        ),
+        AnswerSpec(
+            11,
+            r"<p>Using $u=x^2, dv=e^{-x}dx$: $\int x^2e^{-x}dx = -x^2e^{-x} + "
+            r"2\int xe^{-x}dx$. Taking $\int xe^{-x}dx \approx -xe^{-x}$, the "
+            r"integral from 0 to 1 is roughly $-e^{-1} + 2(-e^{-1}) = "
+            r"-3/e$.</p>",
+            4,
+            note="First integration-by-parts step correct, but the second one "
+            "is left incomplete (drops the $-e^{-x}$ term from its own "
+            "by-parts step), giving a wrong result — 'fair'.",
+        ),
+        AnswerSpec(
+            12,
+            r"<p>I'll use the comparison test. Since $\ln n$ grows, "
+            r"$n(\ln n)^2$ is bigger than $n$, so the terms are smaller than "
+            r"$1/n$, so it converges by comparison.</p>",
+            4,
+            note="Names a plausible test and reaches the right conclusion, but "
+            "comparison to the divergent harmonic series proves nothing (a "
+            "smaller term than a divergent series' terms doesn't converge by "
+            "that comparison) — 'fair'.",
+        ),
+        AnswerSpec(
+            13,
+            r"<p>$\ln(1+x) \approx x + \frac{x^2}{2} + \frac{x^3}{3}$.</p>",
+            4,
+            note="Correct three terms and correct denominators, but the "
+            "alternating sign is dropped (should be "
+            "$x - x^2/2 + x^3/3$) — 'fair'.",
+        ),
+        AnswerSpec(
+            14,
+            r"<p>$dy/y = x\,dx$. Integrating: $\ln y = \frac{x^2}{2}$. So "
+            r"$y = e^{x^2/2}$.</p>",
+            4,
+            note="Correctly separates and integrates but forgets the constant "
+            "of integration, so the initial condition $y(0)=2$ can never be "
+            "applied and the answer is missing the factor of 2 — 'fair'.",
+        ),
     ],
     "weak": [
         AnswerSpec(
@@ -370,6 +512,48 @@ MATHS_SUBMISSIONS = {
             note="Differentiated as if $y$ were a constant — no $\\frac{dy}{dx}$ "
             "appears anywhere. 'poor'.",
         ),
+        AnswerSpec(
+            10,
+            r"<p>A box with volume 32 could be $4 \times 4 \times 2$, so the "
+            r"surface area is $4(4) + 4(4) + 2(4)(2) = 16+16+16 = 48$.</p>",
+            0,
+            note="Guesses dimensions that happen to satisfy the volume "
+            "constraint instead of using calculus to find the minimizing "
+            "ones, and the surface area formula used doesn't even match a "
+            "box with no top — no valid method. 'poor'.",
+        ),
+        AnswerSpec(
+            11,
+            r"<p>$\int x^2 e^{-x} dx = \frac{x^3}{3} \cdot e^{-x}$, so from 0 "
+            r"to 1 that's $\frac{1}{3}e^{-1} \approx 0.12$.</p>",
+            0,
+            note="Invents a product-rule-style antiderivative instead of using "
+            "integration by parts — no valid method.",
+        ),
+        AnswerSpec(
+            12,
+            r"<p>It diverges because $\ln n$ grows very slowly so "
+            r"$n(\ln n)^2$ doesn't grow much faster than $n$, and $\sum 1/n$ "
+            r"diverges.</p>",
+            0,
+            note="Wrong conclusion, and the reasoning contradicts itself (a "
+            "term smaller than a divergent series' terms says nothing).",
+        ),
+        AnswerSpec(
+            13,
+            r"<p>$\ln(1+x) = 1 + x + x^2 + x^3 + \cdots$</p>",
+            0,
+            note="Confuses this with the geometric series for $1/(1-x)$ — "
+            "wrong series entirely.",
+        ),
+        AnswerSpec(
+            14,
+            r"<p>$dy/dx = xy$ is like $y' = ky$ so $y = 2e^{xt}$.</p>",
+            0,
+            note="Pattern-matches to the constant-coefficient exponential-"
+            "growth solution instead of separating variables — the equation "
+            "isn't even solved in terms of $x$ consistently.",
+        ),
     ],
     "partial": [
         AnswerSpec(1, "<p>A</p>", 3, exact=True, note="Correct."),
@@ -395,6 +579,25 @@ MATHS_SUBMISSIONS = {
         AnswerSpec(7, "", 0, exact=True, note="BLANK — not attempted."),
         AnswerSpec(8, "", 0, note="BLANK — not attempted."),
         AnswerSpec(9, "", 0, note="BLANK — not attempted."),
+        AnswerSpec(10, "", 0, note="BLANK — not attempted."),
+        AnswerSpec(
+            11,
+            r"<p>Using $u=x^2$, $dv=e^{-x}dx$, $du=2x\,dx$, $v=-e^{-x}$: "
+            r"$\int x^2e^{-x}dx = -x^2e^{-x} + 2\int xe^{-x}dx$.</p>",
+            4,
+            note="First integration-by-parts step correctly set up, then "
+            "abandoned before the second application or the evaluation — "
+            "'fair'.",
+        ),
+        AnswerSpec(12, "", 0, note="BLANK — not attempted."),
+        AnswerSpec(13, "", 0, note="BLANK — not attempted."),
+        AnswerSpec(
+            14,
+            r"<p>$\frac{dy}{y} = x\,dx$.</p>",
+            4,
+            note="Correctly separates the variables then stops before "
+            "integrating either side — 'fair'.",
+        ),
     ],
     "fluent_wrong": [
         AnswerSpec(
@@ -511,6 +714,83 @@ MATHS_SUBMISSIONS = {
             "adding them, and closes with a confident geometric justification "
             "that is also wrong (the slope at (3,3) is -1). 'fair'.",
         ),
+        AnswerSpec(
+            10,
+            r"<p>By the standard optimization procedure, we minimize the "
+            r"surface area $S = x^2 + 128/x$ by setting its derivative to "
+            r"zero: $2x - 128/x^2 = 0$, giving $x^3 = -64$ and thus "
+            r"$x = -4$. Taking the physically sensible positive dimension, "
+            r"the box has side $4\ \text{cm}$ and, since surface area scales "
+            r"with the square of the side, height $16\ \text{cm}$, for a "
+            r"minimum area of $16 + 8 = 24\ \text{cm}^2$.</p>",
+            4,
+            note="ADVERSARIAL: correct derivative and correct critical "
+            "equation, then a sign error claims $x^3=-64$ (it's $+64$), "
+            "and the recovery afterward — 'height scales with the square of "
+            "the side' — is invented nonsense with no calculus basis. Method "
+            "is genuinely visible up to the sign slip, so 'fair'.",
+        ),
+        AnswerSpec(
+            11,
+            r"<p>This integral succumbs elegantly to the tabular method for "
+            r"repeated integration by parts, differentiating $x^2$ down to "
+            r"zero against successive antiderivatives of $e^{-x}$. Carrying "
+            r"the alternating signs through the table and evaluating at the "
+            r"bounds produces the clean closed form $5/e - 2$.</p>",
+            0,
+            note="ADVERSARIAL: correctly names a legitimate method (the "
+            "tabular method IS valid here) and sounds authoritative, but the "
+            "final sign is flipped — the correct value is $2 - 5/e$, not "
+            "$5/e - 2$ (note $5/e \\approx 1.84 < 2$, so the true answer is "
+            "positive, not negative as this claims). 'poor'.",
+        ),
+        AnswerSpec(
+            12,
+            r"<p>This is a classic p-series in disguise. Since $(\ln n)^2$ "
+            r"is a slowly varying factor, the series behaves like "
+            r"$\sum 1/n$, and by the p-series test with effective exponent "
+            r"$p=1$, boundary case series of this type are known to "
+            r"converge.</p>",
+            0,
+            note="ADVERSARIAL: confident, technical-sounding vocabulary "
+            "('p-series in disguise', 'effective exponent'), reaches the "
+            "correct conclusion, but the p-series test literally does not "
+            "apply here and $p=1$ is the divergent boundary case, not a "
+            "convergent one — the stated reasoning is invalid regardless of "
+            "the answer being right. 'poor' per the rubric's 'no valid "
+            "reasoning'.",
+        ),
+        AnswerSpec(
+            13,
+            r"<p>Recognizing $\ln(1+x)$ as the antiderivative of "
+            r"$\frac{1}{1+x}$, and expanding the latter as the geometric "
+            r"series $1 - x + x^2 - \cdots$ and integrating term by term, we "
+            r"obtain $x - \frac{x^2}{2} + \frac{x^3}{3}$ directly, confirming "
+            r"the well-known result.</p>",
+            10,
+            exact=True,
+            note="ADVERSARIAL IN METHOD, CORRECT IN RESULT: this is actually "
+            "a legitimate, elegant derivation (integrate the geometric "
+            "series for $1/(1+x)$ term by term) and it reaches the exactly "
+            "correct three terms with correct signs. Included as a reminder "
+            "that 'fluent and confident' is not automatically wrong — full "
+            "marks are earned here on the merits.",
+        ),
+        AnswerSpec(
+            14,
+            r"<p>This separable equation integrates directly: "
+            r"$\int \frac{dy}{y} = \int x\,dx$ gives $\ln y = x^2/2$, and "
+            r"exponentiating both sides term-by-term yields "
+            r"$y = e^{x^2}/e^{0} \cdot 2 = 2e^{x^2}$, matching the initial "
+            r"condition exactly.</p>",
+            0,
+            note="ADVERSARIAL: correct separation and correct integration of "
+            "the left and right sides individually, but 'exponentiating "
+            "term-by-term' is not a valid operation (you exponentiate the "
+            "whole equation, not each term separately) and the exponent "
+            "$x^2/2$ is silently replaced with $x^2$ - wrong final answer "
+            "dressed up as if the initial condition confirms it. 'poor'.",
+        ),
     ],
     "twin": [
         AnswerSpec(1, "<p>A</p>", 3, exact=True, note="Correct."),
@@ -560,6 +840,47 @@ MATHS_SUBMISSIONS = {
             8,
             note="Correct differentiation and value, working compressed into one "
             "line — 'good'.",
+        ),
+        AnswerSpec(
+            10,
+            r"<p>$h = 32/x^2$ so $S = x^2 + 128/x$. $dS/dx = 2x - 128/x^2 = 0$ "
+            r"gives $x=4$, $h=2$, $S = 48$.</p>",
+            8,
+            note="Correct setup, critical point, and minimum area, but no "
+            "check that this is a minimum rather than a maximum — 'good'.",
+        ),
+        AnswerSpec(
+            11,
+            r"<p>Integrating by parts twice gives antiderivative "
+            r"$-e^{-x}(x^2+2x+2)$, so the integral evaluates to $2-5/e$.</p>",
+            8,
+            note="Correct final answer with the method named, but the second "
+            "by-parts step isn't shown explicitly — 'good'.",
+        ),
+        AnswerSpec(
+            12,
+            r"<p>Integral test with $u=\ln x$ gives a finite integral, so "
+            r"the series converges.</p>",
+            8,
+            note="Correct test and conclusion, integral's value not actually "
+            "computed — 'good'.",
+        ),
+        AnswerSpec(
+            13,
+            r"<p>$\ln(1+x) = x - \frac{x^2}{2} + \frac{x^3}{3} - \cdots$, so "
+            r"the first three nonzero terms are $x - \frac{x^2}{2} + "
+            r"\frac{x^3}{3}$.</p>",
+            7,
+            note="Correct three terms quoted rather than derived from the "
+            "derivatives at 0 — 'good'.",
+        ),
+        AnswerSpec(
+            14,
+            r"<p>$dy/y = x\,dx$, so $\ln y = x^2/2 + C$, giving $y = "
+            r"Ae^{x^2/2}$. With $y(0)=2$: $y = 2e^{x^2/2}$.</p>",
+            7,
+            note="Correct throughout but compresses the constant-of-"
+            "integration step — 'good'.",
         ),
     ],
 }

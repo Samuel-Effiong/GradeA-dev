@@ -427,7 +427,7 @@ class CommandHistoryIntegrationTest(TestCase):
         with_history = self._run()
         self.assertIn("History: recorded run", with_history)
         self.assertEqual(len(history.load_jsonl(self.runs_path)), 1)
-        self.assertEqual(len(history.load_jsonl(self.questions_path)), 133)
+        self.assertEqual(len(history.load_jsonl(self.questions_path)), 168)
 
     def test_no_history_flag_writes_nothing(self):
         output = self._run("--no-history")
@@ -444,7 +444,7 @@ class CommandHistoryIntegrationTest(TestCase):
             output = self._run()
         # The run still reports its results in full...
         self.assertIn("ACCURACY vs ground truth", output)
-        self.assertIn("133", output)
+        self.assertIn("168", output)
         # ...and says plainly that recording failed.
         self.assertIn("History: not recorded", output)
 
@@ -479,7 +479,7 @@ class CommandHistoryIntegrationTest(TestCase):
     "`manage.py grading_benchmark --mode record` (makes real, billed calls).",
 )
 class RealRunHistoryTest(BenchmarkFixtureMixin, TestCase):
-    """The drift lock against the real 133-question dataset, not a stub."""
+    """The drift lock against the real 168-question dataset, not a stub."""
 
     def test_full_replay_row_count_matches_report(self):
         teacher = self._make_teacher()

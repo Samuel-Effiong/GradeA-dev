@@ -23,6 +23,7 @@ T3/T4 below is to observe real commit/lock behavior across connections.
 """
 
 import json
+import math
 import threading
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
@@ -57,10 +58,15 @@ def make_ai_response(tokens=100, content='{"result": "ok"}'):
     return response
 
 
-# A rubric with more than GRADING_QUESTIONS_PER_CHUNK (5) questions, to
-# force grade_student_submission onto the batched path: _grade_question_batch
-# x N (N = ceil(12/5) = 3 batches) + one _build_overall_grading_summary call.
+# A rubric with more than GRADING_QUESTIONS_PER_CHUNK questions, to force
+# grade_student_submission onto the batched path: _grade_question_batch x N
+# (N = ceil(_QUESTION_COUNT / GRADING_QUESTIONS_PER_CHUNK) batches) + one
+# _build_overall_grading_summary call. Derived from the live constant
+# rather than hardcoded, so a future chunk-size tune doesn't silently
+# desync these fixtures from reality the way a hardcoded "3 batches"
+# did when GRADING_QUESTIONS_PER_CHUNK moved from 5 to 10.
 _QUESTION_COUNT = 12
+_NUM_BATCHES = math.ceil(_QUESTION_COUNT / GRADING_QUESTIONS_PER_CHUNK)
 RUBRIC_12Q = json.dumps(
     [
         {"question_number": i, "question_text": f"Question {i}?", "points": 5}
@@ -172,9 +178,11 @@ class NoOpenTransactionAcrossAICallsTest(GradingPipelineTestBase):
         def fake_model(*args, **kwargs):
             seen_in_atomic_block.append(connection.in_atomic_block)
             call_index = len(seen_in_atomic_block)
-            # 3 batch calls, then the summary call.
+            # _NUM_BATCHES batch calls, then the summary call.
             content = (
-                _batch_evaluations_json(call_index) if call_index <= 3 else SUMMARY_JSON
+                _batch_evaluations_json(call_index)
+                if call_index <= _NUM_BATCHES
+                else SUMMARY_JSON
             )
             return make_ai_response(tokens=100, content=content)
 
@@ -183,7 +191,7 @@ class NoOpenTransactionAcrossAICallsTest(GradingPipelineTestBase):
         ):
             ai_processor.grade_student_submission(teacher, RUBRIC_12Q, ANSWERS_12Q)
 
-        self.assertEqual(len(seen_in_atomic_block), 4)
+        self.assertEqual(len(seen_in_atomic_block), _NUM_BATCHES + 1)
         self.assertFalse(
             any(seen_in_atomic_block),
             "an AI call ran while a transaction was open — the pipeline is "
@@ -290,7 +298,9 @@ class FailedGradingRunRefundsEveryChargeTest(GradingPipelineTestBase):
         def fake_model(*args, **kwargs):
             call_index = CreditUsageLog.objects.filter(wallet=wallet).count() + 1
             content = (
-                _batch_evaluations_json(call_index) if call_index <= 3 else SUMMARY_JSON
+                _batch_evaluations_json(call_index)
+                if call_index <= _NUM_BATCHES
+                else SUMMARY_JSON
             )
             return make_ai_response(tokens=500, content=content)
 

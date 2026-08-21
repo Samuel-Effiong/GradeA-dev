@@ -615,6 +615,114 @@ be. Findings 2 and 3 keep strengthening across runs; Finding 4 is ready
 to be written off as "not discriminative on this dataset" pending a
 production read.
 
+## Run 6 — re-recorded after raising the chunk sizes
+
+Not a bug fix like Rounds 1-4: `GRADING_QUESTIONS_PER_CHUNK` moved 5 → 10
+and `ANSWERS_EXTRACTION_PAGES_PER_CHUNK` moved 1 → 3, based on a separate
+10-runs-per-config live-endpoint speed/accuracy investigation
+(see `benchmark_artifacts/EXTRACTION_ACCURACY_INVESTIGATION.md` and
+`GRADING_QA_INVESTIGATION.md`) that found no accuracy cost to either
+change on that dataset. This run exists to re-record this benchmark's
+own cached fixtures against the new chunk sizes — the old recordings'
+prompts no longer matched anything once the batch boundaries moved — and
+to confirm this dataset agrees with that investigation's finding.
+
+| Metric | Run 5 | Run 6 |
+|---|---|---|
+| Questions graded | 133 | 133 |
+| Exact rubric-level match | 84.2% | 82.7% |
+| Within one level | 100.0% | **100.0%** |
+| Out-of-band failures | 0 | **0** |
+| Submissions failing outright | 0 | **0** |
+| Deterministic tier 0 | 34/34 (100%) | **34/34 (100%)** |
+| Evidence verified | 97/98 (99.0%) | **97/98 (99.0%)** |
+| Identical-answer consistency | both consistent | **both consistent** |
+| Second-opinion disagreement rate | 8.3% (7/84) | **10.7% (9/84)** |
+| Second-opinion errors | 0 | **1** (see below) |
+| Cost | 803,980 tokens, ~64 min | **699,700 tokens, ~73 min** |
+
+**Read this as: did raising the chunk sizes cost accuracy on THIS
+dataset?** No stronger claim than that — this table can't speak to
+production data or to chunk sizes beyond what was tested (3
+pages/call, 10 questions/call). Exact-match moved 84.2% → 82.7%, inside
+the same run-to-run noise band Runs 3-5 already established on this
+21-submission sample; within-one-level, deterministic tier 0, and the
+zero-failure floor all held exactly. Token cost dropped (fewer, larger
+batches means less repeated context per call) despite wall-clock time
+rising slightly — consistent with fewer round trips at a slightly
+higher per-call latency each, not a regression in either direction.
+
+**One new second-opinion error** appeared this run: a batch's evidence
+enforcement rejected grader A's initial attempts (a long-derivation
+elision, the same mechanism as Finding 1) and the *second-opinion*
+re-grade of that same batch separately failed evidence enforcement
+after its own 3 attempts. Grader A's primary score still stands — this
+was a second-opinion-only failure — but it's a new interaction worth
+watching: with GRADING_QUESTIONS_PER_CHUNK now larger, a batch that
+fails evidence enforcement now costs more (both graders re-doing more
+questions per retry) than it did at chunk size 5. One occurrence isn't
+a pattern yet.
+
+**Bottom line:** re-recording after the chunk-size change didn't reveal
+a hidden accuracy cost on this dataset — the numbers move inside the
+established noise band, not outside it. The live-endpoint investigation
+that justified this change stands uncontradicted by this dataset.
+
+## Run 7 — five new maths questions restore batched-path coverage
+
+Run 6 raised the chunk sizes but left a gap: with
+`GRADING_QUESTIONS_PER_CHUNK` at 10, `maths` — the largest assignment at
+6 LLM-bound questions — no longer exceeded the chunk size, so the entire
+benchmark silently stopped exercising the batched grading path at all
+(`DatasetIntegrityTest.test_both_grading_paths_are_exercised` catching
+exactly the gap it was written to catch). Fixed by adding five new
+maths questions (Q10-14: box optimization, integration by parts, the
+integral test, a Maclaurin series, and a separable ODE — see
+`dataset.py`), each with a full rubric and answers for all 7 students,
+bringing `maths` to 11 LLM-bound questions. This is a dataset content
+change, not a pipeline change, so it needed its own `--mode record` pass
+and its own golden-snapshot regeneration, separate from Run 6's.
+
+| Metric | Run 6 | Run 7 |
+|---|---|---|
+| Questions graded | 133 | **168** |
+| Exact rubric-level match | 82.7% | **84.5%** |
+| Within one level | 100.0% | **100.0%** |
+| Out-of-band failures | 0 | **0** |
+| Submissions failing outright | 0 | **0** |
+| Deterministic tier 0 | 34/34 (100%) | **34/34 (100%)** (unchanged - no new objective questions) |
+| Evidence verified | 97/98 (99.0%) | **131/133 (98.5%)** |
+| Cost | 699,700 tokens, ~73 min | **983,505 tokens, ~105 min** |
+
+**Read this as: does the new maths content itself grade sensibly, not
+just "does it exist."** The 35 new answers (5 questions x 7 students)
+were authored the same way the rest of the dataset was — each answer
+calibrated to land on a specific rubric level with a note explaining
+why — and this run is the first check that the grader actually agrees.
+Exact-match rose slightly (82.7% -> 84.5%), staying in the same band
+established since Run 3; evidence-verified dropped a fraction of a
+point (99.0% -> 98.5%, one more unverified quote out of 35 new
+question-gradings) but stays consistent with Run 5/6's post-fix level,
+not a regression signal on this sample size. Both new failure classes
+this content type could plausibly introduce — the long-derivation
+elision from Finding 1 (this maths content has multi-step algebra
+answers, the exact shape that finding describes) and simple grading
+mistakes on genuinely new rubrics — showed up as zero submission-level
+failures in the final report, though one batch did hit the
+evidence-enforcement retry-and-degrade path mid-run (see the live log)
+before resolving.
+
+**`DatasetIntegrityTest.test_both_grading_paths_are_exercised` now
+passes again** — confirmed by running it directly before spending
+anything on this record pass, so the content was known to be
+structurally sufficient (11 > 10 LLM-bound questions) before the paid
+run, not discovered after.
+
+**Bottom line:** the batched-path coverage gap Run 6 left open is
+closed, and the new content grades within the established accuracy
+band rather than introducing a new one — no evidence the added
+questions behave differently from the rest of the dataset.
+
 ## Deferred to v2 — post-MVP
 
 Everything above ships now. One thing is deliberately held back:

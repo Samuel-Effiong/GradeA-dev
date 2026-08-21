@@ -24,7 +24,7 @@ from unittest.mock import MagicMock, patch
 from django.test import SimpleTestCase, TransactionTestCase, override_settings
 from django.utils import timezone
 
-from ai_processor.services import AIProcessor, ai_processor
+from ai_processor.services import GRADING_QUESTIONS_PER_CHUNK, AIProcessor, ai_processor
 from billing.models import (
     BillingInterval,
     CreditBucket,
@@ -132,17 +132,27 @@ class GradingCompletenessPipelineTestBase(TransactionTestCase):
 
 class BatchPathCompletenessTest(GradingCompletenessPipelineTestBase):
     """
-    Uses a 10-question rubric (> GRADING_QUESTIONS_PER_CHUNK=5) so this
+    Uses a 2*GRADING_QUESTIONS_PER_CHUNK-question rubric so this
     genuinely exercises the batched path's own per-batch retry loop in
     _grade_question_batch — not the single-pass path's outer-wrapper
     retry, which is covered separately by SinglePassCompletenessTest.
-    Batch 1 covers questions 1-5, batch 2 covers 6-10.
+    Batch 1 covers questions 1..CHUNK, batch 2 covers CHUNK+1..2*CHUNK.
+    Derived from the live constant, not hardcoded, so a chunk-size tune
+    doesn't silently stop this from exercising the batched path at all
+    (as happened when GRADING_QUESTIONS_PER_CHUNK moved from 5 to 10 and
+    the old hardcoded 10-question rubric fit in a single pass instead).
     """
 
+    _CHUNK = GRADING_QUESTIONS_PER_CHUNK
+    _TOTAL = _CHUNK * 2
+
     def test_incomplete_batch_is_retried_then_succeeds(self):
-        rubric = json.dumps([{"question_number": i, "points": 5} for i in range(1, 11)])
+        chunk, total = self._CHUNK, self._TOTAL
+        rubric = json.dumps(
+            [{"question_number": i, "points": 5} for i in range(1, total + 1)]
+        )
         answers = json.dumps(
-            [{"question_number": i, "answer_html": "x"} for i in range(1, 11)]
+            [{"question_number": i, "answer_html": "x"} for i in range(1, total + 1)]
         )
         call_count = {"n": 0}
 
@@ -150,12 +160,12 @@ class BatchPathCompletenessTest(GradingCompletenessPipelineTestBase):
             call_count["n"] += 1
             n = call_count["n"]
             if n == 1:
-                # Batch 1, attempt 1: drops question 5.
+                # Batch 1, attempt 1: drops the batch's last question.
                 content = json.dumps(
                     {
                         "question_evaluations": [
                             {"question_number": i, "score_awarded": 4}
-                            for i in range(1, 5)
+                            for i in range(1, chunk)
                         ]
                     }
                 )
@@ -169,7 +179,7 @@ class BatchPathCompletenessTest(GradingCompletenessPipelineTestBase):
                                 "score_awarded": 4,
                                 "evidence_quotes": ["x"],
                             }
-                            for i in range(1, 6)
+                            for i in range(1, chunk + 1)
                         ]
                     }
                 )
@@ -183,7 +193,7 @@ class BatchPathCompletenessTest(GradingCompletenessPipelineTestBase):
                                 "score_awarded": 4,
                                 "evidence_quotes": ["x"],
                             }
-                            for i in range(6, 11)
+                            for i in range(chunk + 1, total + 1)
                         ]
                     }
                 )
@@ -205,22 +215,26 @@ class BatchPathCompletenessTest(GradingCompletenessPipelineTestBase):
         self.assertEqual(
             call_count["n"], 4, "expected batch1 x2 + batch2 x1 + summary x1"
         )
-        self.assertEqual(result["grading_summary"]["total_score"], 40)
-        self.assertEqual(result["grading_summary"]["max_total_points"], 50)
+        self.assertEqual(result["grading_summary"]["total_score"], 4 * total)
+        self.assertEqual(result["grading_summary"]["max_total_points"], 5 * total)
 
     def test_persistently_incomplete_batch_fails_loudly_not_silently(self):
-        rubric = json.dumps([{"question_number": i, "points": 5} for i in range(1, 11)])
+        chunk, total = self._CHUNK, self._TOTAL
+        rubric = json.dumps(
+            [{"question_number": i, "points": 5} for i in range(1, total + 1)]
+        )
         answers = json.dumps(
-            [{"question_number": i, "answer_html": "x"} for i in range(1, 11)]
+            [{"question_number": i, "answer_html": "x"} for i in range(1, total + 1)]
         )
 
         def always_incomplete(*args, **kwargs):
-            # Batch 1 always drops question 5, on every one of its 3
-            # internal retry attempts.
+            # Batch 1 always drops its last question, on every one of its
+            # 3 internal retry attempts.
             content = json.dumps(
                 {
                     "question_evaluations": [
-                        {"question_number": i, "score_awarded": 4} for i in range(1, 5)
+                        {"question_number": i, "score_awarded": 4}
+                        for i in range(1, chunk)
                     ]
                 }
             )

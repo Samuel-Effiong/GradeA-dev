@@ -31,7 +31,16 @@ from ai_processor.grading_schemas import (
     GRADING_SUMMARY_RESPONSE_SCHEMA,
     QUESTION_EVALUATION_SCHEMA,
 )
-from ai_processor.services import AIProcessor
+from ai_processor.services import GRADING_QUESTIONS_PER_CHUNK, AIProcessor
+
+# Question count for fixtures that need to force the batched path (2
+# batches, sizes CHUNK + 3). Derived from the live constant rather than
+# hardcoded so a chunk-size tune doesn't silently make these fixtures fit
+# in a single pass instead - exactly what happened when
+# GRADING_QUESTIONS_PER_CHUNK moved from 5 to 10 and a hardcoded 7-question
+# fixture (fine when the chunk size was 5) stopped exceeding the new
+# chunk size.
+_BATCH_QUESTION_COUNT = GRADING_QUESTIONS_PER_CHUNK + 3
 
 
 def _ai_response(payload, model="test-model"):
@@ -193,14 +202,22 @@ class SchemaCallSiteTest(SimpleTestCase):
 
     @patch.object(AIProcessor, "execute_graded_task")
     def test_batched_calls_carry_batch_then_summary_schema(self, mock_execute):
-        questions = [_essay(n) for n in range(1, 8)]  # 7 → batched path
-        answers = [_answer(n, f"<p>Essay {n}</p>") for n in range(1, 8)]
+        questions = [
+            _essay(n) for n in range(1, _BATCH_QUESTION_COUNT + 1)
+        ]  # batched path
+        answers = [
+            _answer(n, f"<p>Essay {n}</p>") for n in range(1, _BATCH_QUESTION_COUNT + 1)
+        ]
 
         def respond(**kwargs):
             prompt = kwargs["user_prompt"][0]["text"]
             if SUMMARY_MARKER in prompt:
                 return _ai_response(_summary_payload())
-            asked = [n for n in range(1, 8) if f"Essay question {n}?" in prompt]
+            asked = [
+                n
+                for n in range(1, _BATCH_QUESTION_COUNT + 1)
+                if f"Essay question {n}?" in prompt
+            ]
             return _ai_response(_payload([_evaluation(n) for n in asked]))
 
         mock_execute.side_effect = respond
@@ -269,14 +286,22 @@ class AssignmentContextTest(SimpleTestCase):
 
     @patch.object(AIProcessor, "execute_graded_task")
     def test_batch_prompt_carries_title_and_batch_position(self, mock_execute):
-        questions = [_essay(n) for n in range(1, 8)]  # 7 → batched path
-        answers = [_answer(n, f"<p>Essay {n}</p>") for n in range(1, 8)]
+        questions = [
+            _essay(n) for n in range(1, _BATCH_QUESTION_COUNT + 1)
+        ]  # batched path
+        answers = [
+            _answer(n, f"<p>Essay {n}</p>") for n in range(1, _BATCH_QUESTION_COUNT + 1)
+        ]
 
         def respond(**kwargs):
             prompt = kwargs["user_prompt"][0]["text"]
             if SUMMARY_MARKER in prompt:
                 return _ai_response(_summary_payload())
-            asked = [n for n in range(1, 8) if f"Essay question {n}?" in prompt]
+            asked = [
+                n
+                for n in range(1, _BATCH_QUESTION_COUNT + 1)
+                if f"Essay question {n}?" in prompt
+            ]
             return _ai_response(_payload([_evaluation(n) for n in asked]))
 
         mock_execute.side_effect = respond
@@ -449,14 +474,22 @@ class CustomInstructionsTest(SimpleTestCase):
 
     @patch.object(AIProcessor, "execute_graded_task")
     def test_batch_path_also_carries_custom_prompt(self, mock_execute):
-        questions = [_essay(n) for n in range(1, 8)]  # 7 → batched path
-        answers = [_answer(n, f"<p>Essay {n}</p>") for n in range(1, 8)]
+        questions = [
+            _essay(n) for n in range(1, _BATCH_QUESTION_COUNT + 1)
+        ]  # batched path
+        answers = [
+            _answer(n, f"<p>Essay {n}</p>") for n in range(1, _BATCH_QUESTION_COUNT + 1)
+        ]
 
         def respond(**kwargs):
             prompt = kwargs["user_prompt"][0]["text"]
             if SUMMARY_MARKER in prompt:
                 return _ai_response(_summary_payload())
-            asked = [n for n in range(1, 8) if f"Essay question {n}?" in prompt]
+            asked = [
+                n
+                for n in range(1, _BATCH_QUESTION_COUNT + 1)
+                if f"Essay question {n}?" in prompt
+            ]
             return _ai_response(_payload([_evaluation(n) for n in asked]))
 
         mock_execute.side_effect = respond
@@ -569,9 +602,12 @@ class SinglePassEvidenceEnforcementTest(SimpleTestCase):
 class BatchEvidenceEnforcementTest(SimpleTestCase):
     def setUp(self):
         self.processor = AIProcessor()
-        # 7 essays → batched path (2 batches of 5 + 2).
-        self.questions = [_essay(n) for n in range(1, 8)]
-        self.answers = [_answer(n, f"<p>Essay {n} content.</p>") for n in range(1, 8)]
+        # _BATCH_QUESTION_COUNT essays -> batched path (2 batches).
+        self.questions = [_essay(n) for n in range(1, _BATCH_QUESTION_COUNT + 1)]
+        self.answers = [
+            _answer(n, f"<p>Essay {n} content.</p>")
+            for n in range(1, _BATCH_QUESTION_COUNT + 1)
+        ]
 
     @patch.object(AIProcessor, "execute_graded_task")
     def test_fabricated_batch_evidence_retries_then_degrades_on_the_last_try(
@@ -595,7 +631,11 @@ class BatchEvidenceEnforcementTest(SimpleTestCase):
             prompt = kwargs["user_prompt"][0]["text"]
             if SUMMARY_MARKER in prompt:
                 return _ai_response(_summary_payload())
-            asked = [n for n in range(1, 8) if f"Essay question {n}?" in prompt]
+            asked = [
+                n
+                for n in range(1, _BATCH_QUESTION_COUNT + 1)
+                if f"Essay question {n}?" in prompt
+            ]
             return _ai_response(
                 _payload([_evaluation(n, quotes=["fabricated span"]) for n in asked])
             )
@@ -613,7 +653,7 @@ class BatchEvidenceEnforcementTest(SimpleTestCase):
         self.assertEqual(mock_execute.call_count, 7)
 
         evaluations = result["question_evaluations"]
-        self.assertEqual(len(evaluations), 7)
+        self.assertEqual(len(evaluations), _BATCH_QUESTION_COUNT)
         # Every quote was fabricated, so every evaluation must carry the
         # unverified marker — the teacher can still tell.
         for evaluation in evaluations:
@@ -627,11 +667,19 @@ class BatchEvidenceEnforcementTest(SimpleTestCase):
             prompt = kwargs["user_prompt"][0]["text"]
             if SUMMARY_MARKER in prompt:
                 return _ai_response(_summary_payload())
-            asked = [n for n in range(1, 8) if f"Essay question {n}?" in prompt]
+            asked = [
+                n
+                for n in range(1, _BATCH_QUESTION_COUNT + 1)
+                if f"Essay question {n}?" in prompt
+            ]
             # Model hallucinates evaluations for EVERY question in every
             # batch response; only this batch's must survive.
             return _ai_response(
-                _payload([_evaluation(n) for n in range(1, 8)] if asked else [])
+                _payload(
+                    [_evaluation(n) for n in range(1, _BATCH_QUESTION_COUNT + 1)]
+                    if asked
+                    else []
+                )
             )
 
         mock_execute.side_effect = respond
@@ -640,11 +688,14 @@ class BatchEvidenceEnforcementTest(SimpleTestCase):
         )
 
         evaluations = result["question_evaluations"]
-        self.assertEqual(len(evaluations), 7)
+        self.assertEqual(len(evaluations), _BATCH_QUESTION_COUNT)
         numbers = sorted(ev["question_number"] for ev in evaluations)
-        self.assertEqual(numbers, list(range(1, 8)))
-        # 7 × 8 points each — would be double that if duplicates merged.
-        self.assertEqual(result["grading_summary"]["total_score"], 56)
+        self.assertEqual(numbers, list(range(1, _BATCH_QUESTION_COUNT + 1)))
+        # _BATCH_QUESTION_COUNT x 8 points each - would be double that
+        # if duplicates merged.
+        self.assertEqual(
+            result["grading_summary"]["total_score"], _BATCH_QUESTION_COUNT * 8
+        )
 
     @patch.object(AIProcessor, "execute_graded_task")
     def test_clean_batches_pass_with_verified_evidence(self, mock_execute):
@@ -652,7 +703,11 @@ class BatchEvidenceEnforcementTest(SimpleTestCase):
             prompt = kwargs["user_prompt"][0]["text"]
             if SUMMARY_MARKER in prompt:
                 return _ai_response(_summary_payload())
-            asked = [n for n in range(1, 8) if f"Essay question {n}?" in prompt]
+            asked = [
+                n
+                for n in range(1, _BATCH_QUESTION_COUNT + 1)
+                if f"Essay question {n}?" in prompt
+            ]
             return _ai_response(
                 _payload([_evaluation(n, quotes=[f"Essay {n} content"]) for n in asked])
             )

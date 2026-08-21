@@ -143,14 +143,14 @@ class BenchmarkGoldenMasterTest(BenchmarkFixtureMixin, TestCase):
     def test_snapshot_pins_the_headline_numbers(self):
         # A second, blunter guard. If someone regenerates the snapshot
         # carelessly to silence the test above, these hand-written values
-        # (transcribed from the Run 5 write-up in benchmark/FINDINGS.md)
+        # (transcribed from the Run 7 write-up in benchmark/FINDINGS.md)
         # still have to be edited deliberately, which is a much harder thing
         # to do by accident.
         expected = json.loads(GOLDEN_PATH.read_text())
-        self.assertEqual(expected["overall"]["questions"], 133)
-        self.assertEqual(expected["overall"]["exact_rate"], 0.8421)
+        self.assertEqual(expected["overall"]["questions"], 168)
+        self.assertEqual(expected["overall"]["exact_rate"], 0.8452)
         self.assertEqual(expected["overall"]["within_one_level_rate"], 1.0)
         self.assertEqual(expected["deterministic"]["claimed"], 34)
         self.assertEqual(expected["deterministic"]["correct"], 34)
-        self.assertEqual(expected["evidence"]["verified"], 97)
-        self.assertEqual(expected["evidence"]["checked"], 98)
+        self.assertEqual(expected["evidence"]["verified"], 131)
+        self.assertEqual(expected["evidence"]["checked"], 133)

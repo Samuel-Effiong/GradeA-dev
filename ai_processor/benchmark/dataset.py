@@ -454,6 +454,212 @@ MATHS = BenchmarkAssignment(
             r"\frac{2y - x^2}{y^2 - 2x}$. At $(3,3)$: "
             r"$\frac{6 - 9}{9 - 6} = \frac{-3}{3} = -1$.</p>",
         ),
+        # Q10-14 push this assignment's LLM-BOUND question count from 6 to
+        # 11, past GRADING_QUESTIONS_PER_CHUNK (10, raised from 5 after a
+        # live-endpoint speed/accuracy investigation - see
+        # benchmark_artifacts/EXTRACTION_ACCURACY_INVESTIGATION.md and
+        # GRADING_QA_INVESTIGATION.md). Q9's own comment describes it
+        # solving exactly this problem for the OLD chunk size of 5; these
+        # five exist so the benchmark keeps exercising the batched path
+        # (per-batch retries, out-of-batch filtering, per-batch
+        # completeness) instead of silently fitting in a single pass now
+        # that the chunk size is larger. See ai_processor/benchmark/
+        # FINDINGS.md, Run 6.
+        _open(
+            10,
+            r"<p>A rectangular box with a square base and no top is to have a "
+            r"volume of $32\ \text{cm}^3$. Find the dimensions that minimize "
+            r"the total surface area, and state the minimum area.</p>",
+            SHORT_ANSWER,
+            12,
+            _rubric(
+                (
+                    "excellent",
+                    12,
+                    "<p>Surface area expressed as a function of one variable "
+                    "($S = x^2 + 128/x$), the critical point $x=4$ found via "
+                    "$dS/dx=0$, confirmed as a minimum (second derivative or "
+                    "sign check), with $h=2$ and minimum area $48\\ \\text{cm}^2$ "
+                    "stated.</p>",
+                ),
+                (
+                    "good",
+                    8,
+                    "<p>Correct setup and correct critical point/dimensions, but "
+                    "the result is not verified as a minimum (no second "
+                    "derivative or sign argument).</p>",
+                ),
+                (
+                    "fair",
+                    4,
+                    "<p>Volume constraint used to eliminate a variable, but the "
+                    "differentiation or algebra that follows is wrong, giving "
+                    "incorrect dimensions.</p>",
+                ),
+                ("poor", 0, "<p>No valid setup, or no response.</p>"),
+            ),
+            r"<p>Let the base side be $x$ and height $h$, so $V = x^2h = 32 "
+            r"\Rightarrow h = 32/x^2$. Surface area (no top): "
+            r"$S = x^2 + 4xh = x^2 + 128/x$. Then $dS/dx = 2x - 128/x^2 = 0 "
+            r"\Rightarrow x^3 = 64 \Rightarrow x = 4$. Since "
+            r"$d^2S/dx^2 = 2 + 256/x^3 > 0$ for $x>0$, this is a minimum. "
+            r"$h = 32/16 = 2$, and $S = 16 + 128/4 = 48\ \text{cm}^2$.</p>",
+        ),
+        _open(
+            11,
+            r"<p>Evaluate $\displaystyle\int_{0}^{1} x^2 e^{-x}\,dx$ using "
+            r"integration by parts. Give an exact answer.</p>",
+            SHORT_ANSWER,
+            12,
+            _rubric(
+                (
+                    "excellent",
+                    12,
+                    "<p>Integration by parts applied twice (or tabular method), "
+                    "correct antiderivative $-e^{-x}(x^2+2x+2)$, evaluated "
+                    "exactly to $2 - 5/e$.</p>",
+                ),
+                (
+                    "good",
+                    8,
+                    "<p>Correct method and correct final answer, but one "
+                    "integration-by-parts step is asserted rather than shown.</p>",
+                ),
+                (
+                    "fair",
+                    4,
+                    "<p>Integration by parts attempted once but not carried "
+                    "through to completion, or a sign error in the second "
+                    "application, giving a wrong result.</p>",
+                ),
+                ("poor", 0, "<p>No valid method, or no response.</p>"),
+            ),
+            r"<p>Let $u=x^2, dv=e^{-x}dx$, so $du=2x\,dx, v=-e^{-x}$: "
+            r"$\int x^2e^{-x}dx = -x^2e^{-x} + 2\int xe^{-x}dx$. Repeating with "
+            r"$u=x, dv=e^{-x}dx$: $\int xe^{-x}dx = -xe^{-x} + \int e^{-x}dx = "
+            r"-xe^{-x} - e^{-x}$. So the antiderivative is "
+            r"$-e^{-x}(x^2+2x+2)$. Evaluating from $0$ to $1$: "
+            r"$[-e^{-1}(5)] - [-e^0(2)] = 2 - 5/e$.</p>",
+        ),
+        _open(
+            12,
+            r"<p>Determine whether $\displaystyle\sum_{n=2}^{\infty} "
+            r"\frac{1}{n(\ln n)^2}$ converges. Name the test you use and "
+            r"justify the conclusion.</p>",
+            SHORT_ANSWER,
+            12,
+            _rubric(
+                (
+                    "excellent",
+                    12,
+                    "<p>Integral test applied with the substitution $u=\\ln x$, "
+                    "the improper integral correctly evaluated to the finite "
+                    "value $1/\\ln 2$, conclusion 'converges' stated.</p>",
+                ),
+                (
+                    "good",
+                    8,
+                    "<p>Correct test and conclusion, but the improper integral's "
+                    "value is asserted to be finite without being evaluated.</p>",
+                ),
+                (
+                    "fair",
+                    4,
+                    "<p>A plausible test named but misapplied, or the correct "
+                    "conclusion given with no supporting work.</p>",
+                ),
+                (
+                    "poor",
+                    0,
+                    "<p>Wrong conclusion with no valid reasoning, or no "
+                    "response.</p>",
+                ),
+            ),
+            r"<p>Integral test: let $u = \ln x$, $du = dx/x$, so "
+            r"$\int \frac{dx}{x(\ln x)^2} = \int \frac{du}{u^2} = -\frac{1}{u} "
+            r"= -\frac{1}{\ln x}$. Evaluating from $2$ to $\infty$: as "
+            r"$x\to\infty$, $-1/\ln x \to 0$; at $x=2$ it is $-1/\ln 2$. The "
+            r"integral equals $1/\ln 2$, a finite value, so by the integral "
+            r"test the series converges.</p>",
+        ),
+        _open(
+            13,
+            r"<p>Find the first three nonzero terms of the Maclaurin series "
+            r"for $f(x) = \ln(1+x)$.</p>",
+            SHORT_ANSWER,
+            10,
+            _rubric(
+                (
+                    "excellent",
+                    10,
+                    "<p>Derivatives of $f$ at $0$ computed (or the series "
+                    "correctly derived another valid way), giving "
+                    "$x - \\frac{x^2}{2} + \\frac{x^3}{3}$ with correct signs.</p>",
+                ),
+                (
+                    "good",
+                    7,
+                    "<p>Correct three terms, but the result is quoted/recalled "
+                    "rather than derived from $f(0), f'(0), f''(0), f'''(0)$.</p>",
+                ),
+                (
+                    "fair",
+                    4,
+                    "<p>Method attempted (derivatives or known series) but a "
+                    "sign or coefficient error in one of the three terms.</p>",
+                ),
+                ("poor", 0, "<p>Wrong series, or no response.</p>"),
+            ),
+            r"<p>$f(x)=\ln(1+x)$: $f(0)=0$. $f'(x)=(1+x)^{-1}, f'(0)=1$. "
+            r"$f''(x)=-(1+x)^{-2}, f''(0)=-1$. $f'''(x)=2(1+x)^{-3}, "
+            r"f'''(0)=2$. Maclaurin series: $f(0) + f'(0)x + "
+            r"\frac{f''(0)}{2!}x^2 + \frac{f'''(0)}{3!}x^3 + \cdots = "
+            r"x - \frac{x^2}{2} + \frac{x^3}{3} - \cdots$. First three "
+            r"nonzero terms: $x - \frac{x^2}{2} + \frac{x^3}{3}$.</p>",
+        ),
+        _open(
+            14,
+            r"<p>Solve the differential equation $\displaystyle\frac{dy}{dx} "
+            r"= xy$ given $y(0) = 2$.</p>",
+            SHORT_ANSWER,
+            10,
+            _rubric(
+                (
+                    "excellent",
+                    10,
+                    "<p>Variables correctly separated and integrated "
+                    "($\\ln|y| = x^2/2 + C$), the initial condition applied "
+                    "correctly, giving $y = 2e^{x^2/2}$.</p>",
+                ),
+                (
+                    "good",
+                    7,
+                    "<p>Correct separation and general solution "
+                    "$y=Ae^{x^2/2}$, but the initial condition is applied with "
+                    "a minor slip, or the final answer is correct but the "
+                    "constant-of-integration step is compressed.</p>",
+                ),
+                (
+                    "fair",
+                    4,
+                    "<p>Variables separated but an integration error (e.g. the "
+                    "constant of integration dropped, or "
+                    "$\\int x\\,dx$ mishandled) gives a wrong general "
+                    "solution.</p>",
+                ),
+                (
+                    "poor",
+                    0,
+                    "<p>Treats the equation as if it were linear/constant-"
+                    "coefficient without separating variables, or no "
+                    "response.</p>",
+                ),
+            ),
+            r"<p>Separating variables: $\frac{dy}{y} = x\,dx$. Integrating: "
+            r"$\ln|y| = \frac{x^2}{2} + C$, so $y = Ae^{x^2/2}$ for "
+            r"$A = e^C$. Applying $y(0)=2$: $A = 2$. So "
+            r"$y = 2e^{x^2/2}$.</p>",
+        ),
     ],
 )
 

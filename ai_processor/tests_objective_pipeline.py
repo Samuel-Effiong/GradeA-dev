@@ -26,11 +26,12 @@ Run with:
 """
 
 import json
+import math
 from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase, TestCase, override_settings
 
-from ai_processor.services import AIProcessor
+from ai_processor.services import GRADING_QUESTIONS_PER_CHUNK, AIProcessor
 
 
 def _ai_response(payload, model="test-model"):
@@ -370,8 +371,12 @@ class ThresholdOnRemainderTest(SimpleTestCase):
             user=MagicMock(), rubric_json=questions, answer_json=answers
         )
 
-        # 3 batches (5+5+2) + 1 summary = 4 calls, exactly as before.
-        self.assertEqual(mock_execute.call_count, 4)
+        # ceil(12 / GRADING_QUESTIONS_PER_CHUNK) batches + 1 summary call.
+        # Derived from the live constant, not hardcoded - this used to
+        # assume chunk size 5 (3 batches + 1 summary = 4), and silently
+        # went stale when GRADING_QUESTIONS_PER_CHUNK moved to 10.
+        expected_batches = math.ceil(12 / GRADING_QUESTIONS_PER_CHUNK)
+        self.assertEqual(mock_execute.call_count, expected_batches + 1)
         first_prompt = mock_execute.call_args_list[0].kwargs["user_prompt"][0]["text"]
         # Objective content re-enters the AI prompts when the flag is off.
         self.assertIn("Objective question 1", first_prompt)
@@ -411,13 +416,19 @@ class ThresholdOnRemainderTest(SimpleTestCase):
 class BatchedHybridTest(SimpleTestCase):
     @patch.object(AIProcessor, "execute_graded_task")
     def test_merged_evaluations_reach_summary_and_totals(self, mock_execute):
-        # 4 clean objectives + 9 essays → 9 LLM-bound → batched path:
-        # 2 grading batches + 1 summary call.
+        # 4 clean objectives + (GRADING_QUESTIONS_PER_CHUNK + 3) essays ->
+        # that many LLM-bound questions -> batched path: 2 grading
+        # batches + 1 summary call. The essay count is derived from the
+        # live chunk-size constant (not hardcoded to the old value of 9,
+        # which assumed a chunk size of 5) so this keeps exercising the
+        # batched path rather than silently fitting in a single pass.
+        essay_count = GRADING_QUESTIONS_PER_CHUNK + 3
+        essay_end = 5 + essay_count  # essay question numbers: 5..essay_end-1
         questions = [_objective(n) for n in range(1, 5)] + [
-            _essay(n) for n in range(5, 14)
+            _essay(n) for n in range(5, essay_end)
         ]
         answers = [_answer(n, "Paris") for n in range(1, 5)] + [
-            _answer(n, f"<p>Essay {n}</p>") for n in range(5, 14)
+            _answer(n, f"<p>Essay {n}</p>") for n in range(5, essay_end)
         ]
 
         def respond(**kwargs):
@@ -434,7 +445,7 @@ class BatchedHybridTest(SimpleTestCase):
                     }
                 )
             # Answer exactly the questions this batch asked about.
-            asked = [n for n in range(5, 14) if f"Essay question {n}?" in prompt]
+            asked = [n for n in range(5, essay_end) if f"Essay question {n}?" in prompt]
             return _ai_response(
                 {"question_evaluations": [_essay_evaluation(n) for n in asked]}
             )
@@ -462,10 +473,16 @@ class BatchedHybridTest(SimpleTestCase):
         ]
         self.assertIn('"graded_by": "deterministic"', summary_prompt)
 
-        self.assertEqual(len(result["question_evaluations"]), 13)
-        # 4×5 objective + 9×8 essay = 92 of 4×5 + 9×10 = 110.
-        self.assertEqual(result["grading_summary"]["total_score"], 92)
-        self.assertEqual(result["grading_summary"]["max_total_points"], 110)
+        self.assertEqual(len(result["question_evaluations"]), 4 + essay_count)
+        # 4 objectives x 5 points + essay_count essays x 8 points awarded
+        # (of 4x5 + essay_count x10 max) - see _objective/_essay_evaluation
+        # defaults above.
+        self.assertEqual(
+            result["grading_summary"]["total_score"], 4 * 5 + essay_count * 8
+        )
+        self.assertEqual(
+            result["grading_summary"]["max_total_points"], 4 * 5 + essay_count * 10
+        )
 
 
 @override_settings(
