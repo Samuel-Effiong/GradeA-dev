@@ -184,4 +184,14 @@ class GradingFallbackModelRestrictionTest(TestCase):
 
     def test_non_grading_calls_keep_default_fallbacks(self):
         # None means __ai_model falls through to DEFAULT_FALLBACK_MODELS.
-        self.assertIsNone(self._captured_sub_models("extract_assignment"))
+        self.assertIsNone(self._captured_sub_models("generate_assignment"))
+
+    def test_extraction_calls_use_restricted_fallbacks(self):
+        # Reading handwriting - student answers or scanned assignment
+        # questions - is just as sensitive to a silent nano-tier downgrade
+        # as grading is, so both extraction task types get the same
+        # restricted fallback list as grading.
+        for task_type in ("extract_answer", "extract_assignment"):
+            self.assertEqual(
+                self._captured_sub_models(task_type), GRADING_FALLBACK_MODELS
+            )

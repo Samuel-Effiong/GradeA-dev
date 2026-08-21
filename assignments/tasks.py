@@ -670,7 +670,12 @@ def format_grade(self, submission_id, prompt, processing_task_id=None):
         raise
 
 
-@shared_task(bind=True, max_retries=3)
+# soft/hard limits sized against ai_processor.services.PDFService.MAX_PAGE_COUNT
+# (300) and ANSWERS_EXTRACTION_PAGES_PER_CHUNK (3) - see the comments on
+# both for the real-endpoint timing this is derived from. Re-derive this
+# alongside those two if either changes; it must stay safely under
+# CELERY_BROKER_TRANSPORT_OPTIONS' visibility_timeout=3600s in settings.py.
+@shared_task(bind=True, max_retries=3, soft_time_limit=2700, time_limit=3000)
 def upload_answers_engine_async(
     self,
     assignment_id,

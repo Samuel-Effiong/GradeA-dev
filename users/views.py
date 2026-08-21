@@ -74,6 +74,7 @@ from classrooms.serializers import (
 from students.models import BackgroundTaskStatus, BatchUploadSession
 from students.task_context import get_session_context, get_task_context
 from students.task_tracking import (
+    TERMINAL_TASK_STATUSES,
     cancel_processing_task,
     get_processing_task,
     normalize_processing_task_status,
@@ -1798,7 +1799,11 @@ class TaskViewSet(viewsets.ViewSet):
         description=(
             "Cancel a background task by its Celery task id. "
             "If the task is already running, the worker is terminated "
-            "and any remaining pipeline steps will refuse to save results."
+            "and any remaining pipeline steps will refuse to save results. "
+            "If the task had already reached a final state (completed, "
+            "failed, or already cancelled) before this request arrived, "
+            "the response reports that real final status instead of "
+            "claiming cancellation succeeded."
         ),
         responses={
             200: OpenApiResponse(
@@ -1823,13 +1828,23 @@ class TaskViewSet(viewsets.ViewSet):
         if not processing_task:
             raise NotFound("Tracked task not found for this user.")
 
-        cancel_processing_task(processing_task)
+        already_terminal = processing_task.status in TERMINAL_TASK_STATUSES
+        processing_task = cancel_processing_task(processing_task)
+        status_value = self._map_status(processing_task.status)
+
+        if already_terminal:
+            message = (
+                "This task had already finished before the cancellation "
+                f"request reached it — its final status is {status_value!r}."
+            )
+        else:
+            message = "Background task cancellation requested successfully."
 
         serializer = TaskCancelSerializer(
             {
                 "task_id": task_id,
-                "status": "cancelled",
-                "message": "Background task cancellation requested successfully.",
+                "status": status_value,
+                "message": message,
             }
         )
         return Response(serializer.data, status=status.HTTP_200_OK)

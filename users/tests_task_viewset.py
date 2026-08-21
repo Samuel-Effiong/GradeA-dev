@@ -64,6 +64,146 @@ class TaskViewSetTest(APITestCase):
             task_id, terminate=True, signal="SIGTERM"
         )
 
+    @patch("students.task_tracking.celery_app.control.revoke")
+    @patch("students.task_tracking.AsyncResult.revoke")
+    def test_cancel_endpoint_reports_true_status_for_already_succeeded_task(
+        self, mock_async_revoke, mock_control_revoke
+    ):
+        task_id = str(uuid.uuid4())
+        processing_task = BackgroundProcessingTask.objects.create(
+            requested_by=self.teacher,
+            celery_task_id=task_id,
+            task_type=BackgroundTaskType.SUBMISSION_GRADING,
+            status=BackgroundTaskStatus.SUCCESS,
+            file_name="submission.pdf",
+        )
+
+        url = reverse("task-cancel", kwargs={"task_id": task_id})
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "completed")
+        self.assertNotEqual(response.data["status"], "cancelled")
+        self.assertIn("already finished", response.data["message"])
+
+        processing_task.refresh_from_db()
+        self.assertEqual(processing_task.status, BackgroundTaskStatus.SUCCESS)
+        mock_async_revoke.assert_not_called()
+        mock_control_revoke.assert_not_called()
+
+    @patch("students.task_tracking.celery_app.control.revoke")
+    @patch("students.task_tracking.AsyncResult.revoke")
+    def test_cancel_endpoint_reports_true_status_for_already_failed_task(
+        self, mock_async_revoke, mock_control_revoke
+    ):
+        task_id = str(uuid.uuid4())
+        processing_task = BackgroundProcessingTask.objects.create(
+            requested_by=self.teacher,
+            celery_task_id=task_id,
+            task_type=BackgroundTaskType.SUBMISSION_GRADING,
+            status=BackgroundTaskStatus.FAILURE,
+            file_name="submission.pdf",
+        )
+
+        url = reverse("task-cancel", kwargs={"task_id": task_id})
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "failed")
+        self.assertNotEqual(response.data["status"], "cancelled")
+        self.assertIn("already finished", response.data["message"])
+
+        processing_task.refresh_from_db()
+        self.assertEqual(processing_task.status, BackgroundTaskStatus.FAILURE)
+        mock_async_revoke.assert_not_called()
+        mock_control_revoke.assert_not_called()
+
+    @patch("students.task_tracking.celery_app.control.revoke")
+    @patch("students.task_tracking.AsyncResult.revoke")
+    def test_cancel_endpoint_reports_true_status_for_already_cancelled_task(
+        self, mock_async_revoke, mock_control_revoke
+    ):
+        task_id = str(uuid.uuid4())
+        processing_task = BackgroundProcessingTask.objects.create(
+            requested_by=self.teacher,
+            celery_task_id=task_id,
+            task_type=BackgroundTaskType.SUBMISSION_GRADING,
+            status=BackgroundTaskStatus.CANCELLED,
+            file_name="submission.pdf",
+        )
+
+        url = reverse("task-cancel", kwargs={"task_id": task_id})
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "cancelled")
+        self.assertIn("already finished", response.data["message"])
+
+        processing_task.refresh_from_db()
+        self.assertEqual(processing_task.status, BackgroundTaskStatus.CANCELLED)
+        mock_async_revoke.assert_not_called()
+        mock_control_revoke.assert_not_called()
+
+    @patch("students.task_tracking.celery_app.control.revoke")
+    @patch("students.task_tracking.AsyncResult.revoke")
+    def test_cancel_endpoint_reports_cancelled_for_pending_task(
+        self, mock_async_revoke, mock_control_revoke
+    ):
+        task_id = str(uuid.uuid4())
+        processing_task = BackgroundProcessingTask.objects.create(
+            requested_by=self.teacher,
+            celery_task_id=task_id,
+            task_type=BackgroundTaskType.SUBMISSION_GRADING,
+            status=BackgroundTaskStatus.PENDING,
+            file_name="submission.pdf",
+        )
+
+        url = reverse("task-cancel", kwargs={"task_id": task_id})
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "cancelled")
+        self.assertEqual(
+            response.data["message"],
+            "Background task cancellation requested successfully.",
+        )
+
+        processing_task.refresh_from_db()
+        self.assertEqual(processing_task.status, BackgroundTaskStatus.CANCELLED)
+        mock_async_revoke.assert_called_once()
+        mock_control_revoke.assert_called_once()
+
+    @patch("students.task_tracking.celery_app.control.revoke")
+    @patch("students.task_tracking.AsyncResult.revoke")
+    def test_cancel_endpoint_reports_cancelled_for_started_task(
+        self, mock_async_revoke, mock_control_revoke
+    ):
+        task_id = str(uuid.uuid4())
+        processing_task = BackgroundProcessingTask.objects.create(
+            requested_by=self.teacher,
+            celery_task_id=task_id,
+            task_type=BackgroundTaskType.SUBMISSION_GRADING,
+            status=BackgroundTaskStatus.STARTED,
+            file_name="submission.pdf",
+        )
+
+        url = reverse("task-cancel", kwargs={"task_id": task_id})
+        response = self.client.post(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "cancelled")
+        self.assertEqual(
+            response.data["message"],
+            "Background task cancellation requested successfully.",
+        )
+
+        processing_task.refresh_from_db()
+        self.assertEqual(processing_task.status, BackgroundTaskStatus.CANCELLED)
+        mock_async_revoke.assert_called_once_with(terminate=True, signal="SIGTERM")
+        mock_control_revoke.assert_called_once_with(
+            task_id, terminate=True, signal="SIGTERM"
+        )
+
     def test_task_status_returns_cancelled_for_tracked_cancelled_task(self):
         task_id = str(uuid.uuid4())
         BackgroundProcessingTask.objects.create(

@@ -16,6 +16,7 @@ from django.db import transaction
 from django.db.models import (
     CharField,
     Count,
+    Exists,
     IntegerField,
     OuterRef,
     Prefetch,
@@ -2696,9 +2697,10 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         if self.action == "my_students":
             if user.user_type == UserTypes.TEACHER:
-                return CustomUser.objects.filter(
-                    enrollments__course__teacher=user
-                ).distinct()
+                active_enrollment = StudentCourse.objects.filter(
+                    student=OuterRef("pk"), course__teacher=user
+                ).exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
+                return CustomUser.objects.filter(Exists(active_enrollment))
             return CustomUser.objects.none()
 
         # Scope the submissions prefetch to what the serializer can

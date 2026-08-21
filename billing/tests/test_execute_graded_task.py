@@ -204,6 +204,60 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
         )
 
     @patch.object(AIProcessor, "_AIProcessor__ai_model")
+    def test_answer_extraction_also_restricts_fallback_routing(self, mock_ai_model):
+        mock_ai_model.return_value = make_ai_response(tokens=500)
+        teacher = self._make_teacher_with_credits()
+
+        self.processor.execute_graded_task(
+            user=teacher,
+            feature="Answer Extraction",
+            task_type="extract_answer",
+            user_prompt="short prompt",
+        )
+
+        # Transcribing handwriting is just as sensitive to a silent
+        # nano-tier downgrade as grading is - see the sub_models comment
+        # in execute_graded_task. extract_answer must get the same
+        # comparable-capability-only fallback list, never the default
+        # list that includes a nano-tier model.
+        mock_ai_model.assert_called_once_with(
+            None,
+            "short prompt",
+            None,
+            None,
+            True,
+            None,
+            sub_models=GRADING_FALLBACK_MODELS,
+            override_model=None,
+        )
+
+    @patch.object(AIProcessor, "_AIProcessor__ai_model")
+    def test_assignment_extraction_also_restricts_fallback_routing(self, mock_ai_model):
+        mock_ai_model.return_value = make_ai_response(tokens=500)
+        teacher = self._make_teacher_with_credits()
+
+        self.processor.execute_graded_task(
+            user=teacher,
+            feature="Assignment Extraction",
+            task_type="extract_assignment",
+            user_prompt="short prompt",
+        )
+
+        # Reading a scanned/handwritten assignment is just as sensitive to
+        # a silent nano-tier downgrade as answer extraction is - see the
+        # sub_models comment in execute_graded_task.
+        mock_ai_model.assert_called_once_with(
+            None,
+            "short prompt",
+            None,
+            None,
+            True,
+            None,
+            sub_models=GRADING_FALLBACK_MODELS,
+            override_model=None,
+        )
+
+    @patch.object(AIProcessor, "_AIProcessor__ai_model")
     def test_tool_call_message_with_none_content_does_not_crash(self, mock_ai_model):
         """
         Regression test: a replayed assistant tool-call message (as built

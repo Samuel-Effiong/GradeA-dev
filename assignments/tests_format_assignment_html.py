@@ -21,6 +21,7 @@ Run with:
 """
 
 import json
+import re
 
 from django.test import SimpleTestCase
 
@@ -276,18 +277,44 @@ class OptionsNoneHandlingTest(SimpleTestCase):
         self.assertIn("Choice B", html)
 
 
+def option_paragraphs(doc):
+    """
+    Paragraph nodes that are option rows: their first inline child carries a
+    `strong` mark and text matching a generated letter marker ("A. ", "B. ",
+    ...). Isolates option paragraphs from the many other paragraphs a
+    rendered assignment contains (title, instructions, question text, ...).
+    """
+    found = []
+    for node in find_nodes(doc, "paragraph"):
+        content = node.get("content") or []
+        if not content:
+            continue
+        first = content[0]
+        if first.get("type") != "text":
+            continue
+        marks = {m["type"] for m in first.get("marks", [])}
+        if "strong" not in marks:
+            continue
+        if not re.match(r"^[A-Z]\. ", first.get("text", "")):
+            continue
+        found.append(node)
+    return found
+
+
 class OptionsListStructureTest(SimpleTestCase):
     """
-    Regression: options were rendered as bare <p> tags inside a <div
-    style="padding-left:25px">. `div` has no schema node, so it was silently
-    dropped on conversion, its children hoisted to the top level as flat,
-    unindented, ungrouped paragraphs - indentation the student never actually
-    saw. Options are now a real <ul>/<li> list, which the schema does support
-    (bullet_list/list_item, via add_list_nodes), so grouping and indentation
-    survive conversion and come from the editor's own list styling.
+    Options render as lettered paragraphs ("A.", "B.", ...), not a bullet
+    list: an MCQ reads as answer choices, not an unordered list of facts.
+
+    An earlier version rendered options as bare <p> tags inside a <div
+    style="padding-left:25px">; `div` has no schema node, so it was silently
+    dropped on conversion and the indentation with it. A version after that
+    used a real <ul>/<li> list (bullet_list/list_item, via add_list_nodes) to
+    fix the dropped indentation, which survived conversion correctly but
+    rendered every option as a bullet point rather than a lettered choice.
     """
 
-    def test_options_render_as_a_bullet_list_in_the_html(self):
+    def test_options_render_as_lettered_paragraphs_in_the_html(self):
         html = A.format_assignment_standard_html(
             base_data(
                 questions=[
@@ -298,12 +325,13 @@ class OptionsListStructureTest(SimpleTestCase):
                 ]
             )
         )
-        self.assertIn("<ul>", html)
-        self.assertIn("<li>A) one</li>", html)
-        self.assertIn("<li>B) two</li>", html)
+        self.assertIn("<p><strong>A. </strong>one</p>", html)
+        self.assertIn("<p><strong>B. </strong>two</p>", html)
+        self.assertNotIn("<ul>", html)
+        self.assertNotIn("<li>", html)
         self.assertNotIn("padding-left", html)
 
-    def test_options_convert_to_a_single_bullet_list_with_one_item_per_option(self):
+    def test_options_produce_one_lettered_paragraph_per_option(self):
         html = A.format_assignment_standard_html(
             base_data(
                 questions=[
@@ -316,14 +344,13 @@ class OptionsListStructureTest(SimpleTestCase):
         )
         doc = json.loads(A.html_to_prosemirror_text(html))
 
-        lists = find_nodes(doc, "bullet_list")
-        items = find_nodes(doc, "list_item")
+        self.assertEqual(len(find_nodes(doc, "bullet_list")), 0)
+        paragraphs = option_paragraphs(doc)
 
-        self.assertEqual(len(lists), 1)
-        self.assertEqual(len(items), 4)
+        self.assertEqual(len(paragraphs), 4)
         self.assertEqual(
-            [text_of(item) for item in items],
-            ["A) one", "B) two", "C) three", "D) four"],
+            [text_of(p) for p in paragraphs],
+            ["A. one", "B. two", "C. three", "D. four"],
         )
 
     def test_option_order_is_preserved(self):
@@ -335,11 +362,79 @@ class OptionsListStructureTest(SimpleTestCase):
             )
         )
         doc = json.loads(A.html_to_prosemirror_text(html))
-        items = find_nodes(doc, "list_item")
+        paragraphs = option_paragraphs(doc)
 
-        self.assertEqual([text_of(item) for item in items], options)
+        self.assertEqual(
+            [text_of(p) for p in paragraphs],
+            [f"{letter}. option" for letter in "ABCDEFGH"],
+        )
 
-    def test_option_html_formatting_is_preserved_inside_the_list_item(self):
+    def test_a_pre_existing_letter_marker_is_not_duplicated(self):
+        """
+        The AI already bakes a marker into option text ("A) ...", "(A) ...",
+        "a. ..."). Our own generated letter must replace it, not sit
+        alongside it ("A. A) ...").
+        """
+        html = A.format_assignment_standard_html(
+            base_data(
+                questions=[
+                    base_question(
+                        question_type="OBJECTIVE",
+                        options=["A) one", "(B) two", "c. three", "D. four"],
+                    )
+                ]
+            )
+        )
+        doc = json.loads(A.html_to_prosemirror_text(html))
+        paragraphs = option_paragraphs(doc)
+
+        self.assertEqual(
+            [text_of(p) for p in paragraphs],
+            ["A. one", "B. two", "C. three", "D. four"],
+        )
+        for stray in ("A. A)", "B. (B)", "C. c.", "D. D."):
+            self.assertNotIn(stray, html)
+
+    def test_a_p_wrapped_option_stays_in_one_paragraph_with_its_letter(self):
+        """
+        Regression: a live generation call showed the AI often wraps each
+        option in its own <p> ("<p>Evaporation</p>"), not bare text. Naively
+        wrapping that in another <p> for the letter marker
+        ("<p><strong>A. </strong><p>Evaporation</p></p>") nests a <p> inside
+        a <p>, which is invalid HTML - the parser auto-closes the outer one
+        as soon as it meets the inner one, so the letter and the option text
+        land in two separate, disconnected paragraphs instead of one.
+        """
+        html = A.format_assignment_standard_html(
+            base_data(
+                questions=[
+                    base_question(
+                        question_type="OBJECTIVE",
+                        options=[
+                            "<p>Condensation</p>",
+                            "<p>Evaporation</p>",
+                            "<p>Precipitation</p>",
+                            "<p>Transpiration</p>",
+                        ],
+                    )
+                ]
+            )
+        )
+        doc = json.loads(A.html_to_prosemirror_text(html))
+        paragraphs = option_paragraphs(doc)
+
+        self.assertEqual(len(paragraphs), 4)
+        self.assertEqual(
+            [text_of(p) for p in paragraphs],
+            [
+                "A. Condensation",
+                "B. Evaporation",
+                "C. Precipitation",
+                "D. Transpiration",
+            ],
+        )
+
+    def test_option_html_formatting_is_preserved_inside_the_paragraph(self):
         html = A.format_assignment_standard_html(
             base_data(
                 questions=[
@@ -351,9 +446,9 @@ class OptionsListStructureTest(SimpleTestCase):
             )
         )
         doc = json.loads(A.html_to_prosemirror_text(html))
-        items = find_nodes(doc, "list_item")
+        paragraphs = option_paragraphs(doc)
 
-        self.assertEqual(len(items), 1)
+        self.assertEqual(len(paragraphs), 1)
         found_marks = set()
 
         def walk(node):
@@ -362,11 +457,11 @@ class OptionsListStructureTest(SimpleTestCase):
             for child in node.get("content", []):
                 walk(child)
 
-        walk(items[0])
+        walk(paragraphs[0])
         self.assertIn("strong", found_marks)
-        self.assertIn("Bold option", text_of(items[0]))
+        self.assertIn("Bold option", text_of(paragraphs[0]))
 
-    def test_a_single_option_still_produces_a_valid_list(self):
+    def test_a_single_option_still_renders(self):
         html = A.format_assignment_standard_html(
             base_data(
                 questions=[
@@ -375,11 +470,12 @@ class OptionsListStructureTest(SimpleTestCase):
             )
         )
         doc = json.loads(A.html_to_prosemirror_text(html))
+        paragraphs = option_paragraphs(doc)
 
-        self.assertEqual(len(find_nodes(doc, "bullet_list")), 1)
-        self.assertEqual(len(find_nodes(doc, "list_item")), 1)
+        self.assertEqual(len(paragraphs), 1)
+        self.assertEqual(text_of(paragraphs[0]), "A. Only one")
 
-    def test_no_options_list_is_emitted_for_a_non_objective_question(self):
+    def test_no_options_are_emitted_for_a_non_objective_question(self):
         html = A.format_assignment_standard_html(
             base_data(
                 questions=[
@@ -389,13 +485,14 @@ class OptionsListStructureTest(SimpleTestCase):
                 ]
             )
         )
-        self.assertNotIn("<ul>", html)
+        self.assertNotIn("should", html)
+        self.assertNotIn("<strong>A. </strong>", html)
 
-    def test_no_options_list_is_emitted_when_options_is_empty(self):
+    def test_no_options_are_emitted_when_options_is_empty(self):
         html = A.format_assignment_standard_html(
             base_data(questions=[base_question(question_type="OBJECTIVE", options=[])])
         )
-        self.assertNotIn("<ul>", html)
+        self.assertNotIn("<strong>A. </strong>", html)
 
     def test_hostile_option_content_is_still_sanitised(self):
         html = A.format_assignment_standard_html(
@@ -414,8 +511,9 @@ class OptionsListStructureTest(SimpleTestCase):
     def test_options_with_hostile_answer_from_a_real_end_to_end_document(self):
         """
         Mirrors the shape of a live chemistry MCQ (see the production sample
-        that surfaced this bug): a paragraph question followed by lettered
-        options, going through the full render -> sanitize -> convert path.
+        that surfaced the original list-item bug): a paragraph question
+        followed by lettered options, going through the full render ->
+        sanitize -> convert path.
         """
         data = base_data(
             title="<h1>Physical Chemistry — Assessment</h1>",
@@ -437,9 +535,9 @@ class OptionsListStructureTest(SimpleTestCase):
         html = A.format_assignment_standard_html(data)
         doc = json.loads(A.html_to_prosemirror_text(html))
 
-        items = find_nodes(doc, "list_item")
-        self.assertEqual(len(items), 4)
-        self.assertEqual(text_of(items[1]), "B) HSO4^-")
+        paragraphs = option_paragraphs(doc)
+        self.assertEqual(len(paragraphs), 4)
+        self.assertEqual(text_of(paragraphs[1]), "B. HSO4^-")
 
         def check_known(node):
             node_type = node.get("type")

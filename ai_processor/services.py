@@ -154,9 +154,29 @@ CHUNK_SIZE = 2
 PROSEMIRROR_CHUNK_THRESHOLD = 4500
 PROSEMIRROR_TOKEN_BUDGET_PER_CHUNK = 3000
 
-ANSWERS_EXTRACTION_PAGES_PER_CHUNK = 1
+# Raised from 1 to 3 on 2026-08-21. See
+# benchmark_artifacts/EXTRACTION_ACCURACY_INVESTIGATION.md: an initial
+# 10-run-per-config test appeared to show accuracy dropping as this rose
+# (85.8% -> 83.3% -> 78.7%), but that was a measurement artifact - the
+# ground-truth PDF's answers ended in a bracketed watermark tag
+# (e.g. "[UNIQKEY-SIERRA-2256]"), which the model reliably treats as a
+# droppable citation-style annotation rather than answer content, the same
+# way it would a real footnote marker. Rescoring on the actual answer text
+# (ignoring that artificial tag) found 100% content accuracy at 1, 2, AND
+# 3 pages/call across all 30 runs (300 real page-extractions, zero
+# content losses). 3 is the fastest of the three sizes actually measured
+# (~6.5s/page vs ~13.7s/page at 1/chunk) - not tested above 3, re-benchmark
+# before raising further.
+ANSWERS_EXTRACTION_PAGES_PER_CHUNK = 3
 
-GRADING_QUESTIONS_PER_CHUNK = 5
+# Raised from 5 to 10 on 2026-08-21 based on a 10-run-per-config
+# live-endpoint test (50 real runs total) that found grading accuracy at
+# a flat 100% at 1, 2, 4, 5, AND 10 questions/call - no accuracy cost
+# found, and it's the fastest of the sizes tested (see
+# benchmark_artifacts/run_accuracy_benchmark_v2.py and
+# run_live_timing_benchmark.py). Not tested above 10 - re-benchmark before
+# raising further.
+GRADING_QUESTIONS_PER_CHUNK = 10
 
 MAIN_MODEL = "x-ai/grok-4.3"
 
@@ -3597,12 +3617,17 @@ Now, respond to the following teacher's instruction using the rules above
 
         ensure_task_not_cancelled(processing_task_id)
 
-        # Grading never falls back to a nano-tier model: two students in the
-        # same class must not be graded by models of visibly different
-        # capability depending on transient routing (see
-        # GRADING_FALLBACK_MODELS).
+        # Grading, answer extraction, and assignment extraction never fall
+        # back to a nano-tier model: two students in the same class must
+        # not be graded - or have their handwriting transcribed - by
+        # models of visibly different capability depending on transient
+        # routing. Nano-tier vision models are especially prone to
+        # misreading or paraphrasing handwritten answers/questions instead
+        # of transcribing them verbatim (see GRADING_FALLBACK_MODELS).
         sub_models = (
-            GRADING_FALLBACK_MODELS if task_type == "grade_assignment" else None
+            GRADING_FALLBACK_MODELS
+            if task_type in ("grade_assignment", "extract_answer", "extract_assignment")
+            else None
         )
 
         # A caller that pins the model (the blind second grader) pins the
@@ -4151,7 +4176,19 @@ Turn this data into concise school-admin-facing narration.
 
 
 class PDFService:
-    MAX_PAGE_COUNT = 1000
+    # Lowered from 1000, then revised to 300 on 2026-08-21. 1000 pages was
+    # never validated against real throughput. Sized against
+    # ANSWERS_EXTRACTION_PAGES_PER_CHUNK=3's real measured timing
+    # (conservative ~8.35s/page = mean + 2*stdev of the real per-call
+    # time, see benchmark_artifacts/run_live_timing_benchmark.py): 300
+    # pages is a ~2506s worst case, comfortably under
+    # upload_answers_engine_async's time_limit=3000 (assignments/tasks.py)
+    # and CELERY_BROKER_TRANSPORT_OPTIONS' visibility_timeout=3600s - a
+    # task running past that risks the same Redis-redelivery/
+    # double-execution failure documented next to that setting. This
+    # number is derived from ANSWERS_EXTRACTION_PAGES_PER_CHUNK's value,
+    # not independent of it - re-derive both together if either changes.
+    MAX_PAGE_COUNT = 300
 
     # How many pages are rasterized by a single pdftoppm invocation before
     # their compressed bytes are kept and the raw page files are deleted.

@@ -91,12 +91,21 @@ def send_email_task(
     merge_data=None,
 ):
     logger.warning("sending email to subjec: %s", subject)
-    return _send_email_impl(
-        subject=subject,
-        message=message,
-        from_email=from_email,
-        recipient_list=recipient_list,
-        html_message=html_message,
-        template_id=template_id,
-        merge_data=merge_data,
-    )
+    try:
+        return _send_email_impl(
+            subject=subject,
+            message=message,
+            from_email=from_email,
+            recipient_list=recipient_list,
+            html_message=html_message,
+            template_id=template_id,
+            merge_data=merge_data,
+        )
+    except Exception as exc:
+        # _send_email_impl already tried the plain send_mail fallback (or
+        # explains why it couldn't). A failure here is a real send failure
+        # (rate limit, transient provider error, network blip), so retry
+        # with backoff instead of dropping the email after one attempt -
+        # max_retries/default_retry_delay above were configured but never
+        # actually wired to a retry call, so every failure was final.
+        raise self.retry(exc=exc, countdown=self.default_retry_delay) from exc

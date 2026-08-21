@@ -1,7 +1,6 @@
 import base64
 import logging
-
-# import string
+import re
 from datetime import datetime
 from io import BytesIO
 from pathlib import Path
@@ -14,6 +13,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile, UploadedFile
 from django.db import transaction
 from django.utils import timezone
 from django.utils.html import escape as escape_html
+from lxml import html as lxml_html
 from PIL import Image
 from rest_framework.exceptions import ParseError
 
@@ -127,6 +127,69 @@ def _list_or_empty(value, field_name):
         )
         return []
     return value
+
+
+# Matches a letter option-marker the AI may already have baked into the option
+# text ("A) ...", "A. ...", "(A) ...") so it can be stripped before we prepend
+# our own generated letter - otherwise the rendered option shows the letter
+# twice ("A. A) ...").
+_OPTION_LETTER_PREFIX_RE = re.compile(r"^\s*(?:\([A-Za-z]\)|[A-Za-z][.)])\s*")
+
+
+def _strip_leading_option_letter(text):
+    """Strip a pre-existing "A)"/"A."/"(A)" marker from AI-supplied option text."""
+    if not isinstance(text, str):
+        return text
+    return _OPTION_LETTER_PREFIX_RE.sub("", text, count=1)
+
+
+def _option_letter(index: int) -> str:
+    """A, B, C, ... Z, then falls back to a 1-based number past 26 options."""
+    return chr(65 + index) if index < 26 else str(index + 1)
+
+
+def _render_lettered_option_html(letter: str, sanitized_option_html: str) -> str:
+    """
+    Merge a "<strong>A. </strong>" marker into the FRONT of the option's own
+    leading paragraph, rather than wrapping the option in a second, outer
+    <p>.
+
+    The AI sometimes returns a bare-text option ("A) $x=5$") and sometimes a
+    fully <p>-wrapped one ("<p>Evaporation</p>", confirmed against a live
+    generation call) - both need the same visible result. Wrapping either
+    form in an outer `<p><strong>A. </strong>{option}</p>` is fine for the
+    bare-text case, but for the pre-wrapped case it nests a <p> inside a
+    <p>, which is invalid HTML: the parser that turns this into ProseMirror
+    JSON auto-closes the outer <p> as soon as it meets the inner one,
+    splitting the letter and the option's actual text into two separate,
+    disconnected paragraphs - the option renders with no visible text next
+    to its own letter.
+    """
+    if not sanitized_option_html.strip():
+        return f"<p><strong>{letter}. </strong></p>"
+
+    fragment = lxml_html.fromstring(f"<div>{sanitized_option_html}</div>")
+    marker = lxml_html.fromstring(f"<strong>{letter}. </strong>")
+    children = list(fragment)
+
+    if children and children[0].tag == "p":
+        target = children[0]
+        marker.tail = target.text or ""
+        target.text = None
+        target.insert(0, marker)
+    else:
+        # No wrapping <p> at all (bare text and/or inline tags only) - build
+        # one, with the marker leading whatever text/elements came first.
+        target = lxml_html.fromstring("<p></p>")
+        marker.tail = fragment.text or ""
+        target.append(marker)
+        for child in children:
+            target.append(child)
+        fragment = lxml_html.fromstring("<div></div>")
+        fragment.append(target)
+        children = [target]
+
+    return "".join(lxml_html.tostring(child, encoding="unicode") for child in children)
 
 
 def _parse_due_date(due_date):
@@ -486,25 +549,37 @@ class AssignmentProcessingService:
 
             # Objective Options
             #
-            # Rendered as a real <ul>/<li> list, not a <div style="padding-
-            # left"> of bare <p> tags. The schema has no `div` node, so that
-            # wrapper was silently dropped on conversion - its children got
-            # hoisted to the top level as unindented, ungrouped paragraphs,
-            # which is indentation the student never sees. `bullet_list` and
-            # `list_item` ARE schema nodes (from add_list_nodes), so this
-            # survives conversion and the editor's own list CSS supplies the
-            # indentation instead of a stripped inline style.
+            # Rendered as lettered paragraphs ("A.", "B.", ...), not a
+            # <ul>/<li> list. The bullet-list form is schema-valid and
+            # survives conversion fine, but a lettered MCQ reads as answer
+            # choices; bullets read as an unordered list of facts. The
+            # letter is generated here from the option's position rather
+            # than trusted from the AI's own text, because the AI already
+            # bakes a marker into that text ("A) ...", "(A) ...", "A. ...")
+            # per the extraction/generation prompts - using both would show
+            # the letter twice ("A. A) ..."), so the AI's marker is stripped
+            # first via _strip_leading_option_letter.
             #
-            # `<ul>`, not `<ol>`: option letters ("A) ...", "B) ...") are
-            # already baked into each option's text by the AI, so an <ol>'s
-            # own auto-numbering would double up against them.
+            # The separating space is baked into the <strong> tag's own text
+            # ("A. ", not "A." followed by a bare space) rather than left as
+            # its own text node. When the option text itself starts with
+            # bold content (the AI does emit fully-bolded options), a space
+            # sitting *between* two <strong> runs is whitespace ProseMirror's
+            # DOMParser treats as insignificant and drops on conversion - the
+            # two runs merge into one and the letter and option text collide
+            # into "A.Bold option" with no gap. Keeping the space inside the
+            # first run's own text survives that merge either way.
+            #
+            # The marker is merged into the option's own leading paragraph
+            # via _render_lettered_option_html rather than wrapped around it
+            # - see that function's docstring for why a naive outer <p> is
+            # broken for AI options that already arrive <p>-wrapped.
             if q_type == "OBJECTIVE" and options:
-                html_output.append("<ul>")
-                for opt in options:
-                    html_output.append(
-                        f"<li>{cls.sanitize_ai_html(_none_default(opt, ''))}</li>"
-                    )
-                html_output.append("</ul>")
+                for i, opt in enumerate(options):
+                    letter = _option_letter(i)
+                    opt_text = _strip_leading_option_letter(_none_default(opt, ""))
+                    opt_html = cls.sanitize_ai_html(opt_text)
+                    html_output.append(_render_lettered_option_html(letter, opt_html))
 
             # Rubric (for essay & short answer) — hidden from students
             if include_rubric and rubric:

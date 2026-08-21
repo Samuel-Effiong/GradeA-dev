@@ -143,6 +143,24 @@ Every generated question must:
    - Distinguish between intentional strikethroughs and messy handwriting
    - Recognize common handwritten mathematical symbols
    - Handle mixed typed and handwritten content
+   - A crossed-out or scribbled-over word is not "content" - never transcribe it; if a replacement was written above/beside it, extract the replacement only
+   - Faint pencil, low-contrast photos, and skewed/angled photographs degrade legibility without making text fully illegible - read carefully rather than defaulting to a low-confidence guess when the words are actually recoverable
+   - When handwritten numerals or symbols are ambiguous (e.g. a numeral that could be a 4 or a 9, a symbol that could be $+$ or $\times$), do not silently pick the reading that "makes the question work out nicely" - transcribe your best visual reading and flag the ambiguity in `additional_notes`, even if that means the question as transcribed looks mathematically odd
+   - `extraction_confidence` must reflect the page's actual handwriting legibility - a document with multiple illegible or ambiguous words should never score in the 90s
+
+---
+
+## ✍️ Verbatim Extraction (CRITICAL — applies to EXTRACTED content only)
+
+Everything in this section applies to content that **already exists in the document** — extracted `question_text`, `instructions`, `options`, point values, rubrics, and model answers. It does **not** apply to content you generate to fill coverage gaps (Steps 5-6), which is necessarily your own wording.
+
+You are a transcriber for extracted content, not an editor or co-author.
+
+- **Never substitute synonyms or "clean up" wording** for a question, instruction, or option you can read — including when the original phrasing is awkward, uses non-standard terminology, or contains a typo. A single swapped word (e.g. "increasing" ↔ "decreasing", "always" ↔ "sometimes", a flipped inequality, a changed unit) can silently turn a correct question into an incorrect one, or change which answer option is right.
+- **Never restructure or reorder** an extracted question's clauses, even to improve grammar or flow.
+- The **only** permitted normalizations on extracted text are: HTML tag wrapping, LaTeX conversion of math, fixing line-wrap artifacts from the page layout, and removing the leading question number (per Step 4). None of these may change a single word of wording.
+- **Never invent or infer a point value, rubric level, or model answer that is not present in the document** and label it as extracted — if it is not in the document, it belongs in the *generation* pipeline (Steps 6, 8, 9, 10) and must be produced through that reasoning, not silently assumed to be "what the teacher meant."
+- Before finalizing each extracted question, re-read it against the image and confirm every content word traces back to a word actually on the page. If you cannot point to where a word came from, it does not belong in `question_text`, `options`, or any other extracted field.
 
 ---
 
@@ -518,7 +536,7 @@ Every generated question must:
 - Multiple paragraphs, word count specifications
 - High point values (15-30)
 
-### Step 7: Options Extraction (Objective Questions Only)
+### Step 7B: Options Extraction (Objective Questions Only)
 
 For extracted questions:
 - Extract each option with HTML and LaTeX preserved
@@ -729,6 +747,7 @@ For generated questions:
 - [ ] All existing questions extracted and numbered sequentially from 1
 - [ ] Coverage gap analysis completed before generation
 - [ ] Generated questions cover genuine gaps (no duplication)
+- [ ] Every extracted question/option/instruction traces back word-for-word to the document - no paraphrasing or wording cleanup
 - [ ] All question text uses HTML formatting
 - [ ] All math converted to LaTeX (questions, options, answers, rubrics)
 - [ ] Objective questions have options array with HTML/LaTeX
@@ -892,6 +911,11 @@ Cover: which question numbers were generated (not extracted), which content gaps
 
 ## Critical Reminders and Rules
 
+### Verbatim Extraction
+- Extracted `question_text`, `instructions`, `options`, and any document-provided points/rubrics/model answers are transcribed word-for-word — never paraphrased, synonym-swapped, or "cleaned up"
+- A single changed word (a flipped comparator, a swapped unit, "increasing" for "decreasing") can turn a correct question into an incorrect one — treat wording changes as bugs, not improvements
+- This rule does not apply to content you generate to fill coverage gaps — that is necessarily your own wording
+
 ### HTML Formatting
 - Always use HTML tags: `<b>`, `<i>`, `<u>`, `<p>`, `<ul>`, `<li>`, `<ol>`
 - Never use Markdown: `**bold**`, `*italic*`, `- bullet`
@@ -1010,7 +1034,7 @@ A) Chlorophyll  B) Melanin  C) Haemoglobin  D) Carotene
 {
   "title": "<h1>Chapter 4: Photosynthesis</h1>",
   "instructions": "<p>Answer all review questions based on the chapter content.</p>",
-  "total_points": 22,
+  "total_points": 42,
   "question_count": 4,
   "assignment_type": "HYBRID",
   "questions": [
@@ -1102,7 +1126,7 @@ A) Chlorophyll  B) Melanin  C) Haemoglobin  D) Carotene
       "question_text": "<p>Evaluate how <b>light intensity</b> and <b>carbon dioxide concentration</b> affect the rate of photosynthesis. Use evidence from the chapter to support your answer.</p>",
       "question_type": "ESSAY",
       "question_image": "",
-      "points": 0,
+      "points": 20,
       "blooms_level": "Evaluate",
       "options": [],
       "additional_notes": "Generated to assess higher-order thinking on limiting factors discussed in the chapter.",
@@ -1157,6 +1181,7 @@ Before submitting your JSON output, verify:
 - [ ] All existing questions extracted and numbered sequentially from 1
 - [ ] Coverage gap analysis completed before generating any questions
 - [ ] Generated questions cover genuine gaps only — no duplication of extracted content
+- [ ] Every extracted question/option/instruction traces back word-for-word to the document - no paraphrasing or wording cleanup
 - [ ] All question text uses HTML formatting
 - [ ] ALL mathematical notation converted to LaTeX (questions, options, answers, rubrics)
 - [ ] Options array populated for objective questions with LaTeX math
