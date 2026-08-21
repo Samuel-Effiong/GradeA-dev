@@ -710,7 +710,8 @@ class RetryWrapperRegressionTests(ExecuteGradedTaskTestBase):
         with self.assertRaises(AIFeatureNotAvailableError):
             self.processor.custom_ai_prompt_retry(
                 user=admin,
-                user_prompt="hello",
+                context="some context",
+                question="hello",
                 role=UserTypes.SUPER_ADMIN,
                 feature="Superadmin Custom AI Prompt",
                 task_type="custom_ai_prompt:superadmin",
@@ -727,7 +728,8 @@ class RetryWrapperRegressionTests(ExecuteGradedTaskTestBase):
         with self.assertRaisesRegex(Exception, "flaky"):
             self.processor.custom_ai_prompt_retry(
                 user=admin,
-                user_prompt="hello",
+                context="some context",
+                question="hello",
                 role=UserTypes.SUPER_ADMIN,
                 feature="Superadmin Custom AI Prompt",
                 task_type="custom_ai_prompt:superadmin",

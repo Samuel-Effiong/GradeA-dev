@@ -87,6 +87,7 @@ from dashboard.serializers import (  # SchoolAdminTeacherPerformanceSerializer,
     UnitPerformanceSerializer,
 )
 from dashboard.services import SchoolAdminWeeklySummaryService
+from dashboard.throttling import CustomAIPromptThrottle
 from students.models import StudentSubmission
 from students.services import get_grade_details
 from users.models import CustomUser, UserTypes
@@ -1002,7 +1003,12 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         request=CustomAIPrompt,
         responses={200: CustomAIReply},
     )
-    @action(detail=False, methods=["POST"], url_path="dashboard/custom-ai-prompt")
+    @action(
+        detail=False,
+        methods=["POST"],
+        url_path="dashboard/custom-ai-prompt",
+        throttle_classes=[CustomAIPromptThrottle],
+    )
     def custom_ai_prompt(self, request, *args, **kwargs):
         serializer = CustomAIPrompt(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -1089,22 +1095,13 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         {concurrency}
         """
 
-        user_prompt = f"""
-        #### CONTEXT DATA
-        {context_template}
-
-        #### END OF CONTEXT DATA
-
-        # FOUNDER QUESTION
-        {prompt}
-        """
-
         try:
             with transaction.atomic():
                 append_dashboard_chat_message(chat_session, RoleType.USER, prompt)
                 ai_feedback = ai_processor.custom_ai_prompt_retry(
                     request.user,
-                    user_prompt,
+                    context_template,
+                    prompt,
                     UserTypes.SUPER_ADMIN,
                     feature="Superadmin Custom AI Prompt",
                     task_type="custom_ai_prompt:superadmin",
@@ -2753,7 +2750,12 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         request=CustomAIPrompt,
         responses={200: CustomAIReply},
     )
-    @action(detail=False, methods=["POST"], url_path="dashboard/custom-ai-prompt")
+    @action(
+        detail=False,
+        methods=["POST"],
+        url_path="dashboard/custom-ai-prompt",
+        throttle_classes=[CustomAIPromptThrottle],
+    )
     def custom_ai_prompt(self, request, *args, **kwargs):
         serializer = CustomAIPrompt(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -2790,20 +2792,13 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         {students}
         """
 
-        user_prompt = f"""
-        #### CONTEXT DATA
-        {context_template}
-
-        #### END OF CONTEXT DATA
-        {prompt}
-        """
-
         try:
             with transaction.atomic():
                 append_dashboard_chat_message(chat_session, RoleType.USER, prompt)
                 ai_feedback = ai_processor.custom_ai_prompt_retry(
                     request.user,
-                    user_prompt,
+                    context_template,
+                    prompt,
                     UserTypes.SCHOOL_ADMIN,
                     feature="Schooladmin Custom AI Prompt",
                     task_type="custom_ai_prompt:schooladmin",
@@ -3582,7 +3577,12 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         summary="Teacher AI Extraction and Grading Insights",
         request=CustomAIPrompt,
     )
-    @action(detail=False, methods=["POST"], url_path=r"dashboard/custom-ai-prompt")
+    @action(
+        detail=False,
+        methods=["POST"],
+        url_path=r"dashboard/custom-ai-prompt",
+        throttle_classes=[CustomAIPromptThrottle],
+    )
     def custom_ai_prompt(self, request, *args, **kwargs):
         serializer = CustomAIPrompt(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -3637,23 +3637,13 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         {student_data}
         """
 
-        user_prompt = f"""
-        #### CONTEXT DATA
-        {context_template}
-
-        #### END OF CONTEXT DATA
-
-
-        # TEACHER PROMPT
-        {prompt}
-        """
-
         try:
             with transaction.atomic():
                 append_dashboard_chat_message(chat_session, RoleType.USER, prompt)
                 ai_feedback = ai_processor.custom_ai_prompt_retry(
                     request.user,
-                    user_prompt,
+                    context_template,
+                    prompt,
                     UserTypes.TEACHER,
                     feature="Teacher Custom AI Prompt",
                     task_type="custom_ai_prompt:teacher",

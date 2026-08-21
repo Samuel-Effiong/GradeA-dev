@@ -780,7 +780,11 @@ class UnitPerformanceSerializer(serializers.ModelSerializer):
 class CustomAIPrompt(serializers.Serializer):
     """Serializer for custom AI prompts"""
 
-    prompt = serializers.CharField(required=True)
+    # 2000 chars is generous for a real question (several paragraphs) while
+    # still bounding request size and downstream token/cost exposure - see
+    # AIProcessor.custom_ai_prompt, which wraps this text as untrusted data
+    # rather than trusting it as instructions.
+    prompt = serializers.CharField(required=True, allow_blank=False, max_length=2000)
 
 
 class CustomAIReply(serializers.Serializer):

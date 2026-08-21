@@ -45,6 +45,7 @@ from dashboard.serializers import (
     CustomAIReply,
     DashboardChatSessionSerializer,
 )
+from dashboard.throttling import CustomAIPromptThrottle
 from users.models import UserTypes
 
 from .imports import stripe
@@ -2361,7 +2362,12 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         request=CustomAIPrompt,
         responses={200: CustomAIReply},
     )
-    @action(detail=False, methods=["POST"], url_path="beta/custom-ai-prompt")
+    @action(
+        detail=False,
+        methods=["POST"],
+        url_path="beta/custom-ai-prompt",
+        throttle_classes=[CustomAIPromptThrottle],
+    )
     def custom_ai_prompt(self, request, *args, **kwargs):
         serializer = CustomAIPrompt(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -2487,25 +2493,14 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
 
         """
 
-        user_prompt = f"""
-        #### CONTEXT DATA
-        {context_template}
-
-        #### END OF CONTEXT DATA
-
-
-        #### USER QUERY
-        {prompt}
-
-        """
-
         try:
             with transaction.atomic():
 
                 append_dashboard_chat_message(chat_session, RoleType.USER, prompt)
                 ai_feedback = ai_processor.custom_ai_prompt_retry(
                     request.user,
-                    user_prompt,
+                    context_template,
+                    prompt,
                     UserTypes.SUPER_ADMIN,
                     feature="Superadmin Custom AI Prompt",
                     task_type="custom_ai_prompt:superadmin",

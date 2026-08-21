@@ -611,6 +611,17 @@ GRADING_MAX_IMAGES_PER_CALL = env.int("GRADING_MAX_IMAGES_PER_CALL", default=5)
 GRADING_CUSTOM_INSTRUCTIONS_ENABLED = env.bool(
     "GRADING_CUSTOM_INSTRUCTIONS_ENABLED", default=True
 )
+# The dashboard "Custom AI Prompt" chat (SuperAdminDashboardView,
+# SchoolAdminDashboardView, TeacherAdminDashboardView in dashboard/views.py,
+# and BetaAnalyticViewSet in billing/views.py) lets four different roles
+# ask a free-form question that's answered by an LLM fed a dump of their
+# own dashboard data. Same reasoning as GRADING_CUSTOM_INSTRUCTIONS_ENABLED
+# above - this is LLM behavior driven directly by arbitrary user-typed
+# text, across more roles and with no structured-output check on the
+# reply, so it needs the same off-without-a-deploy lever.
+DASHBOARD_CUSTOM_AI_PROMPT_ENABLED = env.bool(
+    "DASHBOARD_CUSTOM_AI_PROMPT_ENABLED", default=True
+)
 # Cross-student consistency cache (ai_processor/grading_cache.py): before
 # an LLM-graded question+answer pair is sent to the model, check Redis
 # for a prior evaluation keyed by the exact question content + exact
@@ -893,6 +904,20 @@ REST_FRAMEWORK = {
         "password_reset": "10/hour",  # pragma: allowlist secret
         "register": "10/hour",
         "google_auth": "20/hour",
+        # Shared across all four "Custom AI Prompt" dashboard-chat actions
+        # (super-admin, school-admin, teacher, and the billing beta-analytics
+        # variant) via throttle_scope="custom_ai_prompt" on each @action -
+        # deliberately ONE bucket per user across all of them, not one per
+        # endpoint, so a user with access to more than one surface can't
+        # multiply their budget by hopping between endpoints. Unlike the
+        # buckets above (anonymous-only, closing brute-force/spam holes),
+        # this one guards an authenticated, per-call-billed LLM endpoint:
+        # a wallet-balance check already caps eventual cost for
+        # non-superadmin roles, but nothing previously capped call
+        # *frequency*, and the superadmin path is unmetered entirely (see
+        # AIProcessor.execute_graded_task), so this is its only volume
+        # control.
+        "custom_ai_prompt": "10/min",
     },
 }
 
