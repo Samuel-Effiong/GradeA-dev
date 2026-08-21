@@ -25,6 +25,7 @@ jobs:
       # django.setup() never opens a database connection. Values mirror the
       # placeholders tests.yml uses; see that file's comments for why each
       # one is required at import time.
+      DJANGO_SETTINGS_MODULE: AutoGrader.settings
       ENVIRONMENT: local
       SECRET_KEY: ci-secret-key-not-used-outside-ci  # pragma: allowlist secret
       FRONTEND_DOMAIN: http://localhost:3000

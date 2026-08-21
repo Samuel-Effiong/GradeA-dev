@@ -20,6 +20,7 @@ Exit codes:
 """
 import argparse
 import importlib
+import os
 import re
 import subprocess
 import sys
@@ -152,6 +153,15 @@ def main():
     args = parser.parse_args()
 
     sys.path.insert(0, str(REPO_ROOT))
+    # manage.py sets this via os.environ.setdefault before any Django
+    # import; this script is a standalone entry point (not run through
+    # manage.py) so it has to do the same thing itself. Without it,
+    # django.setup() fails immediately with ImproperlyConfigured - this
+    # was missing here AND from migration-safety.yml's env block, so the
+    # check silently never worked in actual CI despite passing everywhere
+    # it was tested locally (where DJANGO_SETTINGS_MODULE happened to
+    # already be set in the shell).
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "AutoGrader.settings")
     import django
 
     django.setup()
