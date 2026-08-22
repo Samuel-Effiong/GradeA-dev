@@ -712,6 +712,83 @@ def notify_student_of_graded_submission(submission, *, is_update=False):
         )
 
 
+def notify_students_of_assignment_edit(assignment):
+    """
+    Notify every student who has already submitted work on `assignment` that
+    the teacher has edited it (via the raw_input/AI re-extraction path in
+    AssignmentProcessingService.update_assignment_from_extraction).
+
+    This edit fully replaces `assignment.questions`, and grading links a
+    submission's answers/feedback to a question only by question_number
+    (see ai_processor.services._question_number_key), which is reassigned
+    on every re-extraction - so an edit can in principle change what a
+    previously submitted answer is now graded against. This notification
+    doesn't attempt to detect whether any specific student's answers were
+    actually affected (that would need matching old vs. new questions,
+    deliberately deferred - see FUTURE_ROADMAP.md); it's a blanket,
+    conservative "this assignment changed after you submitted" notice to
+    every submitter.
+
+    Modeled directly on notify_student_of_graded_submission: same opt-in
+    guard, same synthetic-account exclusion, same Celery dispatch.
+    """
+    submissions = StudentSubmission.objects.filter(
+        assignment=assignment
+    ).select_related("student")
+
+    for submission in submissions:
+        student = submission.student
+
+        if (
+            not student
+            or not student.email
+            or student.email.lower().endswith("@student.local")
+        ):
+            continue
+
+        try:
+            student_settings = student.settings
+        except ObjectDoesNotExist:
+            continue
+
+        if not student_settings.notify_assignment_edited:
+            continue
+
+        course = assignment.course
+        context = {
+            "student": student,
+            "assignment": assignment,
+            "course": course,
+            "submission": submission,
+        }
+        message = (
+            f"Your teacher updated {assignment.title or 'an assignment'} in "
+            f"{course.name} after you submitted your work."
+        )
+
+        try:
+            html_content = render_to_string(
+                "email/assignment_edited_notification.html", context=context
+            )
+
+            send_email_task.delay(
+                subject=f"Assignment updated: {assignment.title or course.name}",
+                message=message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[student.email],
+                html_message=html_content,
+            )
+        except Exception:
+            logger.exception(
+                "Failed to queue assignment-edited notification",
+                extra={
+                    "submission_id": str(submission.id),
+                    "assignment_id": str(assignment.id),
+                    "student_id": str(student.id),
+                },
+            )
+
+
 def upload_answers_engine(
     assignment,
     content,

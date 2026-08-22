@@ -395,6 +395,35 @@ class OptionsListStructureTest(SimpleTestCase):
         for stray in ("A. A)", "B. (B)", "C. c.", "D. D."):
             self.assertNotIn(stray, html)
 
+    def test_a_doubled_pre_existing_letter_marker_is_not_duplicated(self):
+        """
+        Regression: an assignment edit round-trip through AI re-extraction
+        can bake the marker into option text twice ("A. A) one") - a
+        single-pass strip left one copy behind, so the render step's own
+        generated letter still doubled up on top of it ("A. A. one").
+        _strip_leading_option_letter must remove every leading marker, not
+        just the first.
+        """
+        html = A.format_assignment_standard_html(
+            base_data(
+                questions=[
+                    base_question(
+                        question_type="OBJECTIVE",
+                        options=["A. A) one", "B) (B) two", "(C) c. three"],
+                    )
+                ]
+            )
+        )
+        doc = json.loads(A.html_to_prosemirror_text(html))
+        paragraphs = option_paragraphs(doc)
+
+        self.assertEqual(
+            [text_of(p) for p in paragraphs],
+            ["A. one", "B. two", "C. three"],
+        )
+        for stray in ("A. A.", "A. A)", "B. B)", "B. (B)", "C. (C)", "C. c."):
+            self.assertNotIn(stray, html)
+
     def test_a_p_wrapped_option_stays_in_one_paragraph_with_its_letter(self):
         """
         Regression: a live generation call showed the AI often wraps each

@@ -308,6 +308,7 @@ class Settings(models.Model):
         default=False, null=True, blank=True
     )
     notify_grading_complete = models.BooleanField(default=False, null=True, blank=True)
+    notify_assignment_edited = models.BooleanField(default=False, null=True, blank=True)
     notify_new_assignment_posted = models.BooleanField(
         default=False, null=True, blank=True
     )

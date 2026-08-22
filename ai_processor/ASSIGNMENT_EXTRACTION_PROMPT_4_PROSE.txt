@@ -626,8 +626,16 @@ Based on maximum question points:
 
 **For OBJECTIVE Questions:**
 - `options`: Array of **HTML strings** - Each option converted from list_item nodes
+- **NEVER include a leading letter/number label ("A)", "A.", "(A)", "1)", etc.) in an
+  option's text, even if that label is visibly present in the source document.** The
+  application always derives and renders the option letter itself from the option's
+  position in the array — storing a label in the text as well produces a doubled letter
+  ("A. A) ...") when the assignment is displayed. Strip any such leading label and store
+  only the option's actual content.
 - `rubric`: Empty array []
-- `model_answer`: **HTML string** - Correct answer(s) if provided, GENERATE if not provided
+- `model_answer`: **HTML string** - Correct answer(s) if provided, GENERATE if not
+  provided. Like options, this must contain only the answer's content — never a leading
+  letter/number label.
 
 **For ESSAY and SHORT-ANSWER Questions:**
 - `options`: Empty array []
@@ -882,15 +890,20 @@ Your self-assessment must address:
   "points": 2,
   "blooms_level": "Remember",
   "options": [
-    "A) H<sub>2</sub>O",
-    "B) CO<sub>2</sub>",
-    "C) O<sub>2</sub>",
-    "D) H<sub>2</sub>O<sub>2</sub>"
+    "H<sub>2</sub>O",
+    "CO<sub>2</sub>",
+    "O<sub>2</sub>",
+    "H<sub>2</sub>O<sub>2</sub>"
   ],
   "rubric": [],
-  "model_answer": "A) H<sub>2</sub>O"
+  "model_answer": "H<sub>2</sub>O"
 }
 ```
+
+Note the source document's list items literally read "A) H₂O", "B) CO₂", etc. — those
+leading labels are stripped in the output. The application renders its own "A.", "B.", ...
+markers from each option's position in the array; keeping the source label here would
+double it.
 
 ### Example 3: Essay with Display Math Node
 
@@ -1320,7 +1333,7 @@ Your output must follow this exact structure with **HTML content in specified fi
       "question_image": "string - Leave empty",
       "points": "number - Maximum point value",
       "blooms_level": "Remember|Understand|Apply|Analyze|Evaluate|Create",
-      "options": ["array of HTML strings - for objective questions, empty for others"],
+      "options": ["array of HTML strings - for objective questions, empty for others - never include a leading letter/number label"],
       "additional_notes": "HTML string - Converted from special instruction nodes",
       "rubric": [
         {

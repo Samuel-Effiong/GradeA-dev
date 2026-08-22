@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .container {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #2563eb;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px;
+        }
+        .content {
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .details {
+            background-color: #eff6ff;
+            border-left: 4px solid #2563eb;
+            padding: 15px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Assignment Updated</h1>
+        </div>
+
+        <div class="content">
+            <p>Dear {{ student.get_full_name }},</p>
+
+            <p>
+                Your teacher has updated
+                <strong>{{ assignment.title|default:"Untitled Assignment" }}</strong>
+                in <strong>{{ course.name }}</strong> after you submitted your work.
+            </p>
+
+            <div class="details">
+                <h3>What this means</h3>
+                <ul>
+                    <li><strong>Course:</strong> {{ course.name }}</li>
+                    <li><strong>Assignment:</strong> {{ assignment.title|default:"Untitled Assignment" }}</li>
+                    <li>Your submission is unaffected, but your grade and feedback for this
+                        assignment may be reviewed as a result of the update.</li>
+                </ul>
+            </div>
+
+            <p>You can view your submission and any updated feedback from your Grade A+ dashboard.</p>
+
+            <p>Best regards,<br>Grade A+ Team</p>
+        </div>
+    </div>
+</body>
+</html>
