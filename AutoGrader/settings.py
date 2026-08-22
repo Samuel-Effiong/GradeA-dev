@@ -220,6 +220,8 @@ if ENVIRONMENT in ("prod", "dev"):
         "https://super-admin-web-app-qa-production.up.railway.app",
         "https://www.test.super.gradeautomator.com",
         "https://test.super.gradeautomator.com",
+        "https://super.gradeautomator.com",
+        "https://www.super.gradeautomator.com",
         "https://teacher-app-qa-billing-production.up.railway.app",
         "https://teacher-web-app-qa-production.up.railway.app",
         "https://www.test.teacher.gradeautomator.com",
