@@ -53,6 +53,10 @@ jobs:
       ENVIRONMENT: local
       SECRET_KEY: ci-secret-key-not-used-outside-ci  # pragma: allowlist secret
       FRONTEND_DOMAIN: http://localhost:3000
+      # Deliberately distinct from FRONTEND_DOMAIN - students and teachers
+      # use separate frontend apps, and this keeps CI actually exercising
+      # that separation instead of only ever hitting the fallback branch.
+      STUDENT_FRONTEND_DOMAIN: http://localhost:3001
       DATABASE_URI_LOCAL: postgres://postgres:postgres@localhost:5432/gradeaplus_ci  # pragma: allowlist secret
       REDIS_LOCAL_URL: redis://localhost:6379/0
       # Every value below is required at import time by settings.py. They
