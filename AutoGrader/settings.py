@@ -217,7 +217,11 @@ if ENVIRONMENT in ("prod", "dev"):
         "https://test.student.gradeautomator.com",
         "https://www.test.student.gradeautomator.com",
         "https://student-app-qa-production-ae1.up.railway.app",
+        "https://student-app-live-production.up.railway.app",
+        "https://student.gradeautomator.com",
+        "https://www.student.gradeautomator.com",
         "https://super-admin-web-app-qa-production.up.railway.app",
+        "https://super-admin-app-live-production.up.railway.app",
         "https://www.test.super.gradeautomator.com",
         "https://test.super.gradeautomator.com",
         "https://super.gradeautomator.com",
@@ -227,8 +231,11 @@ if ENVIRONMENT in ("prod", "dev"):
         "https://www.test.teacher.gradeautomator.com",
         "https://test.teacher.gradeautomator.com",
         "https://school-admin-app-qa-production.up.railway.app",
+        "https://school-admin-app-live-production.up.railway.app",
         "https://test.admin.gradeautomator.com",
         "https://www.test.admin.gradeautomator.com",
+        "https://admin.gradeautomator.com",
+        "https://www.admin.gradeautomator.com",
         "https://teacher-web-app-beta-production.up.railway.app",
     ]
 else:  # local
