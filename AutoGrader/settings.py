@@ -100,6 +100,10 @@ LOGGING = {
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env.str("SECRET_KEY")
 FRONTEND_DOMAIN = env.str("FRONTEND_DOMAIN")
+# Separate frontend app for students (registration/activation, login). Falls
+# back to FRONTEND_DOMAIN (the teacher app) when unset so existing
+# deployments keep working until the student app's domain is provisioned.
+STUDENT_FRONTEND_DOMAIN = env.str("STUDENT_FRONTEND_DOMAIN", default=FRONTEND_DOMAIN)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 ENVIRONMENT = env.str("ENVIRONMENT")
@@ -972,9 +976,9 @@ DJOSER = {
 }
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": f"GradeA+ Backend - {'Local' if ENVIRONMENT == 'local' else 'Dev' if ENVIRONMENT == 'dev' else 'Prod'}"
+    "TITLE": f"Grade A+ Backend - {'Local' if ENVIRONMENT == 'local' else 'Dev' if ENVIRONMENT == 'dev' else 'Prod'}"
     " Environment",
-    "DESCRIPTION": "The API backend for GradeA+",
+    "DESCRIPTION": "The API backend for Grade A+",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "SCHEMA_PATH_PREFIX": r"/openapi/v1",
@@ -1007,7 +1011,7 @@ SPECTACULAR_SETTINGS = {
 }
 
 # EMAIL_BACKEND = "anymail.backends.sendinblue.EmailBackend"
-# DEFAULT_FROM_EMAIL = "GradeA+ <samueleffiong80@gmail.com>"
+# DEFAULT_FROM_EMAIL = "Grade A+ <samueleffiong80@gmail.com>"
 # SUPPORT_EMAIL = "GradeA+@gmail.com"
 
 EMAIL_BACKEND = "anymail.backends.mailersend.EmailBackend"

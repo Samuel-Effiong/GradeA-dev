@@ -8,7 +8,7 @@ These helpers enforce the rule:
   remaining credits > 0, AND must be within their trial window.
 - Expired or out-of-credits users cannot use AI.
 
-Tier-based feature access (see the GradeA+ Subscription Model):
+Tier-based feature access (see the Grade A+ Subscription Model):
 - INDIVIDUAL track: gated by UserSubscription.plan (STANDARD/PRO/POWER/TRIAL).
 - LICENSE (institutional) track has two distinct sub-cases:
     - Teachers are gated by the license's plan (PRO_LICENSE/POWER_LICENSE/

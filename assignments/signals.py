@@ -10,6 +10,7 @@ from django_celery_beat.models import ClockedSchedule, PeriodicTask
 
 from assignments.models import Assignment, AssignmentGenerationSession, AssignmentStatus
 from assignments.rigor import score_assignment
+from assignments.services import _strip_html_from_title
 
 ASSIGNMENT_DUE_REMINDER_OFFSETS = (24, 1)
 
@@ -144,6 +145,24 @@ def sync_assignment_rigor(sender, instance, update_fields=None, **kwargs):
     instance.rigor_demand = demand
     instance.rigor_standards = standards
     instance.rigor_blooms_coverage = coverage
+
+
+@receiver(pre_save, sender=Assignment)
+def sanitize_assignment_title(sender, instance, **kwargs):
+    """Strip HTML tags out of `title` on every save.
+
+    AI extraction wraps the title in heading/paragraph tags meant for the
+    rich editor/PDF body rendering (see format_assignment_standard_html in
+    assignments/services.py), but `title` itself is read verbatim in
+    plain-text contexts - notification emails, PDF headers/filenames, list
+    views - so raw markup must never reach it. Runs on every write path
+    (DRF serializers, AI extraction tasks, admin, shell) the same way the
+    other pre_save hooks in this module do, and is not gated on
+    `update_fields` - unlike sync_assignment_rigor, a partial save that only
+    touches `title` must still be sanitized.
+    """
+    if instance.title:
+        instance.title = _strip_html_from_title(instance.title)
 
 
 @receiver(pre_save, sender=Assignment)

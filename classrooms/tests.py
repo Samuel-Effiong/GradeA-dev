@@ -358,3 +358,74 @@ class ActivationTokenValidityWindowTest(APITestCase):
         )
         # And explicitly not the old 7-day window.
         self.assertLess(student.activation_expires, before + timedelta(days=2))
+
+
+class RenewActivationTokenTest(APITestCase):
+    """
+    Covers handle_expired_token (POST /course/renew-student-token). It used
+    to filter `StudentCourse.objects.filter(student=user, is_active=False)`
+    - but StudentCourse has no `is_active` field (that's PENDING vs
+    ENROLLED/WITHDRAWN/COMPLETED via `enrollment_status`), so the "happy
+    path" always raised FieldError and the caller only ever saw a 500.
+    """
+
+    def setUp(self):
+        self.teacher = User.objects.create_user(
+            email="renew-token-teacher@example.com",
+            password="password123",  # pragma: allowlist secret
+            first_name="Renew",
+            last_name="Teacher",
+            user_type="TEACHER",
+            is_active=True,
+        )
+        self.session = Session.objects.create(name="S", teacher=self.teacher)
+        self.course = Course.objects.create(
+            name="C", teacher=self.teacher, session=self.session
+        )
+        self.student = User.objects.create_user(
+            email="renew-token-student@example.com",
+            password="password123",  # pragma: allowlist secret
+            first_name="Renew",
+            last_name="Student",
+            user_type="STUDENT",
+            is_active=False,
+            activation_token="123456",
+            activation_expires=timezone.now() - timedelta(hours=1),
+        )
+        StudentCourse.objects.create(
+            student=self.student,
+            course=self.course,
+            enrollment_status=EnrollmentStatusType.PENDING,
+        )
+        self.url = reverse("course-renew-activation-token")
+
+    def test_renews_token_for_pending_enrollment(self):
+        old_token = self.student.activation_token
+
+        response = self.client.post(self.url, {"token": old_token}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.student.refresh_from_db()
+        self.assertNotEqual(self.student.activation_token, old_token)
+        self.assertGreater(self.student.activation_expires, timezone.now())
+
+    def test_unknown_token_returns_400_not_500(self):
+        """An unknown token is an expected, client-caused case (ParseError)
+        - it must surface as a 400 with the real message, not fall through
+        the blanket `except Exception` into a generic 500."""
+        response = self.client.post(self.url, {"token": "000000"}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Invalid token", str(response.data.get("detail", "")))
+
+    def test_token_with_no_pending_enrollment_returns_400_not_500(self):
+        """Same ParseError-swallowing bug, the other raise site in this
+        view: a real, inactive user whose only enrollment isn't PENDING."""
+        self.student.enrollments.update(enrollment_status=EnrollmentStatusType.ENROLLED)
+
+        response = self.client.post(
+            self.url, {"token": self.student.activation_token}, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("No pending enrollment", str(response.data.get("detail", "")))

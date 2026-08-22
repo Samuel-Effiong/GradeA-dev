@@ -1942,7 +1942,7 @@ class ManualCreditService:
                     subject="You've received bonus AI credits — GradeA+",
                     message=(
                         f"You've been credited {display_amount} AI credits "
-                        "on your GradeA+ account."
+                        "on your Grade A+ account."
                     ),
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[target_user.email],

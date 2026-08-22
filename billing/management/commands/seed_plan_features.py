@@ -123,7 +123,7 @@ ROLLOVER_PERCENTAGES = {
 class Command(BaseCommand):
     help = (
         "Seeds PlanFeature/PlanFeatureInclusion rows and syncs "
-        "carry_over_percent from the GradeA+ Subscription Model. "
+        "carry_over_percent from the Grade A+ Subscription Model. "
         "Idempotent - safe to re-run after editing the mapping tables "
         "at the top of this file. Not run automatically - if this is "
         "never run in an environment, billing/checks.py's "

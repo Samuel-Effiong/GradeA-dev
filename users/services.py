@@ -24,8 +24,16 @@ def send_user_activation_email(user):
         user.activation_expires = timezone.now() + timedelta(minutes=15)
         user.save()
 
+        # Local import to dodge a circular import: users.models imports
+        # OTPManager from this module at module load time.
+        from users.models import UserTypes
+
         protocol = "https://"
-        frontend_domain = settings.FRONTEND_DOMAIN
+        frontend_domain = (
+            settings.STUDENT_FRONTEND_DOMAIN
+            if user.user_type == UserTypes.STUDENT
+            else settings.FRONTEND_DOMAIN
+        )
 
         activation_url = (
             f"{protocol}{frontend_domain}/verify-email?email={user.email}&token={token}"
