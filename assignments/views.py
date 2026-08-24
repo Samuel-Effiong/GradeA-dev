@@ -11,6 +11,7 @@ from django.db.models import Q
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.utils.html import escape as escape_html
 from django_celery_beat.models import ClockedSchedule, PeriodicTask
 
 # from django.utils.decorators import method_decorator
@@ -36,7 +37,6 @@ from rest_framework.exceptions import (
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from weasyprint import HTML
 
 from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor  # pdf_service
@@ -65,6 +65,7 @@ from .models import (  # Rubric
     AssignmentGenerationSession,
     AssignmentStatus,
 )
+from .pdf_renderer import render_html_to_pdf
 from .serializers import (  # RubricSerializer,; AssignmentGradeAllSubmissionsSerializer,
     AssignmentCreateResponseSerializer,
     AssignmentDetailSerializer,
@@ -82,7 +83,7 @@ from .serializers import (  # RubricSerializer,; AssignmentGradeAllSubmissionsSe
     ScheduledGradingResponseSerializer,
     ScheduleGradingSerializer,
 )
-from .services import AssignmentProcessingService
+from .services import AssignmentProcessingService, _strip_html_from_title
 from .tasks import (  # grade_all_submissions,
     extract_assignment_background_task,
     grade_engine_async,
@@ -1789,9 +1790,19 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             data, include_rubric=include_rubric, include_document_header=False
         )
 
-        # Extract course and teacher info
-        course_name = assignment.course.name if assignment.course else "Course"
-        teacher_name = (
+        # Extract course and teacher info. Escaped before embedding below:
+        # under the previous WeasyPrint pipeline a stray "<script>" or
+        # "onerror=" here was inert (WeasyPrint has no JS engine at all),
+        # but Chromium actually executes JavaScript while rendering this
+        # document to PDF - the same raw interpolation that was harmless
+        # before is a real script-injection path now, so every value that
+        # isn't already known-safe (a server-formatted date, a plain int)
+        # needs escaping here, matching what format_assignment_standard_html
+        # already does for the fields it renders itself.
+        course_name = escape_html(
+            assignment.course.name if assignment.course else "Course"
+        )
+        teacher_name = escape_html(
             assignment.course.teacher.get_full_name()
             if assignment.course and assignment.course.teacher
             else "Instructor"
@@ -1802,17 +1813,25 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             if assignment.due_date
             else "Not set"
         )
-        display_title = assignment.title or "Assignment"
-        # Pre-quoted/escaped for direct embedding as a CSS string literal
-        # (the @top-center content property below) — json.dumps' escaping
-        # is a safe superset of CSS string escaping for plain text, and
-        # this also closes a latent bug: a title containing a literal "
-        # would otherwise break the generated CSS.
-        title_css_literal = json.dumps(display_title)
+        display_title = escape_html(
+            _strip_html_from_title(assignment.title) or "Assignment"
+        )
+        # This endpoint calls format_assignment_standard_html with
+        # include_document_header=False specifically so it can render its
+        # own instructions box below instead - but that also means the
+        # shared formatter's own sanitize_ai_html(instructions) call never
+        # runs against the version rendered here. Assignment.instructions
+        # is stored as whatever raw HTML the AI/extraction pipeline
+        # produced (see AssignmentProcessingService.format_assignment_standard_html,
+        # which sanitizes it lazily at render time, not at write time), so
+        # it must be sanitized here too before being embedded.
+        sanitized_instructions = AssignmentProcessingService.sanitize_ai_html(
+            assignment.instructions or ""
+        )
         instructions_html = (
             f'<div class="instructions-box"><strong>Instructions:</strong> '
-            f"{assignment.instructions}</div>"
-            if assignment.instructions
+            f"{sanitized_instructions}</div>"
+            if sanitized_instructions
             else ""
         )
 
@@ -1828,36 +1847,16 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                    Editorial layout patterned after the ground-truth
                    benchmark PDFs (ai_processor/benchmark/render.py):
                    quiet serif typesetting instead of a dashboard look.
-                   The @bottom-right box is a deliberately understated
-                   brand mark, not a page-count element. */
+                   Running headers/footers (title top-center, page count
+                   bottom-center, brand mark bottom-right) are rendered via
+                   Chromium's header_template/footer_template PDF options
+                   (see download_pdf below), not CSS @page margin boxes -
+                   Chromium's print-to-PDF doesn't support those. Page
+                   margins are likewise set via page.pdf()'s margin option
+                   rather than here, so they stay in sync with the space
+                   those templates need. */
                 @page {{
                     size: A4;
-                    margin: 2.5cm 2cm 2.2cm 2cm;
-                    @top-center {{
-                        content: {title_css_literal};
-                        font-family: Georgia, 'Times New Roman', serif;
-                        font-style: italic;
-                        font-size: 9pt;
-                        color: #7a8188;
-                        border-bottom: 1px solid #ddd8c8;
-                        padding-bottom: 5px;
-                    }}
-                    @bottom-center {{
-                        content: "Page " counter(page) " of " counter(pages);
-                        font-size: 8.5pt;
-                        color: #7a8188;
-                        border-top: 1px solid #ddd8c8;
-                        padding-top: 5px;
-                    }}
-                    @bottom-right {{
-                        content: "Grade A+";
-                        font-family: Georgia, 'Times New Roman', serif;
-                        font-size: 7.5pt;
-                        letter-spacing: 0.5px;
-                        color: #b5ab8f;
-                        border-top: 1px solid #ddd8c8;
-                        padding-top: 5px;
-                    }}
                 }}
 
                 /* --- Global styles --- */
@@ -2002,10 +2001,53 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         </html>
         """
 
+        # Replaces the old @page @top-center/@bottom-center/@bottom-right
+        # margin boxes: Chromium's print-to-PDF has no equivalent CSS
+        # support, so the running title/page-count/brand mark are built as
+        # Chromium's own header/footer templates instead. Padding matches
+        # the page margins below so the text lines up with the body content
+        # (Chromium's templates span the full page width by default,
+        # ignoring left/right margins unless padding compensates).
+        # class="title" is filled in by Chromium from the document's own
+        # <title> tag (set above), so it never needs to be re-escaped here.
+        header_template = """
+        <div style="width:100%; box-sizing:border-box;
+                    padding:0 2cm 5px 2cm; margin:0;
+                    font-family: Georgia, 'Times New Roman', serif;
+                    font-style:italic; font-size:9px; color:#7a8188;
+                    text-align:center; border-bottom:1px solid #ddd8c8;">
+            <span class="title"></span>
+        </div>
+        """
+        footer_template = """
+        <div style="width:100%; box-sizing:border-box;
+                    padding:5px 2cm 0 2cm; margin:0;
+                    font-family: Georgia, 'Times New Roman', serif;
+                    font-size:8.5px; color:#7a8188;
+                    border-top:1px solid #ddd8c8;
+                    display:flex; align-items:center; justify-content:space-between;">
+            <span style="flex:1;"></span>
+            <span style="flex:1; text-align:center;">
+                Page <span class="pageNumber"></span> of <span class="totalPages"></span>
+            </span>
+            <span style="flex:1; text-align:right; letter-spacing:0.5px; color:#b5ab8f;">
+                Grade A+
+            </span>
+        </div>
+        """
+
         try:
-            # WeasyPrint automatically handles absolute image URLs (CDN)
-            base_url = request.build_absolute_uri("/")
-            pdf_bytes = HTML(string=full_html, base_url=base_url).write_pdf()
+            pdf_bytes = render_html_to_pdf(
+                full_html,
+                header_template=header_template,
+                footer_template=footer_template,
+                margins={
+                    "top": "2.5cm",
+                    "right": "2cm",
+                    "bottom": "2.2cm",
+                    "left": "2cm",
+                },
+            )
         except Exception as e:
             logger.error("PDF generation failed", exc_info=e)
             return Response(

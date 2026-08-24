@@ -14,7 +14,8 @@ EXPOSE 8000
 ENV PYTHONUNBUFFERED=1 \
     PORT=8000 \
     HOME=/tmp \
-    TMPDIR=/tmp
+    TMPDIR=/tmp \
+    PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/ms-playwright
 
 # Install system packages required by Wagtail and Django.
 RUN apt-get update --yes --quiet && \
@@ -38,6 +39,17 @@ RUN pip install "gunicorn==20.0.4"
 # Install the project requirements.
 COPY requirements.txt /
 RUN pip install -r /requirements.txt
+
+# Install headless Chromium (used by assignments/pdf_renderer.py to typeset
+# math in downloaded assignment PDFs) plus its OS-level dependencies.
+# --with-deps auto-detects this image's OS (Debian bookworm) and installs
+# exactly the apt packages Chromium needs, rather than hand-maintaining a
+# fragile list here. Must run as root (before "USER wagtail" below), and
+# PLAYWRIGHT_BROWSERS_PATH (set above) points it at a fixed, non-/tmp
+# location so the browser persists in the image and stays readable by the
+# non-root "wagtail" user that actually serves requests.
+RUN playwright install --with-deps chromium && \
+    chmod -R o+rX /usr/local/share/ms-playwright
 
 # Use /app folder as a directory where the source code is stored.
 WORKDIR /app
