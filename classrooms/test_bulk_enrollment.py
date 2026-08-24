@@ -1,7 +1,9 @@
 # import csv
 import io
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -101,6 +103,25 @@ class BulkEnrollmentTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["failure_count"], 1)
         self.assertEqual(response.data["results"][0]["status"], "failed")
+
+    @override_settings(
+        FRONTEND_DOMAIN="teacher.example.test",
+        STUDENT_FRONTEND_DOMAIN="student.example.test",
+    )
+    @patch("classrooms.views.send_email_task.delay")
+    def test_bulk_invite_link_uses_student_frontend_domain(self, mock_send_email):
+        """A bulk-added row with an email (invitation flow, inactive
+        student) gets a registration link on the student app, not the
+        teacher app."""
+        raw_data = "first_name,last_name,email\nCarl,Sagan,carl@example.com"
+        response = self.client.post(self.url, {"raw_data": raw_data})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["success_count"], 1)
+
+        merge_data = mock_send_email.call_args.kwargs["merge_data"]
+        self.assertIn("student.example.test", merge_data["activation_url"])
+        self.assertNotIn("teacher.example.test", merge_data["activation_url"])
 
     def test_bulk_add_without_headers_detects_email_in_any_column(self):
         """Rows without headers should detect email by value and map remaining cells by order."""

@@ -495,6 +495,10 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         topic = serializer.validated_data.get("topic")
 
         if raw_input:
+            if not HasCreditBalance().has_permission(request, self):
+                raise PermissionDenied(
+                    "Insufficient credits to re-process this assignment edit."
+                )
 
             text = f"""
             Analyze the text of an educational assignment and return a valid JSON

@@ -291,55 +291,59 @@ You are a transcriber for extracted content, not an editor or co-author.
 
 4. **Mathematical Notation in Options**:
 
-   When answer options contain mathematical content, **ALWAYS use LaTeX**:
+   When answer options contain mathematical content, **ALWAYS use LaTeX**. Note that none
+   of the examples below include a leading letter label ("A)", "B)", ...) in the option
+   text — even though the source document shows one next to each option, it must NOT be
+   copied into the stored string. See the "Answer Options" and "Options Array" sections
+   below for why.
 
    **Example 1 - Variables in Options:**
    ```json
    "options": [
-     "A) $x = 5$",
-     "B) $x = -5$",
-     "C) $x = 10$",
-     "D) $x = -10$"
+     "$x = 5$",
+     "$x = -5$",
+     "$x = 10$",
+     "$x = -10$"
    ]
    ```
 
    **Example 2 - Equations in Options:**
    ```json
    "options": [
-     "A) $y = 2x + 3$",
-     "B) $y = -2x + 3$",
-     "C) $y = 2x - 3$",
-     "D) $y = -2x - 3$"
+     "$y = 2x + 3$",
+     "$y = -2x + 3$",
+     "$y = 2x - 3$",
+     "$y = -2x - 3$"
    ]
    ```
 
    **Example 3 - Complex Expressions in Options:**
    ```json
    "options": [
-     "A) $\\frac{1}{2}$",
-     "B) $\\frac{2}{3}$",
-     "C) $\\frac{3}{4}$",
-     "D) $\\frac{4}{5}$"
+     "$\\frac{1}{2}$",
+     "$\\frac{2}{3}$",
+     "$\\frac{3}{4}$",
+     "$\\frac{4}{5}$"
    ]
    ```
 
    **Example 4 - Mixed Text and Math in Options:**
    ```json
    "options": [
-     "A) The slope is $m = 2$ and y-intercept is $b = 3$",
-     "B) The slope is $m = -2$ and y-intercept is $b = 3$",
-     "C) The slope is $m = 2$ and y-intercept is $b = -3$",
-     "D) No solution exists"
+     "The slope is $m = 2$ and y-intercept is $b = 3$",
+     "The slope is $m = -2$ and y-intercept is $b = 3$",
+     "The slope is $m = 2$ and y-intercept is $b = -3$",
+     "No solution exists"
    ]
    ```
 
    **Example 5 - Formatted Text with Math in Options:**
    ```json
    "options": [
-     "A) <b>Correct</b>: $\\sqrt{16} = 4$",
-     "B) <i>Incorrect</i>: $\\sqrt{16} = \\pm 4$",
-     "C) $\\sqrt{16} = -4$ only",
-     "D) Cannot be determined"
+     "<b>Correct</b>: $\\sqrt{16} = 4$",
+     "<i>Incorrect</i>: $\\sqrt{16} = \\pm 4$",
+     "$\\sqrt{16} = -4$ only",
+     "Cannot be determined"
    ]
    ```
 
@@ -360,8 +364,10 @@ You are a transcriber for extracted content, not an editor or co-author.
 - ✅ ALWAYS write `$x^2$`
 - ❌ NEVER write "one-half" or "1/2" in plain text when it's a mathematical fraction
 - ✅ ALWAYS write `$\frac{1}{2}$` or `$\frac{1}{2}$`
-- ❌ NEVER write plain text math in options like "A) x = 5"
-- ✅ ALWAYS write `"A) $x = 5$"`
+- ❌ NEVER write plain text math in options like "x = 5"
+- ✅ ALWAYS write `"$x = 5$"`
+- ❌ NEVER include a leading letter/number label in an option string, e.g. `"A) $x = 5$"`
+- ✅ ALWAYS store just the option's content: `"$x = 5$"`
 
 ---
 
@@ -398,6 +404,10 @@ You are a transcriber for extracted content, not an editor or co-author.
   - Usually formatted as: A) option, B) option, C) option, D) option
   - May also be: (A) option, a. option, 1) option
   - **Must preserve all HTML formatting and LaTeX math in each option**
+  - **Must NOT preserve the leading letter/number label itself** (the "A)", "(A)", "1)"
+    part) — store only the option's own content. The application derives and renders the
+    letter from the option's position in the array; keeping the source label too produces
+    a doubled letter when the assignment is displayed.
 
 - **Point Values**: Score allocation for each question
   - Formats: "(5 points)", "[10 pts]", "5 marks", "(15)"
@@ -540,7 +550,9 @@ You are a transcriber for extracted content, not an editor or co-author.
 
 For extracted questions:
 - Extract each option with HTML and LaTeX preserved
-- Always include letter prefix (A), B), C), D))
+- Never include the letter/number label ("A)", "B)", ...) in the stored option text —
+  strip it even though it's visible in the source. The application generates and displays
+  the letter itself from the option's array position.
 
 For generated questions:
 - Create 4 plausible, clearly distinct options
@@ -701,8 +713,8 @@ For generated questions:
 1. **For OBJECTIVE Questions**:
    - Look for answer key at end of document
    - May be formatted as: "1. B, 2. A, 3. D, 4. C"
-   - Extract as single option: `"B) The mitochondria"`
-   - Include LaTeX if answer contains math: `"A) $x = 5$"`
+   - Extract the *content* of the matching option, with no letter label: `"The mitochondria"`
+   - Include LaTeX if answer contains math: `"$x = 5$"`
    - If not provided, leave empty or infer if obvious
 
 2. **For SHORT-ANSWER Questions**:
@@ -781,14 +793,14 @@ For generated questions:
       "points": 2,
       "blooms_level": "Apply",
       "options": [
-        "A) $x = 5$",
-        "B) $x = 10$",
-        "C) $x = 15$",
-        "D) $x = 20$"
+        "$x = 5$",
+        "$x = 10$",
+        "$x = 15$",
+        "$x = 20$"
       ],
       "additional_notes": "",
       "rubric": [],
-      "model_answer": "A) $x = 5$"
+      "model_answer": "$x = 5$"
     },
     {
       "question_number": 2,
@@ -931,16 +943,18 @@ Cover: which question numbers were generated (not extracted), which content gaps
 - Never write "x squared" when it should be `$x^2$`
 
 ### Options Array (CRITICAL)
-- **Math in options MUST use LaTeX**: `"A) $x = 5$"`
-- **Formatting in options MUST use HTML**: `"B) <b>The correct answer</b>"`
-- **Combined**: `"C) The slope is $m = 2$ and <i>positive</i>"`
+- **Math in options MUST use LaTeX**: `"$x = 5$"`
+- **Formatting in options MUST use HTML**: `"<b>The correct answer</b>"`
+- **Combined**: `"The slope is $m = 2$ and <i>positive</i>"`
 - Never write plain text math in options
+- **Never include a leading letter/number label ("A)", "B)", ...) in an option string** —
+  the application generates and displays the letter itself from the option's position
 - Example correct:
 ```json
   "options": [
-    "A) $\\frac{1}{2}$",
-    "B) $\\frac{2}{3}$",
-    "C) $\\frac{3}{4}$"
+    "$\\frac{1}{2}$",
+    "$\\frac{2}{3}$",
+    "$\\frac{3}{4}$"
   ]
 ```
 
@@ -955,7 +969,7 @@ Cover: which question numbers were generated (not extracted), which content gaps
 ### Model Answers
 - Extract with all HTML and LaTeX preserved
 - Generate if not provided in document
-- For objective: just the correct option with math: `"B) $x = 10$"`
+- For objective: just the correct option's content, with math and no letter label: `"$x = 10$"`
 - For short answer/essay: comprehensive HTML response with LaTeX where needed
 
 ### Self-Assessment Requirements
@@ -1003,14 +1017,14 @@ Answer Key: 1. A
       "points": 2,
       "blooms_level": "Apply",
       "options": [
-        "A) $x = 5$",
-        "B) $x = 10$",
-        "C) $x = 15$",
-        "D) $x = 20$"
+        "$x = 5$",
+        "$x = 10$",
+        "$x = 15$",
+        "$x = 20$"
       ],
       "additional_notes": "",
       "rubric": [],
-      "model_answer": "A) $x = 5$"
+      "model_answer": "$x = 5$"
     }
   ],
   "extraction_confidence": 98,
@@ -1046,14 +1060,14 @@ A) Chlorophyll  B) Melanin  C) Haemoglobin  D) Carotene
       "points": 2,
       "blooms_level": "Remember",
       "options": [
-        "A) Chlorophyll",
-        "B) Melanin",
-        "C) Haemoglobin",
-        "D) Carotene"
+        "Chlorophyll",
+        "Melanin",
+        "Haemoglobin",
+        "Carotene"
       ],
       "additional_notes": "",
       "rubric": [],
-      "model_answer": "A) Chlorophyll"
+      "model_answer": "Chlorophyll"
     },
     {
       "question_number": 2,

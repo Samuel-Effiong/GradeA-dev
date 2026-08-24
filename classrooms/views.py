@@ -1367,7 +1367,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                             "course": course,
                             "teacher": course.teacher,
                             "student": student,
-                            "login_url": f"https://{settings.FRONTEND_DOMAIN}",
+                            "login_url": f"https://{settings.STUDENT_FRONTEND_DOMAIN}",
                         }
 
                         # html_content = render_to_string(
@@ -1429,7 +1429,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                             auto_added=False,
                         )
 
-                        frontend_domain = settings.FRONTEND_DOMAIN
+                        frontend_domain = settings.STUDENT_FRONTEND_DOMAIN
                         registration_link = (
                             f"https://{frontend_domain}/register/student/"
                             f"{activation_token}?email={email}"
@@ -1514,7 +1514,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     )
 
                     # Generate registration link
-                    frontend_domain = settings.FRONTEND_DOMAIN
+                    frontend_domain = settings.STUDENT_FRONTEND_DOMAIN
                     registration_link = f"https://{frontend_domain}/register/student/{activation_token}?email={email}"
 
                     context = {
@@ -1934,7 +1934,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
         else:
             registration_link = (
-                f"https://{settings.FRONTEND_DOMAIN}/register/student/"
+                f"https://{settings.STUDENT_FRONTEND_DOMAIN}/register/student/"
                 f"{student.activation_token}?email={student.email}"
             )
             merge_data = {
@@ -1989,10 +1989,16 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
     )
     def remove_student(self, request, pk=None, student_id=None, *args, **kwargs):
         """Remove a student from a course"""
+        # Kept outside the try/except below, same reasoning as the
+        # students() action above: get_object() already scopes to the
+        # requesting teacher's own courses via get_queryset(), so a
+        # different teacher's course id raises Http404 here - inside the
+        # try, that got caught by the blanket `except Exception` and
+        # downgraded to a 500 instead of DRF's normal 404.
+        course = self.get_object()
+
         try:
             with transaction.atomic():
-                course = self.get_object()
-
                 if request.user != course.teacher:
                     raise PermissionDenied(
                         "You do not have permission to remove students from this course. "
@@ -2069,6 +2075,11 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     {"detail": "Student removed from course successfully."},
                     status=status.HTTP_200_OK,
                 )
+        except (ParseError, PermissionDenied):
+            # Let DRF's own exception handler turn these into their real
+            # 400/403 - the blanket `except Exception` below would otherwise
+            # downgrade them to a generic 500.
+            raise
         except Exception as e:
             logger.error("Failed to remove student from course", exc_info=e)
             return Response(
@@ -2122,7 +2133,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 raise ParseError("Invalid token or user not found.")
 
             enrollment = StudentCourse.objects.filter(
-                student=user, is_active=False
+                student=user, enrollment_status=EnrollmentStatusType.PENDING
             ).first()
 
             if not enrollment:
@@ -2131,9 +2142,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
             new_token = user.renew_activation_token()
 
             # Generate new registration link
-            registration_link = (
-                f"https://{settings.FRONTEND_DOMAIN}/register/student/{new_token}"
-            )
+            registration_link = f"https://{settings.STUDENT_FRONTEND_DOMAIN}/register/student/{new_token}"
             # Matches the real expiry renew_activation_token() just set on
             # `user` above (see users.models.ACTIVATION_TOKEN_VALIDITY).
             expiry_date = timezone.now() + ACTIVATION_TOKEN_VALIDITY
@@ -2186,6 +2195,11 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 status=status.HTTP_200_OK,
             )
 
+        except ParseError:
+            # Let DRF's own exception handler turn this into its real 400 -
+            # the blanket `except Exception` below would otherwise
+            # downgrade it to a generic 500.
+            raise
         except Exception as e:
             logger.error("Failed to renew activation token", exc_info=e)
             return Response(

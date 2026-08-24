@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
@@ -656,6 +657,157 @@ class CourseViewSetTest(ClassroomBaseAPITest):
         self.assertEqual(first_response.status_code, status.HTTP_200_OK)
         self.assertEqual(second_response.status_code, status.HTTP_200_OK)
         self.assertEqual(mock_send_email.call_count, 2)
+
+    @override_settings(
+        FRONTEND_DOMAIN="teacher.example.test",
+        STUDENT_FRONTEND_DOMAIN="student.example.test",
+    )
+    @patch("classrooms.views.send_email_task.delay")
+    def test_new_student_invite_link_uses_student_frontend_domain(
+        self, mock_send_email
+    ):
+        """A brand-new student (no CustomUser row yet) gets a registration
+        link pointed at the student app, not the teacher app."""
+        course = Course.objects.create(
+            name="Chemistry", teacher=self.teacher1, session=self.session
+        )
+        self.authenticate(self.teacher1)
+        url = reverse("course-students", kwargs={"pk": course.id})
+
+        response = self.client.post(url, {"email": "brandnew@example.com"})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        merge_data = mock_send_email.call_args.kwargs["merge_data"]
+        self.assertIn("student.example.test", merge_data["activation_url"])
+        self.assertNotIn("teacher.example.test", merge_data["activation_url"])
+
+    @override_settings(
+        FRONTEND_DOMAIN="teacher.example.test",
+        STUDENT_FRONTEND_DOMAIN="student.example.test",
+    )
+    @patch("classrooms.views.send_email_task.delay")
+    def test_existing_inactive_student_invite_link_uses_student_frontend_domain(
+        self, mock_send_email
+    ):
+        """An existing-but-not-yet-activated student invited into a second
+        course also gets a student-app link, not a teacher-app one."""
+        course_a = Course.objects.create(
+            name="Biology", teacher=self.teacher1, session=self.session
+        )
+        course_b = Course.objects.create(
+            name="Geography", teacher=self.teacher1, session=self.session
+        )
+        self.authenticate(self.teacher1)
+        url_a = reverse("course-students", kwargs={"pk": course_a.id})
+        url_b = reverse("course-students", kwargs={"pk": course_b.id})
+
+        email = "still.pending@example.com"
+        first = self.client.post(url_a, {"email": email})
+        self.assertEqual(first.status_code, status.HTTP_200_OK)
+        mock_send_email.reset_mock()
+
+        second = self.client.post(url_b, {"email": email})
+        self.assertEqual(second.status_code, status.HTTP_200_OK)
+
+        merge_data = mock_send_email.call_args.kwargs["merge_data"]
+        self.assertIn("student.example.test", merge_data["activation_url"])
+        self.assertNotIn("teacher.example.test", merge_data["activation_url"])
+
+    @override_settings(
+        FRONTEND_DOMAIN="teacher.example.test",
+        STUDENT_FRONTEND_DOMAIN="student.example.test",
+    )
+    @patch("classrooms.views.send_email_task.delay")
+    def test_existing_active_student_added_login_link_uses_student_frontend_domain(
+        self, mock_send_email
+    ):
+        """A student who is already active gets a login link pointed at the
+        student app, not the teacher app."""
+        student = User.objects.create_user(
+            email="already.active@example.com",
+            password="password123",  # pragma: allowlist secret
+            first_name="Already",
+            last_name="Active",
+        )
+        student.user_type = UserTypes.STUDENT
+        student.is_active = True
+        student.save()
+
+        course = Course.objects.create(
+            name="History", teacher=self.teacher1, session=self.session
+        )
+        self.authenticate(self.teacher1)
+        url = reverse("course-students", kwargs={"pk": course.id})
+
+        response = self.client.post(url, {"email": student.email})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        merge_data = mock_send_email.call_args.kwargs["merge_data"]
+        self.assertIn("student.example.test", merge_data["content"])
+        self.assertNotIn("teacher.example.test", merge_data["content"])
+
+    @patch("classrooms.views.send_email_task.delay")
+    def test_teacher_cannot_remove_student_from_another_teachers_course(
+        self, mock_send_email
+    ):
+        """remove_student used to wrap self.get_object() itself inside its
+        `except Exception`, downgrading the Http404 that get_queryset()'s
+        teacher-scoping raises for another teacher's course into a generic
+        500 - it must come back as a real 404 instead (same reasoning as
+        the students() action's ownership check, see the comment there)."""
+        course = Course.objects.create(
+            name="Astronomy", teacher=self.teacher1, session=self.session
+        )
+        student = User.objects.create_user(
+            email="astro.student@example.com",
+            password="password123",  # pragma: allowlist secret
+            first_name="Astro",
+            last_name="Student",
+        )
+        student.user_type = UserTypes.STUDENT
+        student.is_active = True
+        student.save()
+        StudentCourse.objects.create(student=student, course=course)
+
+        self.authenticate(self.teacher2)
+        url = reverse(
+            "course-remove-student",
+            kwargs={"pk": course.id, "student_id": student.id},
+        )
+
+        response = self.client.delete(url)
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertTrue(
+            StudentCourse.objects.filter(student=student, course=course).exists()
+        )
+
+    def test_removing_a_student_not_enrolled_returns_400(self):
+        """Same swallowed-exception bug, the other raise site: the
+        ParseError for "not enrolled" must come back as a 400, not 500."""
+        course = Course.objects.create(
+            name="Zoology", teacher=self.teacher1, session=self.session
+        )
+        student = User.objects.create_user(
+            email="not.enrolled@example.com",
+            password="password123",  # pragma: allowlist secret
+            first_name="Not",
+            last_name="Enrolled",
+        )
+        student.user_type = UserTypes.STUDENT
+        student.is_active = True
+        student.save()
+
+        self.authenticate(self.teacher1)
+        url = reverse(
+            "course-remove-student",
+            kwargs={"pk": course.id, "student_id": student.id},
+        )
+
+        response = self.client.delete(url)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("not enrolled", str(response.data.get("detail", "")))
 
     def test_hacker_modify_others_course(self):
         t1_course = Course.objects.create(

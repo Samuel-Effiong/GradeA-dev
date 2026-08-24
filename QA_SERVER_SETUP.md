@@ -309,7 +309,7 @@ cron entry is better than nothing until real alerting exists.
 ```ini
 # /etc/systemd/system/gradeaplus-qa-web.service
 [Unit]
-Description=GradeA+ QA web server
+Description=Grade A+ QA web server
 After=network.target
 
 [Service]
@@ -327,7 +327,7 @@ WantedBy=multi-user.target
 ```ini
 # /etc/systemd/system/gradeaplus-qa-worker.service
 [Unit]
-Description=GradeA+ QA Celery worker
+Description=Grade A+ QA Celery worker
 After=network.target
 
 [Service]
@@ -344,7 +344,7 @@ WantedBy=multi-user.target
 ```ini
 # /etc/systemd/system/gradeaplus-qa-beat.service
 [Unit]
-Description=GradeA+ QA Celery beat
+Description=Grade A+ QA Celery beat
 After=network.target
 
 [Service]

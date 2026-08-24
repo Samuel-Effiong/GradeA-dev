@@ -13,6 +13,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile, UploadedFile
 from django.db import transaction
 from django.utils import timezone
 from django.utils.html import escape as escape_html
+from django.utils.html import strip_tags
 from lxml import html as lxml_html
 from PIL import Image
 from rest_framework.exceptions import ParseError
@@ -137,10 +138,38 @@ _OPTION_LETTER_PREFIX_RE = re.compile(r"^\s*(?:\([A-Za-z]\)|[A-Za-z][.)])\s*")
 
 
 def _strip_leading_option_letter(text):
-    """Strip a pre-existing "A)"/"A."/"(A)" marker from AI-supplied option text."""
+    """
+    Strip any pre-existing "A)"/"A."/"(A)" marker(s) from AI-supplied option
+    text. Loops rather than a single substitution: option text has been seen
+    with the marker baked in more than once (e.g. after an edit round-trips
+    the assignment through AI re-extraction on top of already-rendered
+    content), and leaving even one copy behind still doubles up against the
+    letter this module generates and prepends itself.
+    """
     if not isinstance(text, str):
         return text
-    return _OPTION_LETTER_PREFIX_RE.sub("", text, count=1)
+    while True:
+        stripped = _OPTION_LETTER_PREFIX_RE.sub("", text, count=1)
+        if stripped == text:
+            return stripped
+        text = stripped
+
+
+def _strip_html_from_title(value):
+    """
+    Reduce `title` to plain text.
+
+    AI extraction wraps the title in heading/paragraph tags meant for the
+    rich editor/PDF body (format_assignment_standard_html re-wraps a plain
+    title in its own <h1> for that rendering). `title` itself is read
+    verbatim in plain-text contexts - notification emails, PDF
+    headers/filenames, list views - so raw markup must never reach it,
+    regardless of which write path (DRF serializer, AI extraction task,
+    admin, shell) produced it.
+    """
+    if not isinstance(value, str) or not value:
+        return value
+    return re.sub(r"\s+", " ", strip_tags(value)).strip()
 
 
 def _option_letter(index: int) -> str:
@@ -449,7 +478,14 @@ class AssignmentProcessingService:
             )
             questions = []
 
-        title_html = cls.sanitize_ai_html(_none_default(data.get("title"), ""))
+        # Title is always reduced to plain text and re-wrapped in a real <h1>
+        # here, rather than trusting whatever markup AI extraction put in
+        # `data["title"]` - this is the single choke point every caller
+        # (fresh AI drafts, saved Assignment rows alike) renders through, so
+        # the title always displays as prominent, first-in-document heading
+        # regardless of how it arrived.
+        title_plain = _strip_html_from_title(_none_default(data.get("title"), ""))
+        title_html = f"<h1>{escape_html(title_plain)}</h1>" if title_plain else ""
         instructions_html = cls.sanitize_ai_html(
             _none_default(data.get("instructions"), "")
         )
@@ -754,6 +790,11 @@ class AssignmentProcessingService:
             )
             serializer.is_valid(raise_exception=True)
             serializer.save()
+
+        if assignment.submissions.exists():
+            from students.services import notify_students_of_assignment_edit
+
+            notify_students_of_assignment_edit(assignment)
 
         return assignment
 
