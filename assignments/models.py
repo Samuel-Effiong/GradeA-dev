@@ -43,6 +43,12 @@ class Assignment(models.Model):
     raw_input_hash = models.CharField(max_length=64, editable=False, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
+    # Bumped on every save. Read by assignments/pdf_cache.py, which builds
+    # its cache key from this timestamp: an edit changes the key, so the
+    # next download is a natural miss and the stale entry simply ages out
+    # under its TTL - there is no invalidation hook to keep in sync with
+    # future write paths.
+    updated_at = models.DateTimeField(auto_now=True)
 
     # AI GENERATED FIELDS
     instructions = models.TextField(null=True, blank=True, default="")

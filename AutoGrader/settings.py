@@ -649,6 +649,18 @@ GRADING_ANSWER_CACHE_TTL_SECONDS = env.int(
     "GRADING_ANSWER_CACHE_TTL_SECONDS", default=60 * 60 * 24 * 3  # 3 days
 )
 
+# Rendered-PDF cache (assignments/pdf_cache.py): a downloaded assignment
+# PDF costs a full headless-Chromium render to produce and is identical
+# for everyone downloading the same unchanged assignment in the same
+# view, so the bytes are cached and reused. The cache key includes the
+# assignment's updated_at, so an edit can never serve a stale PDF - see
+# that module's docstring. Kill switch: False renders every download
+# fresh.
+ASSIGNMENT_PDF_CACHE_ENABLED = env.bool("ASSIGNMENT_PDF_CACHE_ENABLED", default=True)
+ASSIGNMENT_PDF_CACHE_TTL_SECONDS = env.int(
+    "ASSIGNMENT_PDF_CACHE_TTL_SECONDS", default=60 * 60 * 24  # 1 day
+)
+
 CELERY_TASK_ACKS_LATE = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_RESULT_EXPIRES = 3600  # Delete results after 1 hour

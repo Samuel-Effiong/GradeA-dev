@@ -54,7 +54,8 @@ class KaTeXInjectionTest(SimpleTestCase):
     def test_inserts_katex_stylesheet_before_head_close(self):
         result = pdf_renderer.inject_katex(self._full_html())
         self.assertIn(
-            f'<link rel="stylesheet" href="file://{pdf_renderer.KATEX_CSS_PATH}">',
+            f'<link rel="stylesheet" '
+            f'href="{pdf_renderer._KATEX_URL_PREFIX}katex.min.css">',
             result,
         )
         # The stylesheet must land inside <head>, not appended anywhere else.
@@ -64,12 +65,30 @@ class KaTeXInjectionTest(SimpleTestCase):
     def test_inserts_katex_and_autorender_scripts_before_body_close(self):
         result = pdf_renderer.inject_katex(self._full_html())
         body_content = result.split("<body>")[1]
-        self.assertIn(f'src="file://{pdf_renderer.KATEX_JS_PATH}"', body_content)
         self.assertIn(
-            f'src="file://{pdf_renderer.KATEX_AUTORENDER_JS_PATH}"', body_content
+            f'src="{pdf_renderer._KATEX_URL_PREFIX}katex.min.js"', body_content
+        )
+        self.assertIn(
+            f'src="{pdf_renderer._KATEX_URL_PREFIX}contrib/auto-render.min.js"',
+            body_content,
         )
         self.assertIn("renderMathInElement", body_content)
         self.assertIn("window.__katexDone = true", body_content)
+
+    def test_katex_assets_are_same_origin_not_file_urls(self):
+        """
+        Chromium refuses to load a file:// subresource from an http(s)
+        document ("Not allowed to load local resource"), and the document
+        is now served over a placeholder http origin via page.route()
+        rather than from a file:// temp file. So the KaTeX references must
+        be same-origin URLs served through that same interception - a
+        regression back to file:// here would leave renderMathInElement
+        undefined and every math document timing out waiting for
+        __katexDone.
+        """
+        result = pdf_renderer.inject_katex(self._full_html())
+        self.assertNotIn("file://", result)
+        self.assertIn(pdf_renderer._KATEX_URL_PREFIX, result)
 
     def test_double_dollar_delimiter_is_checked_before_single_dollar(self):
         """
@@ -107,6 +126,52 @@ class KaTeXInjectionTest(SimpleTestCase):
         self.assertEqual(result.count("window.__katexDone"), 1)
 
 
+class HasMathTest(SimpleTestCase):
+    def test_detects_inline_and_display_math(self):
+        self.assertTrue(pdf_renderer.has_math("<p>Solve $x = 5$.</p>"))
+        self.assertTrue(pdf_renderer.has_math("<p>$$x = 5$$</p>"))
+
+    def test_no_dollar_sign_means_no_math(self):
+        self.assertFalse(pdf_renderer.has_math("<p>Name the capital of France.</p>"))
+        self.assertFalse(pdf_renderer.has_math(""))
+
+    def test_incidental_dollar_sign_is_treated_as_math(self):
+        """
+        Deliberate false-positive: a word problem mentioning "$5" loads
+        KaTeX for nothing. Documented as acceptable because KaTeX's
+        throwOnError:false leaves unparseable "$..." as plain text, so the
+        only cost is a little wasted work - never wrong output. Asserted
+        so the tradeoff is visible rather than a surprise.
+        """
+        self.assertTrue(pdf_renderer.has_math("<p>The candy costs $5 total.</p>"))
+
+
+class MarkNoMathDoneTest(SimpleTestCase):
+    def _full_html(self, body="<p>hello</p>"):
+        return f"<!doctype html><html><head><title>T</title></head><body>{body}</body></html>"
+
+    def test_sets_katex_done_without_loading_any_katex_asset(self):
+        """
+        The whole point of the no-math path: skip the KaTeX CSS/JS
+        entirely, but still set __katexDone, which _process_job's
+        wait_for_function() blocks on - omitting it would make every
+        math-free render wait out the full timeout and then fail.
+        """
+        result = pdf_renderer._mark_no_math_done(self._full_html())
+        self.assertIn("window.__katexDone = true", result)
+        self.assertNotIn("katex.min.css", result)
+        self.assertNotIn("katex.min.js", result)
+        self.assertNotIn("renderMathInElement", result)
+
+    def test_validates_the_document_like_inject_katex_does(self):
+        with self.assertRaises(ValueError):
+            pdf_renderer._mark_no_math_done("<html><head></head>no body close</html>")
+
+    def test_preserves_original_body_content(self):
+        result = pdf_renderer._mark_no_math_done(self._full_html("<p>Keep me</p>"))
+        self.assertIn("<p>Keep me</p>", result)
+
+
 @unittest.skipUnless(
     _CHROMIUM_AVAILABLE,
     "Headless Chromium is not available in this environment - install it "
@@ -139,6 +204,38 @@ class ChromiumRendererTest(SimpleTestCase):
             self._full_html("<p>Hello, world.</p>")
         )
         self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
+
+    def test_math_free_document_renders_without_loading_katex(self):
+        """
+        End-to-end proof of the no-math fast path: a document with no "$"
+        must still render correctly (not hang waiting for __katexDone,
+        which the KaTeX bundle would normally set) while skipping the
+        KaTeX assets entirely.
+        """
+        pdf_bytes = pdf_renderer.render_html_to_pdf(
+            self._full_html("<p>Name the capital of France.</p>")
+        )
+        text = self._extract_text(pdf_bytes)
+        self.assertIn("Name the capital of France.", text)
+
+    def test_katex_fonts_load_through_the_intercepted_origin(self):
+        """
+        katex.min.css requests its fonts via relative url(fonts/*.woff2),
+        which resolve back through the same route handler that served the
+        stylesheet. If that font route regressed, KaTeX would silently
+        fall back to a system font and the typeset math would still
+        "work" - so assert real KaTeX font resources actually made it
+        into the PDF rather than only checking the text came out.
+        """
+        pdf_bytes = pdf_renderer.render_html_to_pdf(
+            self._full_html(r"<p>$\frac{1}{2} + \sqrt{16}$</p>")
+        )
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        embedded_fonts = {font[3] for page in doc for font in page.get_fonts(full=True)}
+        self.assertTrue(
+            any("KaTeX" in name for name in embedded_fonts),
+            f"no KaTeX font embedded in the PDF; found: {embedded_fonts}",
+        )
 
     def test_math_is_typeset_not_left_as_literal_latex(self):
         html = self._full_html(r"<p>Solve for $x$: $2x + 5 = 15$.</p>")

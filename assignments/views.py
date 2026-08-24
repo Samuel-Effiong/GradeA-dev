@@ -65,6 +65,7 @@ from .models import (  # Rubric
     AssignmentGenerationSession,
     AssignmentStatus,
 )
+from .pdf_cache import get_cached_pdf, store_pdf
 from .pdf_renderer import render_html_to_pdf
 from .serializers import (  # RubricSerializer,; AssignmentGradeAllSubmissionsSerializer,
     AssignmentCreateResponseSerializer,
@@ -1771,6 +1772,15 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                         "You can only download published assignments."
                     )
 
+        # Served from cache only *after* the permission checks above, so a
+        # hit can never hand someone a PDF they aren't allowed to see. The
+        # early return skips the whole HTML-assembly pipeline below, not
+        # just the Chromium render.
+        view_type = "teacher" if include_rubric else "student"
+        cached_pdf = get_cached_pdf(assignment, view_type)
+        if cached_pdf is not None:
+            return self._assignment_pdf_response(assignment, cached_pdf)
+
         # Prepare data for the assignment (common to both views)
         data = {
             "title": assignment.title,
@@ -2064,6 +2074,11 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+        store_pdf(assignment, view_type, pdf_bytes)
+        return self._assignment_pdf_response(assignment, pdf_bytes)
+
+    @staticmethod
+    def _assignment_pdf_response(assignment, pdf_bytes):
         # Sanitise filename
         safe_title = re.sub(r"[^\w\s-]", "", assignment.title or "assignment").strip()
         filename = f"{safe_title}.pdf"
