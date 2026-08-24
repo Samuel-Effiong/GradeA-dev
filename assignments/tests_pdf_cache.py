@@ -6,6 +6,8 @@ itself, which assignments/tests_pdf_renderer.py covers against real
 Chromium.
 """
 
+import threading
+import time
 from unittest.mock import patch
 
 from django.core.cache import cache
@@ -134,6 +136,196 @@ class PdfCacheReadWriteTest(RigorFixtureMixin, APITestCase):
             pdf_cache.store_pdf(
                 self.assignment, "student", b"%PDF-abc"
             )  # must not raise
+
+
+class SingleFlightTest(RigorFixtureMixin, APITestCase):
+    """
+    get_or_render collapses concurrent renders of the same PDF into one.
+
+    Measured before this existed: 30 simultaneous requests for one
+    uncached assignment produced 30 identical Chromium renders, because
+    none had finished storing a result yet - the exact shape of a class
+    opening a newly published assignment together.
+    """
+
+    def setUp(self):
+        cache.clear()
+        pdf_cache._inflight.clear()
+        self.course = self.make_course(suffix="-singleflight")
+        self.assignment = Assignment.objects.create(
+            title="Flight Quiz",
+            course=self.course,
+            status=AssignmentStatus.PUBLISHED,
+            questions=[objective_question()],
+        )
+
+    def tearDown(self):
+        cache.clear()
+        pdf_cache._inflight.clear()
+
+    def _hammer(self, render_fn, threads=20, view_type="student"):
+        """Fire `threads` concurrent get_or_render calls for one key."""
+        results, errors = {}, []
+        lock = threading.Lock()
+        start = threading.Barrier(threads)
+
+        def work(i):
+            try:
+                start.wait(timeout=30)  # release them all together
+                value = pdf_cache.get_or_render(self.assignment, view_type, render_fn)
+                with lock:
+                    results[i] = value
+            except Exception as exc:
+                with lock:
+                    errors.append((i, exc))
+
+        workers = [threading.Thread(target=work, args=(i,)) for i in range(threads)]
+        for t in workers:
+            t.start()
+        for t in workers:
+            t.join(timeout=60)
+        return results, errors
+
+    def test_concurrent_callers_share_a_single_render(self):
+        calls = {"n": 0}
+        lock = threading.Lock()
+
+        def slow_render():
+            with lock:
+                calls["n"] += 1
+            time.sleep(0.3)  # long enough that everyone piles up behind it
+            return b"%PDF-shared"
+
+        results, errors = self._hammer(slow_render, threads=20)
+
+        self.assertEqual(errors, [])
+        self.assertEqual(len(results), 20)
+        self.assertEqual(calls["n"], 1, "the render should have happened exactly once")
+        # ...and every caller got that one render's bytes.
+        self.assertTrue(all(v == b"%PDF-shared" for v in results.values()))
+
+    def test_the_shared_render_is_cached_for_later_callers(self):
+        calls = {"n": 0}
+
+        def render():
+            calls["n"] += 1
+            return b"%PDF-stored"
+
+        pdf_cache.get_or_render(self.assignment, "student", render)
+        pdf_cache.get_or_render(self.assignment, "student", render)
+
+        self.assertEqual(calls["n"], 1)
+        self.assertEqual(
+            pdf_cache.get_cached_pdf(self.assignment, "student"), b"%PDF-stored"
+        )
+
+    def test_a_failing_render_propagates_to_waiters_and_is_not_cached(self):
+        """
+        Waiters get the leader's error rather than each retrying: the
+        renderer already retries internally on a dead browser, so a
+        failure reaching here is one a retry storm would only repeat.
+        """
+        calls = {"n": 0}
+        lock = threading.Lock()
+
+        def failing_render():
+            with lock:
+                calls["n"] += 1
+            time.sleep(0.3)
+            raise RuntimeError("render exploded")
+
+        results, errors = self._hammer(failing_render, threads=10)
+
+        self.assertEqual(results, {})
+        self.assertEqual(len(errors), 10)
+        self.assertTrue(all(isinstance(e, RuntimeError) for _, e in errors))
+        self.assertEqual(calls["n"], 1)
+        # A failure must never be cached as if it were a PDF.
+        self.assertIsNone(pdf_cache.get_cached_pdf(self.assignment, "student"))
+
+    def test_a_failed_flight_is_cleaned_up_so_the_next_caller_can_retry(self):
+        calls = {"n": 0}
+
+        def fail_once_then_work():
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise RuntimeError("transient")
+            return b"%PDF-recovered"
+
+        with self.assertRaises(RuntimeError):
+            pdf_cache.get_or_render(self.assignment, "student", fail_once_then_work)
+
+        # The registry must not still hold the dead flight.
+        self.assertEqual(pdf_cache._inflight, {})
+        self.assertEqual(
+            pdf_cache.get_or_render(self.assignment, "student", fail_once_then_work),
+            b"%PDF-recovered",
+        )
+
+    def test_different_views_do_not_share_a_flight(self):
+        """
+        The teacher's PDF contains rubrics the student's must not - they
+        must never be collapsed into one render, however concurrent.
+        """
+        rendered = []
+        lock = threading.Lock()
+
+        def render():
+            time.sleep(0.2)
+            with lock:
+                rendered.append(1)
+            return b"%PDF-x"
+
+        out = {}
+
+        def call(view_type):
+            out[view_type] = pdf_cache.get_or_render(self.assignment, view_type, render)
+
+        threads = [
+            threading.Thread(target=call, args=("student",)),
+            threading.Thread(target=call, args=("teacher",)),
+        ]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=30)
+
+        self.assertEqual(len(rendered), 2, "each view needs its own render")
+
+    def test_waiter_renders_for_itself_if_the_leader_never_finishes(self):
+        """
+        A leader that hangs must not pin every waiter forever - after the
+        single-flight timeout a waiter renders for itself. Slower than
+        waiting, but it always terminates.
+        """
+        release_leader = threading.Event()
+        calls = {"n": 0}
+        lock = threading.Lock()
+
+        def render():
+            with lock:
+                calls["n"] += 1
+                mine = calls["n"]
+            if mine == 1:
+                release_leader.wait(timeout=30)  # the "hung" leader
+            return b"%PDF-late"
+
+        leader = threading.Thread(
+            target=pdf_cache.get_or_render,
+            args=(self.assignment, "student", render),
+        )
+        leader.start()
+        time.sleep(0.2)  # let the leader claim the flight
+
+        with override_settings(ASSIGNMENT_PDF_SINGLEFLIGHT_TIMEOUT_SECONDS=0.3):
+            follower_result = pdf_cache.get_or_render(
+                self.assignment, "student", render
+            )
+
+        self.assertEqual(follower_result, b"%PDF-late")
+        self.assertGreaterEqual(calls["n"], 2, "the follower should have rendered")
+        release_leader.set()
+        leader.join(timeout=30)
 
 
 class DownloadPdfCachingTest(RigorFixtureMixin, APITestCase):

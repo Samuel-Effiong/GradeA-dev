@@ -65,7 +65,7 @@ from .models import (  # Rubric
     AssignmentGenerationSession,
     AssignmentStatus,
 )
-from .pdf_cache import get_cached_pdf, store_pdf
+from .pdf_cache import get_or_render
 from .pdf_renderer import render_html_to_pdf
 from .serializers import (  # RubricSerializer,; AssignmentGradeAllSubmissionsSerializer,
     AssignmentCreateResponseSerializer,
@@ -1772,15 +1772,43 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                         "You can only download published assignments."
                     )
 
-        # Served from cache only *after* the permission checks above, so a
-        # hit can never hand someone a PDF they aren't allowed to see. The
-        # early return skips the whole HTML-assembly pipeline below, not
-        # just the Chromium render.
+        # One render per (assignment, view) even when a whole class
+        # opens the same new assignment at once - see pdf_cache.get_or_render.
         view_type = "teacher" if include_rubric else "student"
-        cached_pdf = get_cached_pdf(assignment, view_type)
-        if cached_pdf is not None:
-            return self._assignment_pdf_response(assignment, cached_pdf)
+        try:
+            pdf_bytes = get_or_render(
+                assignment,
+                view_type,
+                lambda: self._render_assignment_pdf(assignment, include_rubric),
+            )
+        except Exception as e:
+            logger.error("PDF generation failed", exc_info=e)
+            return Response(
+                {
+                    "error": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "We couldn't generate the PDF for this "
+                            "assignment. Please try again or contact "
+                            "support if this continues."
+                        ),
+                    )
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
+        return self._assignment_pdf_response(assignment, pdf_bytes)
+
+    def _render_assignment_pdf(self, assignment, include_rubric) -> bytes:
+        """
+        Build this assignment's PDF from scratch: assemble the HTML, then
+        render it through Chromium.
+
+        Split out of download_pdf so the whole expensive path can be
+        handed to pdf_cache.get_or_render() as one callable, which is what
+        lets concurrent requests for the same PDF share a single render
+        instead of each doing their own.
+        """
         # Prepare data for the assignment (common to both views)
         data = {
             "title": assignment.title,
@@ -2046,36 +2074,17 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         </div>
         """
 
-        try:
-            pdf_bytes = render_html_to_pdf(
-                full_html,
-                header_template=header_template,
-                footer_template=footer_template,
-                margins={
-                    "top": "2.5cm",
-                    "right": "2cm",
-                    "bottom": "2.2cm",
-                    "left": "2cm",
-                },
-            )
-        except Exception as e:
-            logger.error("PDF generation failed", exc_info=e)
-            return Response(
-                {
-                    "error": describe_user_error(
-                        e,
-                        fallback_message=(
-                            "We couldn't generate the PDF for this "
-                            "assignment. Please try again or contact "
-                            "support if this continues."
-                        ),
-                    )
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-        store_pdf(assignment, view_type, pdf_bytes)
-        return self._assignment_pdf_response(assignment, pdf_bytes)
+        return render_html_to_pdf(
+            full_html,
+            header_template=header_template,
+            footer_template=footer_template,
+            margins={
+                "top": "2.5cm",
+                "right": "2cm",
+                "bottom": "2.2cm",
+                "left": "2cm",
+            },
+        )
 
     @staticmethod
     def _assignment_pdf_response(assignment, pdf_bytes):
