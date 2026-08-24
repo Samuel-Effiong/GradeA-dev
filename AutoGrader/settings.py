@@ -660,6 +660,34 @@ ASSIGNMENT_PDF_CACHE_ENABLED = env.bool("ASSIGNMENT_PDF_CACHE_ENABLED", default=
 ASSIGNMENT_PDF_CACHE_TTL_SECONDS = env.int(
     "ASSIGNMENT_PDF_CACHE_TTL_SECONDS", default=60 * 60 * 24  # 1 day
 )
+# Renders above this are served but never cached, so a few image-heavy
+# assignments can't hold hundreds of MB of Redis for a full TTL and evict
+# everything else. A typical assignment PDF measured ~43KB. 0 disables.
+ASSIGNMENT_PDF_CACHE_MAX_BYTES = env.int(
+    "ASSIGNMENT_PDF_CACHE_MAX_BYTES", default=5 * 1024 * 1024  # 5 MB
+)
+
+# How many PDFs one warm Chromium instance renders before
+# assignments/pdf_renderer.py closes it and starts a fresh one; 0 disables
+# recycling. A 120-render soak measured ~0.02 MB/render of growth, still
+# decelerating (cache warm-up, not a leak), so this is a bound against a
+# future Chromium that does leak - and against callers with no
+# process-level recycling of their own - rather than a fix for observed
+# growth. gunicorn's --max-requests already recycles whole workers.
+PDF_RENDERER_MAX_RENDERS_PER_BROWSER = env.int(
+    "PDF_RENDERER_MAX_RENDERS_PER_BROWSER", default=500
+)
+
+# How many PDFs one worker process renders at the same time in its warm
+# Chromium. Renders run concurrently on the renderer's event loop, so this
+# is what bounds peak memory: an open page measured ~20MB on top of the
+# browser's ~165MB baseline, making the default roughly baseline + 80MB
+# under a burst. Raising it trades memory for tail latency when many
+# *uncached* assignments are requested at once; 1 restores fully
+# serialized rendering.
+PDF_RENDERER_MAX_CONCURRENT_RENDERS = env.int(
+    "PDF_RENDERER_MAX_CONCURRENT_RENDERS", default=4
+)
 
 CELERY_TASK_ACKS_LATE = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1

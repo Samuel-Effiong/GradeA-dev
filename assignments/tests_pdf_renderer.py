@@ -11,10 +11,12 @@ Split into two layers:
 """
 
 import threading
+import time
 import unittest
+from unittest.mock import patch
 
 import fitz
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, override_settings
 
 from assignments import pdf_renderer
 
@@ -337,6 +339,427 @@ class ChromiumRendererTest(SimpleTestCase):
                     self.assertNotIn(f"job number {other}.", text)
 
 
+@unittest.skipUnless(
+    _CHROMIUM_AVAILABLE,
+    "Headless Chromium is not available in this environment.",
+)
+class BrowserRecyclingTest(SimpleTestCase):
+    """
+    Recycling the warm browser after N renders. Uses a tiny N via
+    override_settings so the behaviour is exercised in a couple of
+    renders rather than the production default of 500.
+    """
+
+    def setUp(self):
+        pdf_renderer.reset_worker_for_tests()
+
+    def tearDown(self):
+        pdf_renderer.reset_worker_for_tests()
+
+    def _full_html(self, body):
+        return f"""<!doctype html><html><head><meta charset="utf-8">
+        <title>Recycle Test</title></head><body>{body}</body></html>"""
+
+    def _text(self, pdf_bytes):
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        return "\n".join(page.get_text() for page in doc)
+
+    @override_settings(PDF_RENDERER_MAX_RENDERS_PER_BROWSER=2)
+    def test_renders_keep_working_across_a_recycle(self):
+        """
+        The point of the feature is that recycling is invisible to
+        callers: with a bound of 2, six renders span several browser
+        instances and every one must still come back correct.
+        """
+        for i in range(6):
+            pdf_bytes = pdf_renderer.render_html_to_pdf(
+                self._full_html(f"<p>Render number {i}.</p>")
+            )
+            self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
+            self.assertIn(f"Render number {i}.", self._text(pdf_bytes))
+
+    @override_settings(PDF_RENDERER_MAX_RENDERS_PER_BROWSER=2)
+    def test_recycle_actually_replaces_the_browser_instance(self):
+        """
+        Guards against the bound silently never firing (e.g. a counter
+        that resets every job): with a bound of 2, three renders must
+        trigger at least one relaunch.
+        """
+        with patch.object(
+            pdf_renderer._ChromiumRenderWorker,
+            "_launch",
+            autospec=True,
+            side_effect=pdf_renderer._ChromiumRenderWorker._launch,
+        ) as mock_launch:
+            for i in range(3):
+                pdf_renderer.render_html_to_pdf(self._full_html(f"<p>{i}</p>"))
+
+        # 1 initial launch + at least 1 relaunch after hitting the bound.
+        self.assertGreaterEqual(mock_launch.call_count, 2)
+
+    @override_settings(PDF_RENDERER_MAX_RENDERS_PER_BROWSER=0)
+    def test_zero_disables_recycling(self):
+        with patch.object(
+            pdf_renderer._ChromiumRenderWorker,
+            "_launch",
+            autospec=True,
+            side_effect=pdf_renderer._ChromiumRenderWorker._launch,
+        ) as mock_launch:
+            for i in range(4):
+                pdf_renderer.render_html_to_pdf(self._full_html(f"<p>{i}</p>"))
+
+        self.assertEqual(mock_launch.call_count, 1)
+
+    def test_a_dead_browser_is_discarded_and_the_next_render_recovers(self):
+        """
+        Chromium can die outright - OOM killer, crash, container kill.
+        Without detection the dead browser object stays in place and every
+        later render fails identically, wedging this process until the
+        whole worker recycles.
+
+        The death is simulated by reporting the browser as disconnected
+        once, rather than by actually killing chrome-headless-shell:
+        a real `pkill` would take down every headless browser on the
+        machine, including other tests running concurrently. The recovery
+        path under test is the same either way - it keys off _is_alive -
+        and a genuine kill is exercised separately, outside the suite.
+        """
+        real_is_alive = pdf_renderer._ChromiumRenderWorker._is_alive
+        calls = {"n": 0}
+
+        def dies_once(browser):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                return False  # "the browser just crashed"
+            return real_is_alive(browser)
+
+        with patch.object(
+            pdf_renderer._ChromiumRenderWorker,
+            "_is_alive",
+            staticmethod(dies_once),
+        ):
+            first = pdf_renderer.render_html_to_pdf(self._full_html("<p>before</p>"))
+            self.assertTrue(first.startswith(b"%PDF-"))
+            # That render reported the browser dead afterwards, so it was
+            # discarded; this one must transparently relaunch and work.
+            after = pdf_renderer.render_html_to_pdf(self._full_html("<p>after</p>"))
+
+        self.assertTrue(after.startswith(b"%PDF-"))
+        self.assertIn("after", self._text(after))
+        self.assertGreaterEqual(calls["n"], 1)
+
+    @override_settings(PDF_RENDERER_MAX_RENDERS_PER_BROWSER=1)
+    def test_a_failed_relaunch_costs_one_render_then_recovers(self):
+        """
+        A transient relaunch failure must cost exactly one render, not
+        wedge this process's renderer forever.
+
+        Recycling happens lazily when a render *acquires* the browser
+        (rather than eagerly after the previous one finished), so it is
+        the render that trips the bound which pays for a failed relaunch -
+        and the one after it retries the launch and succeeds. Doing it at
+        acquire time means a bound reached at the end of a burst never
+        pays for a recycle no later render would have used.
+        """
+        real_launch = pdf_renderer._ChromiumRenderWorker._launch
+        calls = {"n": 0}
+
+        async def flaky_launch(self, playwright):
+            calls["n"] += 1
+            # Fail only the first relaunch (2nd launch overall); the
+            # initial launch and later retries succeed.
+            if calls["n"] == 2:
+                raise RuntimeError("simulated relaunch failure")
+            return await real_launch(self, playwright)
+
+        with patch.object(pdf_renderer._ChromiumRenderWorker, "_launch", flaky_launch):
+            # Uses the browser launched at startup.
+            first = pdf_renderer.render_html_to_pdf(self._full_html("<p>one</p>"))
+            self.assertTrue(first.startswith(b"%PDF-"))
+
+            # Trips the bound of 1; its relaunch fails, so this render
+            # fails - with a clear error, not a raw Playwright one.
+            with self.assertRaises(pdf_renderer.PDFRenderError):
+                pdf_renderer.render_html_to_pdf(self._full_html("<p>two</p>"))
+
+            # ...and the renderer is not wedged: the next one relaunches.
+            third = pdf_renderer.render_html_to_pdf(self._full_html("<p>three</p>"))
+            self.assertTrue(third.startswith(b"%PDF-"))
+            self.assertIn("three", self._text(third))
+
+
+@unittest.skipUnless(
+    _CHROMIUM_AVAILABLE,
+    "Headless Chromium is not available in this environment.",
+)
+class ConcurrentRenderingTest(SimpleTestCase):
+    """
+    Renders run concurrently on the renderer's event loop rather than
+    queueing behind one another, bounded by a semaphore.
+
+    The concurrency setting is read once when the worker starts, so each
+    test resets the singleton to pick up its own override.
+    """
+
+    def setUp(self):
+        pdf_renderer.reset_worker_for_tests()
+
+    def tearDown(self):
+        pdf_renderer.reset_worker_for_tests()
+
+    def _full_html(self, body):
+        return f"""<!doctype html><html><head><meta charset="utf-8">
+        <title>Concurrency Test</title></head><body>{body}</body></html>"""
+
+    def _text(self, pdf_bytes):
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        return "\n".join(page.get_text() for page in doc)
+
+    def _render_many(self, count):
+        """Render `count` uniquely-marked documents from `count` threads."""
+        outputs = {}
+        errors = []
+        lock = threading.Lock()
+
+        def work(i):
+            try:
+                pdf_bytes = pdf_renderer.render_html_to_pdf(
+                    self._full_html(rf"<p>JOB{i}: $\frac{{{i + 1}}}{{2}}$</p>")
+                )
+                with lock:
+                    outputs[i] = self._text(pdf_bytes)
+            except Exception as exc:  # pragma: no cover - failure path only
+                with lock:
+                    errors.append((i, repr(exc)))
+
+        threads = [threading.Thread(target=work, args=(i,)) for i in range(count)]
+        start = time.perf_counter()
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=120)
+        elapsed = time.perf_counter() - start
+        return outputs, errors, elapsed
+
+    @override_settings(PDF_RENDERER_MAX_CONCURRENT_RENDERS=4)
+    def test_concurrent_renders_do_not_contaminate_each_other(self):
+        """
+        Several pages are open in one browser at once. Each render must
+        come back with its OWN document and nothing from any other -
+        the correctness risk that concurrency introduces.
+        """
+        outputs, errors, _ = self._render_many(8)
+
+        self.assertEqual(errors, [])
+        self.assertEqual(len(outputs), 8)
+        for i, text in outputs.items():
+            self.assertIn(f"JOB{i}", text)
+            for other in range(8):
+                if other != i:
+                    self.assertNotIn(f"JOB{other}:", text)
+            # Math still typeset per page, not left as raw LaTeX.
+            self.assertNotIn(r"\frac", text)
+
+    @override_settings(PDF_RENDERER_MAX_CONCURRENT_RENDERS=4)
+    def test_renders_actually_overlap(self):
+        """
+        The point of the async model: 8 renders across 4 slots must take
+        meaningfully less wall-clock than 8 serialized renders would.
+        Compared against a measured single render rather than a fixed
+        number, so this doesn't become a flaky machine-speed assertion.
+        """
+        solo_start = time.perf_counter()
+        pdf_renderer.render_html_to_pdf(self._full_html("<p>warm</p>"))
+        solo = time.perf_counter() - solo_start
+
+        _, errors, elapsed = self._render_many(8)
+        self.assertEqual(errors, [])
+
+        # Fully serialized would be ~8x solo. Anything below 5x proves
+        # real overlap while leaving generous headroom for a slow or
+        # loaded CI machine.
+        self.assertLess(
+            elapsed,
+            solo * 5,
+            f"8 renders took {elapsed:.2f}s vs {solo:.2f}s for one - "
+            "renders do not appear to be overlapping",
+        )
+
+    @override_settings(PDF_RENDERER_MAX_CONCURRENT_RENDERS=1)
+    def test_concurrency_of_one_still_renders_everything_correctly(self):
+        """
+        A concurrency bound of 1 restores fully serialized rendering.
+        It must still be correct - this is the fallback if concurrency
+        ever needs to be switched off in production.
+        """
+        outputs, errors, _ = self._render_many(4)
+
+        self.assertEqual(errors, [])
+        self.assertEqual(len(outputs), 4)
+        for i, text in outputs.items():
+            self.assertIn(f"JOB{i}", text)
+
+    @override_settings(
+        PDF_RENDERER_MAX_CONCURRENT_RENDERS=4,
+        PDF_RENDERER_MAX_RENDERS_PER_BROWSER=3,
+    )
+    def test_recycling_while_renders_are_in_flight_loses_nothing(self):
+        """
+        The nastiest interaction in this module: the browser is swapped
+        every 3 renders *while* up to 4 renders are in flight. A browser
+        closed underneath an in-flight page would fail or truncate that
+        render, so _acquire_browser drains in-flight work before closing.
+        """
+        outputs, errors, _ = self._render_many(12)
+
+        self.assertEqual(errors, [])
+        self.assertEqual(len(outputs), 12)
+        for i, text in outputs.items():
+            self.assertIn(f"JOB{i}", text)
+
+    @override_settings(
+        PDF_RENDERER_MAX_CONCURRENT_RENDERS=4,
+        PDF_RENDERER_MAX_RENDERS_PER_BROWSER=3,
+    )
+    def test_one_slow_render_does_not_stall_the_others(self):
+        """
+        Regression guard for a real stall this stress-testing found: an
+        earlier version waited for in-flight renders to drain *while
+        holding the swap lock*, so every render queued behind the slowest
+        one. Measured, a single hung render dragged nine ~0.2s renders out
+        to ~5s each.
+
+        A document whose __katexDone never becomes true waits out its full
+        timeout. Healthy renders alongside it must still finish promptly -
+        they may be slowed by sharing a concurrency slot, but must not be
+        pinned to the hung render's timeout.
+        """
+        hung_timeout = 5.0
+        hung_html = (
+            "<!doctype html><html><head><meta charset='utf-8'><title>t</title>"
+            "</head><body><p>HUNG</p><script>"
+            "Object.defineProperty(window,'__katexDone',"
+            "{get:function(){return false;}});"
+            "</script></body></html>"
+        )
+
+        durations = {}
+        errors = []
+        lock = threading.Lock()
+
+        def render_hung():
+            try:
+                pdf_renderer.render_html_to_pdf(hung_html, timeout=hung_timeout)
+            except pdf_renderer.PDFRenderError:
+                pass  # expected: it never finishes typesetting
+
+        def render_healthy(i):
+            started = time.perf_counter()
+            try:
+                pdf_renderer.render_html_to_pdf(self._full_html(f"<p>FAST{i}</p>"))
+                with lock:
+                    durations[i] = time.perf_counter() - started
+            except Exception as exc:  # pragma: no cover - failure path only
+                with lock:
+                    errors.append((i, repr(exc)))
+
+        threads = [threading.Thread(target=render_hung)]
+        threads += [
+            threading.Thread(target=render_healthy, args=(i,)) for i in range(6)
+        ]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=120)
+
+        self.assertEqual(errors, [])
+        self.assertEqual(len(durations), 6)
+        # Comfortably under the hung render's timeout: if the stall
+        # regressed, these would all sit at ~hung_timeout.
+        self.assertLess(
+            max(durations.values()),
+            hung_timeout * 0.8,
+            f"healthy renders were dragged out by the hung one: {durations}",
+        )
+
+    @override_settings(PDF_RENDERER_MAX_CONCURRENT_RENDERS=2)
+    def test_a_render_killed_by_a_dying_browser_is_retried_once(self):
+        """
+        Every render in flight when Chromium dies fails together, for a
+        reason that has nothing to do with the document. One retry on a
+        fresh browser turns that into a slower download rather than a
+        failed one.
+        """
+        worker = pdf_renderer._get_worker()
+        real_do_render = worker._do_render
+        calls = {"n": 0}
+
+        async def dies_on_first_call(browser, html, options):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                # Close the browser out from under this render, the way a
+                # crash would, then fail the way _do_render would.
+                await browser.close()
+                raise pdf_renderer.PDFRenderError(
+                    "PDF rendering failed: Target page, context or browser "
+                    "has been closed"
+                )
+            return await real_do_render(browser, html, options)
+
+        with patch.object(worker, "_do_render", dies_on_first_call):
+            pdf_bytes = pdf_renderer.render_html_to_pdf(
+                self._full_html("<p>SURVIVOR</p>")
+            )
+
+        self.assertTrue(pdf_bytes.startswith(b"%PDF-"))
+        self.assertIn("SURVIVOR", self._text(pdf_bytes))
+        self.assertEqual(calls["n"], 2, "expected exactly one retry")
+
+    @override_settings(PDF_RENDERER_MAX_CONCURRENT_RENDERS=2)
+    def test_an_ordinary_failure_is_not_retried(self):
+        """
+        The retry must stay narrow: a failure with a healthy browser (a
+        timeout, a broken document) is a real failure and must surface
+        immediately rather than being rendered a second time.
+        """
+        worker = pdf_renderer._get_worker()
+        calls = {"n": 0}
+
+        async def always_fails(browser, html, options):
+            calls["n"] += 1
+            raise pdf_renderer.PDFRenderError("PDF rendering timed out: nope")
+
+        with patch.object(worker, "_do_render", always_fails):
+            with self.assertRaises(pdf_renderer.PDFRenderError):
+                pdf_renderer.render_html_to_pdf(self._full_html("<p>x</p>"))
+
+        self.assertEqual(calls["n"], 1, "a healthy-browser failure must not retry")
+
+    @override_settings(PDF_RENDERER_MAX_CONCURRENT_RENDERS=2)
+    def test_semaphore_bounds_how_many_pages_are_open_at_once(self):
+        """
+        The semaphore is what keeps peak memory predictable, so assert it
+        actually caps in-flight renders rather than trusting the setting
+        is wired up. Observed through the worker's own in-flight counter.
+        """
+        worker = pdf_renderer._get_worker()
+        peak = {"n": 0}
+        real_do_render = worker._do_render
+
+        async def watching_do_render(browser, html, options):
+            peak["n"] = max(peak["n"], worker._in_flight)
+            return await real_do_render(browser, html, options)
+
+        with patch.object(worker, "_do_render", watching_do_render):
+            _, errors, _ = self._render_many(8)
+
+        self.assertEqual(errors, [])
+        self.assertGreater(peak["n"], 1, "renders never overlapped at all")
+        self.assertLessEqual(
+            peak["n"], 2, f"in-flight renders exceeded the bound of 2 (saw {peak['n']})"
+        )
+
+
 class WorkerSingletonTest(SimpleTestCase):
     """
     These don't need Chromium themselves - they test the singleton
@@ -366,11 +789,11 @@ class WorkerSingletonTest(SimpleTestCase):
 
     def test_get_worker_raises_a_clear_error_when_chromium_cannot_launch(self):
         # Simulate an unlaunchable browser without needing to actually
-        # uninstall Chromium: monkeypatch sync_playwright to something
+        # uninstall Chromium: monkeypatch async_playwright to something
         # that always fails, exactly as a missing/corrupt browser would.
         import unittest.mock as mock
 
-        with mock.patch.object(pdf_renderer, "sync_playwright") as mock_sp:
+        with mock.patch.object(pdf_renderer, "async_playwright") as mock_sp:
             mock_sp.side_effect = RuntimeError("simulated launch failure")
             with self.assertRaises(pdf_renderer.PDFRenderError):
                 pdf_renderer._get_worker()

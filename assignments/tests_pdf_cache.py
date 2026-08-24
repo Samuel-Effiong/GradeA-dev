@@ -100,6 +100,31 @@ class PdfCacheReadWriteTest(RigorFixtureMixin, APITestCase):
         pdf_cache.store_pdf(self.assignment, "student", b"%PDF-abc")
         self.assertIsNone(pdf_cache.get_cached_pdf(self.assignment, "student"))
 
+    @override_settings(ASSIGNMENT_PDF_CACHE_MAX_BYTES=100)
+    def test_oversized_pdf_is_not_cached(self):
+        """
+        An image-heavy assignment can render to megabytes; caching those
+        unbounded would let a few of them hold a large share of Redis for
+        a full TTL and evict everything else. Oversized renders are still
+        served - they just don't get stored.
+        """
+        pdf_cache.store_pdf(self.assignment, "student", b"x" * 101)
+        self.assertIsNone(pdf_cache.get_cached_pdf(self.assignment, "student"))
+
+    @override_settings(ASSIGNMENT_PDF_CACHE_MAX_BYTES=100)
+    def test_pdf_at_exactly_the_cap_is_still_cached(self):
+        pdf_cache.store_pdf(self.assignment, "student", b"x" * 100)
+        self.assertEqual(
+            pdf_cache.get_cached_pdf(self.assignment, "student"), b"x" * 100
+        )
+
+    @override_settings(ASSIGNMENT_PDF_CACHE_MAX_BYTES=0)
+    def test_zero_disables_the_size_cap(self):
+        pdf_cache.store_pdf(self.assignment, "student", b"x" * 10_000)
+        self.assertEqual(
+            pdf_cache.get_cached_pdf(self.assignment, "student"), b"x" * 10_000
+        )
+
     def test_read_failure_degrades_to_a_miss_rather_than_raising(self):
         with patch.object(cache, "get", side_effect=RuntimeError("redis down")):
             self.assertIsNone(pdf_cache.get_cached_pdf(self.assignment, "student"))

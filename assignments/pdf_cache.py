@@ -62,6 +62,16 @@ def _ttl():
     return getattr(settings, "ASSIGNMENT_PDF_CACHE_TTL_SECONDS", 60 * 60 * 24)
 
 
+def _max_bytes():
+    # A typical assignment PDF measured ~43KB, but one with many embedded
+    # images can run to megabytes, and nothing upstream bounds it. Without
+    # a cap, a handful of pathological assignments could hold tens/hundreds
+    # of MB of Redis for a full TTL and evict everything else. Skipping the
+    # write for oversized renders costs those few downloads their cache hit
+    # and protects every other entry. 0 disables the cap.
+    return getattr(settings, "ASSIGNMENT_PDF_CACHE_MAX_BYTES", 5 * 1024 * 1024)
+
+
 def build_cache_key(assignment, view_type: str) -> str:
     # updated_at can be None for an in-memory instance that was never
     # saved; such an assignment has no stable identity to cache against,
@@ -89,6 +99,19 @@ def store_pdf(assignment, view_type: str, pdf_bytes: bytes) -> None:
     """Writes one rendered PDF to the cache. Never raises."""
     if not _enabled():
         return
+
+    max_bytes = _max_bytes()
+    if max_bytes and len(pdf_bytes) > max_bytes:
+        logger.info(
+            "[PDF] not caching assignment %s (%s view): %s bytes exceeds the "
+            "%s-byte cap; it will be re-rendered on each download.",
+            assignment.id,
+            view_type,
+            len(pdf_bytes),
+            max_bytes,
+        )
+        return
+
     try:
         cache.set(build_cache_key(assignment, view_type), pdf_bytes, timeout=_ttl())
     except Exception:
