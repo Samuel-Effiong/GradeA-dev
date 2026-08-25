@@ -24,28 +24,80 @@ from users.models import CustomUser, UserTypes
 
 class DashboardService:
     def analyze_question_difficulty(self, submissions):
+        """
+        The hardest and easiest questions across a set of submissions, as
+        (question_number, mean fraction of available marks) pairs.
+
+        WHAT THIS USED TO DO, AND WHY IT COULD NOT WORK
+
+        It read `submission.answers.items()` and pulled a "score" off each
+        value. Both halves were wrong:
+
+          * `answers` is a LIST of per-question dicts (see
+            ANSWERS_EXTRACTION_PROMPT_HTML_4's output contract and
+            students/services.py, which assigns the extractor's `answers`
+            array straight into the JSONField), so `.items()` raises
+            AttributeError on any real submission;
+          * those dicts carry the student's ANSWER, never a score. Marks
+            live in `submission.feedback["question_evaluations"]`, written
+            by AIProcessor._finalize_grading_result.
+
+        It never surfaced because both callers are commented out
+        (dashboard/views.py). Fixed rather than deleted so that
+        uncommenting them does something correct.
+
+        Scores are normalised to a FRACTION of each question's own marks
+        before averaging. Raw marks are not comparable across questions -
+        a 20-point essay averaging 12 is not "easier" than a 2-point MCQ
+        averaging 2, though raw sums would say so.
+        """
         question_scores = defaultdict(list)
 
         for submission in submissions:
-            if not submission.answers:
+            feedback = getattr(submission, "feedback", None)
+            if not isinstance(feedback, dict):
                 continue
 
-            for q_id, q_data in submission.answers.items():
-                score = q_data.get("score")
-                if score is not None:
-                    question_scores[q_id].append(score)
+            for evaluation in feedback.get("question_evaluations") or []:
+                if not isinstance(evaluation, dict):
+                    continue
+
+                number = evaluation.get("question_number")
+                if number is None:
+                    continue
+
+                raw_awarded = evaluation.get("score_awarded")
+                raw_available = evaluation.get("max_points")
+                if raw_awarded is None or raw_available is None:
+                    continue
+                try:
+                    awarded = float(raw_awarded)
+                    available = float(raw_available)
+                except (TypeError, ValueError):
+                    continue
+
+                # A zero-mark question has no meaningful difficulty and
+                # would divide by zero.
+                if available <= 0:
+                    continue
+
+                question_scores[str(number)].append(
+                    max(0.0, min(1.0, awarded / available))
+                )
 
         if not question_scores:
             return [], []
 
         question_averages = {
-            q: sum(scores) / len(scores) for q, scores in question_scores.items()
+            number: sum(scores) / len(scores)
+            for number, scores in question_scores.items()
         }
 
-        hardest = sorted(question_averages.items(), key=lambda x: x[1])[:2]
-        easiest = sorted(question_averages.items(), key=lambda x: x[1], reverse=True)[
-            :2
-        ]
+        # Sorted by (score, question_number) so questions that tie come out
+        # in a stable order rather than whatever dict iteration gives.
+        ranked = sorted(question_averages.items(), key=lambda item: (item[1], item[0]))
+        hardest = ranked[:2]
+        easiest = list(reversed(ranked[-2:]))
 
         return hardest, easiest
 

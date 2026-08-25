@@ -172,6 +172,24 @@ def _strip_html_from_title(value):
     return re.sub(r"\s+", " ", strip_tags(value)).strip()
 
 
+#: Human labels for the question types printed into the teacher-facing
+#: document heading. Keyed by the UPPERCASED stored value, because
+#: format_assignment_standard_html normalises `question_type` with .upper()
+#: before looking it up (extracted assignments have been seen carrying
+#: "Essay" and "short-answer" alike).
+#:
+#: HYBRID is deliberately absent: it is an ASSIGNMENT-level type, never a
+#: question-level one (see AssignmentTypes vs QuestionSerializer's
+#: ALLOWED_QUESTION_TYPES), so a question carrying it is malformed and gets
+#: no label rather than a misleading one. An unrecognised value likewise
+#: yields "" and the heading renders exactly as it did before.
+QUESTION_TYPE_LABELS = {
+    "OBJECTIVE": "Multiple Choice",
+    "ESSAY": "Essay",
+    "SHORT-ANSWER": "Short Answer",
+}
+
+
 def _option_letter(index: int) -> str:
     """A, B, C, ... Z, then falls back to a 1-based number past 26 options."""
     return chr(65 + index) if index < 26 else str(index + 1)
@@ -552,10 +570,39 @@ class AssignmentProcessingService:
             )
             image_url = cls.sanitize_ai_image_url(q.get("question_image", ""))
 
+            # Question type, printed into the heading on the TEACHER view
+            # only. This is the document AI re-extraction reads back (see
+            # AssignmentDetailSerializer.get_raw_input: teachers get the
+            # full raw_input, students get a rubric-free regeneration), and
+            # until it was written here the type existed in the database
+            # but appeared NOWHERE in the document - so every edit round
+            # trip had to re-derive it from the question's wording.
+            #
+            # It drifted, measurably: the extraction benchmark
+            # (ai_processor/benchmark/extraction_dataset.py) caught
+            # SHORT-ANSWER questions coming back as ESSAY on a plain save.
+            # That is not cosmetic. The grader marks an ESSAY as one
+            # overall judgement of sustained quality and a SHORT-ANSWER
+            # against specific required content, so a drifted question is
+            # marked by the wrong standard - and AssignmentSerializer's own
+            # validate() REJECTS a non-HYBRID assignment whose questions
+            # disagree about their type, so the drift can fail a teacher's
+            # edit outright.
+            #
+            # Gated on include_rubric, the same flag that already hides
+            # rubrics and model answers: this is marking metadata, and the
+            # student's paper is left exactly as it was.
+            type_label = QUESTION_TYPE_LABELS.get(q_type, "")
+            type_suffix = (
+                f" &mdash; {escape_html(type_label)}"
+                if include_rubric and type_label
+                else ""
+            )
+
             html_output.append(
                 f"""
             <div style="margin-bottom:40px;">
-                <p><strong>Question {q_no} ({q_points} marks)</strong></p>
+                <p><strong>Question {q_no} ({q_points} marks){type_suffix}</strong></p>
                 {q_text}
             """
             )

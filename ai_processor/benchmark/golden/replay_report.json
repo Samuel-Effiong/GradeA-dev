@@ -1,9 +1,9 @@
 {
   "by_question_type": {
     "ESSAY": {
-      "exact": 21,
-      "exact_rate": 0.75,
-      "mean_level_error": 0.1071,
+      "exact": 22,
+      "exact_rate": 0.7857,
+      "mean_level_error": 0.1429,
       "questions": 28,
       "within_one_level": 28,
       "within_one_level_rate": 1.0
@@ -17,9 +17,9 @@
       "within_one_level_rate": 1.0
     },
     "SHORT-ANSWER": {
-      "exact": 86,
-      "exact_rate": 0.819,
-      "mean_level_error": 0.1048,
+      "exact": 82,
+      "exact_rate": 0.781,
+      "mean_level_error": 0.0857,
       "questions": 105,
       "within_one_level": 105,
       "within_one_level_rate": 1.0
@@ -27,25 +27,25 @@
   },
   "by_subject": {
     "Chemistry": {
-      "exact": 34,
-      "exact_rate": 0.8095,
-      "mean_level_error": 0.1429,
+      "exact": 33,
+      "exact_rate": 0.7857,
+      "mean_level_error": 0.1667,
       "questions": 42,
       "within_one_level": 42,
       "within_one_level_rate": 1.0
     },
     "History and Literature": {
-      "exact": 23,
-      "exact_rate": 0.8214,
-      "mean_level_error": 0.0357,
+      "exact": 24,
+      "exact_rate": 0.8571,
+      "mean_level_error": 0.0,
       "questions": 28,
       "within_one_level": 28,
       "within_one_level_rate": 1.0
     },
     "Mathematics": {
-      "exact": 85,
-      "exact_rate": 0.8673,
-      "mean_level_error": 0.0714,
+      "exact": 82,
+      "exact_rate": 0.8367,
+      "mean_level_error": 0.0612,
       "questions": 98,
       "within_one_level": 98,
       "within_one_level_rate": 1.0
@@ -78,7 +78,7 @@
   ],
   "cost": {
     "submissions": 21,
-    "total_tokens": 925815
+    "total_tokens": 920349
   },
   "deterministic": {
     "accuracy": 1.0,
@@ -88,23 +88,23 @@
   "errors": [],
   "evidence": {
     "checked": 133,
-    "verified": 131,
-    "verified_rate": 0.985
+    "verified": 132,
+    "verified_rate": 0.9925
   },
   "failures": [],
   "level_decision_calibration": {
     "clear": {
-      "exact": 108,
-      "exact_rate": 0.806,
+      "exact": 105,
+      "exact_rate": 0.7836,
       "graded_acceptably": 134,
       "questions": 134,
       "within_one_level_rate": 1.0
     }
   },
   "overall": {
-    "exact": 142,
-    "exact_rate": 0.8452,
-    "mean_level_error": 0.0833,
+    "exact": 139,
+    "exact_rate": 0.8274,
+    "mean_level_error": 0.0774,
     "questions": 168,
     "within_one_level": 168,
     "within_one_level_rate": 1.0
@@ -113,7 +113,7 @@
     "chemistry": {
       "awarded_totals": [
         60.0,
-        4.0,
+        8.0,
         27.0,
         19.0,
         56.0,
@@ -129,7 +129,7 @@
         44.0,
         4.0
       ],
-      "spearman": 0.9633,
+      "spearman": 0.9727,
       "students": [
         "excellent",
         "fluent_wrong",
@@ -143,11 +143,11 @@
     "humanities": {
       "awarded_totals": [
         80.0,
-        5.0,
+        10.0,
         35.0,
         20.0,
         61.0,
-        73.0,
+        68.0,
         30.0
       ],
       "expected_totals": [
@@ -174,11 +174,11 @@
       "awarded_totals": [
         143.0,
         38.0,
-        62.0,
-        19.0,
+        54.0,
+        23.0,
         109.0,
-        121.0,
-        4.0
+        124.0,
+        0.0
       ],
       "expected_totals": [
         143.0,
@@ -213,11 +213,11 @@
       "ran": 20,
       "skipped": 0
     },
-    "disagreement_rate": 0.0901,
+    "disagreement_rate": 0.1441,
     "questions_compared": 111,
-    "questions_disagreed": 10,
+    "questions_disagreed": 16,
     "tiers": {
-      "moderate": 10
+      "moderate": 16
     }
   }
 }

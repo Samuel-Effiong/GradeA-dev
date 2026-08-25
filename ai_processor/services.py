@@ -41,7 +41,19 @@ from students.task_tracking import ensure_task_not_cancelled
 from users.models import UserTypes
 
 from . import grading_cache
+from .answer_completeness import MODE_LOG as ANSWER_MODE_LOG
+from .answer_completeness import MODE_OFF as ANSWER_MODE_OFF
+from .answer_completeness import MODE_STRICT as ANSWER_MODE_STRICT
+from .answer_completeness import enforce_answer_completeness, infer_answer_status
 from .evidence import MODE_LOG, MODE_STRICT, enforce_evidence
+from .extraction_schemas import (
+    ANSWER_EXTRACTION_RESPONSE_SCHEMA,
+    ANSWER_STATUSES,
+    BLANK,
+    BLANK_VERIFICATION_RESPONSE_SCHEMA,
+    NOT_FOUND_IN_DOCUMENT,
+    REVIEW_REQUIRED_STATUSES,
+)
 from .grading_schemas import (
     GRADING_BATCH_RESPONSE_SCHEMA,
     GRADING_SINGLE_PASS_RESPONSE_SCHEMA,
@@ -1467,38 +1479,6 @@ Do not include any explanatory text before or after the JSON
 
         return merged_result
 
-    def extract_answer(self, user, text):
-        system_prompt = ANSWERS_EXTRACTION_PROMPT
-
-        user_prompt = f"""
-Please analyze the following extracted text from an educational assignment and answers and return a JSON
-
-EXTRACTED TEXT:
-{text}
-
-IMPORTANT: Return only valid JSON matching the required structure.
-Do not include any explanatory text before or after the JSON
-
-"""
-
-        response = self.execute_graded_task(
-            user=user,
-            feature="Answer Extraction",
-            task_type="extract_answer",
-            system_prompt=system_prompt,
-            user_prompt=user_prompt,
-        )
-
-        content = response.choices[0].message.content
-
-        try:
-            json_data = json.loads(content)
-        except json.JSONDecodeError as e:
-            logger.error(f"Error decoding JSON: {str(e)}")
-            raise Exception(f"Error decoding JSON: {str(e)}") from e
-
-        return json_data
-
     def extract_answer_image(
         self,
         user,
@@ -1585,6 +1565,7 @@ Do not include any explanatory text before or after the JSON
                 messages=messages,
                 assignment=assignment_model,
                 processing_task_id=processing_task_id,
+                response_schema=self._answer_extraction_schema(),
             )
 
             content = response.choices[0].message.content
@@ -1599,6 +1580,243 @@ Do not include any explanatory text before or after the JSON
             raise Exception(f"Error decoding JSON: {str(e)}") from e
         return json_data
 
+    @staticmethod
+    def _answer_extraction_schema():
+        """
+        The json_schema contract for an answer-extraction call, or None to
+        fall back to free-form json_object.
+
+        Unlike _grading_response_schema's silent equivalent, turning this
+        off is LOGGED. This schema is a safety check, and a safety check
+        that can be disabled without leaving a trace is one that stops
+        existing the moment somebody sets an env var and forgets.
+        """
+        if getattr(settings, "ANSWER_EXTRACTION_SCHEMA_ENABLED", True):
+            return ANSWER_EXTRACTION_RESPONSE_SCHEMA
+        logger.warning(
+            "[AnswerExtraction] ANSWER_EXTRACTION_SCHEMA_ENABLED is off - "
+            "falling back to free-form JSON. answer_status will be inferred "
+            "rather than reported, so a lost answer cannot be told apart "
+            "from a blank one."
+        )
+        return None
+
+    def _verify_blank_answers(
+        self,
+        user,
+        content,
+        answers,
+        assignment_model=None,
+        processing_task_id=None,
+    ):
+        """
+        Re-read the pages for the questions extraction reported as empty.
+
+        WHY ONLY THE BLANKS. A lost answer can only ever hide inside a
+        claimed blank - an answer that WAS transcribed is by definition not
+        lost. And a full verification pass is not available to us: the
+        submission is read from page images and ocr_processor is an empty
+        stub, so there is no independent transcript to diff a transcription
+        against. Asking one narrow question about the specific questions
+        that came back empty is therefore both the cheapest check and the
+        only one aimed at the failure that actually matters.
+
+        THE ONE TRANSITION IT CAN MAKE. If the re-read finds writing where
+        the extractor found none, that question moves BLANK ->
+        NOT_FOUND_IN_DOCUMENT. That is deliberately the whole of it:
+          * BLANK means "the student chose not to answer". We now have
+            positive evidence against that, so the claim must be withdrawn.
+          * NOT_FOUND_IN_DOCUMENT means "we may not have the student's
+            work" - which is exactly true, and which already routes the
+            submission to a human through the existing review path.
+        It NEVER writes the fragment into answer_html. A fragment is proof
+        that something is there, not a transcription of it, and promoting
+        it to "the student's answer" would grade a student on a scrap.
+
+        Entirely non-fatal: any failure here leaves the extraction exactly
+        as it was. A verification step that can lose a submission would
+        cost more than it saves.
+        """
+        if not getattr(settings, "ANSWER_BLANK_VERIFICATION_ENABLED", True):
+            return answers
+        if not isinstance(answers, list):
+            return answers
+
+        blanks = [
+            entry
+            for entry in answers
+            if isinstance(entry, dict)
+            and entry.get("answer_status") in (BLANK, NOT_FOUND_IN_DOCUMENT)
+        ]
+        if not blanks:
+            # The common case, and the reason this is affordable: a fully
+            # answered submission costs nothing at all.
+            return answers
+
+        cap = getattr(settings, "ANSWER_BLANK_VERIFICATION_MAX_QUESTIONS", 12)
+        if len(blanks) > cap:
+            logger.info(
+                "[BlankVerification] %s blank(s) exceeds the cap of %s - "
+                "skipping the re-read; the completeness flags already route "
+                "this submission for review.",
+                len(blanks),
+                cap,
+            )
+            return answers
+
+        images = [
+            item
+            for item in (content or [])
+            if isinstance(item, dict) and item.get("type") == "image_url"
+        ]
+        if not images:
+            return answers
+
+        # Extraction itself reads at ANSWERS_EXTRACTION_PAGES_PER_CHUNK
+        # pages per call; this sends the WHOLE submission in one, because a
+        # missing answer could be on any page and a partial view would just
+        # miss it. That is affordable for an ordinary script and not for a
+        # 40-page one, so past the cap the re-read is skipped rather than
+        # attempted and failed.
+        #
+        # Skipping is safe in the one direction that matters: this step can
+        # only ever move a question BLANK -> NOT_FOUND_IN_DOCUMENT, so not
+        # running it can cost a recovery but can never produce a wrong
+        # flag. The completeness flags from the extraction still stand
+        # either way.
+        page_cap = getattr(settings, "ANSWER_BLANK_VERIFICATION_MAX_PAGES", 10)
+        if len(images) > page_cap:
+            logger.info(
+                "[BlankVerification] %s page(s) exceeds the cap of %s - "
+                "skipping the re-read.",
+                len(images),
+                page_cap,
+            )
+            return answers
+
+        numbers = [entry.get("question_number") for entry in blanks]
+        instruction = (
+            "You are re-checking ONE narrow thing about a scanned student "
+            "submission. A first pass reported that the student wrote "
+            f"nothing for question(s) {numbers}.\n\n"
+            "For EACH of those question numbers, look at the pages and say "
+            "whether there is ANY student writing responding to it - any "
+            "mark, working, crossing-out, marginal note or continuation "
+            "elsewhere on the page counts.\n\n"
+            "Describe what you can see in `observed` BEFORE you decide "
+            "`content_found`. If you do find writing, quote a short "
+            "verbatim fragment of it in `verbatim_fragment` and give the "
+            "page in `page`; otherwise set both to null.\n\n"
+            "Do not transcribe the full answer and do not grade anything. "
+            "Answer only the question of whether something is there.\n\n"
+            "Be honest in both directions: saying content exists when it "
+            "does not sends a teacher on a pointless hunt, and saying it "
+            "does not exist when it does leaves a student wrongly scored "
+            "zero."
+        )
+
+        override_model = (
+            getattr(settings, "ANSWER_BLANK_VERIFICATION_MODEL", "") or None
+        )
+
+        try:
+            ensure_task_not_cancelled(processing_task_id)
+            response = self.execute_graded_task(
+                user=user,
+                feature="Answer Extraction",
+                task_type="extract_answer",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [{"type": "text", "text": instruction}] + images,
+                    }
+                ],
+                assignment=assignment_model,
+                processing_task_id=processing_task_id,
+                response_schema=BLANK_VERIFICATION_RESPONSE_SCHEMA,
+                override_model=override_model,
+            )
+            findings = json.loads(response.choices[0].message.content).get(
+                "findings", []
+            )
+        except (AIFeatureNotAvailableError, InsufficientCreditsError):
+            # A verification the teacher cannot afford is not a reason to
+            # fail the extraction they already paid for.
+            logger.info("[BlankVerification] Skipped - feature or credits unavailable.")
+            return answers
+        except Exception:
+            logger.exception(
+                "[BlankVerification] Re-read failed; the extraction is "
+                "unchanged and its own blank/not-found flags still stand."
+            )
+            return answers
+
+        found_by_key = {}
+        for finding in findings:
+            if not isinstance(finding, dict) or not finding.get("content_found"):
+                continue
+            found_by_key[self._question_number_key(finding.get("question_number"))] = (
+                finding
+            )
+
+        if not found_by_key:
+            logger.info(
+                "[BlankVerification] Re-read confirmed %s blank(s).", len(blanks)
+            )
+            return answers
+
+        verified = []
+        for entry in answers:
+            key = (
+                self._question_number_key(entry.get("question_number"))
+                if isinstance(entry, dict)
+                else None
+            )
+            finding = found_by_key.get(key)
+            if finding is None or entry.get("answer_status") not in (
+                BLANK,
+                NOT_FOUND_IN_DOCUMENT,
+            ):
+                verified.append(entry)
+                continue
+
+            fragment = (finding.get("verbatim_fragment") or "").strip()
+            updated = dict(entry)
+            updated["answer_status"] = NOT_FOUND_IN_DOCUMENT
+            updated["blank_verification"] = {
+                "content_found": True,
+                "observed": finding.get("observed"),
+                "verbatim_fragment": fragment or None,
+                "page": finding.get("page"),
+            }
+            updated["transcription_notes"] = (
+                (entry.get("transcription_notes") or "").strip()
+                + " | RE-READ FOUND WRITING here that the first pass did "
+                "not transcribe" + (f": {fragment!r}" if fragment else ".")
+            ).strip()
+            verified.append(updated)
+
+        logger.warning(
+            "[BlankVerification] Re-read found writing for %s question(s) "
+            "reported empty (%s). Flagged for review.",
+            len(found_by_key),
+            ", ".join(str(k) for k in found_by_key),
+        )
+        return verified
+
+    @staticmethod
+    def _answer_completeness_mode():
+        mode = getattr(settings, "ANSWER_COMPLETENESS_ENFORCEMENT", ANSWER_MODE_STRICT)
+        if mode not in (ANSWER_MODE_STRICT, ANSWER_MODE_LOG, ANSWER_MODE_OFF):
+            logger.warning(
+                "[AnswerExtraction] Unrecognised "
+                "ANSWER_COMPLETENESS_ENFORCEMENT=%r; using %r.",
+                mode,
+                ANSWER_MODE_STRICT,
+            )
+            return ANSWER_MODE_STRICT
+        return mode
+
     def extract_answer_with_retry(
         self,
         user,
@@ -1610,16 +1828,69 @@ Do not include any explanatory text before or after the JSON
     ):
         last_error = None
 
+        # The assignment's own questions are the only thing that can say
+        # what a COMPLETE extraction looks like. Without them (no
+        # assignment_model passed, or an assignment whose extraction never
+        # produced questions) there is nothing to check against, so the
+        # gate stays off rather than guessing.
+        questions = getattr(assignment_model, "questions", None) or []
+        mode = self._answer_completeness_mode() if questions else ANSWER_MODE_OFF
+
         for attempt in range(max_retries):
             ensure_task_not_cancelled(processing_task_id)
             try:
-                return self.extract_answer_image(
+                result = self.extract_answer_image(
                     user,
                     content,
                     assignment,
                     assignment_model=assignment_model,
                     processing_task_id=processing_task_id,
                 )
+
+                # THE GATE RUNS INSIDE THE LOOP, ON PURPOSE. An incomplete
+                # payload is exactly the kind of failure a re-ask usually
+                # fixes, and validating after the loop (as assignment
+                # extraction still does - see
+                # AssignmentProcessingService.update_assignment_from_extraction)
+                # burns the whole run and the teacher's credit on a fault
+                # that one more attempt would have cleared.
+                #
+                # LAST ATTEMPT DEGRADES TO "log" INSTEAD OF FAILING, the
+                # same trade already proven for the grading evidence check
+                # in _grade_question_batch: rejecting on the final attempt
+                # destroys the submission and the student gets no grade at
+                # all. A repaired payload whose gaps are explicitly marked
+                # NOT_FOUND_IN_DOCUMENT and routed to a human is strictly
+                # better than that - and, unlike the behaviour this
+                # replaced, it is not silent.
+                is_final_attempt = attempt == max_retries - 1
+                effective_mode = mode
+                if is_final_attempt and mode == ANSWER_MODE_STRICT:
+                    effective_mode = ANSWER_MODE_LOG
+
+                if isinstance(result, dict) and effective_mode != ANSWER_MODE_OFF:
+                    result["answers"] = enforce_answer_completeness(
+                        result.get("answers"),
+                        questions,
+                        mode=effective_mode,
+                        key_fn=self._question_number_key,
+                    )
+
+                # Runs AFTER the completeness gate, so it sees the full,
+                # repaired set - including the placeholders inserted for
+                # questions extraction omitted entirely, which are exactly
+                # the ones most worth re-reading. Non-fatal by
+                # construction: on any failure it returns `answers`
+                # untouched.
+                if isinstance(result, dict):
+                    result["answers"] = self._verify_blank_answers(
+                        user,
+                        content,
+                        result.get("answers"),
+                        assignment_model=assignment_model,
+                        processing_task_id=processing_task_id,
+                    )
+                return result
             except (AIFeatureNotAvailableError, InsufficientCreditsError):
                 raise
             except Exception as e:
@@ -1918,6 +2189,12 @@ Do not include any explanatory text before or after the JSON
                     "question_text": question.get("question_text", ""),
                     "answer_html": "",
                     "notes": "No answer found for this question.",
+                    # NOT_FOUND_IN_DOCUMENT, never BLANK. This placeholder
+                    # is fabricated by US because extraction produced no
+                    # entry at all - we have no evidence the student left
+                    # it blank, and labelling it BLANK here is precisely
+                    # the silent zero this field exists to prevent.
+                    "answer_status": NOT_FOUND_IN_DOCUMENT,
                 },
             )
             pairs.append({"question": question, "answer": answer})
@@ -2946,7 +3223,7 @@ Do not include any explanatory text before or after the JSON
         independently.
         """
         with billing_refund_scope(reason="grading run failed"):
-            return self._grade_student_submission_impl(
+            result = self._grade_student_submission_impl(
                 user=user,
                 rubric_json=rubric_json,
                 answer_json=answer_json,
@@ -2954,6 +3231,114 @@ Do not include any explanatory text before or after the JSON
                 processing_task_id=processing_task_id,
                 final_attempt=final_attempt,
             )
+        # Stamped HERE, outside the impl, because this is the one choke
+        # point every grading path returns through - the deterministic-only
+        # short-circuit, the single-pass call and the batched loop all have
+        # their own `return` inside the impl, and a provenance marker that
+        # only some of them carried would be worse than none at all.
+        return self._stamp_answer_provenance(result, rubric_json, answer_json)
+
+    @staticmethod
+    def _coerce_json_list(value):
+        """Tolerant list-or-JSON-string parse; [] for anything unusable."""
+        try:
+            parsed = json.loads(value) if isinstance(value, str) else value
+        except (json.JSONDecodeError, TypeError):
+            return []
+        if isinstance(parsed, dict):
+            parsed = parsed.get("questions", parsed.get("answers", []))
+        return parsed if isinstance(parsed, list) else []
+
+    def _stamp_answer_provenance(self, result, rubric_json, answer_json):
+        """
+        Record, on every evaluation, whether we actually HAD the student's
+        answer for that question.
+
+        THE FAILURE THIS CLOSES. Grading scores an absent answer 0 as
+        `not_attempted`, and until now that was indistinguishable from a
+        student who chose to skip the question - both arrived as an empty
+        string. So a student who answered question 7, whose answer was
+        dropped somewhere in extraction, got a silent zero that no human
+        was ever told about. Distinguishing the two is the entire point:
+        the score may well still be 0, but "we could not find your work"
+        is a conclusion the system is not entitled to reach on its own.
+
+        Deliberately NON-FATAL and side-effect free on the grade. It only
+        ever ADDS keys - `answer_status` per evaluation and
+        `answers_not_found` on the result - so a fault in here can never
+        change a score or lose a grade. students/services.py reads
+        `answers_not_found` to route the submission to the review queue.
+        """
+        if not isinstance(result, dict):
+            return result
+
+        try:
+            # rubric_json is accepted (and kept in the signature) for
+            # symmetry with every other stage of the pipeline, but this
+            # function never needs the assignment's own question list -
+            # by the time it runs, _finalize_grading_result has already
+            # guaranteed one evaluation per question, so iterating
+            # `result["question_evaluations"]` below already covers every
+            # question there is.
+            answers = self._coerce_json_list(answer_json)
+
+            status_by_key = {}
+            for entry in answers:
+                if not isinstance(entry, dict):
+                    continue
+                key = self._question_number_key(entry.get("question_number"))
+                status = entry.get("answer_status")
+                if status not in ANSWER_STATUSES:
+                    # No status on the payload at all: the schema is
+                    # disabled, or this is a pre-schema submission being
+                    # re-graded. Infer conservatively - an empty answer
+                    # becomes BLANK, never NOT_FOUND_IN_DOCUMENT, because
+                    # without the model's own account of the page there is
+                    # no evidence to tell those apart, and guessing would
+                    # flag every genuinely skipped question in the class.
+                    status = infer_answer_status(entry)
+                status_by_key[key] = status
+
+            not_found = []
+            for evaluation in result.get("question_evaluations") or []:
+                if not isinstance(evaluation, dict):
+                    continue
+                key = self._question_number_key(evaluation.get("question_number"))
+                # A question with no answer entry AT ALL is the case the
+                # single-pass path can produce: it never calls
+                # _pair_question_with_answers, so nothing fabricated a
+                # placeholder and the model simply saw fewer answers than
+                # questions.
+                status = status_by_key.get(key, NOT_FOUND_IN_DOCUMENT)
+                evaluation["answer_status"] = status
+                if status in REVIEW_REQUIRED_STATUSES:
+                    not_found.append(
+                        {
+                            "question_number": evaluation.get("question_number"),
+                            "answer_status": status,
+                            "score_awarded": evaluation.get("score_awarded"),
+                            "max_points": evaluation.get("max_points"),
+                        }
+                    )
+
+            if not_found:
+                logger.warning(
+                    "[Grading] %s question(s) graded without a confirmed "
+                    "student answer (%s). Flagging for review.",
+                    len(not_found),
+                    ", ".join(str(item["question_number"]) for item in not_found),
+                )
+            result["answers_not_found"] = not_found
+            # Recorded even when empty, so a consumer can tell "checked,
+            # nothing missing" apart from "this result predates the check".
+            result["answer_provenance_checked"] = True
+        except Exception:
+            # Never let provenance bookkeeping cost a student their grade.
+            logger.exception(
+                "[Grading] Answer-provenance stamping failed; the grade is "
+                "unaffected but this submission carries no provenance."
+            )
+        return result
 
     def _grade_student_submission_impl(
         self,

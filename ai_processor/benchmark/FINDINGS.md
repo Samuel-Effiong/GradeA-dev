@@ -723,6 +723,111 @@ closed, and the new content grades within the established accuracy
 band rather than introducing a new one — no evidence the added
 questions behave differently from the rest of the dataset.
 
+## Run 8 — answer_status feedback wording forces a re-record; isolation experiment left incomplete
+
+Editing `GRADING_ASSIGNMENT_PROMPT_5.txt` to add the `answer_status`
+section (telling the grader not to accuse a student of skipping a
+question whose answer extraction actually lost — see
+`ai_processor/answer_completeness.py` for the extraction-side half of
+that fix) changes the system prompt text, which changes every
+`request_key` the tape hashes against. Every committed recording missed,
+and replay correctly refused to fall through to a live call rather than
+silently re-billing — five tests failed
+(`tests_benchmark_golden`/`tests_benchmark_history`/`tests_grading_benchmark`)
+pointing at the same root cause. This was not a choice to re-record; it
+was forced by editing a file the request key is built from.
+
+Re-recorded all 21 submissions, real endpoint, `--mode record`, 70 model
+calls, ~1,001,000 tokens.
+
+| Metric | Run 7 (old prompt) | Run 8 (new prompt) |
+|---|---|---|
+| Questions graded | 168 | 168 |
+| Exact rubric-level match | 84.5% (142/168) | **82.7% (139/168)** |
+| Within one level | 100.0% | **100.0%** |
+| Mean level error | 0.0833 | **0.0774** |
+| Deterministic tier 0 | 34/34 | **34/34** (unchanged) |
+| Evidence verified | 131/133 | **132/133** |
+| ESSAY exact | — | 78.6% (22/28) |
+| OBJECTIVE exact | — | 100.0% (35/35) |
+| SHORT-ANSWER exact | — | 78.1% (82/105) |
+
+**Accepted, on the shape of the change rather than the headline number.**
+Exact-match moved down 1.8 points (3 of 168 questions), but every one of
+those three landed on the *adjacent* rubric level — `within_one_level`
+stayed at exactly 1.0 across every question type and subject, the same
+as every prior run. `mean_level_error` actually *improved*
+(0.0833→0.0774), evidence verification improved by one question
+(131→132), and the deterministic (OBJECTIVE) tier is untouched at 34/34,
+as expected — this prompt section only ever changes short-answer/essay
+feedback wording, never objective scoring. Nothing moved by more than one
+level, which is the property that matters: a grade that lands one level
+off is a defensible judgement call, not a broken grader.
+
+Golden snapshot regenerated: `tests_benchmark_golden.py`'s pinned values
+now read 0.8274 / evidence 132 (was 0.8452 / evidence 131), with the
+rationale above recorded in the pinned-assertion's own comment so a
+future reader doesn't need this file to understand why the number moved.
+
+**One transient failure worth recording**, not because it's new but
+because it recurred: the blind second-opinion grader failed its evidence
+check three times on `maths/weak` and again on `maths/partial`
+(`none of the 1 evidence quote(s) appear in the student's answer`) before
+giving up — non-fatal by design (`_maybe_run_second_opinion` never
+degrades the way the primary evidence check does; grader A's score
+stands, the second opinion is simply skipped and annotated). Both
+submissions graded fine. This is the same failure shape Finding 1
+describes for long multi-step algebra answers, on the same two
+deliberately-weak/garbled fixture students where it's most likely to
+occur — consistent with, not contradicting, that finding.
+
+### The isolation experiment: attempted, and lost to an external crash
+
+Comparing 0.8452 (recorded weeks ago) against 0.8274 (recorded today)
+confounds two things: the prompt edit, and ordinary run-to-run variance
+(LLM grading is not bit-reproducible at temperature 0 — OpenRouter routes
+across providers, and providers vary internally). To bound how much of
+the 3-question delta is the prompt versus noise, a third arm was designed:
+re-record the **old** prompt, **today**, into a scratch directory, giving
+
+    A. old prompt, old run   = 0.8452  (committed baseline)
+    B. old prompt, TODAY     = ?       (isolation arm)
+    C. new prompt, TODAY     = 0.8274  (accepted above)
+
+with `|A-B|` estimating pure day-to-day variance and `|B-C|` estimating
+the prompt's own effect under identical conditions.
+
+**This arm did not complete.** The run (`isolate_prompt_effect.py`) was
+killed by an external session/model transition partway through — 7 of 21
+submissions graded, 0 errors up to that point — and `_Tape.save()` only
+persists recordings after the *entire* run finishes, so the kill left no
+artifact at all: no scratch recordings, no score. The ~70 completed
+model calls' worth of billed work produced nothing reusable.
+
+The one thing that mattered was checked immediately on discovering the
+crash: the script swaps the old prompt onto disk *before* Django imports
+it, and restores the new prompt in a `finally` block on exit — but an
+external kill bypasses `finally` entirely, so the repo was found holding
+the OLD (pre-fix) prompt on disk, silently undoing the very change this
+run was accepted above. It was NOT git-reverted (git showed no diff for
+that file — the working copy matched `HEAD` exactly), so this could not
+have been caught by a routine `git diff` skim. Recovered from the
+script's own static pre-swap backup file, verified byte-identical, and
+confirmed against the golden test before anything else proceeded. Flagged
+here mainly as a process note: a prompt-swap-in-place technique needs a
+crash-safe restore path (a file lock, a restore-on-next-boot check, or
+running it somewhere that survives a session teardown) if it's used
+again, because `finally` alone is not that.
+
+**Bottom line:** the 0.8452→0.8274 delta is accepted on structural
+grounds — adjacent-level only, other metrics flat or improved, one
+recurring pre-existing failure mode unrelated to this edit — not on a
+variance-isolated measurement. The isolation run remains undone. Anyone
+re-litigating whether this delta is signal or noise should re-run
+`isolate_prompt_effect.py` (the two prompt snapshots and the scoring
+script are all still in the benchmark scratch tooling) rather than trust
+a single-run comparison across two different days.
+
 ## Deferred to v2 — post-MVP
 
 Everything above ships now. One thing is deliberately held back:

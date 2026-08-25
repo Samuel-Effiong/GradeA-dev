@@ -314,13 +314,40 @@ def _populate_and_save_grade(submission, grading, processing_task_id):
     # agree must clear a stale flag from an earlier run. (Second-opinion
     # failures/skips deliberately do NOT flag — see
     # AIProcessor._maybe_run_second_opinion.)
+    #
+    # There are now two INDEPENDENT sources of review, and they are
+    # accumulated rather than chained: a submission can perfectly well
+    # have both a missing answer and a grader disagreement, and an
+    # if/elif would have silently reported only one of them.
+    reasons: list = []
+    sort_keys: list = []
+    tiers: list = []
+
+    # Source 1: we graded a question without having the student's answer.
+    # ALWAYS critical, and always sorted to the very top of the queue.
+    # Every other review reason is a judgement call about a grade we are
+    # confident is at least *about* the right work; this one says we may
+    # not have the student's work at all, which is a data-integrity
+    # failure, not a marking disagreement. Scoring it 0 may still be
+    # correct — but that is a conclusion for a human to reach, not one
+    # the system is entitled to reach silently.
+    for missing in grading.get("answers_not_found") or []:
+        tiers.append("critical")
+        sort_keys.append(_review_sort_key("critical", 1.0))
+        reasons.append(
+            {
+                "type": "answer_not_found",
+                "question_number": missing.get("question_number"),
+                "answer_status": missing.get("answer_status"),
+                "score_awarded": missing.get("score_awarded"),
+                "max_points": missing.get("max_points"),
+            }
+        )
+
+    # Source 2: the blind second grader disagreed with grader A.
     second_opinion = grading.get("second_opinion") or {}
     disagreements = second_opinion.get("disagreements") or []
     if disagreements:
-        submission.needs_review = True
-        reasons = []
-        sort_keys = []
-        tiers = []
         for d in disagreements:
             severity = d.get("severity") or {}
             # An unmeasurable gap (unknown points) is never treated as
@@ -339,9 +366,6 @@ def _populate_and_save_grade(submission, grading, processing_task_id):
                     "gap_fraction": gap_fraction,
                 }
             )
-        submission.review_reasons = reasons
-        submission.review_severity = max(sort_keys)
-        submission.review_tier = _worst_tier(tiers)
     elif second_opinion.get("needs_review"):
         # The second opinion couldn't run for a reason the teacher needs to
         # know about — currently only "out of credits" (see
@@ -350,17 +374,22 @@ def _populate_and_save_grade(submission, grading, processing_task_id):
         # unverified rather than passing as silently confirmed. Treated as
         # moderate: unknowable, and _severity's own rule is to never
         # downgrade what we can't measure.
-        submission.needs_review = True
-        submission.review_reasons = [
+        tiers.append("moderate")
+        sort_keys.append(_review_sort_key("moderate", None))
+        reasons.append(
             {
                 "type": second_opinion.get(
                     "review_reason", "second_opinion_unavailable"
                 ),
                 "detail": second_opinion.get("skipped"),
             }
-        ]
-        submission.review_severity = _review_sort_key("moderate", None)
-        submission.review_tier = "moderate"
+        )
+
+    if reasons:
+        submission.needs_review = True
+        submission.review_reasons = reasons
+        submission.review_severity = max(sort_keys)
+        submission.review_tier = _worst_tier(tiers)
     else:
         submission.needs_review = False
         submission.review_reasons = None
@@ -812,6 +841,22 @@ def upload_answers_engine(
     )
 
     if student_submission is not None:
+        # StudentSubmission.answers is NOT nullable, and both write paths
+        # below read this key. Before this guard, an extraction that came
+        # back without it (or with a non-list under it) reached the DB as
+        # SQL NULL and died there with a bare IntegrityError - AFTER the
+        # teacher had been billed for the call, and with no indication of
+        # what was actually wrong. Validated here, at the boundary, so the
+        # failure is legible and the enclosing refund scope can reclaim
+        # the charge.
+        extracted_answers = student_submission.get("answers")
+        if not isinstance(extracted_answers, list):
+            raise ValueError(
+                "Answer extraction returned no usable `answers` list "
+                f"(got {type(extracted_answers).__name__}); refusing to "
+                "persist an unusable submission."
+            )
+
         target_student = request_user
 
         if is_proxy_upload:

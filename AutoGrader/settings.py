@@ -534,6 +534,72 @@ GRADING_RESPONSE_SCHEMA_ENABLED = env.bool(
 #   "off"    — evidence is not inspected at all
 GRADING_EVIDENCE_ENFORCEMENT = env.str("GRADING_EVIDENCE_ENFORCEMENT", default="strict")
 
+# Structured output for ANSWER EXTRACTION calls: enforce the json_schema
+# contract in ai_processor/extraction_schemas.py instead of free-form
+# json_object. Answer extraction is upstream of grading, so a dropped or
+# mis-numbered answer here becomes a zero no amount of grading rigour can
+# recover — see ai_processor/answer_completeness.py's module docstring.
+# Kill switch in case a routed fallback model rejects json_schema; unlike
+# the grading equivalent, turning this off LOGS (see
+# AIProcessor._answer_extraction_schema), because a silent downgrade of a
+# safety check is how the check stops existing without anyone noticing.
+ANSWER_EXTRACTION_SCHEMA_ENABLED = env.bool(
+    "ANSWER_EXTRACTION_SCHEMA_ENABLED", default=True
+)
+
+# Mechanical completeness checking for extracted answers
+# (ai_processor/answer_completeness.py): every question in the assignment
+# must be positively accounted for by the extraction — answered, blank,
+# illegible, or explicitly not found.
+#   "strict" — an incomplete payload is rejected and re-extracted. The
+#              FINAL attempt degrades to "log" rather than destroying the
+#              submission (same rule as the evidence check).
+#   "log"    — repair + flag for review, never reject
+#   "off"    — answers are not inspected at all (pre-hardening behaviour)
+ANSWER_COMPLETENESS_ENFORCEMENT = env.str(
+    "ANSWER_COMPLETENESS_ENFORCEMENT", default="strict"
+)
+
+# Targeted re-read of questions the extractor reported as empty
+# (ai_processor/services.py::_verify_blank_answers). A claimed blank is the
+# ONLY shape a lost answer can hide in - an answer that WAS transcribed is
+# by definition not lost - so rather than trying to verify every answer
+# against a source text we do not have (submissions are read from page
+# images; ocr_processor is an empty stub), this re-reads the pages asking
+# one narrow question about just those questions.
+#
+# Cost is bounded and self-limiting: zero extra calls on a fully answered
+# submission, and the more blanks there are - i.e. the higher the risk one
+# of them is a miss - the more the single extra call earns its keep.
+ANSWER_BLANK_VERIFICATION_ENABLED = env.bool(
+    "ANSWER_BLANK_VERIFICATION_ENABLED", default=True
+)
+
+# Above this many blanks, skip the re-read. A submission where almost
+# nothing was answered is either a genuinely near-empty paper or a wholesale
+# extraction failure; in both cases a per-question re-read is the wrong
+# instrument, and the completeness flags already route it to a human.
+ANSWER_BLANK_VERIFICATION_MAX_QUESTIONS = env.int(
+    "ANSWER_BLANK_VERIFICATION_MAX_QUESTIONS", default=12
+)
+
+# The re-read sends the WHOLE submission in one call (a missing answer
+# could be on any page, and a partial view would simply miss it), so long
+# submissions are skipped rather than attempted and failed. Safe in the
+# only direction that matters: the re-read can only move a question
+# BLANK -> NOT_FOUND_IN_DOCUMENT, so skipping costs a possible recovery
+# and can never produce a wrong flag.
+ANSWER_BLANK_VERIFICATION_MAX_PAGES = env.int(
+    "ANSWER_BLANK_VERIFICATION_MAX_PAGES", default=10
+)
+
+# Model for the re-read. A DIFFERENT model than the extractor is preferable
+# for the same reason the grading second opinion uses one (see
+# second_opinion.pick_second_model): a second read from the model that just
+# missed the answer tends to miss it again. Empty = use default routing,
+# which still asks a far narrower question than the extraction did.
+ANSWER_BLANK_VERIFICATION_MODEL = env.str("ANSWER_BLANK_VERIFICATION_MODEL", default="")
+
 # Selective blind second opinion (ai_processor/second_opinion.py): a
 # DIFFERENT model re-grades triggered questions without seeing the first
 # grade; disagreement flags the submission needs_review for the teacher.
@@ -687,6 +753,16 @@ PDF_RENDERER_MAX_RENDERS_PER_BROWSER = env.int(
 # serialized rendering.
 PDF_RENDERER_MAX_CONCURRENT_RENDERS = env.int(
     "PDF_RENDERER_MAX_CONCURRENT_RENDERS", default=4
+)
+
+# Load shedding: renders queued or running per worker before further ones
+# are refused with 503 instead of queueing. Default None = 4x the
+# concurrency above; 0 disables shedding entirely. Measured under 300
+# concurrent callers without it, renders sat ~35s and 89 of 3000 died at
+# the 45s timeout, each pinning a request thread for the whole wait -
+# refusing fast keeps those threads free for work the process can serve.
+PDF_RENDERER_MAX_QUEUED_RENDERS = env.int(
+    "PDF_RENDERER_MAX_QUEUED_RENDERS", default=None
 )
 
 CELERY_TASK_ACKS_LATE = True

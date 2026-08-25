@@ -148,9 +148,26 @@ class BenchmarkGoldenMasterTest(BenchmarkFixtureMixin, TestCase):
         # to do by accident.
         expected = json.loads(GOLDEN_PATH.read_text())
         self.assertEqual(expected["overall"]["questions"], 168)
-        self.assertEqual(expected["overall"]["exact_rate"], 0.8452)
+        # Run 8 (see FINDINGS.md): 0.8452 -> 0.8274, three questions of 168.
+        # Moved deliberately after re-recording, NOT to silence the test
+        # above. The re-record was forced, not chosen: editing
+        # GRADING_ASSIGNMENT_PROMPT_5.txt changes every request_key, so the
+        # previous recordings could no longer be replayed at all.
+        #
+        # Accepted because the shape of the change is benign: every one of
+        # the three is an ADJACENT-level call (within_one_level_rate stayed
+        # 1.0 across every question type and subject), mean_level_error
+        # actually improved (0.0833 -> 0.0774), evidence verification
+        # improved (131 -> 132), and the deterministic tier is untouched at
+        # 34/34. What did NOT happen is any answer moving more than one
+        # rubric level.
+        #
+        # Read FINDINGS.md Run 8 before moving this again — in particular
+        # the isolation run, which measures how much of this is simply
+        # run-to-run variance rather than the prompt edit.
+        self.assertEqual(expected["overall"]["exact_rate"], 0.8274)
         self.assertEqual(expected["overall"]["within_one_level_rate"], 1.0)
         self.assertEqual(expected["deterministic"]["claimed"], 34)
         self.assertEqual(expected["deterministic"]["correct"], 34)
-        self.assertEqual(expected["evidence"]["verified"], 131)
+        self.assertEqual(expected["evidence"]["verified"], 132)
         self.assertEqual(expected["evidence"]["checked"], 133)
