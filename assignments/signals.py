@@ -69,10 +69,18 @@ def queue_new_assignment_posted_notification(instance, created):
     assignment_id = str(instance.id)
 
     def enqueue_notification():
-        from assignments.tasks import send_new_assignment_posted_notification
+        from assignments.tasks import (
+            prerender_assignment_pdfs,
+            send_new_assignment_posted_notification,
+        )
         from AutoGrader.dispatch import safe_delay
 
         safe_delay(send_new_assignment_posted_notification, assignment_id)
+        # Warm the PDF cache for the burst that tends to follow a
+        # publish - see prerender_assignment_pdfs. Dispatched alongside
+        # the notification because they are triggered by exactly the same
+        # event: students being told the assignment exists.
+        safe_delay(prerender_assignment_pdfs, assignment_id)
 
     transaction.on_commit(enqueue_notification)
 

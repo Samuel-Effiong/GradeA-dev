@@ -120,8 +120,35 @@ def _max_concurrent_renders() -> int:
     return max(1, getattr(settings, "PDF_RENDERER_MAX_CONCURRENT_RENDERS", 4))
 
 
+def _max_queued_renders() -> int:
+    """
+    How many renders may be queued or running in this process before new
+    ones are refused outright; 0 disables shedding.
+
+    The default is 4x the concurrency bound, i.e. three waiting for every
+    one rendering. At ~0.6-2s per render that caps the wait at a handful
+    of seconds - past which a caller is better served by a fast "try
+    again" than by a thread parked for the 45s render timeout.
+    """
+    configured = getattr(settings, "PDF_RENDERER_MAX_QUEUED_RENDERS", None)
+    if configured is None:
+        return _max_concurrent_renders() * 4
+    return configured
+
+
 class PDFRenderError(RuntimeError):
     """A PDF could not be produced (browser/navigation/render failure)."""
+
+
+class PDFRendererBusy(PDFRenderError):
+    """
+    Refused before starting because this process is already at capacity.
+
+    Distinct from a render that was attempted and failed: nothing was
+    tried, so the caller can retry and callers that can wait (background
+    pre-rendering) should. Surfaces to HTTP clients as 503 + Retry-After
+    rather than 500 - see AssignmentViewSet.download_pdf.
+    """
 
 
 def _validate_full_document(full_html: str) -> None:
@@ -274,6 +301,11 @@ class _ChromiumRenderWorker:
         # so nothing downstream has to defend against that.
         self._swap_lock = asyncio.Lock()
         self._semaphore = asyncio.Semaphore(_max_concurrent_renders())
+
+        # Renders queued or running, counted on the *calling* threads so
+        # load shedding can refuse before any event-loop work is done.
+        self._queued = 0
+        self._queue_lock = threading.Lock()
 
         self._ready = threading.Event()
         self._startup_error = None
@@ -554,13 +586,36 @@ class _ChromiumRenderWorker:
         raise PDFRenderError("PDF rendering failed after a retry.")
 
     def render(self, html: str, **options) -> bytes:
-        if self._loop is None:  # pragma: no cover - defensive
+        loop = self._loop
+        if loop is None:  # pragma: no cover - defensive
             raise PDFRenderError("The PDF renderer's event loop is not running.")
 
+        # Load shedding. Without this, every caller past capacity simply
+        # queued on the semaphore and was only failed by the outer timeout
+        # below - measured under 300 concurrent callers, renders sat ~35s
+        # and 89 of 3000 eventually died at the 45s bound, each having
+        # held a request thread the whole time. Refusing immediately turns
+        # that into a fast, honest "try again" and keeps the threads free
+        # for requests the process can actually serve (cache hits included,
+        # which never reach this method).
+        limit = _max_queued_renders()
+        with self._queue_lock:
+            if limit and self._queued >= limit:
+                raise PDFRendererBusy(
+                    f"The PDF renderer is at capacity ({self._queued} render(s) "
+                    f"queued or running, limit {limit})."
+                )
+            self._queued += 1
+
+        try:
+            return self._await_render(loop, html, options)
+        finally:
+            with self._queue_lock:
+                self._queued -= 1
+
+    def _await_render(self, loop, html: str, options: dict) -> bytes:
         timeout_seconds = options.get("timeout", DEFAULT_RENDER_TIMEOUT_SECONDS)
-        future = asyncio.run_coroutine_threadsafe(
-            self._render(html, options), self._loop
-        )
+        future = asyncio.run_coroutine_threadsafe(self._render(html, options), loop)
 
         # Slack beyond the in-page timeout because a render may also wait
         # for a concurrency slot before it starts. Every Playwright call
@@ -624,6 +679,43 @@ def _shutdown_worker():
 reset_worker_for_tests = _shutdown_worker
 
 atexit.register(_shutdown_worker)
+
+
+def ensure_capacity() -> None:
+    """
+    Raise PDFRendererBusy now if this process is already at capacity.
+
+    Advisory pre-check, so a caller can bail out *before* doing expensive
+    work whose result would only be thrown away - assembling an
+    assignment's HTML costs real CPU, and under load that work is
+    contended by every other thread doing the same thing. Measured
+    without it, shed requests still took up to 4.9s to be refused because
+    they built their document first; with it they are refused in
+    milliseconds.
+
+    The authoritative check stays in _ChromiumRenderWorker.render(). This
+    one is allowed to race - the worst case is one extra caller building
+    HTML and being refused a moment later, which is exactly what happened
+    before this existed.
+
+    Deliberately does not start the browser: if no renderer has been
+    created yet, this process is by definition not at capacity.
+    """
+    worker = _worker
+    if worker is None:
+        return
+
+    limit = _max_queued_renders()
+    if not limit:
+        return
+
+    with worker._queue_lock:
+        queued = worker._queued
+    if queued >= limit:
+        raise PDFRendererBusy(
+            f"The PDF renderer is at capacity ({queued} render(s) queued or "
+            f"running, limit {limit})."
+        )
 
 
 def render_html_to_pdf(

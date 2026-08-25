@@ -71,7 +71,7 @@ class DownloadPdfViewTest(RigorFixtureMixin, APITestCase):
     def _url(self, assignment):
         return reverse("assignment-download-pdf", kwargs={"pk": assignment.id})
 
-    @patch("assignments.views.render_html_to_pdf")
+    @patch("assignments.views.render_assignment_pdf")
     def test_teacher_can_download_teacher_view_of_own_assignment(self, mock_render):
         mock_render.return_value = b"%PDF-fake"
         self.client.force_authenticate(user=self.teacher)
@@ -82,25 +82,34 @@ class DownloadPdfViewTest(RigorFixtureMixin, APITestCase):
         mock_render.assert_called_once()
         self.assertEqual(response["Content-Type"], "application/pdf")
 
-    @patch("assignments.views.render_html_to_pdf")
-    def test_teacher_view_passes_header_footer_template_and_margins(self, mock_render):
+    @patch("assignments.views.render_assignment_pdf")
+    def test_the_view_asks_for_the_right_document(self, mock_render):
+        """
+        The view's job is only to decide *which* document to build; how it
+        is built (header/footer templates, margins) now lives in
+        pdf_document.render_assignment_pdf and is asserted there, so that
+        the publish-time pre-render produces byte-identical output.
+        """
         mock_render.return_value = b"%PDF-fake"
         self.client.force_authenticate(user=self.teacher)
 
         self.client.get(self._url(self.published), {"view": "teacher"})
 
-        _, kwargs = mock_render.call_args
-        self.assertIn("header_template", kwargs)
-        self.assertIn("footer_template", kwargs)
-        self.assertIn('class="title"', kwargs["header_template"])
-        self.assertIn("pageNumber", kwargs["footer_template"])
-        self.assertIn("totalPages", kwargs["footer_template"])
-        self.assertEqual(
-            kwargs["margins"],
-            {"top": "2.5cm", "right": "2cm", "bottom": "2.2cm", "left": "2cm"},
-        )
+        args, _ = mock_render.call_args
+        self.assertEqual(args[0].id, self.published.id)
+        self.assertIs(args[1], True, "teacher view must include rubrics")
 
-    @patch("assignments.views.render_html_to_pdf")
+    @patch("assignments.views.render_assignment_pdf")
+    def test_student_view_asks_for_the_rubric_free_document(self, mock_render):
+        mock_render.return_value = b"%PDF-fake"
+        self.client.force_authenticate(user=self.student)
+
+        self.client.get(self._url(self.published), {"view": "student"})
+
+        args, _ = mock_render.call_args
+        self.assertIs(args[1], False, "student view must NOT include rubrics")
+
+    @patch("assignments.views.render_assignment_pdf")
     def test_other_teacher_cannot_download_teacher_view(self, mock_render):
         # get_queryset() scopes a teacher's visible assignments to
         # course__teacher=user, so a non-owning teacher's request never
@@ -117,7 +126,7 @@ class DownloadPdfViewTest(RigorFixtureMixin, APITestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         mock_render.assert_not_called()
 
-    @patch("assignments.views.render_html_to_pdf")
+    @patch("assignments.views.render_assignment_pdf")
     def test_student_can_download_published_student_view(self, mock_render):
         mock_render.return_value = b"%PDF-fake"
         self.client.force_authenticate(user=self.student)
@@ -127,7 +136,7 @@ class DownloadPdfViewTest(RigorFixtureMixin, APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         mock_render.assert_called_once()
 
-    @patch("assignments.views.render_html_to_pdf")
+    @patch("assignments.views.render_assignment_pdf")
     def test_student_cannot_download_draft_assignment(self, mock_render):
         # get_queryset() scopes a student's visible assignments to
         # status=PUBLISHED, so a draft 404s at object lookup - the
@@ -142,7 +151,7 @@ class DownloadPdfViewTest(RigorFixtureMixin, APITestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         mock_render.assert_not_called()
 
-    @patch("assignments.views.render_html_to_pdf")
+    @patch("assignments.views.render_assignment_pdf")
     def test_assignment_with_no_questions_returns_400_without_rendering(
         self, mock_render
     ):
@@ -159,7 +168,38 @@ class DownloadPdfViewTest(RigorFixtureMixin, APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         mock_render.assert_not_called()
 
-    @patch("assignments.views.render_html_to_pdf")
+    @patch("assignments.views.render_assignment_pdf")
+    def test_load_shedding_returns_503_with_retry_after(self, mock_render):
+        """
+        Being shed means nothing was attempted because the process is at
+        capacity - a "come back shortly", not a failure. It must not be
+        reported as a 500, or clients and proxies cannot tell a transient
+        overload from a broken assignment.
+        """
+        from assignments.pdf_renderer import PDFRendererBusy
+
+        mock_render.side_effect = PDFRendererBusy("at capacity")
+        self.client.force_authenticate(user=self.teacher)
+
+        response = self.client.get(self._url(self.published), {"view": "teacher"})
+
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertEqual(response["Retry-After"], "5")
+        self.assertIn("busy", str(response.json()["error"]).lower())
+
+    @patch("assignments.views.render_assignment_pdf")
+    def test_an_ordinary_render_failure_is_still_a_500(self, mock_render):
+        # Guards the 503 branch from swallowing genuine failures: only
+        # PDFRendererBusy is a "try again", everything else is an error.
+        mock_render.side_effect = RuntimeError("boom")
+        self.client.force_authenticate(user=self.teacher)
+
+        response = self.client.get(self._url(self.published), {"view": "teacher"})
+
+        self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        self.assertNotIn("Retry-After", response)
+
+    @patch("assignments.views.render_assignment_pdf")
     def test_renderer_failure_returns_500_with_friendly_message(self, mock_render):
         mock_render.side_effect = RuntimeError("PDF rendering failed: boom")
         self.client.force_authenticate(user=self.teacher)
@@ -169,7 +209,7 @@ class DownloadPdfViewTest(RigorFixtureMixin, APITestCase):
         self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
         self.assertIn("error", response.json())
 
-    @patch("assignments.views.render_html_to_pdf")
+    @patch("assignments.pdf_document.render_html_to_pdf")
     def test_title_course_teacher_and_instructions_are_escaped_in_the_rendered_html(
         self, mock_render
     ):
@@ -220,7 +260,7 @@ class DownloadPdfViewTest(RigorFixtureMixin, APITestCase):
         self.assertIn("&lt;script&gt;", full_html)
         self.assertIn("&lt;img src=x onerror=alert(1)&gt;", full_html)
 
-    @patch("assignments.views.render_html_to_pdf")
+    @patch("assignments.views.render_assignment_pdf")
     def test_response_filename_is_sanitised_from_title(self, mock_render):
         mock_render.return_value = b"%PDF-fake"
         weird_title = Assignment.objects.create(
@@ -310,3 +350,75 @@ class DownloadPdfRealRenderTest(RigorFixtureMixin, APITestCase):
         # Page/title header-footer templates were filled in.
         self.assertIn("Matrix Quiz", text)
         self.assertRegex(text, r"Page\s*1\s*of\s*1")
+
+
+class RenderAssignmentPdfDocumentTest(RigorFixtureMixin, APITestCase):
+    """
+    pdf_document.render_assignment_pdf - the shared document builder.
+
+    Both download_pdf and the publish-time pre-render task call this, and
+    they must produce byte-identical output or the cache would hand one
+    caller's document to the other. These assertions moved here from the
+    view tests when the builder was extracted.
+    """
+
+    def setUp(self):
+        self.course = self.make_course(suffix="-pdfdoc")
+        self.assignment = Assignment.objects.create(
+            title="Doc Quiz",
+            course=self.course,
+            status=AssignmentStatus.PUBLISHED,
+            total_points=5,
+            instructions="Answer everything.",
+            questions=[objective_question()],
+        )
+
+    @patch("assignments.pdf_document.render_html_to_pdf")
+    def test_passes_header_footer_templates_and_margins(self, mock_render):
+        from assignments.pdf_document import render_assignment_pdf
+
+        mock_render.return_value = b"%PDF-fake"
+
+        render_assignment_pdf(self.assignment, include_rubric=True)
+
+        _, kwargs = mock_render.call_args
+        self.assertIn('class="title"', kwargs["header_template"])
+        self.assertIn("pageNumber", kwargs["footer_template"])
+        self.assertIn("totalPages", kwargs["footer_template"])
+        self.assertEqual(
+            kwargs["margins"],
+            {"top": "2.5cm", "right": "2cm", "bottom": "2.2cm", "left": "2cm"},
+        )
+
+    @patch("assignments.pdf_document.render_html_to_pdf")
+    def test_only_the_teacher_document_carries_the_model_answer(self, mock_render):
+        from assignments.pdf_document import render_assignment_pdf
+
+        mock_render.return_value = b"%PDF-fake"
+
+        render_assignment_pdf(self.assignment, include_rubric=True)
+        teacher_html = mock_render.call_args.args[0]
+        render_assignment_pdf(self.assignment, include_rubric=False)
+        student_html = mock_render.call_args.args[0]
+
+        self.assertIn("Model Answer", teacher_html)
+        self.assertNotIn("Model Answer", student_html)
+
+    @patch("assignments.pdf_document.render_html_to_pdf")
+    def test_refuses_before_building_anything_when_at_capacity(self, mock_render):
+        """
+        The capacity pre-check must happen before the document is
+        assembled - building HTML that is then discarded is pure waste,
+        and under load every thread doing it contends with every other.
+        """
+        from assignments.pdf_document import render_assignment_pdf
+        from assignments.pdf_renderer import PDFRendererBusy
+
+        with patch(
+            "assignments.pdf_document.ensure_capacity",
+            side_effect=PDFRendererBusy("at capacity"),
+        ):
+            with self.assertRaises(PDFRendererBusy):
+                render_assignment_pdf(self.assignment, include_rubric=True)
+
+        mock_render.assert_not_called()

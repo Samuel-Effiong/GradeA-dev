@@ -359,7 +359,7 @@ class DownloadPdfCachingTest(RigorFixtureMixin, APITestCase):
     def tearDown(self):
         cache.clear()
 
-    @patch("assignments.views.render_html_to_pdf")
+    @patch("assignments.views.render_assignment_pdf")
     def test_second_download_is_served_from_cache_without_rendering(self, mock_render):
         mock_render.return_value = b"%PDF-rendered"
         self.client.force_authenticate(user=self.teacher)
@@ -372,7 +372,7 @@ class DownloadPdfCachingTest(RigorFixtureMixin, APITestCase):
         mock_render.assert_called_once()
         self.assertEqual(b"".join(second.streaming_content), b"%PDF-rendered")
 
-    @patch("assignments.views.render_html_to_pdf")
+    @patch("assignments.views.render_assignment_pdf")
     def test_editing_the_assignment_forces_a_fresh_render(self, mock_render):
         mock_render.return_value = b"%PDF-rendered"
         self.client.force_authenticate(user=self.teacher)
@@ -384,7 +384,7 @@ class DownloadPdfCachingTest(RigorFixtureMixin, APITestCase):
 
         self.assertEqual(mock_render.call_count, 2)
 
-    @patch("assignments.views.render_html_to_pdf")
+    @patch("assignments.views.render_assignment_pdf")
     def test_student_and_teacher_views_are_cached_independently(self, mock_render):
         mock_render.return_value = b"%PDF-rendered"
 
@@ -397,7 +397,7 @@ class DownloadPdfCachingTest(RigorFixtureMixin, APITestCase):
         # renders - neither may be served from the other's entry.
         self.assertEqual(mock_render.call_count, 2)
 
-    @patch("assignments.views.render_html_to_pdf")
+    @patch("assignments.views.render_assignment_pdf")
     def test_a_cache_hit_still_enforces_permissions(self, mock_render):
         """
         The cache lookup sits after the permission checks, so warming an
@@ -416,7 +416,7 @@ class DownloadPdfCachingTest(RigorFixtureMixin, APITestCase):
             (status.HTTP_403_FORBIDDEN, status.HTTP_404_NOT_FOUND),
         )
 
-    @patch("assignments.views.render_html_to_pdf")
+    @patch("assignments.views.render_assignment_pdf")
     def test_cache_backend_failure_still_serves_a_pdf(self, mock_render):
         mock_render.return_value = b"%PDF-rendered"
         self.client.force_authenticate(user=self.teacher)
@@ -429,7 +429,7 @@ class DownloadPdfCachingTest(RigorFixtureMixin, APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(b"".join(response.streaming_content), b"%PDF-rendered")
 
-    @patch("assignments.views.render_html_to_pdf")
+    @patch("assignments.views.render_assignment_pdf")
     def test_a_failed_render_is_never_cached(self, mock_render):
         mock_render.side_effect = RuntimeError("boom")
         self.client.force_authenticate(user=self.teacher)

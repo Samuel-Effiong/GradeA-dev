@@ -1218,3 +1218,76 @@ def send_new_assignment_posted_notification(assignment_id):
         import traceback
 
         return f"Error: {str(e)} {traceback.format_exc()}"
+
+
+@shared_task(
+    bind=True,
+    name="assignments.tasks.prerender_assignment_pdfs",
+    max_retries=5,
+    default_retry_delay=60,
+)
+def prerender_assignment_pdfs(self, assignment_id):
+    """
+    Render and cache both PDF views of a freshly published assignment.
+
+    Publishing is the moment a whole class opens the same assignment at
+    once, and it is also the one moment the cache is guaranteed cold - a
+    newly published assignment has never been rendered. Warming it here
+    turns that burst into cache hits. Single-flight already cut a measured
+    30-simultaneous-request burst from 30 renders to 1; doing the render
+    before anyone asks cuts it to 0.
+
+    Best effort by design: this only warms a cache, so nothing it does is
+    required for a download to work. A failure is logged and dropped
+    rather than retried forever, with one exception - if the renderer is
+    shedding load, the work is genuinely worth deferring, so back off and
+    try again later. Pre-rendering must never compete with real users for
+    render capacity.
+    """
+    from assignments.pdf_cache import get_cached_pdf, get_or_render
+    from assignments.pdf_document import render_assignment_pdf
+    from assignments.pdf_renderer import PDFRendererBusy
+
+    try:
+        assignment = Assignment.objects.select_related("course__teacher").get(
+            id=assignment_id
+        )
+    except Assignment.DoesNotExist:
+        return "Assignment no longer exists."
+
+    if assignment.status != AssignmentStatus.PUBLISHED:
+        return "Assignment is not published."
+
+    if not assignment.questions:
+        return "Assignment has no questions to render."
+
+    warmed = []
+    for view_type, include_rubric in (("student", False), ("teacher", True)):
+        if get_cached_pdf(assignment, view_type) is not None:
+            continue
+        try:
+            get_or_render(
+                assignment,
+                view_type,
+                lambda inc=include_rubric: render_assignment_pdf(assignment, inc),
+            )
+            warmed.append(view_type)
+        except PDFRendererBusy as exc:
+            logger.info(
+                "[PDF] pre-render deferred for assignment %s (%s view): %s",
+                assignment_id,
+                view_type,
+                exc,
+            )
+            raise self.retry(exc=exc) from Exception
+        except Exception:
+            # A broken document should not keep a Celery worker busy
+            # retrying; the download path will surface the real error to
+            # the teacher who can act on it.
+            logger.exception(
+                "[PDF] pre-render failed for assignment %s (%s view)",
+                assignment_id,
+                view_type,
+            )
+
+    return f"Pre-rendered: {', '.join(warmed) or 'nothing (already cached)'}"

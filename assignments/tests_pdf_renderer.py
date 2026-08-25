@@ -800,3 +800,119 @@ class WorkerSingletonTest(SimpleTestCase):
         # A failed launch must not leave a half-initialized singleton
         # behind for the next call to trip over.
         self.assertIsNone(pdf_renderer._worker)
+
+
+class LoadSheddingTest(SimpleTestCase):
+    """
+    Refusing work past capacity instead of queueing it.
+
+    Measured without this, 300 concurrent callers left renders sitting
+    ~35s and 89 of 3000 died at the 45s timeout - each having pinned a
+    request thread for the whole wait. Shedding converts that into an
+    immediate, honest refusal.
+    """
+
+    def setUp(self):
+        pdf_renderer.reset_worker_for_tests()
+
+    def tearDown(self):
+        pdf_renderer.reset_worker_for_tests()
+
+    def test_default_limit_is_four_times_the_concurrency(self):
+        with override_settings(PDF_RENDERER_MAX_CONCURRENT_RENDERS=3):
+            # Not configured -> derived, so the two stay in step if the
+            # concurrency is retuned.
+            with override_settings(PDF_RENDERER_MAX_QUEUED_RENDERS=None):
+                self.assertEqual(pdf_renderer._max_queued_renders(), 12)
+
+    def test_explicit_limit_overrides_the_derived_default(self):
+        with override_settings(PDF_RENDERER_MAX_QUEUED_RENDERS=7):
+            self.assertEqual(pdf_renderer._max_queued_renders(), 7)
+
+    def test_ensure_capacity_is_a_no_op_with_no_renderer_running(self):
+        # Must not start a browser just to answer "are you busy?" - a
+        # process that has never rendered is not at capacity.
+        self.assertIsNone(pdf_renderer._worker)
+        with override_settings(PDF_RENDERER_MAX_QUEUED_RENDERS=1):
+            pdf_renderer.ensure_capacity()  # must not raise
+        self.assertIsNone(pdf_renderer._worker, "should not have started a browser")
+
+    @unittest.skipUnless(_CHROMIUM_AVAILABLE, "Headless Chromium not available")
+    def test_ensure_capacity_raises_once_at_the_limit(self):
+        worker = pdf_renderer._get_worker()
+        with override_settings(PDF_RENDERER_MAX_QUEUED_RENDERS=2):
+            worker._queued = 1
+            pdf_renderer.ensure_capacity()  # under the limit: fine
+            worker._queued = 2
+            with self.assertRaises(pdf_renderer.PDFRendererBusy):
+                pdf_renderer.ensure_capacity()
+        worker._queued = 0
+
+    @unittest.skipUnless(_CHROMIUM_AVAILABLE, "Headless Chromium not available")
+    def test_zero_disables_shedding(self):
+        worker = pdf_renderer._get_worker()
+        with override_settings(PDF_RENDERER_MAX_QUEUED_RENDERS=0):
+            worker._queued = 999
+            pdf_renderer.ensure_capacity()  # must not raise
+        worker._queued = 0
+
+    @unittest.skipUnless(_CHROMIUM_AVAILABLE, "Headless Chromium not available")
+    def test_render_refuses_immediately_when_over_capacity(self):
+        """
+        The authoritative check lives in render() itself, so a caller that
+        skips the advisory ensure_capacity() pre-check is still bounded.
+        """
+        worker = pdf_renderer._get_worker()
+        html = (
+            "<!doctype html><html><head><title>t</title></head>"
+            "<body><p>hi</p></body></html>"
+        )
+        with override_settings(PDF_RENDERER_MAX_QUEUED_RENDERS=1):
+            worker._queued = 1
+            started = time.perf_counter()
+            with self.assertRaises(pdf_renderer.PDFRendererBusy):
+                worker.render(html)
+            elapsed = time.perf_counter() - started
+        worker._queued = 0
+        # Refusal must be immediate - the entire point is not to park the
+        # caller's thread. Measured at ~0ms; 1s is a generous ceiling.
+        self.assertLess(elapsed, 1.0)
+
+    @unittest.skipUnless(_CHROMIUM_AVAILABLE, "Headless Chromium not available")
+    def test_a_shed_render_does_not_leak_a_queue_slot(self):
+        worker = pdf_renderer._get_worker()
+        html = (
+            "<!doctype html><html><head><title>t</title></head>"
+            "<body><p>hi</p></body></html>"
+        )
+        with override_settings(PDF_RENDERER_MAX_QUEUED_RENDERS=1):
+            worker._queued = 1
+            with self.assertRaises(pdf_renderer.PDFRendererBusy):
+                worker.render(html)
+            # The refused call never took a slot, so the count is untouched.
+            self.assertEqual(worker._queued, 1)
+        worker._queued = 0
+
+    @unittest.skipUnless(_CHROMIUM_AVAILABLE, "Headless Chromium not available")
+    def test_the_queue_slot_is_released_after_a_successful_render(self):
+        worker = pdf_renderer._get_worker()
+        html = (
+            "<!doctype html><html><head><title>t</title></head>"
+            "<body><p>hi</p></body></html>"
+        )
+        pdf_renderer.render_html_to_pdf(html)
+        self.assertEqual(worker._queued, 0)
+
+    @unittest.skipUnless(_CHROMIUM_AVAILABLE, "Headless Chromium not available")
+    def test_the_queue_slot_is_released_after_a_failed_render(self):
+        worker = pdf_renderer._get_worker()
+        with patch.object(worker, "_await_render", side_effect=RuntimeError("boom")):
+            with self.assertRaises(RuntimeError):
+                worker.render("<html><head></head><body></body></html>")
+        self.assertEqual(worker._queued, 0, "a failed render must free its slot")
+
+    @unittest.skipUnless(_CHROMIUM_AVAILABLE, "Headless Chromium not available")
+    def test_busy_is_a_pdfrendererror_so_existing_handlers_still_catch_it(self):
+        self.assertTrue(
+            issubclass(pdf_renderer.PDFRendererBusy, pdf_renderer.PDFRenderError)
+        )
