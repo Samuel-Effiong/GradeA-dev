@@ -72,3 +72,70 @@ schema + reverse-converter on the backend (mirroring
 `assignments/prosemirror_converter.py`, which currently only goes
 HTML → ProseMirror JSON, one direction). Needs frontend involvement to scope
 properly — not something to start unilaterally from the backend.
+
+---
+
+## Move rendered-PDF storage out of Redis into Cloudinary (identified 2026-08-25)
+
+**Identified while:** capacity-planning the PDF cache added in `c37f75c` /
+`2168d11` (`assignments/pdf_cache.py`).
+
+**The problem:** rendered assignment PDFs are cached in Redis, but that Redis
+is shared with Celery — `CACHES["default"]`, `CELERY_BROKER_URL` and
+`CELERY_RESULT_BACKEND` all point at the *same instance and the same db
+index* (`redis://.../0`, see `AutoGrader/settings.py`). The instance runs
+`maxmemory-policy: noeviction` with `maxmemory: 0` (unlimited).
+
+That combination is the risk: PDFs are a far heavier writer (tens of KB to
+the 5MB cap) than the small JSON payloads Redis previously held, and under
+`noeviction` a full Redis returns *write errors* rather than evicting. A
+cache that fills the instance therefore doesn't just lose cached PDFs — it
+stops Celery being able to enqueue grading runs, notification emails and
+due-date reminders.
+
+**Why a separate db index does NOT fix this** (measured, don't re-litigate):
+Redis db indexes are logical namespaces over one shared memory pool. Writing
+20MB into db 1 raised `used_memory` by 26MB as observed from db 0, and both
+`maxmemory` and `maxmemory-policy` are single instance-wide settings with no
+per-db equivalent. A separate index buys key-namespace separation and a
+scoped `FLUSHDB`, and nothing at all for memory exhaustion.
+
+**The fix:** store rendered PDFs in Cloudinary (already a project
+dependency) instead of Redis, keeping Redis for small metadata only.
+
+Why this is the preferred option over just splitting Redis into two
+services:
+
+- Removes the memory-contention question entirely rather than managing it,
+  so cache growth can never take down background jobs.
+- Retention becomes cheap, which is what makes pre-rendering worthwhile:
+  the TTL is currently 24h (`ASSIGNMENT_PDF_CACHE_TTL_SECONDS`), but
+  teachers commonly publish a week ahead, so a pre-warmed PDF expires
+  before most students ever open it.
+- Results are shared across *all* workers and instances. The current
+  single-flight in `pdf_cache.get_or_render()` is per-process, so an N-worker
+  deploy still costs up to N duplicate renders per burst; a shared object
+  store makes a render done anywhere reusable everywhere.
+
+Tradeoff to accept: a fetch from object storage costs maybe 50–200ms versus
+~20ms from Redis — still far cheaper than the ~600–2000ms re-render it
+avoids (measured: cached download 18ms vs 1253ms cold).
+
+**Scope sketch:** keep the existing cache-key design (assignment id + view
+type + `updated_at`, so an edit is a natural miss and nothing needs manual
+invalidation) and swap the storage backend behind `get_cached_pdf` /
+`store_pdf`; keep single-flight in front of it. Needs a cleanup story for
+superseded objects, which Redis currently gets for free via TTL.
+
+**Related, and only worth building once storage is cheap:** pre-render both
+views on publish (hook alongside `queue_new_assignment_posted_notification`
+in `assignments/signals.py`) so a class opening a newly published assignment
+hits warm storage instead of the render path. Stress testing measured 30
+simultaneous requests for one uncached assignment; single-flight cut that
+from 30 renders to 1, but pre-rendering would cut it to 0.
+
+**Also worth doing regardless of where PDFs live:** set an explicit
+`maxmemory` on the Redis instance. At `0` it will grow until the container
+is OOM-killed, which is worse than any eviction policy. (Confirm how Railway
+allocates memory per service first — whether the plan's RAM is per-service
+or account-wide changes what to set it to.)
