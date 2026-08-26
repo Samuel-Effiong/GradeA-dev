@@ -521,6 +521,84 @@ def score_run(run):
     }
 
 
+def score_reproducibility(runs):
+    """
+    How often the SAME question gets a different verdict across repeated
+    runs of the same configuration.
+
+    WHY THIS EXISTS
+
+    Every other metric in this module measures SEVERITY — how wrong a
+    grade is (exact vs adjacent, level error, within-one-level). None of
+    them measures whether the grader is repeatable, and the two are
+    genuinely independent: a change can leave severity untouched while
+    making the grader markedly less stable.
+
+    That is not hypothetical. It is exactly what the Run 8 prompt edit did
+    (see benchmark/FINDINGS.md). Adding `answer_status` guidance left
+    within_one_level_rate at ~1.0, mean_level_error flat, and the
+    deterministic tier untouched — every severity check passed — while
+    making 1.36x more questions change verdict between identical runs
+    (19 of 168, against 14 for the previous prompt). Because this suite
+    had no reproducibility metric, that regression was measured, written
+    up, and ACCEPTED as benign before repeated runs caught it.
+
+    It also matters more than a small accuracy dip, on the grading
+    prompt's own terms: "a score that changes between runs is a wrong
+    score." A student's answer drawing a different grade depending on
+    when it happened to be marked is indefensible in a way that a
+    defensible-but-borderline level choice is not.
+
+    Args:
+        runs: an iterable of at least two scored runs of the SAME
+            configuration. Each is the dict returned by execute_benchmark;
+            per-question verdicts come from iter_question_outcomes.
+
+    Returns None when fewer than two runs are supplied — one run cannot
+    exhibit variation, and returning a flattering 0.0 would read as
+    "perfectly reproducible" rather than "not measured".
+    """
+    runs = list(runs)
+    if len(runs) < 2:
+        return None
+
+    # question -> list of verdicts, one per run that graded it
+    verdicts = defaultdict(list)
+    for run in runs:
+        for row in iter_question_outcomes(run):
+            key = (row["assignment_key"], row["student_key"], row["question_number"])
+            verdicts[key].append(row["verdict"])
+
+    # Only questions present in EVERY run are comparable. A question
+    # missing from one run (an errored submission) would otherwise look
+    # stable purely because it was observed fewer times.
+    comparable = {k: v for k, v in verdicts.items() if len(v) == len(runs)}
+    if not comparable:
+        return None
+
+    unstable = [k for k, v in comparable.items() if len(set(v)) > 1]
+    # Exact-match is the verdict the headline metric keys on, so an
+    # exact <-> non-exact flip is tracked separately from any verdict
+    # change: a question wobbling between two non-exact verdicts is less
+    # consequential than one that stops being right.
+    exactness_flips = [
+        k
+        for k, v in comparable.items()
+        if len({verdict == "exact" for verdict in v}) > 1
+    ]
+
+    return {
+        "runs": len(runs),
+        "questions_compared": len(comparable),
+        "questions_skipped": len(verdicts) - len(comparable),
+        "unstable": len(unstable),
+        "unstable_rate": _rate(len(unstable), len(comparable)),
+        "exactness_flips": len(exactness_flips),
+        "exactness_flip_rate": _rate(len(exactness_flips), len(comparable)),
+        "unstable_questions": sorted(f"{a}/{s} Q{q}" for a, s, q in exactness_flips),
+    }
+
+
 def check_consistency(run, probes):
     """
     Cross-student consistency: byte-identical answers must score

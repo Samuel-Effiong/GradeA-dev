@@ -148,23 +148,35 @@ class BenchmarkGoldenMasterTest(BenchmarkFixtureMixin, TestCase):
         # to do by accident.
         expected = json.loads(GOLDEN_PATH.read_text())
         self.assertEqual(expected["overall"]["questions"], 168)
-        # Run 8 (see FINDINGS.md): 0.8452 -> 0.8274, three questions of 168.
-        # Moved deliberately after re-recording, NOT to silence the test
-        # above. The re-record was forced, not chosen: editing
-        # GRADING_ASSIGNMENT_PROMPT_5.txt changes every request_key, so the
-        # previous recordings could no longer be replayed at all.
+        # Run 8 (see FINDINGS.md): 0.8452 -> 0.8274. Moved deliberately
+        # after re-recording, NOT to silence the test above. The re-record
+        # was forced, not chosen: editing GRADING_ASSIGNMENT_PROMPT_5.txt
+        # changes every request_key, so the previous recordings could no
+        # longer be replayed at all.
         #
-        # Accepted because the shape of the change is benign: every one of
-        # the three is an ADJACENT-level call (within_one_level_rate stayed
-        # 1.0 across every question type and subject), mean_level_error
-        # actually improved (0.0833 -> 0.0774), evidence verification
-        # improved (131 -> 132), and the deterministic tier is untouched at
-        # 34/34. What did NOT happen is any answer moving more than one
-        # rubric level.
+        # THIS NUMBER IS A SINGLE DRAW, NOT THE ARM'S TRUE VALUE. The
+        # isolation experiment (FINDINGS.md Run 8) ran both prompts three
+        # times each: the new prompt's mean is ~0.8135, the old prompt's
+        # ~0.8353, each with a within-arm spread of about half a question.
+        # 0.8274 sits above the new prompt's own range — it is pinned here
+        # because replay must be deterministic against ITS OWN recordings,
+        # not because it represents the prompt's accuracy.
         #
-        # Read FINDINGS.md Run 8 before moving this again — in particular
-        # the isolation run, which measures how much of this is simply
-        # run-to-run variance rather than the prompt edit.
+        # The delta was originally accepted as benign on the grounds that
+        # every moved question was adjacent-level. That reasoning was
+        # insufficient and the acceptance was overturned. All those checks
+        # measure SEVERITY (how wrong a grade is), and severity genuinely
+        # did not move. What moved is REPRODUCIBILITY: the new prompt makes
+        # 1.36x more questions change verdict between identical runs (19 of
+        # 168 vs 14). No question is reproducibly broken by it - it is
+        # simply less stable, which this suite had no metric for. That is
+        # exactly why the regression reached a committed acceptance
+        # unchallenged.
+        #
+        # So: do not read a difference between this number and any other
+        # single run as a quality signal in either direction. Only repeated
+        # runs of both arms can support that claim. Read FINDINGS.md Run 8
+        # before moving this again.
         self.assertEqual(expected["overall"]["exact_rate"], 0.8274)
         self.assertEqual(expected["overall"]["within_one_level_rate"], 1.0)
         self.assertEqual(expected["deterministic"]["claimed"], 34)
