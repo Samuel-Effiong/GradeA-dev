@@ -5,9 +5,17 @@ repos:
     -   id: check-yaml
     -   id: end-of-file-fixer
     -   id: trailing-whitespace
+        # The generated backend-reference HTML embeds the Mermaid renderer and
+        # the IBM Plex font payloads verbatim. Rewriting bytes inside those is
+        # not a whitespace tidy-up, it is editing a vendored binary-ish blob.
+        exclude: ^docs/backend/.*\.html$
     -   id: check-ast
     -   id: check-docstring-first
     -   id: check-added-large-files
+        # Same files: single-file documentation editions are a few MB because
+        # the renderer and fonts are inlined so they open with no network. The
+        # 500KB guard still applies to everything else.
+        exclude: ^docs/backend/.*\.html$
     -   id: check-merge-conflict
     -   id: check-toml
     -   id: check-json
