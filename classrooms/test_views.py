@@ -92,7 +92,7 @@ class ClassroomBaseAPITest(APITestCase):
             total_credits=amount,
             used_credits=amount,
         )
-        return CreditUsageLog.objects.create(
+        return CreditUsageLog.record(
             wallet=teacher.credit_wallet,
             bucket=bucket,
             amount=amount,

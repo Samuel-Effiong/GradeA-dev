@@ -235,7 +235,7 @@ class SubscriptionService:
         if trial_bucket:
             unused = trial_bucket.remaining_credits
             if unused > 0:
-                CreditLedger.objects.create(
+                CreditLedger.record(
                     user=user,
                     bucket=trial_bucket,
                     ledger_type=CreditLedgerType.EXPIRE,
@@ -294,7 +294,7 @@ class SubscriptionService:
                         expires_at=expiry,
                     )
 
-                    CreditLedger.objects.create(
+                    CreditLedger.record(
                         user=user,
                         bucket=bucket,
                         ledger_type=CreditLedgerType.GRANT,
@@ -335,7 +335,7 @@ class SubscriptionService:
         )
 
         # 6 Create immutable audit ledger
-        CreditLedger.objects.create(
+        CreditLedger.record(
             user=user,
             bucket=bucket,
             ledger_type=CreditLedgerType.GRANT,
@@ -461,7 +461,7 @@ class SubscriptionService:
                         used_credits=0,
                         expires_at=expiry,
                     )
-                    CreditLedger.objects.create(
+                    CreditLedger.record(
                         user=user,
                         bucket=carry_bucket,
                         ledger_type=CreditLedgerType.GRANT,
@@ -501,7 +501,7 @@ class SubscriptionService:
             expires_at=new_bucket_expiry,
         )
 
-        CreditLedger.objects.create(
+        CreditLedger.record(
             user=user,
             bucket=new_bucket,
             ledger_type=CreditLedgerType.GRANT,
@@ -612,7 +612,7 @@ class SubscriptionService:
                         used_credits=0,
                         expires_at=expiry,
                     )
-                    CreditLedger.objects.create(
+                    CreditLedger.record(
                         user=user,
                         bucket=carry_bucket,
                         ledger_type=CreditLedgerType.GRANT,
@@ -660,7 +660,7 @@ class SubscriptionService:
             used_credits=0,
             expires_at=bucket_expiry,
         )
-        CreditLedger.objects.create(
+        CreditLedger.record(
             user=user,
             bucket=new_bucket,
             ledger_type=CreditLedgerType.GRANT,
@@ -750,7 +750,7 @@ class SubscriptionService:
                         expires_at=expiry_date,
                     )
 
-                    CreditLedger.objects.create(
+                    CreditLedger.record(
                         user=user,
                         bucket=carry_bucket,
                         ledger_type=CreditLedgerType.GRANT,
@@ -988,7 +988,7 @@ class SubscriptionService:
 
         if unused_amount > 0:
             # Create the `EXPIRE' ledger entry to balance the books
-            CreditLedger.objects.create(
+            CreditLedger.record(
                 user=bucket.wallet.user,
                 bucket=bucket,
                 ledger_type=CreditLedgerType.EXPIRE,
@@ -1095,7 +1095,7 @@ class SubscriptionService:
         )
 
         # Immutable audit ledger entry
-        CreditLedger.objects.create(
+        CreditLedger.record(
             user=user,
             bucket=trial_bucket,
             ledger_type=CreditLedgerType.GRANT,
@@ -1188,7 +1188,7 @@ class SubscriptionService:
             # get logged as forfeited instead of silently vanishing.
             unused = max(0, trial_bucket.total_credits - trial_bucket.used_credits)
             if unused > 0:
-                CreditLedger.objects.create(
+                CreditLedger.record(
                     user=user,
                     bucket=trial_bucket,
                     ledger_type=CreditLedgerType.EXPIRE,
@@ -1317,7 +1317,7 @@ class SubscriptionService:
                     # is_refunded flip below still records that the log
                     # was settled.
                     ledger_rows.append(
-                        CreditLedger(
+                        CreditLedger.build(
                             user=log.wallet.user,
                             bucket=bucket,
                             ledger_type=CreditLedgerType.REFUND,
@@ -1412,7 +1412,7 @@ class SubscriptionService:
         # Refresh the instance to get the updated value for logging
         wallet.refresh_from_db()
 
-        CreditLedger.objects.create(
+        CreditLedger.record(
             user=wallet.user,
             bucket=new_bucket,
             ledger_type=CreditLedgerType.PURCHASE,
@@ -1477,7 +1477,7 @@ class SubscriptionService:
             unused = trial_bucket.remaining_credits
 
             if unused > 0:
-                CreditLedger.objects.create(
+                CreditLedger.record(
                     user=user,
                     bucket=trial_bucket,
                     ledger_type=CreditLedgerType.EXPIRE,
@@ -1533,7 +1533,7 @@ class SubscriptionService:
             expires_at=grant_at,
         )
 
-        CreditLedger.objects.create(
+        CreditLedger.record(
             user=user,
             bucket=bucket,
             ledger_type=CreditLedgerType.GRANT,
@@ -1623,7 +1623,7 @@ class SubscriptionService:
 
             # Log unused trial credits as forfeited (they don't carry over)
             if unused > 0:
-                CreditLedger.objects.create(
+                CreditLedger.record(
                     user=user,
                     bucket=trial_bucket,
                     ledger_type=CreditLedgerType.EXPIRE,
@@ -1696,7 +1696,7 @@ class SubscriptionService:
         )
 
         # --- STEP 5: Audit ledger entry ---
-        CreditLedger.objects.create(
+        CreditLedger.record(
             user=user,
             bucket=monthly_bucket,
             ledger_type=CreditLedgerType.GRANT,
@@ -1854,7 +1854,7 @@ class SubscriptionService:
         # AUDIT LEDGER ENTRY
 
         # Immutable record for compliance and debugging
-        CreditLedger.objects.create(
+        CreditLedger.record(
             user=user,
             bucket=trial_bucket,
             ledger_type=CreditLedgerType.GRANT,
@@ -2016,7 +2016,7 @@ class ManualCreditService:
         display_amount = raw_amount // CONVERSION_FACTOR
 
         # Immutable audit ledger entry
-        CreditLedger.objects.create(
+        CreditLedger.record(
             user=target_user,
             bucket=bucket,
             ledger_type=CreditLedgerType.GRANT,

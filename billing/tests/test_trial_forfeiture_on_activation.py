@@ -55,7 +55,7 @@ class ActivateSubscriptionForfeitsLingeringTrialTests(TestCase):
         SubscriptionService.activate_subscription(self.user, self.plan)
 
         ledger = CreditLedger.objects.filter(
-            user=self.user,
+            user_id=self.user.id,
             bucket=self.trial_bucket,
             ledger_type=CreditLedgerType.EXPIRE,
         ).first()
@@ -84,7 +84,7 @@ class ActivateSubscriptionForfeitsLingeringTrialTests(TestCase):
         SubscriptionService.activate_subscription(self.user, self.plan)
 
         ledger = CreditLedger.objects.filter(
-            user=self.user,
+            user_id=self.user.id,
             bucket=self.trial_bucket,
             ledger_type=CreditLedgerType.EXPIRE,
         ).first()
@@ -102,7 +102,7 @@ class ActivateSubscriptionForfeitsLingeringTrialTests(TestCase):
         self.assertTrue(self.trial_bucket.is_processed)
         self.assertFalse(
             CreditLedger.objects.filter(
-                user=self.user,
+                user_id=self.user.id,
                 bucket=self.trial_bucket,
                 ledger_type=CreditLedgerType.EXPIRE,
             ).exists()
@@ -120,7 +120,7 @@ class ActivateSubscriptionForfeitsLingeringTrialTests(TestCase):
 
         self.assertFalse(
             CreditLedger.objects.filter(
-                user=self.user,
+                user_id=self.user.id,
                 bucket=self.trial_bucket,
                 ledger_type=CreditLedgerType.EXPIRE,
             ).exists()

@@ -1039,7 +1039,8 @@ class CreditLedgerSerializer(serializers.ModelSerializer):
         model = CreditLedger
         fields = [
             "id",
-            "user",
+            "user_id",
+            "user_email",
             "bucket",
             "ledger_type",
             "amount",

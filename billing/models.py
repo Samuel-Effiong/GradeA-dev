@@ -11,6 +11,7 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
 from .errors import InsufficientCreditsError
+from .immutable import AppendOnlyModel, register_append_only_guards
 
 # from .services import SubscriptionService
 
@@ -951,7 +952,7 @@ class CreditWallet(models.Model):
                 continue
 
             usage_log.append(
-                CreditUsageLog(
+                CreditUsageLog.build(
                     wallet=self,
                     bucket=bucket,
                     amount=deducted,
@@ -964,7 +965,7 @@ class CreditWallet(models.Model):
             )
 
             ledger_log.append(
-                CreditLedger(
+                CreditLedger.build(
                     user=self.user,
                     bucket=bucket,
                     ledger_type=CreditLedgerType.CONSUME,
@@ -1175,28 +1176,62 @@ class CreditLedgerType(models.TextChoices):
     PLAN_CHANGE = "PLAN_CHANGE", _("Plan Change")
 
 
-class CreditLedger(models.Model):
+class CreditLedger(AppendOnlyModel):
     """
     Provides an immutable audit trail for all credit-related transactions.
     It records every change to a user's credit balance—including consumption, refunds,
     grants, expiration, and purchases—and links these events to specific credit buckets
     to ensure full traceability of the credit lifecycle.
+
+    "Immutable" is enforced, not merely asserted — see billing/immutable.py.
+    Rows cannot be updated or deleted through the ORM, and no relation into
+    this table cascades or nulls, so a row outlives the user, wallet and
+    bucket it describes. Corrections are made by recording a new row.
+
+    Identity is stored as VALUES (`user_id`, `user_email`), not as a
+    foreign key. A relation would tie the audit record's survival to
+    another mutable row; an audit trail that disappears with its subject
+    is not an audit trail. Construct rows with `record()` / `build()` so
+    the email snapshot is captured consistently.
     """
+
+    mutable_fields = frozenset()
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 
-    user = models.ForeignKey(
-        "users.CustomUser",
-        on_delete=models.CASCADE,
-        related_name="credit_ledgers",
-        help_text="User who owns the credit ledger",
+    user_id = models.UUIDField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text=(
+            "ID of the user this entry belongs to, stored as a plain value. "
+            "Deliberately NOT a ForeignKey: the entry must survive deletion "
+            "of the account. May reference a user that no longer exists."
+        ),
+    )
+    user_email = models.CharField(
+        max_length=254,
+        null=True,
+        blank=True,
+        help_text=(
+            "The user's email captured at write time — the only human-"
+            "readable attribution left once the account is gone. A snapshot, "
+            "deliberately not derived by joining to the live user row."
+        ),
     )
     bucket = models.ForeignKey(
         CreditBucket,
         null=True,
-        on_delete=models.SET_NULL,
+        on_delete=models.DO_NOTHING,
+        db_constraint=False,
         related_name="credit_ledgers",
-        help_text="Credit bucket the ledger is associated with",
+        help_text=(
+            "Credit bucket the ledger is associated with. DO_NOTHING with no "
+            "database constraint: the previous SET_NULL did not delete the "
+            "row but did UPDATE it, which is itself a mutation of an "
+            "immutable record. The id is retained even once the bucket is "
+            "gone."
+        ),
     )
     ledger_type = models.CharField(
         max_length=20,
@@ -1224,8 +1259,31 @@ class CreditLedger(models.Model):
     class Meta:
         ordering = ["-created_at"]
 
+    @classmethod
+    def build(cls, *, user=None, **kwargs):
+        """
+        An UNSAVED ledger row with the user's identity captured as values.
 
-class CreditUsageLog(models.Model):
+        Use for `bulk_create`. Taking the user object rather than raw ids
+        keeps the id and the email snapshot from drifting apart — the
+        email is the only attribution that survives account deletion, and
+        it is easy to forget when setting `user_id` by hand.
+        """
+        if user is not None:
+            kwargs["user_id"] = user.id
+            kwargs["user_email"] = user.email
+        return cls(**kwargs)
+
+    @classmethod
+    def record(cls, *, user=None, **kwargs):
+        """Create and save a ledger row. The append-only replacement for
+        `CreditLedger.objects.create(user=...)`."""
+        row = cls.build(user=user, **kwargs)
+        row.save()
+        return row
+
+
+class CreditUsageLog(AppendOnlyModel):
     """
     Detailed record of specific credit consumption events. This model
     tracks the exact bucket used for a transaction, enabling precise
@@ -1235,16 +1293,50 @@ class CreditUsageLog(models.Model):
     Logs every instance of credit consumption from a user's wallet.
     """
 
+    #: The refund flow (SubscriptionService.refund_credits) settles a log by
+    #: flipping this flag, and reporting across dashboard/, classrooms/ and
+    #: billing/ filters on it. Freezing it would mean redesigning refunds as
+    #: reversing rows. The financial substance of the row stays frozen.
+    mutable_fields = frozenset({"is_refunded"})
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user_id = models.UUIDField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text=(
+            "ID of the billed user, stored as a plain value. Previously "
+            "reachable only by joining through `wallet`, which meant the "
+            "log died with the wallet and the account."
+        ),
+    )
+    user_email = models.CharField(
+        max_length=254,
+        null=True,
+        blank=True,
+        help_text=(
+            "The billed user's email captured at write time — a snapshot, "
+            "deliberately not derived by joining to the live user row."
+        ),
+    )
     wallet = models.ForeignKey(
         CreditWallet,
-        on_delete=models.CASCADE,
+        on_delete=models.DO_NOTHING,
+        db_constraint=False,
         related_name="credit_usage_logs",
-        help_text="Credit wallet the usage log is associated with",
+        help_text=(
+            "Credit wallet the usage log is associated with. DO_NOTHING "
+            "with no database constraint so deleting a wallet (or the user "
+            "above it) can no longer cascade this audit row away. The "
+            "relation is kept — rather than reduced to a bare id — because "
+            "reporting joins through it; use `user_id` when the row may be "
+            "orphaned, since a join drops orphans silently."
+        ),
     )
     bucket = models.ForeignKey(
         CreditBucket,
-        on_delete=models.CASCADE,
+        on_delete=models.DO_NOTHING,
+        db_constraint=False,
         related_name="credit_usage_logs",
         help_text="Credit bucket the usage log is associated with",
     )
@@ -1252,7 +1344,8 @@ class CreditUsageLog(models.Model):
         "classrooms.Course",
         null=True,
         blank=True,
-        on_delete=models.SET_NULL,
+        on_delete=models.DO_NOTHING,
+        db_constraint=False,
         related_name="credit_usage_logs",
         help_text=(
             "Course the consuming task was performed under, when known. "
@@ -1265,7 +1358,8 @@ class CreditUsageLog(models.Model):
         "classrooms.School",
         null=True,
         blank=True,
-        on_delete=models.SET_NULL,
+        on_delete=models.DO_NOTHING,
+        db_constraint=False,
         related_name="credit_usage_logs",
         help_text=(
             "The school the billed user (teacher or school admin) belonged "
@@ -1308,6 +1402,33 @@ class CreditUsageLog(models.Model):
         indexes = [
             models.Index(fields=["task_id"], name="billing_usagelog_task_idx"),
         ]
+
+    @classmethod
+    def build(cls, *, wallet=None, user=None, **kwargs):
+        """
+        An UNSAVED usage log with the billed user's identity captured as
+        values. `user` defaults to the wallet's owner, which is who is
+        billed in every current call path; pass it explicitly only when
+        those differ.
+        """
+        if wallet is not None:
+            kwargs["wallet"] = wallet
+            if user is None:
+                user = wallet.user
+        if user is not None:
+            kwargs["user_id"] = user.id
+            kwargs["user_email"] = user.email
+        return cls(**kwargs)
+
+    @classmethod
+    def record(cls, *, wallet=None, user=None, **kwargs):
+        """Create and save a usage log with identity captured."""
+        row = cls.build(wallet=wallet, user=user, **kwargs)
+        row.save()
+        return row
+
+
+register_append_only_guards(CreditLedger, CreditUsageLog)
 
 
 class BetaProfile(models.Model):

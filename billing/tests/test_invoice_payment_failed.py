@@ -353,7 +353,7 @@ class TrialPaymentFailedTests(TestCase):
         self.assertTrue(bucket.is_processed)
         self.assertTrue(
             CreditLedger.objects.filter(
-                user=self.user,
+                user_id=self.user.id,
                 bucket=bucket,
                 ledger_type=CreditLedgerType.EXPIRE,
             ).exists()
@@ -450,7 +450,7 @@ class TrialPaymentFailureBeforeTrialEndTests(TestCase):
         self.assertTrue(bucket.is_processed)
         self.assertTrue(
             CreditLedger.objects.filter(
-                user=self.user,
+                user_id=self.user.id,
                 bucket=bucket,
                 ledger_type=CreditLedgerType.EXPIRE,
             ).exists()
@@ -488,7 +488,7 @@ class TrialPaymentFailureBeforeTrialEndTests(TestCase):
         bucket = wallet.buckets.get(bucket_type=CreditBucketType.TRIAL)
         self.assertEqual(
             CreditLedger.objects.filter(
-                user=self.user,
+                user_id=self.user.id,
                 bucket=bucket,
                 ledger_type=CreditLedgerType.EXPIRE,
             ).count(),

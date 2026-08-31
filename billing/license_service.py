@@ -419,7 +419,7 @@ class LicenseSubscriptionService:
                         used_credits=0,
                         expires_at=expiry,
                     )
-                    CreditLedger.objects.create(
+                    CreditLedger.record(
                         user=teacher,
                         bucket=carry_bucket,
                         ledger_type=CreditLedgerType.GRANT,
@@ -449,7 +449,7 @@ class LicenseSubscriptionService:
             used_credits=0,
             expires_at=new_expiry,
         )
-        CreditLedger.objects.create(
+        CreditLedger.record(
             user=teacher,
             bucket=new_bucket,
             ledger_type=CreditLedgerType.GRANT,
@@ -576,7 +576,7 @@ class LicenseSubscriptionService:
             expires_at=next_refresh,
         )
 
-        CreditLedger.objects.create(
+        CreditLedger.record(
             user=admin_user,
             bucket=monthly_bucket,
             ledger_type=CreditLedgerType.GRANT,
@@ -1386,7 +1386,7 @@ class LicenseSubscriptionService:
                         expires_at=expiry,
                     )
 
-                    CreditLedger.objects.create(
+                    CreditLedger.record(
                         user=teacher,
                         bucket=carry_bucket,
                         ledger_type=CreditLedgerType.GRANT,
@@ -1447,7 +1447,7 @@ class LicenseSubscriptionService:
 
         # 7. Create audit ledger entry with the actual grant amount
         is_capped = grant_amount < allocation.monthly_allocation
-        CreditLedger.objects.create(
+        CreditLedger.record(
             user=teacher,
             bucket=monthly_bucket,
             ledger_type=CreditLedgerType.GRANT,
@@ -1859,7 +1859,7 @@ class LicenseSubscriptionService:
             allocation.save(update_fields=["monthly_allocation", "updated_at"])
 
             # Add a ledger entry to audit the change
-            CreditLedger.objects.create(
+            CreditLedger.record(
                 user=allocation.user,
                 bucket=None,  # Not lonked to a specific bucket, just Metadata
                 ledger_type=CreditLedgerType.PLAN_CHANGE,
@@ -2063,7 +2063,7 @@ class LicenseSubscriptionService:
             allocation.save(update_fields=["monthly_allocation", "updated_at"])
 
             # Log plan change in ledger
-            CreditLedger.objects.create(
+            CreditLedger.record(
                 user=allocation.user,
                 bucket=None,
                 ledger_type=CreditLedgerType.PLAN_CHANGE,
@@ -2432,7 +2432,7 @@ class LicenseSubscriptionService:
                 overage_blocks_used=F("overage_blocks_used") + blocks
             )
 
-            CreditLedger.objects.create(
+            CreditLedger.record(
                 user=teacher,
                 bucket=bucket,
                 ledger_type=ledger_type,
@@ -3500,7 +3500,7 @@ class LicenseSubscriptionService:
             overage_blocks_used=F("overage_blocks_used") + blocks
         )
 
-        CreditLedger.objects.create(
+        CreditLedger.record(
             user=teacher,
             bucket=bucket,
             ledger_type=CreditLedgerType.GRANT,

@@ -476,67 +476,42 @@ class CreditBucketViewSet(viewsets.ModelViewSet):
         summary="Retrieve a credit ledger entry",
         description="Retrieve a specific ledger entry by its ID.",
     ),
-    create=extend_schema(
-        tags=["Credit Ledgers"],
-        summary="Create a new credit ledger entry",
-        description="Create a new credit ledger entry. This action is restricted "
-        "to super administrators.",
-    ),
-    update=extend_schema(
-        tags=["Credit Ledgers"],
-        summary="Update a credit ledger entry",
-        description="Update an existing credit ledger entry. This action is restricted "
-        "to super administrators.",
-    ),
-    partial_update=extend_schema(
-        tags=["Credit Ledgers"],
-        summary="Partially update a credit ledger entry",
-        description="Partially update an existing credit ledger entry. This action is "
-        "restricted to super administrators.",
-    ),
-    destroy=extend_schema(
-        tags=["Credit Ledgers"],
-        summary="Delete a credit ledger entry",
-        description="Delete a credit ledger entry. This action is restricted to "
-        "super administrators.",
-    ),
 )
-class CreditLedgerViewSet(viewsets.ModelViewSet):
+class CreditLedgerViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Viewset for viewing credit ledger entries.
     Provides an immutable audit trail of all grants, consumptions, and expirations.
+
+    Read-only, and previously not: this was a ModelViewSet exposing POST,
+    PATCH and DELETE to superadmins, two lines below a docstring calling
+    the ledger immutable. That was a live HTTP path to forge or erase
+    billing history. The ledger is written by the service layer only.
     """
 
     queryset = CreditLedger.objects.all()
     serializer_class = CreditLedgerSerializer
     permission_classes = [IsAuthenticated, IsNotStudent]
-    http_method_names = ["get", "head", "post", "patch", "delete", "options"]
+    http_method_names = ["get", "head", "options"]
 
     filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
     filterset_fields = ["ledger_type", "bucket"]
     search_fields = ["reference"]
     ordering_fields = ["created_at"]
 
-    def get_permissions(self):
-        """
-        Reads: any authenticated non-student (scoped to their own entries by
-        get_queryset). Writes: superadmin only - the ledger is the immutable
-        audit trail of every grant/consumption/refund; letting users create
-        or delete rows makes billing history forgeable.
-        """
-        if self.action in ["list", "retrieve"]:
-            permission_classes = [IsAuthenticated, IsNotStudent]
-        else:
-            permission_classes = [IsAuthenticated, IsSuperAdmin]
-        return [permission() for permission in permission_classes]
-
     def get_queryset(self):
+        """
+        Any authenticated non-student may read, scoped to their own
+        entries; superadmins see everything. There is no write path: the
+        ledger is the audit trail of every grant/consumption/refund, and
+        letting anyone create or delete rows over HTTP makes billing
+        history forgeable.
+        """
         queryset = super().get_queryset()
         if not (
             self.request.user.is_superuser
             and self.request.user.user_type == UserTypes.SUPER_ADMIN
         ):
-            queryset = queryset.filter(user=self.request.user)
+            queryset = queryset.filter(user_id=self.request.user.id)
         return queryset
 
 
@@ -1348,7 +1323,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
         url_path="credits/ledger",
     )
     def credit_ledger(self, request, *args, **kwargs):
-        queryset = CreditLedger.objects.filter(user=request.user).order_by(
+        queryset = CreditLedger.objects.filter(user_id=request.user.id).order_by(
             "-created_at"
         )
 

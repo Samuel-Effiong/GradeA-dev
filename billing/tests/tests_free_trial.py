@@ -177,7 +177,7 @@ class TestActivateFreeTrial(TestCase):
         wallet = CreditWallet.objects.get(user=self.user)
         bucket = wallet.buckets.get(bucket_type=CreditBucketType.TRIAL)
         ledger = CreditLedger.objects.get(
-            user=self.user,
+            user_id=self.user.id,
             bucket=bucket,
             ledger_type=CreditLedgerType.GRANT,
         )
@@ -273,7 +273,7 @@ class TestExpireTrial(TestCase):
         wallet = CreditWallet.objects.get(user=self.user)
         bucket = wallet.buckets.get(bucket_type=CreditBucketType.TRIAL)
         ledger = CreditLedger.objects.filter(
-            user=self.user,
+            user_id=self.user.id,
             bucket=bucket,
             ledger_type=CreditLedgerType.EXPIRE,
         ).first()
@@ -304,7 +304,7 @@ class TestExpireTrial(TestCase):
         SubscriptionService.expire_trial(self.trial_sub)
 
         ledger = CreditLedger.objects.filter(
-            user=self.user,
+            user_id=self.user.id,
             bucket=bucket,
             ledger_type=CreditLedgerType.EXPIRE,
         ).first()
@@ -324,7 +324,7 @@ class TestExpireTrial(TestCase):
         SubscriptionService.expire_trial(self.trial_sub)
 
         expire_entries = CreditLedger.objects.filter(
-            user=self.user,
+            user_id=self.user.id,
             bucket=bucket,
             ledger_type=CreditLedgerType.EXPIRE,
         )

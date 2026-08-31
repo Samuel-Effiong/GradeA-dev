@@ -153,7 +153,7 @@ class OfflineOverageRequestTestCase(TransactionTestCase):
         # license's billing_cycle_end, but must NOT be tied to it.
         assert bucket.expires_at is None
 
-        ledger = CreditLedger.objects.get(user=self.teacher, bucket=bucket)
+        ledger = CreditLedger.objects.get(user_id=self.teacher.id, bucket=bucket)
         assert ledger.metadata["request_id"] == str(req.id)
         assert ledger.metadata["approved_by"] == self.super_admin.email
 
@@ -289,7 +289,8 @@ class OfflineOverageRequestTestCase(TransactionTestCase):
             allocations={str(self.teacher.id): 1},
         )
         superadmin_ledger = CreditLedger.objects.get(
-            user=self.teacher, metadata__purchase_channel="SUPERADMIN_OFFLINE"
+            user_id=self.teacher.id,
+            metadata__purchase_channel="SUPERADMIN_OFFLINE",
         )
         assert superadmin_ledger.metadata["manual"] is True
 
@@ -300,7 +301,7 @@ class OfflineOverageRequestTestCase(TransactionTestCase):
             req, performed_by=self.super_admin, amount_confirmed_cents=299
         )
         offline_ledger = CreditLedger.objects.get(
-            user=self.teacher, metadata__request_id=str(req.id)
+            user_id=self.teacher.id, metadata__request_id=str(req.id)
         )
         assert "purchase_channel" not in offline_ledger.metadata
         assert offline_ledger.reference != superadmin_ledger.reference

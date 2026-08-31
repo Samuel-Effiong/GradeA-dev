@@ -62,7 +62,7 @@ class EndpointLockdownTestBase(APITestCase):
             used_credits=1_000,
             expires_at=timezone.now() + timedelta(days=30),
         )
-        self.ledger_row = CreditLedger.objects.create(
+        self.ledger_row = CreditLedger.record(
             user=self.teacher,
             bucket=self.bucket,
             ledger_type=CreditLedgerType.CONSUME,
@@ -210,6 +210,19 @@ class CreditWalletEndpointLockdownTests(EndpointLockdownTestBase):
 
 
 class CreditLedgerEndpointLockdownTests(EndpointLockdownTestBase):
+    """
+    These once asserted 403: the ledger was a full ModelViewSet whose
+    write methods existed but were gated to superadmins. It is now a
+    ReadOnlyModelViewSet, so the methods do not exist for ANYONE and the
+    rejection is 405.
+
+    That is a strictly stronger guarantee - a permission check protects
+    against the wrong caller, an absent method protects against every
+    caller - so these tests assert the stronger contract rather than
+    being relaxed to accept either code. See
+    docs/ops/append-only-audit-tables.md.
+    """
+
     def test_teacher_cannot_forge_ledger_entries(self):
         self.client.force_authenticate(user=self.teacher)
         before = CreditLedger.objects.count()
@@ -217,7 +230,7 @@ class CreditLedgerEndpointLockdownTests(EndpointLockdownTestBase):
         response = self.client.post(
             reverse("credit-ledger-list"),
             {
-                "user": str(self.teacher.id),
+                "user_id": str(self.teacher.id),
                 "bucket": str(self.bucket.id),
                 "ledger_type": CreditLedgerType.REFUND,
                 "amount": 99_999,
@@ -225,7 +238,7 @@ class CreditLedgerEndpointLockdownTests(EndpointLockdownTestBase):
             },
         )
 
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
         self.assertEqual(CreditLedger.objects.count(), before)
 
     def test_teacher_cannot_erase_billing_history(self):
@@ -235,7 +248,24 @@ class CreditLedgerEndpointLockdownTests(EndpointLockdownTestBase):
             reverse("credit-ledger-detail", kwargs={"pk": self.ledger_row.pk})
         )
 
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        self.assertTrue(CreditLedger.objects.filter(pk=self.ledger_row.pk).exists())
+
+    def test_superadmin_also_cannot_write_to_the_ledger(self):
+        """
+        The old design let superadmins POST/PATCH/DELETE. Nobody can now:
+        an audit trail with a privileged write path is forgeable by
+        whoever holds the privilege.
+        """
+        self.client.force_authenticate(user=self.superadmin)
+
+        post = self.client.post(reverse("credit-ledger-list"), {})
+        delete = self.client.delete(
+            reverse("credit-ledger-detail", kwargs={"pk": self.ledger_row.pk})
+        )
+
+        self.assertEqual(post.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        self.assertEqual(delete.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
         self.assertTrue(CreditLedger.objects.filter(pk=self.ledger_row.pk).exists())
 
     def test_teacher_can_still_read_own_ledger(self):

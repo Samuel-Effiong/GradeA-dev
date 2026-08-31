@@ -9,6 +9,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from assignments.models import Assignment, AssignmentStatus
+from billing.immutable import allow_unsafe_mutation
 from billing.models import CreditBucket, CreditBucketType, CreditUsageLog
 from classrooms.models import (
     Course,
@@ -1755,7 +1756,7 @@ class TeacherDetailAPITest(APITestCase):
             total_credits=amount,
             used_credits=amount,
         )
-        log = CreditUsageLog.objects.create(
+        log = CreditUsageLog.record(
             wallet=self.teacher.credit_wallet,
             bucket=bucket,
             amount=amount,
@@ -1764,8 +1765,12 @@ class TeacherDetailAPITest(APITestCase):
         )
         if created_at is not None:
             # created_at has auto_now_add=True - .create() would ignore an
-            # explicit value, but .update() bypasses that.
-            CreditUsageLog.objects.filter(pk=log.pk).update(created_at=created_at)
+            # explicit value, but .update() bypasses that. The log is
+            # append-only (billing/immutable.py), so back-dating it needs
+            # the explicit test escape hatch: this is fabricating history
+            # for a fixture, not editing a real record.
+            with allow_unsafe_mutation():
+                CreditUsageLog.objects.filter(pk=log.pk).update(created_at=created_at)
         return log
 
     def test_teacher_denied(self):

@@ -345,10 +345,12 @@ class ConcurrentRegistrationTest(TransactionTestCase):
         assert not trial.is_active
 
         # Check ledger has EXPIRE entry
-        from billing.models import CreditLedgerType
+        from billing.models import CreditLedger, CreditLedgerType
 
-        ledger = trial.user.credit_ledgers.filter(
-            ledger_type=CreditLedgerType.EXPIRE
+        # The ledger no longer has a `user` relation — identity is stored
+        # as a value so the row survives the account (billing/immutable.py).
+        ledger = CreditLedger.objects.filter(
+            user_id=trial.user_id, ledger_type=CreditLedgerType.EXPIRE
         ).first()
         assert ledger is not None
 
