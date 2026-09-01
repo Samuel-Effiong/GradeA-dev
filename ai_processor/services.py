@@ -510,6 +510,10 @@ class AIProcessor:
                 model=main_model,
                 extra_body={
                     "models": sub_models,
+                    # Refuse any upstream provider (e.g. DeepSeek) that may
+                    # retain or train on this request. Student names and
+                    # submission content pass through this call.
+                    "provider": {"data_collection": "deny"},
                 },
                 messages=messages
                 or [
@@ -527,7 +531,10 @@ class AIProcessor:
                     "X-Title": "GradeA+",
                 },
                 model=main_model,
-                extra_body={"models": sub_models},
+                extra_body={
+                    "models": sub_models,
+                    "provider": {"data_collection": "deny"},
+                },
                 messages=messages
                 or [
                     {"role": "system", "content": system_prompt},
