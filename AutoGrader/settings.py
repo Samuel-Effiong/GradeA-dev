@@ -1024,6 +1024,33 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.ScopedRateThrottle",
     ),
+    # How many reverse proxies sit between the client and Django. WITHOUT
+    # this, every rate limit below is trivially bypassable and was in fact
+    # not working at all in production.
+    #
+    # DRF keys an anonymous throttle on BaseThrottle.get_ident(). With
+    # NUM_PROXIES unset it falls through to
+    #
+    #     return ''.join(xff.split()) if xff else remote_addr
+    #
+    # i.e. the key is the ENTIRE X-Forwarded-For chain. Railway's edge
+    # APPENDS to that header rather than replacing it, so the caller owns
+    # its left-hand portion: each fake value invents a fresh bucket.
+    # Measured against the live beta service before this was set - 14
+    # rapid logins (limit 10/min) returned 401 fourteen times and never
+    # 429; 7 reset-password OTP requests (limit 5/hour) all returned 202.
+    #
+    # Set to an integer, DRF instead reads `addrs[-min(num_proxies, ...)]`
+    # - counting from the RIGHT, where the edge writes the address it
+    # actually observed and which the client cannot forge.
+    #
+    # 1 = a single Railway edge hop. Env-overridable because the correct
+    # value is a property of the deployment, not the code, and getting it
+    # too HIGH is its own bug: it reads an internal proxy's address, which
+    # is identical for everyone, collapsing all callers into one shared
+    # bucket. users/tests_throttle_client_identity.py covers both
+    # directions. Verify after deploy per docs/ops/rate-limiting.md.
+    "NUM_PROXIES": env.int("NUM_PROXIES", default=1),
     "DEFAULT_THROTTLE_RATES": {
         "anon": "60/min",
         # Named buckets, attached per-view via users/throttling.py.
