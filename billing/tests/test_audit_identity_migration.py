@@ -36,8 +36,20 @@ from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase
 from django.utils import timezone
 
-MIGRATE_FROM = [("billing", "0058_alter_licensebillingrecord_record_type")]
-MIGRATE_TO = [("billing", "0060_backfill_audit_identity")]
+# `users` is pinned to its latest migration in BOTH targets. Only billing
+# moves. That matters: it means `old_apps.get_model("users", ...)` is a
+# historical model that still knows every CURRENT column on
+# users_customuser, so this test does not need to know which those are.
+# An earlier version hardcoded a raw INSERT column list and broke the
+# moment an unrelated migration added a NOT NULL column
+# (`failed_login_attempts`, from the login-lockout work).
+USERS_LATEST = ("users", "0036_customuser_failed_login_attempts_and_more")
+
+MIGRATE_FROM = [
+    ("billing", "0058_alter_licensebillingrecord_record_type"),
+    USERS_LATEST,
+]
+MIGRATE_TO = [("billing", "0060_backfill_audit_identity"), USERS_LATEST]
 
 
 class AuditIdentityMigrationTests(TransactionTestCase):
@@ -56,28 +68,29 @@ class AuditIdentityMigrationTests(TransactionTestCase):
         executor.migrate(MIGRATE_TO)
         super().tearDown()
 
-    def _insert_user(self, email):
+    def _insert_user(self, apps, email):
         """
-        Raw SQL on purpose. The historical `users` state at billing/0058
-        predates `registration_method`, so the historical model cannot
-        populate a column the live table still declares NOT NULL. The
-        users table is untouched by these migrations, so writing it
-        directly is both safe and simpler than reconciling the states.
+        Built from the HISTORICAL users model, not the live one.
+
+        The historical class carries no custom save(), no manager
+        overrides and fires no registration signals - which matters here,
+        because those signals activate a free trial and would write a
+        CreditLedger row through the CURRENT model while billing is still
+        at 0058, referencing columns that do not exist yet.
+
+        Field defaults still apply, so new NOT NULL columns on
+        users_customuser are populated automatically and this test does
+        not have to be updated every time one is added.
         """
-        user_id = uuid.uuid4()
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                INSERT INTO users_customuser (
-                    id, password, is_superuser, first_name, last_name,
-                    is_staff, is_active, date_joined, email, user_type,
-                    registration_method
-                ) VALUES (%s, '', false, '', '', false, true, %s, %s,
-                          'TEACHER', 'EMAIL')
-                """,
-                [user_id, timezone.now(), email],
-            )
-        return user_id
+        CustomUser = apps.get_model("users", "CustomUser")
+        user = CustomUser.objects.create(
+            id=uuid.uuid4(),
+            email=email,
+            password="",  # pragma: allowlist secret
+            is_active=True,
+            date_joined=timezone.now(),
+        )
+        return user.id
 
     def _migrate(self, targets):
         executor = MigrationExecutor(connection)
@@ -94,7 +107,7 @@ class AuditIdentityMigrationTests(TransactionTestCase):
         CreditLedger = old_apps.get_model("billing", "CreditLedger")
         CreditUsageLog = old_apps.get_model("billing", "CreditUsageLog")
 
-        user_id = self._insert_user("pre-migration@example.com")
+        user_id = self._insert_user(old_apps, "pre-migration@example.com")
         wallet = CreditWallet.objects.create(id=uuid.uuid4(), user_id=user_id)
         bucket = CreditBucket.objects.create(
             id=uuid.uuid4(),
@@ -148,7 +161,7 @@ class AuditIdentityMigrationTests(TransactionTestCase):
         CreditBucket = old_apps.get_model("billing", "CreditBucket")
         CreditLedger = old_apps.get_model("billing", "CreditLedger")
 
-        user_id = self._insert_user("idempotent@example.com")
+        user_id = self._insert_user(old_apps, "idempotent@example.com")
         wallet = CreditWallet.objects.create(id=uuid.uuid4(), user_id=user_id)
         bucket = CreditBucket.objects.create(
             id=uuid.uuid4(),
