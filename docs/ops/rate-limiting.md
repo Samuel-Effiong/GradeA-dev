@@ -154,3 +154,44 @@ varies that per request, throttling needs a custom throttle class
 reading a trusted header (`x_real_ip`, `cf_connecting_ip`, or
 `x_envoy_external_address` - all four are echoed by the endpoint for
 exactly this reason).
+
+
+## MEASURED: what Railway actually sends (2026-09-03, beta)
+
+The section above was written from an assumed proxy model that turned
+out to be WRONG. Corrected here from a real reading taken via
+`/api/v1/health/client`:
+
+```
+x_forwarded_for: "129.222.206.195, 152.233.29.4"
+                  ^ true client    ^ edge instance
+x_real_ip:       "129.222.206.195"
+remote_addr:     "100.64.0.3"        (internal mesh, never in the chain)
+```
+
+**1. The edge address rotates per request.** Five consecutive calls
+reported `152.233.29.4`, `46.151.193.242`, `46.151.193.242`,
+`46.151.193.241`, `46.151.193.241`.
+
+**2. The true client is SECOND FROM THE RIGHT, so `NUM_PROXIES = 2`.**
+With `1`, `get_ident()` returns the rotating edge address, every request
+lands in a fresh bucket, and no limit is ever reached. That was the live
+bug - measured on beta as 14 rapid logins against a 10/min cap returning
+401 fourteen times, and 8 OTP requests against a 5/hour cap returning
+202 eight times.
+
+**3. A client-supplied `X-Forwarded-For` is STRIPPED, not appended to.**
+Sending `X-Forwarded-For: 203.0.113.99` produced a chain with no trace
+of it. So header forgery was never the threat on this platform; the
+earlier "the caller owns the left-hand portion and can invent buckets"
+reasoning was mistaken. The rotating edge was the whole problem.
+
+**4. Over-setting degrades gracefully, for now.** DRF clamps with
+`addrs[-min(num_proxies, len(addrs))]`, so against a two-entry chain any
+value >= 2 resolves to the same client entry. If a CDN is ever put in
+front of Railway the chain lengthens and this stops being true - re-take
+the reading if the topology changes.
+
+`x_real_ip` carries the true client as a single unambiguous value and is
+the more robust key if `NUM_PROXIES` ever proves brittle; it would need a
+custom throttle subclass overriding `get_ident()`.

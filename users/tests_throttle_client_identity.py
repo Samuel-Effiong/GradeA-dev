@@ -52,14 +52,34 @@ LOCMEM_CACHES = {
     "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}
 }
 
-# X-Forwarded-For semantics: each proxy APPENDS the address of the peer it
-# received the request from. So the edge appends the true client and the
-# real client ends up RIGHTMOST; anything a caller sends of its own sits to
-# the LEFT of that. The edge's own address is what Django sees as
-# REMOTE_ADDR, and never appears in the header.
+# These constants mirror a REAL reading taken from the deployed beta
+# service via /api/v1/health/client, not an assumed model of how proxies
+# behave. An earlier version of this file assumed the edge APPENDS the
+# true client, putting it rightmost. That is wrong for this platform and
+# the assumption cost several deploy cycles. What Railway actually does:
+#
+#   x_forwarded_for: "129.222.206.195, 152.233.29.4"
+#                     ^ true client    ^ edge instance, ROTATES per request
+#   x_real_ip:       "129.222.206.195"
+#   remote_addr:     "100.64.0.3"      (internal mesh, not in the chain)
+#
+# Two consequences, both load-bearing:
+#
+#  1. The true client is SECOND FROM THE RIGHT -> NUM_PROXIES = 2. With 1,
+#     get_ident() returns the rotating edge address, so nearly every
+#     request lands in a fresh bucket and NO limit can ever be reached.
+#     That was the live bug: not a bypass, simply no rate limiting at all.
+#
+#  2. A client-supplied X-Forwarded-For is STRIPPED, not appended to. A
+#     forged header never reaches the chain, so forgery is not the threat
+#     here - the rotating edge was.
 REAL_CLIENT = "198.51.100.7"
 OTHER_CLIENT = "203.0.113.55"
-EDGE = "10.0.0.1"  # Railway's edge, as seen in REMOTE_ADDR
+# Rotates per request in production; two values suffice to prove the key
+# must not depend on it.
+EDGE_A = "10.0.0.1"
+EDGE_B = "10.0.0.2"
+MESH = "100.64.0.3"  # what Django sees as REMOTE_ADDR
 
 
 @override_settings(CACHES=LOCMEM_CACHES)
@@ -80,56 +100,60 @@ class LoginThrottleClientIdentityTests(APITestCase):
             "password": "wrong-password",  # pragma: allowlist secret
         }
 
-    def _post(self, xff=None):
-        extra = {"REMOTE_ADDR": EDGE}
-        if xff is not None:
-            extra["HTTP_X_FORWARDED_FOR"] = xff
-        return self.client.post(self.url, self.body, format="json", **extra)
+    def _post(self, client_addr, edge=EDGE_A):
+        """One request as `client_addr`, arriving via `edge`."""
+        return self.client.post(
+            self.url,
+            self.body,
+            format="json",
+            REMOTE_ADDR=MESH,
+            HTTP_X_FORWARDED_FOR=f"{client_addr}, {edge}",
+        )
 
     @patch.object(LoginThrottle, "rate", "3/min", create=True)
     def test_throttle_fires_for_a_single_consistent_client(self):
         """Baseline: the limit works when the caller does not move."""
-        chain = REAL_CLIENT
-
         for i in range(3):
             self.assertNotEqual(
-                self._post(chain).status_code,
+                self._post(REAL_CLIENT).status_code,
                 status.HTTP_429_TOO_MANY_REQUESTS,
                 f"request {i + 1} should be within budget",
             )
 
         self.assertEqual(
-            self._post(chain).status_code,
+            self._post(REAL_CLIENT).status_code,
             status.HTTP_429_TOO_MANY_REQUESTS,
             "the 4th request from the same client must be throttled",
         )
 
     @patch.object(LoginThrottle, "rate", "3/min", create=True)
-    def test_forged_x_forwarded_for_cannot_reset_the_bucket(self):
+    def test_a_rotating_edge_address_cannot_reset_the_bucket(self):
         """
-        THE REGRESSION TEST.
+        THE REGRESSION TEST, and the bug that was actually live.
 
-        The caller spends its budget, then invents a new left-hand entry
-        in X-Forwarded-For. Railway still appends the true client, so the
-        rightmost entries are unchanged and identical in both chains.
+        Railway's edge address is the RIGHTMOST entry and rotates between
+        instances request to request. Measured on beta: consecutive calls
+        reported 152.233.29.4, then 46.151.193.242, then 46.151.193.241.
 
-        With NUM_PROXIES unset the key is the whole chain, the forged
-        prefix makes it a different key, and the 4th request sails
-        through - a complete bypass of every auth rate limit.
+        With NUM_PROXIES=1 get_ident() returns that rotating value, so a
+        single caller lands in a new bucket almost every request and no
+        limit is EVER reached - which is what production looked like: 14
+        rapid logins against a 10/min cap, all 401, never a 429.
+
+        The same caller arriving via a different edge must share one
+        bucket.
         """
         for _ in range(3):
-            self._post(REAL_CLIENT)
-
-        # The caller prepends junk; the edge still appends the truth.
-        forged = f"203.0.113.99, {REAL_CLIENT}"
+            self._post(REAL_CLIENT, edge=EDGE_A)
 
         self.assertEqual(
-            self._post(forged).status_code,
+            self._post(REAL_CLIENT, edge=EDGE_B).status_code,
             status.HTTP_429_TOO_MANY_REQUESTS,
-            "a caller reset its own rate limit by prepending a fake entry "
-            "to X-Forwarded-For — every throttle in users/throttling.py is "
-            "bypassable. Set NUM_PROXIES so get_ident() reads the client "
-            "from the RIGHT of the chain, where the edge writes it.",
+            "the same client got a fresh budget merely by being routed "
+            "through a different edge instance — get_ident() is keying on "
+            "the rotating right-hand entry, so no rate limit can ever be "
+            "reached. NUM_PROXIES must point at the true client "
+            "(second from the right on this platform).",
         )
 
     @patch.object(LoginThrottle, "rate", "3/min", create=True)
@@ -137,8 +161,14 @@ class LoginThrottleClientIdentityTests(APITestCase):
         """
         The fix must not over-correct into one shared global bucket:
         exhausting one client's budget must not throttle a different one.
-        Guards against setting NUM_PROXIES too high, which would read the
-        edge's own address for everybody.
+        Note on the opposite error: setting NUM_PROXIES too HIGH does not
+        fail here, and that is correct rather than a gap in the test. DRF
+        clamps with `addrs[-min(num_proxies, len(addrs))]`, so against
+        this platform's two-entry chain any value >= 2 resolves to the
+        same client entry. Over-setting only starts reading an upstream
+        address - identical for everybody, collapsing all callers into
+        one bucket - if a longer chain ever appears, e.g. another proxy
+        (a CDN) is put in front. Verified: NUM_PROXIES=3 passes today.
         """
         for _ in range(3):
             self._post(REAL_CLIENT)

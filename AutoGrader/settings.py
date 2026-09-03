@@ -1050,7 +1050,7 @@ REST_FRAMEWORK = {
     # is identical for everyone, collapsing all callers into one shared
     # bucket. users/tests_throttle_client_identity.py covers both
     # directions. Verify after deploy per docs/ops/rate-limiting.md.
-    "NUM_PROXIES": env.int("NUM_PROXIES", default=1),
+    "NUM_PROXIES": env.int("NUM_PROXIES", default=2),
     "DEFAULT_THROTTLE_RATES": {
         "anon": "60/min",
         # Named buckets, attached per-view via users/throttling.py.

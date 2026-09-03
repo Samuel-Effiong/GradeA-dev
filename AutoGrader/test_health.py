@@ -130,11 +130,13 @@ class ClientIdentityDiagnosticTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["x_forwarded_for"], "198.51.100.7, 203.0.113.9")
-        # NUM_PROXIES=1 reads the RIGHTMOST entry. Asserting the concrete
-        # value keeps this honest about which end DRF counts from - the
-        # thing that was repeatedly easy to get backwards.
-        self.assertEqual(response.data["num_proxies"], 1)
-        self.assertEqual(response.data["resolved_ident"], "203.0.113.9")
+        # NUM_PROXIES=2 reads the SECOND entry from the right, which on
+        # this platform is the true client (the rightmost is Railway's
+        # rotating edge). Asserting the concrete value keeps this honest
+        # about which end DRF counts from - repeatedly easy to get
+        # backwards, and got backwards once already.
+        self.assertEqual(response.data["num_proxies"], 2)
+        self.assertEqual(response.data["resolved_ident"], "198.51.100.7")
 
     @override_settings(EXPOSE_CLIENT_DIAGNOSTICS=True)
     def test_reports_remote_addr_when_no_forwarding_header(self):
