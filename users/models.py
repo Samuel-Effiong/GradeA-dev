@@ -8,6 +8,7 @@ from django.db import models
 from django.db.models import UniqueConstraint
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+from encrypted_model_fields.fields import EncryptedCharField
 
 from users.services import OTPManager
 
@@ -15,6 +16,22 @@ from users.services import OTPManager
 
 
 otp_manager = OTPManager()
+
+# How long an invite/renewal activation_token (a 6-digit code, by design -
+# short enough for a teacher or school admin to read out or a student to
+# retype from memory) stays valid. Previously 7 days with no throttle on
+# the verify endpoint, which made the 1,000,000-value code space brute-
+# forceable well within its lifetime for a known email. The verify endpoint
+# is now throttled (see users.throttling.VerifyEmailThrottle) - this cuts
+# the attack window on top of that, while staying long enough that a
+# legitimate invite sitting unread for most of a day still works. A user
+# who misses the window can always request a fresh code via the existing
+# renew-token flow.
+#
+# NOTE: the "expires in 7 days"/"24 hours" wording in the invite email
+# templates (classrooms/views.py, billing/license_service.py) is a literal
+# string, not derived from this constant - update both together.
+ACTIVATION_TOKEN_VALIDITY = timezone.timedelta(hours=24)
 
 
 # Create your models here.
@@ -63,6 +80,13 @@ def get_user_name(instance, fname):
     return f"profile_pics/{instance.id}/{email_name}_{datetime.date.today()}_{ext}"
 
 
+class RegistrationMethod(models.TextChoices):
+    EMAIL = "EMAIL", _("Email")
+    GOOGLE = "GOOGLE", _("Google")
+    FACEBOOK = "FACEBOOK", _("Facebook")
+    TWITTER = "TWITTER", _("Twitter")
+
+
 # Create your models here.
 class CustomUser(AbstractUser):
     USERNAME_FIELD = "email"
@@ -78,7 +102,7 @@ class CustomUser(AbstractUser):
     )
 
     email = models.EmailField(unique=True)
-    middle_name = models.CharField(max_length=255, default="")
+    middle_name = models.CharField(max_length=255, null=True, blank=True, default="")
     user_type = models.CharField(
         max_length=20,
         choices=UserTypes.choices,
@@ -95,6 +119,9 @@ class CustomUser(AbstractUser):
     )
     bio = models.TextField(blank=True, null=True)
     profile_image = models.ImageField(upload_to=get_user_name, null=True, blank=True)
+    profile_image_url = models.CharField(max_length=255, null=True, blank=True)
+    # google_access_token = models.TextField(blank=True, null=True, help_text="Encrypted Google access token")
+    # google_refresh_token = models.TextField(blank=True, null=True, help_text="Encrypted Google refresh token")
 
     objects = CustomUserManager()
 
@@ -107,6 +134,13 @@ class CustomUser(AbstractUser):
         blank=True,
     )
     email_verified_at = models.DateTimeField(blank=True, null=True)
+    registration_method = models.CharField(
+        max_length=20,
+        choices=RegistrationMethod.choices,
+        default=RegistrationMethod.EMAIL,
+    )
+
+    # stripe_customer_id = models.CharField(max_length=255, null=True, blank=True, db_index=True)
 
     def get_full_name(self):
         """
@@ -137,18 +171,119 @@ class CustomUser(AbstractUser):
         # return False
         return self.user_type == UserTypes.TEACHER
 
+    def is_beta_eligible(self):
+        """Beta access is restricted to teacher accounts."""
+        return self.user_type == UserTypes.TEACHER
+
+    def get_active_subscription(self):
+        """
+        Unified method to get the user's active subscription, handling both types.
+
+        For INDIVIDUAL subscriptions: Returns the user's active UserSubscription
+        For LICENSE subscriptions: Returns the active LicenseSubscription via SchoolCreditAllocation
+        For users with no subscription: Returns None
+
+        Returns:
+            Union[UserSubscription, LicenseSubscription, None]
+        """
+        # from billing.models import LicenseSubscription, UserSubscription
+
+        # Check if user is under an active License
+        if self.is_teacher():
+            active_allocation = (
+                self.school_credit_allocations.select_related("license_subscription")
+                .filter(
+                    is_active=True,
+                    license_subscription__is_active=True,
+                )
+                .first()
+            )
+            if active_allocation:
+                return active_allocation.license_subscription
+
+        # Check for personal UserSubscription
+        active_subscription = self.subscriptions.filter(is_active=True).first()
+        return active_subscription
+
+    @property
+    def subscription_type(self):
+        """
+        Returns the subscription type for this user.
+
+        Returns:
+            str: "LICENSE", "INDIVIDUAL", or None
+        """
+        subscription = self.get_active_subscription()
+        if subscription is None:
+            return None
+
+        from billing.models import LicenseSubscription
+
+        if isinstance(subscription, LicenseSubscription):
+            return "LICENSE"
+        return "INDIVIDUAL"
+
+    def is_under_license(self):
+        """
+        Checks if user is currently enrolled under a school license.
+
+        Returns:
+            bool: True if user is under active license, False otherwise
+        """
+        return self.subscription_type == "LICENSE"
+
+    def get_teacher_monthly_allocation(self):
+        """
+        Gets the monthly credit allocation for this teacher.
+
+        For INDIVIDUAL: Returns plan's monthly_credits
+        For LICENSE: Returns SchoolCreditAllocation's monthly_allocation
+        For no subscription: Returns 0
+
+        Returns:
+            int: Raw credits (display value × 1000), or 0 if no subscription
+        """
+        subscription = self.get_active_subscription()
+        if subscription is None:
+            return 0
+
+        from billing.models import LicenseSubscription
+
+        if isinstance(subscription, LicenseSubscription):
+            # User is under License, get their allocation
+            allocation = self.school_credit_allocations.filter(
+                license_subscription=subscription, is_active=True
+            ).first()
+            return allocation.monthly_allocation if allocation else 0
+
+        # User has INDIVIDUAL subscription
+        return subscription.plan.monthly_credits or 0
+
     def renew_activation_token(self):
         """Renew the activation token and extend expiration."""
         self.activation_token = otp_manager.generate_otp()
 
         if self.user_type == UserTypes.STUDENT:
-            self.activation_expires = timezone.now() + timezone.timedelta(days=7)
+            self.activation_expires = timezone.now() + ACTIVATION_TOKEN_VALIDITY
         else:
             raise ValueError(
                 "Activation token renewal is only for students. Use OTP (VERIFY_EMAIL) endpoint for teachers."
             )
         self.save()
         return self.activation_token
+
+
+class UserGoogleCredentials(models.Model):
+    user = models.OneToOneField(
+        CustomUser, on_delete=models.CASCADE, related_name="google_credentials"
+    )
+    access_token = EncryptedCharField(max_length=1024)
+    refresh_token = EncryptedCharField(max_length=1024, null=True, blank=True)
+    token_expiry = models.DateTimeField()
+    scopes = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.user.email}'s Google Credentials"
 
 
 class ThemeType(models.TextChoices):
@@ -165,10 +300,24 @@ class Settings(models.Model):
     )
 
     # Email Notifications
-    notify_student_submission = models.BooleanField(default=False)
-    notify_weekly_summary = models.BooleanField(default=False)
-    notify_assignment_due_reminder = models.BooleanField(default=False)
-    notify_grading_complete = models.BooleanField(default=False)
+    notify_student_submission = models.BooleanField(
+        default=False, null=True, blank=True
+    )
+    notify_weekly_summary = models.BooleanField(default=False, null=True, blank=True)
+    notify_assignment_due_reminder = models.BooleanField(
+        default=False, null=True, blank=True
+    )
+    notify_grading_complete = models.BooleanField(default=False, null=True, blank=True)
+    notify_assignment_edited = models.BooleanField(default=False, null=True, blank=True)
+    notify_new_assignment_posted = models.BooleanField(
+        default=False, null=True, blank=True
+    )
+    notify_teacher_activity_alerts = models.BooleanField(
+        default=False, null=True, blank=True
+    )
+    notify_at_risk_student_alerts = models.BooleanField(
+        default=False, null=True, blank=True
+    )
 
 
 class UserActivity(models.Model):
@@ -186,11 +335,20 @@ class UserActivity(models.Model):
 
 
 class PasswordResetOTP(models.Model):
+    # How many wrong codes may be submitted before this OTP stops being
+    # usable at all, and how long that freeze lasts. Without these, the
+    # 15-minute validity window is a brute-force budget: a short numeric
+    # code plus unlimited attempts is an account-takeover path.
+    MAX_ATTEMPTS = 5
+    LOCKOUT_DURATION = timezone.timedelta(minutes=30)
+
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     code = models.CharField(
         max_length=100, unique=True, null=True, blank=True, db_index=True
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    locked_until = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         constraints = [
@@ -202,8 +360,25 @@ class PasswordResetOTP(models.Model):
     def is_valid(self):
         return (timezone.now() - self.created_at) < timezone.timedelta(minutes=15)
 
+    def is_locked(self):
+        return bool(self.locked_until and timezone.now() < self.locked_until)
+
+    def register_failure(self):
+        """Record a wrong-code guess, freezing the OTP once the budget runs out."""
+        self.attempts += 1
+        if self.attempts >= self.MAX_ATTEMPTS:
+            self.locked_until = timezone.now() + self.LOCKOUT_DURATION
+        self.save(update_fields=["attempts", "locked_until"])
+
     def generate_code(self):
+        # Issuing a fresh code clears the lockout, so this is the intended
+        # recovery route for a legitimate user who mistyped too often. It
+        # is also why users.throttling.OTPRequestThrottle has to stay on
+        # the endpoint that calls this - otherwise an attacker just
+        # re-requests a code to wipe the counter and keeps guessing.
         self.code = otp_manager.generate_otp()
+        self.attempts = 0
+        self.locked_until = None
         self.save()
 
         return self.code

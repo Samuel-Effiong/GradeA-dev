@@ -5,9 +5,17 @@ repos:
     -   id: check-yaml
     -   id: end-of-file-fixer
     -   id: trailing-whitespace
+        # The generated backend-reference HTML embeds the Mermaid renderer and
+        # the IBM Plex font payloads verbatim. Rewriting bytes inside those is
+        # not a whitespace tidy-up, it is editing a vendored binary-ish blob.
+        exclude: ^docs/backend/.*\.html$
     -   id: check-ast
     -   id: check-docstring-first
     -   id: check-added-large-files
+        # Same files: single-file documentation editions are a few MB because
+        # the renderer and fonts are inlined so they open with no network. The
+        # 500KB guard still applies to everything else.
+        exclude: ^docs/backend/.*\.html$
     -   id: check-merge-conflict
     -   id: check-toml
     -   id: check-json
@@ -17,6 +25,10 @@ repos:
     -   id: fix-byte-order-marker
     -   id: detect-private-key
     -   id: name-tests-test
+        # This repo names tests test_*.py / tests_*.py (Django's convention,
+        # 48 files). The hook's default expects the opposite (*_test.py), so
+        # without --django it rejects every test file in the project.
+        args: [--django]
     -   id: debug-statements
     -   id: check-symlinks
     -   id: requirements-txt-fixer
@@ -33,7 +45,7 @@ repos:
     hooks:
     -   id: mypy
         args: [--ignore-missing-imports, --check-untyped-defs, --disable-error-code=var-annotated]
-        additional_dependencies: [types-requests,  types-redis, types-waitress]
+        additional_dependencies: [types-requests,  types-redis, types-waitress, types-python-dateutil, types-bleach]
 
 -   repo: https://github.com/pycqa/flake8 # Linting with Flake8
     rev: 7.3.0
@@ -41,6 +53,7 @@ repos:
       - id: flake8
         language_version: python3
         additional_dependencies:
+          - setuptools<81
           - flake8-bugbear==23.7.10
           - flake8-comprehensions==3.12.0
           - flake8-docstrings==1.7.0
@@ -52,7 +65,7 @@ repos:
           - --max-line-length=120                  # Matches Black's line length
           - --select=B,C,E,F,W,T4,B9                          # Enable common checks
           - --ignore=W503,E800,E203      # Align with Black formatting
-        exclude: ^migrations/
+        exclude: (^|/)migrations/
     # Sort imports automatically with isort
 -   repo: https://github.com/pre-commit/mirrors-isort
     rev: v5.10.1
@@ -82,3 +95,16 @@ repos:
       - id: detect-secrets
         args: ['--baseline', '.secrets.baseline']
         exclude: 'tests/|examples/|docs/'
+
+  # gunicorn's --timeout and billing/webhooks.py's
+  # WEBHOOK_REQUEST_HARD_TIMEOUT_SECONDS are the same load-bearing value in
+  # two files - see the comments at both sites. This catches one being
+  # changed without the other.
+-   repo: local
+    hooks:
+      - id: check-gunicorn-timeout-sync
+        name: Check gunicorn timeout stays in sync with Stripe webhook claim window
+        entry: python scripts/check_gunicorn_timeout_sync.py
+        language: system
+        files: ^(Dockerfile|billing/webhooks\.py)$
+        pass_filenames: false

@@ -1,11 +1,14 @@
 import logging
 import traceback
+from collections.abc import Mapping
 
 # utils/response.py
 from typing import Any, Dict, Optional
 
 from django.conf import settings
 from rest_framework.renderers import JSONRenderer
+
+from AutoGrader.error_messages import describe_user_error
 
 
 def api_response(
@@ -28,6 +31,28 @@ def api_response(
 
 
 logger = logging.getLogger(__name__)
+
+
+SUCCESS_MESSAGE_KEYS = ("message", "detail")
+
+
+def get_response_message(data, default: str) -> str:
+    if not isinstance(data, Mapping):
+        return default
+
+    for key in SUCCESS_MESSAGE_KEYS:
+        value = data.get(key)
+        if isinstance(value, str) and value.strip():
+            return value
+
+    return default
+
+
+def is_error_response(response) -> bool:
+    return bool(
+        getattr(response, "exception", False)
+        or getattr(response, "status_code", 200) >= 400
+    )
 
 
 def flatten_errors(data) -> str:
@@ -55,10 +80,12 @@ def flatten_errors(data) -> str:
             for item in obj:
                 _collect(item, prefix)
 
-        elif isinstance(obj, dict):
-            # "detail" is DRF's top-level error key (auth, 404, throttled, etc.)
-            if "detail" in obj and len(obj) == 1:
-                _collect(obj["detail"])
+        elif isinstance(obj, Mapping):
+            # DRF/manual top-level error keys (auth, 404, throttled, etc.)
+            top_level_message_keys = ("detail", "error", "message")
+            matching_keys = [key for key in top_level_message_keys if key in obj]
+            if len(obj) == 1 and matching_keys:
+                _collect(obj[matching_keys[0]])
                 return
 
             for field, value in obj.items():
@@ -66,7 +93,7 @@ def flatten_errors(data) -> str:
                     _collect(value)
                 else:
                     # Turn snake_case / CamelCase field names into readable labels
-                    label = field.replace("_", " ").capitalize()
+                    label = str(field).replace("_", " ").capitalize()
                     _collect(value, prefix=f"{label}: ")
 
     _collect(data)
@@ -84,14 +111,20 @@ def flatten_errors(data) -> str:
 
 class APIJSONRenderer(JSONRenderer):
     def render(self, data, accepted_media_type=None, renderer_context=None):
-        response = renderer_context["response"]
+        response = renderer_context.get("response") if renderer_context else None
+
+        if response is None:
+            return super().render(data, accepted_media_type, renderer_context)
 
         # ---------- SUCCESS ----------
-        if not getattr(response, "exception", False):
+        if not is_error_response(response):
+            message = getattr(response, "message", None) or get_response_message(
+                data, "Request Successful"
+            )
             return super().render(
                 api_response(
                     success=True,
-                    message=getattr(response, "message", "Request Successful"),
+                    message=message,
                     data=data,
                 ),
                 accepted_media_type,
@@ -103,15 +136,17 @@ class APIJSONRenderer(JSONRenderer):
 
         message = "An error occurred"
         error_dict: Dict[str, Any] = {}
-        if hasattr(response, "_drf_handled"):
+        if hasattr(response, "_drf_handled") or data is not None:
             # Build the human-readable message from the DRF error payload
             message = flatten_errors(data) if data else "Validation failed"
-            error_dict = {"field_errors": data} if isinstance(data, dict) else {}
+            error_dict = {"field_errors": data} if isinstance(data, Mapping) else {}
 
         else:
             # Unhandled 500
             exc = getattr(response, "_raw_exc", None)
-            message = str(exc) or "Internal server error"
+            message = describe_user_error(
+                exc, fallback_message="An unexpected error occurred. Please try again."
+            )
             if exc and settings.DEBUG:
                 tb = "".join(
                     traceback.format_exception(type(exc), exc, exc.__traceback__)

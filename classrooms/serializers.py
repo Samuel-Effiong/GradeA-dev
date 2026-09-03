@@ -1,15 +1,26 @@
+import logging
 import secrets
 
+from django.conf import settings
+from django.contrib.auth.password_validation import validate_password
 from django.core.validators import MinLengthValidator
-from django.db import transaction
+from django.db import IntegrityError, transaction
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
-# from assignments.models import AssignmentStatus
+from assignments.models import AssignmentStatus
 from assignments.serializers import AssignmentListSerializer  # , AssignmentSerializer
+from AutoGrader.tasks import send_email_task
+from billing.context import (
+    clear_license_invitation_context,
+    set_license_invitation_context,
+)
 from students.serializers import StudentSerializer
+from students.services import get_grade_details
 from users.models import CustomUser, UserTypes
+from users.serializers import CustomUserSerializer
 
 from .models import (
     Course,
@@ -17,6 +28,7 @@ from .models import (
     EnrollmentStatusType,
     School,
     Session,
+    SessionOwnerType,
     StudentCourse,
     Topic,
 )
@@ -26,18 +38,29 @@ class SessionSerializer(serializers.ModelSerializer):
     """Serializer for the AcademicTerm model."""
 
     teacher = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    school = serializers.PrimaryKeyRelatedField(read_only=True)  # added
+    owner_type = serializers.ChoiceField(
+        choices=SessionOwnerType.choices, read_only=True
+    )
 
     class Meta:
         model = Session
-        fields = ["id", "name", "created_at", "teacher"]
-        read_only_fields = ["id", "created_at", "teacher"]
-
-        validators = [
-            UniqueTogetherValidator(
-                queryset=Session.objects.all(),
-                fields=["name", "teacher"],
-                message="This Teacher already has this session",
-            )
+        fields = [
+            "id",
+            "name",
+            "owner_type",
+            "teacher",
+            "school",
+            "created_by",
+            "created_at",
+        ]
+        read_only_fields = [
+            "id",
+            "owner_type",
+            "teacher",
+            "school",
+            "created_by",
+            "created_at",
         ]
 
 
@@ -114,6 +137,28 @@ class CourseSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at", "teacher"]
 
         extra_kwargs = {"is_active": {"required": False}}
+
+    def validate_session(self, value):
+        """Ensure a course can only be attached to a session the requesting
+        teacher actually owns/has access to — otherwise a teacher could
+        point a course at another teacher's individual session or another
+        school's session by guessing/enumerating the UUID."""
+        request = self.context.get("request")
+        user = getattr(request, "user", None) if request else None
+        if user is None or not user.is_authenticated:
+            return value
+
+        if value.owner_type == SessionOwnerType.INDIVIDUAL:
+            if user.is_under_license() or value.teacher_id != user.id:
+                raise serializers.ValidationError(
+                    "You do not have access to this session."
+                )
+        elif value.owner_type == SessionOwnerType.SCHOOL:
+            if not user.is_under_license() or value.school_id != user.school_id:
+                raise serializers.ValidationError(
+                    "You do not have access to this session."
+                )
+        return value
 
     def create(self, validated_data):
         """Create course and associated topics from topic_names."""
@@ -199,18 +244,39 @@ class CourseSerializer(serializers.ModelSerializer):
 class StudentCourseSerializer(serializers.ModelSerializer):
     """Serializer for the StudentSection model."""
 
+    course_description = serializers.CharField(
+        source="course.description", read_only=True
+    )
+    course_title = serializers.CharField(source="course.name", read_only=True)
+    teacher = serializers.SerializerMethodField()
+    total_no_of_assignment = serializers.SerializerMethodField()
+    total_assignment_submitted = serializers.SerializerMethodField()
+    submitted_assignment_percentage = serializers.SerializerMethodField()
+    grade_letter = serializers.SerializerMethodField()
+
     class Meta:
         model = StudentCourse
         fields = [
             "id",
             "student",
             "course",
+            "course_title",
+            "course_description",
+            "teacher",
+            "total_no_of_assignment",
+            "total_assignment_submitted",
+            "submitted_assignment_percentage",
             "created_at",
             "enrollment_status",
             "withdrawal_date",
             "final_grade",
+            "grade_letter",
+            "auto_added",
         ]
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "created_at", "auto_added"]
+
+    def get_teacher(self, obj):
+        return obj.course.teacher.get_full_name()
 
     def validate_final_grade(self, value):
         """Validate that final_grade is between 0 and 100."""
@@ -225,6 +291,84 @@ class StudentCourseSerializer(serializers.ModelSerializer):
                 "Participation score must be between 0 and 100."
             )
         return value
+
+    def get_total_no_of_assignment(self, obj):
+        return obj.course.assignments.count()
+
+    def get_total_assignment_submitted(self, obj):
+        return obj.course.assignments.filter(submissions__student=obj.student).count()
+
+    def get_submitted_assignment_percentage(self, obj):
+        if obj.course.assignments.count():
+            return (
+                obj.course.assignments.filter(submissions__student=obj.student).count()
+                / obj.course.assignments.count()
+            ) * 100
+        return 0
+
+    def get_grade_letter(self, obj):
+        return get_grade_details(obj.final_grade) if obj.final_grade else None
+
+
+class StudentCourseDetailSerializer(StudentCourseSerializer):
+    assignments = serializers.SerializerMethodField()
+
+    class Meta(StudentCourseSerializer.Meta):
+        fields = StudentCourseSerializer.Meta.fields + ["assignments"]
+
+    def get_assignments(self, obj):
+        # Filter the prefetched assignments in Python: calling .filter() on
+        # the prefetched .all() would discard the prefetch cache and issue
+        # a fresh query per enrollment row — the exact N+1 the view's
+        # prefetch_related("course__assignments") exists to prevent.
+        assignments = [
+            a
+            for a in obj.course.assignments.all()
+            if a.status == AssignmentStatus.PUBLISHED
+        ]
+
+        # Filter pre-fetched submissions for this specific student
+
+        submissions = {
+            s.assignment_id: s
+            for s in obj.student.submissions.all()
+            if s.assignment.course_id == obj.course_id
+        }
+
+        result = []
+
+        for assignment in assignments:
+            submission = submissions.get(assignment.id)
+
+            # Logic: status and score
+            if not submission:
+                now = timezone.now()
+
+                if assignment.due_date and assignment.due_date < now:
+                    status = "OVERDUE"
+                else:
+                    status = "PENDING"
+                score = None
+            elif submission.graded_at and submission.is_published:
+                status = "GRADED"
+                score = submission.score
+            else:
+                status = "SUBMITTED"
+                score = None
+
+            result.append(
+                {
+                    "id": assignment.id,
+                    "title": assignment.title,
+                    "instructions": assignment.instructions,
+                    "total_points": assignment.total_points,
+                    "due_date": assignment.due_date,
+                    "status": status,
+                    "score": score,
+                }
+            )
+
+        return result
 
 
 class AddStudentToCourseSerializer(serializers.Serializer):
@@ -263,6 +407,7 @@ class DirectAddStudentSerializer(serializers.Serializer):
     middle_name = serializers.CharField(
         max_length=150,
         default="",
+        allow_blank=True,
     )
     last_name = serializers.CharField(
         max_length=150, validators=[MinLengthValidator(2)], required=True
@@ -395,15 +540,322 @@ class ExpiredTokenSerializer(serializers.Serializer):
     token = serializers.CharField(required=True)
 
 
+logger = logging.getLogger(__name__)
+
+
 class SchoolSerializer(serializers.ModelSerializer):
     class Meta:
         model = School
-        fields = ["id", "name", "address", "phone", "website", "created_at"]
+        fields = [
+            "id",
+            "name",
+            "address",
+            "phone",
+            "website",
+            "is_active",
+            "created_at",
+        ]
 
     def validate_name(self, value):
         if not value.strip():
             raise serializers.ValidationError("School name cannot be empty.")
         return value
+
+    def create(self, validated_data):
+        # DRF's BooleanField treats a missing field in HTML/multipart form
+        # data as an explicit False on non-partial requests, which would
+        # silently override the model's default=True whenever a caller
+        # creates a school without passing is_active. New schools should
+        # always start active — archiving only ever happens via destroy()
+        # or an explicit PATCH.
+        validated_data.pop("is_active", None)
+        return super().create(validated_data)
+
+
+def _send_school_admin_invitation_email(user, school):
+    """Queue the invitation email for a newly created school admin.
+
+    The admin has no usable password yet; the email links to a registration
+    page where they set their own password using the activation token.
+    """
+    frontend_domain = settings.FRONTEND_DOMAIN
+    activation_url = (
+        f"https://{frontend_domain}/register/school-admin"
+        f"?email={user.email}&token={user.activation_token}"
+    )
+
+    merge_data = {
+        "title": f"You've been added as the admin for {school.name}",
+        "name": user.get_full_name() or user.first_name,
+        "top_content": (
+            f"You have been set up as the school administrator for {school.name} on Grade A+.<br><br>"
+            "Complete your registration to set up your password and start managing your school."
+        ),
+        "bottom_content": "This invitation link expires in 7 days.",
+        "activation_url": activation_url,
+        "current_year": timezone.now().year,
+        "support_email": settings.SUPPORT_EMAIL,
+    }
+
+    user_email = user.email
+    school_name = school.name
+
+    def _dispatch():
+        try:
+            send_email_task.delay(
+                subject=f"You've been added as the admin for {school_name}",
+                message="",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user_email],
+                html_message=None,
+                template_id="ynrw7gy0ye2l2k8e",
+                merge_data=merge_data,
+            )
+        except Exception:
+            logger.exception(
+                "Failed to queue school admin invitation email to %s for school %s.",
+                user_email,
+                school_name,
+            )
+
+    transaction.on_commit(_dispatch)
+
+
+class SchoolWithAdminSerializer(serializers.Serializer):
+    # School Fields
+    school_name = serializers.CharField(max_length=255)
+    school_address = serializers.CharField(required=False, allow_blank=True)
+    school_phone = serializers.CharField(required=False, allow_blank=True)
+    school_website = serializers.URLField(required=False, allow_blank=True)
+
+    # Admin Fields
+    admin_email = serializers.EmailField()
+    admin_first_name = serializers.CharField(
+        max_length=150, validators=[MinLengthValidator(2)]
+    )
+    admin_last_name = serializers.CharField(
+        max_length=150, validators=[MinLengthValidator(2)]
+    )
+    admin_middle_name = serializers.CharField(
+        max_length=150, required=False, allow_blank=True
+    )
+
+    admin_profile_image = serializers.ImageField(required=False, allow_null=True)
+
+    def validate_admin_email(self, value):
+        from users.utils import is_business_email, is_exempt_email_domain
+
+        value = value.lower().strip()
+
+        # School admins are onboarded here by a superadmin, not self-registering,
+        # so the beta whitelist/waitlist gate doesn't apply. We do still enforce
+        # the same business-email requirement as the plain /schools/admin path.
+        if not is_exempt_email_domain(value) and not is_business_email(value):
+            raise serializers.ValidationError(
+                "Personal emails are not allowed for school admin accounts. "
+                "Please use a business email address."
+            )
+
+        return value
+
+    def validate(self, attrs):
+        # Ensure school name is unique (case-insensitive)
+        school_name = attrs.get("school_name")
+        if school_name and School.objects.filter(name__iexact=school_name).exists():
+            raise serializers.ValidationError("A school with this name already exists.")
+
+        # Ensure admin email is not already used by any user
+        if CustomUser.objects.filter(email__iexact=attrs.get("admin_email")).exists():
+            raise serializers.ValidationError(
+                "A user with this email address already exists."
+            )
+
+        return attrs
+
+    def create(self, validated_data):
+        try:
+            with transaction.atomic():
+                # 1. Create School
+                school = School.objects.create(
+                    name=validated_data["school_name"],
+                    address=validated_data.get("school_address", ""),
+                    phone=validated_data.get("school_phone", ""),
+                    website=validated_data.get("school_website", ""),
+                )
+
+                # 2. Create Admin User with an invitation token and no usable
+                # password. The admin sets their own password when they
+                # complete registration via the emailed invite link — no
+                # secret ever has to travel through an email template.
+                admin_data = {
+                    "email": validated_data["admin_email"],
+                    "first_name": validated_data["admin_first_name"],
+                    "last_name": validated_data["admin_last_name"],
+                    "middle_name": validated_data.get("admin_middle_name", ""),
+                    "profile_image": validated_data.get("admin_profile_image"),
+                    "user_type": UserTypes.SCHOOL_ADMIN,
+                    "school": school,
+                    "is_active": False,
+                    # A high-entropy token, not the 6-digit OTP used for the
+                    # short-lived (15 min) email-verification flow — this link
+                    # stays valid for 7 days and needs a much bigger keyspace
+                    # to resist brute-forcing over that window.
+                    "activation_token": secrets.token_urlsafe(32),
+                    "activation_expires": timezone.now() + timezone.timedelta(days=7),
+                }
+
+                try:
+                    # Set license context so the post_save signal skips trial activation
+                    set_license_invitation_context(True)
+                    # No password kwarg is passed, so CustomUser.objects.create_user()
+                    # calls set_password(None), which Django resolves to an unusable
+                    # password — equivalent to calling set_unusable_password().
+                    user = CustomUser.objects.create_user(**admin_data)
+                finally:
+                    clear_license_invitation_context()
+
+                # 3. Send the invitation email only after the transaction commits,
+                # so a rollback can never leave a queued email referencing a
+                # school/admin that doesn't exist.
+                _send_school_admin_invitation_email(user, school)
+
+                return {
+                    "school": school,
+                    "admin": user,
+                }
+        except IntegrityError as e:
+            raise serializers.ValidationError(
+                "A school or user with these details already exists."
+            ) from e
+
+
+class SchoolWithAdminResponseSerializer(serializers.Serializer):
+    """Serializer for returning School and Admin after creation."""
+
+    school = SchoolSerializer()
+    admin = CustomUserSerializer()
+    message = serializers.CharField(
+        default="School and admin created successfully", read_only=True
+    )
+
+
+class SchoolAdminRegistrationCompletionSerializer(serializers.Serializer):
+    """Serializer for a school admin completing registration via invite link."""
+
+    email = serializers.EmailField(required=True)
+    token = serializers.CharField(required=True, write_only=True)
+    password = serializers.CharField(
+        write_only=True, required=True, validators=[validate_password]
+    )
+
+
+class SchoolAdminSummarySerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    name = serializers.CharField()
+    email = serializers.EmailField()
+    school = serializers.CharField()
+    teachers = serializers.IntegerField()
+    students = serializers.IntegerField()
+    tokens_used = serializers.IntegerField()
+    sessions = serializers.IntegerField()
+
+
+class SchoolSummarySerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    school_name = serializers.CharField()
+    address = serializers.CharField(required=False, allow_null=True)
+    phone = serializers.CharField(required=False, allow_null=True)
+    website = serializers.URLField(required=False, allow_null=True)
+    admin_id = serializers.UUIDField(required=False, allow_null=True)
+    admin_name = serializers.CharField(required=False, allow_null=True)
+    admin_email = serializers.EmailField(required=False, allow_null=True)
+    teachers = serializers.IntegerField()
+    students = serializers.IntegerField()
+    tokens_used = serializers.IntegerField()
+    sessions = serializers.IntegerField()
+    is_active = serializers.BooleanField()
+
+
+class SessionTeacherSerializer(serializers.Serializer):
+    teacher_id = serializers.UUIDField()
+    teacher_name = serializers.CharField()
+    assignments = serializers.IntegerField()
+    students = serializers.IntegerField()
+    tokens = serializers.IntegerField()
+
+
+class SessionBreakdownSerializer(serializers.Serializer):
+    session_id = serializers.UUIDField()
+    session_name = serializers.CharField()
+    owner_type = serializers.CharField(
+        help_text="INDIVIDUAL (one teacher) or SCHOOL (shared, may have multiple contributing teachers)."
+    )
+    assignments = serializers.IntegerField(help_text="Sum of teachers[].assignments.")
+    students = serializers.IntegerField(help_text="Sum of teachers[].students.")
+    tokens = serializers.IntegerField(help_text="Sum of teachers[].tokens.")
+    teachers = SessionTeacherSerializer(
+        many=True,
+        help_text="Per-teacher breakdown within this session. Empty for a "
+        "SCHOOL session with no courses yet.",
+    )
+
+
+class SchoolDetailSerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    school_name = serializers.CharField()
+    address = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    phone = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    website = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    admin_id = serializers.UUIDField(required=False, allow_null=True)
+    admin_name = serializers.CharField(required=False, allow_null=True)
+    admin_email = serializers.EmailField(required=False, allow_null=True)
+    teachers = serializers.IntegerField()
+    students = serializers.IntegerField()
+    tokens_used = serializers.IntegerField()
+    tokens_unattributed = serializers.IntegerField(
+        help_text=(
+            "Portion of tokens_used that couldn't be tied to any session "
+            "(no course context — e.g. school-admin actions, custom AI "
+            "chat, pre-Assignment extraction). "
+            "sum(session_breakdown[].tokens) + tokens_unattributed == "
+            "tokens_used."
+        )
+    )
+    sessions = serializers.IntegerField()
+    courses = serializers.IntegerField(required=False)
+    is_active = serializers.BooleanField()
+    session_breakdown = SessionBreakdownSerializer(many=True, required=False)
+
+
+class TeacherSummarySerializer(serializers.Serializer):
+    id = serializers.UUIDField()
+    name = serializers.CharField()
+    email = serializers.EmailField()
+    school = serializers.CharField()
+    students = serializers.IntegerField()
+    assignments = serializers.IntegerField()
+    tokens_used = serializers.IntegerField(
+        help_text=(
+            "Without session_id: the teacher's full personal token total "
+            "(every AI feature they've used). With session_id: scoped to "
+            "that session's courses, same as assignments/students."
+        )
+    )
+    tokens_used_outside_session = serializers.IntegerField(
+        help_text=(
+            "The rest of the teacher's token total not counted in "
+            "tokens_used — other sessions, or usage with no course context "
+            "at all (custom AI chat, pre-Assignment extraction). Always 0 "
+            "when no session_id filter is applied. tokens_used + "
+            "tokens_used_outside_session == the teacher's full personal "
+            "total."
+        )
+    )
+
+
+class MonthlyTokenUsageSerializer(serializers.Serializer):
+    month = serializers.CharField()
+    tokens = serializers.IntegerField()
 
 
 class CourseCategorySerializer(serializers.ModelSerializer):

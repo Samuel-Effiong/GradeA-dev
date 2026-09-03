@@ -8,10 +8,13 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
+
+love God
 """
 
 # import logging
 import os
+import sys
 from datetime import timedelta
 from pathlib import Path
 
@@ -31,12 +34,23 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
-            "format": "\n\n{name} {levelname} {asctime} {module} {process:d} {thread:d} {message}\n\n",
+            # request_id is injected by RequestIDLogFilter below, on every
+            # record regardless of which logger emitted it (not just ones
+            # from a request - it reads "-" outside any request/task).
+            "format": (
+                "\n\n{name} {levelname} {asctime} {module} {process:d} {thread:d} "
+                "[request_id={request_id}] {message}\n\n"
+            ),
             "style": "{",
         },
         "simple": {
-            "format": "\n\n[%(asctime)s] %(levelname)s %(message)s\n\n",
+            "format": "\n\n[%(asctime)s] %(levelname)s [request_id=%(request_id)s] %(message)s\n\n",
             "datefmt": "%Y-%m-%d %H:%M:%S",
+        },
+    },
+    "filters": {
+        "request_id": {
+            "()": "AutoGrader.request_context.RequestIDLogFilter",
         },
     },
     "handlers": {
@@ -44,6 +58,7 @@ LOGGING = {
             "class": "logging.StreamHandler",
             "level": "INFO",
             "formatter": "verbose",
+            "filters": ["request_id"],
         },
     },
     "loggers": {
@@ -57,6 +72,24 @@ LOGGING = {
             "handlers": ["console"],
             "level": "ERROR",
         },
+        # The grading pipeline. Configured explicitly because there is no
+        # "root" logger entry here: without this, every logger in
+        # ai_processor/ (and students/) inherits nothing from Django and
+        # emits through whatever handler happens to exist. Until this was
+        # added, that handler came from a stray logging.basicConfig() at
+        # import time in ai_processor/validators.py — which also meant the
+        # whole pipeline logged under the name "ai_processor.validators",
+        # making it impossible to tell which stage produced a line.
+        "ai_processor": {
+            "handlers": ["console"],
+            "level": env.str("GRADING_LOG_LEVEL", default="INFO"),
+            "propagate": False,
+        },
+        "students": {
+            "handlers": ["console"],
+            "level": env.str("GRADING_LOG_LEVEL", default="INFO"),
+            "propagate": False,
+        },
     },
 }
 
@@ -67,6 +100,10 @@ LOGGING = {
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env.str("SECRET_KEY")
 FRONTEND_DOMAIN = env.str("FRONTEND_DOMAIN")
+# Separate frontend app for students (registration/activation, login). Falls
+# back to FRONTEND_DOMAIN (the teacher app) when unset so existing
+# deployments keep working until the student app's domain is provisioned.
+STUDENT_FRONTEND_DOMAIN = env.str("STUDENT_FRONTEND_DOMAIN", default=FRONTEND_DOMAIN)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 ENVIRONMENT = env.str("ENVIRONMENT")
@@ -77,25 +114,188 @@ elif ENVIRONMENT == "dev":
     DEBUG = False
 elif ENVIRONMENT == "local":
     DEBUG = True
+else:
+    # A typo'd ENVIRONMENT value used to leave DEBUG unassigned, raising a
+    # NameError at import (fails closed - the app just won't boot). This
+    # keeps that fail-closed behavior but makes the cause obvious instead
+    # of a bare stack trace pointing at whatever line reads DEBUG first.
+    DEBUG = False
+    import logging
+
+    logging.getLogger(__name__).error(
+        "Unrecognized ENVIRONMENT=%r (expected 'prod', 'dev', or 'local'); "
+        "defaulting DEBUG=False.",
+        ENVIRONMENT,
+    )
 
 APPEND_SLASH = False
 
-ALLOWED_HOSTS = ["*"]
+# Error reporting.
+#
+# Until this existed, the only log handler was `console` (see LOGGING
+# above), which under systemd means an unhandled exception in a web worker
+# or a Celery task is written to a file nobody is watching. A production
+# failure was, in practice, invisible.
+#
+# Enabled only when SENTRY_DSN is set, so local and test runs stay offline
+# and no DSN is required to boot. The import is guarded so that a
+# deployment which has not installed the package yet degrades to "no error
+# reporting" rather than failing to start.
+SENTRY_DSN = env.str("SENTRY_DSN", default="")
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-]
+if SENTRY_DSN and ENVIRONMENT in ("prod", "dev"):
+    try:
+        import sentry_sdk
+        from sentry_sdk.integrations.celery import CeleryIntegration
+        from sentry_sdk.integrations.django import DjangoIntegration
+        from sentry_sdk.integrations.logging import LoggingIntegration
 
+        sentry_sdk.init(
+            dsn=SENTRY_DSN,
+            environment=ENVIRONMENT,
+            integrations=[
+                DjangoIntegration(),
+                CeleryIntegration(),
+                # Breadcrumbs from INFO, events from ERROR - so a report
+                # arrives with the log lines that led up to it.
+                LoggingIntegration(level=None, event_level="ERROR"),
+            ],
+            # Enable sending logs to Sentry
+            enable_logs=True,
+            # Traces are sampled low: this project's grading requests are
+            # long-running, and full tracing on every one would be costly
+            # without telling us much. Errors are always captured.
+            traces_sample_rate=env.float("SENTRY_TRACES_SAMPLE_RATE", default=0.05),
+            # These carry student work, grades, and billing identifiers.
+            # Keep them out of the error reports.
+            send_default_pii=False,
+            # Set profile_session_sample_rate to 1.0 to profile 100%
+            # of profile sessions.
+            profile_session_sample_rate=1.0,
+            # Set profile_lifecycle to "trace" to automatically
+            # run the profiler on when there is an active transaction
+            profile_lifecycle="trace",
+        )
+    except ImportError:  # pragma: no cover - depends on deploy state
+        import logging
+
+        logging.getLogger(__name__).warning(
+            "SENTRY_DSN is set but sentry-sdk is not installed; "
+            "error reporting is disabled. Run `pip install -r requirements.txt`."
+        )
+
+# Host-header allowlist. Gated by ENVIRONMENT like the CORS settings below -
+# previously this was "*" in every environment, including prod, which
+# permits Host-header injection (cache poisoning, poisoned password-reset
+# links from anything that builds absolute URLs off request.get_host(),
+# confused-deployment routing behind the proxy).
+if ENVIRONMENT == "prod":
+    ALLOWED_HOSTS = [
+        "grade-automator-plus-production.up.railway.app",
+        "grade-automator-beta-production.up.railway.app",
+    ]
+elif ENVIRONMENT == "dev":
+    ALLOWED_HOSTS = []
+else:  # local
+    ALLOWED_HOSTS = ["*"]
+
+if ENVIRONMENT in ("prod", "dev"):
+    # Railway auto-injects these per-service at runtime (public domain for
+    # normal traffic, private domain for internal networking - which is
+    # also what Railway's healthcheck hits). Appending them means a new
+    # service doesn't need a code change to pass its own healthcheck.
+    for _host_var in ("RAILWAY_PUBLIC_DOMAIN", "RAILWAY_PRIVATE_DOMAIN"):
+        _host = env.str(_host_var, default="")
+        if _host and _host not in ALLOWED_HOSTS:
+            ALLOWED_HOSTS.append(_host)
+
+# Origins allowed to call the API cross-origin. Gated by ENVIRONMENT the
+# same way the cookie-security block below is - previously
+# CORS_ALLOW_ALL_ORIGINS = True overrode this allowlist unconditionally in
+# every environment, including prod, letting any website call the API with
+# a stolen/phished bearer token.
+if ENVIRONMENT in ("prod", "dev"):
+    CORS_ALLOWED_ORIGINS = [
+        "https://teacher.gradeautomator.com",
+        "https://www.teacher.gradeautomator.com",
+        "https://test.student.gradeautomator.com",
+        "https://www.test.student.gradeautomator.com",
+        "https://student-app-qa-production-ae1.up.railway.app",
+        "https://student-app-live-production.up.railway.app",
+        "https://student.gradeautomator.com",
+        "https://www.student.gradeautomator.com",
+        "https://super-admin-web-app-qa-production.up.railway.app",
+        "https://super-admin-app-live-production.up.railway.app",
+        "https://www.test.super.gradeautomator.com",
+        "https://test.super.gradeautomator.com",
+        "https://super.gradeautomator.com",
+        "https://www.super.gradeautomator.com",
+        "https://teacher-app-qa-billing-production.up.railway.app",
+        "https://teacher-web-app-qa-production.up.railway.app",
+        "https://www.test.teacher.gradeautomator.com",
+        "https://test.teacher.gradeautomator.com",
+        "https://school-admin-app-qa-production.up.railway.app",
+        "https://school-admin-app-live-production.up.railway.app",
+        "https://test.admin.gradeautomator.com",
+        "https://www.test.admin.gradeautomator.com",
+        "https://admin.gradeautomator.com",
+        "https://www.admin.gradeautomator.com",
+        "https://teacher-web-app-beta-production.up.railway.app",
+    ]
+else:  # local
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:3000",
+    ]
+
+# Frontend devs run their frontend on localhost (any port/subdomain) while
+# pointing it at a deployed backend (dev or prod), not just a locally-run
+# one - so this is allowed in every environment, not gated behind
+# ENVIRONMENT like the origin allowlist above. CORS_ALLOW_CREDENTIALS is
+# False, so this can't be used to ride a logged-in session/cookie; it only
+# lets localhost JS read responses to bearer-token requests it already
+# had to have the token to make.
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https?://([a-z0-9-]+\.)?localhost(:[0-9]+)?$",
 ]
 
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3000",
-]
+CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 
 CORS_ALLOW_CREDENTIALS = False
-CORS_ALLOW_ALL_ORIGINS = True
+
+# Browsers hide all response headers from cross-origin JS by default except
+# a small CORS-safelisted set; X-Request-ID isn't in it, so it must be
+# explicitly exposed for a frontend to read it and surface it in a support
+# ticket ("attach this id when reporting a bug").
+CORS_EXPOSE_HEADERS = ["X-Request-ID"]
+
+
+# Transport security. Applied only in prod so that local development over
+# plain HTTP keeps working - a secure-only cookie is simply never sent back
+# by the browser on http://localhost, which looks like a broken login.
+#
+# These correspond to the warnings `manage.py check --deploy` raises
+# (security.W004 / W012 / W016).
+if ENVIRONMENT == "prod":
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
+    SECURE_HSTS_SECONDS = 60 * 60 * 24 * 30  # 30 days
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    # Not preloading: submission to the browser preload list is effectively
+    # irreversible and should be a deliberate decision once HTTPS has been
+    # stable for a while, not something switched on at first deploy.
+    SECURE_HSTS_PRELOAD = False
+
+    # Gunicorn sits behind a proxy that terminates TLS, so Django has to be
+    # told how to recognise an already-secure request. Without this,
+    # SECURE_SSL_REDIRECT below sees every proxied request as plain HTTP and
+    # redirects forever.
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+    # Left off by default and opt-in via env: enabling it before the proxy
+    # is confirmed to set X-Forwarded-Proto takes the whole site down with a
+    # redirect loop. Turn on once that header is verified in production.
+    SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=False)
 
 
 # Application definition
@@ -130,9 +330,15 @@ INSTALLED_APPS = [
     "billing",
     "django_celery_results",
     "django_celery_beat",
+    # Third-party packages
+    "encrypted_model_fields",
 ]
 
 MIDDLEWARE = [
+    # First, so the correlation id it assigns is set before every other
+    # middleware/view/signal handler runs, and torn down only after all of
+    # them have returned - see AutoGrader.middleware.RequestIDMiddleware.
+    "AutoGrader.middleware.RequestIDMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "users.middleware.UserActivityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -169,32 +375,66 @@ WSGI_APPLICATION = "AutoGrader.wsgi.application"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASE_CONFIG = {
-    "conn_max_age": 0,
+    # Persistent connections. At 0, every HTTP request paid a full TCP +
+    # TLS + auth round trip to the managed Postgres before running its
+    # first query -- tens of milliseconds of pure overhead on every
+    # request, on every endpoint.
+    "conn_max_age": 600,
+    # Only meaningful now that connections persist: Django pings a reused
+    # connection before handing it to a request, so a connection dropped
+    # by the pooler surfaces as a retry rather than a 500.
     "conn_health_checks": True,
+    # Load-bearing in production, which runs behind pgbouncer in TRANSACTION
+    # pooling mode: a server-side cursor outlives the transaction that
+    # declared it, but the pooler hands that server connection to another
+    # client at commit, so the cursor is gone by the time .iterator() fetches
+    # the next chunk.
+    #
+    # MUST be passed here rather than as a module-level setting. Django reads
+    # it from the per-database settings_dict (see QuerySet.iterator()), so the
+    # old module-level `DISABLE_SERVER_SIDE_CURSORS = True` silently did
+    # nothing and server-side cursors stayed enabled.
+    "disable_server_side_cursors": True,
 }
 
-if ENVIRONMENT == "local":
-    DATABASES = {
-        "default": dj_database_url.config(
-            default=env.str("DATABASE_URI_LOCAL"), **DATABASE_CONFIG
-        )
-    }
-elif ENVIRONMENT == "dev":
-    DATABASES = {
-        "default": dj_database_url.config(
-            default=env.str("DATABASE_URI_DEV"), **DATABASE_CONFIG
-        )
-    }
-else:
-    DATABASES = {
-        "default": dj_database_url.config(
-            default=env.str("DATABASE_URI"), **DATABASE_CONFIG
-        ),
-        "OPTIONS": {
-            "prepare_threshold": None,  # or psycopg2 alternative
-        },
-    }
-DISABLE_SERVER_SIDE_CURSORS = True
+#: All environments differ only in which variable holds the URL. Keeping one
+#: construction path means a fix like the OPTIONS placement below cannot be
+#: applied to some environments and missed in others -- which is exactly how
+#: production ended up as the only environment carrying a broken OPTIONS key.
+DATABASE_URI_ENV_VAR = {
+    "local": "DATABASE_URI_LOCAL",
+    "dev": "DATABASE_URI_DEV",
+}.get(ENVIRONMENT, "DATABASE_URI")
+
+DATABASES = {
+    "default": dj_database_url.config(
+        default=env.str(DATABASE_URI_ENV_VAR), **DATABASE_CONFIG
+    )
+}
+
+# Server-side guard rails (lock_timeout, idle_in_transaction_session_timeout)
+# are NOT set here. They live on the database role, applied with ALTER ROLE --
+# see docs/ops/postgres-guard-rails.md.
+#
+# Production connects through pgbouncer in transaction pooling mode, and a
+# pooler exists precisely to hand one server connection to many clients in
+# turn. Anything session-scoped that the app sets would therefore leak into
+# some later request, so pgbouncer refuses to pass startup parameters it does
+# not track. Setting these as psycopg2's `options` connection parameter made
+# every connection attempt die at connect time with
+#
+#   FATAL: unsupported startup parameter in options:
+#          idle_in_transaction_session_timeout
+#
+# taking down web and Celery alike. Local and dev talk to Postgres directly,
+# so the breakage was invisible outside production.
+#
+# The rule this leaves behind: connection-level Postgres configuration is
+# infrastructure, not application config. It belongs on the role (or the
+# database), never in DATABASES["default"]["OPTIONS"]. Role defaults survive
+# the pooler because pgbouncer's server_reset_query issues DISCARD ALL, whose
+# RESET ALL restores each parameter to its session-start default -- which is
+# exactly what ALTER ROLE sets.
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -243,14 +483,316 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 
 CELERY_TIMEZONE = TIME_ZONE
+# With CELERY_TASK_ACKS_LATE=True, Redis redelivers a task's message to
+# another worker once visibility_timeout elapses without an ack — i.e. it
+# assumes the original worker died. A grading run (several sequential AI
+# calls, each with its own retries — see assignments.tasks.grade_engine_async)
+# can legitimately take longer than the previous 600s value, which caused
+# Redis to redeliver a still-running grading task to a second worker,
+# double-billing the teacher. Raised well above
+# students.services.GRADING_TASK_TIME_LIMIT_SECONDS (Celery's own hard kill
+# point for that task) so a healthy, still-running task is never mistaken
+# for a dead one. The grading claim in students.services
+# (_claim_submission_for_grading) is the actual correctness guarantee against
+# duplicate execution — this setting just keeps ordinary redeliveries rare
+# in the first place, since even a caught duplicate wastes a worker slot and
+# an API round trip before being skipped.
 CELERY_BROKER_TRANSPORT_OPTIONS = {
-    "visibility_timeout": 600,  # 10 minutes
+    "visibility_timeout": 3600,  # 1 hour
 }
+
+# All GRADING_* settings below read from the environment, defaulting to
+# today's values (zero behaviour change on deploy). This is what makes,
+# e.g., GRADING_EVIDENCE_ENFORCEMENT flippable strict -> log in production
+# without a code deploy — the single most useful operational lever for a
+# grading pipeline still building up a track record.
+
+# Tier 0 grading: OBJECTIVE questions whose answer matches an option
+# unambiguously are graded in Python against the stored answer key — no
+# AI call, no credits. Claim-only: any ambiguity defers to the AI, so
+# turning this on can only remove AI error. False restores the previous
+# behavior exactly (production rollback lever). See
+# ai_processor/objective_grading.py.
+GRADING_DETERMINISTIC_OBJECTIVE = env.bool(
+    "GRADING_DETERMINISTIC_OBJECTIVE", default=True
+)
+
+# Structured output for grading calls: enforce json_schema contracts
+# (ai_processor/grading_schemas.py) instead of free-form json_object.
+# Kill switch in case an OpenRouter fallback model rejects json_schema —
+# False restores the previous free-form behavior.
+GRADING_RESPONSE_SCHEMA_ENABLED = env.bool(
+    "GRADING_RESPONSE_SCHEMA_ENABLED", default=True
+)
+
+# Mechanical evidence verification (ai_processor/evidence.py): every
+# points-awarding evaluation must cite at least one verbatim quote from
+# the student's answer, string-checked in code.
+#   "strict" — fabricated/absent evidence rejects the response (retried,
+#              like a completeness failure)
+#   "log"    — verify + annotate evaluations, never reject
+#   "off"    — evidence is not inspected at all
+GRADING_EVIDENCE_ENFORCEMENT = env.str("GRADING_EVIDENCE_ENFORCEMENT", default="strict")
+
+# Structured output for ANSWER EXTRACTION calls: enforce the json_schema
+# contract in ai_processor/extraction_schemas.py instead of free-form
+# json_object. Answer extraction is upstream of grading, so a dropped or
+# mis-numbered answer here becomes a zero no amount of grading rigour can
+# recover — see ai_processor/answer_completeness.py's module docstring.
+# Kill switch in case a routed fallback model rejects json_schema; unlike
+# the grading equivalent, turning this off LOGS (see
+# AIProcessor._answer_extraction_schema), because a silent downgrade of a
+# safety check is how the check stops existing without anyone noticing.
+ANSWER_EXTRACTION_SCHEMA_ENABLED = env.bool(
+    "ANSWER_EXTRACTION_SCHEMA_ENABLED", default=True
+)
+
+# Mechanical completeness checking for extracted answers
+# (ai_processor/answer_completeness.py): every question in the assignment
+# must be positively accounted for by the extraction — answered, blank,
+# illegible, or explicitly not found.
+#   "strict" — an incomplete payload is rejected and re-extracted. The
+#              FINAL attempt degrades to "log" rather than destroying the
+#              submission (same rule as the evidence check).
+#   "log"    — repair + flag for review, never reject
+#   "off"    — answers are not inspected at all (pre-hardening behaviour)
+ANSWER_COMPLETENESS_ENFORCEMENT = env.str(
+    "ANSWER_COMPLETENESS_ENFORCEMENT", default="strict"
+)
+
+# Targeted re-read of questions the extractor reported as empty
+# (ai_processor/services.py::_verify_blank_answers). A claimed blank is the
+# ONLY shape a lost answer can hide in - an answer that WAS transcribed is
+# by definition not lost - so rather than trying to verify every answer
+# against a source text we do not have (submissions are read from page
+# images; ocr_processor is an empty stub), this re-reads the pages asking
+# one narrow question about just those questions.
+#
+# Cost is bounded and self-limiting: zero extra calls on a fully answered
+# submission, and the more blanks there are - i.e. the higher the risk one
+# of them is a miss - the more the single extra call earns its keep.
+ANSWER_BLANK_VERIFICATION_ENABLED = env.bool(
+    "ANSWER_BLANK_VERIFICATION_ENABLED", default=True
+)
+
+# Above this many blanks, skip the re-read. A submission where almost
+# nothing was answered is either a genuinely near-empty paper or a wholesale
+# extraction failure; in both cases a per-question re-read is the wrong
+# instrument, and the completeness flags already route it to a human.
+ANSWER_BLANK_VERIFICATION_MAX_QUESTIONS = env.int(
+    "ANSWER_BLANK_VERIFICATION_MAX_QUESTIONS", default=12
+)
+
+# The re-read sends the WHOLE submission in one call (a missing answer
+# could be on any page, and a partial view would simply miss it), so long
+# submissions are skipped rather than attempted and failed. Safe in the
+# only direction that matters: the re-read can only move a question
+# BLANK -> NOT_FOUND_IN_DOCUMENT, so skipping costs a possible recovery
+# and can never produce a wrong flag.
+ANSWER_BLANK_VERIFICATION_MAX_PAGES = env.int(
+    "ANSWER_BLANK_VERIFICATION_MAX_PAGES", default=10
+)
+
+# Model for the re-read. A DIFFERENT model than the extractor is preferable
+# for the same reason the grading second opinion uses one (see
+# second_opinion.pick_second_model): a second read from the model that just
+# missed the answer tends to miss it again. Empty = use default routing,
+# which still asks a far narrower question than the extraction did.
+ANSWER_BLANK_VERIFICATION_MODEL = env.str("ANSWER_BLANK_VERIFICATION_MODEL", default="")
+
+# Selective blind second opinion (ai_processor/second_opinion.py): a
+# DIFFERENT model re-grades triggered questions without seeing the first
+# grade; disagreement flags the submission needs_review for the teacher.
+# Grader A's score always stands — the second opinion can only flag.
+GRADING_SECOND_OPINION_ENABLED = env.bool(
+    "GRADING_SECOND_OPINION_ENABLED", default=True
+)
+# Candidate models for grader B, in preference order. The first one that
+# differs from the model that ACTUALLY graded (fallback routing included)
+# is used; if none differs, the second opinion is skipped — a same-model
+# "second opinion" shares every blind spot of the first.
+#
+# Two entries deliberately: grader A (GRADING_FALLBACK_MODELS in
+# ai_processor/services.py) can itself fall back to deepseek-v4-pro. If
+# deepseek were the only second-opinion candidate, that fallback would
+# silently disable the second opinion at exactly the moment grader A is
+# already struggling. gemini-2.5-flash is the third, independent option
+# for that case — different vendor family from both x-ai (grader A) and
+# deepseek (grader A's fallback), comparable reasoning-tier positioning,
+# structured-output support, and (at the time this was set) priced at or
+# below both of the others. On the normal path (grader A = grok-4.3) this
+# resolves to deepseek exactly as before — gemini is only reached in the
+# previously-broken fallback case, so everyday spend is unchanged.
+GRADING_SECOND_OPINION_MODELS = env.list(
+    "GRADING_SECOND_OPINION_MODELS",
+    default=["deepseek/deepseek-v4-pro", "google/gemini-2.5-flash"],
+)
+# Trigger thresholds. A run below this confidence gets a full second
+# read; individual questions trigger on a model-emitted flag_for_review
+# or points >= the high-points threshold; and a small random sample of
+# everything else keeps the easy cases measured.
+GRADING_SECOND_OPINION_MIN_CONFIDENCE = env.int(
+    "GRADING_SECOND_OPINION_MIN_CONFIDENCE", default=80
+)
+GRADING_SECOND_OPINION_HIGH_POINTS = env.int(
+    "GRADING_SECOND_OPINION_HIGH_POINTS", default=15
+)
+GRADING_SECOND_OPINION_SAMPLE_RATE = env.float(
+    "GRADING_SECOND_OPINION_SAMPLE_RATE", default=0.05
+)
+# Escalate a question when the grader itself reports that the answer sat
+# between two rubric levels (level_decision == "borderline"). This is the
+# per-question uncertainty signal that MIN_CONFIDENCE was supposed to be
+# and isn't — a live run had 120/124 questions at confidence >= 80, so
+# there was no spread to select on. Kill switch: turning this off costs
+# accuracy on close calls but reduces second-opinion spend.
+GRADING_SECOND_OPINION_ON_BORDERLINE = env.bool(
+    "GRADING_SECOND_OPINION_ON_BORDERLINE", default=True
+)
+# Escalate a question purely by its type, unconditionally: essay and
+# short-answer questions are rubric-graded judgment calls, the category
+# where two independent graders diverge most, and unlike every other
+# trigger above this one doesn't depend on grader A self-reporting
+# anything (a flag, a borderline call, low confidence). OBJECTIVE is
+# deliberately excluded by default — most OBJECTIVE questions never reach
+# an LLM at all (resolved by the deterministic tier in
+# objective_grading.py or the answer cache first), so a second read of a
+# right/wrong call has little left to buy. Empty list disables this
+# trigger entirely.
+GRADING_SECOND_OPINION_SUBJECTIVE_TYPES = env.list(
+    "GRADING_SECOND_OPINION_SUBJECTIVE_TYPES",
+    default=["ESSAY", "SHORT-ANSWER"],
+)
+# Disagreement severity tiers (teacher triage — never suppression): a
+# disagreement whose point gap is >= critical_fraction of the question's
+# points (or >= 2 rubric levels apart) is "critical"; >= moderate_fraction
+# is "moderate"; smaller gaps are "borderline". Feeds review_severity
+# ordering and the grading_eval segmentation.
+GRADING_DISAGREEMENT_CRITICAL_FRACTION = env.float(
+    "GRADING_DISAGREEMENT_CRITICAL_FRACTION", default=0.5
+)
+GRADING_DISAGREEMENT_MODERATE_FRACTION = env.float(
+    "GRADING_DISAGREEMENT_MODERATE_FRACTION", default=0.25
+)
+# A question's question_image (a teacher-supplied URL) is sent to the
+# grading model as an actual image content block when present, so a
+# question whose content IS a diagram is no longer graded blind. Capped
+# per call so one pathological assignment can't balloon a single AI
+# call's cost/size.
+GRADING_MAX_IMAGES_PER_CALL = env.int("GRADING_MAX_IMAGES_PER_CALL", default=5)
+# Assignment.custom_ai_prompt (teacher-authored supplementary grading
+# instructions, e.g. "always require units") is spliced into the grading
+# system prompt when set. Kill switch: unlike the assignment-context and
+# question-image additions above, this changes grading behavior per
+# assignment based on free-text a teacher wrote, so it needs an
+# off-without-a-deploy lever if a teacher's text ever causes a bad
+# interaction.
+GRADING_CUSTOM_INSTRUCTIONS_ENABLED = env.bool(
+    "GRADING_CUSTOM_INSTRUCTIONS_ENABLED", default=True
+)
+# The dashboard "Custom AI Prompt" chat (SuperAdminDashboardView,
+# SchoolAdminDashboardView, TeacherAdminDashboardView in dashboard/views.py,
+# and BetaAnalyticViewSet in billing/views.py) lets four different roles
+# ask a free-form question that's answered by an LLM fed a dump of their
+# own dashboard data. Same reasoning as GRADING_CUSTOM_INSTRUCTIONS_ENABLED
+# above - this is LLM behavior driven directly by arbitrary user-typed
+# text, across more roles and with no structured-output check on the
+# reply, so it needs the same off-without-a-deploy lever.
+DASHBOARD_CUSTOM_AI_PROMPT_ENABLED = env.bool(
+    "DASHBOARD_CUSTOM_AI_PROMPT_ENABLED", default=True
+)
+# Cross-student consistency cache (ai_processor/grading_cache.py): before
+# an LLM-graded question+answer pair is sent to the model, check Redis
+# for a prior evaluation keyed by the exact question content + exact
+# answer content + grading model. A hit is reused verbatim instead of a
+# fresh (and, at the margin, possibly divergent) model call — so two
+# students who submit byte-identical answers are GUARANTEED the same
+# score, not just usually consistent because temperature is 0. Also cuts
+# real cost on classes with a common wrong answer. Kill switch: False
+# restores today's behavior of a fresh call per submission.
+GRADING_ANSWER_CACHE_ENABLED = env.bool("GRADING_ANSWER_CACHE_ENABLED", default=True)
+GRADING_ANSWER_CACHE_TTL_SECONDS = env.int(
+    "GRADING_ANSWER_CACHE_TTL_SECONDS", default=60 * 60 * 24 * 3  # 3 days
+)
+
+# Rendered-PDF cache (assignments/pdf_cache.py): a downloaded assignment
+# PDF costs a full headless-Chromium render to produce and is identical
+# for everyone downloading the same unchanged assignment in the same
+# view, so the bytes are cached and reused. The cache key includes the
+# assignment's updated_at, so an edit can never serve a stale PDF - see
+# that module's docstring. Kill switch: False renders every download
+# fresh.
+ASSIGNMENT_PDF_CACHE_ENABLED = env.bool("ASSIGNMENT_PDF_CACHE_ENABLED", default=True)
+ASSIGNMENT_PDF_CACHE_TTL_SECONDS = env.int(
+    "ASSIGNMENT_PDF_CACHE_TTL_SECONDS", default=60 * 60 * 24  # 1 day
+)
+# Renders above this are served but never cached, so a few image-heavy
+# assignments can't hold hundreds of MB of Redis for a full TTL and evict
+# everything else. A typical assignment PDF measured ~43KB. 0 disables.
+ASSIGNMENT_PDF_CACHE_MAX_BYTES = env.int(
+    "ASSIGNMENT_PDF_CACHE_MAX_BYTES", default=5 * 1024 * 1024  # 5 MB
+)
+
+# How many PDFs one warm Chromium instance renders before
+# assignments/pdf_renderer.py closes it and starts a fresh one; 0 disables
+# recycling. A 120-render soak measured ~0.02 MB/render of growth, still
+# decelerating (cache warm-up, not a leak), so this is a bound against a
+# future Chromium that does leak - and against callers with no
+# process-level recycling of their own - rather than a fix for observed
+# growth. gunicorn's --max-requests already recycles whole workers.
+PDF_RENDERER_MAX_RENDERS_PER_BROWSER = env.int(
+    "PDF_RENDERER_MAX_RENDERS_PER_BROWSER", default=500
+)
+
+# How many PDFs one worker process renders at the same time in its warm
+# Chromium. Renders run concurrently on the renderer's event loop, so this
+# is what bounds peak memory: an open page measured ~20MB on top of the
+# browser's ~165MB baseline, making the default roughly baseline + 80MB
+# under a burst. Raising it trades memory for tail latency when many
+# *uncached* assignments are requested at once; 1 restores fully
+# serialized rendering.
+PDF_RENDERER_MAX_CONCURRENT_RENDERS = env.int(
+    "PDF_RENDERER_MAX_CONCURRENT_RENDERS", default=4
+)
+
+# Load shedding: renders queued or running per worker before further ones
+# are refused with 503 instead of queueing. Default None = 4x the
+# concurrency above; 0 disables shedding entirely. Measured under 300
+# concurrent callers without it, renders sat ~35s and 89 of 3000 died at
+# the 45s timeout, each pinning a request thread for the whole wait -
+# refusing fast keeps those threads free for work the process can serve.
+PDF_RENDERER_MAX_QUEUED_RENDERS = env.int(
+    "PDF_RENDERER_MAX_QUEUED_RENDERS", default=None
+)
 
 CELERY_TASK_ACKS_LATE = True
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_RESULT_EXPIRES = 3600  # Delete results after 1 hour
 
+# Workers keep retrying to connect to the broker on startup instead of
+# giving up after the first failed attempt - relevant specifically for a
+# worker/beat process that starts (or restarts) while Redis is briefly
+# unavailable, e.g. during a Redis plugin restart on Railway. This is
+# Celery 6's default; setting it explicitly also silences the deprecation
+# warning Celery 5.5 raises when it's unset.
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+
+WEEKLY_COURSE_SUMMARY_DAY_OF_WEEK = env.str(
+    "WEEKLY_COURSE_SUMMARY_DAY_OF_WEEK", default="6"
+)
+WEEKLY_COURSE_SUMMARY_HOUR = env.int("WEEKLY_COURSE_SUMMARY_HOUR", default=7)
+WEEKLY_COURSE_SUMMARY_MINUTE = env.int("WEEKLY_COURSE_SUMMARY_MINUTE", default=0)
+
+AT_RISK_ALERT_HOUR = env.int("AT_RISK_ALERT_HOUR", default=6)
+AT_RISK_ALERT_MINUTE = env.int("AT_RISK_ALERT_MINUTE", default=30)
+
+TEACHER_INACTIVITY_ALERT_HOUR = env.int("TEACHER_INACTIVITY_ALERT_HOUR", default=6)
+TEACHER_INACTIVITY_ALERT_MINUTE = env.int("TEACHER_INACTIVITY_ALERT_MINUTE", default=45)
+TEACHER_INACTIVITY_THRESHOLD_DAYS = env.int(
+    "TEACHER_INACTIVITY_THRESHOLD_DAYS", default=14
+)
+
+USE_BETA_PLAN_ON_SIGNUP = env.bool("USE_BETA_PLAN_ON_SIGNUP", default=False)
 
 # Celery Beat Schedule
 CELERY_BEAT_SCHEDULE = {
@@ -258,20 +800,144 @@ CELERY_BEAT_SCHEDULE = {
         "task": "dashboard.tasks.record_concurrent_users",
         "schedule": 60.0,
     },
-    "run-subscription-renewal-status": {
-        "task": "billing.tasks.process_subscription_renewals",
-        "schedule": 60 * 60,
-    },
-    "reconcile-expired-buckets-midnight": {
-        "task": "billing.tasks.cleanup_expired_credit_buckets",
+    "process-license-renewals": {
+        "task": "billing.tasks.process_license_renewals",
         "schedule": crontab(minute=0, hour=0),
     },
-    # "send-email-task": {
-    #     "task": "AutoGrader.tasks.send_email_task",
-    #     "schedule": 60.0,
-    # }
+    "process-annual_plan-credit-grants": {
+        "task": "billing.tasks.process_annual_plan_credit_grants",
+        "schedule": crontab(minute=0, hour=2),
+    },
+    "process-license-monthly-credit-refreshes": {
+        "task": "billing.tasks.process_license_monthly_credit_refreshes",
+        "schedule": crontab(minute=0, hour=3),
+    },
+    "reconcile-subscriptions-daily": {
+        "task": "billing.tasks.reconcile_subscription_renewals",
+        "schedule": crontab(minute=0, hour=4),
+    },
+    # Watchdog over the Stripe webhook ledger: settles claims abandoned by
+    # killed workers and raises an ERROR log for failures about to fall out
+    # of Stripe's ~3-day retry window. Hourly, so a failure is always seen
+    # with days to spare. Never re-runs handlers - see the task docstring.
+    "sweep-stale-stripe-events": {
+        "task": "billing.tasks.sweep_stale_stripe_events",
+        "schedule": crontab(minute=15),
+    },
+    "cleanup-expired-credit-buckets": {
+        "task": "billing.tasks.cleanup_expired_credit_buckets",
+        "schedule": crontab(minute=0, hour=5),
+    },
+    # Real-Stripe QA suite. A no-op unless ENABLE_STRIPE_LIVE_QA is set
+    # AND the keys are sk_test_, so this is inert on production workers
+    # and only does work on a staging/QA worker. Slow (it waits on Stripe
+    # test-clock advances), which is exactly why it is nightly and not in
+    # the commit path. Hour 1 keeps it clear of the other billing jobs.
+    "nightly-stripe-live-qa": {
+        "task": "billing.tasks.nightly_stripe_live_qa",
+        "schedule": crontab(minute=0, hour=1),
+    },
+    # Grading-quality checks (ai_processor/benchmark/). The nightly one
+    # replays recorded model responses: free, deterministic, and the only
+    # scheduled thing that catches a regression in OUR grading code —
+    # there is no CI in this repo, so Beat is the only place to hang it.
+    "nightly-grading-benchmark-replay": {
+        "task": "ai_processor.tasks.nightly_grading_benchmark_replay",
+        "schedule": crontab(minute=30, hour=1),
+    },
+    # The weekly one makes REAL, billed model calls, and is a no-op unless
+    # ENABLE_AI_LIVE_QA is set. It is the only check that can detect the
+    # provider changing behaviour underneath us — replayed responses
+    # cannot, by construction.
+    "weekly-grading-benchmark-live": {
+        "task": "ai_processor.tasks.weekly_grading_benchmark_live",
+        "schedule": crontab(
+            minute=0,
+            hour=3,
+            day_of_week=env.str("GRADING_BENCHMARK_DAY_OF_WEEK", default="0"),
+        ),
+    },
+    "expire-active-trials": {
+        "task": "billing.tasks.expire_active_trials",
+        "schedule": crontab(minute=0, hour="*/6"),
+    },
+    "send-weekly-course-summaries": {
+        "task": "dashboard.tasks.send_weekly_course_summaries",
+        "schedule": crontab(
+            minute=WEEKLY_COURSE_SUMMARY_MINUTE,
+            hour=WEEKLY_COURSE_SUMMARY_HOUR,
+            day_of_week=WEEKLY_COURSE_SUMMARY_DAY_OF_WEEK,
+        ),
+    },
+    "send-weekly-student-summaries": {
+        "task": "dashboard.tasks.send_weekly_student_summaries",
+        "schedule": crontab(
+            minute=WEEKLY_COURSE_SUMMARY_MINUTE,
+            hour=WEEKLY_COURSE_SUMMARY_HOUR,
+            day_of_week=WEEKLY_COURSE_SUMMARY_DAY_OF_WEEK,
+        ),
+    },
+    "send-weekly-school-admin-summaries": {
+        "task": "dashboard.tasks.send_weekly_school_admin_summaries",
+        "schedule": crontab(
+            minute=WEEKLY_COURSE_SUMMARY_MINUTE,
+            hour=WEEKLY_COURSE_SUMMARY_HOUR,
+            day_of_week=WEEKLY_COURSE_SUMMARY_DAY_OF_WEEK,
+        ),
+    },
+    "send-at-risk-student-alerts": {
+        "task": "dashboard.tasks.send_at_risk_student_alerts",
+        "schedule": crontab(minute=AT_RISK_ALERT_MINUTE, hour=AT_RISK_ALERT_HOUR),
+    },
+    "send-teacher-inactivity-alerts": {
+        "task": "dashboard.tasks.send_teacher_inactivity_alerts",
+        "schedule": crontab(
+            minute=TEACHER_INACTIVITY_ALERT_MINUTE,
+            hour=TEACHER_INACTIVITY_ALERT_HOUR,
+        ),
+    },
+    # Watchdog over Beat itself - see AutoGrader/beat_health.py. Runs every
+    # 15 minutes so a dead/duplicated Beat is caught quickly regardless of
+    # how infrequently the schedule it's checking fires.
+    "check-beat-health": {
+        "task": "AutoGrader.beat_health.check_beat_health",
+        "schedule": crontab(minute="*/15"),
+    },
 }
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+
+# Expected cadence for the tasks above, read by AutoGrader/beat_health.py's
+# check_beat_health. Deliberately hand-maintained rather than derived from
+# CELERY_BEAT_SCHEDULE's crontab objects (computing "next expected fire
+# time" generically from an arbitrary crontab is real work for schedules
+# this project doesn't need the generality of) - whoever adds/changes an
+# entry above should add/update its row here too.
+#
+# alert_threshold is intentionally well above expected_interval so a
+# routine few-minutes scheduling delay never fires a false alarm - see the
+# task docstring for exactly what "overdue" means.
+BEAT_HEALTH_EXPECTATIONS = {
+    # name: (expected_interval, alert_threshold)
+    "record-concurrent-users-every-minute": (
+        timedelta(minutes=1),
+        timedelta(minutes=10),
+    ),
+    "sweep-stale-stripe-events": (timedelta(hours=1), timedelta(hours=3)),
+    "expire-active-trials": (timedelta(hours=6), timedelta(hours=15)),
+    "process-license-renewals": (timedelta(days=1), timedelta(days=2)),
+    "process-annual_plan-credit-grants": (timedelta(days=1), timedelta(days=2)),
+    "process-license-monthly-credit-refreshes": (timedelta(days=1), timedelta(days=2)),
+    "reconcile-subscriptions-daily": (timedelta(days=1), timedelta(days=2)),
+    "cleanup-expired-credit-buckets": (timedelta(days=1), timedelta(days=2)),
+    "nightly-stripe-live-qa": (timedelta(days=1), timedelta(days=2)),
+    "nightly-grading-benchmark-replay": (timedelta(days=1), timedelta(days=2)),
+    "send-at-risk-student-alerts": (timedelta(days=1), timedelta(days=2)),
+    "send-teacher-inactivity-alerts": (timedelta(days=1), timedelta(days=2)),
+    "weekly-grading-benchmark-live": (timedelta(weeks=1), timedelta(days=10)),
+    "send-weekly-course-summaries": (timedelta(weeks=1), timedelta(days=10)),
+    "send-weekly-student-summaries": (timedelta(weeks=1), timedelta(days=10)),
+    "send-weekly-school-admin-summaries": (timedelta(weeks=1), timedelta(days=10)),
+}
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
@@ -333,7 +999,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "DEFAULT_PAGINATION_CLASS": "AutoGrader.pagination.StandardPageNumberPagination",
     "PAGE_SIZE": 20,
     "DEFAULT_RENDERER_CLASSES": (
         "users.renderers.APIJSONRenderer",
@@ -346,6 +1012,69 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "EXCEPTION_HANDLER": "users.exceptions.custom_exception_handler",
     "DEFAULT_ROUTER_TRAILING_SLASH": False,
+    # Throttling. Deliberately anonymous-only: `UserRateThrottle` is NOT
+    # enabled because the authenticated dashboard and grading views are
+    # chatty (the overview endpoints fan out into many sub-queries per
+    # page load) and a global per-user cap would throttle legitimate use.
+    # The threats being closed here - OTP brute force, login stuffing,
+    # registration spam - are all unauthenticated, so scoping the limits
+    # to anonymous traffic covers them without touching working flows.
+    # Counters live in the default cache, which is already Redis.
+    "DEFAULT_THROTTLE_CLASSES": (
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.ScopedRateThrottle",
+    ),
+    # How many reverse proxies sit between the client and Django. WITHOUT
+    # this, every rate limit below is trivially bypassable and was in fact
+    # not working at all in production.
+    #
+    # DRF keys an anonymous throttle on BaseThrottle.get_ident(). With
+    # NUM_PROXIES unset it falls through to
+    #
+    #     return ''.join(xff.split()) if xff else remote_addr
+    #
+    # i.e. the key is the ENTIRE X-Forwarded-For chain. Railway's edge
+    # APPENDS to that header rather than replacing it, so the caller owns
+    # its left-hand portion: each fake value invents a fresh bucket.
+    # Measured against the live beta service before this was set - 14
+    # rapid logins (limit 10/min) returned 401 fourteen times and never
+    # 429; 7 reset-password OTP requests (limit 5/hour) all returned 202.
+    #
+    # Set to an integer, DRF instead reads `addrs[-min(num_proxies, ...)]`
+    # - counting from the RIGHT, where the edge writes the address it
+    # actually observed and which the client cannot forge.
+    #
+    # 1 = a single Railway edge hop. Env-overridable because the correct
+    # value is a property of the deployment, not the code, and getting it
+    # too HIGH is its own bug: it reads an internal proxy's address, which
+    # is identical for everyone, collapsing all callers into one shared
+    # bucket. users/tests_throttle_client_identity.py covers both
+    # directions. Verify after deploy per docs/ops/rate-limiting.md.
+    "NUM_PROXIES": env.int("NUM_PROXIES", default=2),
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "60/min",
+        # Named buckets, attached per-view via users/throttling.py.
+        "login": "10/min",
+        "verify_email": "5/hour",
+        "otp_request": "5/hour",
+        "password_reset": "10/hour",  # pragma: allowlist secret
+        "register": "10/hour",
+        "google_auth": "20/hour",
+        # Shared across all four "Custom AI Prompt" dashboard-chat actions
+        # (super-admin, school-admin, teacher, and the billing beta-analytics
+        # variant) via throttle_scope="custom_ai_prompt" on each @action -
+        # deliberately ONE bucket per user across all of them, not one per
+        # endpoint, so a user with access to more than one surface can't
+        # multiply their budget by hopping between endpoints. Unlike the
+        # buckets above (anonymous-only, closing brute-force/spam holes),
+        # this one guards an authenticated, per-call-billed LLM endpoint:
+        # a wallet-balance check already caps eventual cost for
+        # non-superadmin roles, but nothing previously capped call
+        # *frequency*, and the superadmin path is unmetered entirely (see
+        # AIProcessor.execute_graded_task), so this is its only volume
+        # control.
+        "custom_ai_prompt": "10/min",
+    },
 }
 
 
@@ -381,22 +1110,18 @@ DJOSER = {
         # "confirmation": "home.emails.ConfirmationEmail",
         # "password_reset": "home.emails.PasswordResetEmail",
     },
-    # Limit who can do what:
-    # - Anyone can register
-    # - Only authenticated users can retrieve/update themselves
-    # - Only admins can list or delete other users
-    # "PERMISSIONS": {
-    #     "user_create": ["rest_framework.permissions.AllowAny"],
-    #     "user": ["rest_framework.permissions.IsAuthenticated"],
-    #     "user_list": ["rest_framework.permissions.IsAdminUser"],
-    #     "user_delete": ["rest_framework.permissions.IsAdminUser"],
-    # }
+    # NOTE: djoser's URLs are not wired up (see the commented include in
+    # AutoGrader/urls.py) - authentication is served by users.views.AuthViewSet
+    # instead. A commented-out "PERMISSIONS" block used to sit here and read
+    # like live access control, including an AllowAny entry; it was removed
+    # because nothing in it was ever in effect. Authorization for the real
+    # endpoints lives on the viewsets in users/views.py.
 }
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": f"GradeA+ Backend - {'Local' if ENVIRONMENT == 'local' else 'Dev' if ENVIRONMENT == 'dev' else 'Prod'}"
+    "TITLE": f"Grade A+ Backend - {'Local' if ENVIRONMENT == 'local' else 'Dev' if ENVIRONMENT == 'dev' else 'Prod'}"
     " Environment",
-    "DESCRIPTION": "The API backend for GradeA+",
+    "DESCRIPTION": "The API backend for Grade A+",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "SCHEMA_PATH_PREFIX": r"/openapi/v1",
@@ -423,10 +1148,13 @@ SPECTACULAR_SETTINGS = {
         "defaultModelExpandDepth": -1,
         # "docExpansion": "none",
     },
+    "EXTENSIONS": {
+        "polymorphic_assignment": "assignments.schema.PolymorphicAssignmentExtension",
+    },
 }
 
 # EMAIL_BACKEND = "anymail.backends.sendinblue.EmailBackend"
-# DEFAULT_FROM_EMAIL = "GradeA+ <samueleffiong80@gmail.com>"
+# DEFAULT_FROM_EMAIL = "Grade A+ <samueleffiong80@gmail.com>"
 # SUPPORT_EMAIL = "GradeA+@gmail.com"
 
 EMAIL_BACKEND = "anymail.backends.mailersend.EmailBackend"
@@ -463,7 +1191,146 @@ CACHES = {
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         },
+        # Namespaces cache keys so wildcard delete_pattern calls (e.g.
+        # "*user*") can only ever match cache entries — never Celery
+        # broker/result keys living in the same Redis instance.
+        "KEY_PREFIX": "gaplus",
     }
 }
 
+# django-redis defaults to SCAN COUNT=10, i.e. one network round trip per
+# ~10 keys when delete_pattern walks the keyspace. Signal handlers call
+# delete_pattern on every user/course/enrollment save, so on a remote Redis
+# that default turns each save into seconds of scanning.
+DJANGO_REDIS_SCAN_ITERSIZE = 100_000
+
 CACHE_TTL = 60 * 5
+
+
+GOOGLE_OAUTH_CLIENT_ID = env.str("GOOGLE_OAUTH_CLIENT_ID")
+GOOGLE_OAUTH_CLIENT_SECRET = env.str("GOOGLE_OAUTH_CLIENT_SECRET")
+GOOGLE_REDIRECT_URI = env.str("GOOGLE_REDIRECT_URI")
+
+FIELD_ENCRYPTION_KEY = env.str("FIELD_ENCRYPTION_KEY", "")
+
+# MailerLite (https://developers.mailerlite.com) - syncs activated users to
+# mailing list groups segmented by user_type. API key is optional; when
+# unset, MailerLiteService silently no-ops so signup/activation never breaks.
+# Exposes /api/v1/health/client, which echoes the caller's own proxy
+# headers and the client identity DRF derives from them. Off by default;
+# turn it on only long enough to read the value, set NUM_PROXIES, and
+# turn it back off. See docs/ops/rate-limiting.md.
+EXPOSE_CLIENT_DIAGNOSTICS = env.bool("EXPOSE_CLIENT_DIAGNOSTICS", default=False)
+
+MAILERLITE_API_KEY = env.str("MAILERLITE_API_KEY", default="")
+MAILERLITE_GROUP_ID_TEACHER = env.str("MAILERLITE_GROUP_ID_TEACHER", default="")
+MAILERLITE_GROUP_ID_STUDENT = env.str("MAILERLITE_GROUP_ID_STUDENT", default="")
+MAILERLITE_GROUP_ID_SCHOOL_ADMIN = env.str(
+    "MAILERLITE_GROUP_ID_SCHOOL_ADMIN", default=""
+)
+
+if ENVIRONMENT == "prod":
+    STRIPE_PUBLIC_KEY = env.str("STRIPE_PUBLIC_KEY")
+    STRIPE_SECRET_KEY = env.str("STRIPE_SECRET_KEY")
+    STRIPE_WEBHOOK_SECRET = env.str("STRIPE_WEBHOOK_SECRET")
+else:
+    STRIPE_PUBLIC_KEY = env.str("LOCAL_STRIPE_PUBLIC_KEY")
+    STRIPE_SECRET_KEY = env.str("LOCAL_STRIPE_SECRET_KEY")
+    STRIPE_WEBHOOK_SECRET = env.str("LOCAL_STRIPE_WEBHOOK_SECRET")
+
+
+# --- Personal vs business email rules ---------------------------------------
+#
+# The canonical consumer-provider and disposable-provider lists live in
+# users/utils.py (PERSONAL_EMAIL_DOMAINS / DISPOSABLE_EMAIL_DOMAINS). They
+# used to be duplicated here, which meant the settings copy silently won and
+# the module copy was dead code waiting to drift. The settings below only
+# EXTEND those lists, so an environment can add domains without having to
+# restate the built-in ones.
+
+# Optional strict allowlist. When non-empty, ONLY these domains (and their
+# subdomains) count as business emails, so school admin / license enrollment
+# is limited to known schools. Empty means "anything that isn't a consumer or
+# disposable provider".
+ALLOWED_BUSINESS_EMAIL_DOMAINS = env.list("ALLOWED_BUSINESS_EMAIL_DOMAINS", default=[])
+
+# Extra consumer domains to treat as personal (individual accounts only).
+DISALLOWED_EMAIL_DOMAINS = env.list("DISALLOWED_EMAIL_DOMAINS", default=[])
+
+# Extra throwaway-mailbox domains, refused on BOTH tracks.
+DISPOSABLE_EMAIL_DOMAINS = env.list("DISPOSABLE_EMAIL_DOMAINS", default=[])
+
+# Domains exempt from the personal/business restriction entirely - accepted
+# for both individual teacher (personal) and school admin/licensed (business)
+# accounts. This is a QA lever and it opens BOTH gates, so it defaults to
+# empty; yopmail.com used to sit here permanently, which meant anyone could
+# mint a school admin with a public throwaway address. Set it per-environment
+# (e.g. EXEMPT_EMAIL_DOMAINS=yopmail.com on QA, unset in production).
+EXEMPT_EMAIL_DOMAINS = env.list("EXEMPT_EMAIL_DOMAINS", default=[])
+
+
+ENABLE_BILLING_TIME_TRAVEL = env.bool("ENABLE_BILLING_TIME_TRAVEL", default=False)
+
+# Email domains whose NEW Stripe customers get a fresh Stripe Test Clock
+# attached at creation. A Test Clock can only ever be attached when the
+# customer is created, so without this the billing time-travel tool can
+# never advance Stripe's clock for customers made through the normal
+# checkout flow. Only takes effect when ENABLE_BILLING_TIME_TRAVEL is on
+# AND the Stripe key is a test key. Empty (the default) means no customer
+# ever gets one. Use "*" to cover every customer in a dedicated QA
+# environment. Example: BILLING_TEST_CLOCK_EMAIL_DOMAINS=yopmail.com
+BILLING_TEST_CLOCK_EMAIL_DOMAINS = env.list(
+    "BILLING_TEST_CLOCK_EMAIL_DOMAINS", default=[]
+)
+
+# Nightly real-Stripe QA suite (billing/stripe_live_qa*.py). Unlike the
+# time-travel endpoint, which mostly READS, this suite CREATES Stripe
+# customers, subscriptions and invoices, plus real local users — so it is
+# off unless switched on deliberately. It additionally refuses to run
+# unless both stripe.api_key and STRIPE_SECRET_KEY are sk_test_ keys;
+# that check is enforced per Stripe call, not once at startup.
+ENABLE_STRIPE_LIVE_QA = env.bool("ENABLE_STRIPE_LIVE_QA", default=False)
+
+# Real-model grading benchmark (ai_processor/benchmark/). Default False so
+# a normal production worker never spends credits on QA. Set on a
+# staging/QA worker to get the weekly accuracy-drift report — it is the
+# only check that can detect the model provider changing behaviour, since
+# the nightly replay serves recorded responses by design.
+ENABLE_AI_LIVE_QA = env.bool("ENABLE_AI_LIVE_QA", default=False)
+
+# ── Benchmark run archive (Tier 3 of the run history) ────────────────────
+#
+# A full paid benchmark run costs real money and about an hour, and its raw
+# model responses are the only material that can answer a question we have
+# not thought of yet — the LaTeX evidence bug was found by re-reading them.
+# Keeping them in git is not viable (~1 MB per run, and the repo has a 500KB
+# large-file guard), so they go to Cloudinary, which this project already
+# requires and configures (see CLOUDINARY_STORAGE below).
+#
+# RawMediaCloudinaryStorage, not the default MediaCloudinaryStorage: the
+# default is image-typed and mishandles a .json.gz.
+BENCHMARK_ARCHIVE_STORAGE = env.str(
+    "BENCHMARK_ARCHIVE_STORAGE",
+    default="cloudinary_storage.storage.RawMediaCloudinaryStorage",
+)
+BENCHMARK_ARCHIVE_PREFIX = env.str(
+    "BENCHMARK_ARCHIVE_PREFIX", default="benchmark_archives"
+)
+
+# Uploading is off during tests, and that default is deliberate rather than
+# convenient. ENVIRONMENT is "local" in .env, and "local" resolves to REAL
+# Cloudinary (see STORAGES above), so a test that saved a file would make a
+# live network call using real credentials. Individual tests still override
+# the storage backend explicitly; this is the backstop for the test someone
+# forgets to.
+_RUNNING_TESTS = "test" in sys.argv or "pytest" in sys.modules
+BENCHMARK_ARCHIVE_ENABLED = env.bool(
+    "BENCHMARK_ARCHIVE_ENABLED", default=not _RUNNING_TESTS
+)
+
+# Email domain for users the live-QA suite creates. Defaults to a
+# .invalid domain (RFC 2606 reserves it as never-resolvable), so a QA
+# address can never receive mail even if some code path tries to send.
+STRIPE_LIVE_QA_EMAIL_DOMAIN = env.str(
+    "STRIPE_LIVE_QA_EMAIL_DOMAIN", default="stripe-live-qa.invalid"
+)

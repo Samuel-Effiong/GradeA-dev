@@ -1,14 +1,32 @@
 import csv
 import io
+import logging
+import uuid
 
+from dateutil.relativedelta import relativedelta
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
+
+# from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.validators import validate_email
 
 # from django.core.mail import send_mail
 from django.db import transaction
-from django.db.models import Count, Prefetch, Q
+from django.db.models import (
+    CharField,
+    Count,
+    Exists,
+    IntegerField,
+    OuterRef,
+    Prefetch,
+    Q,
+    Subquery,
+    Sum,
+    Value,
+)
+from django.db.models.functions import Coalesce, Concat, TruncMonth
+from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from django.utils import timezone
 
@@ -33,19 +51,30 @@ from rest_framework.exceptions import (
     ValidationError,
 )
 from rest_framework.filters import OrderingFilter, SearchFilter
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 # from ai_processor.services import ai_processor
+from assignments.models import Assignment
 from assignments.serializers import TaskInfoSerializer
+from AutoGrader.dispatch import (
+    BROKER_UNAVAILABLE_ERRORS,
+    ProcessingTemporarilyUnavailable,
+    safe_delay,
+)
+from AutoGrader.error_messages import describe_user_error
+from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.tasks import send_email_task
+from billing.models import CreditUsageLog
+from classrooms.permissions import CanManageSession
+from students.models import StudentSubmission
 from students.serializers import StudentListSerializer
 from users.mixins import UserCacheMixin
-from users.models import CustomUser, UserTypes
+from users.models import ACTIVATION_TOKEN_VALIDITY, CustomUser, UserTypes
 from users.permissions import HasCreditBalance
 from users.serializers import CustomUserSerializer
 from users.services import otp_manager
+from users.throttling import RegisterThrottle
 
 from .models import (  # , Classroom, ClassroomSettings
     Course,
@@ -53,6 +82,7 @@ from .models import (  # , Classroom, ClassroomSettings
     EnrollmentStatusType,
     School,
     Session,
+    SessionOwnerType,
     StudentCourse,
     Topic,
 )
@@ -64,28 +94,124 @@ from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
     CourseSerializer,
     DirectAddStudentSerializer,
     ExpiredTokenSerializer,
+    MonthlyTokenUsageSerializer,
+    SchoolAdminSummarySerializer,
+    SchoolDetailSerializer,
     SchoolSerializer,
+    SchoolSummarySerializer,
+    SchoolWithAdminResponseSerializer,
+    SchoolWithAdminSerializer,
     SessionSerializer,
+    StudentCourseDetailSerializer,
     StudentCourseSerializer,
+    TeacherSummarySerializer,
     TopicSerializer,
 )
 from .tasks import student_summary_async
+
+logger = logging.getLogger(__name__)
+
+
+def _is_email_value(value):
+    candidate = (value or "").strip()
+    if not candidate:
+        return False
+
+    try:
+        validate_email(candidate)
+        return True
+    except DjangoValidationError:
+        return False
+
+
+def _parse_row_without_headers(row):
+    email = ""
+    name_parts = []
+
+    for cell in row:
+        value = (cell or "").strip()
+        if not value:
+            continue
+
+        if _is_email_value(value):
+            if not email:
+                email = value
+            continue
+
+        name_parts.append(value)
+
+    return {
+        "first_name": name_parts[0] if len(name_parts) > 0 else "",
+        "last_name": name_parts[1] if len(name_parts) > 1 else "",
+        "middle_name": name_parts[2] if len(name_parts) > 2 else "",
+        "email": email,
+    }
+
+
+def _validate_uuid_query_param(value, param_name):
+    """Validate a query-param string is a well-formed UUID.
+
+    Filtering directly on a malformed UUID (e.g. `.filter(school_id=value)`)
+    raises Django's `django.core.exceptions.ValidationError` deep inside the
+    ORM, which DRF's exception handler doesn't translate to a clean 400 —
+    it surfaces as an unhandled 500. Validate up front instead and raise
+    DRF's own `ValidationError` so it's a normal 400 response.
+    """
+    try:
+        uuid.UUID(str(value))
+    except (ValueError, TypeError, AttributeError) as exc:
+        raise ValidationError(
+            {param_name: [f"{value!r} is not a valid UUID."]}
+        ) from exc
 
 
 @extend_schema_view(
     list=extend_schema(
         tags=["School"],
-        summary="List all Schools",
-        description="Retrieve a paginated list of all Schools in the system.",
+        summary="School summary",
+        description="""
+            Returns a paginated list of all schools with aggregate stats and
+            admin info (if any).
+        """,
         parameters=[
+            OpenApiParameter(
+                name="search",
+                type=str,
+                location="query",
+                description="Search by school name or admin name/email.",
+            ),
+            OpenApiParameter(
+                name="ordering",
+                type=str,
+                location="query",
+                description="""
+                    Order by field (prefix with "-" for descending).
+                    Allowed: admin_name, admin_email.
+                """,
+            ),
+            OpenApiParameter(
+                name="include_archived",
+                type=bool,
+                location="query",
+                description=(
+                    "If true, also include archived (soft-deleted) schools. "
+                    "Defaults to false — archived schools are hidden."
+                ),
+            ),
             OpenApiParameter(
                 name="page",
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
                 description="Page number for pagination",
-            )
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page (max 100)",
+            ),
         ],
-        responses={200: SchoolSerializer(many=True)},
+        responses={200: SchoolSummarySerializer(many=True)},
     ),
     create=extend_schema(
         tags=["School"],
@@ -101,12 +227,22 @@ from .tasks import student_summary_async
     ),
     retrieve=extend_schema(
         tags=["School"],
-        summary="Retrieve a School",
-        description="Retrieve detailed information about a specific School by its ID.",
-        responses={
-            200: SchoolSerializer,
-            404: OpenApiResponse(description="School not found"),
-        },
+        summary="School detail summary",
+        description=(
+            "Returns detailed stats for a specific school, including a "
+            "per-session breakdown with a nested per-teacher breakdown. "
+            "Includes SCHOOL-owned sessions (shared across every teacher "
+            "in the school), not just INDIVIDUAL ones — each contributing "
+            "teacher gets their own slice under session_breakdown[].teachers, "
+            "and the session's own assignments/students/tokens are the sum "
+            "of that list. "
+            "tokens_used is every token consumed by the school's teachers "
+            "and school admins; only the portion tied to a course/session "
+            "is broken out per-session — the rest is reported separately "
+            "as tokens_unattributed, so sum(session_breakdown[].tokens) + "
+            "tokens_unattributed == tokens_used."
+        ),
+        responses={200: SchoolDetailSerializer},
     ),
     partial_update=extend_schema(
         tags=["School"],
@@ -122,12 +258,17 @@ from .tasks import student_summary_async
     ),
     destroy=extend_schema(
         tags=["School"],
-        summary="Delete a School",
-        description="Delete a School by ID. This action cannot be undone.",
+        summary="Archive a School",
+        description=(
+            "Archives a School by ID (soft-delete). The school is hidden from "
+            "the default list/detail views but the row and all its history "
+            "(sessions, license/billing records, analytics) are preserved. "
+            'Restore it with PATCH {"is_active": true}.'
+        ),
         responses={
-            204: OpenApiResponse(description="School deleted successfully"),
+            204: OpenApiResponse(description="School archived successfully"),
             403: OpenApiResponse(
-                description="You do not have permission to delete this School"
+                description="You do not have permission to archive this School"
             ),
             404: OpenApiResponse(description="School not found"),
         },
@@ -137,38 +278,900 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
     queryset = School.objects.all()
     serializer_class = SchoolSerializer
     permission_classes = (IsSuperAdmin,)
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    ordering_fields = ["name", "created_at"]
-    search_fields = ["name"]
+    def get_queryset(self):
+        if self.request.query_params.get("include_archived", "").lower() == "true":
+            return School.objects.all()
+        return School.objects.filter(is_active=True)
+
+    def destroy(self, request, *args, **kwargs):
+        school = self.get_object()
+        school.is_active = False
+        school.save(update_fields=["is_active"])
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @extend_schema(
         tags=["School"],
-        summary="Create the School admin of a school",
-        description="""
-
-        """,
-        request=CustomUserSerializer,
-        responses={
-            201: OpenApiResponse(
-                response=CustomUserSerializer,
-                description="School admin created successfully",
-            ),
-            400: OpenApiResponse(
-                description="Invalid input. Missing required fields or invalid data format"
-            ),
-        },
+        summary="Create a School and its Admin in one request",
+        description="Create both a School and a School Admin user atomically.",
+        request=SchoolWithAdminSerializer,
+        responses={201: SchoolWithAdminResponseSerializer},
     )
-    @action(detail=False, methods=["post"], url_path="admin", url_name="admin")
-    def admin(self, request, *args, **kwargs):
-        """Make a User the admin of a school"""
-        serializer = CustomUserSerializer(data=request.data)
+    @action(detail=False, methods=["post"])
+    def create_with_admin(self, request, *args, **kwargs):
+        serializer = SchoolWithAdminSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        result = serializer.save()
 
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        response_data = {
+            "school": result["school"],
+            "admin": result["admin"],
+            "message": "School and admin created successfully",
+        }
+
+        response_serializer = SchoolWithAdminResponseSerializer(response_data)
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
+    @extend_schema(
+        tags=["School"],
+        summary="School admin summary",
+        description="Returns a paginated list of school administrators with aggregate stats for their schools.",
+        parameters=[
+            OpenApiParameter(
+                name="search",
+                type=str,
+                location="query",
+                description="Search by admin name, email, or school name (case‑insensitive partial match).",
+            ),
+            OpenApiParameter(
+                name="ordering",
+                type=str,
+                location="query",
+                description='Order by field (prefix with "-" for descending). Allowed: name, email, organization, '
+                "teachers, students, tokens_used, sessions.",  # noqa: E501
+            ),
+        ],
+        responses={200: SchoolAdminSummarySerializer(many=True)},
+    )
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="admin-summary",
+        # Explicit, to avoid a url-name collision: DRF's default url_name
+        # comes from the method name ("admin-summary"), which combined with
+        # this viewset's "school" basename produces "school-admin-summary"
+        # - the exact same reverse() name that dashboard.SchoolAdminDashboardView's
+        # `summary` action (basename "school-admin") also produces by
+        # coincidence, even though the two endpoints share nothing (paths
+        # are /schools/admin-summary vs /school-admin/dashboard/summary).
+        # Whichever URL Django registered last silently wins on reverse().
+        url_name="admins-summary",
+    )
+    def admin_summary(self, request, *args, **kwargs):
+        """
+        Returns a paginated list of school administrators with aggregated school stats.
+
+        Query parameters:
+        - search: (string) filter by admin name, email, or school name (case‑insensitive partial match)
+        - ordering: (string) field to order by (prefix with '-' for descending). Defaults to 'name'.
+                    Allowed fields: name, email, organization, teachers, students, tokens_used, sessions.
+        """
+
+        # Base queryset: all school admins, with school prefetched
+        admins = CustomUser.objects.filter(user_type="SCHOOL_ADMIN").select_related(
+            "school"
+        )
+
+        # --- Subqueries for school‑level aggregates ---
+        # 1. Teachers count
+        teachers_sub = Subquery(
+            CustomUser.objects.filter(school=OuterRef("school"), user_type="TEACHER")
+            .values("school")
+            .annotate(count=Count("id"))
+            .values("count"),
+            output_field=IntegerField(),
+        )
+
+        # 2. Students count
+        students_sub = Subquery(
+            CustomUser.objects.filter(
+                school=OuterRef("enrollments__course__teacher__school"),
+                user_type="STUDENT",
+            )
+            .values("school")
+            .annotate(count=Count("id"))
+            .values("count"),
+            output_field=IntegerField(),
+        )
+
+        # 3. Tokens used (sum of raw credits consumed by teachers and school
+        # admins in the school — school admins can also directly trigger
+        # credit-consuming AI features, billed to their own wallet).
+        # Scoped by CreditUsageLog.school — a snapshot of the billed user's
+        # school taken at consumption time — not wallet__user__school (the
+        # user's CURRENT school), so a teacher who later transfers to a
+        # different school doesn't retroactively drag their historical
+        # usage along with them.
+        tokens_sub = Subquery(
+            CreditUsageLog.objects.filter(
+                school=OuterRef("school"),
+                wallet__user__user_type__in=["TEACHER", "SCHOOL_ADMIN"],
+                is_refunded=False,
+            )
+            .values("school")
+            .annotate(total=Sum("amount"))
+            .values("total"),
+            output_field=IntegerField(),
+        )
+        # 4. Sessions (count of ChatSession records created by teachers in the school)
+        sessions_sub = Subquery(
+            Session.objects.filter(teacher__school=OuterRef("school"))
+            .values("teacher__school")
+            .annotate(count=Count("id"))
+            .values("count"),
+            output_field=IntegerField(),
+        )
+
+        # Annotate each admin with the school aggregates
+        admins = admins.annotate(
+            teachers=Coalesce(teachers_sub, Value(0)),
+            students=Coalesce(students_sub, Value(0)),
+            tokens_used=Coalesce(tokens_sub, Value(0)),
+            academic_sessions=Coalesce(sessions_sub, Value(0)),
+        )
+
+        # --- Search ---
+        search = request.query_params.get("search", "").strip()
+        if search:
+            admins = admins.filter(
+                Q(first_name__icontains=search)
+                | Q(last_name__icontains=search)
+                | Q(email__icontains=search)
+                | Q(school__name__icontains=search)
+            )
+
+        # --- Ordering ---
+        ordering = request.query_params.get("ordering", "name")
+        # Map frontend field names to DB column names / annotated names
+        order_map = {
+            "name": "first_name",
+            "email": "email",
+            "school": "school__name",
+            "teachers": "teachers",
+            "students": "students",
+            "tokens_used": "tokens_used",
+            "sessions": "academic_sessions",
+        }
+
+        # Handle descending order (prefix '-')
+        if ordering.startswith("-"):
+            order_field = order_map.get(ordering[1:], "first_name")
+            descending = True
+        else:
+            order_field = order_map.get(ordering, "first_name")
+            descending = False
+
+        # Apply ordering with tie-breaker for name
+        if order_field == "first_name":
+            admins = (
+                admins.order_by("first_name", "last_name")
+                if not descending
+                else admins.order_by("-first_name", "-last_name")
+            )
+        else:
+            admins = admins.order_by(
+                order_field if not descending else f"-{order_field}"
+            )
+
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(admins, request, view=self)
+
+        data = []
+        for admin in page:
+            data.append(
+                {
+                    "id": str(admin.id),
+                    "name": admin.get_full_name(),
+                    "email": admin.email,
+                    "organization": admin.school.name if admin.school else "",
+                    "teachers": admin.teachers,
+                    "students": admin.students,
+                    "tokens_used": admin.tokens_used,
+                    "sessions": admin.academic_sessions,
+                }
+            )
+
+        return paginator.get_paginated_response(data)
+
+    def list(self, request):
+        # Base queryset: active schools by default; ?include_archived=true
+        # to also see archived ones (see get_queryset()).
+        schools = self.get_queryset()
+
+        # ---- Subqueries for aggregates ----
+        # Teachers count (direct school FK, works because teachers have school set)
+        teachers_sub = Subquery(
+            CustomUser.objects.filter(school=OuterRef("id"), user_type="TEACHER")
+            .values("school")
+            .annotate(count=Count("id"))
+            .values("count"),
+            output_field=IntegerField(),
+        )
+
+        # Students count via StudentCourse (since student.school is null)
+        students_sub = Subquery(
+            StudentCourse.objects.filter(course__teacher__school=OuterRef("id"))
+            .values("course__teacher__school")
+            .annotate(total=Count("student", distinct=True))
+            .values("total"),
+            output_field=IntegerField(),
+        )
+
+        # Tokens used (sum of raw credits consumed by teachers and school
+        # admins in the school). Scoped by CreditUsageLog.school (a
+        # snapshot at consumption time), not wallet__user__school (the
+        # user's current school) — see the tokens_sub comment in
+        # admin_summary() above for why that distinction matters.
+        tokens_sub = Subquery(
+            CreditUsageLog.objects.filter(
+                school=OuterRef("id"),
+                wallet__user__user_type__in=["TEACHER", "SCHOOL_ADMIN"],
+                is_refunded=False,
+            )
+            .values("school")
+            .annotate(total=Sum("amount"))
+            .values("total"),
+            output_field=IntegerField(),
+        )
+
+        # Academic sessions (count of Session records created by teachers in the school)
+        sessions_sub = Subquery(
+            Session.objects.filter(teacher__school=OuterRef("id"))
+            .values("teacher__school")
+            .annotate(count=Count("id"))
+            .values("count"),
+            output_field=IntegerField(),
+        )
+
+        # Annotate schools
+        schools = schools.annotate(
+            teachers=Coalesce(teachers_sub, Value(0)),
+            students=Coalesce(students_sub, Value(0)),
+            tokens_used=Coalesce(tokens_sub, Value(0)),
+            school_sessions=Coalesce(sessions_sub, Value(0)),
+        )
+
+        # ---- Prefetch the first admin for each school ----
+        admin_queryset = CustomUser.objects.filter(user_type="SCHOOL_ADMIN").order_by(
+            "date_joined"
+        )
+        schools = schools.prefetch_related(
+            Prefetch("users", queryset=admin_queryset, to_attr="school_admins")
+        )
+
+        # ---- Search ----
+        search = request.query_params.get("search", "").strip()
+        if search:
+            # Get school IDs where an admin matches the search
+            admin_school_ids = (
+                CustomUser.objects.filter(user_type="SCHOOL_ADMIN")
+                .filter(
+                    Q(first_name__icontains=search)
+                    | Q(last_name__icontains=search)
+                    | Q(email__icontains=search)
+                )
+                .exclude(school__isnull=True)
+                .values("school")
+            )  # exclude admins without school
+
+            schools = schools.filter(
+                Q(name__icontains=search) | Q(id__in=admin_school_ids)
+            )
+
+        # ---- Ordering ----
+        ordering = request.query_params.get("ordering", "school_name")
+        order_map = {
+            "school_name": "name",
+            "teachers": "teachers",
+            "students": "students",
+            "tokens_used": "tokens_used",
+            "sessions": "sessions",
+            "admin_name": "admin_name",
+            "admin_email": "admin_email",
+        }
+
+        # Handle ordering by admin_name or admin_email using subqueries
+        if ordering.lstrip("-") in ["admin_name", "admin_email"]:
+            admin_name_ord = Subquery(
+                CustomUser.objects.filter(
+                    school=OuterRef("id"), user_type="SCHOOL_ADMIN"
+                )
+                .order_by("date_joined")
+                .annotate(full_name=Concat("first_name", Value(" "), "last_name"))
+                .values("full_name")[:1],
+                output_field=CharField(),
+            )
+            admin_email_ord = Subquery(
+                CustomUser.objects.filter(
+                    school=OuterRef("id"), user_type="SCHOOL_ADMIN"
+                )
+                .order_by("date_joined")
+                .values("email")[:1],
+                output_field=CharField(),
+            )
+            schools = schools.annotate(
+                admin_name_ord=admin_name_ord, admin_email_ord=admin_email_ord
+            )
+
+            if ordering.startswith("-"):
+                if ordering[1:] == "admin_name":
+                    schools = schools.order_by("-admin_name_ord")
+                else:
+                    schools = schools.order_by("-admin_email_ord")
+            else:
+                if ordering == "admin_name":
+                    schools = schools.order_by("admin_name_ord")
+                else:
+                    schools = schools.order_by("admin_email_ord")
+        else:
+            order_field = order_map.get(ordering, "name")
+            if ordering.startswith("-"):
+                order_field = f"-{order_field}"
+            schools = schools.order_by(order_field)
+
+        # ---- Pagination ----
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(schools, request, view=self)
+
+        # ---- Build response ----
+        data = []
+        for school in page:
+            admin = school.school_admins[0] if school.school_admins else None
+            data.append(
+                {
+                    "id": str(school.id),
+                    "school_name": school.name,
+                    "address": school.address,
+                    "phone": school.phone,
+                    "website": school.website,
+                    "admin_id": str(admin.id) if admin else None,
+                    "admin_name": admin.get_full_name() if admin else None,
+                    "admin_email": admin.email if admin else None,
+                    "teachers": school.teachers,
+                    "students": school.students,
+                    "tokens_used": school.tokens_used,
+                    "sessions": school.school_sessions,
+                    "is_active": school.is_active,
+                }
+            )
+
+        return paginator.get_paginated_response(data)
+
+    # @action(
+    #     detail=True,
+    #     methods=['get'],
+    #     url_path='detail-summary',
+    #     permission_classes=[IsAuthenticated, IsNotStudent]
+    # )
+    def retrieve(self, request, pk=None):
+        school = self.get_object()
+
+        # ---- Basic aggregates ----
+        teachers_count = CustomUser.objects.filter(
+            school=school, user_type="TEACHER"
+        ).count()
+        students_count = (
+            StudentCourse.objects.filter(course__teacher__school=school)
+            .values("student")
+            .distinct()
+            .count()
+        )
+        # Every token consumed by the school's teachers and school admins —
+        # school admins can also directly trigger credit-consuming AI
+        # features (weekly summaries, custom prompts), billed to their own
+        # wallet, so they're included here too. Scoped by
+        # CreditUsageLog.school — a snapshot of the billed user's school
+        # taken at consumption time — not wallet__user__school (the user's
+        # CURRENT school): a teacher who later transfers to a different
+        # school must not retroactively drag their historical usage along
+        # with them, nor vanish from the school they earned it under.
+        school_wallet_filter = Q(
+            school=school,
+            wallet__user__user_type__in=["TEACHER", "SCHOOL_ADMIN"],
+        )
+        tokens_total = (
+            CreditUsageLog.objects.filter(
+                school_wallet_filter, is_refunded=False
+            ).aggregate(total=Sum("amount"))["total"]
+            or 0
+        )
+        # tokens_unattributed is computed further down, as tokens_total
+        # minus whatever ends up actually displayed in session_breakdown —
+        # not as a separate "course__isnull=False" query. That residual
+        # approach guarantees sum(session tokens) + tokens_unattributed ==
+        # tokens_used by construction, which a separate query can't: a
+        # usage log can have a real course attached and still not be
+        # displayable here, e.g. if the course's session no longer belongs
+        # to this school by current roster (a teacher transferred schools
+        # after the fact - assignments/students/sessions below are scoped
+        # by the teacher's CURRENT school, while tokens are scoped by the
+        # snapshot on CreditUsageLog.school, so the two can legitimately
+        # diverge for a transferred teacher's old activity).
+        # SCHOOL-owned sessions have no `teacher` (see Session.clean()) -
+        # they're shared across every teacher in the school - so counting
+        # via teacher__school alone misses them entirely.
+        sessions_total = Session.objects.filter(
+            Q(teacher__school=school) | Q(school=school)
+        ).count()
+        courses_total = Course.objects.filter(teacher__school=school).count()
+
+        # ---- Admin info ----
+        admin = (
+            CustomUser.objects.filter(school=school, user_type="SCHOOL_ADMIN")
+            .order_by("date_joined")
+            .first()
+        )
+
+        # ---- Per‑session breakdown, with a nested per‑teacher breakdown ----
+        # A Session's `teacher` FK is only ever set for owner_type=INDIVIDUAL
+        # (see Session.clean()) - for owner_type=SCHOOL it's null, and the
+        # session is shared: any teacher in the school can attach their own
+        # Course to it. So attribution has to come from Course (which has
+        # both `teacher` and `session`), not from Session.teacher.
+        #
+        # Each metric is computed as its own grouped-by-(session, teacher)
+        # aggregate query and merged in Python, rather than combined into
+        # one annotate() call - combining a Sum with multiple joined
+        # one-to-many relations (assignments, enrollments, usage logs) in a
+        # single query silently inflates every total via join fan-out; only
+        # Count(distinct=True) has an escape hatch for that, Sum doesn't.
+        assignments_by_key = {
+            (row["course__session"], row["course__teacher"]): row["count"]
+            for row in Assignment.objects.filter(course__teacher__school=school)
+            .values("course__session", "course__teacher")
+            .annotate(count=Count("id"))
+        }
+        students_by_key = {
+            (row["course__session"], row["course__teacher"]): row["count"]
+            for row in StudentCourse.objects.filter(course__teacher__school=school)
+            .values("course__session", "course__teacher")
+            .annotate(count=Count("student", distinct=True))
+        }
+        # course__isnull=False here is now load-bearing, not incidental:
+        # school_wallet_filter no longer implies a non-null course via an
+        # INNER JOIN the way `course__teacher__school=school` used to (that
+        # clause is gone — it was current-state-biased in the same way
+        # wallet__user__school was, via the course's teacher's CURRENT
+        # school rather than a snapshot). Without this filter, usage with
+        # no course context would group under a (None, None) key that's
+        # simply never looked up below — harmless, but wasteful and
+        # unclear; excluding it up front is both cheaper and more explicit.
+        tokens_by_key = {
+            (row["course__session"], row["course__teacher"]): row["total"]
+            for row in CreditUsageLog.objects.filter(
+                school_wallet_filter, course__isnull=False, is_refunded=False
+            )
+            .values("course__session", "course__teacher")
+            .annotate(total=Sum("amount"))
+        }
+
+        sessions = Session.objects.filter(
+            Q(owner_type=SessionOwnerType.INDIVIDUAL, teacher__school=school)
+            | Q(owner_type=SessionOwnerType.SCHOOL, school=school)
+        )
+
+        # For SCHOOL sessions, the contributing teachers are whoever has a
+        # Course there - grouped up front to avoid an N+1 query per session.
+        school_session_teachers = {}
+        for row in (
+            Course.objects.filter(
+                session__owner_type=SessionOwnerType.SCHOOL, session__school=school
+            )
+            .values_list("session_id", "teacher_id")
+            .distinct()
+        ):
+            session_id, teacher_id = row
+            school_session_teachers.setdefault(session_id, set()).add(teacher_id)
+
+        all_teacher_ids = {
+            tid for tids in school_session_teachers.values() for tid in tids
+        }
+        all_teacher_ids.update(
+            s.teacher_id
+            for s in sessions
+            if s.owner_type == SessionOwnerType.INDIVIDUAL
+        )
+        teacher_names = {
+            u.id: u.get_full_name()
+            for u in CustomUser.objects.filter(id__in=all_teacher_ids)
+        }
+
+        session_breakdown = []
+        for session in sessions:
+            if session.owner_type == SessionOwnerType.INDIVIDUAL:
+                teacher_ids = [session.teacher_id]
+            else:
+                teacher_ids = sorted(
+                    school_session_teachers.get(session.id, set()),
+                    key=lambda tid: teacher_names.get(tid, ""),
+                )
+
+            teachers = [
+                {
+                    "teacher_id": str(teacher_id),
+                    "teacher_name": teacher_names.get(teacher_id, ""),
+                    "assignments": assignments_by_key.get((session.id, teacher_id), 0),
+                    "students": students_by_key.get((session.id, teacher_id), 0),
+                    "tokens": tokens_by_key.get((session.id, teacher_id), 0),
+                }
+                for teacher_id in teacher_ids
+            ]
+
+            session_breakdown.append(
+                {
+                    "session_id": str(session.id),
+                    "session_name": session.name,
+                    "owner_type": session.owner_type,
+                    "assignments": sum(t["assignments"] for t in teachers),
+                    "students": sum(t["students"] for t in teachers),
+                    "tokens": sum(t["tokens"] for t in teachers),
+                    "teachers": teachers,
+                }
+            )
+
+        # See the NOTE above tokens_total: computed as a residual so the
+        # invariant sum(session_breakdown[].tokens) + tokens_unattributed
+        # == tokens_used holds by construction, no matter what caused a
+        # given usage log to not show up in session_breakdown above.
+        tokens_unattributed = tokens_total - sum(
+            row["tokens"] for row in session_breakdown
+        )
+
+        # ---- Assemble response ----
+        data = {
+            "id": str(school.id),
+            "school_name": school.name,
+            "address": school.address,
+            "phone": school.phone,
+            "website": school.website,
+            "admin_id": str(admin.id) if admin else None,
+            "admin_name": admin.get_full_name() if admin else None,
+            "admin_email": admin.email if admin else None,
+            "teachers": teachers_count,
+            "students": students_count,
+            "tokens_used": tokens_total,
+            "tokens_unattributed": tokens_unattributed,
+            "sessions": sessions_total,
+            "courses": courses_total,
+            "is_active": school.is_active,
+            "session_breakdown": session_breakdown,
+        }
+
+        serializer = SchoolDetailSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data)
+
+    @extend_schema(
+        tags=["School"],
+        summary="Teacher summary",
+        description="""
+            Returns a paginated list of teachers with aggregate stats
+            (assignments, students, tokens used). Optionally filter by school
+            and academic session.
+
+            Without session_id, tokens_used is the teacher's full personal
+            token total (every AI feature they've used, not just teaching
+            activity). With session_id, tokens_used is scoped to that
+            session's courses like assignments/students are, and the rest
+            of the teacher's total (other sessions, or usage with no course
+            context at all — custom AI chat, pre-Assignment extraction) is
+            reported separately as tokens_used_outside_session so it isn't
+            silently dropped.
+        """,
+        parameters=[
+            OpenApiParameter(
+                name="school_id",
+                type=str,
+                location="query",
+                description="Filter by school UUID.",
+            ),
+            OpenApiParameter(
+                name="session_id",
+                type=str,
+                location="query",
+                description=(
+                    "Filter by academic session UUID (limits assignments, "
+                    "students, and tokens_used to that session; the "
+                    "remainder of the teacher's token usage outside this "
+                    "session is reported as tokens_used_outside_session)."
+                ),
+            ),
+            OpenApiParameter(
+                name="search",
+                type=str,
+                location="query",
+                description="Search by teacher name or email.",
+            ),
+            OpenApiParameter(
+                name="ordering",
+                type=str,
+                location="query",
+                description=(
+                    'Order by field (prefix with "-" for descending). '
+                    "Allowed: name, email, organization, assignments, "
+                    "students, tokens_used."
+                ),
+            ),
+        ],
+        responses={200: TeacherSummarySerializer(many=True)},
+    )
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="teacher-summary",
+    )
+    def teacher_summary(self, request):
+        # Base queryset: all teachers, prefetch school
+        teachers = CustomUser.objects.filter(user_type="TEACHER").select_related(
+            "school"
+        )
+
+        # Optional filters
+        school_id = request.query_params.get("school_id")
+        if school_id:
+            _validate_uuid_query_param(school_id, "school_id")
+            teachers = teachers.filter(school_id=school_id)
+
+        session_id = request.query_params.get("session_id")
+        session_filter = Q()
+        if session_id:
+            _validate_uuid_query_param(session_id, "session_id")
+            session_filter = Q(course__session_id=session_id)
+
+        # --- Subqueries for teacher-level aggregates ---
+        # 1. Assignments count (filtered by session if provided)
+        assignments_count_sub = Subquery(
+            Assignment.objects.filter(course__teacher=OuterRef("id"))
+            .filter(session_filter)
+            .values("course__teacher")
+            .annotate(count=Count("id"))
+            .values("count"),
+            output_field=IntegerField(),
+        )
+        # 2. Students count (distinct students enrolled in courses taught
+        # by this teacher, filtered by session if provided)
+        students_count_sub = Subquery(
+            StudentCourse.objects.filter(course__teacher=OuterRef("id"))
+            .filter(session_filter)
+            .values("course__teacher")
+            .annotate(distinct_students=Count("student", distinct=True))
+            .values("distinct_students"),
+            output_field=IntegerField(),
+        )
+        # 3. Tokens used (sum of CreditUsageLog amounts for this teacher,
+        # filtered by session if provided — same course__session_id path as
+        # assignments/students above, now possible since CreditUsageLog has
+        # a `course` FK). Also compute the teacher's unfiltered lifetime
+        # total so the portion excluded by the session filter (other
+        # sessions, or usage with no course context at all) can be reported
+        # rather than silently dropped.
+        total_tokens_sub = Subquery(
+            CreditUsageLog.objects.filter(
+                wallet__user=OuterRef("id"), is_refunded=False
+            )
+            .filter(session_filter)
+            .values("wallet__user")
+            .annotate(total=Sum("amount"))
+            .values("total"),
+            output_field=IntegerField(),
+        )
+        full_tokens_sub = Subquery(
+            CreditUsageLog.objects.filter(
+                wallet__user=OuterRef("id"), is_refunded=False
+            )
+            .values("wallet__user")
+            .annotate(total=Sum("amount"))
+            .values("total"),
+            output_field=IntegerField(),
+        )
+
+        # Annotate teachers
+        teachers = teachers.annotate(
+            assignment_count=Coalesce(assignments_count_sub, Value(0)),
+            student_count=Coalesce(students_count_sub, Value(0)),
+            total_tokens=Coalesce(total_tokens_sub, Value(0)),
+            full_tokens=Coalesce(full_tokens_sub, Value(0)),
+        )
+
+        # --- Search ---
+        search = request.query_params.get("search", "").strip()
+        if search:
+            teachers = teachers.filter(
+                Q(first_name__icontains=search)
+                | Q(last_name__icontains=search)
+                | Q(email__icontains=search)
+            )
+
+        # --- Ordering ---
+        ordering = request.query_params.get("ordering", "name")
+        order_map = {
+            "name": "first_name",  # order by first_name, then last_name
+            "email": "email",
+            "school": "school__name",
+            "assignments": "assignment_count",
+            "students": "student_count",
+            "tokens_used": "total_tokens",
+        }
+        if ordering.startswith("-"):
+            order_field = order_map.get(ordering[1:], "first_name")
+            descending = True
+        else:
+            order_field = order_map.get(ordering, "first_name")
+            descending = False
+
+        if order_field == "first_name":
+            teachers = (
+                teachers.order_by("first_name", "last_name")
+                if not descending
+                else teachers.order_by("-first_name", "-last_name")
+            )
+        else:
+            teachers = teachers.order_by(
+                order_field if not descending else f"-{order_field}"
+            )
+
+        # --- Pagination ---
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(teachers, request, view=self)
+
+        # Build response
+        data = []
+        for teacher in page:
+            data.append(
+                {
+                    "id": str(teacher.id),
+                    "name": teacher.get_full_name(),
+                    "email": teacher.email,
+                    "school": teacher.school.name if teacher.school else "",
+                    "assignments": teacher.assignment_count,
+                    "students": teacher.student_count,
+                    "tokens_used": teacher.total_tokens,
+                    "tokens_used_outside_session": teacher.full_tokens
+                    - teacher.total_tokens,
+                }
+            )
+
+        return paginator.get_paginated_response(data)
+
+    @extend_schema(
+        tags=["School"],
+        summary="Monthly token usage",
+        description=(
+            "Returns monthly token consumption for a school over the past "
+            "12 months (or custom range). Scoped by CreditUsageLog.school "
+            "— a snapshot of each billed user's school taken at "
+            "consumption time — so a teacher transferring schools doesn't "
+            "retroactively move their historical usage, and a school's "
+            "history stays visible even if every teacher who generated it "
+            "has since left."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="school_id",
+                type=str,
+                location="query",
+                description="School UUID. If not provided, uses the authenticated user's school (if school admin).",
+            ),
+            OpenApiParameter(
+                name="months",
+                type=int,
+                location="query",
+                description="Number of past months to include (default 12).",
+            ),
+        ],
+        responses={200: MonthlyTokenUsageSerializer(many=True)},
+    )
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="monthly-token-usage",
+        # Deliberate exception to the viewset's superadmin-only default: this
+        # is the only endpoint that lets a SCHOOL_ADMIN see their own
+        # school's usage, so it stays open to any authenticated user and
+        # enforces the school-scoping itself below.
+        permission_classes=[IsAuthenticated],
+    )
+    def monthly_token_usage(self, request):
+        # Determine school
+        school_id = request.query_params.get("school_id")
+        if school_id:
+            _validate_uuid_query_param(school_id, "school_id")
+            # Superadmin can specify any school
+            if not (
+                request.user.is_superuser or request.user.user_type == "SUPER_ADMIN"
+            ):
+                return Response(
+                    {"detail": "You do not have permission to view this school."},
+                    status=403,
+                )
+        else:
+            # For school admins, use their own school
+            if request.user.user_type == "SCHOOL_ADMIN":
+                school_id = request.user.school_id
+            else:
+                return Response(
+                    {"detail": "school_id is required for superadmins."}, status=400
+                )
+
+        if not school_id:
+            return Response({"detail": "School not found for this user."}, status=404)
+
+        if not School.objects.filter(id=school_id).exists():
+            return Response({"detail": "School not found."}, status=404)
+
+        # Number of months to look back
+        months = int(request.query_params.get("months", 12))
+        if months < 1 or months > 36:
+            months = 12
+
+        # Date range: `months` months, ending with (and including) the
+        # current month. Regression note: this used to be
+        # `end_date - relativedelta(months=months)`, which — combined with
+        # the loop below starting at that month and only ever stepping
+        # forward `months - 1` more times — silently excluded the current
+        # month from every response. A "past 12 months" chart that never
+        # shows the current month is missing exactly the data point most
+        # likely to be looked at.
+        end_date = timezone.now()
+        start_date = end_date - relativedelta(months=months - 1)
+
+        # Aggregate monthly usage. Scoped directly by CreditUsageLog.school
+        # (the snapshot) rather than first resolving "which teachers/admins
+        # currently belong to this school" and filtering by wallet owner —
+        # that current-roster approach both misattributes historical usage
+        # after a transfer AND would 404 a school whose usage-generating
+        # teachers have since all left, even though its history is still
+        # perfectly real and worth showing.
+        monthly_usage = (
+            CreditUsageLog.objects.filter(
+                school_id=school_id,
+                wallet__user__user_type__in=["TEACHER", "SCHOOL_ADMIN"],
+                is_refunded=False,
+            )
+            .annotate(month=TruncMonth("created_at"))
+            .values("month")
+            .annotate(total=Sum("amount"))
+            .order_by("month")
+        )
+
+        # Build response, filling missing months with 0.
+        # NOTE: TruncMonth("created_at") always truncates to midnight on
+        # the 1st (confirmed directly against the DB: hour=minute=second=0)
+        # — `current` must match that exactly, or every lookup below misses
+        # and this endpoint silently returns all-zero tokens for every
+        # month regardless of actual usage. `start_date.replace(day=1)`
+        # alone only replaces the day, leaving today's current hour/minute/
+        # second/microsecond in place, so it practically never equalled a
+        # TruncMonth key. Explicitly zero the whole time-of-day too.
+        result = []
+        current = start_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        usage_dict = {item["month"]: item["total"] for item in monthly_usage}
+
+        for _ in range(months):
+            month_str = current.strftime("%b %Y")  # e.g. "Apr 2025"
+            tokens = usage_dict.get(current, 0)
+            result.append(
+                {
+                    "month": month_str,
+                    "tokens": tokens,
+                }
+            )
+            current += relativedelta(months=1)
+
+        serializer = MonthlyTokenUsageSerializer(result, many=True)
+        return Response(serializer.data)
 
 
 @extend_schema_view(
@@ -258,7 +1261,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
     permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -324,10 +1327,23 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         email = serializer.validated_data["email"]
 
         """Onboard students to a section."""
-        course = self.get_object()
+        # Scoped through get_queryset() (teacher=user for a teacher, .none()
+        # for anyone else) so a teacher can't enroll a student into another
+        # teacher's course by guessing/incrementing a course id - a bare
+        # Course.objects.get(pk=...) here would bypass that entirely, since
+        # this custom @action never calls self.get_object().
+        course = get_object_or_404(self.get_queryset(), pk=self.kwargs["pk"])
 
         try:
             with transaction.atomic():
+                # Re-fetch and lock now that ownership is already confirmed
+                # above. select_for_update() requires an open transaction -
+                # doing the initial lookup before entering this atomic()
+                # block (rather than locking the unscoped row up front) is
+                # what lets the ownership check's Http404 propagate as a
+                # clean 404 instead of being swallowed by the except Exception
+                # below.
+                course = Course.objects.select_for_update().get(pk=course.pk)
                 student = CustomUser.objects.filter(email=email).first()
 
                 if student:
@@ -351,7 +1367,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                             "course": course,
                             "teacher": course.teacher,
                             "student": student,
-                            "login_url": f"https://{settings.FRONTEND_DOMAIN}",
+                            "login_url": f"https://{settings.STUDENT_FRONTEND_DOMAIN}",
                         }
 
                         # html_content = render_to_string(
@@ -386,7 +1402,8 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                             "support_email": settings.SUPPORT_EMAIL,
                         }
 
-                        send_email_task.delay(
+                        safe_delay(
+                            send_email_task,
                             subject=f"You have been added to {course.name}",
                             message="",
                             from_email=settings.DEFAULT_FROM_EMAIL,
@@ -412,7 +1429,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                             auto_added=False,
                         )
 
-                        frontend_domain = settings.FRONTEND_DOMAIN
+                        frontend_domain = settings.STUDENT_FRONTEND_DOMAIN
                         registration_link = (
                             f"https://{frontend_domain}/register/student/"
                             f"{activation_token}?email={email}"
@@ -428,7 +1445,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                         """
 
                         bottom_content = f"""
-                        This invitation link expires in 7 days.<br><br>
+                        This invitation link expires in 24 hours.<br><br>
 
                         If you were not expecting this invitation, you can ignore this email.<br><br>
                         Questions about this course? Contact {course.teacher.email}.<br><br>
@@ -464,7 +1481,8 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                         #     html_message=html_content,
                         # )
 
-                        send_email_task.delay(
+                        safe_delay(
+                            send_email_task,
                             subject="Your course invitation is ready. Finish setup and join your class",
                             message="",
                             from_email=settings.DEFAULT_FROM_EMAIL,
@@ -484,7 +1502,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                         is_active=False,
                         school=course.teacher.school,
                         activation_token=activation_token,
-                        activation_expires=timezone.now() + timezone.timedelta(days=7),
+                        activation_expires=timezone.now() + ACTIVATION_TOKEN_VALIDITY,
                     )
 
                     # Create pending enrollment
@@ -496,7 +1514,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     )
 
                     # Generate registration link
-                    frontend_domain = settings.FRONTEND_DOMAIN
+                    frontend_domain = settings.STUDENT_FRONTEND_DOMAIN
                     registration_link = f"https://{frontend_domain}/register/student/{activation_token}?email={email}"
 
                     context = {
@@ -515,7 +1533,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     """
 
                     bottom_content = f"""
-                    This invitation link expires in 7 days.<br><br>
+                    This invitation link expires in 24 hours.<br><br>
 
                     If you were not expecting this invitation, you can ignore this email.<br><br>
                     Questions about this course? Contact {course.teacher.email}.<br><br>
@@ -543,7 +1561,8 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                         "support_email": settings.SUPPORT_EMAIL,
                     }
 
-                    send_email_task.delay(
+                    safe_delay(
+                        send_email_task,
                         subject="Your course invitation is ready. Finish setup and join your class",
                         message="",
                         from_email=settings.DEFAULT_FROM_EMAIL,
@@ -564,8 +1583,17 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
             detail = e.message_dict if hasattr(e, "message_dict") else e.messages
             raise ValidationError(detail) from e
         except Exception as e:
+            logger.error("Failed to add student to course", exc_info=e)
             return Response(
-                {"detail": f"Failed to process student: {str(e)}"},
+                {
+                    "detail": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "We couldn't add this student to the course. "
+                            "Please try again."
+                        ),
+                    )
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -600,10 +1628,17 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
             detail = e.message_dict if hasattr(e, "message_dict") else e.messages
             raise ValidationError(detail) from e
         except Exception as e:
+            logger.error("Failed to direct-add student to course", exc_info=e)
             return Response(
                 {
                     "message": "Unable to add student to course",
-                    "detail": f"Failed to process student: {str(e)}",
+                    "detail": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "We couldn't add this student to the course. "
+                            "Please try again."
+                        ),
+                    ),
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
@@ -629,48 +1664,87 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         input_file = serializer.validated_data.get("file")
         raw_data = serializer.validated_data.get("raw_data")
 
-        rows = []
+        raw_rows = []
         if input_file:
             # Handle CSV file upload
             decoded_file = input_file.read().decode("utf-8").splitlines()
-            reader = csv.DictReader(decoded_file)
-            rows = list(reader)
+            reader = csv.reader(decoded_file)
+            raw_rows = list(reader)
         elif raw_data:
             # Handle Excel paste (TSV) or raw CSV string
-            # Determine delimiter: if tab exists, assume TSV; otherwise comma.
             delimiter = "\t" if "\t" in raw_data else ","
             f = io.StringIO(raw_data.strip())
-            reader = csv.DictReader(f, delimiter=delimiter)
-            rows = list(reader)
+            reader = csv.reader(f, delimiter=delimiter)
+            raw_rows = list(reader)
 
-        if not rows:
-            return Response(
-                {"detail": "No valid student data found in input."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        if not raw_rows:
+            raise ParseError("No valid student data found in input")
+
+        # Define header variations
+        header_variations = {
+            "first_name": ["First Name", "FirstName", "first_name", "first"],
+            "last_name": ["Last Name", "LastName", "last_name", "last"],
+            "middle_name": ["Middle Name", "middle_name", "middle"],
+            "email": ["Email", "email", "e-mail"],
+        }
+
+        # Header detection
+        first_row = [str(c).strip() for c in raw_rows[0]]
+        column_map = {}
+        is_header = False
+
+        # Try to map columns by header names
+        header_fields_found = set()
+        for field, variations in header_variations.items():
+            for i, cell in enumerate(first_row):
+                # Match exact or normalized variations
+                norm_cell = cell.lower().replace(" ", "_")
+                if cell in variations or norm_cell in [
+                    v.lower().replace(" ", "_") for v in variations
+                ]:
+                    column_map[field] = i
+                    header_fields_found.add(field)
+                    break
+
+        # If we found at least two of the expected fields, treat it as a header
+        if len(header_fields_found) >= 2:
+            is_header = True
+        else:
+            # If only one or zero fields matched, it's likely data or a very incomplete header.
+            # Reset column_map to avoid partial matches from the "header" row if we decide it's data.
+            column_map = {}
+
+        if is_header:
+            data_rows = raw_rows[1:]
+        else:
+            data_rows = raw_rows
 
         results = []
         success_count = 0
         failure_count = 0
 
-        # Helper to normalize field names from common CSV variations
-        def get_val(row, variations):
-            for v in variations:
-                if v in row:
-                    return (row[v] or "").strip()
-                # Also try lowercase and underscored
-                norm_v = v.lower().replace(" ", "_")
-                if norm_v in row:
-                    return (row[norm_v] or "").strip()
-            return ""
+        for row in data_rows:
+            if not any(row):  # Skip empty rows
+                continue
 
-        for row in rows:
-            first_name = get_val(
-                row, ["First Name", "FirstName", "first_name", "first"]
-            )
-            last_name = get_val(row, ["Last Name", "LastName", "last_name", "last"])
-            middle_name = get_val(row, ["Middle Name", "middle_name", "middle"])
-            email = get_val(row, ["Email", "email", "e-mail"])
+            if is_header:
+
+                def get_row_val(field, row=row):
+                    idx = column_map.get(field)
+                    if idx is not None and idx < len(row):
+                        return (row[idx] or "").strip()
+                    return ""
+
+                first_name = get_row_val("first_name")
+                last_name = get_row_val("last_name")
+                middle_name = get_row_val("middle_name")
+                email = get_row_val("email")
+            else:
+                parsed_row = _parse_row_without_headers(row)
+                first_name = parsed_row["first_name"]
+                last_name = parsed_row["last_name"]
+                middle_name = parsed_row["middle_name"]
+                email = parsed_row["email"]
 
             if not first_name or not last_name:
                 results.append(
@@ -684,9 +1758,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 continue
 
             try:
-                # Decide which flow to use based on presence of email
                 if email:
-                    # Reuse invitation logic from 'students' action
                     with transaction.atomic():
                         student = CustomUser.objects.filter(email=email).first()
                         is_new = False
@@ -703,10 +1775,9 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                                 school=course.teacher.school,
                                 activation_token=activation_token,
                                 activation_expires=timezone.now()
-                                + timezone.timedelta(days=7),
+                                + ACTIVATION_TOKEN_VALIDITY,
                             )
 
-                        # Check if already enrolled
                         if StudentCourse.objects.filter(
                             student=student, course=course
                         ).exists():
@@ -719,77 +1790,119 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                             )
                             continue
 
-                        # Create enrollment
-                        enroll_status = (
-                            EnrollmentStatusType.ENROLLED
-                            if student.is_active
-                            else EnrollmentStatusType.PENDING
+                        enrollment_status = (
+                            EnrollmentStatusType.PENDING
+                            if is_new
+                            else EnrollmentStatusType.ENROLLED
                         )
+
                         StudentCourse.objects.create(
                             student=student,
                             course=course,
-                            enrollment_status=enroll_status,
+                            enrollment_status=enrollment_status,
                             auto_added=False,
                         )
-
-                        # Trigger email (simplified here, but following the existing pattern)
-                        # In a real scenario, we'd reuse a service method if available
-                        # Here we just queue the same task used in the 'students' action
                         self._send_bulk_enrollment_email(student, course, is_new)
-
                         results.append(
                             {
-                                "name": f"{first_name} {last_name}",
-                                "status": "invited" if is_new else "enrolled",
+                                "name": student.get_full_name(),
+                                "status": "invited",
                                 "type": "invitation",
                             }
                         )
                         success_count += 1
                 else:
-                    # Reuse direct add logic
-                    # We can directly use the serializer for simplicity and validation
-                    data = {
-                        "first_name": first_name,
-                        "middle_name": middle_name,
-                        "last_name": last_name,
-                    }
-                    direct_serializer = DirectAddStudentSerializer(
-                        data=data, context={"course": course}
-                    )
-                    if direct_serializer.is_valid():
-                        direct_serializer.save()
-                        results.append(
-                            {
-                                "name": f"{first_name} {last_name}",
-                                "status": "enrolled",
-                                "type": "direct_add",
-                            }
-                        )
-                        success_count += 1
-                    else:
-                        error_msg = next(iter(direct_serializer.errors.values()))[0]
-                        results.append(
-                            {
-                                "name": f"{first_name} {last_name}",
-                                "status": "failed",
-                                "error": error_msg,
-                            }
-                        )
-                        failure_count += 1
+                    with transaction.atomic():
+                        student = CustomUser.objects.filter(
+                            first_name__iexact=first_name,
+                            last_name__iexact=last_name,
+                            middle_name__iexact=middle_name,
+                            user_type=UserTypes.STUDENT,
+                        ).first()
 
+                        if student:
+                            if StudentCourse.objects.filter(
+                                student=student, course=course
+                            ).exists():
+                                results.append(
+                                    {
+                                        "name": student.get_full_name(),
+                                        "status": "skipped",
+                                        "error": "Already enrolled",
+                                    }
+                                )
+                                continue
+
+                            StudentCourse.objects.create(
+                                student=student,
+                                course=course,
+                                enrollment_status=EnrollmentStatusType.ENROLLED,
+                                auto_added=True,
+                            )
+                            results.append(
+                                {
+                                    "name": student.get_full_name(),
+                                    "status": "enrolled",
+                                    "type": "direct_add",
+                                }
+                            )
+                            success_count += 1
+                        else:
+                            data = {
+                                "first_name": first_name,
+                                "middle_name": middle_name,
+                                "last_name": last_name,
+                            }
+                            direct_serializer = DirectAddStudentSerializer(
+                                data=data, context={"course": course}
+                            )
+                            if direct_serializer.is_valid():
+                                student = direct_serializer.save()
+                                results.append(
+                                    {
+                                        "name": student.get_full_name(),
+                                        "status": "enrolled",
+                                        "type": "direct_add",
+                                    }
+                                )
+                                success_count += 1
+                            else:
+                                error_msg = next(
+                                    iter(direct_serializer.errors.values())
+                                )[0]
+                                results.append(
+                                    {
+                                        "name": f"{first_name} {last_name}",
+                                        "status": "failed",
+                                        "error": error_msg,
+                                    }
+                                )
+                                failure_count += 1
             except Exception as e:
+                logger.error(
+                    "Failed to bulk-add student %s %s",
+                    first_name,
+                    last_name,
+                    exc_info=e,
+                )
                 results.append(
                     {
                         "name": f"{first_name} {last_name}",
                         "status": "failed",
-                        "error": str(e),
+                        "error": describe_user_error(
+                            e,
+                            fallback_message=(
+                                "Could not add this student — check the row "
+                                "data and try again."
+                            ),
+                        ),
                     }
                 )
                 failure_count += 1
 
         return Response(
             {
-                "total_processed": len(rows),
+                "total_processed": len(data_rows),
                 "success_count": success_count,
                 "failure_count": failure_count,
                 "results": results,
@@ -798,13 +1911,11 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         )
 
     def _send_bulk_enrollment_email(self, student, course, is_new):
-        """Helper to send the appropriate email during bulk enrollment."""
         if student.is_active:
-            # Existing active student email
-            content = f"""
-            You have been added to {course.name} by {course.teacher.get_full_name()}<br><br>
-            Your access is already active.
-            """
+            content = (
+                f"You have been added to {course.name} by {course.teacher.get_full_name()}.<br><br>\n\n"
+                "Your access is already active."
+            )
             merge_data = {
                 "title": f"You have been added to {course.name}",
                 "name": student.get_full_name(),
@@ -812,7 +1923,8 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 "current_year": timezone.now().year,
                 "support_email": settings.SUPPORT_EMAIL,
             }
-            send_email_task.delay(
+            safe_delay(
+                send_email_task,
                 subject=f"You have been added to {course.name}",
                 message="",
                 from_email=settings.DEFAULT_FROM_EMAIL,
@@ -821,18 +1933,21 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 merge_data=merge_data,
             )
         else:
-            # New/Inactive student invitation email
-            registration_link = f"https://{settings.FRONTEND_DOMAIN}/register/student/{student.activation_token}?email={student.email}"
+            registration_link = (
+                f"https://{settings.STUDENT_FRONTEND_DOMAIN}/register/student/"
+                f"{student.activation_token}?email={student.email}"
+            )
             merge_data = {
                 "title": f"Complete your registration for {course.name}",
                 "name": student.get_full_name(),
                 "top_content": f"{course.teacher.get_full_name()} has invited you to join {course.name}.",
-                "bottom_content": "This invitation link expires in 7 days.",
+                "bottom_content": "This invitation link expires in 24 hours.",
                 "activation_url": registration_link,
                 "current_year": timezone.now().year,
                 "support_email": settings.SUPPORT_EMAIL,
             }
-            send_email_task.delay(
+            safe_delay(
+                send_email_task,
                 subject="Complete Your Registration for the Course",
                 message="",
                 from_email=settings.DEFAULT_FROM_EMAIL,
@@ -874,10 +1989,16 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
     )
     def remove_student(self, request, pk=None, student_id=None, *args, **kwargs):
         """Remove a student from a course"""
+        # Kept outside the try/except below, same reasoning as the
+        # students() action above: get_object() already scopes to the
+        # requesting teacher's own courses via get_queryset(), so a
+        # different teacher's course id raises Http404 here - inside the
+        # try, that got caught by the blanket `except Exception` and
+        # downgraded to a 500 instead of DRF's normal 404.
+        course = self.get_object()
+
         try:
             with transaction.atomic():
-                course = self.get_object()
-
                 if request.user != course.teacher:
                     raise PermissionDenied(
                         "You do not have permission to remove students from this course. "
@@ -939,7 +2060,8 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     "support_email": settings.SUPPORT_EMAIL,
                 }
 
-                send_email_task.delay(
+                safe_delay(
+                    send_email_task,
                     subject="You are no longer enrolled in this course",
                     message="",
                     from_email=settings.DEFAULT_FROM_EMAIL,
@@ -953,9 +2075,22 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     {"detail": "Student removed from course successfully."},
                     status=status.HTTP_200_OK,
                 )
+        except (ParseError, PermissionDenied):
+            # Let DRF's own exception handler turn these into their real
+            # 400/403 - the blanket `except Exception` below would otherwise
+            # downgrade them to a generic 500.
+            raise
         except Exception as e:
+            logger.error("Failed to remove student from course", exc_info=e)
             return Response(
-                {"detail": f"Failed to remove student: {str(e)}"},
+                {
+                    "detail": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "We couldn't remove this student from the " "course."
+                        ),
+                    )
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -974,6 +2109,10 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         detail=False,
         methods=["POST"],
         permission_classes=[AllowAny],
+        # Unauthenticated, guesses at an activation token, and sends an
+        # email on success - so it is both a token-guessing oracle and a
+        # free outbound-mail trigger. Shares the registration bucket.
+        throttle_classes=[RegisterThrottle],
         url_path=r"renew-student-token",
         url_name="renew-activation-token",
     )
@@ -994,7 +2133,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 raise ParseError("Invalid token or user not found.")
 
             enrollment = StudentCourse.objects.filter(
-                student=user, is_active=False
+                student=user, enrollment_status=EnrollmentStatusType.PENDING
             ).first()
 
             if not enrollment:
@@ -1003,10 +2142,10 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
             new_token = user.renew_activation_token()
 
             # Generate new registration link
-            registration_link = (
-                f"https://{settings.FRONTEND_DOMAIN}/register/student/{new_token}"
-            )
-            expiry_date = timezone.now() + timezone.timedelta(days=7)
+            registration_link = f"https://{settings.STUDENT_FRONTEND_DOMAIN}/register/student/{new_token}"
+            # Matches the real expiry renew_activation_token() just set on
+            # `user` above (see users.models.ACTIVATION_TOKEN_VALIDITY).
+            expiry_date = timezone.now() + ACTIVATION_TOKEN_VALIDITY
 
             student_context = {
                 "course": enrollment.course,
@@ -1019,7 +2158,8 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
 
             # Notify student
-            send_email_task.delay(
+            safe_delay(
+                send_email_task,
                 subject="Course Registration Link Renewed",
                 message="",
                 from_email=settings.DEFAULT_FROM_EMAIL,
@@ -1039,7 +2179,8 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
 
             # Notify teacher
-            send_email_task.delay(
+            safe_delay(
+                send_email_task,
                 subject=f"Registration Link Renewed - {user.email}",
                 message="",
                 from_email=settings.DEFAULT_FROM_EMAIL,
@@ -1049,14 +2190,28 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
             return Response(
                 {
-                    "detail": "A new activation link has been sent to the student's email. Expires in 7 days"
+                    "detail": "A new activation link has been sent to the student's email. Expires in 24 hours"
                 },
                 status=status.HTTP_200_OK,
             )
 
+        except ParseError:
+            # Let DRF's own exception handler turn this into its real 400 -
+            # the blanket `except Exception` below would otherwise
+            # downgrade it to a generic 500.
+            raise
         except Exception as e:
+            logger.error("Failed to renew activation token", exc_info=e)
             return Response(
-                {"detail": f"Failed to renew token: {str(e)}"},
+                {
+                    "detail": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "We couldn't renew the activation link. Please "
+                            "try again."
+                        ),
+                    )
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -1198,9 +2353,12 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 status=status.HTTP_200_OK,
             )
 
-        task_id = student_summary_async.delay(
-            student_id, str(request.user.id), str(course.id)
-        )
+        try:
+            task_id = student_summary_async.delay(
+                student_id, str(request.user.id), str(course.id)
+            )
+        except BROKER_UNAVAILABLE_ERRORS as exc:
+            raise ProcessingTemporarilyUnavailable() from exc
 
         data = {
             "file_name": "Student summary generation started",
@@ -1346,8 +2504,8 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
     queryset = Session.objects.all()
     serializer_class = SessionSerializer
-    permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
-    pagination_class = PageNumberPagination
+    permission_classes = (IsAuthenticated, CanManageSession)
+    pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
     filter_backends = (DjangoFilterBackend, SearchFilter, OrderingFilter)
@@ -1366,68 +2524,86 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
-        if isinstance(user, AnonymousUser):
-            return Session.objects.none()
+        if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:
+            return Session.objects.all()
+
+        if user.user_type == UserTypes.SCHOOL_ADMIN:
+            admin_schools = School.objects.filter(users=user)
+            return Session.objects.filter(
+                owner_type=SessionOwnerType.SCHOOL, school__in=admin_schools
+            )
 
         if user.user_type == UserTypes.TEACHER:
-            return Session.objects.filter(teacher=user)
-        elif user.user_type == UserTypes.STUDENT:
+            if user.is_under_license():
+                # School-managed teacher: read-only view of their school's sessions.
+                return Session.objects.filter(
+                    owner_type=SessionOwnerType.SCHOOL, school=user.school
+                )
+            # Individual-track teacher: unchanged legacy behavior. Keyed off
+            # is_under_license() rather than school_id so a teacher who was
+            # removed from a license (or whose license lapsed) isn't stuck
+            # unable to see their own individual sessions.
+            return Session.objects.filter(
+                owner_type=SessionOwnerType.INDIVIDUAL, teacher=user
+            )
+
+        if user.user_type == UserTypes.STUDENT:
             return Session.objects.filter(
                 courses__enrollments__student=user,
                 courses__enrollments__enrollment_status=EnrollmentStatusType.ENROLLED,
-            )
-        else:
-            return Session.objects.none()
+            ).distinct()
 
-    # @extend_schema(
-    #     tags=["01 Session"],
-    #     summary="Get courses for a session",
-    #     description="Retrieve a list of courses associated with a specific session.",
-    #     parameters=[
-    #         OpenApiParameter(
-    #             name="session_id",
-    #             type=OpenApiTypes.UUID,
-    #             location=OpenApiParameter.PATH,
-    #             description="The ID of the session to retrieve courses for",
-    #             required=True,
-    #         ),
-    #     ],
-    #     responses={
-    #         200: CourseSerializer(many=True),
-    #         400: OpenApiResponse(description="Invalid session ID"),
-    #         404: OpenApiResponse(description="Session not found"),
-    #         500: OpenApiResponse(description="Internal Server Error"),
-    #     },
-    # )
-    # @action(
-    #     detail=False,
-    #     methods=["get"],
-    #     url_path=r"(?P<session_id>[-\w]+)/courses",
-    #     url_name="session-courses",
-    # )
-    # def get_courses(self, request, session_id=None, **kwargs):
-    #     """
-    #     Retrieve a list of courses associated with a specific session.
-    #     """
-    #
-    #     try:
-    #         session = self.queryset.filter(id=session_id).first()
-    #         if not session:
-    #             return Response(
-    #                 {"detail": "Session not found."}, status=status.HTTP_404_NOT_FOUND
-    #             )
-    #
-    #         courses = session.courses.all()
-    #
-    #         serializer = CourseSerializer(courses, many=True)
-    #         return Response(serializer.data)
-    #
-    #     except Exception as e:
-    #         return Response(
-    #             {"detail": "Internal Server Error", "traceback": f"{e}"},
-    #             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-    #         )
-    #
+        return Session.objects.none()
+
+    def perform_create(self, serializer):
+        user = self.request.user
+
+        if user.user_type == UserTypes.SCHOOL_ADMIN:
+            admin_schools = School.objects.filter(users=user)
+            school = admin_schools.first()
+            if not school:
+                raise ParseError("You are not assigned as an admin for any school.")
+            serializer.save(
+                owner_type=SessionOwnerType.SCHOOL,
+                school=school,
+                teacher=None,
+                created_by=user,
+            )
+            return
+
+        if user.user_type == UserTypes.TEACHER:
+            if user.is_under_license():
+                raise PermissionDenied(
+                    "Sessions for your school are managed by your school "
+                    "admin. Contact them to add or update academic sessions."
+                )
+            serializer.save(
+                owner_type=SessionOwnerType.INDIVIDUAL,
+                teacher=user,
+                school=None,
+                created_by=user,
+            )
+            return
+
+        if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:
+            school_id = self.request.data.get("school")
+            if not school_id:
+                raise ParseError(
+                    "Superadmin session creation requires an explicit "
+                    "'school' field (to create a SCHOOL session) — there's "
+                    "no superadmin path for creating an INDIVIDUAL session "
+                    "on a teacher's behalf."
+                )
+            school = get_object_or_404(School, pk=school_id)
+            serializer.save(
+                owner_type=SessionOwnerType.SCHOOL,
+                school=school,
+                teacher=None,
+                created_by=user,
+            )
+            return
+
+        raise PermissionDenied("You do not have permission to create sessions.")
 
 
 @extend_schema_view(
@@ -1517,7 +2693,7 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
     queryset = StudentCourse.objects.all()
     serializer_class = StudentCourseSerializer
     permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "delete", "patch", "options"]
     #
     # @method_decorator(cache_page(60 * 3, key_prefix="studentcourses:list"))
@@ -1535,20 +2711,41 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         if self.action == "my_students":
             if user.user_type == UserTypes.TEACHER:
-                return CustomUser.objects.filter(
-                    enrollments__course__teacher=user
-                ).distinct()
+                active_enrollment = StudentCourse.objects.filter(
+                    student=OuterRef("pk"), course__teacher=user
+                ).exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
+                return CustomUser.objects.filter(Exists(active_enrollment))
             return CustomUser.objects.none()
 
+        # Scope the submissions prefetch to what the serializer can
+        # legitimately show. Unfiltered, it loaded EVERY submission each
+        # student had ever made — across all courses, including other
+        # teachers' — into memory for the serializer to then discard in
+        # Python. For a teacher, only submissions in that teacher's own
+        # courses are relevant (and visible); a student only ever sees
+        # their own rows, which student__submissions already guarantees.
+        submissions_qs = StudentSubmission.objects.select_related("assignment")
         if user.user_type == UserTypes.TEACHER:
-            return StudentCourse.objects.filter(course__teacher=user)
+            submissions_qs = submissions_qs.filter(assignment__course__teacher=user)
+
+        queryset = StudentCourse.objects.select_related(
+            "student", "course"
+        ).prefetch_related(
+            "course__assignments",
+            Prefetch("student__submissions", queryset=submissions_qs),
+        )
+
+        if user.user_type == UserTypes.TEACHER:
+            return queryset.filter(course__teacher=user).distinct()
         elif user.user_type == UserTypes.STUDENT:
-            return StudentCourse.objects.filter(student=user)
+            return queryset.filter(student=user)
         return StudentCourse.objects.none()
 
     def get_serializer_class(self):
         if self.action == "my_students":
             return StudentListSerializer
+        if self.action in ["retrieve"]:
+            return StudentCourseDetailSerializer
         return super().get_serializer_class()
 
     def filter_queryset(self, queryset):
@@ -1698,7 +2895,7 @@ class CourseCategoryViewSet(UserCacheMixin, viewsets.ModelViewSet):
     queryset = CourseCategory.objects.all()
     serializer_class = CourseCategorySerializer
     permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = {
@@ -1832,7 +3029,7 @@ class TopicViewSet(UserCacheMixin, viewsets.ModelViewSet):
     queryset = Topic.objects.all()
     serializer_class = TopicSerializer
     permission_class = (IsAuthenticated, IsTeacherOrReadOnly)
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "option"]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ("name", "course__name")

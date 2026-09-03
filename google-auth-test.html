@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grade A+ · Auth Test Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b0f;
+    --surface: #111318;
+    --surface2: #191c24;
+    --border: #252830;
+    --border2: #2e323d;
+    --accent: #4ade80;
+    --accent-dim: rgba(74, 222, 128, 0.12);
+    --accent-glow: rgba(74, 222, 128, 0.35);
+    --warn: #f59e0b;
+    --warn-dim: rgba(245, 158, 11, 0.12);
+    --error: #f87171;
+    --error-dim: rgba(248, 113, 113, 0.12);
+    --info: #60a5fa;
+    --info-dim: rgba(96, 165, 250, 0.12);
+    --text: #e2e8f0;
+    --text-dim: #64748b;
+    --text-mid: #94a3b8;
+    --mono: 'JetBrains Mono', monospace;
+    --display: 'Syne', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .shell {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--border2);
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .logo {
+    font-family: var(--display);
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--accent); }
+
+  .badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border2);
+    color: var(--text-dim);
+  }
+
+  /* Layout */
+  .grid {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+
+  @media (max-width: 800px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  /* Panel */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 12px 16px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border2);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  .panel-header .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent-glow);
+    flex-shrink: 0;
+  }
+
+  .panel-header .dot.warn { background: var(--warn); box-shadow: 0 0 6px rgba(245,158,11,.4); }
+  .panel-header .dot.info { background: var(--info); box-shadow: 0 0 6px rgba(96,165,250,.4); }
+
+  .panel-body { padding: 18px; }
+
+  /* Form fields */
+  .field { margin-bottom: 16px; }
+  .field:last-child { margin-bottom: 0; }
+
+  label {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  input, textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    resize: vertical;
+  }
+
+  input:focus, textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-dim);
+  }
+
+  input::placeholder, textarea::placeholder { color: var(--text-dim); }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #0a0b0f;
+    width: 100%;
+  }
+  .btn-primary:hover { filter: brightness(1.1); box-shadow: 0 0 16px var(--accent-glow); }
+  .btn-primary:active { filter: brightness(0.95); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-mid);
+    border: 1px solid var(--border2);
+    width: 100%;
+  }
+  .btn-ghost:hover { border-color: var(--text-dim); color: var(--text); }
+
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; filter: none !important; box-shadow: none !important; }
+
+  /* Token display */
+  .token-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .token-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    width: 60px;
+    flex-shrink: 0;
+  }
+
+  .token-value {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 5px;
+    padding: 6px 10px;
+    font-size: 11px;
+    color: var(--info);
+    word-break: break-all;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    position: relative;
+  }
+
+  .token-value:hover { border-color: var(--info); }
+  .token-value.copied { border-color: var(--accent); color: var(--accent); }
+
+  /* Log console */
+  .log-console {
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    height: 400px;
+    overflow-y: auto;
+    padding: 14px;
+    font-size: 12px;
+    scroll-behavior: smooth;
+  }
+
+  .log-console::-webkit-scrollbar { width: 5px; }
+  .log-console::-webkit-scrollbar-track { background: transparent; }
+  .log-console::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 10px; }
+
+  .log-entry {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 6px;
+    animation: fadeSlide 0.2s ease;
+  }
+
+  @keyframes fadeSlide {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .log-time { color: var(--text-dim); flex-shrink: 0; }
+
+  .log-tag {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 1px 6px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    align-self: flex-start;
+    margin-top: 1px;
+  }
+
+  .tag-info  { background: var(--info-dim);  color: var(--info); }
+  .tag-ok    { background: var(--accent-dim); color: var(--accent); }
+  .tag-warn  { background: var(--warn-dim);  color: var(--warn); }
+  .tag-error { background: var(--error-dim); color: var(--error); }
+  .tag-data  { background: rgba(167,139,250,.12); color: #a78bfa; }
+
+  .log-msg { color: var(--text-mid); flex: 1; word-break: break-all; }
+
+  /* User card */
+  .user-card {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 14px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+
+  .user-avatar {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--accent);
+    box-shadow: 0 0 10px var(--accent-dim);
+  }
+
+  .user-avatar-placeholder {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 2px solid var(--border2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: var(--text-dim);
+  }
+
+  .user-info .name { font-family: var(--display); font-size: 15px; font-weight: 600; }
+  .user-info .email { color: var(--text-dim); font-size: 12px; }
+
+  /* PKCE viz */
+  .pkce-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .pkce-step {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    transition: all 0.2s;
+  }
+
+  .pkce-step.active { border-color: var(--warn); background: var(--warn-dim); }
+  .pkce-step.done   { border-color: var(--accent); background: var(--accent-dim); }
+
+  .pkce-num {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--border2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+
+  .pkce-step.active .pkce-num { background: var(--warn); color: #0a0b0f; }
+  .pkce-step.done .pkce-num   { background: var(--accent); color: #0a0b0f; }
+
+  .pkce-text { font-size: 11px; color: var(--text-mid); }
+  .pkce-step.active .pkce-text,
+  .pkce-step.done .pkce-text   { color: var(--text); }
+
+  /* Divider */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border2);
+    margin: 16px 0;
+  }
+
+  /* Hint text */
+  .hint { font-size: 11px; color: var(--text-dim); margin-top: 6px; }
+
+  /* Callback status bar */
+  .status-bar {
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .status-bar.idle    { background: var(--surface2); color: var(--text-dim); border: 1px solid var(--border2); }
+  .status-bar.loading { background: var(--warn-dim); color: var(--warn); border: 1px solid rgba(245,158,11,.3); }
+  .status-bar.success { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(74,222,128,.3); }
+  .status-bar.error   { background: var(--error-dim); color: var(--error); border: 1px solid rgba(248,113,113,.3); }
+
+  .spinner {
+    width: 12px; height: 12px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Mono value display */
+  .mono-val {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 2px 6px;
+    word-break: break-all;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 2px;
+    background: var(--surface2);
+    padding: 4px;
+    border-radius: 7px;
+    margin-bottom: 14px;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 7px;
+    border: none;
+    background: transparent;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: all 0.15s;
+  }
+  .tab-btn.active {
+    background: var(--surface);
+    color: var(--accent);
+    box-shadow: 0 1px 4px rgba(0,0,0,.4);
+  }
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* JSON viewer */
+  .json-viewer {
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 12px;
+    max-height: 280px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .json-viewer::-webkit-scrollbar { width: 4px; }
+  .json-viewer::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 10px; }
+
+  .json-key { color: #60a5fa; }
+  .json-str { color: #86efac; }
+  .json-num { color: #fbbf24; }
+  .json-bool { color: #f472b6; }
+  .json-null { color: var(--text-dim); }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header>
+    <div class="logo">GradeA<span>+</span></div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div class="badge">OAuth2 · PKCE · Test Console</div>
+      <div id="envLabel" class="badge" style="color:var(--warn)">ENV: localhost</div>
+    </div>
+  </header>
+
+  <div class="grid">
+
+    <!-- LEFT: Config panel -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+
+      <!-- Config -->
+      <div class="panel">
+        <div class="panel-header"><div class="dot warn"></div>Configuration</div>
+        <div class="panel-body">
+          <div class="field">
+            <label>Backend Base URL</label>
+            <input type="text" id="apiBase" value="http://localhost:8000" placeholder="https://api.gradea.plus">
+          </div>
+          <div class="field">
+            <label>Auth Endpoint Path</label>
+            <input type="text" id="authPath" value="/api/v1/auth/google-auth/" placeholder="/api/v1/auth/google-auth/">
+          </div>
+          <div class="field">
+            <label>Google Client ID</label>
+            <input type="text" id="clientId" placeholder="123456789.apps.googleusercontent.com">
+          </div>
+          <div class="field">
+            <label>Redirect URI</label>
+            <input type="text" id="redirectUri" placeholder="Auto-detected from window.location">
+            <div class="hint">Leave blank to auto-use this page's URL</div>
+          </div>
+          <hr class="divider">
+          <div class="field">
+            <label>OAuth2 Scope</label>
+            <input type="text" id="oauthScope" value="openid email profile">
+          </div>
+          <button class="btn btn-ghost" id="saveConfigBtn" style="margin-top:4px;" onclick="saveConfig()">💾 Save to LocalStorage</button>
+        </div>
+      </div>
+
+      <!-- PKCE Flow steps -->
+      <div class="panel">
+        <div class="panel-header"><div class="dot info"></div>PKCE Flow State</div>
+        <div class="panel-body">
+          <div class="pkce-steps">
+            <div class="pkce-step" id="step1">
+              <div class="pkce-num">1</div>
+              <div class="pkce-text"><strong>Generate</strong> code_verifier + code_challenge</div>
+            </div>
+            <div class="pkce-step" id="step2">
+              <div class="pkce-num">2</div>
+              <div class="pkce-text"><strong>Redirect</strong> to Google /auth with challenge</div>
+            </div>
+            <div class="pkce-step" id="step3">
+              <div class="pkce-num">3</div>
+              <div class="pkce-text"><strong>Receive</strong> authorization code from Google</div>
+            </div>
+            <div class="pkce-step" id="step4">
+              <div class="pkce-num">4</div>
+              <div class="pkce-text"><strong>POST</strong> code → backend → JWT tokens</div>
+            </div>
+            <div class="pkce-step" id="step5">
+              <div class="pkce-num">5</div>
+              <div class="pkce-text"><strong>Done.</strong> Authenticated ✓</div>
+            </div>
+          </div>
+
+          <hr class="divider">
+
+          <div class="field">
+            <label>code_verifier</label>
+            <div id="codeVerifierDisplay" class="mono-val" style="word-break:break-all;min-height:28px;color:var(--text-dim)">—</div>
+          </div>
+          <div class="field">
+            <label>code_challenge (S256)</label>
+            <div id="codeChallengeDisplay" class="mono-val" style="word-break:break-all;min-height:28px;color:var(--text-dim)">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Launch -->
+      <div class="panel">
+        <div class="panel-header"><div class="dot"></div>Actions</div>
+        <div class="panel-body" style="display:flex;flex-direction:column;gap:8px;">
+          <button class="btn btn-primary" id="loginBtn" onclick="startOAuthFlow()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+            Sign in with Google
+          </button>
+          <button class="btn btn-ghost" onclick="manualExchange()">
+            ⚡ Manual Code Exchange
+          </button>
+          <button class="btn btn-ghost" onclick="clearAll()">
+            🗑 Clear State + Log
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT: Results -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+
+      <!-- Status -->
+      <div class="panel">
+        <div class="panel-header"><div class="dot info"></div>Response</div>
+        <div class="panel-body">
+
+          <div id="statusBar" class="status-bar idle">
+            <span id="statusIcon">○</span>
+            <span id="statusText">Waiting for authentication…</span>
+          </div>
+
+          <!-- Tabs: User / Tokens / Raw -->
+          <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('userTab', this)">User</button>
+            <button class="tab-btn" onclick="switchTab('tokensTab', this)">Tokens</button>
+            <button class="tab-btn" onclick="switchTab('rawTab', this)">Raw JSON</button>
+          </div>
+
+          <!-- User tab -->
+          <div class="tab-pane active" id="userTab">
+            <div id="userCardWrap">
+              <div style="color:var(--text-dim);font-size:12px;padding:20px 0;text-align:center;">No user data yet.</div>
+            </div>
+            <div id="userJsonWrap" style="display:none;">
+              <label style="margin-bottom:6px;">Full user object</label>
+              <div class="json-viewer" id="userJsonViewer"></div>
+            </div>
+          </div>
+
+          <!-- Tokens tab -->
+          <div class="tab-pane" id="tokensTab">
+            <div id="tokensWrap">
+              <div style="color:var(--text-dim);font-size:12px;padding:20px 0;text-align:center;">No tokens yet.</div>
+            </div>
+          </div>
+
+          <!-- Raw JSON tab -->
+          <div class="tab-pane" id="rawTab">
+            <div id="rawJsonWrap">
+              <div style="color:var(--text-dim);font-size:12px;padding:20px 0;text-align:center;">No response yet.</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Manual exchange -->
+      <div class="panel" id="manualPanel" style="display:none;">
+        <div class="panel-header"><div class="dot warn"></div>Manual Code Exchange</div>
+        <div class="panel-body">
+          <div class="field">
+            <label>Authorization Code</label>
+            <input type="text" id="manualCode" placeholder="Paste code from URL or callback here">
+          </div>
+          <div class="field">
+            <label>State (optional, for verification)</label>
+            <input type="text" id="manualState" placeholder="state value">
+          </div>
+          <button class="btn btn-primary" onclick="sendCodeToBackend(document.getElementById('manualCode').value)">
+            🚀 Exchange with Backend
+          </button>
+        </div>
+      </div>
+
+      <!-- Console log -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="dot"></div>
+          Debug Console
+          <span id="logCount" style="margin-left:auto;background:var(--border2);padding:2px 7px;border-radius:10px;font-size:10px;">0</span>
+        </div>
+        <div class="panel-body" style="padding:10px;">
+          <div class="log-console" id="logConsole"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── State ─────────────────────────────────────────────────────────────────
+let logCount = 0;
+let authState = null;
+let codeVerifier = null;
+
+// ─── Logger ────────────────────────────────────────────────────────────────
+function log(msg, type = 'info') {
+  const console_ = document.getElementById('logConsole');
+  const now = new Date();
+  const time = now.toTimeString().slice(0, 8);
+
+  const tagClass = {
+    info: 'tag-info', ok: 'tag-ok',
+    warn: 'tag-warn', error: 'tag-error', data: 'tag-data'
+  }[type] || 'tag-info';
+
+  const tagLabel = {
+    info: 'INFO', ok: 'OK', warn: 'WARN', error: 'ERR', data: 'DATA'
+  }[type] || type.toUpperCase();
+
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `
+    <span class="log-time">${time}</span>
+    <span class="log-tag ${tagClass}">${tagLabel}</span>
+    <span class="log-msg">${msg}</span>
+  `;
+  console_.appendChild(entry);
+  console_.scrollTop = console_.scrollHeight;
+
+  logCount++;
+  document.getElementById('logCount').textContent = logCount;
+}
+
+// ─── Config persistence ─────────────────────────────────────────────────────
+function loadConfig() {
+  const cfg = JSON.parse(localStorage.getItem('gradeaAuthTest') || '{}');
+  if (cfg.apiBase) document.getElementById('apiBase').value = cfg.apiBase;
+  if (cfg.authPath) document.getElementById('authPath').value = cfg.authPath;
+  if (cfg.clientId) document.getElementById('clientId').value = cfg.clientId;
+  if (cfg.redirectUri) document.getElementById('redirectUri').value = cfg.redirectUri;
+  if (cfg.oauthScope) document.getElementById('oauthScope').value = cfg.oauthScope;
+  log('Config loaded from localStorage', 'info');
+}
+
+function saveConfig() {
+  const cfg = {
+    apiBase: document.getElementById('apiBase').value.trim(),
+    authPath: document.getElementById('authPath').value.trim(),
+    clientId: document.getElementById('clientId').value.trim(),
+    redirectUri: document.getElementById('redirectUri').value.trim(),
+    oauthScope: document.getElementById('oauthScope').value.trim(),
+  };
+  localStorage.setItem('gradeaAuthTest', JSON.stringify(cfg));
+  log('Config saved to localStorage ✓', 'ok');
+}
+
+function getRedirectUri() {
+  const r = document.getElementById('redirectUri').value.trim();
+  return r || window.location.origin + window.location.pathname;
+}
+
+// ─── PKCE helpers ───────────────────────────────────────────────────────────
+function generateRandomString(length = 64) {
+  const array = new Uint8Array(length);
+  crypto.getRandomValues(array);
+  return Array.from(array)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+    .slice(0, length);
+}
+
+function base64URLEncode(buffer) {
+  return btoa(String.fromCharCode(...new Uint8Array(buffer)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function sha256(plain) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(plain);
+  return crypto.subtle.digest('SHA-256', data);
+}
+
+async function generatePKCE() {
+  const verifier = generateRandomString(64);
+  const hashed = await sha256(verifier);
+  const challenge = base64URLEncode(hashed);
+  return { verifier, challenge };
+}
+
+// ─── Step indicator ─────────────────────────────────────────────────────────
+function setStep(n) {
+  for (let i = 1; i <= 5; i++) {
+    const el = document.getElementById(`step${i}`);
+    el.classList.remove('active', 'done');
+    if (i < n) el.classList.add('done');
+    else if (i === n) el.classList.add('active');
+  }
+}
+
+function setStatus(state, text) {
+  const bar = document.getElementById('statusBar');
+  const icon = document.getElementById('statusIcon');
+  const txt  = document.getElementById('statusText');
+  bar.className = 'status-bar ' + state;
+  txt.textContent = text;
+  if (state === 'loading') {
+    icon.outerHTML = '<span class="spinner" id="statusIcon"></span>';
+  } else {
+    const icons = { idle: '○', success: '✓', error: '✗' };
+    document.getElementById('statusIcon').outerHTML =
+      `<span id="statusIcon">${icons[state] || '○'}</span>`;
+  }
+}
+
+// ─── OAuth flow ─────────────────────────────────────────────────────────────
+async function startOAuthFlow() {
+  const clientId = document.getElementById('clientId').value.trim();
+  if (!clientId) {
+    log('Google Client ID is required', 'error');
+    alert('Please enter your Google Client ID first.');
+    return;
+  }
+
+  log('Generating PKCE code_verifier and code_challenge (S256)…', 'info');
+  const { verifier, challenge } = await generatePKCE();
+
+  codeVerifier = verifier;
+  authState = generateRandomString(16);
+
+  document.getElementById('codeVerifierDisplay').textContent = verifier;
+  document.getElementById('codeChallengeDisplay').textContent = challenge;
+
+  // Persist verifier and state for the callback
+  sessionStorage.setItem('pkce_verifier', verifier);
+  sessionStorage.setItem('oauth_state', authState);
+
+  log(`code_verifier: ${verifier.slice(0, 20)}…`, 'data');
+  log(`code_challenge: ${challenge.slice(0, 20)}…`, 'data');
+  log(`state: ${authState}`, 'data');
+
+  setStep(2);
+
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: getRedirectUri(),
+    response_type: 'code',
+    scope: document.getElementById('oauthScope').value.trim(),
+    state: authState,
+    code_challenge: challenge,
+    code_challenge_method: 'S256',
+    access_type: 'offline',
+    prompt: 'consent',
+  });
+
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+  log(`Redirecting to Google OAuth2 → ${authUrl.slice(0, 80)}…`, 'info');
+
+  window.location.href = authUrl;
+}
+
+// ─── Callback handler ───────────────────────────────────────────────────────
+async function handleCallback() {
+  const params = new URLSearchParams(window.location.search);
+  const code  = params.get('code');
+  const state = params.get('state');
+  const error = params.get('error');
+
+  if (error) {
+    log(`Google returned error: ${error}`, 'error');
+    setStatus('error', `Google error: ${error}`);
+    setStep(3);
+    return;
+  }
+
+  if (!code) return; // No callback params, fresh load
+
+  log(`Callback received. code: ${code.slice(0, 20)}…`, 'ok');
+  setStep(3);
+
+  // Verify state
+  const savedState = sessionStorage.getItem('oauth_state');
+  if (savedState && state !== savedState) {
+    log(`State mismatch! Expected: ${savedState}, got: ${state}`, 'error');
+    setStatus('error', 'State mismatch — possible CSRF attack');
+    return;
+  }
+
+  log(`State verified ✓ (${state})`, 'ok');
+
+  // Restore PKCE verifier
+  const verifier = sessionStorage.getItem('pkce_verifier');
+  if (verifier) {
+    codeVerifier = verifier;
+    document.getElementById('codeVerifierDisplay').textContent = verifier;
+    log(`Restored code_verifier from session ✓`, 'ok');
+  }
+
+  // Clean URL
+  window.history.replaceState({}, '', window.location.pathname);
+
+  await sendCodeToBackend(code);
+}
+
+// ─── Backend exchange ────────────────────────────────────────────────────────
+async function sendCodeToBackend(code) {
+  if (!code) {
+    log('No authorization code to send.', 'error');
+    return;
+  }
+
+  const apiBase  = document.getElementById('apiBase').value.trim();
+  const authPath = document.getElementById('authPath').value.trim();
+  const url = apiBase + authPath;
+  const redirectUri = getRedirectUri();
+
+  log(`POSTing code to backend: ${url}`, 'info');
+  log(`redirect_uri: ${redirectUri}`, 'data');
+  setStep(4);
+  setStatus('loading', 'Exchanging code with backend…');
+
+  const body = { code, redirect_uri: redirectUri };
+  log(`Request body: ${JSON.stringify(body)}`, 'data');
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    const text = await res.text();
+    let data;
+    try { data = JSON.parse(text); } catch { data = { raw: text }; }
+
+    log(`Response status: ${res.status} ${res.statusText}`, res.ok ? 'ok' : 'error');
+
+    if (res.ok) {
+      log('Authentication successful ✓', 'ok');
+      setStep(5);
+      setStatus('success', `Authenticated as ${data.user?.email || 'unknown'}`);
+      renderResponse(data);
+      sessionStorage.removeItem('pkce_verifier');
+      sessionStorage.removeItem('oauth_state');
+    } else {
+      log(`Backend error: ${text}`, 'error');
+      setStatus('error', `Backend returned ${res.status}`);
+      renderRawError(data, res.status);
+    }
+
+  } catch (err) {
+    log(`Network error: ${err.message}`, 'error');
+    setStatus('error', `Network error: ${err.message}`);
+  }
+}
+
+// ─── Render results ──────────────────────────────────────────────────────────
+function renderResponse(data) {
+  // User tab
+  const userWrap = document.getElementById('userCardWrap');
+  const user = data.user || {};
+
+  userWrap.innerHTML = `
+    <div class="user-card">
+      ${user.profile_image_url
+        ? `<img class="user-avatar" src="${user.profile_image_url}" alt="avatar">`
+        : `<div class="user-avatar-placeholder">👤</div>`}
+      <div class="user-info">
+        <div class="name">${[user.first_name, user.middle_name, user.last_name].filter(Boolean).join(' ') || 'Unknown'}</div>
+        <div class="email">${user.email || '—'}</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;">
+      ${Object.entries({
+        'ID': user.id ?? '—',
+        'Method': user.registration_method ?? '—',
+        'Active': user.is_active ?? '—',
+        'Email Verified': user.email_verified_at ? '✓' : '✗',
+        'Role': user.role ?? '—',
+        'Created': user.date_joined ? user.date_joined.split('T')[0] : '—',
+      }).map(([k, v]) => `
+        <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:5px;padding:7px 10px;">
+          <div style="font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:2px;">${k}</div>
+          <div style="color:var(--text);">${v}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  document.getElementById('userJsonWrap').style.display = 'block';
+  document.getElementById('userJsonViewer').innerHTML = syntaxHighlight(JSON.stringify(user, null, 2));
+
+  // Tokens tab
+  document.getElementById('tokensWrap').innerHTML = `
+    <div style="margin-bottom:12px;">
+      ${makeTokenRow('ACCESS', data.access)}
+      ${makeTokenRow('REFRESH', data.refresh)}
+    </div>
+    <div style="font-size:11px;color:var(--text-dim);">Click a token to copy it to clipboard.</div>
+    ${data.access ? `<hr class="divider"><div><label>Access Token Payload (decoded)</label><div class="json-viewer" style="margin-top:6px;">${syntaxHighlight(JSON.stringify(decodeJwt(data.access), null, 2))}</div></div>` : ''}
+  `;
+
+  // Raw tab
+  document.getElementById('rawJsonWrap').innerHTML = `
+    <div class="json-viewer">${syntaxHighlight(JSON.stringify(data, null, 2))}</div>
+  `;
+}
+
+function renderRawError(data, status) {
+  switchTabByName('rawTab');
+  document.getElementById('rawJsonWrap').innerHTML = `
+    <div style="color:var(--error);font-size:11px;margin-bottom:8px;">HTTP ${status}</div>
+    <div class="json-viewer">${syntaxHighlight(JSON.stringify(data, null, 2))}</div>
+  `;
+}
+
+function makeTokenRow(label, value) {
+  if (!value) return '';
+  const short = value.slice(0, 40) + '…';
+  return `
+    <div class="token-row">
+      <div class="token-label">${label}</div>
+      <div class="token-value" title="${value}" onclick="copyToken(this, '${value}')">${short}</div>
+    </div>
+  `;
+}
+
+async function copyToken(el, value) {
+  await navigator.clipboard.writeText(value);
+  el.classList.add('copied');
+  el.textContent = '✓ Copied!';
+  setTimeout(() => {
+    el.classList.remove('copied');
+    el.textContent = value.slice(0, 40) + '…';
+  }, 1500);
+}
+
+function decodeJwt(token) {
+  try {
+    const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(b64));
+  } catch { return { error: 'Could not decode JWT' }; }
+}
+
+function syntaxHighlight(json) {
+  return json
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (m) => {
+      let cls = 'json-num';
+      if (/^"/.test(m)) cls = /:$/.test(m) ? 'json-key' : 'json-str';
+      else if (/true|false/.test(m)) cls = 'json-bool';
+      else if (/null/.test(m)) cls = 'json-null';
+      return `<span class="${cls}">${m}</span>`;
+    });
+}
+
+// ─── Tabs ────────────────────────────────────────────────────────────────────
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+function switchTabByName(id) {
+  const btns = document.querySelectorAll('.tab-btn');
+  const panes = document.querySelectorAll('.tab-pane');
+  panes.forEach((p, i) => {
+    if (p.id === id) { p.classList.add('active'); btns[i]?.classList.add('active'); }
+    else { p.classList.remove('active'); btns[i]?.classList.remove('active'); }
+  });
+}
+
+// ─── Manual exchange toggle ──────────────────────────────────────────────────
+function manualExchange() {
+  const p = document.getElementById('manualPanel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+// ─── Clear ───────────────────────────────────────────────────────────────────
+function clearAll() {
+  sessionStorage.removeItem('pkce_verifier');
+  sessionStorage.removeItem('oauth_state');
+  codeVerifier = null;
+  authState = null;
+  document.getElementById('logConsole').innerHTML = '';
+  logCount = 0;
+  document.getElementById('logCount').textContent = '0';
+  document.getElementById('codeVerifierDisplay').textContent = '—';
+  document.getElementById('codeChallengeDisplay').textContent = '—';
+  document.getElementById('userCardWrap').innerHTML = '<div style="color:var(--text-dim);font-size:12px;padding:20px 0;text-align:center;">No user data yet.</div>';
+  document.getElementById('userJsonWrap').style.display = 'none';
+  document.getElementById('tokensWrap').innerHTML = '<div style="color:var(--text-dim);font-size:12px;padding:20px 0;text-align:center;">No tokens yet.</div>';
+  document.getElementById('rawJsonWrap').innerHTML = '<div style="color:var(--text-dim);font-size:12px;padding:20px 0;text-align:center;">No response yet.</div>';
+  setStatus('idle', 'Waiting for authentication…');
+  for (let i = 1; i <= 5; i++) {
+    const el = document.getElementById(`step${i}`);
+    el.classList.remove('active', 'done');
+  }
+  log('State cleared.', 'warn');
+}
+
+// ─── Env label ───────────────────────────────────────────────────────────────
+function updateEnvLabel() {
+  const base = document.getElementById('apiBase').value.trim();
+  const label = document.getElementById('envLabel');
+  if (base.includes('localhost') || base.includes('127.0.0.1')) {
+    label.textContent = 'ENV: localhost';
+    label.style.color = 'var(--warn)';
+  } else if (base.includes('staging') || base.includes('dev')) {
+    label.textContent = 'ENV: staging';
+    label.style.color = 'var(--info)';
+  } else if (base.startsWith('https://')) {
+    label.textContent = 'ENV: production';
+    label.style.color = 'var(--accent)';
+  } else {
+    label.textContent = 'ENV: ?';
+    label.style.color = 'var(--text-dim)';
+  }
+}
+document.getElementById('apiBase').addEventListener('input', updateEnvLabel);
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+loadConfig();
+updateEnvLabel();
+log(`Grade A+ Auth Test Console ready. Redirect URI will be: ${window.location.origin + window.location.pathname}`, 'info');
+log('Checking URL for OAuth callback params…', 'info');
+handleCallback();
+</script>
+</body>
+</html>

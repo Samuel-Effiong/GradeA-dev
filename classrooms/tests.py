@@ -4,6 +4,12 @@ from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.test import TestCase
+from django.urls import reverse
+from django.utils import timezone
+from rest_framework import status
+from rest_framework.test import APITestCase
+
+from users.models import ACTIVATION_TOKEN_VALIDITY
 
 from .models import Course, EnrollmentStatusType, School, Session, StudentCourse
 
@@ -72,10 +78,11 @@ class SessionModelTest(TestCase):
 
     def test_session_name_uniqueness_per_teacher(self):
         """Test the unique constraint: name per teacher."""
-        # Same teacher, same name -> should fail
-        with self.assertRaises(IntegrityError):
-            with transaction.atomic():
-                Session.objects.create(name="Fall 2024", teacher=self.teacher)
+        # Same teacher, same name -> should fail. Session.save() calls
+        # full_clean(), so validate_unique() catches this and raises
+        # ValidationError before the DB constraint is ever reached.
+        with self.assertRaises(ValidationError):
+            Session.objects.create(name="Fall 2024", teacher=self.teacher)
 
         # Different teacher, same name -> should pass
         teacher2 = User.objects.create_user(
@@ -239,3 +246,186 @@ class StudentCourseModelTest(TestCase):
                 course=self.course,
                 enrollment_status=EnrollmentStatusType.ENROLLED,
             )
+
+
+class CourseStudentsActionAuthorizationTest(APITestCase):
+    """
+    Regression coverage for CourseViewSet.students(): it used to look the
+    course up with a bare Course.objects.select_for_update().get(pk=...),
+    bypassing get_queryset()'s teacher-ownership filter entirely. Any
+    authenticated teacher could enroll a student into any other teacher's
+    course just by knowing/guessing the course id.
+    """
+
+    def setUp(self):
+        self.teacher_a = User.objects.create_user(
+            email="course-idor-teacher-a@example.com",
+            password="password123",  # pragma: allowlist secret
+            first_name="Teacher",
+            last_name="A",
+            user_type="TEACHER",
+            is_active=True,
+        )
+        self.teacher_b = User.objects.create_user(
+            email="course-idor-teacher-b@example.com",
+            password="password123",  # pragma: allowlist secret
+            first_name="Teacher",
+            last_name="B",
+            user_type="TEACHER",
+            is_active=True,
+        )
+        session_b = Session.objects.create(name="B's Session", teacher=self.teacher_b)
+        self.teacher_b_course = Course.objects.create(
+            name="B's Course", teacher=self.teacher_b, session=session_b
+        )
+        self.url = reverse("course-students", kwargs={"pk": self.teacher_b_course.pk})
+
+    def test_teacher_cannot_enroll_a_student_into_another_teachers_course(self):
+        self.client.force_authenticate(user=self.teacher_a)
+
+        response = self.client.post(
+            self.url, {"email": "some-student@example.com"}, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertFalse(
+            StudentCourse.objects.filter(course=self.teacher_b_course).exists()
+        )
+
+    def test_owning_teacher_can_still_enroll_a_student(self):
+        # Regression guard for the happy path: the fix must not turn a
+        # legitimate enrollment into a 404 too.
+        student = User.objects.create_user(
+            email="course-idor-student@example.com",
+            password="password123",  # pragma: allowlist secret
+            first_name="Some",
+            last_name="Student",
+            user_type="STUDENT",
+            is_active=True,
+        )
+        self.client.force_authenticate(user=self.teacher_b)
+
+        response = self.client.post(self.url, {"email": student.email}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(
+            StudentCourse.objects.filter(
+                course=self.teacher_b_course, student=student
+            ).exists()
+        )
+
+
+class ActivationTokenValidityWindowTest(APITestCase):
+    """
+    Locks the shortened activation-token expiry in place. Previously 7
+    days with no throttle on the verify endpoint, the combination made a
+    6-digit numeric activation_token brute-forceable for a known email
+    well within its validity window. The token stays 6 digits (by design -
+    memorable, not clicked from a link), so the mitigation is a shorter
+    window (see users.models.ACTIVATION_TOKEN_VALIDITY) plus a dedicated
+    throttle on verify (see users.tests_throttling).
+    """
+
+    def test_teacher_invited_student_gets_the_shortened_window(self):
+        teacher = User.objects.create_user(
+            email="activation-window-teacher@example.com",
+            password="password123",  # pragma: allowlist secret
+            first_name="Teacher",
+            last_name="Window",
+            user_type="TEACHER",
+            is_active=True,
+        )
+        session = Session.objects.create(name="S", teacher=teacher)
+        course = Course.objects.create(name="C", teacher=teacher, session=session)
+        url = reverse("course-students", kwargs={"pk": course.pk})
+        self.client.force_authenticate(user=teacher)
+
+        before = timezone.now()
+        response = self.client.post(
+            url, {"email": "new-student@example.com"}, format="json"
+        )
+        after = timezone.now()
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        student = User.objects.get(email="new-student@example.com")
+
+        self.assertIsNotNone(student.activation_expires)
+        self.assertGreaterEqual(
+            student.activation_expires, before + ACTIVATION_TOKEN_VALIDITY
+        )
+        self.assertLessEqual(
+            student.activation_expires, after + ACTIVATION_TOKEN_VALIDITY
+        )
+        # And explicitly not the old 7-day window.
+        self.assertLess(student.activation_expires, before + timedelta(days=2))
+
+
+class RenewActivationTokenTest(APITestCase):
+    """
+    Covers handle_expired_token (POST /course/renew-student-token). It used
+    to filter `StudentCourse.objects.filter(student=user, is_active=False)`
+    - but StudentCourse has no `is_active` field (that's PENDING vs
+    ENROLLED/WITHDRAWN/COMPLETED via `enrollment_status`), so the "happy
+    path" always raised FieldError and the caller only ever saw a 500.
+    """
+
+    def setUp(self):
+        self.teacher = User.objects.create_user(
+            email="renew-token-teacher@example.com",
+            password="password123",  # pragma: allowlist secret
+            first_name="Renew",
+            last_name="Teacher",
+            user_type="TEACHER",
+            is_active=True,
+        )
+        self.session = Session.objects.create(name="S", teacher=self.teacher)
+        self.course = Course.objects.create(
+            name="C", teacher=self.teacher, session=self.session
+        )
+        self.student = User.objects.create_user(
+            email="renew-token-student@example.com",
+            password="password123",  # pragma: allowlist secret
+            first_name="Renew",
+            last_name="Student",
+            user_type="STUDENT",
+            is_active=False,
+            activation_token="123456",
+            activation_expires=timezone.now() - timedelta(hours=1),
+        )
+        StudentCourse.objects.create(
+            student=self.student,
+            course=self.course,
+            enrollment_status=EnrollmentStatusType.PENDING,
+        )
+        self.url = reverse("course-renew-activation-token")
+
+    def test_renews_token_for_pending_enrollment(self):
+        old_token = self.student.activation_token
+
+        response = self.client.post(self.url, {"token": old_token}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.student.refresh_from_db()
+        self.assertNotEqual(self.student.activation_token, old_token)
+        self.assertGreater(self.student.activation_expires, timezone.now())
+
+    def test_unknown_token_returns_400_not_500(self):
+        """An unknown token is an expected, client-caused case (ParseError)
+        - it must surface as a 400 with the real message, not fall through
+        the blanket `except Exception` into a generic 500."""
+        response = self.client.post(self.url, {"token": "000000"}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Invalid token", str(response.data.get("detail", "")))
+
+    def test_token_with_no_pending_enrollment_returns_400_not_500(self):
+        """Same ParseError-swallowing bug, the other raise site in this
+        view: a real, inactive user whose only enrollment isn't PENDING."""
+        self.student.enrollments.update(enrollment_status=EnrollmentStatusType.ENROLLED)
+
+        response = self.client.post(
+            self.url, {"token": self.student.activation_token}, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("No pending enrollment", str(response.data.get("detail", "")))

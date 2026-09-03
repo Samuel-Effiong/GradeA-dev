@@ -1,0 +1,66 @@
+name: Migration safety
+
+# Enforces the house rule in docs/MIGRATIONS.md: a migration this PR adds
+# may not rename/drop/change-type a column, or add a NOT NULL column
+# without a default, unless the file carries an explicit
+# `# expand-contract-step: ...` acknowledgement. See scripts/check_migration_safety.py.
+#
+# pull_request only - this needs a base ref to diff new migrations against,
+# and that's only meaningful in PR context.
+on:
+  pull_request:
+    branches: [main, beta, dev]
+
+concurrency:
+  group: migration-safety-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      # Only settings.py's module-level env reads need satisfying here -
+      # django.setup() never opens a database connection. Values mirror the
+      # placeholders tests.yml uses; see that file's comments for why each
+      # one is required at import time.
+      DJANGO_SETTINGS_MODULE: AutoGrader.settings
+      ENVIRONMENT: local
+      SECRET_KEY: ci-secret-key-not-used-outside-ci  # pragma: allowlist secret
+      FRONTEND_DOMAIN: http://localhost:3000
+      DATABASE_URI_LOCAL: postgres://postgres:postgres@localhost:5432/gradeaplus_ci  # pragma: allowlist secret
+      REDIS_LOCAL_URL: redis://localhost:6379/0
+      LOCAL_STRIPE_PUBLIC_KEY: pk_test_ci
+      LOCAL_STRIPE_SECRET_KEY: sk_test_ci  # pragma: allowlist secret
+      LOCAL_STRIPE_WEBHOOK_SECRET: whsec_ci  # pragma: allowlist secret
+      CLOUDINARY_CLOUD_NAME: ci
+      CLOUDINARY_API_KEY: ci  # pragma: allowlist secret
+      CLOUDINARY_API_SECRET: ci  # pragma: allowlist secret
+      MAILSEND_API_KEY: ci  # pragma: allowlist secret
+      GOOGLE_OAUTH_CLIENT_ID: ci
+      GOOGLE_OAUTH_CLIENT_SECRET: ci  # pragma: allowlist secret
+      GOOGLE_REDIRECT_URI: http://localhost:3000/auth/google
+      OPENROUTER_API_KEY: sk-or-ci-not-a-real-key  # pragma: allowlist secret
+      FIELD_ENCRYPTION_KEY: Y2ktdGVzdC1rZXktbm90LWZvci1wcm9kdWN0aW9uISE=  # pragma: allowlist secret
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Need the base branch's history to diff against, not just the
+          # PR's own commits.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Check new migrations for non-additive operations
+        run: |
+          python scripts/check_migration_safety.py --base origin/${{ github.base_ref }}

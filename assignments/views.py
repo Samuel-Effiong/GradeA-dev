@@ -1,11 +1,14 @@
 import hashlib
 import json
+import logging
+import re
 import uuid
+from io import BytesIO
 
 from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
 from django.db.models import Q
-from django.http import Http404
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django_celery_beat.models import ClockedSchedule, PeriodicTask
@@ -24,20 +27,30 @@ from drf_spectacular.utils import (
 )
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotFound, ParseError, ValidationError
+from rest_framework.exceptions import (
+    NotFound,
+    ParseError,
+    PermissionDenied,
+    ValidationError,
+)
 from rest_framework.filters import OrderingFilter, SearchFilter
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor  # pdf_service
+from AutoGrader.error_messages import describe_user_error
+from AutoGrader.pagination import StandardPageNumberPagination
+from AutoGrader.uploads import PayloadTooLarge, validate_upload_size
+from billing.access_control import AIFeatureNotAvailableError
+from billing.errors import InsufficientCreditsError
 
 # from ai_processor.tools import encode_image
 from classrooms.models import Course, Topic
 from classrooms.permissions import IsTeacher, IsTeacherOrReadOnly
 from classrooms.serializers import TopicSerializer
-from students.models import BatchUploadSession, BatchUploadType
+from students.models import BackgroundTaskType, BatchUploadSession, BatchUploadType
+from students.task_tracking import create_processing_task, launch_processing_task
 from users.mixins import UserCacheMixin
 
 # from students.serializers import StudentSubmissionSerializer
@@ -51,17 +64,23 @@ from .models import (  # Rubric
     AssignmentGenerationSession,
     AssignmentStatus,
 )
+from .pdf_cache import get_or_render
+from .pdf_document import render_assignment_pdf
+from .pdf_renderer import PDFRendererBusy
 from .serializers import (  # RubricSerializer,; AssignmentGradeAllSubmissionsSerializer,
     AssignmentCreateResponseSerializer,
     AssignmentDetailSerializer,
+    AssignmentDetailStudentSerializer,
     AssignmentGenerationSessionDetailSerializer,
     AssignmentGenerationSessionSerializer,
     AssignmentListSerializer,
+    AssignmentListStudentSerializer,
     AssignmentSerializer,
     AssignmentTextSerializer,
     BatchUploadResponseSerializer,
     GeneratedAssignmentSerializer,
     PublishAllGradesResponseSerializer,
+    SaveGeneratedAssignmentDraftSerializer,
     ScheduledGradingResponseSerializer,
     ScheduleGradingSerializer,
 )
@@ -72,6 +91,11 @@ from .tasks import (  # grade_all_submissions,
     update_assignment_background_task,
     upload_assignment_async,
 )
+
+logger = logging.getLogger(__name__)
+
+# from billing.access_control import require_ai_access
+
 
 # from students.models import StudentSubmission
 
@@ -85,7 +109,6 @@ from .tasks import (  # grade_all_submissions,
     list=extend_schema(
         tags=["Assignments"],
         summary="List all assignments",
-        description="Retrieve a paginated list of all assignments in the system.",
         parameters=[
             OpenApiParameter(
                 name="page",
@@ -97,13 +120,60 @@ from .tasks import (  # grade_all_submissions,
                 name="page_size",
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
-                description="Number of results per page",
+                description="Number of results per page (max 100)",
             ),
         ],
         responses={
-            200: AssignmentListSerializer(many=True),
-            500: OpenApiResponse(description="Internal Server Error"),
+            200: AssignmentListSerializer(many=True),  # Use the standard serializer
         },
+        examples=[
+            OpenApiExample(
+                "Teacher List View",
+                value=[
+                    {
+                        "id": f"{uuid.uuid4()}",
+                        "course": "Dummy Course",
+                        "topic": "Dummy Topic",
+                        "title": "Dummy Assignment",
+                        "instructions": "Dummy Instructions",
+                        "total_points": 100,
+                        "question_count": 1,
+                        "assignment_type": "ESSAY",
+                        "status": "PENDING",
+                        "created_at": timezone.now(),
+                        "due_date": timezone.now(),
+                        "auto_grade_on_due_date": False,
+                        "extraction_confidence": 100,
+                        "submission_count": 4,
+                        "scheduled_grading_at": None,
+                        "grading_task_name": None,
+                        "is_grading_scheduled": False,
+                    }
+                ],
+                response_only=True,
+                status_codes=[200],
+            ),
+            OpenApiExample(
+                "Student List View",
+                value=[
+                    {
+                        "id": f"{uuid.uuid4()}",
+                        "title": "Dummy Assignment",
+                        "course": None,
+                        "course_title": "Dummy Assignment Title",
+                        "topic": None,
+                        "status": "PENDING",
+                        "due_date": timezone.now(),
+                        "score": 95,
+                        "total_points": 100,
+                        "grade_letter": "A+",
+                        "remaining_attempts": 2,
+                    }
+                ],
+                response_only=True,
+                status_codes=[200],
+            ),
+        ],
     ),
     create=extend_schema(
         tags=["Assignments"],
@@ -127,12 +197,57 @@ from .tasks import (  # grade_all_submissions,
     retrieve=extend_schema(
         tags=["Assignments"],
         summary="Retrieve an assignment",
-        description="Retrieve detailed information about a specific assignment by its ID.",
         responses={
-            200: AssignmentDetailSerializer,
-            404: OpenApiResponse(description="Assignment not found"),
-            500: OpenApiResponse(description="Internal Server Error"),
+            200: AssignmentDetailSerializer,  # Use the standard serializer
         },
+        examples=[
+            OpenApiExample(
+                "Teacher Detail View",
+                value={
+                    "id": f"{uuid.uuid4()}",
+                    "title": "Dummy Assignment",
+                    "course": None,
+                    "topic": None,
+                    "status": "PENDING",
+                    "raw_input": "Dummy Content",
+                    "created_at": timezone.now(),
+                    "due_date": timezone.now(),
+                    "auto_grade_on_due_date": True,
+                    "extraction_confidence": 90,
+                    "assignment_type": "ESSAY",
+                    "total_points": 100,
+                    "question_count": 1,
+                    "student_submissions": [],
+                    "scheduled_grading_at": None,
+                    "grading_task_name": None,
+                    "is_grading_scheduled": False,
+                },
+                response_only=True,
+                status_codes=[200],
+            ),
+            OpenApiExample(
+                "Student Detail View",
+                value={
+                    "id": f"{uuid.uuid4()}",
+                    "title": "Dummy Assignment",
+                    "course": None,
+                    "course_title": "Dummy Assignment Title",
+                    "topic": None,
+                    "status": "PENDING",
+                    "due_date": timezone.now(),
+                    "score": 95,
+                    "total_points": 100,
+                    "grade_letter": "A+",
+                    "remaining_attempts": 2,
+                    "student_submission_id": f"{uuid.uuid4()}",
+                    "performance_summary": "Great job on this assignment!",
+                    "assignment_raw_input": {},
+                    "student_submission_raw_input": {},
+                },
+                response_only=True,
+                status_codes=[200],
+            ),
+        ],
     ),
     partial_update=extend_schema(
         tags=["Assignments"],
@@ -177,8 +292,9 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
     queryset = Assignment.objects.all()
     serializer_class = AssignmentSerializer
     permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
+    generation_history_message_limit = 12
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
@@ -199,9 +315,16 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             return Assignment.objects.none()
 
     def get_serializer_class(self):
+        user = self.request.user
+        is_student = hasattr(user, "user_type") and user.user_type == UserTypes.STUDENT
+
         if self.action == "list":
+            if is_student:
+                return AssignmentListStudentSerializer
             return AssignmentListSerializer
         if self.action == "retrieve":
+            if is_student:
+                return AssignmentDetailStudentSerializer
             return AssignmentDetailSerializer
         if self.request.method in ["POST", "PUT", "PATCH"]:
             return AssignmentTextSerializer
@@ -273,6 +396,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             500: OpenApiResponse(description="Internal server error"),
         },
     )
+    # @require_ai_access
     @action(
         detail=False, methods=["post"], url_path="create-async", url_name="create-async"
     )
@@ -316,7 +440,15 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         content = [{"type": "text", "text": text, "raw_input": raw_input}]
 
-        task = extract_assignment_background_task.delay(
+        processing_task = create_processing_task(
+            requested_by=request.user,
+            task_type=BackgroundTaskType.ASSIGNMENT_EXTRACTION,
+            assignment=assignment,
+            meta={"step": "Queued for assignment extraction"},
+        )
+        task = launch_processing_task(
+            extract_assignment_background_task,
+            processing_task,
             str(request.user.id),
             str(assignment.id),
             content,
@@ -365,6 +497,10 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         topic = serializer.validated_data.get("topic")
 
         if raw_input:
+            if not HasCreditBalance().has_permission(request, self):
+                raise PermissionDenied(
+                    "Insufficient credits to re-process this assignment edit."
+                )
 
             text = f"""
             Analyze the text of an educational assignment and return a valid JSON
@@ -427,6 +563,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             404: OpenApiResponse(description="Assignment not found"),
         },
     )
+    # @require_ai_access
     @action(
         detail=True,
         methods=["patch"],
@@ -471,7 +608,15 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             """
             content = [{"type": "text", "text": text}]
 
-            task = update_assignment_background_task.delay(
+            processing_task = create_processing_task(
+                requested_by=request.user,
+                task_type=BackgroundTaskType.ASSIGNMENT_REEXTRACTION,
+                assignment=instance,
+                meta={"step": "Queued for assignment re-extraction"},
+            )
+            task = launch_processing_task(
+                update_assignment_background_task,
+                processing_task,
                 str(request.user.id),
                 str(instance.id),
                 content,
@@ -583,6 +728,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             },
         },
     )
+    # @require_ai_access
     @action(
         detail=False,
         methods=["POST"],
@@ -639,7 +785,22 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             file_name = getattr(uploaded_file, "name", "unknown_file")
 
             if not isinstance(uploaded_file, UploadedFile):
-                failed.append({"file_name": file_name, "error": "Invalid file upload."})
+                failed.append(
+                    {
+                        "file_name": file_name,
+                        "error": (
+                            "The uploaded file appears to be malformed or corrupted. "
+                            "Please ensure it is a valid, readable file and "
+                            "try uploading again."
+                        ),
+                    }
+                )
+                continue
+
+            try:
+                validate_upload_size(uploaded_file)
+            except PayloadTooLarge as exc:
+                failed.append({"file_name": file_name, "error": str(exc.detail)})
                 continue
 
             content = AssignmentProcessingService.prepare_ai_content(
@@ -671,8 +832,22 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 # results.append(assignment_questions)
 
             except Exception as e:
-                # raise ParseError(str(e)) from Exception
-                failed.append({"file_name": file_name, "error": str(e)})
+                logger.error(
+                    "Failed to extract assignment from file %s", file_name, exc_info=e
+                )
+                failed.append(
+                    {
+                        "file_name": file_name,
+                        "error": describe_user_error(
+                            e,
+                            fallback_message=(
+                                "Could not extract an assignment from this "
+                                "file. Please check the file format and try "
+                                "again."
+                            ),
+                        ),
+                    }
+                )
 
         # with transaction.atomic():
         #     serializer = AssignmentSerializer(data=results, many=True)
@@ -743,6 +918,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             },
         },
     )
+    # @require_ai_access
     @action(
         detail=False,
         methods=["POST"],
@@ -791,7 +967,15 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         tasks_data = []
         for uploaded_file in files:
             if not isinstance(uploaded_file, UploadedFile):
-                raise ParseError("Invalid file upload.")
+                raise ParseError(
+                    (
+                        "The uploaded file appears to be malformed or corrupted. "
+                        "Please ensure it is a valid, readable file and try "
+                        "uploading again."
+                    )
+                )
+
+            validate_upload_size(uploaded_file)
 
             prompt_text = """
             Analyze the image of an educational assignment and return a JSON
@@ -800,16 +984,26 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             Do not include any explanatory text before or after the JSON
             """
 
-            content = AssignmentProcessingService.prepare_ai_content(
-                uploaded_file, prompt_text=prompt_text
+            file_payload = AssignmentProcessingService.build_async_upload_payload(
+                uploaded_file
             )
 
-            task = upload_assignment_async.delay(
+            processing_task = create_processing_task(
+                requested_by=request.user,
+                task_type=BackgroundTaskType.BATCH_ASSIGNMENT_UPLOAD,
+                batch_session=session,
+                file_name=uploaded_file.name,
+                meta={"step": "Queued for batch assignment extraction"},
+            )
+            task = launch_processing_task(
+                upload_assignment_async,
+                processing_task,
                 user_id=str(request.user.id),
                 course_id=str(course.id),
                 topic_id=str(topic.id) if topic else None,
                 session_id=str(session.id),
-                content=content,
+                file_payload=file_payload,
+                prompt_text=prompt_text,
                 file_name=uploaded_file.name,
             )
             tasks_data.append({"file_name": uploaded_file.name, "task_id": task.id})
@@ -824,10 +1018,149 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         serializer = BatchUploadResponseSerializer(data)
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
 
+    def _build_generated_assignment_draft(self, generated_assignment, course):
+        assignment_data = {
+            **generated_assignment,
+            "course": str(course.id),
+            "ai_generated": True,
+        }
+        assignment_html = AssignmentProcessingService.format_assignment_standard_html(
+            assignment_data
+        )
+        assignment_data["raw_input"] = (
+            AssignmentProcessingService.html_to_prosemirror_text(assignment_html)
+        )
+        return assignment_data
+
+    def _compact_assignment_generation_snapshot(self, snapshot):
+        if not isinstance(snapshot, dict):
+            return None
+
+        top_level_fields = [
+            "title",
+            "instructions",
+            "total_points",
+            "question_count",
+            "assignment_type",
+            "status",
+            "due_date",
+            "auto_grade_on_due_date",
+            "potential_issues",
+            "extraction_confidence",
+        ]
+        question_fields = [
+            "question_number",
+            "question_text",
+            "question_type",
+            "points",
+            "blooms_level",
+            "options",
+            "rubric",
+            "model_answer",
+            "additional_notes",
+        ]
+
+        compact_snapshot = {
+            field: snapshot[field]
+            for field in top_level_fields
+            if field in snapshot and snapshot[field] not in [None, ""]
+        }
+
+        questions = snapshot.get("questions")
+        if isinstance(questions, list):
+            compact_snapshot["questions"] = [
+                {
+                    field: question[field]
+                    for field in question_fields
+                    if isinstance(question, dict)
+                    and field in question
+                    and question[field] not in [None, ""]
+                }
+                for question in questions
+                if isinstance(question, dict)
+            ]
+
+        return compact_snapshot
+
+    def _build_course_context(self, course):
+        """
+        Compact plain-text course summary for the AI's system prompt, used
+        to ground clarifying questions and topic suggestions. Topic list
+        capped to avoid unbounded prompt growth for courses with hundreds
+        of topics.
+        """
+        lines = [f"Course name: {course.name}"]
+
+        if course.description:
+            lines.append(f"Course description: {course.description}")
+
+        topic_names = list(
+            course.topics.order_by("name").values_list("name", flat=True)[:15]
+        )
+        if topic_names:
+            lines.append(
+                "Existing topics already created in this course: "
+                + ", ".join(topic_names)
+            )
+
+        return "\n".join(lines)
+
+    def _build_assignment_generation_chat_history(self, generation_session):
+        previous_messages = list(
+            generation_session.messages.order_by("-created_at")[
+                : self.generation_history_message_limit
+            ]
+        )
+        chat_history = []
+
+        for message in reversed(previous_messages):
+            if message.role == AssignmentGenerationRole.USER:
+                chat_history.append(
+                    {
+                        "role": "user",
+                        "content": f"Previous teacher message:\n{message.content}",
+                    }
+                )
+                continue
+
+            if message.role != AssignmentGenerationRole.ASSISTANT:
+                continue
+
+            metadata = message.metadata or {}
+            assistant_context = {
+                "assistant_reply": metadata.get("reply", ""),
+            }
+            compact_snapshot = self._compact_assignment_generation_snapshot(
+                message.assignment_snapshot
+            )
+
+            if compact_snapshot:
+                assistant_context["assignment_draft"] = compact_snapshot
+
+            if not assistant_context["assistant_reply"] and not compact_snapshot:
+                continue
+
+            chat_history.append(
+                {
+                    "role": "assistant",
+                    "content": (
+                        "Previous assistant response from this session. "
+                        "This is compact semantic context, not editor JSON:\n"
+                        f"{json.dumps(assistant_context, ensure_ascii=False)}"
+                    ),
+                }
+            )
+
+        return chat_history
+
     @extend_schema(
         tags=["Assignments"],
-        summary="Generate an assignment based on user prompts",
-        description="""Create a new assignment based on user prompts.
+        summary="Generate an AI assignment draft based on user prompts",
+        description="""Create an AI-generated assignment draft based on user prompts.
+
+        This does not create an Assignment record. The generated content is saved
+        as an assignment-generation message draft and can be persisted later with
+        the save-generated-draft endpoint.
 
         Request fields:
         - `prompt` (required): the teacher instruction sent to the AI
@@ -854,6 +1187,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             ),
         },
     )
+    # @require_ai_access
     @action(
         detail=False,
         methods=["POST"],
@@ -862,10 +1196,11 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
     )
     def generate_assignment_from_prompt(self, request, course_id, *args, **kwargs):
         """
-        Generate a new assignment based on text prompts.
+        Generate a new assignment draft based on text prompts.
 
-        This endpoint accepts a text prompt and generates an assignment with questions
-        and answers using AI processing.
+        This endpoint accepts a text prompt and generates assignment content with
+        questions and answers using AI processing. The generated assignment is kept
+        as an AI draft in the generation session until the teacher explicitly saves it.
         """
 
         # course = Course.objects.filter(id=course_id)
@@ -874,8 +1209,15 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         prompt = serializer.validated_data["prompt"]
         session_id = request.data.get("session_id")
+        course_context = self._build_course_context(course)
 
         try:
+            # Only the DB writes are transactional. The AI call below is an
+            # external network round trip (up to 3 retries, each up to 2
+            # sequential LLM calls, plus any tool-fetch requests) - it must
+            # not run inside a DB transaction, or a slow/hanging call holds
+            # a connection open and locks the session/message rows for the
+            # full duration.
             with transaction.atomic():
                 if session_id:
                     generation_session = get_object_or_404(
@@ -891,62 +1233,279 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                         title=prompt[:80],
                     )
 
+                chat_history = self._build_assignment_generation_chat_history(
+                    generation_session
+                )
+
                 user_message = AssignmentGenerationMessage.objects.create(
                     session=generation_session,
                     role=AssignmentGenerationRole.USER,
                     content=prompt,
                 )
 
-                generated_assignment = (
-                    ai_processor.generate_assignment_from_prompt_with_retry(
-                        request.user, prompt, max_retries=3
+            generated_assignment = (
+                ai_processor.generate_assignment_from_prompt_with_retry(
+                    request.user,
+                    prompt,
+                    max_retries=3,
+                    chat_history=chat_history,
+                    course_context=course_context,
+                )
+            )
+
+            # self_assessment now carries much richer, teacher-facing HTML
+            # (clarifying questions / topic suggestions) than the original
+            # reflection-only field this was designed for. Sanitize once
+            # here so every downstream read (both branches below, message
+            # storage, and the API response) is already safe - same
+            # AssignmentProcessingService sanitizer boundary already
+            # applied to title/instructions/question_text.
+            generated_assignment["self_assessment"] = (
+                AssignmentProcessingService.sanitize_ai_html(
+                    generated_assignment.get("self_assessment", "")
+                )
+            )
+
+            # Trust the flag when the model sets it - but a real assignment
+            # can never have zero questions (AssignmentSerializer requires
+            # min_length=1 below), so an empty "questions" list is always a
+            # clarification-shaped response even if the model forgot to
+            # also set needs_clarification. Without this OR, that mismatch
+            # used to fall through to draft-building and 500 on
+            # AssignmentSerializer validation instead of returning the
+            # clarification turn it clearly intended.
+            needs_clarification = bool(
+                generated_assignment.get("needs_clarification")
+            ) or not generated_assignment.get("questions")
+
+            if needs_clarification:
+                if not generated_assignment.get("needs_clarification"):
+                    logger.warning(
+                        "Assignment generation returned an empty-questions "
+                        "payload without needs_clarification set - "
+                        "treating as a clarification turn anyway."
                     )
+
+                reply = generated_assignment.get("self_assessment") or (
+                    "<p>Could you share a bit more about what you'd like "
+                    "this assignment to cover?</p>"
                 )
 
-                assignment_data = {
-                    **generated_assignment,
-                    "course": str(course.id),
-                    "ai_generated": True,
-                }
-                serializer = AssignmentSerializer(data=assignment_data)
-                serializer.is_valid(raise_exception=True)
-                assignment = serializer.save()
+                with transaction.atomic():
+                    assistant_message = AssignmentGenerationMessage.objects.create(
+                        session=generation_session,
+                        role=AssignmentGenerationRole.ASSISTANT,
+                        content=reply,
+                        assignment_snapshot=None,
+                        metadata={
+                            "source": "generate_assignment_from_prompt",
+                            "user_message_id": str(user_message.id),
+                            "reply": reply,
+                            "draft_status": "NEEDS_CLARIFICATION",
+                        },
+                    )
 
+                data = {
+                    "content": "",
+                    "reply": reply,
+                    "assignment_id": None,
+                    "session_id": str(generation_session.id),
+                    "message_id": str(assistant_message.id),
+                    "is_draft": False,
+                    "needs_clarification": True,
+                }
+
+                return Response(data, status=status.HTTP_201_CREATED)
+
+            assignment_data = self._build_generated_assignment_draft(
+                generated_assignment, course
+            )
+
+            draft_serializer = AssignmentSerializer(data=assignment_data)
+            draft_serializer.is_valid(raise_exception=True)
+
+            with transaction.atomic():
                 assistant_message = AssignmentGenerationMessage.objects.create(
                     session=generation_session,
                     role=AssignmentGenerationRole.ASSISTANT,
-                    content=json.dumps(assignment_data),
-                    assignment=assignment,
+                    content=assignment_data.get("raw_input", ""),
                     assignment_snapshot=assignment_data,
                     metadata={
                         "source": "generate_assignment_from_prompt",
                         "user_message_id": str(user_message.id),
+                        "reply": generated_assignment.get("self_assessment", ""),
+                        "draft_status": "AI_DRAFT",
                     },
                 )
 
-            assignment_standard = (
+            data = {
+                "content": assignment_data.get("raw_input", ""),
+                "reply": generated_assignment.get("self_assessment", ""),
+                "assignment_id": None,
+                "session_id": str(generation_session.id),
+                "message_id": str(assistant_message.id),
+                "is_draft": True,
+                "needs_clarification": False,
+            }
+
+            return Response(data, status=status.HTTP_201_CREATED)
+        except InsufficientCreditsError as e:
+            logger.warning(
+                "Assignment generation blocked by insufficient credits for user %s: %s",
+                request.user.id,
+                e,
+            )
+            return Response(
+                {
+                    "error": describe_user_error(
+                        e,
+                        fallback_message="Refill your wallet to continue generating assignments.",
+                    )
+                },
+                status=status.HTTP_402_PAYMENT_REQUIRED,
+            )
+        except AIFeatureNotAvailableError as e:
+            logger.warning(
+                "Assignment generation denied by plan/tier for user %s: %s",
+                request.user.id,
+                e,
+            )
+            return Response(
+                {
+                    "error": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "AI assignment generation isn't available on your current plan."
+                        ),
+                    )
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        except Http404:
+            return Response(
+                {
+                    "error": (
+                        "That generation session no longer exists. Start a "
+                        "new session."
+                    )
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        except Exception as e:
+            logger.error("Failed to generate assignment from prompt", exc_info=e)
+            return Response(
+                {
+                    "error": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "We couldn't generate an assignment right now. "
+                            "Please try again in a moment."
+                        ),
+                    )
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @extend_schema(
+        tags=["Assignments"],
+        summary="Save an AI-generated assignment draft",
+        description="""Persist an AI-generated draft as a real Assignment.
+
+        Use the `message_id` returned from the generate endpoint. This endpoint is
+        idempotent: if the draft was already saved, it returns the existing
+        Assignment instead of creating a duplicate.
+
+        The fields in the body are all optional, if omitted, the AI will use the
+        values from the generated assignment or you can change them here
+        """,
+        request=SaveGeneratedAssignmentDraftSerializer,
+        responses={
+            201: AssignmentListSerializer,
+            200: AssignmentListSerializer,
+            400: OpenApiResponse(description="Invalid or non-assignment draft"),
+            404: OpenApiResponse(description="Draft not found"),
+        },
+    )
+    # @require_ai_access
+    @action(
+        detail=False,
+        methods=["POST"],
+        url_path=r"generated-drafts/(?P<message_id>[-\w]+)/save",
+        url_name="save-generated-draft",
+    )
+    def save_generated_assignment_draft(self, request, message_id, *args, **kwargs):
+        """
+        Save a generated assistant message draft as a real Assignment.
+        """
+
+        with transaction.atomic():
+            draft_message = get_object_or_404(
+                AssignmentGenerationMessage.objects.select_for_update()
+                .select_related("session__course", "session__user")
+                .filter(
+                    id=message_id,
+                    session__user=request.user,
+                    session__course__teacher=request.user,
+                    role=AssignmentGenerationRole.ASSISTANT,
+                )
+            )
+
+            if draft_message.assignment_id:
+                serializer = AssignmentListSerializer(draft_message.assignment)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+
+            metadata = draft_message.metadata or {}
+            if metadata.get("draft_status") != "AI_DRAFT":
+                raise ParseError("This message is not an unsaved AI assignment draft.")
+
+            if not draft_message.assignment_snapshot:
+                raise ParseError("Draft assignment content is missing.")
+
+            course = draft_message.session.course
+            save_serializer = SaveGeneratedAssignmentDraftSerializer(
+                data=request.data,
+                context={"course": course},
+            )
+            save_serializer.is_valid(raise_exception=True)
+
+            assignment_data = dict(draft_message.assignment_snapshot)
+            assignment_data["course"] = str(course.id)
+
+            for field, value in save_serializer.validated_data.items():
+                if field == "topic":
+                    assignment_data[field] = str(value.id) if value else None
+                elif field == "due_date":
+                    assignment_data[field] = value.isoformat() if value else None
+                else:
+                    assignment_data[field] = value
+
+            assignment_html = (
                 AssignmentProcessingService.format_assignment_standard_html(
                     assignment_data
                 )
             )
-            assignment_prosemirror_json = (
-                AssignmentProcessingService.html_to_prosemirror_json(
-                    assignment_standard
-                )
+            assignment_data["raw_input"] = (
+                AssignmentProcessingService.html_to_prosemirror_text(assignment_html)
             )
 
-            data = {
-                "content": assignment_prosemirror_json,
+            assignment_serializer = AssignmentSerializer(data=assignment_data)
+            assignment_serializer.is_valid(raise_exception=True)
+            assignment = assignment_serializer.save()
+
+            draft_message.assignment = assignment
+            draft_message.assignment_snapshot = assignment_data
+            draft_message.metadata = {
+                **metadata,
+                "draft_status": "SAVED",
                 "assignment_id": str(assignment.id),
-                "session_id": str(generation_session.id),
-                "message_id": str(assistant_message.id),
+                "saved_at": timezone.now().isoformat(),
             }
-
-            return Response(data, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            return Response(
-                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            draft_message.save(
+                update_fields=["assignment", "assignment_snapshot", "metadata"]
             )
+
+        serializer = AssignmentListSerializer(assignment)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @extend_schema(
         tags=["Assignments"],
@@ -958,6 +1517,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
         },
     )
+    # @require_ai_access
     @action(
         detail=True,
         methods=["POST"],
@@ -984,8 +1544,21 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         tasks_data = []
 
         for submission in ungraded_submissions:
-            task = grade_engine_async.delay(
-                str(request.user.id), str(submission.id), batch_id=session.id
+            processing_task = create_processing_task(
+                requested_by=request.user,
+                task_type=BackgroundTaskType.BATCH_SUBMISSION_GRADING,
+                batch_session=session,
+                assignment=assignment,
+                submission=submission,
+                file_name=f"Submission for {submission.student.get_full_name()}",
+                meta={"step": "Queued for batch grading"},
+            )
+            task = launch_processing_task(
+                grade_engine_async,
+                processing_task,
+                str(request.user.id),
+                str(submission.id),
+                batch_id=session.id,
             )
             tasks_data.append(
                 {
@@ -1009,6 +1582,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         request=ScheduleGradingSerializer,
         responses={200: ScheduledGradingResponseSerializer},
     )
+    # @require_ai_access
     @action(
         detail=True,
         methods=["POST"],
@@ -1024,18 +1598,6 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         if scheduled_time <= timezone.now():
             raise ParseError("Scheduled time cannot be in the past")
-
-        submissions = assignment.submissions.all()
-
-        if not submissions.exists():
-            raise ParseError("No submissions to process")
-
-        session = BatchUploadSession.objects.create(
-            teacher=request.user,
-            course=assignment.course,
-            task_type=BatchUploadType.GRADE,
-            total_files=submissions.count(),
-        )
 
         # Cleanup existing task if it exists
         if assignment.grading_task_name:
@@ -1054,7 +1616,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             one_off=True,
             enabled=True,
             args=json.dumps([str(request.user.id), str(assignment.id)]),
-            kwargs=json.dumps({"batch_id": str(session.id)}),
+            kwargs=json.dumps({}),
         )
 
         assignment.scheduled_grading_at = scheduled_time
@@ -1062,11 +1624,10 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         assignment.save(update_fields=["scheduled_grading_at", "grading_task_name"])
 
         data = {
-            "session_id": session.id,
             "period_task_id": periodic_task.id,
             "task_name": periodic_task.name,
             "scheduled_time": scheduled_time,
-            "message": f"Batch grading scheduled for {submissions.count()} submissions",
+            "message": "Batch grading scheduled successfully",
         }
 
         serializer = ScheduledGradingResponseSerializer(data)
@@ -1087,11 +1648,20 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         url_path="publish-all-grades",
     )
     def publish_all_grades(self, request, pk=None):
+        # Local import: students.services reaches back into assignments
+        # (models/tasks), so importing it at module level here would create
+        # an import cycle.
+        from students.services import notify_student_of_graded_submission
+        from students.signals import clear_student_submission_cache
+
         assignment = self.get_object()
 
-        # Get all graded submissions for this assignment (either has graded_at or score)
+        # Publishable = grading actually finished: BOTH graded_at AND a
+        # score, matching the single-submission publish endpoint. The old
+        # OR let half-graded rows (a failed run that set one but not the
+        # other) be published to students.
         graded_submissions = assignment.submissions.filter(
-            Q(graded_at__isnull=False) | Q(score__isnull=False)
+            graded_at__isnull=False, score__isnull=False
         )
 
         total_graded = graded_submissions.count()
@@ -1101,8 +1671,30 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 status=status.HTTP_200_OK,
             )
 
-        # Update all graded submissions to published
+        # Snapshot who is being published for the FIRST time before the
+        # bulk write, so we can notify exactly those students. .update()
+        # bypasses post_save, so unlike the single-publish endpoint nothing
+        # else would notify them or invalidate caches.
+        newly_published = list(graded_submissions.filter(is_published=False))
         updated_count = graded_submissions.update(is_published=True)
+
+        for submission in newly_published:
+            # The snapshot was taken before the bulk write, so the in-memory
+            # instances still say is_published=False — and the notifier
+            # (correctly) refuses to email about an unpublished grade.
+            submission.is_published = True
+            try:
+                notify_student_of_graded_submission(submission)
+            except Exception:
+                logger.exception(
+                    "Failed to notify student of published grade",
+                    extra={"submission_id": str(submission.id)},
+                )
+
+        # .update() skips post_save, so fire the submission cache
+        # invalidation once for the whole batch.
+        if newly_published:
+            clear_student_submission_cache(sender=None, instance=newly_published[0])
 
         total_submissions = assignment.submissions.count()
         ungraded_count = total_submissions - total_graded
@@ -1117,12 +1709,144 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @extend_schema(
+        tags=["Assignments"],
+        summary="Download assignment as PDF",
+        description=(
+            "Generates a formatted PDF of the assignment. "
+            "By default (no query param), the student version is returned (rubrics and model answers omitted). "
+            "Add `?view=teacher` to get the teacher version (includes all content). "
+            "Teacher version is restricted to the course teacher only."
+        ),
+        parameters=[
+            OpenApiParameter(
+                name="view",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description=(
+                    'Set to "teacher" to get the teacher-facing version. '
+                    "Omit or use any other value for student version."
+                ),
+                required=False,
+                default="student",
+                enum=["teacher", "student"],
+            )
+        ],
+        responses={
+            200: OpenApiResponse(
+                description="PDF file",
+                response=OpenApiTypes.BINARY,
+            ),
+            400: OpenApiResponse(description="Assignment has no questions"),
+            403: OpenApiResponse(description="Forbidden (teacher version only)"),
+            404: OpenApiResponse(description="Assignment not found"),
+            500: OpenApiResponse(description="PDF generation failed"),
+        },
+    )
+    @action(detail=True, methods=["get"], url_path="download-pdf")
+    def download_pdf(self, request, pk=None):
+        assignment = self.get_object()
+
+        if not assignment.questions:
+            return Response(
+                {"error": "This assignment has no questions to display."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Determine which view to render
+        view_param = request.query_params.get("view", "student").lower().strip()
+        include_rubric = view_param == "teacher"
+
+        # Permission enforcement for teacher view
+        if include_rubric:
+            # Only the teacher who owns the course can see the teacher viersion
+            if assignment.course.teacher != request.user:
+                raise PermissionDenied(
+                    "Only the course teacher can download the teacher version."
+                )
+        else:
+            # Student-facing version: Student can only download published assignments
+            if request.user.user_type == UserTypes.STUDENT:
+                if assignment.status != AssignmentStatus.PUBLISHED:
+                    raise PermissionDenied(
+                        "You can only download published assignments."
+                    )
+
+        # One render per (assignment, view) even when a whole class
+        # opens the same new assignment at once - see pdf_cache.get_or_render.
+        view_type = "teacher" if include_rubric else "student"
+        try:
+            pdf_bytes = get_or_render(
+                assignment,
+                view_type,
+                lambda: render_assignment_pdf(assignment, include_rubric),
+            )
+        except PDFRendererBusy as e:
+            # At capacity, and nothing was attempted - so this is a
+            # "come back shortly", not a failure. 503 + Retry-After lets
+            # clients and proxies treat it as such instead of surfacing a
+            # generic error, and frees the worker thread immediately
+            # rather than parking it for the render timeout.
+            logger.warning("PDF generation shed under load: %s", e)
+            response = Response(
+                {
+                    "error": (
+                        "The server is busy generating PDFs right now. "
+                        "Please try again in a moment."
+                    )
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+            response["Retry-After"] = "5"
+            return response
+        except Exception as e:
+            logger.error("PDF generation failed", exc_info=e)
+            return Response(
+                {
+                    "error": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "We couldn't generate the PDF for this "
+                            "assignment. Please try again or contact "
+                            "support if this continues."
+                        ),
+                    )
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        return self._assignment_pdf_response(assignment, pdf_bytes)
+
+    @staticmethod
+    def _assignment_pdf_response(assignment, pdf_bytes):
+        # Sanitise filename
+        safe_title = re.sub(r"[^\w\s-]", "", assignment.title or "assignment").strip()
+        filename = f"{safe_title}.pdf"
+
+        response = FileResponse(BytesIO(pdf_bytes), content_type="application/pdf")
+        response["Content-Disposition"] = f"attachment; filename={filename!r}"
+        return response
+
 
 @extend_schema_view(
     list=extend_schema(
         tags=["Assignment Generation Sessions"],
         summary="List assignment generation sessions",
         description="Retrieve a paginated list of assignment-generation chat sessions for the current user.",
+        parameters=[
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page (max 100)",
+            ),
+        ],
         responses={
             200: AssignmentGenerationSessionSerializer(many=True),
             401: OpenApiResponse(
@@ -1139,8 +1863,17 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             404: OpenApiResponse(description="Session not found"),
         },
     ),
+    destroy=extend_schema(
+        tags=["Assignment Generation Sessions"],
+        summary="Delete a generation session",
+        description="Delete a generation session and all its related messages.",
+        responses={
+            200: OpenApiResponse(description="Session deleted successfully"),
+            404: OpenApiResponse(description="Session not found"),
+        },
+    ),
 )
-class AssignmentGenerationSessionViewSet(UserCacheMixin, viewsets.ReadOnlyModelViewSet):
+class AssignmentGenerationSessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     """
     API endpoint for browsing assignment-generation chat sessions.
 
@@ -1152,8 +1885,8 @@ class AssignmentGenerationSessionViewSet(UserCacheMixin, viewsets.ReadOnlyModelV
     queryset = AssignmentGenerationSession.objects.all()
     serializer_class = AssignmentGenerationSessionSerializer
     permission_classes = (IsAuthenticated,)
-    pagination_class = PageNumberPagination
-    http_method_names = ["get", "head", "options"]
+    pagination_class = StandardPageNumberPagination
+    http_method_names = ["get", "head", "delete", "options"]
 
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = ["course"]

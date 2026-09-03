@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        .container {
+            font-family: "Inter", -apple-system, BlinkMacSystemFont,"Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #1f2937;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .header {
+            background-color: #00723A;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .section {
+            margin-top: 24px;
+        }
+        .card {
+            background-color: #f8fafc;
+            border-left: 4px solid #00723A;
+            padding: 16px;
+            margin-top: 12px;
+            border-radius: 4px;
+        }
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 12px;
+        }
+        .metric {
+            background-color: #f0fdfa;
+            padding: 12px;
+            border-radius: 6px;
+        }
+        .muted {
+            color: #475569;
+        }
+        table.activity {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 14px;
+        }
+        table.activity th, table.activity td {
+            text-align: left;
+            padding: 8px 10px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        table.activity th {
+            background-color: #f0fdfa;
+            font-weight: 600;
+        }
+        .status-inactive {
+            color: #b91c1c;
+        }
+        .rigor-parts {
+            color: #64748b;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .rigor-label {
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .tone-good {
+            color: #15803d;
+        }
+        .tone-watch {
+            color: #b45309;
+        }
+        .tone-concern {
+            color: #b91c1c;
+        }
+        .tone-neutral, .tone-unknown {
+            color: #475569;
+        }
+        .legend {
+            color: #475569;
+            font-size: 12px;
+            margin-top: 8px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Weekly School Summary</h1>
+            <p>{{ school.name }}</p>
+        </div>
+
+        <div class="section">
+            <p>Dear {{ admin.get_full_name }},</p>
+            <p>
+                {% if ai_narrative and ai_narrative.overall_narrative %}
+                    {{ ai_narrative.overall_narrative }}
+                {% else %}
+                    {{ summary.overall_summary }}
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="section">
+            <h2>School Snapshot (this week)</h2>
+            <div class="metrics">
+                <div class="metric">
+                    <strong>Active Teachers</strong>
+                    <div>{{ overall.active_teacher_count }}</div>
+                </div>
+                <div class="metric">
+                    <strong>Active Students</strong>
+                    <div>{{ overall.active_student_count }}</div>
+                </div>
+                <div class="metric">
+                    <strong>Active Courses</strong>
+                    <div>{{ overall.active_course_count }}</div>
+                </div>
+                <div class="metric">
+                    <strong>Assignments Created</strong>
+                    <div>{{ overall.assignments_created_this_week }}</div>
+                </div>
+                <div class="metric">
+                    <strong>Assignments Graded</strong>
+                    <div>{{ overall.assignments_graded_this_week }}</div>
+                </div>
+                <div class="metric">
+                    <strong>Avg. Grading Turnaround</strong>
+                    <div>
+                        {% if overall.avg_turnaround_days != None %}
+                            {{ overall.avg_turnaround_days }} day(s)
+                        {% else %}
+                            No graded work this week
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>At-Risk Students</h2>
+            {% if ai_narrative and ai_narrative.at_risk_narrative %}
+                <div class="card">
+                    <p>{{ ai_narrative.at_risk_narrative|linebreaksbr }}</p>
+                </div>
+            {% endif %}
+            {% if at_risk_students %}
+                <p class="muted">{{ at_risk_student_count }} student(s) flagged as at-risk (low grades, missing work, or a declining trend).</p>
+                {% for student in at_risk_students %}
+                    <div class="card">
+                        <strong>{{ student.student_name }}</strong>
+                        <p class="muted">
+                            {% if student.average_score is not None %}
+                                Average score: {{ student.average_score }}%
+                            {% else %}
+                                No graded work yet
+                            {% endif %}
+                        </p>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="card">
+                    <p>No students are currently flagged as at-risk across the school.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="section">
+            <h2>Teacher Activity</h2>
+            {% if ai_narrative and ai_narrative.teacher_activity_narrative %}
+                <div class="card">
+                    <p>{{ ai_narrative.teacher_activity_narrative|linebreaksbr }}</p>
+                </div>
+            {% endif %}
+            <p class="muted">Overall engagement metrics, not limited to this week.</p>
+            {% if teacher_activity %}
+                <table class="activity">
+                    <thead>
+                        <tr>
+                            <th>Teacher</th>
+                            <th>Courses</th>
+                            <th>Students</th>
+                            <th>Growth</th>
+                            <th>Assignments/wk</th>
+                            <th>Turnaround</th>
+                            <th>AI Confidence</th>
+                            <th>Rigor</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for teacher in teacher_activity %}
+                            <tr>
+                                <td>{{ teacher.name }}</td>
+                                <td>{{ teacher.courses }}</td>
+                                <td>{{ teacher.students }}</td>
+                                <td>{% if teacher.growth != None %}{{ teacher.growth }}%{% else %}—{% endif %}</td>
+                                <td>{% if teacher.assignments_per_week != None %}{{ teacher.assignments_per_week }}{% else %}—{% endif %}</td>
+                                <td>{% if teacher.turnaround != None %}{{ teacher.turnaround }}d{% else %}—{% endif %}</td>
+                                <td>{% if teacher.ai_confidence != None %}{{ teacher.ai_confidence }}%{% else %}—{% endif %}</td>
+                                <td>
+                                    <div class="rigor-label tone-{{ teacher.rigor_breakdown.tone }}">
+                                        {{ teacher.rigor_breakdown.label }}
+                                    </div>
+                                    {% if teacher.rigor != None %}
+                                        <div class="rigor-parts">
+                                            scores {{ teacher.rigor }}/5
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td{% if not teacher.status %} class="status-inactive"{% endif %}>
+                                    {% if teacher.status %}Active{% else %}Inactive{% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% for teacher in teacher_activity %}
+                    {% if teacher.rigor_breakdown.standards_note or teacher.rigor_breakdown.coverage_note %}
+                        <div class="legend">
+                            <strong>{{ teacher.name }}:</strong>
+                            {{ teacher.rigor_breakdown.standards_note|default_if_none:"" }}
+                            {{ teacher.rigor_breakdown.coverage_note|default_if_none:"" }}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+
+                <div class="card">
+                    <h3 style="margin-top:0;">What the Rigor column means</h3>
+                    <p class="muted" style="margin-top:0;">
+                        Rigor answers one question: <em>is this teacher asking enough of
+                        their students, and is it landing?</em> Every teacher gets a short
+                        verdict below, based on the three things we can measure.
+                    </p>
+
+                    <table class="activity">
+                        <thead>
+                            <tr>
+                                <th>Verdict</th>
+                                <th>What it means</th>
+                                <th>What to do</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="tone-good">Stretching students</td>
+                                <td>Questions ask students to analyse and judge, and results show they are being pushed without being lost.</td>
+                                <td>Nothing — this is the pattern you want.</td>
+                            </tr>
+                            <tr>
+                                <td class="tone-good">Demanding questions</td>
+                                <td>The questions ask for real thinking, but not enough work has been graded yet to know how students cope.</td>
+                                <td>Check back once marking catches up.</td>
+                            </tr>
+                            <tr>
+                                <td class="tone-watch">Check the marking</td>
+                                <td>The questions are hard, yet nearly every student scores top marks.</td>
+                                <td>Read a few marked scripts. Marking may be too generous, or answers may be circulating.</td>
+                            </tr>
+                            <tr>
+                                <td class="tone-watch">Too easy</td>
+                                <td>Questions mainly ask students to remember facts, and they score highly.</td>
+                                <td>Encourage questions that ask students to explain, compare or justify.</td>
+                            </tr>
+                            <tr>
+                                <td class="tone-concern">Very hard going</td>
+                                <td>Demanding questions and students are scoring low.</td>
+                                <td>Students may need more preparation before work at this level.</td>
+                            </tr>
+                            <tr>
+                                <td class="tone-concern">Struggling on basics</td>
+                                <td>Questions only ask for recall, and students still score low.</td>
+                                <td>Look at teaching support rather than difficulty.</td>
+                            </tr>
+                            <tr>
+                                <td class="tone-neutral">Balanced / Moderate / Comfortable</td>
+                                <td>Middle of the road on both difficulty and results.</td>
+                                <td>No action needed, but there is room to push further.</td>
+                            </tr>
+                            <tr>
+                                <td>Not enough data yet</td>
+                                <td>This teacher has no assignments with difficulty data recorded.</td>
+                                <td>Usually a new teacher. No action needed.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <p class="muted" style="margin-bottom:4px;">
+                        The 0–5 score under each verdict blends three measurements:
+                    </p>
+                    <table class="activity">
+                        <thead>
+                            <tr>
+                                <th>Measurement</th>
+                                <th>Plain meaning</th>
+                                <th>Where it comes from</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Demand</strong></td>
+                                <td>How much thinking the questions ask for — remembering a date is low, arguing a case is high.</td>
+                                <td>The thinking level recorded on each question, weighted by how many marks it carries.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Evidence</strong></td>
+                                <td>Whether students were actually stretched. A class averaging 95% was not.</td>
+                                <td>Average score achieved across all graded work. Needs at least 5 graded submissions.</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Standards</strong></td>
+                                <td>Whether essay-type questions say what a good answer looks like.</td>
+                                <td>Share of open-ended questions that carry a marking rubric.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p class="muted" style="margin-bottom:0;">
+                        Use the verdict, not the number, when comparing teachers. A teacher
+                        who sets harder questions but marks generously can score lower than
+                        one who sets easier questions and marks honestly — the verdict tells
+                        those two apart, the number does not.
+                    </p>
+                </div>
+            {% else %}
+                <div class="card">
+                    <p>No teachers found for this school.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="section">
+            <p>Best regards,<br>Grade A+ Team</p>
+        </div>
+    </div>
+</body>
+</html>

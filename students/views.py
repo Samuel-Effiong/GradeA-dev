@@ -1,10 +1,12 @@
 # from django.shortcuts import render
 import json
+import logging
 import uuid
 
 from django.conf import settings
 from django.core.cache import cache
 from django.core.files.uploadedfile import UploadedFile
+from django.db.models import F
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django_celery_beat.models import (  # , PeriodicTask, PeriodicTasks
@@ -28,16 +30,17 @@ from drf_spectacular.utils import (
 # from PIL.Image import Image
 from rest_framework import filters, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotAcceptable, NotFound, ParseError
+from rest_framework.exceptions import NotAcceptable, ParseError
 from rest_framework.filters import OrderingFilter, SearchFilter
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.settings import api_settings
 from rest_framework.status import (
     HTTP_200_OK,
     HTTP_201_CREATED,
     HTTP_202_ACCEPTED,
     HTTP_400_BAD_REQUEST,
+    HTTP_409_CONFLICT,
     HTTP_500_INTERNAL_SERVER_ERROR,
 )
 
@@ -54,15 +57,25 @@ from assignments.tasks import (
     grade_engine_async,
     upload_answers_engine_async,
 )
+from AutoGrader.error_messages import describe_user_error
+from AutoGrader.pagination import StandardPageNumberPagination
+from AutoGrader.uploads import validate_upload_size
 from classrooms.permissions import IsStudent, IsTeacher, IsTeacherOrReadOnly
 from users.mixins import UserCacheMixin
 from users.models import CustomUser, UserTypes
 from users.permissions import HasCreditBalance
 
-from .models import BatchUploadSession, BatchUploadType, StudentSubmission
+from .exceptions import SubmissionGradingInProgressError
+from .models import (
+    BackgroundTaskType,
+    BatchUploadSession,
+    BatchUploadType,
+    StudentSubmission,
+)
 from .serializers import (
     StudentListSerializer,
     StudentSubmissionDetailSerializer,
+    StudentSubmissionDetailStudentVersionSerializer,
     StudentSubmissionFormattedGradeAsyncSerializer,
     StudentSubmissionGradeAsyncSerializer,
     StudentSubmissionGradeUpdateSerializer,
@@ -72,7 +85,17 @@ from .serializers import (
     StudentSubmissionUpdateSerializer,
     StudentSubmissionUploadAsyncSerializer,
 )
-from .services import grade_engine, student_submission_to_html, upload_answers_engine
+from .services import (
+    _coerce_confidence,
+    grade_engine,
+    notify_student_of_graded_submission,
+    student_submission_to_html,
+    upload_answers_engine,
+)
+from .signals import delete_cache_patterns
+from .task_tracking import create_processing_task, launch_processing_task
+
+logger = logging.getLogger(__name__)
 
 # from openai.types import Batch
 
@@ -150,17 +173,63 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     queryset = StudentSubmission.objects.all()
     serializer_class = StudentSubmissionSerializer
     permission_classes = (IsAuthenticated,)
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
+    # grading_state lets a teacher query "what's still RUNNING / FAILED"
+    # (the field is indexed for exactly this filter).
     filterset_fields = [
         "assignment",
+        "grading_state",
+        "is_published",
+        # The teacher's review queue: ?needs_review=true lists submissions
+        # where the two AI graders disagreed (indexed for this filter).
+        "needs_review",
+        # ...and ?review_tier=critical narrows that to the ones worth
+        # opening first. Denormalised onto its own indexed column because
+        # the tier lives inside review_reasons, a JSONField, which
+        # django-filter cannot filter on.
+        "review_tier",
     ]
     search_fields = ["student__first_name", "student__last_name"]
-    ordering_fields = ["student__first_name", "student__last_name"]
+    # review_severity: the queue triage order —
+    # ?needs_review=true&ordering=-review_severity puts critical
+    # disagreements ahead of moderate ones, and orders by point gap within
+    # a tier (the stored value is tier-weighted; see
+    # students/services.py::_review_sort_key).
+    ordering_fields = ["student__first_name", "student__last_name", "review_severity"]
     ordering = ["student__first_name"]
+
+    def filter_queryset(self, queryset):
+        queryset = super().filter_queryset(queryset)
+        # Postgres sorts NULLs FIRST on a DESC ordering, so an unqualified
+        # ?ordering=-review_severity returned every un-flagged submission
+        # (severity NULL) ahead of the actual review queue. Force NULLs
+        # last so the ordering is useful with or without needs_review=true.
+        raw = self.request.query_params.get(api_settings.ORDERING_PARAM)
+        if not raw:
+            return queryset
+        terms = [term.strip() for term in raw.split(",") if term.strip()]
+        if not any(term.lstrip("-") == "review_severity" for term in terms):
+            return queryset
+
+        # Re-validate against ordering_fields: this bypasses OrderingFilter,
+        # so an unvetted field name here would be an ORM injection point.
+        allowed = set(self.ordering_fields)
+        expressions = []
+        for term in terms:
+            name = term.lstrip("-")
+            if name not in allowed:
+                continue
+            field = F(name)
+            expressions.append(
+                field.desc(nulls_last=True)
+                if term.startswith("-")
+                else field.asc(nulls_last=True)
+            )
+        return queryset.order_by(*expressions) if expressions else queryset
 
     # @method_decorator(cache_page(60 * 3, key_prefix="studentsubmissions:detail"))
     # @method_decorator(vary_on_headers("Authorization"))
@@ -174,14 +243,29 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         if not submission.raw_input:
             answer_html = student_submission_to_html(submission)
-            submission.raw_input = AssignmentProcessingService.html_to_prosemirror_json(
+            submission.raw_input = AssignmentProcessingService.html_to_prosemirror_text(
                 answer_html
             )
-            submission.save(update_fields=["raw_input"])
+            # Queryset .update(), NOT instance.save(): this is a lazy
+            # backfill of derived display data on a GET. A save() here
+            # fires post_save, which recalculates the course final grade
+            # and pattern-deletes every dashboard cache — a teacher merely
+            # paging through submissions repeatedly flushed deployment-wide
+            # caches. Nothing grade-bearing changes, so skipping signals is
+            # correct, not just cheaper.
+            StudentSubmission.objects.filter(pk=submission.pk).update(
+                raw_input=submission.raw_input
+            )
 
-        serializer = StudentSubmissionDetailSerializer(
-            submission, context=self.get_serializer_context()
-        )
+        if request.user.user_type == UserTypes.STUDENT:
+            serializer = StudentSubmissionDetailStudentVersionSerializer(
+                submission, context=self.get_serializer_context()
+            )
+        else:
+            serializer = StudentSubmissionDetailSerializer(
+                submission, context=self.get_serializer_context()
+            )
+
         data = serializer.data
         cache.set(cache_key, data, getattr(settings, "CACHE_TTL", 60 * 5))
 
@@ -210,6 +294,8 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if self.action == "list":
             return StudentSubmissionListSerializer
         elif self.action == "retrieve":
+            if self.request.user.user_type == UserTypes.STUDENT:
+                return StudentSubmissionDetailStudentVersionSerializer
             return StudentSubmissionDetailSerializer
         return StudentSubmissionSerializer
 
@@ -227,7 +313,6 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             "create",
             "upload_answers",
             "upload_answers_async",
-            "partial_update",
             "update",
         ]:
             # These are student actions that (mostly) consume AI credits
@@ -331,6 +416,8 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 "Invalid file upload. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed."
             )
 
+        validate_upload_size(uploaded_file)
+
         prompt = """
         Analyze the image of an educational assignment and return a JSON
 
@@ -347,7 +434,19 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
             return Response(serializer.data, status=HTTP_201_CREATED)
         except Exception as e:
-            return Response({"error": str(e)}, status=HTTP_500_INTERNAL_SERVER_ERROR)
+            logger.error("Failed to process submission upload", exc_info=e)
+            return Response(
+                {
+                    "error": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "We couldn't process your submission. Please "
+                            "check the file and try again."
+                        ),
+                    )
+                },
+                status=HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     @extend_schema(
         tags=["07 Student Submissions"],
@@ -393,6 +492,8 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 "Invalid file upload. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed."
             )
 
+        validate_upload_size(uploaded_file)
+
         prompt = """
         Analyze the image of an educational assignment and return a JSON
 
@@ -400,12 +501,26 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         Do not include any explanatory text before or after the JSON
         """
 
-        content = AssignmentProcessingService.prepare_ai_content(uploaded_file, prompt)
+        file_payload = AssignmentProcessingService.build_async_upload_payload(
+            uploaded_file
+        )
 
         task_id = None
 
-        task = upload_answers_engine_async.delay(
-            str(assignment.id), content, str(request.user.id)
+        processing_task = create_processing_task(
+            requested_by=request.user,
+            task_type=BackgroundTaskType.ANSWER_EXTRACTION,
+            assignment=assignment,
+            file_name=uploaded_file.name,
+            meta={"step": "Queued for answer extraction"},
+        )
+        task = launch_processing_task(
+            upload_answers_engine_async,
+            processing_task,
+            str(assignment.id),
+            file_payload,
+            prompt,
+            str(request.user.id),
         )
         task_id = task.id
 
@@ -465,7 +580,13 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
                 answer_html = student_submission_to_html(submission)
                 submission.raw_input = (
-                    AssignmentProcessingService.html_to_prosemirror_json(answer_html)
+                    AssignmentProcessingService.html_to_prosemirror_text(answer_html)
+                )
+                # Persist the extractor's confidence - the dashboard
+                # threshold-flags low-confidence extractions, which stayed 0
+                # forever while this field was silently dropped here.
+                submission.extraction_confidence = _coerce_confidence(
+                    student_submission.get("extraction_confidence")
                 )
                 submission.save()
 
@@ -473,7 +594,18 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
                 return Response(serializer.data, status=HTTP_201_CREATED)
         except Exception as e:
-            return Response({"error": str(e)}, status=HTTP_500_INTERNAL_SERVER_ERROR)
+            logger.error("Failed to save submission update", exc_info=e)
+            return Response(
+                {
+                    "error": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "We couldn't save your update. Please try again."
+                        ),
+                    )
+                },
+                status=HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     @extend_schema(
         tags=["07 Student Submissions"],
@@ -489,13 +621,10 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         url_path="grade",
     )
     def grade(self, request, pk=None):
-        # Validate submission id
-        try:
-            submission = StudentSubmission.objects.get(pk=pk)
-        except StudentSubmission.DoesNotExist:
-            raise NotFound(
-                detail="No Student Submission with this ID is found"
-            ) from StudentSubmission.DoesNotExist
+        # get_object() runs get_queryset() (which scopes teachers to their
+        # own courses) plus check_object_permissions — using the manager
+        # directly here would let any teacher grade any submission by pk.
+        submission = self.get_object()
 
         try:
             submission = grade_engine(request.user, submission)
@@ -503,8 +632,34 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
             return Response(serializer.data, status=HTTP_200_OK)
 
+        except SubmissionGradingInProgressError:
+            # Not a failure — another request or a redelivered Celery task
+            # is already grading this submission. Surface as a distinct,
+            # non-alarming status rather than a 500.
+            return Response(
+                {
+                    "error": (
+                        "This submission is already being graded. Please "
+                        "wait for it to finish before trying again."
+                    )
+                },
+                status=HTTP_409_CONFLICT,
+            )
+
         except Exception as e:
-            return Response({"error": str(e)}, status=HTTP_500_INTERNAL_SERVER_ERROR)
+            logger.error("Grading failed", exc_info=e)
+            return Response(
+                {
+                    "error": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "Grading failed. Please try again — if the "
+                            "problem continues, contact support."
+                        ),
+                    )
+                },
+                status=HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     @extend_schema(
         tags=["07 Student Submissions"],
@@ -522,7 +677,20 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     def grade_async(self, request, pk=None):
         submission = self.get_object()
 
-        task = grade_engine_async.delay(str(request.user.id), str(submission.id))
+        processing_task = create_processing_task(
+            requested_by=request.user,
+            task_type=BackgroundTaskType.SUBMISSION_GRADING,
+            assignment=submission.assignment,
+            submission=submission,
+            file_name=f"Submission for {submission.student.get_full_name()}",
+            meta={"step": "Queued for grading"},
+        )
+        task = launch_processing_task(
+            grade_engine_async,
+            processing_task,
+            str(request.user.id),
+            str(submission.id),
+        )
         task_id = task.id
 
         data = {
@@ -605,16 +773,18 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     @action(
         detail=True,
         methods=["GET"],
+        # NOTE: this kwarg is dead — get_permissions() below overrides it and
+        # actually runs this action as [IsAuthenticated, IsTeacher,
+        # HasCreditBalance]. Don't "fix" it to match without auditing that
+        # override; doing so would newly expose this endpoint to students.
         permission_classes=[IsAuthenticated, IsTeacherOrReadOnly],
         url_path="teacher_feedback",
     )
     def teacher_feedback(self, request, pk=None):
-        try:
-            submission = StudentSubmission.objects.get(pk=pk)
-        except StudentSubmission.DoesNotExist:
-            raise NotFound(
-                detail="No Student Submission with this ID is found"
-            ) from StudentSubmission.DoesNotExist
+        # get_object() runs get_queryset() (which scopes teachers to their
+        # own courses) plus check_object_permissions — using the manager
+        # directly here would let any teacher read any submission by pk.
+        submission = self.get_object()
 
         assignment = submission.assignment
 
@@ -639,7 +809,19 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 """
 
                 task_id = None
-                task = formatted_grade_async.delay(str(submission.id), user_prompt)
+                processing_task = create_processing_task(
+                    requested_by=request.user,
+                    task_type=BackgroundTaskType.FORMATTED_GRADE,
+                    assignment=assignment,
+                    submission=submission,
+                    meta={"step": "Queued for formatted grade generation"},
+                )
+                task = launch_processing_task(
+                    formatted_grade_async,
+                    processing_task,
+                    str(submission.id),
+                    user_prompt,
+                )
                 task_id = task.id
 
                 # formatted_grade = ai_processor.formatted_grade(user_prompt)
@@ -696,21 +878,81 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 "Submission has not be graded yet", status=HTTP_400_BAD_REQUEST
             )
 
-        score = float(serializer.validated_data["score"])
-        total_score = float(feedback["grading_summary"]["max_total_points"])
-        percentage = round((score / total_score) * 100, 2)
+        # partial=True makes every serializer field optional, so a PATCH
+        # without "score" passes validation with empty validated_data —
+        # guard explicitly instead of KeyError-500ing.
+        if "score" not in serializer.validated_data:
+            return Response(
+                {"error": "A 'score' value is required."},
+                status=HTTP_400_BAD_REQUEST,
+            )
 
+        try:
+            score = float(serializer.validated_data["score"])
+        except (TypeError, ValueError):
+            return Response(
+                {"error": "Score must be a number."},
+                status=HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            max_total_points = float(feedback["grading_summary"]["max_total_points"])
+        except (KeyError, TypeError, ValueError):
+            max_total_points = float(submission.max_points or 0)
+
+        if max_total_points <= 0:
+            return Response(
+                {
+                    "error": (
+                        "This submission has no recorded maximum points, so "
+                        "a percentage cannot be calculated. Re-grade the "
+                        "submission first."
+                    )
+                },
+                status=HTTP_400_BAD_REQUEST,
+            )
+
+        # A manual override must stay within the assignment's bounds — an
+        # unclamped PATCH could store 500/10 (and a percentage >= 1000
+        # crashes at save time on the 5-digit decimal column).
+        if score < 0 or score > max_total_points:
+            return Response(
+                {
+                    "error": (
+                        f"Score must be between 0 and "
+                        f"{max_total_points:g} for this assignment."
+                    )
+                },
+                status=HTTP_400_BAD_REQUEST,
+            )
+
+        percentage = round((score / max_total_points) * 100, 2)
+
+        feedback.setdefault("grading_summary", {})
         feedback["grading_summary"]["total_score"] = score
         feedback["grading_summary"]["percentage"] = percentage
+        feedback["grading_summary"].setdefault("max_total_points", max_total_points)
 
         submission.score = float(score)
         submission.score_percentage = percentage
-        submission.max_points = total_score
+        submission.max_points = int(max_total_points)
 
         submission.feedback = feedback
         submission.was_regraded = True
         submission.regraded_at = timezone.now()
-        # submission.save(update_fields=["score", "feedback"])
+
+        # A manual override IS the teacher's resolution of any pending
+        # grader-disagreement review — clear the queue flag and record
+        # how it was resolved (labeled data for the eval loop).
+        if submission.needs_review:
+            submission.review_reasons = (submission.review_reasons or []) + [
+                {
+                    "resolved": "overridden",
+                    "by": str(request.user.id),
+                    "at": timezone.now().isoformat(),
+                }
+            ]
+        submission.needs_review = False
 
         # Update the formatted grade since the score/feedback changed
 
@@ -722,8 +964,13 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 "feedback",
                 "was_regraded",
                 "regraded_at",
+                "needs_review",
+                "review_reasons",
             ]
         )
+
+        if submission.is_published:
+            notify_student_of_graded_submission(submission, is_update=True)
 
         assignment = submission.assignment
         user_prompt = f"""
@@ -738,11 +985,22 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         Return a formatted response
         """
 
-        formatted_grade_async.delay(str(submission.id), user_prompt)
-
-        # submission.formatted_grade = ai_processor.formatted_grade(
-        #     request.user, user_prompt, assignment_model=assignment
-        # )
+        # Tracked dispatch (BackgroundProcessingTask + launch), matching
+        # every other formatted-grade call site — a bare .delay() here made
+        # the regrade's formatting step invisible and uncancellable.
+        formatted_processing_task = create_processing_task(
+            requested_by=request.user,
+            task_type=BackgroundTaskType.FORMATTED_GRADE,
+            assignment=assignment,
+            submission=submission,
+            meta={"step": "Queued for formatted grade generation"},
+        )
+        launch_processing_task(
+            formatted_grade_async,
+            formatted_processing_task,
+            str(submission.id),
+            user_prompt,
+        )
 
         response_serializer = StudentSubmissionDetailSerializer(submission)
         return Response(response_serializer.data, status=HTTP_200_OK)
@@ -835,6 +1093,12 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if not files:
             raise ParseError("No files uploaded. Please try again.")
 
+        # Validate every file up front, before the session/Celery tasks for
+        # any of them are created - one oversized file in a batch shouldn't
+        # leave a half-queued session behind.
+        for uploaded_file in files:
+            validate_upload_size(uploaded_file)
+
         session = BatchUploadSession.objects.create(
             teacher=request.user,
             assignment=assignment,
@@ -853,16 +1117,28 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             Do not include any explanatory text before or after the JSON
             """
 
-            # Prepare content for each file
-            content = AssignmentProcessingService.prepare_ai_content(
-                uploaded_file, prompt
+            # Read raw file bytes cheaply here; heavy rasterization/compression
+            # happens inside the Celery task, not on the request thread.
+            file_payload = AssignmentProcessingService.build_async_upload_payload(
+                uploaded_file
             )
 
             # Trigger individual async tasks for each paper
             # This allows parallel processing in Celery
-            task = upload_answers_engine_async.delay(
+            processing_task = create_processing_task(
+                requested_by=request.user,
+                task_type=BackgroundTaskType.BATCH_ANSWER_UPLOAD,
+                batch_session=session,
+                assignment=assignment,
+                file_name=uploaded_file.name,
+                meta={"step": "Queued for batch answer extraction"},
+            )
+            task = launch_processing_task(
+                upload_answers_engine_async,
+                processing_task,
                 str(assignment.id),
-                content,
+                file_payload,
+                prompt,
                 str(request.user.id),
                 session_id=str(session.id),
                 file_name=uploaded_file.name,
@@ -902,14 +1178,102 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     def publish_grade(self, request, pk=None):
         submission = self.get_object()
 
-        if not submission.graded_at and submission.score is None:
+        # A submission is publishable only when grading actually finished:
+        # BOTH a grading timestamp and a score. Requiring only one let a
+        # half-graded row (graded_at set by a run that failed before
+        # persisting a score, or vice versa) be published, emailing the
+        # student about a grade that doesn't exist.
+        if not submission.graded_at or submission.score is None:
             return Response(
                 {"error": "Cannot publish an ungraded submission."},
                 status=HTTP_400_BAD_REQUEST,
             )
 
+        # Conditional UPDATE as an atomic claim: two concurrent publish
+        # requests both saw is_published=False above, but only one matches
+        # this WHERE clause — so the student gets exactly one notification
+        # instead of one per click.
+        newly_published = StudentSubmission.objects.filter(
+            pk=submission.pk, is_published=False
+        ).update(is_published=True)
         submission.is_published = True
-        submission.save(update_fields=["is_published"])
+
+        if newly_published:
+            notify_student_of_graded_submission(submission)
+            # .update() bypasses post_save, so the cache-invalidation
+            # signal (students.signals.clear_student_submission_cache)
+            # never fires — without this a student polling their
+            # submission keeps seeing it unpublished (and their grade
+            # withheld) for up to CACHE_TTL after the teacher published it.
+            delete_cache_patterns(
+                "*superadmin*",
+                "*schooladmin*",
+                "*teacheradmin*",
+                "*studentadmin*",
+                "courses:*",
+                "assignments:*",
+                "studentsubmissions:*",
+            )
+
+        serializer = StudentSubmissionDetailSerializer(
+            submission, context=self.get_serializer_context()
+        )
+        return Response(serializer.data, status=HTTP_200_OK)
+
+    @extend_schema(
+        tags=["07 Student Submissions"],
+        summary="Resolve a grader-disagreement review as 'AI grade confirmed'",
+        request=None,
+        responses={HTTP_200_OK: StudentSubmissionDetailSerializer},
+    )
+    @action(
+        detail=True,
+        methods=["POST"],
+        url_path="mark-reviewed",
+        url_name="mark-reviewed",
+    )
+    def mark_reviewed(self, request, pk=None):
+        """
+        The teacher looked at both graders' rationales and confirms the
+        stored grade stands. Clears the review-queue flag and records the
+        resolution — the "AI was right" label the future eval loop
+        consumes. (The other resolution path is update-grade, which
+        records "overridden".)
+        """
+        submission = self.get_object()
+
+        # Conditional UPDATE claim, same pattern as publish: of two racing
+        # requests only one matches needs_review=True, so the resolution
+        # entry is appended exactly once. Already-resolved submissions are
+        # an idempotent no-op, not an error.
+        resolved = StudentSubmission.objects.filter(
+            pk=submission.pk, needs_review=True
+        ).update(
+            needs_review=False,
+            review_reasons=(submission.review_reasons or [])
+            + [
+                {
+                    "resolved": "confirmed",
+                    "by": str(request.user.id),
+                    "at": timezone.now().isoformat(),
+                }
+            ],
+        )
+        if resolved:
+            submission.refresh_from_db(fields=["needs_review", "review_reasons"])
+            # .update() bypasses post_save, so the cache-invalidation
+            # signal (students.signals.clear_student_submission_cache)
+            # never fires — without this the cached detail payload keeps
+            # reporting needs_review=true for up to CACHE_TTL.
+            delete_cache_patterns(
+                "*superadmin*",
+                "*schooladmin*",
+                "*teacheradmin*",
+                "*studentadmin*",
+                "courses:*",
+                "assignments:*",
+                "studentsubmissions:*",
+            )
 
         serializer = StudentSubmissionDetailSerializer(
             submission, context=self.get_serializer_context()

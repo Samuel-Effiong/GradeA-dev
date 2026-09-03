@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign in with Google (Auth Code Flow)</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    body { background: linear-gradient(to bottom, #111827, #1f2937); font-family: sans-serif; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+    .card { background-color: #1f2937; padding: 2rem; border-radius: 0.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.2); width: 100%; max-width: 400px; text-align: center; }
+    button { background-color: #4285f4; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 1rem; }
+    button:hover { background-color: #357ae8; }
+    #status { margin-top: 1rem; font-size: 0.9rem; }
+    .error { color: #f87171; }
+    .success { color: #4ade80; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Secure Login</h2>
+    <p>Sign in using Authorization Code Flow</p>
+    <button id="loginBtn">Sign in with Google</button>
+    <div id="status"></div>
+  </div>
+
+  <script>
+    const API_ENDPOINT = "http://127.0.0.1:8000/api/v1/auth/google-auth";
+    const statusEl = document.getElementById("status");
+
+    // 1. Initialize the Code Client (PKCE is handled automatically)
+    const client = google.accounts.oauth2.initCodeClient({
+      client_id: "148866120854-17bpho8icnpm4al405qg8ip0pms7fluo.apps.googleusercontent.com", // Replace this
+      scope: "email profile openid",
+      ux_mode: "popup",
+      callback: (response) => {
+        if (response.code) {
+          exchangeCodeForTokens(response.code);
+        } else {
+          showStatus("Error: No authorization code received", "error");
+        }
+      },
+    });
+
+    // 2. Send the code to your Django backend
+    async function exchangeCodeForTokens(code) {
+      showStatus("Authenticating with server...");
+      try {
+        const response = await fetch(API_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            code: code,
+            redirect_uri: "postmessage"
+          }),
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          showStatus("Login successful! Access token stored in backend.", "success");
+          console.log("Tokens received:", data);
+        } else {
+          throw new Error(data.detail || "Authentication failed");
+        }
+      } catch (err) {
+        showStatus(err.message, "error");
+      }
+    }
+
+    function showStatus(msg, type) {
+      statusEl.textContent = msg;
+      statusEl.className = type || "";
+    }
+
+    document.getElementById("loginBtn").onclick = () => client.requestCode();
+  </script>
+</body>
+</html>

@@ -1,5 +1,6 @@
 import uuid
 
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import UniqueConstraint, UUIDField
 from django.utils import timezone
@@ -14,9 +15,15 @@ class School(models.Model):
     phone = models.CharField(max_length=20, blank=True, null=True)
     website = models.URLField(max_length=500, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
+
+
+class SessionOwnerType(models.TextChoices):
+    INDIVIDUAL = "INDIVIDUAL", _("Individual Teacher")
+    SCHOOL = "SCHOOL", _("School")
 
 
 class Session(models.Model):
@@ -26,21 +33,85 @@ class Session(models.Model):
     name = models.CharField(max_length=100, db_index=True)
     created_at = models.DateField(auto_now_add=True)
 
+    owner_type = models.CharField(
+        max_length=20,
+        choices=SessionOwnerType.choices,
+        default=SessionOwnerType.INDIVIDUAL,
+        db_index=True,
+        help_text=(
+            "INDIVIDUAL = owned by a single teacher (no school). SCHOOL = "
+            "created by a school admin and shared read-only with every "
+            "teacher under that school."
+        ),
+    )
+
     teacher = models.ForeignKey(
         "users.CustomUser",
         null=True,
         blank=True,
         on_delete=models.CASCADE,
         related_name="sessions",
+        help_text="Set only when owner_type=INDIVIDUAL.",
+    )
+
+    school = models.ForeignKey(
+        "classrooms.School",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="sessions",
+        help_text="Set only when owner_type=SCHOOL.",
+    )
+
+    created_by = models.ForeignKey(
+        "users.CustomUser",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+        help_text=(
+            "Audit trail of who actually created this session — the "
+            "teacher for INDIVIDUAL sessions, or the school admin for "
+            "SCHOOL sessions. Kept separate from `teacher` so a SCHOOL "
+            "session's `teacher` field can stay null while still "
+            "recording who made it."
+        ),
     )
 
     class Meta:
         ordering = ("-created_at",)
         constraints = [
             UniqueConstraint(
-                fields=["name", "teacher"], name="unique_session_name_per_teacher"
+                fields=["name", "teacher"],
+                condition=models.Q(owner_type="INDIVIDUAL"),
+                name="unique_session_name_per_teacher",
+            ),
+            UniqueConstraint(
+                fields=["name", "school"],
+                condition=models.Q(owner_type="SCHOOL"),
+                name="unique_session_name_per_school",
             ),
         ]
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+
+        if self.owner_type == SessionOwnerType.INDIVIDUAL:
+            if not self.teacher_id:
+                raise ValidationError("INDIVIDUAL sessions must have a teacher.")
+            if self.school_id:
+                raise ValidationError("INDIVIDUAL sessions must not have a school.")
+        elif self.owner_type == SessionOwnerType.SCHOOL:
+            if not self.school_id:
+                raise ValidationError("SCHOOL sessions must have a school.")
+            if self.teacher_id:
+                raise ValidationError("SCHOOL sessions must not have a teacher.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
 
 class Course(models.Model):

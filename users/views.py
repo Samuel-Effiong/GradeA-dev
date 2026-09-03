@@ -1,5 +1,5 @@
 """Views for user management and API endpoints.
-
+Help o father
 This module contains the Django REST Framework viewset for managing users
 (CustomUserViewSet) and OpenAPI schema extensions for documenting the
 users endpoints.
@@ -9,14 +9,18 @@ and a convenience `me` action to fetch the currently authenticated user's
 profile.
 """
 
+import logging
+from datetime import timedelta
+
 from celery.result import AsyncResult
 from django.conf import settings
 from django.core.cache import cache
-
-# from django.core.mail import send_mail
+from django.core.mail import send_mail
 from django.db import transaction
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.utils.crypto import constant_time_compare
 
 # from django.utils.decorators import method_decorator
 # from django.views.decorators.cache import cache_page
@@ -30,12 +34,19 @@ from drf_spectacular.utils import (
     OpenApiResponse,
     extend_schema,
     extend_schema_view,
+    inline_serializer,
 )
-from rest_framework import status, viewsets
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token
+from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action  # , api_view
-from rest_framework.exceptions import ParseError, ValidationError
+from rest_framework.exceptions import (
+    NotFound,
+    ParseError,
+    PermissionDenied,
+    ValidationError,
+)
 from rest_framework.filters import OrderingFilter, SearchFilter
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.exceptions import TokenError
@@ -49,11 +60,25 @@ from rest_framework_simplejwt.views import (
 )
 from rest_framework_simplejwt.views import TokenRefreshView as BaseTokenRefreshView
 
+from AutoGrader.dispatch import safe_delay
+from AutoGrader.error_messages import describe_user_error
+from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.tasks import send_email_task
+from billing.services import AnalyticsService
 from classrooms.models import EnrollmentStatusType, StudentCourse
 from classrooms.permissions import IsSuperAdmin
-from classrooms.serializers import StudentRegistrationCompletionSerializer
-from students.models import BatchUploadSession
+from classrooms.serializers import (
+    SchoolAdminRegistrationCompletionSerializer,
+    StudentRegistrationCompletionSerializer,
+)
+from students.models import BackgroundTaskStatus, BatchUploadSession
+from students.task_context import get_session_context, get_task_context
+from students.task_tracking import (
+    TERMINAL_TASK_STATUSES,
+    cancel_processing_task,
+    get_processing_task,
+    normalize_processing_task_status,
+)
 from users.mixins import UserCacheMixin
 from users.models import (
     BetaWhitelist,
@@ -61,22 +86,38 @@ from users.models import (
     PasswordChangeOTP,
     PasswordResetOTP,
     Settings,
+    UserGoogleCredentials,
     UserTypes,
     Waitlist,
 )
-from users.serializers import (
+from users.serializers import (  # BatchSessionResultTaskEntrySerializer,; TaskContextSerializer,
+    BatchSessionCancelSerializer,
+    BatchSessionResultSerializer,
     BetaWhitelistSerializer,
     ChangePasswordSerializer,
     CustomTokenObtainPairSerializer,
     CustomUserSerializer,
+    GoogleUserSerializer,
     OTPSerializer,
     ResetPasswordSerializer,
     SettingsSerializer,
+    TaskCancelSerializer,
     TaskStatusSerializer,
     VerifyCustomUserSerializer,
     WaitlistSerializer,
 )
 from users.services import send_user_activation_email
+from users.tasks import sync_user_to_mailerlite
+from users.throttling import (
+    GoogleAuthThrottle,
+    LoginThrottle,
+    OTPRequestThrottle,
+    PasswordResetThrottle,
+    RegisterThrottle,
+    VerifyEmailThrottle,
+)
+
+logger = logging.getLogger(__name__)
 
 # Create your views here.
 
@@ -93,7 +134,7 @@ class BaseUserViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
     serializer_class = CustomUserSerializer
     permission_classes = (IsAuthenticated,)
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
     filterset_fields = {
@@ -205,7 +246,7 @@ class CustomUserViewSet(UserCacheMixin, viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
     serializer_class = CustomUserSerializer
     permission_classes = (IsAuthenticated,)
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
     filterset_fields = {
@@ -236,12 +277,73 @@ class CustomUserViewSet(UserCacheMixin, viewsets.ModelViewSet):
         Allow unauthenticated access only for POST endpoints (public actions).
         All other requests require authentication.
         """
-        if self.action in ["list", "create"]:
+        if self.action in ["list", "create", "destroy"]:
             permission_classes = [IsAuthenticated, IsSuperAdmin]
         else:
             permission_classes = [IsAuthenticated]
 
         return [permission() for permission in permission_classes]
+
+    def get_queryset(self):
+        """
+        Limit which users a request may see or act on.
+
+        Without this the viewset exposed `CustomUser.objects.all()` behind a
+        bare `IsAuthenticated`, so any logged-in user could read, edit or
+        delete any other user by guessing a UUID.
+
+        Roles get the narrowest set that keeps their existing flows working.
+        Students carry `school=NULL` (they are attached to a course, not a
+        school), so a school admin has to reach them through the course's
+        teacher rather than through `school_id`.
+
+        Never raise from here: `UserCacheMixin.get_cache_key` calls
+        `get_queryset()` for the model name before permissions run, so an
+        exception would surface as a 500 instead of a 401/403.
+        """
+        queryset = CustomUser.objects.all()
+        user = self.request.user
+
+        if not user or not user.is_authenticated:
+            return CustomUser.objects.none()
+
+        # Mirrors classrooms.permissions.IsSuperAdmin, which requires both
+        # flags. Checking only is_superuser would let the two disagree.
+        if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:
+            return queryset
+
+        if user.user_type == UserTypes.SCHOOL_ADMIN and user.school_id:
+            return queryset.filter(
+                Q(pk=user.pk)
+                | Q(school_id=user.school_id)
+                | Q(enrollments__course__teacher__school_id=user.school_id)
+            ).distinct()
+
+        if user.user_type == UserTypes.TEACHER:
+            return queryset.filter(
+                Q(pk=user.pk) | Q(enrollments__course__teacher=user)
+            ).distinct()
+
+        return queryset.filter(pk=user.pk)
+
+    def partial_update(self, request, *args, **kwargs):
+        """
+        Being able to *see* a user is not permission to *edit* them.
+
+        The queryset above deliberately lets teachers and school admins read
+        their students, so without this check that read access would also
+        grant write access over those accounts.
+        """
+        instance = self.get_object()
+        is_super_admin = (
+            request.user.is_superuser
+            and request.user.user_type == UserTypes.SUPER_ADMIN
+        )
+
+        if instance.pk != request.user.pk and not is_super_admin:
+            raise PermissionDenied("You can only modify your own account.")
+
+        return super().partial_update(request, *args, **kwargs)
 
     # @extend_schema(exclude=True)
     def create(self, request, *args, **kwargs):
@@ -427,7 +529,7 @@ class SettingsViewSet(UserCacheMixin, viewsets.ModelViewSet):
     queryset = Settings.objects.all()
     serializer_class = SettingsSerializer
     permission_classes = (IsAuthenticated,)
-    pagination_class = PageNumberPagination
+    pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "patch", "options"]
 
     filterset_fields = {
@@ -436,7 +538,6 @@ class SettingsViewSet(UserCacheMixin, viewsets.ModelViewSet):
         "user__school": ["exact"],
     }
     search_fields = [
-        "user__username",
         "user__email",
         "user__first_name",
         "user__last_name",
@@ -517,16 +618,14 @@ class SettingsViewSet(UserCacheMixin, viewsets.ModelViewSet):
         data = cache.get(cache_key)
 
         if data is None:
-            try:
-                settings_obj = Settings.objects.get(user=request.user)
-                serializer = self.get_serializer(settings_obj)
-                data = serializer.data
-                cache.set(cache_key, data, getattr(settings, "CACHE_TTL", 60 * 5))
-            except Settings.DoesNotExist:
-                return Response(
-                    {"detail": "Settings not found for this user"},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
+            # Settings are normally auto-created on user registration (see
+            # users.signals.create_default_settings_and_wallet), but that
+            # creation can silently fail. Self-heal here instead of 404ing,
+            # since the user has no other way to discover/create their row.
+            settings_obj, _ = Settings.objects.get_or_create(user=request.user)
+            serializer = self.get_serializer(settings_obj)
+            data = serializer.data
+            cache.set(cache_key, data, getattr(settings, "CACHE_TTL", 60 * 5))
 
         return Response(data)
 
@@ -579,6 +678,12 @@ class AuthViewSet(viewsets.ViewSet):
         url_path="verify",
         url_name="verify",
         permission_classes=[AllowAny],
+        # The token being checked is a 6-digit numeric code (by design, see
+        # users.models.ACTIVATION_TOKEN_VALIDITY) - without a dedicated,
+        # tight throttle this falls back to the generic 60/min anon rate,
+        # which does not meaningfully slow down guessing it for a known
+        # email.
+        throttle_classes=[VerifyEmailThrottle],
     )
     def verify(self, request, **kwargs):
         email = request.data.get("email").strip()
@@ -602,9 +707,14 @@ class AuthViewSet(viewsets.ViewSet):
         user.is_active = True
         user.save()
 
+        safe_delay(sync_user_to_mailerlite, str(user.id))
+
         user_data = CustomUserSerializer(user).data
 
         refresh = RefreshToken.for_user(user)
+
+        # Track activity
+        AnalyticsService.track_activity(user)
 
         return Response(
             {
@@ -639,6 +749,7 @@ class AuthViewSet(viewsets.ViewSet):
         url_path="otp",
         url_name="otp",
         permission_classes=[AllowAny],
+        throttle_classes=[OTPRequestThrottle],
     )
     def otp(self, request, **kwargs):
         serializer = OTPSerializer(data=request.data)
@@ -691,7 +802,8 @@ The Grade A+ Team
 Need help? Contact us at {settings.SUPPORT_EMAIL}
             """
 
-            send_email_task.delay(
+            safe_delay(
+                send_email_task,
                 subject="Your Grade A+ password reset code",
                 message=message,
                 from_email=settings.DEFAULT_FROM_EMAIL,
@@ -722,6 +834,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         url_path="reset-password",
         url_name="reset-password",
         permission_classes=[AllowAny],
+        throttle_classes=[PasswordResetThrottle],
     )
     def reset_password(self, request, **kwargs):
         serializer = ResetPasswordSerializer(data=request.data)
@@ -731,14 +844,32 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         otp = serializer.validated_data.get("otp")
         new_password = serializer.validated_data.get("new_password")
 
+        # Look the OTP up by user rather than by (user, code) so that a
+        # wrong guess is attributable to a row and can be counted. The old
+        # (user, code) lookup made every failure indistinguishable from
+        # "no OTP exists", which is why the attempts budget could not be
+        # enforced.
         try:
             user = CustomUser.objects.get(email=email)
-            otp_obj = PasswordResetOTP.objects.get(user=user, code=otp)
+            otp_obj = PasswordResetOTP.objects.get(user=user)
         except (CustomUser.DoesNotExist, PasswordResetOTP.DoesNotExist):
             raise ParseError("Invalid email, OTP code, or new password.") from Exception
 
+        if otp_obj.is_locked():
+            raise ParseError(
+                "Too many incorrect codes. Request a new code and try again later."
+            )
+
         if not otp_obj.is_valid():
             otp_obj.delete()
+            raise ParseError("Invalid email, OTP code, or new password.")
+
+        # Constant-time compare so the response latency does not leak how
+        # much of the code was correct. Every non-lockout failure returns
+        # the identical message, to avoid confirming which of email / code
+        # / password was the wrong one.
+        if not constant_time_compare(str(otp_obj.code), str(otp)):
+            otp_obj.register_failure()
             raise ParseError("Invalid email, OTP code, or new password.")
 
         user.set_password(new_password)
@@ -751,6 +882,9 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             BlacklistedToken.objects.get_or_create(token=token)
 
         refresh = RefreshToken.for_user(user)
+
+        # Track activity
+        AnalyticsService.track_activity(user)
 
         return Response(
             {
@@ -801,7 +935,7 @@ The Grade A+ Team
 Need help? Contact us at {settings.SUPPORT_EMAIL}
 """
 
-        send_email_task.delay(
+        send_mail(
             subject="Your Grade A+ password change code",
             message=message,
             from_email=settings.DEFAULT_FROM_EMAIL,
@@ -859,6 +993,10 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
         # 2. Generate new tokens for the current device
         refresh = RefreshToken.for_user(user)
+
+        # Track activity
+        AnalyticsService.track_activity(user)
+
         return Response(
             {
                 "detail": "Password changed successfully.",
@@ -987,6 +1125,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         detail=False,
         methods=["post"],
         permission_classes=[AllowAny],
+        throttle_classes=[RegisterThrottle],
         url_path="register",
     )
     def register(self, request, *args, **kwargs):
@@ -995,7 +1134,14 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
         This endpoint allows registration of new users with TEACHER role only.
         """
-        request.data.pop("user_type", None)
+        # No need to strip user_type from the payload: CustomUserSerializer
+        # forces its PRIVILEGED_FIELDS read-only unless the serializer is
+        # built with a super admin in its context, and this one is built
+        # without any context at all - so a client-sent user_type is dropped
+        # on the floor either way. The strip that used to live here did it by
+        # mutating request.data, which raises AttributeError on the immutable
+        # QueryDict that a form-encoded or multipart body produces: every
+        # non-JSON registration 500'd, whether or not it mentioned user_type.
         serializer = CustomUserSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -1027,6 +1173,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         detail=False,
         methods=["post"],
         permission_classes=[AllowAny],
+        throttle_classes=[RegisterThrottle],
         url_path="register/student",
     )
     def register_student(self, request, *args, **kwargs):
@@ -1103,6 +1250,8 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 user.email_verified_at = timezone.now()
                 user.save()
 
+                safe_delay(sync_user_to_mailerlite, str(user.id))
+
                 for enrollment in pending_enrollments:
                     enrollment.enrollment_status = EnrollmentStatusType.ENROLLED
                     enrollment.save(update_fields=["enrollment_status"])
@@ -1114,10 +1263,301 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         except (ParseError, ValidationError):
             raise
         except Exception as e:
+            logger.error("Student registration failed", exc_info=e)
             return Response(
-                {"detail": f"Internal Server Error: {str(e)}"},
+                {
+                    "detail": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "Registration could not be completed. Please " "try again."
+                        ),
+                    )
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+    @extend_schema(
+        tags=["Authentication"],
+        summary="Complete school admin registration",
+        description="""
+        Complete registration for a school admin invited via the school's
+        `create_with_admin` endpoint.
+
+        Required fields:
+        - email: The invited admin's email address
+        - token: The activation token from the invitation email
+        - password: The password the admin wants to set for their account
+        """,
+        request=SchoolAdminRegistrationCompletionSerializer,
+        responses={
+            200: OpenApiResponse(
+                description="School admin registration completed successfully",
+            ),
+            400: OpenApiResponse(description="Invalid or expired token"),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["post"],
+        permission_classes=[AllowAny],
+        throttle_classes=[RegisterThrottle],
+        url_path="register/school-admin",
+        url_name="register-school-admin",
+    )
+    def register_school_admin(self, request, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                serializer = SchoolAdminRegistrationCompletionSerializer(
+                    data=request.data
+                )
+
+                if not serializer.is_valid():
+                    raise ValidationError(serializer.errors)
+
+                email = serializer.validated_data["email"].strip().lower()
+                token = serializer.validated_data["token"].strip()
+
+                # select_for_update prevents two concurrent submissions of the
+                # same invite link from both racing past the is_active check.
+                user = (
+                    CustomUser.objects.select_for_update()
+                    .filter(
+                        email__iexact=email,
+                        activation_token=token,
+                        user_type=UserTypes.SCHOOL_ADMIN,
+                        is_active=False,
+                    )
+                    .first()
+                )
+
+                if not user:
+                    raise ParseError("Invalid or expired activation token.")
+
+                if user.activation_expires and timezone.now() > user.activation_expires:
+                    raise ParseError(
+                        "This invitation link has expired. Please contact your "
+                        "superadmin for a new invitation."
+                    )
+
+                user.set_password(serializer.validated_data["password"])
+                user.is_active = True
+                user.email_verified_at = timezone.now()
+                user.activation_token = None
+                user.activation_expires = None
+                user.save()
+
+            safe_delay(sync_user_to_mailerlite, str(user.id))
+
+            refresh = RefreshToken.for_user(user)
+
+            # Track activity
+            AnalyticsService.track_activity(user)
+
+            return Response(
+                {
+                    "refresh": str(refresh),
+                    "access": str(refresh.access_token),
+                    "user": CustomUserSerializer(user).data,
+                },
+                status=status.HTTP_200_OK,
+            )
+        except (ParseError, ValidationError):
+            raise
+        except Exception as e:
+            logger.error("School admin registration failed", exc_info=e)
+            return Response(
+                {
+                    "detail": describe_user_error(
+                        e,
+                        fallback_message=(
+                            "Registration could not be completed. Please " "try again."
+                        ),
+                    )
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @extend_schema(
+        tags=["Authentication"],
+        summary="Authenticate with Google OAuth2",
+        description="""
+        Verifies a Google ID token (credential) sent from the frontend.
+
+        - If the user does not exist: Creates a new user, assigns an unusable
+        password, marks their email as verified, and logs them in.
+        - If the user exists: Authenticates them if their registration method is `GOOGLE`.
+        - Returns a pair of JWT (JSON Web Tokens) access and refresh tokens, along with user details.
+        """,
+        request=inline_serializer(
+            name="GoogleAuthRequest",
+            fields={
+                "code": serializers.CharField(
+                    required=True,
+                    help_text="The authorization code received from Google's credential service on the frontend.",
+                ),
+            },
+        ),
+        responses={
+            200: OpenApiResponse(
+                description="Successfully authenticated. Returns JWT tokens and user profile.",
+                response=inline_serializer(
+                    name="GoogleAuthResponse",
+                    fields={
+                        "access": serializers.CharField(help_text="JWT Access Token"),
+                        "refresh": serializers.CharField(help_text="JWT Refresh Token"),
+                        "user": CustomUserSerializer(
+                            help_text="The authenticated user's profile details."
+                        ),
+                    },
+                ),
+            ),
+            400: OpenApiResponse(
+                description="Bad Request. Possible causes:\n"
+                "- Missing code\n"
+                "- Invalid or expired authorization code\n"
+                "- Email address has not been verified by Google\n"
+                "- User already registered via standard Email instead of Google"
+            ),
+            500: OpenApiResponse(description="Internal Server Error"),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["post"],
+        permission_classes=[AllowAny],
+        throttle_classes=[GoogleAuthThrottle],
+        url_path="google-auth",
+    )
+    def google_auth(self, request, *args, **kwargs):
+        code = request.data.get("code")
+        redirect_uri = settings.GOOGLE_REDIRECT_URI
+
+        if not code:
+            raise ParseError("Authorization code is required")
+
+        try:
+            import requests as http_requests
+
+            token_url = "https://oauth2.googleapis.com/token"
+            payload = {
+                "client_id": settings.GOOGLE_OAUTH_CLIENT_ID,
+                "client_secret": settings.GOOGLE_OAUTH_CLIENT_SECRET,
+                "code": code,
+                "grant_type": "authorization_code",
+                "redirect_uri": redirect_uri,
+            }
+
+            try:
+                response = http_requests.post(token_url, data=payload)
+                response.raise_for_status()
+                token_data = response.json()
+            except http_requests.exceptions.RequestException as e:
+                logger.error("Google OAuth token exchange failed", exc_info=e)
+                raise ParseError(
+                    describe_user_error(
+                        e,
+                        fallback_message=("Google sign-in failed. Please try again."),
+                    )
+                ) from e
+
+            id_token_str = token_data.get("id_token")
+            access_token = token_data.get("access_token")
+            refresh_token = token_data.get("refresh_token")
+            expires_in = token_data.get("expires_in", 500)
+
+            if not id_token_str:
+                raise ParseError("Google did not return an ID token")
+
+            id_info = id_token.verify_oauth2_token(
+                id_token_str,
+                google_requests.Request(),
+                settings.GOOGLE_OAUTH_CLIENT_ID,
+            )
+
+            if not id_info.get("email_verified"):
+                raise ParseError("Google has not verified your email")
+
+            with transaction.atomic():
+                # Lowercased to match how every other path stores and looks up
+                # emails (CustomUserSerializer.validate_email). Without it, a
+                # mixed-case Google address misses the lookup below, falls into
+                # the create branch, and dies on the unique constraint.
+                email = id_info["email"].strip().lower()
+                first_name = id_info.get("given_name", "")
+                last_name = id_info.get("family_name", "")
+                middle_name = id_info.get("middle_name", "")
+                profile_image_url = id_info.get(
+                    "picture",
+                )
+
+                user = CustomUser.objects.filter(email=email).first()
+
+                if not user:
+                    # create the user with
+                    data = {
+                        "email": email,
+                        "first_name": first_name,
+                        "last_name": last_name,
+                        "middle_name": middle_name,
+                        "profile_image_url": profile_image_url,
+                        "registration_method": "GOOGLE",
+                        "is_active": True,
+                        "email_verified_at": timezone.now(),
+                    }
+
+                    serializer = GoogleUserSerializer(data=data)
+                    if serializer.is_valid():
+                        user = serializer.save()
+
+                        user.is_active = True
+                        user.set_unusable_password()
+                        user.save(update_fields=["password", "is_active"])
+
+                        safe_delay(sync_user_to_mailerlite, str(user.id))
+                    else:
+                        # A Google account on a business domain lands here:
+                        # signing in with Google creates an individual TEACHER
+                        # account, and those require a personal address. The
+                        # raw serializer error dict reads as a bug to the
+                        # user, so say what actually happened - their school
+                        # account is created by their school admin, not by
+                        # this button.
+                        email_errors = serializer.errors.get("email")
+                        if email_errors:
+                            raise ParseError(
+                                f"{email_errors[0]} If you are joining a "
+                                "school, ask your school admin to invite you "
+                                "and use the link in that invitation instead."
+                            )
+                        raise ValidationError(serializer.errors)
+
+                expiry = timezone.now() + timedelta(seconds=expires_in)
+                credentials, _ = UserGoogleCredentials.objects.update_or_create(
+                    user=user,
+                    defaults={
+                        "access_token": access_token,
+                        "token_expiry": expiry,
+                        "scopes": id_info.get("scope", ""),
+                        **({"refresh_token": refresh_token} if refresh_token else {}),
+                    },
+                )
+                # if access_token or refresh_token:
+                #     user.save(update_fields=["google_access_token", "google_refresh_token"])
+
+            refresh = RefreshToken.for_user(user)
+
+            return Response(
+                {
+                    "access": str(refresh.access_token),
+                    "refresh": str(refresh),
+                    "user": CustomUserSerializer(user).data,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except ValueError as e:
+            raise ParseError("Invalid Google token signature") from e
 
 
 @extend_schema(
@@ -1150,6 +1590,7 @@ class TokenObtainPairView(BaseTokenObtainPairView):
     """
 
     serializer_class = CustomTokenObtainPairSerializer
+    throttle_classes = [LoginThrottle]
 
 
 @extend_schema(
@@ -1197,43 +1638,33 @@ class TaskViewSet(viewsets.ViewSet):
     but provides utility functionality for task management.
     """
 
-    http_method_names = ["get", "options"]
+    http_method_names = ["get", "post", "options"]
     permission_classes = [IsAuthenticated]
 
-    @extend_schema(
-        tags=["Tasks"],
-        summary="Get status of a background task",
-        description="Retrieve the current status and metadata for a Celery background task by its ID.",
-        responses={
-            200: OpenApiResponse(
-                response=TaskStatusSerializer,
-                examples=[
-                    OpenApiExample(
-                        "Task Completed Example",
-                        value={
-                            "task_id": "9f7e4a19-b299-41b4-9829-b5490e93c523",
-                            "status": "completed",
-                            "meta": "{'status': 'Completed', 'assignment_id': '055eb99a-d9af-4671-ac94-38133376e942'}",
-                        },
-                    ),
-                    OpenApiExample(
-                        "Task Processing Example",
-                        value={
-                            "task_id": "9f7e4a19-b299-41b4-9829-b5490e93c523",
-                            "status": "processing",
-                            "meta": "{'current': 0, 'total': 10, 'percent': 0, 'step': 'Initializing'}",
-                        },
-                    ),
-                ],
-            ),
-            404: OpenApiResponse(description="Task not found"),
-        },
-    )
-    @action(detail=False, methods=["get"], url_path="status/(?P<task_id>[^/.]+)")
-    def task_status(self, request, task_id=None):
-        """
-        Retrieve the status of a background task by its ID.
-        """
+    def _serialize_task_status(self, task_id, processing_task=None):
+        if processing_task:
+            normalize_processing_task_status(processing_task)
+            processing_task.refresh_from_db()
+
+            meta = dict(processing_task.meta or {})
+            if processing_task.error:
+                meta.setdefault("error", processing_task.error)
+
+            if processing_task.status == "SUCCESS":
+                status_value = "completed"
+            elif processing_task.status == "FAILURE":
+                status_value = "failed"
+            elif processing_task.status == "CANCELLED":
+                status_value = "cancelled"
+            else:
+                status_value = "processing"
+
+            return {
+                "task_id": task_id,
+                "status": status_value,
+                "meta": str(meta) if meta else None,
+            }
+
         task = AsyncResult(task_id)
 
         data = {
@@ -1248,16 +1679,230 @@ class TaskViewSet(viewsets.ViewSet):
 
         data["meta"] = str(data["meta"])
 
-        if task.successful():
+        if task.state == "REVOKED":
+            data["status"] = "cancelled"
+        elif task.successful():
             data["status"] = "completed"
-
         elif task.failed():
             data["status"] = "failed"
-
         else:
             data["status"] = "processing"
 
+        return data
+
+    @extend_schema(
+        tags=["Tasks"],
+        summary="Get status of a background task",
+        description="Retrieve the current status and metadata for a Celery background task by its ID.",
+        responses={
+            200: OpenApiResponse(
+                response=TaskStatusSerializer,
+                examples=[
+                    OpenApiExample(
+                        "Task Completed Example",
+                        value={
+                            "task_id": "9f7e4a19-b299-41b4-9829-b5490e93c523",
+                            "status": "completed",
+                            "meta": "{'status': 'Completed'}",
+                            "resource_type": "assignment",
+                            "resource_id": "055eb99a-d9af-4671-ac94-38133376e942",
+                            "action": "grade",
+                            "additional_ids": {},
+                        },
+                    ),
+                    OpenApiExample(
+                        "Task Processing Example",
+                        value={
+                            "task_id": "9f7e4a19-b299-41b4-9829-b5490e93c523",
+                            "status": "processing",
+                            "meta": "{'current': 0, 'total': 10, 'percent': 0, 'step': 'Initializing'}",
+                            "resource_type": "assignment",
+                            "resource_id": "055eb99a-d9af-4671-ac94-38133376e942",
+                            "action": "grade",
+                            "additional_ids": {},
+                        },
+                    ),
+                ],
+            ),
+            404: OpenApiResponse(description="Task not found"),
+        },
+    )
+    @action(detail=False, methods=["get"], url_path="status/(?P<task_id>[^/.]+)")
+    def task_status(self, request, task_id=None):
+        """
+        Retrieve the status of a background task by its ID, enriched with context.
+        """
+        processing_task = get_processing_task(task_id, requested_by=request.user)
+        if processing_task:
+            normalize_processing_task_status(processing_task)
+            processing_task.refresh_from_db()
+            meta = dict(processing_task.meta or {})
+            if processing_task.error:
+                meta.setdefault("error", processing_task.error)
+            status_value = self._map_status(processing_task.status)
+
+            # Get context
+            context = get_task_context(processing_task)
+
+            data = {
+                "task_id": task_id,
+                "status": status_value,
+                "meta": str(meta) if meta else None,
+                "resource_type": context["resource_type"],
+                "resource_id": context["resource_id"],
+                "action": context["action"],
+                "additional_ids": context["additional_ids"],
+            }
+        else:
+            # Fallback to Celery AsyncResult (less context)
+            task = AsyncResult(task_id)
+            data = {
+                "task_id": task_id,
+                "status": self._map_celery_state(task.state),
+                "meta": str(task.info) if task.info else None,
+                "resource_type": None,
+                "resource_id": None,
+                "action": None,
+                "additional_ids": {},
+            }
+
         serializer = TaskStatusSerializer(data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    # Helper methods (add inside TaskViewSet)
+    def _map_status(self, db_status):
+        """Map BackgroundTaskStatus to frontend-friendly status string."""
+        mapping = {
+            "PENDING": "processing",
+            "STARTED": "processing",
+            "SUCCESS": "completed",
+            "FAILURE": "failed",
+            "CANCELLED": "cancelled",
+        }
+        return mapping.get(db_status, "processing")
+
+    def _map_celery_state(self, state):
+        """Map Celery state to frontend-friendly status string."""
+        if state == "REVOKED":
+            return "cancelled"
+        if state == "SUCCESS":
+            return "completed"
+        if state == "FAILURE":
+            return "failed"
+        if state in ("PENDING", "STARTED", "RETRY"):
+            return "processing"
+        return "processing"
+
+    @extend_schema(
+        tags=["Tasks"],
+        summary="Cancel a background task",
+        description=(
+            "Cancel a background task by its Celery task id. "
+            "If the task is already running, the worker is terminated "
+            "and any remaining pipeline steps will refuse to save results. "
+            "If the task had already reached a final state (completed, "
+            "failed, or already cancelled) before this request arrived, "
+            "the response reports that real final status instead of "
+            "claiming cancellation succeeded."
+        ),
+        responses={
+            200: OpenApiResponse(
+                response=TaskCancelSerializer,
+                examples=[
+                    OpenApiExample(
+                        "Task Cancellation",
+                        value={
+                            "task_id": "9f7e4a19-b299-41b4-9829-b5490e93c523",
+                            "status": "cancelled",
+                            "message": "Background task cancellation requested successfully.",
+                        },
+                    )
+                ],
+            ),
+            404: OpenApiResponse(description="Tracked task not found"),
+        },
+    )
+    @action(detail=False, methods=["post"], url_path="cancel/(?P<task_id>[^/.]+)")
+    def cancel(self, request, task_id=None):
+        processing_task = get_processing_task(task_id, requested_by=request.user)
+        if not processing_task:
+            raise NotFound("Tracked task not found for this user.")
+
+        already_terminal = processing_task.status in TERMINAL_TASK_STATUSES
+        processing_task = cancel_processing_task(processing_task)
+        status_value = self._map_status(processing_task.status)
+
+        if already_terminal:
+            message = (
+                "This task had already finished before the cancellation "
+                f"request reached it — its final status is {status_value!r}."
+            )
+        else:
+            message = "Background task cancellation requested successfully."
+
+        serializer = TaskCancelSerializer(
+            {
+                "task_id": task_id,
+                "status": status_value,
+                "message": message,
+            }
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        tags=["Tasks"],
+        summary="Cancel all remaining tasks in a batch session",
+        description=(
+            "Cancel all pending or running tracked tasks in a batch upload session "
+            "owned by the authenticated teacher."
+        ),
+        responses={
+            200: OpenApiResponse(
+                response=BatchSessionCancelSerializer,
+                examples=[
+                    OpenApiExample(
+                        "Session Cancellation",
+                        value={
+                            "session_id": "550e8400-e29b-41d4-a716-446655440000",
+                            "cancelled_count": 5,
+                            "message": "Batch session cancellation requested successfully.",
+                        },
+                    )
+                ],
+            ),
+            404: OpenApiResponse(description="Session not found"),
+        },
+    )
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path="cancel-session/(?P<session_id>[^/.]+)",
+    )
+    def cancel_session(self, request, session_id=None):
+        session = get_object_or_404(
+            BatchUploadSession, id=session_id, teacher=request.user
+        )
+
+        cancellable_tasks = list(
+            session.processing_tasks.exclude(
+                status__in=[
+                    BackgroundTaskStatus.SUCCESS,
+                    BackgroundTaskStatus.FAILURE,
+                    BackgroundTaskStatus.CANCELLED,
+                ]
+            )
+        )
+
+        for processing_task in cancellable_tasks:
+            cancel_processing_task(processing_task)
+
+        serializer = BatchSessionCancelSerializer(
+            {
+                "session_id": session.id,
+                "cancelled_count": len(cancellable_tasks),
+                "message": "Batch session cancellation requested successfully.",
+            }
+        )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(
@@ -1268,47 +1913,103 @@ class TaskViewSet(viewsets.ViewSet):
 
             This endpoint returns the progress of the background tasks, indicating how many
             files have been processed and the overall completion status. It provides lists of
-            successfully processed submissions and those that failed.
+            successfully processed submissions, failures, cancellations, and pending tasks.
             """,
         responses={
             200: OpenApiResponse(
                 description="Session results retrieved successfully.",
-                response=OpenApiTypes.OBJECT,
+                response=BatchSessionResultSerializer,
                 examples=[
                     OpenApiExample(
                         "In Progress",
                         value={
-                            "progress": "2 / 3",
+                            "progress": "2 / 4",
+                            "percent": 50,
                             "is_complete": False,
                             "success_count": 2,
                             "failure_count": 0,
+                            "cancelled_count": 0,
+                            "pending_count": 2,
+                            "resource_type": "assignment",
+                            "resource_id": "055eb99a-d9af-4671-ac94-38133376e942",
+                            "action": "grade",
+                            "additional_ids": {},
                             "success_list": [
                                 {
                                     "status": "SUCCESS",
                                     "file_name": "student_a.pdf",
-                                    "submission_id": "b2c3d4e5",
+                                    "task_id": "b2c3d4e5",
+                                    "error": None,
+                                    "context": {
+                                        "resource_type": "submission",
+                                        "resource_id": "4321",
+                                        "action": "grade",
+                                        "additional_ids": {},
+                                    },
                                 },
                             ],
                             "failure_list": [],
+                            "cancelled_list": [],
+                            "pending_list": [
+                                {
+                                    "status": "PENDING",
+                                    "file_name": "student_b.pdf",
+                                    "task_id": "b2c3d4e6",
+                                    "error": None,
+                                    "context": {
+                                        "resource_type": "submission",
+                                        "resource_id": "4322",
+                                        "action": "grade",
+                                        "additional_ids": {},
+                                    },
+                                }
+                            ],
                         },
                     ),
                     OpenApiExample(
                         "Completed with failures",
                         value={
                             "progress": "3 / 3",
+                            "percent": 100,
                             "is_complete": True,
                             "success_count": 2,
                             "failure_count": 1,
+                            "cancelled_count": 0,
+                            "pending_count": 0,
+                            "resource_type": "assignment",
+                            "resource_id": "055eb99a-d9af-4671-ac94-38133376e942",
+                            "action": "grade",
+                            "additional_ids": {},
                             "success_list": [
-                                {"status": "SUCCESS", "file_name": "student_a.pdf"},
+                                {
+                                    "status": "SUCCESS",
+                                    "file_name": "student_a.pdf",
+                                    "task_id": "b2c3d4e5",
+                                    "error": None,
+                                    "context": {
+                                        "resource_type": "submission",
+                                        "resource_id": "4321",
+                                        "action": "grade",
+                                        "additional_ids": {},
+                                    },
+                                },
                             ],
                             "failure_list": [
                                 {
-                                    "status": "FAILED",
+                                    "status": "FAILURE",
                                     "file_name": "unknown_file.pdf",
+                                    "task_id": "b2c3d4e7",
                                     "error": "Could not identify or associate a student with this paper",
+                                    "context": {
+                                        "resource_type": "submission",
+                                        "resource_id": None,
+                                        "action": "grade",
+                                        "additional_ids": {},
+                                    },
                                 }
                             ],
+                            "cancelled_list": [],
+                            "pending_list": [],
                         },
                     ),
                 ],
@@ -1322,28 +2023,131 @@ class TaskViewSet(viewsets.ViewSet):
         detail=False, methods=["GET"], url_path="session-results/(?P<session_id>[^/.]+)"
     )
     def session_results(self, request, session_id=None):
-        session = get_object_or_404(BatchUploadSession, id=session_id)
+        session = get_object_or_404(
+            BatchUploadSession, id=session_id, teacher=request.user
+        )
 
-        # Separate into two clean lists for the UI
-        success = [r for r in session.results if r["status"] == "SUCCESS"]
-        failures = [r for r in session.results if r["status"] == "FAILED"]
+        tracked_tasks = list(
+            session.processing_tasks.select_related(
+                "assignment",
+                "submission",
+                "submission__assignment",
+                "assignment__course",
+            ).all()
+        )
 
-        completed = len(session.results)
-        total = session.total_files
+        if tracked_tasks:
+            success = []
+            failures = []
+            cancelled = []
+            pending = []
 
-        percentage = (completed / total) * 100 if total > 0 else 0
+            for processing_task in tracked_tasks:
+                normalize_processing_task_status(processing_task)
+                processing_task.refresh_from_db()
 
-        return Response(
-            {
+                # Get context for this specific task
+                task_context = get_task_context(processing_task)
+
+                task_entry = {
+                    "status": processing_task.status,
+                    "file_name": processing_task.file_name,
+                    "task_id": processing_task.celery_task_id,
+                    "error": processing_task.error,
+                    "context": task_context,  # add context
+                }
+
+                if processing_task.status == "SUCCESS":
+                    success.append(task_entry)
+                elif processing_task.status == "FAILURE":
+                    failures.append(task_entry)
+                elif processing_task.status == "CANCELLED":
+                    cancelled.append(task_entry)
+                else:
+                    pending.append(task_entry)
+
+            completed = len(success) + len(failures) + len(cancelled)
+            total = session.total_files or len(tracked_tasks)
+            percentage = (completed / total) * 100 if total > 0 else 0
+
+            # Get session-level context
+            session_context = get_session_context(session)
+
+            data = {
                 "progress": f"{completed} / {total}",
                 "percent": round(percentage),
                 "is_complete": completed == total,
                 "success_count": len(success),
                 "failure_count": len(failures),
+                "cancelled_count": len(cancelled),
+                "pending_count": len(pending),
+                # Session-level context
+                "resource_type": session_context["resource_type"],
+                "resource_id": session_context["resource_id"],
+                "action": session_context["action"],
+                "additional_ids": session_context["additional_ids"],
+                # Lists
                 "success_list": success,
                 "failure_list": failures,
+                "cancelled_list": cancelled,
+                "pending_list": pending,
             }
-        )
+        else:
+            # Fallback to session.results (legacy, for sessions without tracked tasks)
+            success = [r for r in session.results if r["status"] == "SUCCESS"]
+            failures = [r for r in session.results if r["status"] == "FAILED"]
+            # For legacy entries, we don't have context, so we set context to None
+            # We'll map them to a minimal entry
+            success_entries = [
+                {
+                    "status": r["status"],
+                    "file_name": r.get("file_name"),
+                    "task_id": None,
+                    "error": r.get("error"),
+                    "context": None,
+                }
+                for r in success
+            ]
+            failure_entries = [
+                {
+                    "status": r["status"],
+                    "file_name": r.get("file_name"),
+                    "task_id": None,
+                    "error": r.get("error"),
+                    "context": None,
+                }
+                for r in failures
+            ]
+
+            completed = len(session.results)
+            total = session.total_files
+            percentage = (completed / total) * 100 if total > 0 else 0
+
+            # Still compute session context using the helper (which may use assignment/course)
+            session_context = get_session_context(session)
+
+            data = {
+                "progress": f"{completed} / {total}",
+                "percent": round(percentage),
+                "is_complete": completed == total,
+                "success_count": len(success),
+                "failure_count": len(failures),
+                "cancelled_count": 0,
+                "pending_count": max(total - completed, 0),
+                # Session-level context
+                "resource_type": session_context["resource_type"],
+                "resource_id": session_context["resource_id"],
+                "action": session_context["action"],
+                "additional_ids": session_context["additional_ids"],
+                "success_list": success_entries,
+                "failure_list": failure_entries,
+                "cancelled_list": [],
+                "pending_list": [],
+            }
+
+        # Use the new serializer
+        serializer = BatchSessionResultSerializer(data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @extend_schema_view(
@@ -1351,6 +2155,20 @@ class TaskViewSet(viewsets.ViewSet):
         tags=["Beta Whitelist"],
         summary="List all beta whitelisted emails",
         description="Retrieve a paginated list of all emails that are whitelisted for the private beta.",
+        parameters=[
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page (max 100)",
+            ),
+        ],
         responses={200: BetaWhitelistSerializer(many=True)},
     ),
     create=extend_schema(
@@ -1389,8 +2207,8 @@ class BetaWhitelistViewSet(viewsets.ModelViewSet):
 
     queryset = BetaWhitelist.objects.all()
     serializer_class = BetaWhitelistSerializer
-    permission_classes = [AllowAny]  # [IsAuthenticated, IsSuperAdmin]
-    pagination_class = PageNumberPagination
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
+    pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     search_fields = ["email", "mode"]
@@ -1402,6 +2220,20 @@ class BetaWhitelistViewSet(viewsets.ModelViewSet):
         tags=["Waitlist"],
         summary="List all waitlist entries",
         description="Retrieve a paginated list of all users currently on the waiting list.",
+        parameters=[
+            OpenApiParameter(
+                name="page",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Page number for pagination",
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                description="Number of results per page (max 100)",
+            ),
+        ],
         responses={200: WaitlistSerializer(many=True)},
     ),
     retrieve=extend_schema(
@@ -1426,8 +2258,8 @@ class WaitlistViewSet(viewsets.ModelViewSet):
 
     queryset = Waitlist.objects.all()
     serializer_class = WaitlistSerializer
-    permission_classes = [AllowAny]  # [IsAuthenticated, IsSuperAdmin]
-    pagination_class = PageNumberPagination
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
+    pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "post", "delete", "head", "options"]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     search_fields = ["email"]

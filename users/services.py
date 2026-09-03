@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import string
 from datetime import timedelta
 
@@ -13,51 +14,68 @@ from django.utils.crypto import get_random_string
 
 from AutoGrader.tasks import send_email_task
 
+logger = logging.getLogger(__name__)
+
 
 def send_user_activation_email(user):
-    token = otp_manager.generate_otp()
-    user.activation_token = token
-    user.activation_expires = timezone.now() + timedelta(minutes=15)
-    user.save()
+    try:
+        token = otp_manager.generate_otp()
+        user.activation_token = token
+        user.activation_expires = timezone.now() + timedelta(minutes=15)
+        user.save()
 
-    protocol = "https://"
-    frontend_domain = settings.FRONTEND_DOMAIN
+        # Local import to dodge a circular import: users.models imports
+        # OTPManager from this module at module load time.
+        from users.models import UserTypes
 
-    activation_url = (
-        f"{protocol}{frontend_domain}/verify-email?email={user.email}&token={token}"
-    )
+        protocol = "https://"
+        frontend_domain = (
+            settings.STUDENT_FRONTEND_DOMAIN
+            if user.user_type == UserTypes.STUDENT
+            else settings.FRONTEND_DOMAIN
+        )
 
-    top_content = """
-    Your account is ready. Confirm your email address to activate your access and start managing grading,
-    submissions, and course activity with confidence.<br><br>
-    """
+        activation_url = (
+            f"{protocol}{frontend_domain}/verify-email?email={user.email}&token={token}"
+        )
 
-    bottom_content = """
-    This link expires in 15 minutes. <br>
-    If you did not create this account, you can safely ignore this email<br>.
-    """
+        top_content = """
+        Your account is ready. Confirm your email address to activate your access and start managing grading,
+        submissions, and course activity with confidence.<br><br>
+        """
 
-    merge_data = {
-        "title": "Activate your Grade A+ account",
-        "name": f"{user.first_name}",
-        "activation_url": activation_url,
-        "top_content": top_content,
-        "bottom_content": bottom_content,
-        "support_email": settings.SUPPORT_EMAIL,
-        "current_year": timezone.now().year,
-    }
+        bottom_content = """
+        This link expires in 15 minutes. <br>
+        If you did not create this account, you can safely ignore this email<br>.
+        """
 
-    # html_content = render_to_string("email/token_activation.html", context=context)
+        merge_data = {
+            "title": "Activate your Grade A+ account",
+            "name": f"{user.first_name}",
+            "activation_url": activation_url,
+            "top_content": top_content,
+            "bottom_content": bottom_content,
+            "support_email": settings.SUPPORT_EMAIL,
+            "current_year": timezone.now().year,
+        }
 
-    return send_email_task.delay(
-        subject="Verify your email and get started with faster, smarter grading",
-        message="",
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
-        html_message=None,
-        template_id="ynrw7gy0ye2l2k8e",
-        merge_data=merge_data,
-    )
+        # html_content = render_to_string("email/token_activation.html", context=context)
+        return send_email_task.delay(
+            subject="Verify your email and get started with faster, smarter grading",
+            message="",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            html_message=None,
+            template_id="ynrw7gy0ye2l2k8e",
+            merge_data=merge_data,
+        )
+    except Exception as e:
+        logger.exception(
+            "Failed to queue activation email for user %s %s",
+            getattr(user, "email", None),
+            str(e),
+        )
+        return None
 
 
 class OTPManager:
@@ -99,18 +117,42 @@ def cleanup_expired_users():
             expired_members.append(member_str)
 
         # Batch remove the expired users from the set
-        if expired_members:
-            cache.srem("online_users_set", *expired_members)
+    if expired_members:
+        cache.srem("online_users_set", *expired_members)
 
-        return len(expired_members)
+    return len(expired_members)
 
 
 def get_current_concurrent_users():
 
-    keys = cache.keys("active_user*")
-    all_active_data = cache.get_many(keys)
+    # keys = cache.keys("active_user*")
+    # all_active_data = cache.get_many(keys)
 
-    return len(all_active_data)
+    # return len(all_active_data)
+
+    members = cache.smembers("online_users_set")
+    return len(members) if members else 0
+
+
+def get_opted_in_school_admins(school, *, flag):
+    """Active, emailed SCHOOL_ADMIN users for one school who have opted in
+    to the given Settings notification flag (e.g. "notify_weekly_summary")."""
+    from users.models import CustomUser, UserTypes
+
+    if not school:
+        return CustomUser.objects.none()
+
+    return (
+        CustomUser.objects.filter(
+            user_type=UserTypes.SCHOOL_ADMIN,
+            school=school,
+            is_active=True,
+            email__isnull=False,
+            **{f"settings__{flag}": True},
+        )
+        .exclude(email="")
+        .distinct()
+    )
 
 
 def base_queryset(start=None, end=None):
