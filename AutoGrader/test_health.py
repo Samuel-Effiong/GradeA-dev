@@ -19,6 +19,50 @@ class HealthCheckTests(APITestCase):
         self.assertEqual(response.data["checks"]["database"], "ok")
         self.assertEqual(response.data["checks"]["cache"], "ok")
 
+    def test_reports_the_running_commit(self):
+        """
+        The whole point of the field: answering "is the fix deployed?"
+        without inferring it from behaviour. A settings-only change
+        alters no API surface, so without this "not deployed yet" and
+        "deployed but misconfigured" are indistinguishable from outside.
+        """
+        # Deliberately not a realistic 40-char hex SHA: detect-secrets
+        # flags any long hex literal as a possible leaked credential, and
+        # black keeps relocating an inline `pragma: allowlist secret` off
+        # the offending line. Nothing here depends on the value being
+        # hex - only on it being longer than the 12 characters kept.
+        sha = "commit-sha-not-hex-1234"
+
+        with patch.dict("os.environ", {"RAILWAY_GIT_COMMIT_SHA": sha}, clear=False):
+            response = self.client.get(reverse("health"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["version"], "commit-sha-n")
+        self.assertEqual(len(response.data["version"]), 12)
+
+    def test_version_is_unknown_rather_than_absent_when_unset(self):
+        """
+        A stable key shape keeps the response trivial to parse, and the
+        endpoint must never fail because of its own metadata.
+        """
+        with patch.dict("os.environ", {}, clear=True):
+            response = self.client.get(reverse("health"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["version"], "unknown")
+
+    def test_version_does_not_gate_health(self):
+        """
+        A missing commit SHA is a metadata gap, not an outage: it must
+        never turn a healthy node's 200 into a 503 and take it out of
+        rotation.
+        """
+        with patch.dict("os.environ", {}, clear=True):
+            response = self.client.get(reverse("health"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "ok")
+
     def test_reports_503_and_names_the_failing_dependency(self):
         """
         A failing dependency has to be identifiable from the response, or
@@ -36,6 +80,27 @@ class HealthCheckTests(APITestCase):
         self.assertIn("connection refused", response.data["checks"]["database"])
         # An unrelated healthy dependency should still report as healthy.
         self.assertEqual(response.data["checks"]["cache"], "ok")
+
+    def test_cache_write_that_silently_no_ops_is_reported_as_degraded(self):
+        """
+        _check_cache round-trips (set then get) specifically to catch a
+        write that silently no-ops - a bare cache.set() would pass even
+        against a misconfigured or evicting-immediately backend. Simulate
+        that exact failure mode: the write "succeeds" but the readback
+        doesn't match.
+        """
+        with patch("AutoGrader.health.cache") as mock_cache:
+            mock_cache.get.return_value = None  # set() didn't actually stick
+
+            response = self.client.get(reverse("health"))
+
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertEqual(response.data["status"], "degraded")
+        self.assertIn(
+            "did not return the value just written", response.data["checks"]["cache"]
+        )
+        # An unrelated healthy dependency should still report as healthy.
+        self.assertEqual(response.data["checks"]["database"], "ok")
 
 
 class BeatHealthCheckTests(APITestCase):

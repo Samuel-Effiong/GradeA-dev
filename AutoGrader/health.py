@@ -34,6 +34,36 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 
+def deployed_version():
+    """
+    Which commit this instance is actually running.
+
+    Exists because "is the fix deployed yet?" was, for a while, an
+    unanswerable question. A settings-only change (NUM_PROXIES) alters no
+    API surface, so "not deployed yet" and "deployed but the value is
+    wrong" look identical from outside - and tuning a value on that guess
+    is how you make things worse. This turns it into one curl.
+
+    Railway injects RAILWAY_GIT_COMMIT_SHA per deploy; the others are
+    accepted so this keeps working under a different host or in CI.
+    Returns "unknown" rather than raising or omitting the key: a health
+    endpoint must never fail because of its own metadata, and a stable
+    key shape keeps it trivial to parse.
+    """
+    import os
+
+    for var in (
+        "RAILWAY_GIT_COMMIT_SHA",
+        "GIT_COMMIT_SHA",
+        "SOURCE_COMMIT",
+        "HEROKU_SLUG_COMMIT",
+    ):
+        sha = (os.environ.get(var) or "").strip()
+        if sha:
+            return sha[:12]
+    return "unknown"
+
+
 def _check_database():
     with connection.cursor() as cursor:
         cursor.execute("SELECT 1")
@@ -80,7 +110,11 @@ def health(request):
     )
 
     return Response(
-        {"status": "ok" if healthy else "degraded", "checks": results},
+        {
+            "status": "ok" if healthy else "degraded",
+            "checks": results,
+            "version": deployed_version(),
+        },
         status=(status.HTTP_200_OK if healthy else status.HTTP_503_SERVICE_UNAVAILABLE),
     )
 
