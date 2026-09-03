@@ -16,7 +16,7 @@ Grade Automator Plus handles data covered by **FERPA** (the U.S. student-records
 
 The app has four roles: **student, teacher, school admin, and super admin** (our own staff). There's no single "tenant ID" switch — instead, every screen and API endpoint is written to only fetch the data that role is allowed to see. A teacher's query for students only ever returns their own students; a school admin's queries are scoped to their own school; students only ever see their own submissions and assignments that have actually been published.
 
-Login uses signed tokens (JWT) that expire after 1 day, with a separate refresh token good for 2 days that's invalidated and re-issued every time it's used. Changing your password immediately logs out every other device. Sensitive actions — the six-digit email verification code, password reset requests, login attempts — are rate-limited so they can't be brute-forced from outside. **This document previously said that without qualification; on 2026-09-03 those limits were found not to be working at all, and were fixed. See §3, which explains what happened and what it exposed.**
+Login uses signed tokens (JWT) that expire after 1 day, with a separate refresh token good for 2 days that's invalidated and re-issued every time it's used. Changing your password immediately logs out every other device. Sensitive actions — the six-digit email verification code, password reset requests, login attempts — are rate-limited so they can't be brute-forced from outside. **Important: until 3 September 2026 these caps were not actually working. §3 explains what happened and what it could have allowed.**
 
 **Honest limitation:** if someone steals a valid access token, there's no way to revoke it early — it's simply good for up to 24 hours. There's also no multi-factor authentication. An account now locks for 15 minutes after 5 failed login attempts in a row (on top of the existing IP-based rate limiting), so password-guessing against one account is bounded even from many IPs at once. The remaining gaps are not unusual for a product at this stage, but are worth knowing if a school's IT department asks.
 
@@ -24,97 +24,53 @@ Login uses signed tokens (JWT) that expire after 1 day, with a separate refresh 
 
 ## 3. Stopping automated attacks (rate limiting)
 
-### What this is, in plain terms
+**What this is.** We put a cap on how many times the same visitor can try
+a sensitive action — signing in, asking for a code by email, or creating
+an account. Without a cap, someone can keep trying automatically,
+thousands of times, until something works.
 
-"Rate limiting" means capping how many times the same person can hit a
-sensitive endpoint in a given period. Without it, an attacker can simply
-try again in a loop — thousands of times a minute — until something
-works. It is the main defence against guessing passwords, guessing the
-six-digit codes we email out, and mass-creating fake accounts.
+The caps in place today:
 
-### The limits now in force
-
-| Action | Limit per internet address |
+| Action | Cap |
 | --- | --- |
-| Log in | 10 per minute |
-| Request an email-verification code | 5 per hour |
-| Request a password-reset code | 5 per hour |
-| Use a password-reset code | 10 per hour |
-| Register (teacher, student or school admin) | 10 per hour, shared |
-| Sign in with Google | 20 per hour |
-| Everything else, signed out | 60 per minute |
+| Signing in | 10 per minute |
+| Asking for an emailed code | 5 per hour |
+| Creating an account | 10 per hour |
+| Signing in with Google | 20 per hour |
 
-### What went wrong
+**What went wrong.** These caps existed, but until 3 September 2026 they
+were not working. A configuration error meant the system saw almost
+every request as coming from a different new visitor, so the count never
+built up and the cap was never reached. In practice there was no limit
+at all.
 
-These limits were written correctly and were switched on. **They were
-not actually working.** Every one of them was silently doing nothing.
+**How we know.** We tested our trial environment before and after. Before
+the fix, attempts kept being allowed well past the cap. After it,
+attempts are correctly refused once the cap is reached — including when
+someone tries to disguise where they are connecting from.
 
-The cause was a single missing setting. Our app runs behind Railway's
-network, so requests reach us second-hand and we have to work out who
-the original visitor was by reading a header they attach. That header
-lists two addresses: the real visitor, and the Railway machine that
-passed the request along. We were reading the wrong one — and Railway
-spreads traffic across a pool of machines, so that second address
-**changed from one request to the next**.
+**What this could have allowed.** While it was broken, someone on the
+internet could have:
 
-The practical effect: the system treated almost every single request as
-a brand-new stranger. A counter that resets on every request never
-reaches its limit. Someone could attempt to log in as many times as they
-liked and never be stopped.
+- kept guessing passwords — though a separate protection did work
+  throughout: an account locks for 15 minutes after 5 wrong passwords;
+- kept guessing the six-digit codes we email out for account activation
+  and student invitations;
+- created accounts, or triggered password-reset emails, in bulk.
 
-We measured this against the live beta service before fixing it: 14
-rapid login attempts against a "10 per minute" cap were all allowed
-through, and 8 password-reset requests against a "5 per hour" cap were
-all allowed through.
+The codes are the biggest concern. Six digits is a million
+combinations, which is quick to work through if nothing stops you
+retrying. Student invitation codes are the most exposed, because a
+guess is checked against every invitation waiting to be accepted rather
+than one named person.
 
-**Fixed on 2026-09-03** by telling the app which of the two addresses is
-the real visitor. Verified on beta immediately afterwards: the 11th
-login attempt in a minute is now correctly refused, and it stays refused
-even when the caller tries to disguise itself by faking the header.
+**Was it actually exploited?** We do not know. Nobody has reviewed the
+records from that period yet. We should not tell a school "no impact"
+until someone has.
 
-### What this exposed while it was broken
-
-We should assume that, for as long as this was live, the following were
-possible for anyone on the internet:
-
-- **Unlimited password guessing.** Partly contained by a separate
-  protection: an account locks for 15 minutes after 5 wrong passwords
-  in a row. That limit worked, and is per-account, so it held even
-  though the rate limiting did not.
-- **Unlimited guessing of the six-digit codes** we email for account
-  activation and student invitations. Six digits is a million
-  combinations — trivial to work through when nothing stops you
-  retrying. This is the most serious of the three, because student
-  invitation codes are checked against *every* pending invitation at
-  once rather than one named account, so the odds improve as more
-  invitations are outstanding.
-- **Unlimited automated sign-ups and password-reset emails**, meaning
-  anyone could have used the system to send large volumes of email, or
-  fill the database with fake accounts.
-
-**We have not established whether any of this was actually exploited.**
-Saying "no impact" would be a guess. The honest position is that the
-door was open and we have not yet checked whether anyone walked through
-it. Reviewing access logs from the affected period for repeated failed
-logins or bursts of code requests from a single source is the way to
-answer that, and is recommended before making any statement to a school
-about this.
-
-### What is still true after the fix
-
-- The fix is **verified on the beta environment. It has not yet reached
-  production.** Until it does, everything described above still applies
-  to the live service.
-- Rate limiting counts **per internet address**, not per account. A
-  whole school sharing one office connection shares one budget, and an
-  attacker spread across many addresses gets a fresh budget for each.
-  The per-account 15-minute login lockout is what covers that second
-  case.
-- The limits protect against bulk automated abuse. They are not a
-  substitute for multi-factor authentication, which we do not offer
-  (see §2).
-
----
+**Where it stands.** Fixed and confirmed on our trial environment. **Not
+yet live for customers.** Until it is, everything above still applies to
+the live service.
 
 ## 4. How data is protected in storage and in transit
 
@@ -169,27 +125,26 @@ Uploaded submissions (PDFs, images) are capped at 50MB, and the actual file cont
 - Standard injection defenses (ORM, no raw SQL) are in place.
 - CORS/CSRF/allowed-hosts are locked to known domains, not wide open.
 - Financial records can't be silently edited by application bugs.
-- Login, code-request and sign-up endpoints are rate-limited against automated abuse — **once §3's fix reaches production. On beta today, not yet live.**
+- Caps on repeated sign-in attempts, emailed codes and sign-ups — **only once the fix in §3 goes live for customers. It is not live yet.**
 
 **Should be disclosed to schools now, or fixed before claiming otherwise:**
 - No field-level encryption of student PII/grades — only Google OAuth tokens are encrypted at the field level.
 - No self-service data export or account deletion for end users.
 - Access tokens can't be revoked early if stolen (24-hour exposure window).
-- **Rate limiting was not functioning at all until 2026-09-03 (§3), and the fix is still only on beta.** Do not describe login, verification codes or sign-up as brute-force protected on the live service until it ships. Whether the gap was exploited has not been investigated.
+- **The caps described in §3 were not working at all until 3 September 2026, and the fix is not yet live for customers.** Until it is, do not describe sign-in, emailed codes or sign-up as protected against repeated automated attempts. Nobody has yet checked whether the gap was used.
 
-**Highest priority fix, in order:**
-1. Ship the rate-limiting fix to production (§3) — currently beta only.
-2. Review logs from the affected period to establish whether the gap was exploited.
-3. Lengthen the six-digit student invitation code, which is checked against every pending invitation rather than one account (§3). Rate limiting reduces this risk but does not remove it.
+**What to fix first, in order:**
+1. Make the §3 fix live for customers — it is only on our trial environment today.
+2. Check the records from the affected period to see whether the gap was used.
+3. Make the six-digit student invitation code longer and harder to guess. The caps reduce this risk but do not remove it.
 
 **Confirmed manually (2026-09-01):**
 - `SECURE_SSL_REDIRECT` is turned on in the live production environment.
 - `.env` / `QA.env` / `live.env` have never been committed to git history.
 
-**Confirmed by live measurement (2026-09-03, beta service):**
-- Before the fix: 14 login attempts against a 10/minute cap were all
-  allowed; 8 password-reset requests against a 5/hour cap were all
-  allowed. The limits were doing nothing.
-- After the fix: the 11th login attempt in a minute is refused, and stays
-  refused when the caller fakes the address header to disguise itself.
-- Not yet measured on production, because the fix has not shipped there.
+**Tested on the trial environment (3 September 2026):**
+- Before the fix: sign-in and password-reset attempts kept being allowed
+  well past their caps. The caps were doing nothing.
+- After the fix: attempts are refused once the cap is reached, and stay
+  refused when someone tries to disguise where they are connecting from.
+- Not yet tested on the live service, because the fix is not live there.
