@@ -1,6 +1,6 @@
 # Data Privacy & Security Compliance Write-Up — Grade Automator Plus
 
-*Prepared from a review of the actual codebase as of 2026-09-01. This document describes what is genuinely implemented today, not a target state. Where something is a gap or a weak spot, it's called out plainly rather than glossed over — an honest write-up is more useful for compliance purposes than an optimistic one.*
+*Prepared from a review of the actual codebase as of 2026-09-01, with §3 added 2026-09-03. This document describes what is genuinely implemented today, not a target state. Where something is a gap or a weak spot, it's called out plainly rather than glossed over — an honest write-up is more useful for compliance purposes than an optimistic one.*
 
 For a deeper engineering-level reference, see [docs/backend/security-and-tenancy.md](backend/security-and-tenancy.md).
 
@@ -8,7 +8,7 @@ For a deeper engineering-level reference, see [docs/backend/security-and-tenancy
 
 ## 1. Who this covers and why it matters
 
-Grade Automator Plus handles data covered by **FERPA** (the U.S. student-records privacy law) because it stores student names, submissions, and grades on behalf of schools and teachers. It also processes payments through Stripe, which brings light **PCI DSS** obligations (though card numbers themselves never touch our servers — see §7). Because student work is sent to third-party AI providers to be graded, that data flow is the single most important thing to understand and disclose to schools.
+Grade Automator Plus handles data covered by **FERPA** (the U.S. student-records privacy law) because it stores student names, submissions, and grades on behalf of schools and teachers. It also processes payments through Stripe, which brings light **PCI DSS** obligations (though card numbers themselves never touch our servers — see §7).
 
 ---
 
@@ -16,28 +16,103 @@ Grade Automator Plus handles data covered by **FERPA** (the U.S. student-records
 
 The app has four roles: **student, teacher, school admin, and super admin** (our own staff). There's no single "tenant ID" switch — instead, every screen and API endpoint is written to only fetch the data that role is allowed to see. A teacher's query for students only ever returns their own students; a school admin's queries are scoped to their own school; students only ever see their own submissions and assignments that have actually been published.
 
-Login uses signed tokens (JWT) that expire after 1 day, with a separate refresh token good for 2 days that's invalidated and re-issued every time it's used. Changing your password immediately logs out every other device. Sensitive actions — the six-digit email verification code, password reset requests, login attempts — are all rate-limited so they can't be brute-forced from outside.
+Login uses signed tokens (JWT) that expire after 1 day, with a separate refresh token good for 2 days that's invalidated and re-issued every time it's used. Changing your password immediately logs out every other device. Sensitive actions — the six-digit email verification code, password reset requests, login attempts — are rate-limited so they can't be brute-forced from outside. **This document previously said that without qualification; on 2026-09-03 those limits were found not to be working at all, and were fixed. See §3, which explains what happened and what it exposed.**
 
-**Honest limitation:** if someone steals a valid access token, there's no way to revoke it early — it's simply good for up to 24 hours. There's also no multi-factor authentication and no account lockout after repeated failed logins (only IP-based rate limiting). Neither is unusual for a product at this stage, but both are worth knowing if a school's IT department asks.
+**Honest limitation:** if someone steals a valid access token, there's no way to revoke it early — it's simply good for up to 24 hours. There's also no multi-factor authentication. An account now locks for 15 minutes after 5 failed login attempts in a row (on top of the existing IP-based rate limiting), so password-guessing against one account is bounded even from many IPs at once. The remaining gaps are not unusual for a product at this stage, but are worth knowing if a school's IT department asks.
 
 ---
 
-## 3. What third-party AI providers actually see
+## 3. Stopping automated attacks (rate limiting)
 
-This is the part that matters most for a school-facing compliance conversation.
+### What this is, in plain terms
 
-Grading requests go through **OpenRouter**, a routing layer that forwards the request to whichever underlying AI vendor is configured — currently a mix that includes xAI (Grok), DeepSeek, OpenAI, and Google models, depending on load and fallback rules. In practice, that means student data can end up processed by more than one AI company, not a single named vendor.
+"Rate limiting" means capping how many times the same person can hit a
+sensitive endpoint in a given period. Without it, an attacker can simply
+try again in a loop — thousands of times a minute — until something
+works. It is the main defence against guessing passwords, guessing the
+six-digit codes we email out, and mass-creating fake accounts.
 
-**What gets sent:** the actual text (or scanned images) of a student's submission always goes to the AI — that's unavoidable, it's what's being graded. The **student's name** is a separate matter: it's only sent during the *extraction* step (matching a scanned page to a roster entry), never during the actual scoring/grading call, which only ever sees the rubric and the answer content — no name.
+### The limits now in force
 
-**Where the name-exposure risk actually was, and what's now been done about it:**
+| Action | Limit per internet address |
+| --- | --- |
+| Log in | 10 per minute |
+| Request an email-verification code | 5 per hour |
+| Request a password-reset code | 5 per hour |
+| Use a password-reset code | 10 per hour |
+| Register (teacher, student or school admin) | 10 per hour, shared |
+| Sign in with Google | 20 per hour |
+| Everything else, signed out | 60 per minute |
 
-1. **Vendor-level: blocked which AI companies can even receive the request.** The application now sets OpenRouter's `provider.data_collection: "deny"` on every single AI call (`ai_processor/services.py`), which restricts routing to providers that don't collect/retain the data at all — this was verified against OpenRouter's own documentation and confirmed working in the test suite (27/27 passing). This is enforced in code, at the request level, not just a dashboard setting someone could forget to keep on.
-2. **Account-level: confirmed as a second layer.** The OpenRouter account's own Data Training settings (`openrouter.ai/settings/privacy`) were checked directly and are already set correctly — "Allow paid endpoints that train on request data," "Allow free endpoints that train," "Allow free endpoints that publish prompts," and "Allow 1% data discount in workspaces" are all **off**. This is the setting that matters most for FERPA: it prevents any vendor (DeepSeek included, which trains on API data by default per their own privacy policy) from using student submissions to train their models at all. Verified directly against DeepSeek's published Privacy Policy: they train on API data unless a customer opts out, and doing so requires emailing them directly — OpenRouter's setting sidesteps that by simply never routing to them when this is off.
-3. **Not yet enabled: Zero Data Retention (a stronger, separate setting).** OpenRouter also offers per-vendor "Zero Data Retention" toggles (Anthropic, OpenAI, Google, SpaceXAI, plus a "non-frontier" catch-all) that go further than blocking training — they stop the vendor from *storing the data at all*, even briefly for logs or debugging, by routing only through enterprise infrastructure (e.g. Azure OpenAI instead of OpenAI's own API) that contractually guarantees zero retention. These are currently all **off**. This is not a compliance violation on its own — FERPA's bar is "don't repurpose the data," not "never let a vendor's servers touch it," and Data Training being off already clears that bar — but turning ZDR on would meaningfully shrink how long copies of student data sit on any vendor's infrastructure, and is recommended as a hardening step.
-4. **Not available on the current plan: regional routing.** OpenRouter also offers a Business-tier feature to guarantee inference only ever runs inside the EU or US (avoiding, among other things, any routing through infrastructure in mainland China, which is where DeepSeek is required to store data per their privacy policy). This is gated behind upgrading to a paid Business plan and isn't active today — it's the remaining gap after the training and account-level fixes above, and is a plan-upgrade decision rather than an engineering one.
+### What went wrong
 
-Separately, our own error-monitoring tool (Sentry) is explicitly configured to **never** capture student work, grades, or billing details in error reports — that channel was already clean and unaffected by any of the above.
+These limits were written correctly and were switched on. **They were
+not actually working.** Every one of them was silently doing nothing.
+
+The cause was a single missing setting. Our app runs behind Railway's
+network, so requests reach us second-hand and we have to work out who
+the original visitor was by reading a header they attach. That header
+lists two addresses: the real visitor, and the Railway machine that
+passed the request along. We were reading the wrong one — and Railway
+spreads traffic across a pool of machines, so that second address
+**changed from one request to the next**.
+
+The practical effect: the system treated almost every single request as
+a brand-new stranger. A counter that resets on every request never
+reaches its limit. Someone could attempt to log in as many times as they
+liked and never be stopped.
+
+We measured this against the live beta service before fixing it: 14
+rapid login attempts against a "10 per minute" cap were all allowed
+through, and 8 password-reset requests against a "5 per hour" cap were
+all allowed through.
+
+**Fixed on 2026-09-03** by telling the app which of the two addresses is
+the real visitor. Verified on beta immediately afterwards: the 11th
+login attempt in a minute is now correctly refused, and it stays refused
+even when the caller tries to disguise itself by faking the header.
+
+### What this exposed while it was broken
+
+We should assume that, for as long as this was live, the following were
+possible for anyone on the internet:
+
+- **Unlimited password guessing.** Partly contained by a separate
+  protection: an account locks for 15 minutes after 5 wrong passwords
+  in a row. That limit worked, and is per-account, so it held even
+  though the rate limiting did not.
+- **Unlimited guessing of the six-digit codes** we email for account
+  activation and student invitations. Six digits is a million
+  combinations — trivial to work through when nothing stops you
+  retrying. This is the most serious of the three, because student
+  invitation codes are checked against *every* pending invitation at
+  once rather than one named account, so the odds improve as more
+  invitations are outstanding.
+- **Unlimited automated sign-ups and password-reset emails**, meaning
+  anyone could have used the system to send large volumes of email, or
+  fill the database with fake accounts.
+
+**We have not established whether any of this was actually exploited.**
+Saying "no impact" would be a guess. The honest position is that the
+door was open and we have not yet checked whether anyone walked through
+it. Reviewing access logs from the affected period for repeated failed
+logins or bursts of code requests from a single source is the way to
+answer that, and is recommended before making any statement to a school
+about this.
+
+### What is still true after the fix
+
+- The fix is **verified on the beta environment. It has not yet reached
+  production.** Until it does, everything described above still applies
+  to the live service.
+- Rate limiting counts **per internet address**, not per account. A
+  whole school sharing one office connection shares one budget, and an
+  attacker spread across many addresses gets a fresh budget for each.
+  The per-account 15-minute login lockout is what covers that second
+  case.
+- The limits protect against bulk automated abuse. They are not a
+  substitute for multi-factor authentication, which we do not offer
+  (see §2).
 
 ---
 
@@ -94,19 +169,27 @@ Uploaded submissions (PDFs, images) are capped at 50MB, and the actual file cont
 - Standard injection defenses (ORM, no raw SQL) are in place.
 - CORS/CSRF/allowed-hosts are locked to known domains, not wide open.
 - Financial records can't be silently edited by application bugs.
+- Login, code-request and sign-up endpoints are rate-limited against automated abuse — **once §3's fix reaches production. On beta today, not yet live.**
 
 **Should be disclosed to schools now, or fixed before claiming otherwise:**
 - No field-level encryption of student PII/grades — only Google OAuth tokens are encrypted at the field level.
 - No self-service data export or account deletion for end users.
 - Access tokens can't be revoked early if stolen (24-hour exposure window).
-- No guarantee yet that AI inference runs only in the EU/US (a paid OpenRouter plan upgrade, not yet purchased).
+- **Rate limiting was not functioning at all until 2026-09-03 (§3), and the fix is still only on beta.** Do not describe login, verification codes or sign-up as brute-force protected on the live service until it ships. Whether the gap was exploited has not been investigated.
+
+**Highest priority fix, in order:**
+1. Ship the rate-limiting fix to production (§3) — currently beta only.
+2. Review logs from the affected period to establish whether the gap was exploited.
+3. Lengthen the six-digit student invitation code, which is checked against every pending invitation rather than one account (§3). Rate limiting reduces this risk but does not remove it.
 
 **Confirmed manually (2026-09-01):**
 - `SECURE_SSL_REDIRECT` is turned on in the live production environment.
 - `.env` / `QA.env` / `live.env` have never been committed to git history.
 
-**Remediated (2026-09-01):**
-- AI providers are now blocked from training on student data, both in code (`provider.data_collection: "deny"` on every AI call) and confirmed at the OpenRouter account level (all Data Training toggles off).
-
-**Recommended next hardening step:**
-- Turn on OpenRouter's Zero Data Retention toggles (currently off) to stop vendors from even briefly storing request data, not just training on it.
+**Confirmed by live measurement (2026-09-03, beta service):**
+- Before the fix: 14 login attempts against a 10/minute cap were all
+  allowed; 8 password-reset requests against a 5/hour cap were all
+  allowed. The limits were doing nothing.
+- After the fix: the 11th login attempt in a minute is refused, and stays
+  refused when the caller fakes the address header to disguise itself.
+- Not yet measured on production, because the fix has not shipped there.
