@@ -36,20 +36,23 @@ from django.db.migrations.executor import MigrationExecutor
 from django.test import TransactionTestCase
 from django.utils import timezone
 
-# `users` is pinned to its latest migration in BOTH targets. Only billing
-# moves. That matters: it means `old_apps.get_model("users", ...)` is a
-# historical model that still knows every CURRENT column on
-# users_customuser, so this test does not need to know which those are.
-# An earlier version hardcoded a raw INSERT column list and broke the
-# moment an unrelated migration added a NOT NULL column
-# (`failed_login_attempts`, from the login-lockout work).
-USERS_LATEST = ("users", "0036_customuser_failed_login_attempts_and_more")
+BILLING_FROM = ("billing", "0058_alter_licensebillingrecord_record_type")
+BILLING_TO = ("billing", "0060_backfill_audit_identity")
 
-MIGRATE_FROM = [
-    ("billing", "0058_alter_licensebillingrecord_record_type"),
-    USERS_LATEST,
-]
-MIGRATE_TO = [("billing", "0060_backfill_audit_identity"), USERS_LATEST]
+# The `users` app is pinned at whatever its CURRENT leaf is, in both
+# targets, so only billing moves between them. That is what lets
+# `old_apps.get_model("users", ...)` be a historical model that still
+# knows every current column on users_customuser - so this test never
+# needs to know which those are.
+#
+# The leaf is resolved from the migration graph at runtime, NOT written
+# down here. Two earlier versions of this test failed for exactly that
+# reason: the first hardcoded a raw INSERT column list and broke when
+# `failed_login_attempts` was added; the second hardcoded the migration
+# NAME ("0036_customuser_failed_login_attempts_and_more"), which passed
+# locally and then died in CI with NodeNotFoundError, because that
+# migration was still an uncommitted local file. Reading the graph is
+# the only version that cannot drift from the repository.
 
 
 class AuditIdentityMigrationTests(TransactionTestCase):
@@ -65,7 +68,7 @@ class AuditIdentityMigrationTests(TransactionTestCase):
         # runs after this one in the same process sees a stale schema.
         executor = MigrationExecutor(connection)
         executor.loader.build_graph()
-        executor.migrate(MIGRATE_TO)
+        executor.migrate(self._targets(executor.loader, BILLING_TO))
         super().tearDown()
 
     def _insert_user(self, apps, email):
@@ -92,14 +95,29 @@ class AuditIdentityMigrationTests(TransactionTestCase):
         )
         return user.id
 
-    def _migrate(self, targets):
+    def _targets(self, loader, billing_target):
+        """
+        `billing_target` plus the CURRENT leaf of `users`, read from the
+        migration graph so it can never disagree with what is actually
+        in the repository.
+        """
+        leaves = list(loader.graph.leaf_nodes("users"))
+        if len(leaves) != 1:
+            self.fail(
+                f"expected exactly one leaf migration for `users`, got {leaves!r}. "
+                "A merge migration is probably needed before this test can pin it."
+            )
+        return [billing_target, leaves[0]]
+
+    def _migrate(self, billing_target):
         executor = MigrationExecutor(connection)
         executor.loader.build_graph()
+        targets = self._targets(executor.loader, billing_target)
         executor.migrate(targets)
         return executor.loader.project_state(targets).apps
 
     def test_user_id_survives_and_email_is_backfilled(self):
-        old_apps = self._migrate(MIGRATE_FROM)
+        old_apps = self._migrate(BILLING_FROM)
 
         # --- Arrange, at the OLD schema: `user` is still a ForeignKey.
         CreditWallet = old_apps.get_model("billing", "CreditWallet")
@@ -133,7 +151,7 @@ class AuditIdentityMigrationTests(TransactionTestCase):
         )
 
         # --- Act.
-        new_apps = self._migrate(MIGRATE_TO)
+        new_apps = self._migrate(BILLING_TO)
 
         # --- Assert, at the NEW schema.
         NewLedger = new_apps.get_model("billing", "CreditLedger")
@@ -155,7 +173,7 @@ class AuditIdentityMigrationTests(TransactionTestCase):
 
     def test_backfill_is_idempotent(self):
         """0060 is re-runnable: a second pass must not overwrite or fail."""
-        old_apps = self._migrate(MIGRATE_FROM)
+        old_apps = self._migrate(BILLING_FROM)
 
         CreditWallet = old_apps.get_model("billing", "CreditWallet")
         CreditBucket = old_apps.get_model("billing", "CreditBucket")
@@ -178,9 +196,9 @@ class AuditIdentityMigrationTests(TransactionTestCase):
             amount=100,
         )
 
-        self._migrate(MIGRATE_TO)
-        self._migrate(MIGRATE_FROM)
-        new_apps = self._migrate(MIGRATE_TO)
+        self._migrate(BILLING_TO)
+        self._migrate(BILLING_FROM)
+        new_apps = self._migrate(BILLING_TO)
 
         NewLedger = new_apps.get_model("billing", "CreditLedger")
         self.assertEqual(
