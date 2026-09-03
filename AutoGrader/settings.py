@@ -1216,6 +1216,12 @@ FIELD_ENCRYPTION_KEY = env.str("FIELD_ENCRYPTION_KEY", "")
 # MailerLite (https://developers.mailerlite.com) - syncs activated users to
 # mailing list groups segmented by user_type. API key is optional; when
 # unset, MailerLiteService silently no-ops so signup/activation never breaks.
+# Exposes /api/v1/health/client, which echoes the caller's own proxy
+# headers and the client identity DRF derives from them. Off by default;
+# turn it on only long enough to read the value, set NUM_PROXIES, and
+# turn it back off. See docs/ops/rate-limiting.md.
+EXPOSE_CLIENT_DIAGNOSTICS = env.bool("EXPOSE_CLIENT_DIAGNOSTICS", default=False)
+
 MAILERLITE_API_KEY = env.str("MAILERLITE_API_KEY", default="")
 MAILERLITE_GROUP_ID_TEACHER = env.str("MAILERLITE_GROUP_ID_TEACHER", default="")
 MAILERLITE_GROUP_ID_STUDENT = env.str("MAILERLITE_GROUP_ID_STUDENT", default="")

@@ -107,3 +107,50 @@ endpoints and `renew-student-token` should keep sharing one bucket — that
 pooling is deliberate today (see the comment at `classrooms/views.py`,
 `handle_expired_token`) because the renewal endpoint is both a token-guessing
 oracle and a free outbound-mail trigger.
+
+## Measuring the proxy hop count (instead of guessing it)
+
+`NUM_PROXIES` cannot be derived by probing. If it is wrong, the throttle
+key varies per request, no limit is ever reached, and from outside that is
+indistinguishable from "the limit is high", "the code isn't deployed", or
+"CI blocked the deploy". All three of those actually happened while
+chasing this, and each guess costs a full CI + deploy cycle.
+
+So measure it. On the service in question:
+
+1. Set `EXPOSE_CLIENT_DIAGNOSTICS=true` and let it redeploy.
+2. Read the value the throttles actually bucket on:
+
+   ```sh
+   curl -s https://<host>/api/v1/health/client | jq .data
+   ```
+
+   ```json
+   {
+     "resolved_ident": "…",
+     "num_proxies": 1,
+     "x_forwarded_for": "<client>, <hop1>",
+     "remote_addr": "<last hop>",
+     "version": "…"
+   }
+   ```
+
+3. **`NUM_PROXIES` is the position of the real client counting from the
+   RIGHT of `x_forwarded_for`, starting at 1.** DRF reads
+   `addrs[-min(num_proxies, len(addrs))]`. So if your address is the
+   rightmost entry, it is 1; second from the right, 2; and so on.
+   Compare against a known-good source (`curl -s ifconfig.me`) run from
+   the same machine.
+4. Confirm `resolved_ident` equals your real address, and that it is
+   **the same across two consecutive calls**. A value that changes
+   between requests is the actual failure mode - no limit can ever be
+   reached.
+5. Set `NUM_PROXIES`, set `EXPOSE_CLIENT_DIAGNOSTICS=false` again, and
+   re-run the probes above.
+
+If `x_forwarded_for` is absent entirely, `NUM_PROXIES` cannot help:
+DRF falls back to `REMOTE_ADDR`, and if the platform's internal mesh
+varies that per request, throttling needs a custom throttle class
+reading a trusted header (`x_real_ip`, `cf_connecting_ip`, or
+`x_envoy_external_address` - all four are echoed by the endpoint for
+exactly this reason).

@@ -2,6 +2,7 @@
 
 from unittest.mock import patch
 
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 from django_celery_beat.models import CrontabSchedule, PeriodicTask
@@ -101,6 +102,47 @@ class HealthCheckTests(APITestCase):
         )
         # An unrelated healthy dependency should still report as healthy.
         self.assertEqual(response.data["checks"]["database"], "ok")
+
+
+class ClientIdentityDiagnosticTests(APITestCase):
+    """
+    The endpoint that ends the NUM_PROXIES guessing game: it reports the
+    value every AnonRateThrottle actually buckets on, so a proxy hop
+    count can be counted rather than inferred from probe behaviour.
+    """
+
+    @override_settings(EXPOSE_CLIENT_DIAGNOSTICS=False)
+    def test_404s_when_not_enabled(self):
+        """
+        Default off. It is a deliberately temporary surface - enabled
+        long enough to take a reading, then turned back off.
+        """
+        response = self.client.get(reverse("client-identity"))
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    @override_settings(EXPOSE_CLIENT_DIAGNOSTICS=True)
+    def test_reports_the_ident_the_throttles_key_on(self):
+        response = self.client.get(
+            reverse("client-identity"),
+            HTTP_X_FORWARDED_FOR="198.51.100.7, 203.0.113.9",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["x_forwarded_for"], "198.51.100.7, 203.0.113.9")
+        # NUM_PROXIES=1 reads the RIGHTMOST entry. Asserting the concrete
+        # value keeps this honest about which end DRF counts from - the
+        # thing that was repeatedly easy to get backwards.
+        self.assertEqual(response.data["num_proxies"], 1)
+        self.assertEqual(response.data["resolved_ident"], "203.0.113.9")
+
+    @override_settings(EXPOSE_CLIENT_DIAGNOSTICS=True)
+    def test_reports_remote_addr_when_no_forwarding_header(self):
+        response = self.client.get(reverse("client-identity"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNone(response.data["x_forwarded_for"])
+        self.assertEqual(response.data["resolved_ident"], response.data["remote_addr"])
 
 
 class BeatHealthCheckTests(APITestCase):
