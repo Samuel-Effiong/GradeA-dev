@@ -1246,7 +1246,7 @@ def prerender_assignment_pdfs(self, assignment_id):
     """
     from assignments.pdf_cache import get_cached_pdf, get_or_render
     from assignments.pdf_document import render_assignment_pdf
-    from assignments.pdf_renderer import PDFRendererBusy
+    from assignments.pdf_renderer import PDFRendererBusy, PDFRendererUnavailable
 
     try:
         assignment = Assignment.objects.select_related("course__teacher").get(
@@ -1272,6 +1272,17 @@ def prerender_assignment_pdfs(self, assignment_id):
                 lambda inc=include_rubric: render_assignment_pdf(assignment, inc),
             )
             warmed.append(view_type)
+        except PDFRendererUnavailable as exc:
+            # This process can never render (gevent-patched threading -
+            # see pdf_renderer._gevent_patched). Retrying would just hit
+            # the same wall forever, so stop, and stop for both views.
+            logger.warning(
+                "[PDF] pre-render unavailable in this process, skipping "
+                "assignment %s: %s",
+                assignment_id,
+                exc,
+            )
+            return "Pre-render unavailable in this process (skipped)."
         except PDFRendererBusy as exc:
             logger.info(
                 "[PDF] pre-render deferred for assignment %s (%s view): %s",

@@ -140,6 +140,16 @@ class PDFRenderError(RuntimeError):
     """A PDF could not be produced (browser/navigation/render failure)."""
 
 
+class PDFRendererUnavailable(PDFRenderError):
+    """
+    This process cannot host a browser at all, so nothing was attempted.
+
+    Unlike PDFRendererBusy, retrying is pointless: the reason is a
+    property of the process itself (see _gevent_patched), not a transient
+    load condition. Callers should give up rather than back off.
+    """
+
+
 class PDFRendererBusy(PDFRenderError):
     """
     Refused before starting because this process is already at capacity.
@@ -645,11 +655,48 @@ _worker = None
 _worker_lock = threading.Lock()
 
 
+def _gevent_patched() -> bool:
+    """
+    Whether this process has had threading monkey-patched by gevent.
+
+    Decisive for the renderer, because gevent turns threading.Thread into
+    a greenlet: the "dedicated thread" this module relies on would then
+    share one OS thread with everything else in the process. asyncio
+    records its running loop per-OS-thread, so run_forever() would make
+    that loop visible to every other greenlet - and Django's async_unsafe
+    check (django/utils/asyncio.py) rejects any ORM call it can see a
+    running loop from.
+
+    That is not hypothetical: it took down a Celery worker running the
+    gevent pool. Starting the renderer there made every unrelated task
+    fail with SynchronousOnlyOperation, permanently, because the loop
+    runs until the process dies. The visible errors were nowhere near
+    this module, which is exactly why it must refuse loudly instead.
+    """
+    try:
+        from gevent import monkey  # type: ignore[import-untyped]
+    except ImportError:
+        return False
+    try:
+        return bool(monkey.is_module_patched("threading"))
+    except Exception:  # pragma: no cover - defensive
+        return False
+
+
 def _get_worker() -> _ChromiumRenderWorker:
     global _worker
     if _worker is None:
         with _worker_lock:
             if _worker is None:
+                if _gevent_patched():
+                    raise PDFRendererUnavailable(
+                        "Refusing to start headless Chromium: this process has "
+                        "gevent-patched threading, where the renderer's event "
+                        "loop would leak into every greenlet and break unrelated "
+                        "database access. Render PDFs from a process using real "
+                        "threads (the gunicorn gthread web service), or run this "
+                        "work on a Celery worker with --pool=prefork."
+                    )
                 _worker = _ChromiumRenderWorker()
     return _worker
 
