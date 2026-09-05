@@ -323,6 +323,12 @@ class BackgroundTaskType(models.TextChoices):
     SUBMISSION_GRADING = "submission_grading", _("Submission Grading")
     BATCH_SUBMISSION_GRADING = "batch_submission_grading", _("Batch Submission Grading")
     FORMATTED_GRADE = "formatted_grade", _("Formatted Grade")
+    # Unlike every type above, this one has no assignment/submission/batch FK
+    # to hang off - a student summary is scoped to a (student, course) pair,
+    # which BackgroundProcessingTask has no column for. Those two ids live in
+    # `meta` instead, and students.task_context.get_task_context reads them
+    # back from there.
+    STUDENT_SUMMARY = "student_summary", _("Student Summary")
 
 
 class BackgroundTaskStatus(models.TextChoices):

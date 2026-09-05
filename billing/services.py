@@ -318,8 +318,24 @@ class SubscriptionService:
                     )
 
             # Crucial: Delete or expire the old monthly bucket so they don't have two active monthly buckets
+            #
+            # is_processed=True for the same reason the three sibling
+            # rollovers set it (process_mid_cycle_credit_grant,
+            # process_rollover_and_renewal, and
+            # LicenseSubscriptionService._rollover_and_grant_monthly_bucket):
+            # this bucket's unused balance has ALREADY been settled above —
+            # either re-granted as CARRY_OVER or deliberately suppressed by
+            # max_bank. Leaving it False let cleanup_expired_credit_buckets
+            # sweep it later and write an EXPIRE row for the full
+            # total-minus-used, so the rolled-over slice was counted twice in
+            # the ledger: once as a CARRY_OVER grant and again as an
+            # expiry. Balances were unaffected (buckets hold the truth) but
+            # the audit trail was wrong on every upgrade with unused credits.
             active_monthly.expires_at = now
-            active_monthly.save(update_fields=["expires_at"])
+            active_monthly.is_processed = True
+            active_monthly.save(
+                update_fields=["expires_at", "is_processed", "updated_at"]
+            )
 
         # 4. Ensure we reset overage usage for the new cycle
         wallet.overage_blocks_used = 0
@@ -2166,12 +2182,35 @@ class AnalyticsService:
         profile.refresh_from_db()
 
         # Check Thresholds
-        usage_ratio = profile.total_credits_used / profile.initial_beta_credits
+        #
+        # initial_beta_credits is the denominator, and it is NOT guaranteed
+        # positive: users.signals seeds it from the BETA plan's
+        # monthly_credits, which is `default=0, null=True`. A plan left at
+        # that default made this raise ZeroDivisionError on the user's very
+        # first AI action — after their credits had already been deducted,
+        # since record_consumption runs inside the consumption flow.
+        #
+        # These two flags mean "ever reached 80%/100% OF THEIR ALLOCATION".
+        # With no allocation there is no fraction to be a proportion of, so
+        # the honest answer is to leave both untouched rather than invent a
+        # ratio. The consumption totals above are still recorded either way,
+        # and billing/views.py only ever counts/filters on these flags.
+        allocation = profile.initial_beta_credits or 0
+        if allocation > 0:
+            usage_ratio = profile.total_credits_used / allocation
 
-        if usage_ratio >= 1.0:
-            profile.has_hit_cap = True
-        elif usage_ratio >= 0.8:
-            profile.has_hit_80_percent = True
+            if usage_ratio >= 1.0:
+                profile.has_hit_cap = True
+            elif usage_ratio >= 0.8:
+                profile.has_hit_80_percent = True
+        else:
+            logger.warning(
+                "BetaProfile for %s has initial_beta_credits=%r, so the "
+                "80%%/cap usage thresholds cannot be evaluated. Check the "
+                "BETA plan's monthly_credits.",
+                profile.user_id,
+                profile.initial_beta_credits,
+            )
 
         profile.save(
             update_fields=[
@@ -2252,7 +2291,13 @@ class AnalyticsService:
             score += 20
 
         # Calculate Velocity (Credits per day)
-        days_since_joined = (timezone.now() - profile.joined_beta_at).days
+        #
+        # The window is floored at one day: `.days` is 0 for a profile
+        # created today, which made this raise ZeroDivisionError. Flooring
+        # rather than returning 0.0 keeps the metric honest — a teacher who
+        # burned 5,000 credits on their first day has a high velocity, not a
+        # zero one — and it converges on the true rate from day two onward.
+        days_since_joined = max(1, (timezone.now() - profile.joined_beta_at).days)
         profile.usage_velocity = profile.total_credits_used / days_since_joined
 
         profile.conversion_probability = float(score)

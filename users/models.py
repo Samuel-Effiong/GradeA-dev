@@ -5,7 +5,7 @@ import uuid
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.db.models import UniqueConstraint
+from django.db.models import F, UniqueConstraint
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from encrypted_model_fields.fields import EncryptedCharField
@@ -89,6 +89,15 @@ class RegistrationMethod(models.TextChoices):
 
 # Create your models here.
 class CustomUser(AbstractUser):
+    # How many wrong passwords may be submitted before login is frozen for
+    # this account, and how long that freeze lasts. Mirrors
+    # PasswordResetOTP's attempts/locked_until pattern below - without this,
+    # the per-IP LoginThrottle is the only defense, and an attacker who
+    # spreads guesses across IPs (or a botnet) can brute-force one account's
+    # password at effectively unlimited speed.
+    MAX_LOGIN_ATTEMPTS = 5
+    LOGIN_LOCKOUT_DURATION = timezone.timedelta(minutes=15)
+
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["first_name", "last_name"]
 
@@ -141,6 +150,9 @@ class CustomUser(AbstractUser):
     )
 
     # stripe_customer_id = models.CharField(max_length=255, null=True, blank=True, db_index=True)
+
+    failed_login_attempts = models.PositiveSmallIntegerField(default=0)
+    locked_until = models.DateTimeField(null=True, blank=True)
 
     def get_full_name(self):
         """
@@ -271,6 +283,41 @@ class CustomUser(AbstractUser):
             )
         self.save()
         return self.activation_token
+
+    def is_account_locked(self):
+        return bool(self.locked_until and timezone.now() < self.locked_until)
+
+    def register_failed_login(self):
+        """
+        Record a wrong-password attempt, freezing login once the budget
+        runs out.
+
+        The increment uses an F() expression and a single UPDATE so
+        concurrent failed attempts against the same account (e.g. a
+        multi-threaded brute-force) count correctly instead of losing
+        increments to a read-modify-write race.
+        """
+        CustomUser.objects.filter(pk=self.pk).update(
+            failed_login_attempts=F("failed_login_attempts") + 1
+        )
+        self.refresh_from_db(fields=["failed_login_attempts", "locked_until"])
+
+        if (
+            self.failed_login_attempts >= self.MAX_LOGIN_ATTEMPTS
+            and not self.is_account_locked()
+        ):
+            self.locked_until = timezone.now() + self.LOGIN_LOCKOUT_DURATION
+            CustomUser.objects.filter(pk=self.pk).update(locked_until=self.locked_until)
+
+    def reset_login_lockout(self):
+        """Clear the failure counter, called on every successful login."""
+        if self.failed_login_attempts == 0 and self.locked_until is None:
+            return
+        self.failed_login_attempts = 0
+        self.locked_until = None
+        CustomUser.objects.filter(pk=self.pk).update(
+            failed_login_attempts=0, locked_until=None
+        )
 
 
 class UserGoogleCredentials(models.Model):

@@ -1,4 +1,4 @@
-# Grade A+ (AutoGrader) — Backend Reference
+ # Grade A+ (AutoGrader) — Backend Reference
 
 > **Scope.** This document describes the backend **as it exists in the codebase**, traced from URL
 > routing through views, serializers, services, models, Celery tasks and external integrations.

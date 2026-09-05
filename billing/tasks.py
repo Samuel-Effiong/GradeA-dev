@@ -31,6 +31,7 @@ from .license_service import (
     sync_teachers_under_license_to_mailerlite,
 )
 from .models import (
+    BetaProfile,
     BillingInterval,
     CreditBucket,
     CreditWallet,
@@ -42,8 +43,12 @@ from .models import (
     StripeSubscriptionStatus,
     UserSubscription,
 )
-from .services import SubscriptionService
-from .stripe_service import RENEWAL_BILLING_REASONS, extract_invoice_billing_period
+from .services import AnalyticsService, SubscriptionService
+from .stripe_service import (
+    RENEWAL_BILLING_REASONS,
+    _stripe_get,
+    extract_invoice_billing_period,
+)
 from .webhooks import STRIPE_EVENT_CLAIM_STALE_AFTER, STRIPE_RETRY_WINDOW
 
 logger = logging.getLogger(__name__)
@@ -434,7 +439,28 @@ def reconcile_subscription_renewals(self):
 
                     from users.tasks import sync_user_to_mailerlite
 
-                    sync_user_to_mailerlite.delay(str(sub.user_id))
+                    # Best-effort, and deliberately isolated: the
+                    # deactivation above is already committed, so a broker
+                    # outage (`kombu.exceptions.OperationalError` out of
+                    # `.delay()`) must not travel up to the generic
+                    # per-subscription handler below. Left bare, it did —
+                    # and a Redis blip was counted and logged as a
+                    # RECONCILIATION failure for a subscription that had in
+                    # fact reconciled correctly, sending someone to
+                    # investigate a billing problem that did not exist.
+                    # This mirrors the five other dispatch sites in billing,
+                    # which all wrap `.delay()` the same way.
+                    try:
+                        sync_user_to_mailerlite.delay(str(sub.user_id))
+                    except Exception:
+                        logger.exception(
+                            "Could not queue the MailerLite sync for user %s "
+                            "after deactivating subscription %s. The "
+                            "deactivation itself succeeded and stands; only "
+                            "the marketing-list sync was lost.",
+                            sub.user_id,
+                            sub.id,
+                        )
 
                     logger.info(
                         "Subscription %s deactivated due to Stripe status: %s",
@@ -981,3 +1007,198 @@ def run_live_qa_console_job(self, run_id):
         )
 
     return run.summary
+
+
+@shared_task(bind=True, max_retries=0)
+def recalculate_conversion_probabilities(self):
+    """
+    Nightly refresh of every BetaProfile's conversion score.
+
+    AnalyticsService.calculate_conversion_probability has always carried the
+    docstring "Called by midnight", but nothing ever called it: no Beat
+    entry, no signal, no view. Meanwhile the sales-lead endpoints
+    (BetaProfileViewSet.intent_signals / intent_signal_detail) sort and
+    display `conversion_probability`, so every teacher ranked and rendered
+    at a permanent 0.0. This task is the missing trigger.
+
+    Deliberately NOT wrapped in a single transaction: the scorer saves one
+    profile at a time and a failure on profile N must not discard the
+    N-1 scores already written. Each profile is independent, so one bad row
+    is logged and skipped rather than aborting the sweep.
+
+    Pure analytics — reads counters that record_consumption/track_activity
+    already maintain and writes two float fields. Touches no credits, no
+    money and no Stripe.
+    """
+    scored_count = 0
+    failed_count = 0
+
+    # .iterator() keeps a large beta cohort off the heap; the scorer reads
+    # only BetaProfile's own columns, so no select_related is needed.
+    for profile in BetaProfile.objects.iterator():
+        try:
+            AnalyticsService.calculate_conversion_probability(profile)
+            scored_count += 1
+        except Exception as exc:
+            failed_count += 1
+            logger.error(
+                "Conversion scoring failed for BetaProfile %s (user %s): %s",
+                profile.pk,
+                profile.user_id,
+                str(exc),
+                exc_info=True,
+            )
+
+    summary = (
+        f"Conversion probability refresh: "
+        f"{scored_count} scored, {failed_count} failed."
+    )
+    logger.info(summary)
+    return summary
+
+
+@shared_task(bind=True, max_retries=0)
+def reconcile_subscription_prices(self):
+    """
+    Daily detector for local-plan / Stripe-price divergence.
+
+    WHY THIS IS A SEPARATE TASK, NOT A BRANCH IN
+    reconcile_subscription_renewals
+    ------------------------------------------------------------------
+    That task filters `billing_cycle_end__lte=now` — it only ever looks at
+    subscriptions that are OVERDUE. Price drift happens on subscriptions
+    that are perfectly CURRENT, so bolting the check onto that loop would
+    have inspected precisely the rows that cannot exhibit the problem.
+
+    WHAT IT CATCHES
+    ---------------
+    The webhook handlers are decorated `@transaction.atomic` and call out to
+    Stripe from inside the transaction. The sharp case is
+    _handle_individual_upgrade_checkout_completed, which runs
+    `stripe.Subscription.modify(...)` and THEN does substantial database
+    work (activate_subscription / apply_immediate_plan_change plus saves).
+    If that later database work raises, the transaction rolls back — but the
+    Stripe call already happened and is not undone. The customer is left
+    being billed the new price while our records still say the old plan, and
+    nothing else notices: the renewals reconciler compares billing periods
+    and subscription status, never price.
+
+    This is detection, not repair. It deliberately makes no correcting write
+    — the right correction (charge the customer for what we recorded, or
+    record what they were charged) is a money decision for a human. An ERROR
+    line per drifted subscription is the alarm.
+
+    COST
+    ----
+    One `Subscription.list` page per 100 Stripe subscriptions, not one
+    retrieve per local row, so the daily bill is a handful of API calls.
+    """
+    local_subs = list(
+        UserSubscription.objects.filter(
+            is_active=True,
+            is_trial=False,
+            stripe_subscription_id__isnull=False,
+        )
+        .exclude(stripe_subscription_id="")
+        .select_related("user", "plan")
+    )
+    if not local_subs:
+        summary = "Subscription price reconciliation: no subscriptions to check."
+        logger.info(summary)
+        return summary
+
+    # Build {stripe_subscription_id: current_price_id} in bulk.
+    stripe_prices = {}
+    try:
+        listing = stripe.Subscription.list(status="active", limit=100)
+        for stripe_sub in listing.auto_paging_iter():
+            items = _stripe_get(stripe_sub, "items") or {}
+            data = _stripe_get(items, "data") or []
+            if not data:
+                continue
+            price = _stripe_get(data[0], "price") or {}
+            price_id = _stripe_get(price, "id")
+            if price_id:
+                stripe_prices[_stripe_get(stripe_sub, "id")] = price_id
+    except stripe.error.StripeError as exc:
+        # Without the listing there is nothing to compare against. Fail
+        # loudly rather than returning a clean "0 drifted", which would read
+        # as an all-clear.
+        logger.error(
+            "Subscription price reconciliation could not list Stripe "
+            "subscriptions, so NO drift check was performed: %s",
+            str(exc),
+            exc_info=True,
+        )
+        raise
+
+    checked_count = 0
+    drifted_count = 0
+    pending_change_count = 0
+    unverified_count = 0
+    skipped_no_price_count = 0
+
+    for sub in local_subs:
+        expected_price_id = sub.plan.stripe_price_id
+        if not expected_price_id:
+            # Free/manual/offline plans have no Stripe price to diverge from.
+            skipped_no_price_count += 1
+            continue
+
+        actual_price_id = stripe_prices.get(sub.stripe_subscription_id)
+        if actual_price_id is None:
+            # Not in the active listing: cancelled, incomplete, past_due, or
+            # belonging to another Stripe account. Counted rather than
+            # ignored so the summary never overstates coverage.
+            unverified_count += 1
+            continue
+
+        checked_count += 1
+        if actual_price_id == expected_price_id:
+            continue
+
+        if sub.pending_plan_id or sub.stripe_schedule_id:
+            # A deferred change is mid-flight. Around the cycle boundary
+            # Stripe can legitimately show the new price a moment before the
+            # webhook records it locally, so this is a WARNING, not an alarm.
+            pending_change_count += 1
+            logger.warning(
+                "Subscription %s (user %s) is on Stripe price %s but plan %s "
+                "expects %s. A deferred change is pending (pending_plan=%s, "
+                "schedule=%s), so this is most likely the cycle-boundary race "
+                "and should clear on the next run.",
+                sub.id,
+                sub.user.email,
+                actual_price_id,
+                sub.plan.name,
+                expected_price_id,
+                sub.pending_plan_id,
+                sub.stripe_schedule_id,
+            )
+            continue
+
+        drifted_count += 1
+        logger.error(
+            "PRICE DRIFT: subscription %s (user %s) is being billed on Stripe "
+            "price %s, but the local plan %s expects price %s. The customer "
+            "is paying for something other than what we recorded. No "
+            "automatic correction has been made — this needs a human "
+            "decision. Stripe subscription: %s",
+            sub.id,
+            sub.user.email,
+            actual_price_id,
+            sub.plan.name,
+            expected_price_id,
+            sub.stripe_subscription_id,
+        )
+
+    summary = (
+        f"Subscription price reconciliation: "
+        f"{checked_count} checked, "
+        f"{drifted_count} drifted, "
+        f"{pending_change_count} pending-change mismatches, "
+        f"{unverified_count} not found in Stripe's active list, "
+        f"{skipped_no_price_count} skipped (no Stripe price)."
+    )
+    logger.info(summary)
+    return summary

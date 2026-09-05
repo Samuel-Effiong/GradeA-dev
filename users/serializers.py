@@ -3,6 +3,7 @@ import logging
 from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
 from rest_framework import serializers
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from AutoGrader.error_messages import describe_user_error
@@ -393,11 +394,38 @@ class GoogleUserSerializer(CustomUserSerializer):
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    # Login-specific: kept separate from the generic simplejwt failure
+    # message so a locked account gets an explanation instead of looking
+    # like a wrong password forever.
+    LOCKED_MESSAGE = "Too many failed login attempts. Please try again later."
+
     def validate(self, attrs):
         if "email" in attrs:
             attrs["email"] = attrs["email"].lower().strip()
 
-        data = super().validate(attrs)
+        email = attrs.get("email")
+        password = attrs.get("password")
+
+        # Looked up independently of simplejwt's own authenticate() call
+        # below, because that call cannot tell us afterwards *why* it
+        # failed (wrong password vs. inactive account) - we need that
+        # distinction so an unverified account trying its correct password
+        # doesn't get penalized as a brute-force guess.
+        user = CustomUser.objects.filter(email=email).first() if email else None
+
+        if user and user.is_account_locked():
+            raise AuthenticationFailed(self.LOCKED_MESSAGE, "account_locked")
+
+        try:
+            data = super().validate(attrs)
+        except AuthenticationFailed:
+            if user and password and not user.check_password(password):
+                user.register_failed_login()
+            raise
+
+        if user:
+            user.reset_login_lockout()
+
         user_data = CustomUserSerializer(self.user).data
 
         data.update({"user": user_data})
@@ -433,7 +461,18 @@ class ResetPasswordSerializer(serializers.Serializer):
 
 
 class ChangePasswordSerializer(serializers.Serializer):
-    # otp = serializers.CharField(required=False)
+    # Optional by design. The authenticated change-password flow is gated on
+    # `current_password`; the OTP emailed by AuthViewSet.request_change_password
+    # is a second factor the frontend does not send yet. Accepting it when
+    # present means the backend is already wired for that rollout, while a
+    # client that omits it keeps working exactly as before.
+    #
+    # Note this is NOT an enforcement point on its own: until the field is
+    # made mandatory, any caller can simply leave it out. It is forward
+    # compatibility, not a security control - see AuthViewSet.change_password.
+    otp = serializers.CharField(
+        required=False, allow_blank=True, write_only=True, trim_whitespace=True
+    )
     current_password = serializers.CharField(required=True, write_only=True)
     new_password = serializers.CharField(
         required=True, write_only=True, validators=[validate_password]

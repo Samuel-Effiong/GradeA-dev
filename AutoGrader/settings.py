@@ -816,6 +816,26 @@ CELERY_BEAT_SCHEDULE = {
         "task": "billing.tasks.reconcile_subscription_renewals",
         "schedule": crontab(minute=0, hour=4),
     },
+    # Detects local-plan / Stripe-price divergence: a customer being billed
+    # one price while our records say another. The renewals reconciler above
+    # cannot find this — it only examines subscriptions whose cycle has
+    # already lapsed, and drift sits on perfectly current ones. Detection
+    # only; it makes no corrective write. Hour 4:30 keeps it just after the
+    # renewals sweep, so anything that sweep fixes is already fixed.
+    "reconcile-subscription-prices-daily": {
+        "task": "billing.tasks.reconcile_subscription_prices",
+        "schedule": crontab(minute=30, hour=4),
+    },
+    # The BetaProfile scoring engine. Its docstring has always said "Called
+    # by midnight"; until now nothing called it, so the sales-lead endpoints
+    # ranked every teacher at a permanent 0.0. Runs at 00:30 rather than
+    # midnight exactly to stay clear of process-license-renewals at 00:00 —
+    # it is pure analytics and has no reason to contend with the billing
+    # jobs.
+    "recalculate-conversion-probabilities": {
+        "task": "billing.tasks.recalculate_conversion_probabilities",
+        "schedule": crontab(minute=30, hour=0),
+    },
     # Watchdog over the Stripe webhook ledger: settles claims abandoned by
     # killed workers and raises an ERROR log for failures about to fall out
     # of Stripe's ~3-day retry window. Hourly, so a failure is always seen

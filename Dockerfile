@@ -2,7 +2,7 @@
 FROM python:3.12-slim-bookworm
 
 # Add user that will be used in the container.
-RUN useradd wagtail
+RUN useradd appuser
 
 # Port used by this container to serve HTTP.
 EXPOSE 8000
@@ -17,7 +17,7 @@ ENV PYTHONUNBUFFERED=1 \
     TMPDIR=/tmp \
     PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/ms-playwright
 
-# Install system packages required by Wagtail and Django.
+# Install system packages required by Django and the PDF/image pipeline.
 RUN apt-get update --yes --quiet && \
     apt-get install --yes --quiet --no-install-recommends \
         build-essential \
@@ -44,26 +44,25 @@ RUN pip install -r /requirements.txt
 # math in downloaded assignment PDFs) plus its OS-level dependencies.
 # --with-deps auto-detects this image's OS (Debian bookworm) and installs
 # exactly the apt packages Chromium needs, rather than hand-maintaining a
-# fragile list here. Must run as root (before "USER wagtail" below), and
+# fragile list here. Must run as root (before "USER appuser" below), and
 # PLAYWRIGHT_BROWSERS_PATH (set above) points it at a fixed, non-/tmp
 # location so the browser persists in the image and stays readable by the
-# non-root "wagtail" user that actually serves requests.
+# non-root "appuser" user that actually serves requests.
 RUN playwright install --with-deps chromium && \
     chmod -R o+rX /usr/local/share/ms-playwright
 
 # Use /app folder as a directory where the source code is stored.
 WORKDIR /app
 
-# Set this directory to be owned by the "wagtail" user. This Wagtail project
-# uses SQLite, the folder needs to be owned by the user that
-# will be writing to the database file.
-RUN chown wagtail:wagtail /app
+# Set this directory to be owned by the "appuser" user, which writes here
+# (media uploads, static collection) at runtime.
+RUN chown appuser:appuser /app
 
 # Copy the source code of the project into the container.
-COPY --chown=wagtail:wagtail . .
+COPY --chown=appuser:appuser . .
 
-# Use user "wagtail" to run the build commands below and the server itself.
-USER wagtail
+# Use user "appuser" to run the build commands below and the server itself.
+USER appuser
 
 # Collect static files.
 
@@ -74,8 +73,7 @@ USER wagtail
 # WARNING:
 #   Migrating database at the same time as starting the server IS NOT THE BEST
 #   PRACTICE. The database should be migrated manually or using the release
-#   phase facilities of your hosting platform. This is used only so the
-#   Wagtail instance can be started with a simple "docker run" command.
+#   phase facilities of your hosting platform.
 # NOTE: --timeout 100 is mirrored by WEBHOOK_REQUEST_HARD_TIMEOUT_SECONDS in
 # billing/webhooks.py, which derives STRIPE_EVENT_CLAIM_STALE_AFTER from it —
 # the point at which a still-running Stripe webhook claim is treated as
