@@ -544,7 +544,12 @@ class CreditUsageLogViewSet(viewsets.ReadOnlyModelViewSet):
     ordering_fields = ["created_at"]
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        # select_related("bucket") because CreditUsageLogSerializer exposes
+        # `bucket_type` via source="bucket.bucket_type", so serializing a
+        # page walked the relation once per row: a 20-row page measured 24
+        # queries, and this is the endpoint that grows without bound as a
+        # teacher consumes credits.
+        queryset = super().get_queryset().select_related("bucket")
         if not (
             self.request.user.is_superuser
             and self.request.user.user_type == UserTypes.SUPER_ADMIN
@@ -2193,8 +2198,16 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                     "score": round(p.conversion_probability, 1),
                     "metrics": {
                         "credit_usage": p.total_credits_used,
+                        # `or 1` matches intent_signal_detail below and
+                        # beta_dashboard above. This was the one site of the
+                        # four that divided by the raw field: a BetaProfile
+                        # seeded from a plan whose monthly_credits is still
+                        # the 0 default made the whole sales-leads endpoint
+                        # 500 — not just that row.
                         "usage_percentage": round(
-                            (p.total_credits_used / p.initial_beta_credits) * 100, 1
+                            (p.total_credits_used / (p.initial_beta_credits or 1))
+                            * 100,
+                            1,
                         ),
                         "login_days": p.distinct_login_days,
                         "last_active": (

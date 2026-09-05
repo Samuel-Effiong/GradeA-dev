@@ -41,6 +41,7 @@ the row is not. `test_usage_log_is_refunded_remains_writable` and
 import uuid
 
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
@@ -116,6 +117,65 @@ class CreditLedgerAppendOnlyTests(AppendOnlyTestBase):
             ]
         )
         self.assertEqual(CreditLedger.objects.count(), 3)
+
+    def test_bulk_create_upsert_cannot_rewrite_an_existing_row(self):
+        """
+        `bulk_create(update_conflicts=True)` is an UPDATE for rows whose
+        unique key already exists, and it reaches that update through
+        NEITHER guard - it is not `QuerySet.update()`, and `bulk_create`
+        never emits `pre_save`. Before the override this rewrote a settled
+        ledger row's amount silently.
+        """
+        row = self.make_ledger()
+        row.amount = 999_999
+
+        with self.assertRaises(ImmutableRecordError):
+            CreditLedger.objects.bulk_create(
+                [row],
+                update_conflicts=True,
+                update_fields=["amount"],
+                unique_fields=["id"],
+            )
+
+        row.refresh_from_db()
+        self.assertEqual(row.amount, 1_000)
+
+    def test_bulk_update_is_blocked(self):
+        """
+        Routes through the overridden `update()`, but pin it explicitly.
+
+        The inner `atomic()` is required, not decorative: `bulk_update`
+        runs its batches inside a transaction of its own, so raising from
+        the guard marks that transaction broken and every later query in
+        this test would fail with TransactionManagementError. Scoping the
+        rollback keeps the assertion below runnable.
+        """
+        row = self.make_ledger()
+        row.amount = 999_999
+
+        with self.assertRaises(ImmutableRecordError):
+            with transaction.atomic():
+                CreditLedger.objects.bulk_update([row], ["amount"])
+
+        row.refresh_from_db()
+        self.assertEqual(row.amount, 1_000)
+
+    def test_related_manager_update_is_blocked(self):
+        """Reaching the rows through the bucket must not dodge the guard."""
+        self.make_ledger()
+
+        with self.assertRaises(ImmutableRecordError):
+            self.bucket.credit_ledgers.update(amount=4_242)
+
+        self.assertEqual(CreditLedger.objects.first().amount, 1_000)
+
+    def test_related_manager_delete_is_blocked(self):
+        self.make_ledger()
+
+        with self.assertRaises(ImmutableRecordError):
+            self.bucket.credit_ledgers.all().delete()
+
+        self.assertEqual(CreditLedger.objects.count(), 1)
 
     def test_instance_delete_is_blocked(self):
         row = self.make_ledger()
@@ -259,6 +319,42 @@ class EscapeHatchTests(AppendOnlyTestBase):
         # Guard is restored on exit.
         with self.assertRaises(ImmutableRecordError):
             CreditLedger.objects.filter(pk=row.pk).update(amount=8)
+
+    def test_plain_bulk_create_is_unaffected_by_the_upsert_guard(self):
+        """
+        The guard must only reject the UPSERT form - plain inserts are the
+        whole purpose of these tables and both production write paths
+        (CreditWallet.consume_credits, SubscriptionService.refund_credits)
+        use them.
+        """
+        CreditLedger.objects.bulk_create(
+            [
+                CreditLedger.build(
+                    user=self.user,
+                    bucket=self.bucket,
+                    ledger_type=CreditLedgerType.CONSUME,
+                    amount=-5,
+                )
+            ]
+        )
+
+        self.assertEqual(CreditLedger.objects.count(), 1)
+
+    def test_escape_hatch_still_permits_an_upsert(self):
+        """A supervised repair session keeps its documented escape hatch."""
+        row = self.make_ledger()
+        row.amount = 321
+
+        with allow_unsafe_mutation():
+            CreditLedger.objects.bulk_create(
+                [row],
+                update_conflicts=True,
+                update_fields=["amount"],
+                unique_fields=["id"],
+            )
+
+        row.refresh_from_db()
+        self.assertEqual(row.amount, 321)
 
     def test_escape_hatch_restores_even_when_body_raises(self):
         with self.assertRaises(RuntimeError):

@@ -116,6 +116,27 @@ class AppendOnlyQuerySet(models.QuerySet):
             )
         return super().delete()
 
+    def bulk_create(self, objs, *args, **kwargs):
+        """
+        Plain inserts are the point of these tables, so `bulk_create` is
+        allowed - but its UPSERT form is not.
+
+        `update_conflicts=True` turns this into an UPDATE for any row whose
+        unique key already exists, and it reaches that update through
+        neither guard: it is not `QuerySet.update()`, and `bulk_create`
+        never emits `pre_save`. Left open, it was a silent way to rewrite a
+        settled ledger row - verified by rewriting one's `amount` in a
+        probe before this override existed. Nothing in the codebase uses
+        it; this keeps it that way rather than trusting that it stays true.
+        """
+        if kwargs.get("update_conflicts") and not mutations_allowed():
+            raise ImmutableRecordError(
+                f"{self.model.__name__} is append-only; bulk_create("
+                "update_conflicts=True) would rewrite existing rows. "
+                "Insert new rows instead."
+            )
+        return super().bulk_create(objs, *args, **kwargs)
+
 
 class AppendOnlyModel(models.Model):
     """

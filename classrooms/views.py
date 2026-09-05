@@ -57,18 +57,15 @@ from rest_framework.response import Response
 # from ai_processor.services import ai_processor
 from assignments.models import Assignment
 from assignments.serializers import TaskInfoSerializer
-from AutoGrader.dispatch import (
-    BROKER_UNAVAILABLE_ERRORS,
-    ProcessingTemporarilyUnavailable,
-    safe_delay,
-)
+from AutoGrader.dispatch import safe_delay
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.tasks import send_email_task
 from billing.models import CreditUsageLog
 from classrooms.permissions import CanManageSession
-from students.models import StudentSubmission
+from students.models import BackgroundTaskType, StudentSubmission
 from students.serializers import StudentListSerializer
+from students.task_tracking import create_processing_task, launch_processing_task
 from users.mixins import UserCacheMixin
 from users.models import ACTIVATION_TOKEN_VALIDITY, CustomUser, UserTypes
 from users.permissions import HasCreditBalance
@@ -2353,16 +2350,38 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 status=status.HTTP_200_OK,
             )
 
-        try:
-            task_id = student_summary_async.delay(
-                student_id, str(request.user.id), str(course.id)
-            )
-        except BROKER_UNAVAILABLE_ERRORS as exc:
-            raise ProcessingTemporarilyUnavailable() from exc
+        # Tracked like every other user-facing async endpoint, rather than a
+        # bare .delay(). Three things follow from the tracking row that did
+        # not hold before: the poller in users.views.TaskViewSet can verify
+        # this task belongs to the caller (a bare Celery id has no owner, so
+        # status for it had to be served unauthenticated-by-ownership), the
+        # teacher can cancel a summary that is still running, and a failure
+        # is recorded with a readable message instead of only existing as a
+        # Celery traceback.
+        processing_task = create_processing_task(
+            requested_by=request.user,
+            task_type=BackgroundTaskType.STUDENT_SUMMARY,
+            file_name=f"Summary for {enrollment.student.get_full_name()}",
+            # BackgroundProcessingTask has no student/course FK, so these ids
+            # live here - students.task_context.get_task_context reads them
+            # back out to build this task's context.
+            meta={
+                "step": "Queued for student summary",
+                "student_id": str(enrollment.student.id),
+                "course_id": str(course.id),
+            },
+        )
+        task = launch_processing_task(
+            student_summary_async,
+            processing_task,
+            student_id,
+            str(request.user.id),
+            str(course.id),
+        )
 
         data = {
             "file_name": "Student summary generation started",
-            "task_id": task_id,
+            "task_id": task.id,
         }
 
         serializer = TaskInfoSerializer(data)

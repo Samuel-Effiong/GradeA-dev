@@ -1733,9 +1733,22 @@ class LicenseSubscriptionService:
         failed_teachers = []
 
         for allocation in active_allocations:
-            # Use a nested savepoint so failure of one teacher doesn't rollback the whole transaction
-            with transaction.atomic():
-                try:
+            # Per-teacher savepoint so one teacher's failure doesn't roll back
+            # the whole renewal.
+            #
+            # The `try` MUST sit OUTSIDE `atomic()`, not inside it. Catching
+            # the exception inside means it never reaches `atomic.__exit__`,
+            # so Django sees a clean exit and COMMITS the savepoint — the
+            # failed teacher's partial writes (carry-over bucket, its ledger
+            # row, and the retired old MONTHLY bucket) survive while the
+            # teacher is recorded as failed and skipped. Because
+            # _rollover_and_grant_monthly_bucket retires the old bucket
+            # BEFORE creating the replacement, that left the teacher short a
+            # whole cycle's credits, and the license still advanced its
+            # billing_cycle_end so nothing ever revisited them.
+            # See billing/tests/test_license_renewal_partial_failure.py.
+            try:
+                with transaction.atomic():
                     teacher = allocation.user
                     wallet = teacher.credit_wallet
 
@@ -1766,16 +1779,19 @@ class LicenseSubscriptionService:
                     wallet.overage_blocks_used = 0
                     wallet.save(update_fields=["overage_blocks_used", "updated_at"])
 
-                    renewal_count += 1
+                # Counted only once the savepoint has actually been released,
+                # so a teacher whose writes were rolled back is never reported
+                # as renewed.
+                renewal_count += 1
 
-                except Exception as e:
-                    logger.error(
-                        "Failed to renew credits for teacher %s under license %s: %s",
-                        allocation.user.email,
-                        license_sub.id,
-                        str(e),
-                    )
-                    failed_teachers.append(allocation.user.email)
+            except Exception as e:
+                logger.error(
+                    "Failed to renew credits for teacher %s under license %s: %s",
+                    allocation.user.email,
+                    license_sub.id,
+                    str(e),
+                )
+                failed_teachers.append(allocation.user.email)
 
         # 4. Update license cycle dates only if at least one teacher renewed successfully
         # (or you may choose to update even if all failed, but that would be odd)
@@ -1854,9 +1870,11 @@ class LicenseSubscriptionService:
             is_active=True, is_admin_allocation=False
         )
 
+        updated_count = 0
         for allocation in active_allocations:
             allocation.monthly_allocation = new_plan.monthly_credits
             allocation.save(update_fields=["monthly_allocation", "updated_at"])
+            updated_count += 1
 
             # Add a ledger entry to audit the change
             CreditLedger.record(
@@ -1872,13 +1890,19 @@ class LicenseSubscriptionService:
                 },
             )
 
+        # `updated_count` comes from the loop above rather than
+        # active_allocations.count(), which would re-run the query. The
+        # placeholder for it was also missing, so this call passed four
+        # arguments to a three-placeholder format string: logging raised
+        # internally and DISCARDED the record, meaning a licence plan
+        # change left no audit line at all.
         logger.info(
-            "Updated license %s plan from %s to %s. "
+            "Updated license %s plan from %s to %s for %d teacher(s). "
             "Existing teachers keep current allocation until next renewal.",
             license_sub.id,
             old_plan.name,
             new_plan.name,
-            active_allocations.count(),
+            updated_count,
         )
 
         sync_teachers_under_license_to_mailerlite(license_sub)
@@ -3311,8 +3335,11 @@ class LicenseSubscriptionService:
         failed_teachers = []
 
         for allocation in active_allocations:
-            with transaction.atomic():
-                try:
+            # `try` OUTSIDE `atomic()` — see the identical loop in
+            # process_license_renewal for why the inverted form silently
+            # commits a failed teacher's partial credit writes.
+            try:
+                with transaction.atomic():
                     teacher = allocation.user
                     wallet = teacher.credit_wallet
 
@@ -3339,16 +3366,16 @@ class LicenseSubscriptionService:
                     wallet.overage_blocks_used = 0
                     wallet.save(update_fields=["overage_blocks_used", "updated_at"])
 
-                    renewed_count += 1
-                except Exception as e:
-                    logger.error(
-                        "Offline renewal: failed to refresh credits for teacher %s "
-                        "under license %s: %s",
-                        allocation.user.email,
-                        license_sub.id,
-                        str(e),
-                    )
-                    failed_teachers.append(allocation.user.email)
+                renewed_count += 1
+            except Exception as e:
+                logger.error(
+                    "Offline renewal: failed to refresh credits for teacher %s "
+                    "under license %s: %s",
+                    allocation.user.email,
+                    license_sub.id,
+                    str(e),
+                )
+                failed_teachers.append(allocation.user.email)
 
         license_sub.billing_cycle_start = now
         license_sub.billing_cycle_end = new_billing_cycle_end

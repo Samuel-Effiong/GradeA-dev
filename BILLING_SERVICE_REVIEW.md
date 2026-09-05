@@ -1,6 +1,23 @@
 # LicenseSubscriptionService - Code Review & Bug Analysis
 
-## Date: 2026-06-09
+## Original review: 2026-06-09
+## Revised against implementation: 2026-09-03 (section 2 audit)
+
+> **Read this first.** The original review below was written on
+> 2026-06-09 and had drifted from the code. It was re-verified line by
+> line during the section 2 pass of `docs/CODEBASE_AUDIT_SECTIONS.md`;
+> the entries marked **[UPDATED 2026-09-03]** are the ones that had gone
+> stale. Where this document and the code disagree, the code is correct
+> — check it before relying on anything here.
+
+### Summary of the drift found
+
+| Original claim | Reality on 2026-09-03 |
+|---|---|
+| `validate_admin_user` "allows TEACHER or SCHOOL_ADMIN"; being stricter is an *optional* enhancement | **Hardened.** It now also rejects `SUPER_ADMIN`/`is_superuser` and *requires* school membership. This closed a real privilege-escalation path, not a nicety. |
+| Recommendation #4: "Create scheduled tasks for `process_license_renewal`" | **Done.** `billing.tasks.process_license_renewals` runs daily via `CELERY_BEAT_SCHEDULE` and is watched by `BEAT_HEALTH_EXPECTATIONS`. |
+| "Immutable ledger (GRANT entries can't be modified)" | True **now**, but it was aspirational when written — nothing enforced it until `billing/immutable.py` (`e2dc83b`). A `CASCADE` was deleting ~17.8k ledger rows with a single user. |
+| Issue #1: `stripe_subscription_id` unset at licence creation | **Still accurate**, and still benign — the field is nullable and the cancellation paths branch on it. |
 
 ---
 
@@ -32,17 +49,34 @@
 
 ### 2. `validate_admin_user(admin_user, school)`
 **Purpose**: Ensure admin has authorization to manage licenses
-**Status**: ✅ CORRECT with Optional Enhancement
+**Status**: ✅ CORRECT — **[UPDATED 2026-09-03]**
 
-**Validation checks**:
+**Validation checks (current code):**
 - ✅ Rejects STUDENT users
-- ✅ Checks school association (if applicable)
+- ✅ Rejects `SUPER_ADMIN` / `is_superuser`
+- ✅ Requires `admin_user.school_id` to be set
+- ✅ Requires it to match the licence's school
 
-**Potential Enhancement**:
-- Could be stricter: Enforce that admin must have SCHOOL_ADMIN or SUPER_ADMIN role
-- Current implementation allows TEACHER or SCHOOL_ADMIN
+**What changed since the original review.** The original entry called
+stricter checking an "optional enhancement" and judged the loose version
+"acceptable (allows flexibility)". That was wrong, and the code no longer
+matches it.
 
-**Recommendation**: Current implementation is acceptable (allows flexibility)
+`admin_user` is not bookkeeping: it decides who receives the school's
+admin credit allocation, whose email is the billing contact, and who may
+request/approve overage. The old check only rejected an `admin_user`
+whose school was set **and different**, so anyone with `school=None`
+passed — and a `SUPER_ADMIN` is exactly that. A superadmin could name
+themselves a school's licence admin, divert that school's admin credit
+allocation into their own wallet, and (via
+`IsSchoolAdminOrSuperAdmin.has_object_permission`) displace the school's
+real admin.
+
+Membership is now required rather than merely "not contradicted". The
+mirror-image invariant is enforced on the identity side by
+`users.serializers.CustomUserSerializer.validate`, and covered by
+`billing/tests/test_license_admin_user_guard.py` and
+`users/tests_superadmin_tenancy.py`.
 
 ---
 
@@ -341,7 +375,28 @@ Teacher 2 unaffected → balance = 20K ✅
 **CreditLedger Entries**:
 - ✅ Every grant/consume/refund logged
 - ✅ Metadata captures context (license_id, teacher_email, etc.)
-- ✅ Immutable ledger (GRANT entries can't be modified)
+- ✅ Immutable ledger — **[UPDATED 2026-09-03]**
+
+**On "immutable".** When this was first written the word described an
+intention, not a mechanism: both audit models *documented* themselves as
+immutable while `CreditLedger.user` was a `CASCADE` FK that deleted
+17,761 ledger rows along with a single production teacher, and nothing
+stopped `.update()` / `.delete()` from any code path.
+
+It is now enforced by `billing/immutable.py` — `pre_save` / `pre_delete`
+guards plus queryset overrides, with every relation into the audit tables
+changed to non-cascading. The section 2 audit re-verified this
+empirically rather than by reading: `bulk_update`, related-manager
+`update()`/`delete()`, cascade-from-user and cascade-from-wallet are all
+refused. One hole was found and closed in that pass —
+`bulk_create(update_conflicts=True)` reached an UPDATE through neither
+guard (it is not `QuerySet.update()`, and `bulk_create` never emits
+`pre_save`) and silently rewrote a settled row's `amount`.
+
+Scope of the guarantee: application level only. Raw SQL, `TRUNCATE`,
+`manage.py flush` and direct `psql` access all bypass it, and the app's
+DB role is a superuser. See the "WHAT THIS DOES NOT COVER" section of
+`billing/immutable.py`.
 
 ---
 
@@ -439,7 +494,11 @@ Teacher 2 unaffected → balance = 20K ✅
 1. **Stripe Integration**: Populate `stripe_subscription_id` during license creation
 2. **Rate Limiting**: Add rate limits to batch operations (prevent DoS)
 3. **Monitoring**: Track license renewals - alert on failures
-4. **Celery Tasks**: Create scheduled tasks for `process_license_renewal`
+4. ~~**Celery Tasks**: Create scheduled tasks for `process_license_renewal`~~
+   **DONE [2026-09-03]** — `billing.tasks.process_license_renewals` runs
+   daily at 00:00 via `CELERY_BEAT_SCHEDULE`, and Beat itself is watched
+   by `BEAT_HEALTH_EXPECTATIONS` (a renewal job that silently stops being
+   scheduled raises an ERROR within two days).
 5. **Admin Dashboard**: Display license analytics (teacher count, credit usage, etc.)
 
 ---
@@ -459,3 +518,21 @@ Teacher 2 unaffected → balance = 20K ✅
 - ✅ Thread-safe design
 
 **Verdict**: APPROVED FOR IMPLEMENTATION
+
+---
+
+## Revision note (2026-09-03)
+
+The verdict above is the 2026-06-09 author's. It is kept for the record,
+not re-endorsed: it was written before the append-only enforcement
+existed and before `validate_admin_user` was hardened, and it described
+both as already-correct. Treat the ✅ marks as a snapshot of what was
+believed in June, and the **[UPDATED 2026-09-03]** entries as the
+verified state.
+
+Re-verified in the section 2 pass: 915 billing tests pass; webhook
+signature verification precedes any state change; gunicorn `--timeout`
+and `WEBHOOK_REQUEST_HARD_TIMEOUT_SECONDS` are in sync (100s);
+`manage.py check` is clean, so `billing.E001` holds and `ATOMIC_REQUESTS`
+is off — which the Stripe webhook idempotency claim depends on; bandit
+reports 0 issues across `billing/`.

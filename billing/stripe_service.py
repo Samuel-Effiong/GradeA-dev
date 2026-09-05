@@ -287,10 +287,23 @@ class StripeCustomerService:
         if wallet.stripe_customer_id:
             return wallet.stripe_customer_id
 
+        # idempotency_key makes the CREATE itself safe against the read-then-
+        # create race: two simultaneous requests both see no stripe_customer_id
+        # and both call Stripe, but a shared key means Stripe returns the SAME
+        # customer to both, so the redundant write below is a no-op rather than
+        # orphaning a duplicate customer (and any card later attached to it).
+        #
+        # Deliberately NOT select_for_update() on the wallet: every caller here
+        # is a checkout/SetupIntent session builder running outside a
+        # transaction, so locking would mean opening one and holding a row lock
+        # across this outbound Stripe call — the exact pattern flagged
+        # separately as a risk in the webhook handlers. Keying the remote call
+        # fixes the race without holding any lock over network I/O.
         customer = stripe.Customer.create(
             email=user.email,
             name=user.get_full_name() or user.email,
             metadata={"user_id": str(user.id)},
+            idempotency_key=f"customer-for-user-{user.id}",
             **StripeCustomerService._qa_test_clock_kwargs(
                 user.email, label=f"QA time travel — user {user.email}"
             ),
@@ -312,6 +325,8 @@ class StripeCustomerService:
             return license_sub.stripe_customer_id
 
         contact = admin_user or license_sub.admin_user
+        # Same read-then-create race, same remedy as get_or_create_customer
+        # above — keyed on the licence rather than the user.
         customer = stripe.Customer.create(
             email=contact.email,
             name=license_sub.school.name,
@@ -319,6 +334,7 @@ class StripeCustomerService:
                 "license_id": str(license_sub.id),
                 "school_id": str(license_sub.school.id),
             },
+            idempotency_key=f"customer-for-license-{license_sub.id}",
             **StripeCustomerService._qa_test_clock_kwargs(
                 contact.email,
                 label=f"QA time travel — license {license_sub.school.name}",
@@ -2930,10 +2946,12 @@ class StripeWebhookHandler:
         Deliberately NOT its own @transaction.atomic — runs inside
         handle_checkout_completed's outer atomic block, same as every
         other flow dispatched from there. If anything below raises, the
-        whole thing rolls back and the outer webhook dispatcher (see
-        webhooks.py) deletes the StripeEvent record so Stripe's retry is
-        treated as fresh, not a duplicate — the intent will still be
-        PENDING on retry, so this is safely self-healing.
+        whole thing rolls back and the dispatcher in webhooks.py marks the
+        StripeEvent FAILED (it is never deleted — deleting on failure is
+        the event-loss bug the status column was introduced to kill; see
+        that module's docstring). A FAILED row is claimable, so Stripe's
+        retry does the work for real, and the intent will still be PENDING
+        by then — this is safely self-healing.
         """
         intent_id = metadata.get("intent_id")
         if not intent_id:
@@ -4235,19 +4253,41 @@ class StripeWebhookHandler:
     # ------------------------------------------------------------------
 
     @staticmethod
+    def _overage_already_granted(payment_intent_id, wallet) -> bool:
+        """
+        Idempotency guard for overage grants: has this PaymentIntent already
+        produced a bucket for this wallet?
+
+        Guards against the synchronous path in StripeOverageService, which
+        already grants when no further action is needed — this handler is
+        only the fallback for the requires_action case — and against Stripe
+        redelivering the same event.
+
+        SCOPED TO THE WALLET deliberately. The unscoped form (filtering the
+        whole table on the JSON key alone) is a sequential scan of
+        CreditLedger — the fastest-growing table in this system, 17k+ rows
+        for a single teacher — executed inside a webhook transaction that
+        holds locks. Scoping cannot miss a true match: the grant always
+        writes its ledger row against a bucket belonging to this very wallet
+        (SubscriptionService.grant_overage_bucket), so a row for this
+        payment intent cannot exist anywhere else.
+
+        BillingTransaction.stripe_payment_intent_id is indexed and would be
+        the obvious thing to key on, but it is NOT usable as the source of
+        truth here: this flow never writes one — only the
+        checkout.session.completed handlers do — so it would report "not
+        granted" on every delivery and re-grant the credits each time.
+        """
+        return CreditLedger.objects.filter(
+            bucket__wallet=wallet,
+            metadata__stripe_payment_intent_id=payment_intent_id,
+        ).exists()
+
+    @staticmethod
     @transaction.atomic
     def handle_payment_intent_succeeded(payment_intent):
         metadata = payment_intent.get("metadata", {}) or {}
         if metadata.get("flow") != "overage_block_purchase":
-            return
-
-        # Idempotency against the synchronous path in StripeOverageService,
-        # which already grants the bucket when no further action is needed.
-        # This handler is only the fallback for the requires_action case.
-        already_granted = CreditLedger.objects.filter(
-            metadata__stripe_payment_intent_id=payment_intent["id"]
-        ).exists()
-        if already_granted:
             return
 
         wallet_id = metadata.get("wallet_id")
@@ -4283,6 +4323,11 @@ class StripeWebhookHandler:
                     payment_intent["id"],
                     plan_id,
                 )
+                return
+
+            if StripeWebhookHandler._overage_already_granted(
+                payment_intent["id"], wallet
+            ):
                 return
 
             SubscriptionService.grant_overage_bucket(
@@ -4352,6 +4397,9 @@ class StripeWebhookHandler:
                 payment_intent["id"],
                 user.email,
             )
+            return
+
+        if StripeWebhookHandler._overage_already_granted(payment_intent["id"], wallet):
             return
 
         SubscriptionService.grant_overage_bucket(

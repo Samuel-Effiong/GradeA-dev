@@ -5,12 +5,6 @@ from celery import shared_task
 logger = logging.getLogger(__name__)
 
 
-@shared_task
-def sample_periodic_task():
-    logger.info("Executing sample periodic task")
-    return "Task completed"
-
-
 @shared_task(bind=True, max_retries=3, default_retry_delay=60)
 def sync_user_to_mailerlite(self, user_id):
     from users.mailerlite_service import MailerLiteService

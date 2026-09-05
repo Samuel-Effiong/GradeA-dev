@@ -12,7 +12,6 @@ profile.
 import logging
 from datetime import timedelta
 
-from celery.result import AsyncResult
 from django.conf import settings
 from django.core.cache import cache
 from django.core.mail import send_mail
@@ -41,6 +40,7 @@ from google.oauth2 import id_token
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action  # , api_view
 from rest_framework.exceptions import (
+    AuthenticationFailed,
     NotFound,
     ParseError,
     PermissionDenied,
@@ -85,6 +85,7 @@ from users.models import (
     CustomUser,
     PasswordChangeOTP,
     PasswordResetOTP,
+    RegistrationMethod,
     Settings,
     UserGoogleCredentials,
     UserTypes,
@@ -128,25 +129,6 @@ USER_EXAMPLE = {
     "user_type": "TEACHER",
     "username": "john.doe",
 }
-
-
-class BaseUserViewSet(viewsets.ModelViewSet):
-    queryset = CustomUser.objects.all()
-    serializer_class = CustomUserSerializer
-    permission_classes = (IsAuthenticated,)
-    pagination_class = StandardPageNumberPagination
-    http_method_names = ["get", "head", "post", "delete", "patch", "options"]
-
-    filterset_fields = {
-        "user_type": ["exact"],
-        "enrollments__course": ["exact", "isnull"],
-        "enrollments__course__session": ["exact"],
-        "enrollments__enrollment_status": ["exact", "in"],
-    }
-    search_fields = ["username", "first_name", "last_name", "email"]
-    ordering_fields = ["first_name", "last_name", "email", "username"]
-
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
 
 @extend_schema_view(
@@ -530,6 +512,11 @@ class SettingsViewSet(UserCacheMixin, viewsets.ModelViewSet):
     serializer_class = SettingsSerializer
     permission_classes = (IsAuthenticated,)
     pagination_class = StandardPageNumberPagination
+    # No "post"/"delete": a Settings row is created by the post_save signal
+    # on CustomUser and lives as long as the account, so both are refused
+    # here with a 405. This list is what performs that refusal - overriding
+    # create()/destroy() to return 405 as well was unreachable code, since
+    # DRF rejects the method before dispatch ever reaches them.
     http_method_names = ["get", "head", "patch", "options"]
 
     filterset_fields = {
@@ -629,34 +616,6 @@ class SettingsViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         return Response(data)
 
-    def create(self, request, *args, **kwargs):
-        """
-        Disable direct creation of settings via API.
-
-        Settings are automatically created for each user via Django signals.
-        """
-        return Response(
-            {
-                "detail": "Settings cannot be created directly. "
-                "They are automatically created for each user."
-            },
-            status=status.HTTP_405_METHOD_NOT_ALLOWED,
-        )
-
-    def destroy(self, request, *args, **kwargs):
-        """
-        Disable deletion of settings via API.
-
-        Settings should persist for the lifetime of the user account.
-        """
-        return Response(
-            {
-                "detail": "Settings cannot be deleted. "
-                "They are tied to user accounts."
-            },
-            status=status.HTTP_405_METHOD_NOT_ALLOWED,
-        )
-
 
 class AuthViewSet(viewsets.ViewSet):
     """
@@ -686,8 +645,8 @@ class AuthViewSet(viewsets.ViewSet):
         throttle_classes=[VerifyEmailThrottle],
     )
     def verify(self, request, **kwargs):
-        email = request.data.get("email").strip()
-        token = request.data.get("token").strip()
+        email = (request.data.get("email") or "").strip()
+        token = (request.data.get("token") or "").strip()
 
         if not email or not token:
             raise ParseError("Email and Token are required.")
@@ -950,14 +909,20 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
     @extend_schema(
         tags=["Authentication"],
-        summary="Change password using an OTP",
+        summary="Change password (optionally with an OTP)",
         description="""
-        Changes the authenticated user's password after a valid OTP has been provided.
+        Changes the authenticated user's password.
+
+        `current_password` is always required. `otp` is OPTIONAL: if the
+        client sends one, it must be the code issued by
+        `auth/request-change-password` and still be within its validity
+        window, or the request is rejected. If the client omits it, the
+        change proceeds on `current_password` alone.
         """,
         request=ChangePasswordSerializer,
         responses={
             200: {"description": "Password changed successfully"},
-            400: {"description": "Invalid OTP or expired OTP"},
+            400: {"description": "Incorrect current password, or invalid/expired OTP"},
         },
     )
     @action(detail=False, methods=["post", "options"], url_path="change-password")
@@ -966,23 +931,48 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         serializer.is_valid(raise_exception=True)
 
         user = request.user
-        # otp = serializer.validated_data.get("otp")
         current_password = serializer.validated_data.get("current_password")
         new_password = serializer.validated_data.get("new_password")
+        otp = (serializer.validated_data.get("otp") or "").strip()
 
         if not user.check_password(current_password):
             raise ParseError("Incorrect current password. Please try again.")
 
-        # try:
-        #     otp_obj = PasswordChangeOTP.objects.get(user=user, code=otp)
-        # except PasswordChangeOTP.DoesNotExist:
-        #     raise ParseError(
-        #         "Invalid OTP or expired OTP. Please try again."
-        #     ) from Exception
+        # Dual-mode by design: the frontend does not send `otp` yet, so a
+        # request without one must keep working exactly as it did. When one
+        # IS sent it is fully verified, so the day the frontend starts
+        # collecting the code from request-change-password, no backend
+        # deploy is needed to make it count.
+        #
+        # This is deliberately NOT an enforcement point: a caller can still
+        # omit `otp` entirely. Making the second factor mandatory is a
+        # separate, breaking change (drop this `if otp:` guard and require
+        # the field on the serializer) that has to land together with the
+        # frontend sending it.
+        if otp:
+            otp_obj = PasswordChangeOTP.objects.filter(user=user).first()
 
-        # if not otp_obj.is_valid():
-        #     otp_obj.delete()
-        #     raise ParseError("Invalid OTP or expired OTP. Please try again.")
+            if otp_obj is None:
+                raise ParseError(
+                    "No password change code has been requested for this "
+                    "account. Request one and try again."
+                )
+
+            if not otp_obj.is_valid():
+                otp_obj.delete()
+                raise ParseError(
+                    "This password change code has expired. Request a new one "
+                    "and try again."
+                )
+
+            # Constant-time, for the same reason reset_password does it: a
+            # plain == leaks how much of the code was correct via timing.
+            if not constant_time_compare(str(otp_obj.code), str(otp)):
+                raise ParseError("Invalid password change code. Please try again.")
+
+            # Single-use: a code that has completed a change must not be
+            # replayable for a second one.
+            otp_obj.delete()
 
         user.set_password(new_password)
         user.save()
@@ -1004,10 +994,6 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 "refresh": str(refresh),
             }
         )
-
-        # otp_obj.delete()
-
-        # return Response({"detail": "Password changed successfully"})
 
     @extend_schema(
         tags=["Authentication"],
@@ -1194,7 +1180,10 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 if not user:
                     raise ParseError("Invalid or expired activation token")
 
-                if user.activation_expires < timezone.now():
+                if (
+                    not user.activation_expires
+                    or user.activation_expires < timezone.now()
+                ):
                     renewal_url = request.build_absolute_uri(
                         "/course/student/renew-student-token"
                     )
@@ -1495,20 +1484,37 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
                 if not user:
                     # create the user with
+                    # registration_method / email_verified_at / is_active are
+                    # deliberately NOT in this dict. None of them are in
+                    # CustomUserSerializer.Meta.fields, so DRF silently
+                    # dropped them - which meant every Google signup was
+                    # stored as registration_method=EMAIL with a null
+                    # email_verified_at, and (because
+                    # CustomUserSerializer.create() sends an activation email
+                    # whenever registration_method is EMAIL) was mailed a
+                    # "verify your email" link it had no reason to receive.
+                    # They are passed through save() below instead.
                     data = {
                         "email": email,
                         "first_name": first_name,
                         "last_name": last_name,
                         "middle_name": middle_name,
                         "profile_image_url": profile_image_url,
-                        "registration_method": "GOOGLE",
-                        "is_active": True,
-                        "email_verified_at": timezone.now(),
                     }
 
                     serializer = GoogleUserSerializer(data=data)
                     if serializer.is_valid():
-                        user = serializer.save()
+                        # Server-controlled values, injected via save() rather
+                        # than declared on the serializer: this serializer also
+                        # backs /auth/register, so a writable email_verified_at
+                        # would let any caller mark their own address verified.
+                        # They must be set HERE rather than patched on after
+                        # save, because create() reads registration_method to
+                        # decide whether to send the activation email.
+                        user = serializer.save(
+                            registration_method=RegistrationMethod.GOOGLE,
+                            email_verified_at=timezone.now(),
+                        )
 
                         user.is_active = True
                         user.set_unusable_password()
@@ -1531,6 +1537,45 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                                 "and use the link in that invitation instead."
                             )
                         raise ValidationError(serializer.errors)
+
+                else:
+                    # An account already exists for this address. Google has
+                    # just proven the person controls that mailbox, which is
+                    # strictly STRONGER evidence than the 6-digit code the
+                    # email flow sends - so an account that simply never
+                    # finished email verification is completed here instead
+                    # of dead-ending. (It used to dead-end: this endpoint
+                    # answered 200 with tokens, but the account stayed
+                    # is_active=False, so SimpleJWT rejected those very
+                    # tokens with "User is inactive" on the next request.)
+                    #
+                    # The carve-out: an account that WAS verified and is now
+                    # inactive was switched off deliberately. Proving mailbox
+                    # ownership says nothing about whether that decision
+                    # should be reversed, so this must NOT reverse it -
+                    # activating there would turn Google sign-in into a way
+                    # round a deactivation.
+                    if not user.is_active and user.email_verified_at is not None:
+                        raise AuthenticationFailed(
+                            "This account has been deactivated. Please "
+                            "contact support.",
+                            "account_deactivated",
+                        )
+
+                    resurrected_fields = []
+                    if user.email_verified_at is None:
+                        user.email_verified_at = timezone.now()
+                        resurrected_fields.append("email_verified_at")
+                    if not user.is_active:
+                        user.is_active = True
+                        resurrected_fields.append("is_active")
+
+                    if resurrected_fields:
+                        user.save(update_fields=resurrected_fields)
+                        # Only now does this account become a real, usable
+                        # one, so this is the first point it should reach
+                        # the mailing list (queue_sync no-ops on inactive).
+                        safe_delay(sync_user_to_mailerlite, str(user.id))
 
                 expiry = timezone.now() + timedelta(seconds=expires_in)
                 credentials, _ = UserGoogleCredentials.objects.update_or_create(
@@ -1641,55 +1686,6 @@ class TaskViewSet(viewsets.ViewSet):
     http_method_names = ["get", "post", "options"]
     permission_classes = [IsAuthenticated]
 
-    def _serialize_task_status(self, task_id, processing_task=None):
-        if processing_task:
-            normalize_processing_task_status(processing_task)
-            processing_task.refresh_from_db()
-
-            meta = dict(processing_task.meta or {})
-            if processing_task.error:
-                meta.setdefault("error", processing_task.error)
-
-            if processing_task.status == "SUCCESS":
-                status_value = "completed"
-            elif processing_task.status == "FAILURE":
-                status_value = "failed"
-            elif processing_task.status == "CANCELLED":
-                status_value = "cancelled"
-            else:
-                status_value = "processing"
-
-            return {
-                "task_id": task_id,
-                "status": status_value,
-                "meta": str(meta) if meta else None,
-            }
-
-        task = AsyncResult(task_id)
-
-        data = {
-            "task_id": task_id,
-            "status": task.state,
-            "meta": (
-                task.info
-                if isinstance(task.info, dict)
-                else {"result": task.info} if task.info else None
-            ),
-        }
-
-        data["meta"] = str(data["meta"])
-
-        if task.state == "REVOKED":
-            data["status"] = "cancelled"
-        elif task.successful():
-            data["status"] = "completed"
-        elif task.failed():
-            data["status"] = "failed"
-        else:
-            data["status"] = "processing"
-
-        return data
-
     @extend_schema(
         tags=["Tasks"],
         summary="Get status of a background task",
@@ -1731,40 +1727,40 @@ class TaskViewSet(viewsets.ViewSet):
     def task_status(self, request, task_id=None):
         """
         Retrieve the status of a background task by its ID, enriched with context.
+
+        Scoped to tasks the caller actually started. This used to fall back
+        to a bare `AsyncResult(task_id)` whenever no tracked task matched -
+        which, because `get_processing_task` filters on `requested_by`, is
+        exactly what happens when the task belongs to somebody else. That
+        made another user's task state and return value readable to anyone
+        holding the id (`send_email_task`, for instance, returns a string
+        containing the recipient's address). A Celery id has no owner to
+        check, so there is no way to serve that fallback safely; every
+        user-facing async endpoint now creates a tracked task, so nothing
+        legitimate needs it.
         """
         processing_task = get_processing_task(task_id, requested_by=request.user)
-        if processing_task:
-            normalize_processing_task_status(processing_task)
-            processing_task.refresh_from_db()
-            meta = dict(processing_task.meta or {})
-            if processing_task.error:
-                meta.setdefault("error", processing_task.error)
-            status_value = self._map_status(processing_task.status)
+        if not processing_task:
+            raise NotFound("Tracked task not found for this user.")
 
-            # Get context
-            context = get_task_context(processing_task)
+        normalize_processing_task_status(processing_task)
+        processing_task.refresh_from_db()
+        meta = dict(processing_task.meta or {})
+        if processing_task.error:
+            meta.setdefault("error", processing_task.error)
+        status_value = self._map_status(processing_task.status)
 
-            data = {
-                "task_id": task_id,
-                "status": status_value,
-                "meta": str(meta) if meta else None,
-                "resource_type": context["resource_type"],
-                "resource_id": context["resource_id"],
-                "action": context["action"],
-                "additional_ids": context["additional_ids"],
-            }
-        else:
-            # Fallback to Celery AsyncResult (less context)
-            task = AsyncResult(task_id)
-            data = {
-                "task_id": task_id,
-                "status": self._map_celery_state(task.state),
-                "meta": str(task.info) if task.info else None,
-                "resource_type": None,
-                "resource_id": None,
-                "action": None,
-                "additional_ids": {},
-            }
+        context = get_task_context(processing_task)
+
+        data = {
+            "task_id": task_id,
+            "status": status_value,
+            "meta": str(meta) if meta else None,
+            "resource_type": context["resource_type"],
+            "resource_id": context["resource_id"],
+            "action": context["action"],
+            "additional_ids": context["additional_ids"],
+        }
 
         serializer = TaskStatusSerializer(data)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -1780,18 +1776,6 @@ class TaskViewSet(viewsets.ViewSet):
             "CANCELLED": "cancelled",
         }
         return mapping.get(db_status, "processing")
-
-    def _map_celery_state(self, state):
-        """Map Celery state to frontend-friendly status string."""
-        if state == "REVOKED":
-            return "cancelled"
-        if state == "SUCCESS":
-            return "completed"
-        if state == "FAILURE":
-            return "failed"
-        if state in ("PENDING", "STARTED", "RETRY"):
-            return "processing"
-        return "processing"
 
     @extend_schema(
         tags=["Tasks"],

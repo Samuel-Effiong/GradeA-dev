@@ -80,6 +80,19 @@ def get_task_context(processing_task: BackgroundProcessingTask) -> Dict[str, Any
         elif task_type == BackgroundTaskType.FORMATTED_GRADE:
             context["action"] = "formatted"
 
+    elif task_type == BackgroundTaskType.STUDENT_SUMMARY:
+        # The only task type with no assignment/submission/batch_session FK
+        # to read - a student summary is scoped to a (student, course) pair,
+        # which BackgroundProcessingTask has no columns for. The view that
+        # creates the task stashes both ids in `meta`; without this branch
+        # the generic fallback below would report resource_type "unknown"
+        # and no ids at all, leaving the frontend nothing to correlate the
+        # finished summary against.
+        meta = processing_task.meta or {}
+        context["resource_type"] = "student_summary"
+        context["resource_id"] = meta.get("student_id")
+        context["action"] = "summarised"
+
     # Fallback: if still None, try to infer from the presence of objects
     if context["resource_type"] is None:
         if assignment:
@@ -131,6 +144,15 @@ def get_task_context(processing_task: BackgroundProcessingTask) -> Dict[str, Any
         # Add course_id from session if present
         if batch_session.course_id and "course_id" not in additional:
             additional["course_id"] = str(batch_session.course_id)
+
+    # Student-summary tasks carry their ids in meta rather than in FKs (see
+    # the STUDENT_SUMMARY branch above), so pick them up from there.
+    if task_type == BackgroundTaskType.STUDENT_SUMMARY:
+        meta = processing_task.meta or {}
+        for key in ("student_id", "course_id"):
+            value = meta.get(key)
+            if value and key not in additional:
+                additional[key] = str(value)
 
     context["additional_ids"] = additional
     return context
