@@ -19,16 +19,29 @@ from django.core.cache import cache
 from django.http import HttpResponse
 from django.test import RequestFactory, TestCase, override_settings
 
-from users.middleware import ACTIVE_WINDOW_SECONDS, UserActivityMiddleware
+from users.middleware import (
+    ACTIVE_WINDOW_SECONDS,
+    ONLINE_SET_KEY,
+    UserActivityMiddleware,
+    heartbeat_key_for,
+)
 from users.models import CustomUser, UserActivity, UserTypes
 
-# Pinned to LocMem, like every other suite in this app. On the shared real
-# Redis this was order-dependent: users.signals.clear_user_cache fires
-# `delete_pattern("*user*")` on every CustomUser save, and the heartbeat key
-# (`active_user:<type>:<id>`) matches that glob - so an unrelated suite
-# creating a user could wipe the heartbeat mid-test and let a second
-# activity row through. Real-Redis behaviour is covered deliberately, with
-# its own key prefix, in tests_activity_middleware_load.py.
+# Pinned to LocMem, like every other suite in this app - now for isolation
+# alone rather than to dodge a defect.
+#
+# Historical note, because it explains the class below: this used to be
+# order-dependent on the shared real Redis. users.signals.clear_user_cache
+# fires `delete_pattern("*user*")` on every CustomUser and Settings save,
+# and the heartbeat key was called `active_user:<type>:<id>` - which that
+# glob matches. An unrelated suite creating a user wiped the heartbeat
+# mid-test and let a second activity row through.
+#
+# That was never only a test problem. In production the same collision
+# released the throttle window early on every unrelated user save, and
+# wiped the concurrent-users presence set with it. The keys are now named
+# outside the swept namespace (users/middleware.py), and
+# HeartbeatKeyNamespaceTests below keeps them there.
 LOCMEM_CACHE = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 
 
@@ -76,7 +89,7 @@ class UserActivityMiddlewareTests(TestCase):
         self.assertEqual(self._activity_count(), 1)
 
         # Simulate the heartbeat key ageing out of the cache.
-        cache.delete(f"active_user:{self.user.user_type}:{self.user.id}")
+        cache.delete(heartbeat_key_for(self.user.user_type, self.user.id))
         self._run()
 
         self.assertEqual(self._activity_count(), 2)
@@ -159,3 +172,74 @@ class UserActivityMiddlewareTests(TestCase):
                 self._run()
 
         self.assertIn(str(self.user.id), logs.output[0])
+
+
+@override_settings(CACHES=LOCMEM_CACHE)
+class HeartbeatKeyNamespaceTests(TestCase):
+    """
+    The heartbeat and presence keys must not be collateral damage of
+    anybody else's cache invalidation.
+
+    This is a pure string check on purpose: it needs no Redis, so it runs
+    everywhere and fails immediately if someone renames a key back into a
+    swept namespace - which is precisely how the original defect arrived.
+    """
+
+    # Every delete_pattern glob used anywhere in the project, gathered from
+    # users/signals.py, classrooms/signals.py, assignments/signals.py,
+    # students/signals.py and students/views.py.
+    SWEPT_SUBSTRINGS = [
+        "superadmin",
+        "schooladmin",
+        "teacheradmin",
+        "studentadmin",
+        "user",
+        "school",
+        "course",
+        "studentcourse",
+        "settings",
+        "assignmentgenerationsession",
+    ]
+    SWEPT_PREFIXES = [
+        "courses:",
+        "sessions:",
+        "assignments:",
+        "studentsubmissions:",
+        "studentcourses:",
+        "topics:",
+        "schools:",
+    ]
+
+    def _assert_unswept(self, key):
+        for fragment in self.SWEPT_SUBSTRINGS:
+            self.assertNotIn(
+                fragment,
+                key,
+                f"{key!r} contains {fragment!r} and would be destroyed by "
+                f'delete_pattern("*{fragment}*")',
+            )
+        for prefix in self.SWEPT_PREFIXES:
+            self.assertFalse(
+                key.startswith(prefix),
+                f"{key!r} would be destroyed by delete_pattern('{prefix}*')",
+            )
+
+    def test_the_heartbeat_key_is_outside_every_sweep(self):
+        for user_type in ("TEACHER", "STUDENT", "SCHOOL_ADMIN", "SUPER_ADMIN"):
+            with self.subTest(user_type=user_type):
+                self._assert_unswept(
+                    heartbeat_key_for(user_type, "0e1f2a3b-4c5d-6e7f-8a9b-0c1d2e3f4a5b")
+                )
+
+    def test_the_presence_set_key_is_outside_every_sweep(self):
+        self._assert_unswept(ONLINE_SET_KEY)
+
+    def test_the_old_names_would_have_failed_this_check(self):
+        """
+        Proves the guard above is actually load-bearing rather than
+        trivially true, by running it against the names that shipped.
+        """
+        for old_key in ("active_user:TEACHER:abc", "online_users_set"):
+            with self.subTest(old_key=old_key):
+                with self.assertRaises(AssertionError):
+                    self._assert_unswept(old_key)

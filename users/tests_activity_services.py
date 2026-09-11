@@ -20,6 +20,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from classrooms.models import School
+from users.middleware import ONLINE_SET_KEY, heartbeat_key_for
 from users.models import ConcurrentUserSnapshot, Settings, UserTypes
 from users.services import (
     cleanup_expired_users,
@@ -60,11 +61,11 @@ class CleanupExpiredUsersTests(TestCase):
 
             self.assertEqual(cleanup_expired_users(), 1)
 
-        mock_cache.srem.assert_called_once_with("online_users_set", "TEACHER:stale")
+        mock_cache.srem.assert_called_once_with(ONLINE_SET_KEY, "TEACHER:stale")
 
     def test_only_the_expired_members_are_removed(self):
         def has_key(key):
-            return key == "active_user:TEACHER:live"
+            return key == heartbeat_key_for("TEACHER", "live")
 
         with patch("users.services.cache") as mock_cache:
             mock_cache.smembers.return_value = {"TEACHER:live", "TEACHER:stale"}
@@ -72,7 +73,7 @@ class CleanupExpiredUsersTests(TestCase):
 
             self.assertEqual(cleanup_expired_users(), 1)
 
-        mock_cache.srem.assert_called_once_with("online_users_set", "TEACHER:stale")
+        mock_cache.srem.assert_called_once_with(ONLINE_SET_KEY, "TEACHER:stale")
 
     def test_bytes_members_are_decoded_before_use(self):
         """redis-py can hand back bytes; a b'...' key would never match."""
@@ -82,8 +83,10 @@ class CleanupExpiredUsersTests(TestCase):
 
             self.assertEqual(cleanup_expired_users(), 1)
 
-        mock_cache.has_key.assert_called_once_with("active_user:TEACHER:bytes")
-        mock_cache.srem.assert_called_once_with("online_users_set", "TEACHER:bytes")
+        mock_cache.has_key.assert_called_once_with(
+            heartbeat_key_for("TEACHER", "bytes")
+        )
+        mock_cache.srem.assert_called_once_with(ONLINE_SET_KEY, "TEACHER:bytes")
 
 
 class CurrentConcurrentUsersTests(TestCase):

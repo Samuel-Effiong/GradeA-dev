@@ -7,6 +7,7 @@ SimpleTestCase: the converter is pure and touches no database.
 """
 
 import json
+from unittest.mock import patch
 
 from django.test import SimpleTestCase
 from prosemirror.model import Schema
@@ -17,11 +18,15 @@ from assignments.prosemirror_converter import (
     PROSEMIRROR_SCHEMA,
     ProseMirrorConversionError,
     _cached_prosemirror_text,
+    _colwidth,
     build_schema,
     html_to_prosemirror_json,
     html_to_prosemirror_text,
+    safe_link_attrs,
     safe_style,
     sanitize_editor_html,
+    strip_control_chars,
+    strip_raw_text_elements,
     text_align_from_style,
 )
 from assignments.services import AssignmentProcessingService
@@ -706,3 +711,217 @@ class ConversionCacheTest(SimpleTestCase):
             json.loads(html_to_prosemirror_text(html)),
             html_to_prosemirror_json(html),
         )
+
+
+class SerializationBackToDomTest(SimpleTestCase):
+    """
+    The toDOM half of the schema (prosemirror_converter lines 338-347 and
+    408-420), which had no coverage at all.
+
+    parseDOM decides what the editor RECEIVES; toDOM decides what survives
+    when a stored document is turned back into HTML. A bug here is
+    invisible on the way in and destroys formatting on the way out, so it
+    is worth asserting the emitted attributes exactly rather than just
+    "something came back".
+    """
+
+    class FakeNode:
+        # __slots__ rather than a plain attribute: flake8-bugbear's B903
+        # flags a bare data-holder class, and a namedtuple would not work
+        # here because toDOM mutates nothing but reads `.attrs` as a dict.
+        __slots__ = ("attrs",)
+
+        def __init__(self, **attrs):
+            self.attrs = attrs
+
+    def _cell_to_dom(self, tag, **attrs):
+        spec = PROSEMIRROR_SCHEMA.nodes[
+            "table_cell" if tag == "td" else "table_header"
+        ].spec
+        return spec["toDOM"](self.FakeNode(**attrs))
+
+    def test_a_default_cell_emits_no_redundant_span_attributes(self):
+        """colspan/rowspan of 1 are the default and must not be written."""
+        tag, attrs, hole = self._cell_to_dom("td", colspan=1, rowspan=1)
+
+        self.assertEqual(tag, "td")
+        self.assertEqual(attrs, {})
+        self.assertEqual(hole, 0)
+
+    def test_a_merged_cell_keeps_its_spans(self):
+        _, attrs, _ = self._cell_to_dom("td", colspan=3, rowspan=2)
+
+        self.assertEqual(attrs["colspan"], 3)
+        self.assertEqual(attrs["rowspan"], 2)
+
+    def test_colwidth_is_emitted_as_a_comma_separated_string(self):
+        _, attrs, _ = self._cell_to_dom("td", colspan=1, rowspan=1, colwidth=[120, 80])
+
+        self.assertEqual(attrs["data-colwidth"], "120,80")
+
+    def test_a_header_cell_emits_th_not_td(self):
+        tag, _, _ = self._cell_to_dom("th", colspan=1, rowspan=1)
+
+        self.assertEqual(tag, "th")
+
+    def test_a_cell_style_is_preserved(self):
+        _, attrs, _ = self._cell_to_dom(
+            "td", colspan=1, rowspan=1, style="text-align: center"
+        )
+
+        self.assertEqual(attrs["style"], "text-align: center")
+
+    def _paragraph_to_dom(self, **attrs):
+        spec = PROSEMIRROR_SCHEMA.nodes["paragraph"].spec
+        return spec["toDOM"](self.FakeNode(**attrs))
+
+    def test_a_default_paragraph_emits_no_style(self):
+        tag, attrs, _ = self._paragraph_to_dom(textAlign="left", style=None)
+
+        self.assertEqual(tag, "p")
+        self.assertEqual(attrs, {})
+
+    def test_a_non_default_alignment_becomes_an_inline_style(self):
+        _, attrs, _ = self._paragraph_to_dom(textAlign="center", style=None)
+
+        self.assertEqual(attrs["style"], "text-align: center")
+
+    def test_an_existing_text_align_style_is_used_as_is(self):
+        _, attrs, _ = self._paragraph_to_dom(
+            textAlign="center", style="text-align: right"
+        )
+
+        self.assertEqual(attrs["style"], "text-align: right")
+
+    def test_another_style_is_kept_AND_the_alignment_appended(self):
+        """
+        The regression this branch exists for: an earlier
+        `style or text-align` short-circuit dropped the parsed alignment
+        whenever any other style was present, silently left-aligning
+        centred content.
+        """
+        _, attrs, _ = self._paragraph_to_dom(textAlign="center", style="color: red")
+
+        self.assertEqual(attrs["style"], "color: red; text-align: center")
+
+    def test_a_trailing_semicolon_is_not_doubled(self):
+        _, attrs, _ = self._paragraph_to_dom(textAlign="center", style="color: red;")
+
+        self.assertEqual(attrs["style"], "color: red; text-align: center")
+
+    def test_a_heading_emits_its_own_level(self):
+        spec = PROSEMIRROR_SCHEMA.nodes["heading"].spec
+        tag, attrs, _ = spec["toDOM"](
+            self.FakeNode(level=3, textAlign="center", style=None)
+        )
+
+        self.assertEqual(tag, "h3")
+        self.assertEqual(attrs["style"], "text-align: center")
+
+
+class ColwidthParsingTest(SimpleTestCase):
+    """prosemirror_converter lines 318-324, previously uncovered."""
+
+    def test_a_valid_list_is_parsed_to_ints(self):
+        self.assertEqual(_colwidth({"data-colwidth": "100,200"}), [100, 200])
+
+    def test_whitespace_is_tolerated(self):
+        self.assertEqual(_colwidth({"data-colwidth": " 100 , 200 "}), [100, 200])
+
+    def test_a_missing_attribute_is_none(self):
+        self.assertIsNone(_colwidth({}))
+
+    def test_an_empty_attribute_is_none(self):
+        self.assertIsNone(_colwidth({"data-colwidth": ""}))
+
+    def test_a_non_numeric_entry_discards_the_whole_value(self):
+        """
+        Partial widths would lay the table out wrongly, so a malformed
+        entry drops the attribute rather than keeping half of it.
+        """
+        self.assertIsNone(_colwidth({"data-colwidth": "100,abc"}))
+
+
+class NonStringInputPassthroughTest(SimpleTestCase):
+    """
+    The sanitisers are called from four modules on values that come out of
+    a JSONField, so a non-string (None, an int, a dict) is a real input,
+    not a hypothetical one. They must pass it through untouched rather
+    than raising - lines 65 and 238.
+    """
+
+    def test_strip_control_chars_passes_non_strings_through(self):
+        for value in (None, 42, {"a": 1}, ["x"]):
+            with self.subTest(value=value):
+                self.assertIs(strip_control_chars(value), value)
+
+    def test_strip_raw_text_elements_passes_non_strings_through(self):
+        for value in (None, 42, {"a": 1}):
+            with self.subTest(value=value):
+                self.assertIs(strip_raw_text_elements(value), value)
+
+
+class UnsafeLinkRejectionTest(SimpleTestCase):
+    """prosemirror_converter line 362 - the link mark's scheme guard."""
+
+    def test_a_javascript_href_drops_the_mark_entirely(self):
+        """
+        Returning False tells ProseMirror the rule did not match, so the
+        mark is dropped rather than stored with a hostile href.
+        """
+        self.assertIs(safe_link_attrs({"href": "javascript:alert(1)"}), False)
+
+    def test_a_data_href_drops_the_mark(self):
+        self.assertIs(safe_link_attrs({"href": "data:text/html,<script>"}), False)
+
+    def test_an_https_href_is_kept(self):
+        attrs = safe_link_attrs({"href": "https://example.com/x", "title": "T"})
+
+        self.assertEqual(attrs["href"], "https://example.com/x")
+        self.assertEqual(attrs["title"], "T")
+
+    def test_a_mailto_href_is_kept(self):
+        attrs = safe_link_attrs({"href": "mailto:teacher@example.com"})
+
+        self.assertEqual(attrs["href"], "mailto:teacher@example.com")
+
+    def test_a_relative_href_is_kept(self):
+        """No scheme at all is not a dangerous scheme."""
+        attrs = safe_link_attrs({"href": "/courses/1"})
+
+        self.assertEqual(attrs["href"], "/courses/1")
+
+
+class ConversionFailureTest(SimpleTestCase):
+    """
+    prosemirror_converter lines 656-664: the broad except.
+
+    This runs inside Celery grading tasks where the only signal is the
+    log, so the requirement is that it raises the specific error AND
+    chains the original cause - not that it swallows the problem.
+    """
+
+    def test_a_parser_failure_becomes_a_conversion_error_with_the_cause(self):
+        with patch(
+            "assignments.prosemirror_converter.lxml_html.fromstring",
+            side_effect=RuntimeError("lxml exploded"),
+        ):
+            with self.assertRaises(ProseMirrorConversionError) as caught:
+                html_to_prosemirror_json("<p>hello</p>")
+
+        self.assertIn("lxml exploded", str(caught.exception))
+        self.assertIsInstance(caught.exception.__cause__, RuntimeError)
+
+    def test_the_failure_is_logged_with_enough_context_to_debug(self):
+        with patch(
+            "assignments.prosemirror_converter.lxml_html.fromstring",
+            side_effect=RuntimeError("boom"),
+        ):
+            with self.assertLogs(
+                "assignments.prosemirror_converter", level="ERROR"
+            ) as logs:
+                with self.assertRaises(ProseMirrorConversionError):
+                    html_to_prosemirror_json("<p>distinctive marker</p>")
+
+        combined = "\n".join(logs.output)
+        self.assertIn("distinctive marker", combined)

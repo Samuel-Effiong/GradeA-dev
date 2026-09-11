@@ -35,14 +35,15 @@ from django.http import HttpResponse
 from django.test import (
     LiveServerTestCase,
     RequestFactory,
+    TestCase,
     TransactionTestCase,
     override_settings,
 )
 from django.urls import reverse
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from users.middleware import UserActivityMiddleware
-from users.models import UserActivity, UserTypes
+from users.middleware import ONLINE_SET_KEY, UserActivityMiddleware, heartbeat_key_for
+from users.models import Settings, UserActivity, UserTypes
 
 User = get_user_model()
 
@@ -184,7 +185,7 @@ class HeartbeatThrottleConcurrencyTests(TransactionTestCase):
 
         self.assertEqual(UserActivity.objects.filter(user=self.user).count(), 1)
 
-        cache.delete(f"active_user:{self.user.user_type}:{self.user.id}")
+        cache.delete(heartbeat_key_for(self.user.user_type, self.user.id))
 
         with ThreadPoolExecutor(max_workers=self.WORKERS) as pool:
             [
@@ -206,7 +207,7 @@ class HeartbeatThrottleConcurrencyTests(TransactionTestCase):
                 ]
             ]
 
-        members = cache.smembers("online_users_set")
+        members = cache.smembers(ONLINE_SET_KEY)
         decoded = {m.decode() if isinstance(m, bytes) else m for m in members}
         self.assertIn(f"{self.user.user_type}:{self.user.id}", decoded)
 
@@ -295,7 +296,91 @@ class RedisAvailabilityTests(TransactionTestCase):
             self.skipTest("CI_REQUIRE_REDIS not set")
 
 
+class UnrelatedUserSaveDoesNotClearPresenceTests(TestCase):
+    """
+    The production defect behind this suite's long-standing flakiness,
+    pinned against real Redis.
+
+    users.signals.clear_user_cache runs delete_pattern("*user*") on every
+    CustomUser and Settings save. The heartbeat throttle key and the
+    concurrent-users presence set both used to contain "user", so ANY
+    unrelated user save - registration, a profile edit, a settings change,
+    or the create_default_settings_and_wallet signal chain - wiped both:
+
+      * releasing the SET NX throttle window early, so the next request
+        wrote another UserActivity row and ran another
+        CreditWallet.get_or_create, which is exactly the per-request
+        double DB round trip the throttle exists to prevent; and
+      * silently resetting the concurrent-users figure to zero, which
+        reads as a traffic dip rather than as a bug.
+
+    Measured before the fix: both keys gone, every time.
+    """
+
+    def setUp(self):
+        if not REDIS_OK:
+            self.skipTest(SKIP_REASON)
+        cache.clear()
+        self.addCleanup(cache.clear)
+        self.user = make_user("presence.holder@gmail.com")
+
+    def _claim_window(self):
+        key = heartbeat_key_for(self.user.user_type, self.user.id)
+        self.assertTrue(cache.add(key, 1, 300), "could not claim the window")
+        cache.sadd(ONLINE_SET_KEY, f"{self.user.user_type}:{self.user.id}")
+        return key
+
+    def test_an_unrelated_settings_save_leaves_the_throttle_window_held(self):
+        key = self._claim_window()
+
+        other = make_user("presence.unrelated@gmail.com")
+        settings_row = Settings.objects.filter(user=other).first()
+        self.assertIsNotNone(settings_row, "fixture assumption: a Settings row exists")
+        settings_row.save()
+
+        self.assertIsNotNone(
+            cache.get(key), "an unrelated Settings save released the throttle window"
+        )
+        # And the window still refuses a second writer, which is the
+        # property that actually matters.
+        self.assertFalse(
+            cache.add(key, 2, 300), "the window is no longer held exclusively"
+        )
+
+    def test_an_unrelated_user_save_leaves_the_presence_set_intact(self):
+        self._claim_window()
+        self.assertEqual(cache.scard(ONLINE_SET_KEY), 1)
+
+        other = make_user("presence.unrelated2@gmail.com")
+        other.first_name = "Renamed"
+        other.save()
+
+        self.assertEqual(
+            cache.scard(ONLINE_SET_KEY),
+            1,
+            "an unrelated user save wiped the concurrent-users presence set",
+        )
+
+    def test_the_per_user_json_cache_is_still_swept(self):
+        """
+        The other half: moving these keys out of the way must not stop
+        clear_user_cache doing its actual job.
+        """
+        cache.set("users:user_id__1:query__abc", {"stale": True}, 300)
+        self._claim_window()
+
+        other = make_user("presence.unrelated3@gmail.com")
+        other.first_name = "Renamed"
+        other.save()
+
+        self.assertIsNone(
+            cache.get("users:user_id__1:query__abc"),
+            "clear_user_cache stopped clearing the payloads it exists for",
+        )
+
+
 __all__ = [
+    "UnrelatedUserSaveDoesNotClearPresenceTests",
     "HeartbeatThrottleConcurrencyTests",
     "HeartbeatThrottleLiveServerTests",
     "RedisAvailabilityTests",

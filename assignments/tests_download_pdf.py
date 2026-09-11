@@ -279,6 +279,72 @@ class DownloadPdfViewTest(RigorFixtureMixin, APITestCase):
         self.assertNotIn("?", disposition)
         self.assertIn(".pdf", disposition)
 
+    @patch("assignments.views.render_assignment_pdf")
+    def test_the_filename_is_double_quoted_per_rfc_6266(self, mock_render):
+        """
+        The header used to interpolate Python's repr, which emits SINGLE
+        quotes - browsers treat those as part of the name and save the
+        file as "'Quiz.pdf'", apostrophes included.
+        """
+        mock_render.return_value = b"%PDF-fake"
+        self.client.force_authenticate(user=self.teacher)
+
+        disposition = self.client.get(self._url(self.published), {"view": "teacher"})[
+            "Content-Disposition"
+        ]
+
+        self.assertIn('filename="Published Quiz.pdf"', disposition)
+        self.assertNotIn("'Published Quiz.pdf'", disposition)
+
+    @patch("assignments.views.render_assignment_pdf")
+    def test_a_non_latin_title_still_produces_a_usable_filename(self, mock_render):
+        """
+        `\\w` is Unicode-aware, so a non-Latin title survives the
+        sanitiser and then cannot be encoded into a latin-1 HTTP header.
+        Django MIME-encodes rather than raising, which yields an
+        unreadable "=?utf-8?b?...?=" name - so an ASCII fallback is sent
+        alongside the RFC 5987 `filename*` form that browsers prefer.
+        """
+        mock_render.return_value = b"%PDF-fake"
+        assignment = Assignment.objects.create(
+            title="数学のテスト",
+            course=self.course,
+            status=AssignmentStatus.PUBLISHED,
+            total_points=5,
+            questions=[objective_question()],
+        )
+        self.client.force_authenticate(user=self.teacher)
+
+        disposition = self.client.get(self._url(assignment), {"view": "teacher"})[
+            "Content-Disposition"
+        ]
+
+        self.assertIn("filename*=UTF-8''", disposition)
+        # The fallback must still be a usable .pdf name, never empty.
+        self.assertIn('filename="', disposition)
+        self.assertIn(".pdf", disposition)
+        self.assertNotIn("=?utf-8?b?", disposition.lower())
+
+    @patch("assignments.views.render_assignment_pdf")
+    def test_a_title_of_only_punctuation_does_not_yield_a_bare_extension(
+        self, mock_render
+    ):
+        mock_render.return_value = b"%PDF-fake"
+        assignment = Assignment.objects.create(
+            title="???!!!",
+            course=self.course,
+            status=AssignmentStatus.PUBLISHED,
+            total_points=5,
+            questions=[objective_question()],
+        )
+        self.client.force_authenticate(user=self.teacher)
+
+        disposition = self.client.get(self._url(assignment), {"view": "teacher"})[
+            "Content-Disposition"
+        ]
+
+        self.assertIn('filename="assignment.pdf"', disposition)
+
 
 @unittest.skipUnless(
     _CHROMIUM_AVAILABLE,

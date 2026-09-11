@@ -916,3 +916,205 @@ class LoadSheddingTest(SimpleTestCase):
         self.assertTrue(
             issubclass(pdf_renderer.PDFRendererBusy, pdf_renderer.PDFRenderError)
         )
+
+
+class LoadSheddingUnderRealContentionTest(SimpleTestCase):
+    """
+    Load shedding driven by genuinely concurrent threads.
+
+    The tests in LoadSheddingTest above set `worker._queued` by hand, which
+    pins the arithmetic but not the thing the commit that added shedding
+    actually claims: that under real contention the callers past capacity
+    are refused *immediately* while the ones inside it still complete.
+    Hand-setting the counter cannot catch a lost decrement, a slot leaked
+    by a racing thread, or a refusal that quietly waits on the queue lock -
+    every one of which is a bug that only exists between threads.
+
+    These drive real threads through the real render() entry point.
+    """
+
+    def setUp(self):
+        pdf_renderer.reset_worker_for_tests()
+
+    def tearDown(self):
+        pdf_renderer.reset_worker_for_tests()
+
+    @staticmethod
+    def _run_concurrently(target, count):
+        """Release `count` threads together and collect (result, error)."""
+        outcomes: list = [None] * count
+        barrier = threading.Barrier(count)
+
+        def work(index):
+            try:
+                barrier.wait(timeout=30)
+                outcomes[index] = ("ok", target())
+            except pdf_renderer.PDFRendererBusy as exc:
+                outcomes[index] = ("shed", exc)
+            except Exception as exc:  # pragma: no cover - a real failure
+                outcomes[index] = ("error", exc)
+
+        threads = [threading.Thread(target=work, args=(i,)) for i in range(count)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=60)
+        return outcomes
+
+    @unittest.skipUnless(_CHROMIUM_AVAILABLE, "Headless Chromium not available")
+    def test_exactly_the_limit_is_admitted_and_the_rest_are_shed(self):
+        """
+        20 threads against a limit of 4: precisely 4 get in, 16 are refused.
+
+        Blocking inside _await_render rather than rendering a slow document
+        keeps the arithmetic deterministic - what is under test is render()'s
+        queue accounting under contention, not Chromium's timing.
+
+        The admitted renders are held open until all 16 refusals have
+        actually happened. Releasing them earlier would free slots that
+        threads still on their way to the capacity check could legitimately
+        take, which measures the test's own scheduling rather than the
+        shedding rule.
+        """
+        worker = pdf_renderer._get_worker()
+        html = (
+            "<!doctype html><html><head><title>t</title></head>"
+            "<body><p>hi</p></body></html>"
+        )
+        total, limit = 20, 4
+        admitted = threading.Semaphore(0)
+        shed_signal = threading.Semaphore(0)
+        release = threading.Event()
+        outcomes: list = [None] * total
+        barrier = threading.Barrier(total)
+
+        def blocking_render(*args, **kwargs):
+            admitted.release()
+            release.wait(timeout=30)
+            return b"%PDF-blocked"
+
+        def work(index):
+            try:
+                barrier.wait(timeout=30)
+                outcomes[index] = ("ok", worker.render(html))
+            except pdf_renderer.PDFRendererBusy as exc:
+                outcomes[index] = ("shed", exc)
+                shed_signal.release()
+            except Exception as exc:  # pragma: no cover - a real failure
+                outcomes[index] = ("error", exc)
+                shed_signal.release()
+
+        with override_settings(PDF_RENDERER_MAX_QUEUED_RENDERS=limit):
+            with patch.object(worker, "_await_render", side_effect=blocking_render):
+                threads = [
+                    threading.Thread(target=work, args=(i,)) for i in range(total)
+                ]
+                for thread in threads:
+                    thread.start()
+                for _ in range(limit):
+                    self.assertTrue(
+                        admitted.acquire(timeout=30), "a render never started"
+                    )
+                for _ in range(total - limit):
+                    self.assertTrue(
+                        shed_signal.acquire(timeout=30),
+                        "a caller past capacity was neither admitted nor refused",
+                    )
+                release.set()
+                for thread in threads:
+                    thread.join(timeout=60)
+
+        kinds = [kind for kind, _ in outcomes]
+        self.assertEqual(kinds.count("error"), 0, outcomes)
+        self.assertEqual(kinds.count("ok"), limit, "the limit is what gets admitted")
+        self.assertEqual(
+            kinds.count("shed"), total - limit, "everyone past it is refused"
+        )
+        self.assertEqual(worker._queued, 0, "every admitted slot was released")
+
+    @unittest.skipUnless(_CHROMIUM_AVAILABLE, "Headless Chromium not available")
+    def test_shed_callers_are_refused_far_faster_than_admitted_ones_render(self):
+        """
+        The whole point of shedding is not to park a request thread. A
+        refusal must return while the accepted renders are still running,
+        not after them - that is the difference between a 503 in
+        milliseconds and a thread pinned for the render timeout.
+        """
+        worker = pdf_renderer._get_worker()
+        html = (
+            "<!doctype html><html><head><title>t</title></head>"
+            "<body><p>hi</p></body></html>"
+        )
+        admitted = threading.Semaphore(0)
+        release = threading.Event()
+
+        def blocking_render(*args, **kwargs):
+            admitted.release()
+            release.wait(timeout=30)
+            return b"%PDF-blocked"
+
+        shed_durations = []
+        lock = threading.Lock()
+
+        def timed_shed():
+            started = time.perf_counter()
+            try:
+                worker.render(html)
+            finally:
+                with lock:
+                    shed_durations.append(time.perf_counter() - started)
+
+        with override_settings(PDF_RENDERER_MAX_QUEUED_RENDERS=1):
+            with patch.object(worker, "_await_render", side_effect=blocking_render):
+                holder = threading.Thread(target=lambda: worker.render(html))
+                holder.start()
+                self.assertTrue(admitted.acquire(timeout=30), "holder never started")
+
+                # The queue is now full and will stay full until we say so.
+                outcomes = self._run_concurrently(timed_shed, 10)
+                release.set()
+                holder.join(timeout=30)
+
+        self.assertEqual([kind for kind, _ in outcomes], ["shed"] * 10)
+        # Measured at ~0ms; 1s is a generous ceiling that still fails loudly
+        # if a refusal ever starts waiting on the render it declined.
+        self.assertLess(max(shed_durations), 1.0, shed_durations)
+
+    @unittest.skipUnless(_CHROMIUM_AVAILABLE, "Headless Chromium not available")
+    def test_capacity_is_fully_reclaimed_so_shedding_is_not_permanent(self):
+        """
+        A burst that sheds must not leave the process refusing work
+        afterwards - a leaked slot would turn one spike into a permanent
+        outage of every PDF download on that worker.
+        """
+        worker = pdf_renderer._get_worker()
+        html = (
+            "<!doctype html><html><head><title>t</title></head>"
+            "<body><p>hi</p></body></html>"
+        )
+        release = threading.Event()
+        admitted = threading.Semaphore(0)
+
+        def blocking_render(*args, **kwargs):
+            admitted.release()
+            release.wait(timeout=30)
+            return b"%PDF-blocked"
+
+        with override_settings(PDF_RENDERER_MAX_QUEUED_RENDERS=2):
+            with patch.object(worker, "_await_render", side_effect=blocking_render):
+                runner_outcomes: list = []
+                runner = threading.Thread(
+                    target=lambda: runner_outcomes.extend(
+                        self._run_concurrently(lambda: worker.render(html), 12)
+                    )
+                )
+                runner.start()
+                for _ in range(2):
+                    self.assertTrue(admitted.acquire(timeout=30))
+                release.set()
+                runner.join(timeout=60)
+
+            self.assertEqual(worker._queued, 0)
+            # Real render, real Chromium, immediately after the burst.
+            pdf_renderer.ensure_capacity()  # must not raise
+            self.assertTrue(pdf_renderer.render_html_to_pdf(html).startswith(b"%PDF"))

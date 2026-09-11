@@ -191,6 +191,50 @@ class EnrollmentStatusType(models.TextChoices):
     PENDING = "PENDING", _("Pending")
 
 
+#: The enrollment states that entitle a student to READ a course's content
+#: (its assignments, their PDFs, its topics).
+#:
+#: Derived from the rules the rest of the codebase already applies, not
+#: invented here:
+#:   * ENROLLED   - the only state that receives the "new assignment posted"
+#:                  notification and the due-date reminder
+#:                  (assignments/tasks.py), so it is the state the product
+#:                  already treats as "in the class".
+#:   * COMPLETED  - finished the course; must keep their own history, and
+#:                  dashboard/views.py already groups it with ENROLLED as
+#:                  `active_enrollment_statuses`.
+#:   * PENDING    - invited but has not finished registering. Never notified
+#:                  about anything, and users/views.py promotes the row to
+#:                  ENROLLED the moment registration completes.
+#:   * WITHDRAWN  - deliberately removed from the course.
+#:
+#: Deliberately NOT expressed as `StudentCourseQuerySet.active()`, which
+#: excludes only WITHDRAWN and is used by seven dashboard aggregates whose
+#: reported numbers would silently change if it were narrowed. This is a
+#: read-authorization rule; that one is a reporting rule.
+#:
+#: THE SINGLE SOURCE OF TRUTH for what a student may read. Before this was
+#: unified, four endpoints disagreed about the same question:
+#:   * assignments   - ENROLLED + COMPLETED
+#:   * courses       - anything except WITHDRAWN (so PENDING too)
+#:   * sessions      - ENROLLED only (so a COMPLETED student could open an
+#:                     assignment but not see the session holding it)
+#:   * topics        - NO status filter at all, so a WITHDRAWN student kept
+#:                     reading the topic list of a course they were removed
+#:                     from
+#: Every student-facing read of course content now filters on this tuple.
+#: Adding a status here widens access in all four places at once, which is
+#: the point: the rule should not be re-decided per endpoint.
+#:
+#: Teacher-facing *reporting* (dashboard aggregates, "my students") is a
+#: separate question and deliberately still excludes only WITHDRAWN - a
+#: teacher counting their roster should see a pending invitee.
+COURSE_ACCESS_ENROLLMENT_STATUSES = (
+    EnrollmentStatusType.ENROLLED,
+    EnrollmentStatusType.COMPLETED,
+)
+
+
 class StudentCourseQuerySet(models.QuerySet):
     def active(self):
         return self.exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)

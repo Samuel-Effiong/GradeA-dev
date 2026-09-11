@@ -28,6 +28,7 @@ zero changes since the strip is idempotent.
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.utils import timezone
 
 from assignments.models import Assignment
 from assignments.services import _strip_leading_option_letter
@@ -155,5 +156,16 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS("done"))
 
     def _flush(self, batch):
+        # `updated_at` is bumped by hand and written alongside `questions`.
+        # bulk_update refreshes neither auto_now columns nor signals, and
+        # assignments/pdf_cache.py keys every cached PDF on this exact
+        # timestamp - so repairing an option here without advancing it
+        # leaves the pre-repair PDF being served for the rest of the
+        # cache's TTL (a day by default), which is precisely the doubled
+        # "A. A)" marker this command exists to remove.
+        now = timezone.now()
+        for assignment in batch:
+            assignment.updated_at = now
+
         with transaction.atomic():
-            Assignment.objects.bulk_update(batch, ["questions"])
+            Assignment.objects.bulk_update(batch, ["questions", "updated_at"])

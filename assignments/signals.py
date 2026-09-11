@@ -1,7 +1,6 @@
 import json
 from datetime import timedelta
 
-from django.core.cache import cache
 from django.db import transaction
 from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
@@ -9,18 +8,21 @@ from django.utils import timezone
 from django_celery_beat.models import ClockedSchedule, PeriodicTask
 
 from assignments.models import Assignment, AssignmentGenerationSession, AssignmentStatus
+from assignments.pdf_cache import invalidate_assignment_pdfs
 from assignments.rigor import score_assignment
 from assignments.services import _strip_html_from_title
+from AutoGrader.cache_utils import delete_cache_patterns
+
+# `delete_cache_patterns` is the project's shared helper (AutoGrader/
+# cache_utils.py), not a local copy. These are post_save/post_delete
+# receivers, which Django runs inside the caller's transaction, so an
+# unguarded cache.delete_pattern here did not merely skip an invalidation -
+# it failed the assignment save that triggered it, meaning a Redis blip
+# stopped teachers saving their work. The shared helper treats invalidation
+# as best-effort (stale for at most CACHE_TTL beats refusing the write) and
+# additionally coalesces patterns inside a batched_cache_invalidation block.
 
 ASSIGNMENT_DUE_REMINDER_OFFSETS = (24, 1)
-
-
-def delete_cache_patterns(*patterns):
-    if not hasattr(cache, "delete_pattern"):
-        return
-
-    for pattern in patterns:
-        cache.delete_pattern(pattern)
 
 
 def assignment_due_reminder_task_name(assignment_id, hours_before):
@@ -87,6 +89,10 @@ def queue_new_assignment_posted_notification(instance, created):
 
 @receiver([post_save, post_delete], sender=Assignment)
 def clear_assignment_cache(sender, instance, **kwargs):
+    # These patterns cover the per-user DRF list/retrieve JSON that
+    # users/mixins.py caches. Those entries are keyed by user + query
+    # params only, so nothing in the key reveals that they went stale and
+    # a wildcard sweep is the only way to clear them.
     delete_cache_patterns(
         "*superadmin*",
         "*schooladmin*",
@@ -97,6 +103,12 @@ def clear_assignment_cache(sender, instance, **kwargs):
         "assignments:*",
         "studentsubmissions:*",
     )
+    # Rendered PDFs are handled separately and precisely: they live under
+    # their own key prefix (see assignments/pdf_cache.py) specifically so
+    # that saving THIS assignment cannot discard every other assignment's
+    # cached documents, which is what the "assignments:*" sweep above used
+    # to do to them.
+    invalidate_assignment_pdfs(instance.id)
 
 
 @receiver([post_save, post_delete], sender=AssignmentGenerationSession)

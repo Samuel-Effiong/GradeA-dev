@@ -13,7 +13,6 @@ from users.models import UserTypes
 
 from .models import (  # Rubric
     Assignment,
-    AssignmentGenerationHistory,
     AssignmentGenerationMessage,
     AssignmentGenerationRole,
     AssignmentGenerationSession,
@@ -239,10 +238,26 @@ class AssignmentSerializer(serializers.ModelSerializer):
                 instance.overridden_at = timezone.now()
         return super().update(instance, validated_data)
 
-    def get_submission_count(self, obj):
-        if obj.status == AssignmentStatus.PUBLISHED or obj.submissions:
-            return obj.submissions.count()
-        return 0
+    def get_submission_count(self, obj) -> int:
+        """
+        Prefer the annotation the viewset attaches, falling back to a
+        per-row COUNT for callers that build this serializer by hand.
+
+        Without the annotation this was one COUNT query per row - 20 extra
+        round trips on a default page, and the single largest cost of a
+        teacher's assignment list.
+
+        The old guard read `obj.status == PUBLISHED or obj.submissions`,
+        which looks like "only count when there are submissions" but is
+        always true: a related manager is truthy whether or not it has
+        rows. Counting unconditionally is therefore what this endpoint has
+        always actually done - this stops pretending otherwise rather than
+        changing the number anyone sees.
+        """
+        annotated = getattr(obj, "annotated_submission_count", None)
+        if annotated is not None:
+            return annotated
+        return obj.submissions.count()
 
 
 class AssignmentListSerializer(serializers.ModelSerializer):
@@ -279,10 +294,26 @@ class AssignmentListSerializer(serializers.ModelSerializer):
             "is_grading_scheduled",
         ]
 
-    def get_submission_count(self, obj):
-        if obj.status == AssignmentStatus.PUBLISHED or obj.submissions:
-            return obj.submissions.count()
-        return 0
+    def get_submission_count(self, obj) -> int:
+        """
+        Prefer the annotation the viewset attaches, falling back to a
+        per-row COUNT for callers that build this serializer by hand.
+
+        Without the annotation this was one COUNT query per row - 20 extra
+        round trips on a default page, and the single largest cost of a
+        teacher's assignment list.
+
+        The old guard read `obj.status == PUBLISHED or obj.submissions`,
+        which looks like "only count when there are submissions" but is
+        always true: a related manager is truthy whether or not it has
+        rows. Counting unconditionally is therefore what this endpoint has
+        always actually done - this stops pretending otherwise rather than
+        changing the number anyone sees.
+        """
+        annotated = getattr(obj, "annotated_submission_count", None)
+        if annotated is not None:
+            return annotated
+        return obj.submissions.count()
 
     def get_is_grading_scheduled(self, obj) -> bool:
         return bool(
@@ -897,111 +928,4 @@ class AssignmentGenerationSessionDetailSerializer(serializers.ModelSerializer):
             "messages",
             "created_at",
             "updated_at",
-        ]
-
-
-class AssignmentGenerationHistorySerializer(serializers.ModelSerializer):
-    """
-    Serializer for the AssignmentGenerationHistory model.
-
-    This serializer provides a simplified view of the history entry,
-    including the prompt and a summary of the generated assignment.
-    """
-
-    assignment_title = serializers.CharField(
-        source="assignment.title",
-        read_only=True,
-        help_text="Title of the generated assignment",
-    )
-    assignment_questions_count = serializers.IntegerField(
-        source="assignment.question_count",
-        read_only=True,
-        help_text="Number of questions in the generated assignment",
-    )
-    assignment_type = serializers.CharField(
-        source="assignment.assignment_type",
-        read_only=True,
-        help_text="Type of the generated assignment",
-    )
-    course_name = serializers.CharField(
-        source="course.name", read_only=True, help_text="Name of the course"
-    )
-    topic_name = serializers.CharField(
-        source="topic.name",
-        read_only=True,
-        allow_null=True,
-        help_text="Name of the topic (if any)",
-    )
-
-    class Meta:
-        model = AssignmentGenerationHistory
-        fields = [
-            "id",
-            "prompt",
-            "assignment",
-            "assignment_title",
-            "assignment_questions_count",
-            "assignment_type",
-            "course",
-            "course_name",
-            "topic",
-            "topic_name",
-            "generation_mode",
-            "created_at",
-        ]
-        read_only_fields = [
-            "id",
-            "assignment_title",
-            "assignment_questions_count",
-            "assignment_type",
-            "course_name",
-            "topic_name",
-            "created_at",
-        ]
-
-
-class AssignmentGenerationHistoryDetailSerializer(serializers.ModelSerializer):
-    """
-    Detailed serializer for AssignmentGenerationHistory.
-
-    Includes the full assignment object alongside the prompt and metadata.
-    """
-
-    assignment = AssignmentListSerializer(read_only=True)
-    course_name = serializers.CharField(
-        source="course.name", read_only=True, help_text="Name of the course"
-    )
-    topic_name = serializers.CharField(
-        source="topic.name",
-        read_only=True,
-        allow_null=True,
-        help_text="Name of the topic (if any)",
-    )
-    user_name = serializers.CharField(
-        source="user.get_full_name",
-        read_only=True,
-        help_text="Name of the user who generated the assignment",
-    )
-
-    class Meta:
-        model = AssignmentGenerationHistory
-        fields = [
-            "id",
-            "prompt",
-            "assignment",
-            "course",
-            "course_name",
-            "topic",
-            "topic_name",
-            "user_name",
-            "generation_mode",
-            "created_at",
-        ]
-        read_only_fields = [
-            "id",
-            "assignment",
-            "course_name",
-            "topic_name",
-            "user_name",
-            "created_at",
         ]

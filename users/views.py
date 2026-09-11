@@ -1577,6 +1577,40 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                         # the mailing list (queue_sync no-ops on inactive).
                         safe_delay(sync_user_to_mailerlite, str(user.id))
 
+                        # Finishing registration is what promotes a
+                        # teacher's invitation from PENDING to ENROLLED,
+                        # and register_student (the emailed-link flow)
+                        # does exactly this. A student invited to a course
+                        # who signs in with Google instead of using that
+                        # link completed registration by a different door,
+                        # so the same promotion has to happen here or
+                        # their enrollments stay PENDING forever - which,
+                        # now that PENDING is not an access-granting state
+                        # (see classrooms.models
+                        # COURSE_ACCESS_ENROLLMENT_STATUSES), would lock
+                        # them out of the very course they were invited to.
+                        #
+                        # Gated on `resurrected_fields` deliberately: this
+                        # only fires for an account that was still
+                        # unverified/inactive, i.e. one that had genuinely
+                        # not finished registering. It never touches the
+                        # PENDING rows of an already-established account,
+                        # and Google has just proven mailbox ownership of
+                        # the exact address the teacher invited - strictly
+                        # stronger evidence than the emailed code.
+                        promoted = StudentCourse.objects.filter(
+                            student=user,
+                            enrollment_status=EnrollmentStatusType.PENDING,
+                        ).update(enrollment_status=EnrollmentStatusType.ENROLLED)
+                        if promoted:
+                            logger.info(
+                                "Promoted %s pending enrollment(s) to ENROLLED "
+                                "after Google sign-in completed registration "
+                                "for user %s",
+                                promoted,
+                                user.id,
+                            )
+
                 expiry = timezone.now() + timedelta(seconds=expires_in)
                 credentials, _ = UserGoogleCredentials.objects.update_or_create(
                     user=user,

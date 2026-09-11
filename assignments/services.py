@@ -3,12 +3,10 @@ import logging
 import re
 from datetime import datetime
 from io import BytesIO
-from pathlib import Path
 from typing import Any, Dict
 from urllib.parse import urlparse
 
 import bleach
-import fitz
 from django.core.files.uploadedfile import SimpleUploadedFile, UploadedFile
 from django.db import transaction
 from django.utils import timezone
@@ -16,6 +14,7 @@ from django.utils.html import escape as escape_html
 from django.utils.html import strip_tags
 from lxml import html as lxml_html
 from PIL import Image
+from PIL.Image import DecompressionBombError
 from rest_framework.exceptions import ParseError
 
 from ai_processor.services import ai_processor, pdf_service
@@ -36,12 +35,6 @@ from students.task_tracking import (
 )
 
 logger = logging.getLogger(__name__)
-
-# from docutils.transforms.universal import Validate
-
-# from ai_processor.services import ai_processor
-
-# from assignments.models import Assignment
 
 # AI-generated content is untrusted input. It's only ever supposed to use
 # plain formatting markup (see the "HTML Must Be Clean" rules in
@@ -189,6 +182,16 @@ QUESTION_TYPE_LABELS = {
     "SHORT-ANSWER": "Short Answer",
 }
 
+#: Ceiling on an uploaded image's DECODED size, checked from the header
+#: before any pixels are allocated. AutoGrader/uploads.py caps the encoded
+#: bytes at 50 MB, which a compressed "decompression bomb" slips straight
+#: through - a 400 KB PNG can declare a raster of billions of pixels.
+#:
+#: 50 MP is far above any real scan (a 600-dpi A4 page is ~35 MP) and far
+#: below what would threaten a worker's memory: at 4 bytes per pixel this
+#: bounds one decode at roughly 200 MB.
+MAX_IMAGE_PIXELS = 50_000_000
+
 
 def _option_letter(index: int) -> str:
     """A, B, C, ... Z, then falls back to a 1-based number past 26 options."""
@@ -262,69 +265,86 @@ def _parse_due_date(due_date):
         return None
 
 
-class PDFService:
-    """
-    Service class for extracting structured data from assignment PDFs
-    """
-
-    def __init__(self, uploaded_file: UploadedFile) -> None:
-        self.uploaded_file = uploaded_file
-        self.extracted_data = {
-            "title": "",
-            "questions": [],
-            "page_count": 0,
-        }
-
-    def extract(self) -> dict:
-        """
-        Extract data from the uploaded pdf
-        """
-
-        if self.uploaded_file.content_type != "application/pdf":
-            raise ValueError("Unsupported file format. Only PDF is supported.")
-        else:
-            self.__process_pdf()
-        return self.extracted_data
-
-    def __process_pdf(self):
-        """
-        Process the PDF using fitz (PyMuPDF) to extract data from the UploadedFile object.
-        """
-        try:
-            pdf_bytes = self.uploaded_file.read()
-            pdf_document = fitz.open(stream=pdf_bytes, filetype="pdf")
-
-            self.extracted_data["page_count"] = pdf_document.page_count
-
-            full_text = ""
-
-            for page_number in range(pdf_document.page_count):
-                page = pdf_document.load_page(page_number)
-                full_text += page.get_text().strip()
-
-            # Use the filename for the title
-            self.extracted_data["title"] = Path(self.uploaded_file.name).stem
-            self.extracted_data["questions"] = full_text
-
-            pdf_document.close()
-        except Exception as e:
-            raise ValueError(f"Something went wrong: {str(e)}") from e
-
-
 class AssignmentProcessingService:
     IMAGE_FORMATS = ["image/jpeg", "image/png", "image/gif", "image/webp"]
     PDF_FORMAT = "application/pdf"
+
+    @classmethod
+    def _compress_uploaded_image(cls, uploaded_file) -> bytes:
+        """
+        Decode and compress one uploaded image, refusing anything that is
+        not really a decodable image of a sane size.
+
+        `uploaded_file.content_type` is the CLIENT'S claim - it comes
+        straight off the multipart Content-Type header and is trivially
+        forged - so it selects which branch to try, never what is trusted.
+        Two things previously went wrong once that claim was false:
+
+          * A non-image body labelled "image/png" made Image.open raise
+            UnidentifiedImageError, which nothing caught. The caller got a
+            500 and a stack trace for what is an ordinary bad request.
+
+          * A "decompression bomb" - a few hundred KB of PNG that decodes
+            to gigabytes of pixels - passed the 50 MB size cap (which
+            bounds the ENCODED bytes, not the decoded raster) and was
+            handed to Pillow to allocate. Pillow only *warns* between 1x
+            and 2x its MAX_IMAGE_PIXELS default, so a single request could
+            allocate hundreds of MB on an endpoint that is reachable by
+            any authenticated teacher.
+
+        The dimensions are therefore checked from the header BEFORE the
+        pixels are decoded, which is the only point at which refusing is
+        still cheap.
+        """
+        try:
+            image = Image.open(BytesIO(uploaded_file.read()))
+        except DecompressionBombError as exc:
+            raise ParseError(
+                f"{uploaded_file.name} declares image dimensions too large "
+                "to process safely."
+            ) from exc
+        except Exception as exc:
+            # UnidentifiedImageError, a truncated file, an OSError from a
+            # malformed header - all of them mean the same thing to the
+            # caller, and none of them is a server fault.
+            raise ParseError(
+                f"{uploaded_file.name} could not be read as an image. It may "
+                "be corrupted, or not actually be the format its name "
+                "suggests. Please re-export it and try again."
+            ) from exc
+
+        width, height = image.size
+        if width * height > MAX_IMAGE_PIXELS:
+            raise ParseError(
+                f"{uploaded_file.name} is {width}x{height} pixels, which is "
+                f"larger than the {MAX_IMAGE_PIXELS // 1_000_000} megapixel "
+                "limit. Please downscale it and try again."
+            )
+
+        try:
+            # Forces the actual decode. Anything that only fails on real
+            # pixel data - a truncated body, a corrupt scanline - surfaces
+            # here rather than deeper in the AI pipeline.
+            image.load()
+            return compress_image_for_upload(image)
+        except ImageCompressionError as exc:
+            raise ParseError(str(exc)) from exc
+        except DecompressionBombError as exc:
+            raise ParseError(
+                f"{uploaded_file.name} expands to an unsafe size when decoded."
+            ) from exc
+        except Exception as exc:
+            raise ParseError(
+                f"{uploaded_file.name} could not be decoded. It may be "
+                "truncated or corrupted."
+            ) from exc
 
     @classmethod
     def prepare_ai_content(cls, uploaded_file, prompt_text: str):
         content: list[dict[str, Any]] = [{"type": "text", "text": prompt_text}]
 
         if uploaded_file.content_type in cls.IMAGE_FORMATS:
-            try:
-                image = Image.open(BytesIO(uploaded_file.read()))
-                compressed_bytes = compress_image_for_upload(image)
-            except ImageCompressionError as exc:
-                raise ParseError(str(exc)) from exc
+            compressed_bytes = cls._compress_uploaded_image(uploaded_file)
             base64_data = encode_image(image_byte=compressed_bytes)
             content.append(
                 {
@@ -748,9 +768,9 @@ class AssignmentProcessingService:
         processing_task_id=None,
     ) -> dict:
 
-        print("Extracting assignment content")
-
-        # assignment = Assignment.objects.get(id=assignment_id)
+        logger.info(
+            "Extracting assignment content for user %s", getattr(user, "id", None)
+        )
 
         ensure_task_not_cancelled(processing_task_id)
         extraction_started_at = timezone.now()

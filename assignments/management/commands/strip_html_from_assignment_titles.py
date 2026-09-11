@@ -23,6 +23,7 @@ zero changes since the strip is idempotent.
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.utils import timezone
 
 from assignments.models import Assignment
 from assignments.services import _strip_html_from_title
@@ -96,5 +97,16 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS("done"))
 
     def _flush(self, batch):
+        # `updated_at` is bumped by hand and written alongside `title`.
+        # bulk_update refreshes neither auto_now columns nor signals, and
+        # assignments/pdf_cache.py keys every cached PDF on this exact
+        # timestamp - so stripping the markup here without advancing it
+        # leaves a day's worth of downloads still showing the literal
+        # "<p>Matrices Exam</p>" in the PDF header this command exists to
+        # clean up.
+        now = timezone.now()
+        for assignment in batch:
+            assignment.updated_at = now
+
         with transaction.atomic():
-            Assignment.objects.bulk_update(batch, ["title"])
+            Assignment.objects.bulk_update(batch, ["title", "updated_at"])

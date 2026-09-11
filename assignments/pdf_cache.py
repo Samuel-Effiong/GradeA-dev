@@ -47,12 +47,25 @@ from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
 
-# Namespaced under "assignments:" so the existing wildcard invalidation in
-# assignments/signals.py (clear_assignment_cache, which deletes
-# "assignments:*" on every Assignment save/delete) sweeps these too. That
-# is belt-and-braces on top of the timestamped key, not the mechanism the
-# correctness of this cache depends on.
-CACHE_KEY_PREFIX = "assignments:pdf"
+# Deliberately OUTSIDE the "assignments:" namespace.
+#
+# "assignments:*" belongs to the per-user DRF list/retrieve JSON that
+# users/mixins.py UserCacheMixin stores, and seven modules sweep it with
+# delete_pattern on every save of an Assignment, Course, Session, Topic,
+# StudentCourse or StudentSubmission. That sweep is correct for those
+# entries: they are keyed by user + query params only, so nothing in the
+# key can tell you they went stale.
+#
+# A rendered PDF is the opposite kind of entry. Its key carries the
+# assignment's own updated_at, so a superseded render can never be read
+# back under the new key - which made the sweep pure loss: saving any one
+# assignment discarded every cached PDF for every assignment and every
+# teacher, including one the publish-time pre-render had produced seconds
+# earlier. Keeping these keys out of that namespace is what makes the
+# cache survive normal write traffic; invalidate_assignment_pdfs() below
+# is the targeted replacement, scoped to the single assignment that
+# actually changed.
+CACHE_KEY_PREFIX = "assignmentpdf"
 # Bump to invalidate every cached PDF at once (e.g. after a change to the
 # PDF template/styling, which the key's own components can't detect).
 CACHE_VERSION = "v1"
@@ -126,6 +139,43 @@ def store_pdf(assignment, view_type: str, pdf_bytes: bytes) -> None:
     except Exception:
         logger.exception(
             "[PDF] cache write failed - continuing without caching this render."
+        )
+
+
+def invalidate_assignment_pdfs(assignment_id) -> None:
+    """
+    Drop every cached PDF for ONE assignment. Never raises.
+
+    Called from assignments/signals.py when that assignment is saved or
+    deleted. Strictly speaking this is not needed for correctness - the
+    timestamp in the key already means a saved assignment is read under a
+    new key and the superseded entry is unreachable - but leaving those
+    entries to age out means a busy editor's discarded renders hold Redis
+    for a full TTL, and a deleted assignment's PDFs (rubrics and model
+    answers included) would outlive the row itself.
+
+    Scoped to `assignment_id`, which is the whole point: the wildcard this
+    replaces took out every other assignment's PDFs as collateral. The
+    view type and timestamp are what the trailing "*" covers, so both
+    views and every superseded render of this one assignment go together.
+
+    Requires a backend with delete_pattern (django-redis, i.e. every
+    deployed environment). Where that is unavailable the entries simply
+    age out under their TTL, which is the pre-existing behaviour and still
+    correct.
+    """
+    if not _enabled():
+        return
+    if not hasattr(cache, "delete_pattern"):
+        return
+
+    try:
+        cache.delete_pattern(f"{CACHE_KEY_PREFIX}:{CACHE_VERSION}:{assignment_id}:*")
+    except Exception:
+        logger.exception(
+            "[PDF] failed to invalidate cached PDFs for assignment %s; they "
+            "are unreachable under the new key anyway and will age out.",
+            assignment_id,
         )
 
 

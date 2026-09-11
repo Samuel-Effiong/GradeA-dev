@@ -4,10 +4,11 @@ import logging
 import re
 import uuid
 from io import BytesIO
+from urllib.parse import quote
 
 from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -46,7 +47,7 @@ from billing.access_control import AIFeatureNotAvailableError
 from billing.errors import InsufficientCreditsError
 
 # from ai_processor.tools import encode_image
-from classrooms.models import Course, Topic
+from classrooms.models import COURSE_ACCESS_ENROLLMENT_STATUSES, Course, Topic
 from classrooms.permissions import IsTeacher, IsTeacherOrReadOnly
 from classrooms.serializers import TopicSerializer
 from students.models import BackgroundTaskType, BatchUploadSession, BatchUploadType
@@ -101,8 +102,6 @@ logger = logging.getLogger(__name__)
 
 
 # from ai_processor.validators import AssignmentStructure
-
-# from assignments.services import PDFService
 
 
 @extend_schema_view(
@@ -305,11 +304,55 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
 
+        # select_related("course__teacher"): every action that renders a
+        # document walks both relations - render_assignment_pdf reads
+        # course.name and course.teacher.get_full_name(), and the student
+        # list serializer reads course.name per row. Without it those are
+        # separate queries per assignment (assignments.tasks
+        # .prerender_assignment_pdfs already fetches it this way, so the
+        # download path was the odd one out).
         if user.user_type == UserTypes.TEACHER:
-            return Assignment.objects.filter(course__teacher=user)
+            # annotate: AssignmentListSerializer reports submission_count
+            # per row, which was one COUNT query each - 20 extra round
+            # trips on a default page. distinct=True because the filter
+            # backend can join (?course__session=...), and a join would
+            # otherwise multiply the count.
+            return (
+                Assignment.objects.select_related("course__teacher")
+                .annotate(
+                    annotated_submission_count=Count("submissions", distinct=True)
+                )
+                .filter(course__teacher=user)
+                # order_by is REQUIRED here, not decoration. annotate()
+                # puts a GROUP BY on the query, and Django's compiler
+                # drops Meta.ordering entirely once that happens
+                # (QuerySet.ordered is False for exactly this reason) - so
+                # without this the list comes back in whatever order
+                # Postgres finds convenient, and paging through it can
+                # repeat one assignment while skipping another.
+                #
+                # "id" is a tiebreaker, not cosmetic: Assignment.title is
+                # nullable and not unique, so ordering on title alone
+                # leaves same-titled rows in an undefined order and page
+                # boundaries can shuffle between requests.
+                .order_by("title", "id")
+            )
         elif user.user_type == UserTypes.STUDENT:
-            return Assignment.objects.filter(
-                course__enrollments__student=user, status=AssignmentStatus.PUBLISHED
+            # The enrollment_status filter is the access boundary, not a
+            # tidy-up. Matching on "an enrollment row exists" alone let a
+            # WITHDRAWN student - one a teacher had deliberately removed
+            # from the course - keep listing and downloading every
+            # published assignment and its PDF indefinitely, and let a
+            # PENDING student (invited, registration unfinished) read a
+            # course they were never notified about and had not yet
+            # joined. See COURSE_ACCESS_ENROLLMENT_STATUSES for why these
+            # two states and not StudentCourseQuerySet.active().
+            return Assignment.objects.select_related("course__teacher").filter(
+                course__enrollments__student=user,
+                course__enrollments__enrollment_status__in=(
+                    COURSE_ACCESS_ENROLLMENT_STATUSES
+                ),
+                status=AssignmentStatus.PUBLISHED,
             )
         else:
             return Assignment.objects.none()
@@ -757,7 +800,16 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         topic_id = topic_value.strip() if isinstance(topic_value, str) else None
 
         if topic_id:
-            topic = get_object_or_404(Topic, id=topic_id)
+            # Scoped to the course that was just confirmed to belong to
+            # this teacher. An unscoped Topic lookup here accepted ANY
+            # topic id: the assignment was created in the caller's own
+            # course but carrying another teacher's - potentially another
+            # school's - topic, whose name is then handed back through the
+            # serializers' `topic_name` field. The DRF write paths
+            # (AssignmentSerializer.validate) and associate_topic already
+            # enforce exactly this rule; these upload actions bypass the
+            # serializer, so they have to enforce it themselves.
+            topic = get_object_or_404(Topic, id=topic_id, course=course)
         else:
             topic = None
 
@@ -948,7 +1000,16 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         topic_id = topic_value.strip() if isinstance(topic_value, str) else None
 
         if topic_id:
-            topic = get_object_or_404(Topic, id=topic_id)
+            # Scoped to the course that was just confirmed to belong to
+            # this teacher. An unscoped Topic lookup here accepted ANY
+            # topic id: the assignment was created in the caller's own
+            # course but carrying another teacher's - potentially another
+            # school's - topic, whose name is then handed back through the
+            # serializers' `topic_name` field. The DRF write paths
+            # (AssignmentSerializer.validate) and associate_topic already
+            # enforce exactly this rule; these upload actions bypass the
+            # serializer, so they have to enforce it themselves.
+            topic = get_object_or_404(Topic, id=topic_id, course=course)
         else:
             topic = None
 
@@ -1819,12 +1880,33 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
     @staticmethod
     def _assignment_pdf_response(assignment, pdf_bytes):
-        # Sanitise filename
+        # Strip anything that isn't a word character, space or hyphen, so
+        # the name can never carry a path separator or a quote that would
+        # break out of the header value below.
         safe_title = re.sub(r"[^\w\s-]", "", assignment.title or "assignment").strip()
-        filename = f"{safe_title}.pdf"
+        filename = f"{safe_title or 'assignment'}.pdf"
 
         response = FileResponse(BytesIO(pdf_bytes), content_type="application/pdf")
-        response["Content-Disposition"] = f"attachment; filename={filename!r}"
+
+        # RFC 6266: the filename is a quoted-string, i.e. DOUBLE quotes.
+        # This used to interpolate Python's repr ({filename!r}), which
+        # emits SINGLE quotes - browsers treat those as part of the name
+        # and save the file as "'Quiz.pdf'", apostrophes and all.
+        #
+        # `\w` is Unicode-aware, so a title in any non-Latin script
+        # survives the sanitiser above and then cannot be encoded into a
+        # latin-1 header. Django MIME-encodes rather than raising, which
+        # produces an unreadable "=?utf-8?b?...?=" filename, so the
+        # RFC 5987 `filename*` form is sent alongside an ASCII-only
+        # fallback: every current browser prefers `filename*`, and
+        # anything that doesn't still gets a usable name.
+        ascii_fallback = (
+            safe_title.encode("ascii", "ignore").decode("ascii").strip() or "assignment"
+        )
+        response["Content-Disposition"] = (
+            f'attachment; filename="{ascii_fallback}.pdf"; '
+            f"filename*=UTF-8''{quote(filename)}"
+        )
         return response
 
 

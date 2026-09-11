@@ -34,6 +34,7 @@ import socket
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import timedelta
 from unittest.mock import patch
 
 import requests
@@ -45,6 +46,7 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
 from users.models import UserGoogleCredentials, UserTypes
 
 User = get_user_model()
@@ -582,6 +584,182 @@ class GoogleAuthViewTests(APITestCase):
             UserGoogleCredentials.objects.get(user=user).refresh_token,
             "original-refresh",
         )
+
+
+class GoogleSignInCompletesPendingEnrollmentTests(APITestCase):
+    """
+    A teacher's course invitation is PENDING until the student finishes
+    registering, and finishing registration is what promotes it to
+    ENROLLED. The emailed-link flow (register_student) does that; signing
+    in with Google is the OTHER way a student can finish registering, and
+    it did not.
+
+    That was invisible while PENDING still granted course access. It
+    stopped being invisible once assignments started enforcing
+    classrooms.models.COURSE_ACCESS_ENROLLMENT_STATUSES: an invited
+    student who used the Google button instead of the emailed link would
+    authenticate perfectly well and then find the course they were invited
+    to completely empty.
+    """
+
+    def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        self.url = reverse("auth-google-auth")
+        mailerlite = patch("users.views.sync_user_to_mailerlite")
+        mailerlite.start()
+        self.addCleanup(mailerlite.stop)
+
+        self.teacher = User.objects.create_user(
+            email="pending-teacher@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            first_name="Pending",
+            last_name="Teacher",
+        )
+        self.session = Session.objects.create(name="Term P", teacher=self.teacher)
+        self.course = Course.objects.create(
+            name="Invited Course", teacher=self.teacher, session=self.session
+        )
+
+    def _invited_student(self, email="invited.student@gmail.com"):
+        """Exactly what bulk_add_students creates for a brand-new invitee."""
+        student = User.objects.create(
+            email=email,
+            user_type=UserTypes.STUDENT,
+            is_active=False,
+            activation_token="token-123",
+            activation_expires=timezone.now() + timedelta(hours=24),
+        )
+        enrollment = StudentCourse.objects.create(
+            student=student,
+            course=self.course,
+            enrollment_status=EnrollmentStatusType.PENDING,
+        )
+        return student, enrollment
+
+    def _sign_in_as(self, email):
+        with patch("requests.post") as mocked_post, patch(
+            "users.views.id_token.verify_oauth2_token"
+        ) as mocked_verify:
+            mocked_post.return_value.raise_for_status.return_value = None
+            mocked_post.return_value.json.return_value = {
+                "id_token": "fake-id-token",
+                "access_token": "fake-access-token",
+                "expires_in": 3600,
+            }
+            mocked_verify.return_value = {
+                "email": email,
+                "email_verified": True,
+                "given_name": "Invited",
+                "family_name": "Student",
+            }
+            return self.client.post(self.url, {"code": "oauth-code"}, format="json")
+
+    def test_google_sign_in_promotes_a_pending_invitation_to_enrolled(self):
+        student, enrollment = self._invited_student()
+
+        response = self._sign_in_as(student.email)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        enrollment.refresh_from_db()
+        self.assertEqual(
+            enrollment.enrollment_status,
+            EnrollmentStatusType.ENROLLED,
+            "the invitation was never completed, so the student is locked out "
+            "of the course they were invited to",
+        )
+        student.refresh_from_db()
+        self.assertTrue(student.is_active)
+
+    def test_every_pending_invitation_is_promoted_not_just_the_first(self):
+        student, first = self._invited_student()
+        other_course = Course.objects.create(
+            name="Second Invited Course",
+            teacher=self.teacher,
+            session=self.session,
+        )
+        second = StudentCourse.objects.create(
+            student=student,
+            course=other_course,
+            enrollment_status=EnrollmentStatusType.PENDING,
+        )
+
+        self._sign_in_as(student.email)
+
+        for enrollment in (first, second):
+            enrollment.refresh_from_db()
+            self.assertEqual(
+                enrollment.enrollment_status, EnrollmentStatusType.ENROLLED
+            )
+
+    def test_a_withdrawn_enrollment_is_not_resurrected_by_signing_in(self):
+        """
+        Only PENDING is promoted. A student a teacher deliberately removed
+        must not get back in by using the Google button.
+        """
+        student, enrollment = self._invited_student()
+        enrollment.enrollment_status = EnrollmentStatusType.WITHDRAWN
+        enrollment.save(update_fields=["enrollment_status"])
+
+        self._sign_in_as(student.email)
+
+        enrollment.refresh_from_db()
+        self.assertEqual(enrollment.enrollment_status, EnrollmentStatusType.WITHDRAWN)
+
+    def test_a_withdrawn_student_still_sees_no_assignments_after_signing_in(self):
+        """
+        The end-to-end form of the guarantee, not just the database field.
+
+        A teacher removed this student from the course. Signing in with
+        Google must not be a way back in - so this follows the sign-in all
+        the way through to the assignments endpoint and asserts the course
+        content is still not reachable.
+        """
+        from assignments.models import Assignment, AssignmentStatus
+
+        student, enrollment = self._invited_student()
+        enrollment.enrollment_status = EnrollmentStatusType.WITHDRAWN
+        enrollment.save(update_fields=["enrollment_status"])
+        Assignment.objects.create(
+            title="Course Content They Lost Access To",
+            course=self.course,
+            status=AssignmentStatus.PUBLISHED,
+            total_points=5,
+            questions=[{"question_number": 1, "question_text": "q"}],
+        )
+
+        response = self._sign_in_as(student.email)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        student.refresh_from_db()
+        self.client.force_authenticate(user=student)
+        listing = self.client.get(reverse("assignment-list"))
+
+        self.assertEqual(listing.status_code, status.HTTP_200_OK)
+        self.assertNotIn(
+            "Course Content They Lost Access To",
+            listing.content.decode(),
+            "signing in with Google let a withdrawn student back into the "
+            "course they were removed from",
+        )
+
+    def test_an_established_account_signing_in_again_promotes_nothing(self):
+        """
+        The promotion is gated on the account having still been unverified
+        - i.e. genuinely mid-registration. A student who is already set up
+        and simply signs in again must not have unrelated pending
+        invitations silently accepted on their behalf.
+        """
+        student, enrollment = self._invited_student()
+        student.is_active = True
+        student.email_verified_at = timezone.now()
+        student.save(update_fields=["is_active", "email_verified_at"])
+
+        self._sign_in_as(student.email)
+
+        enrollment.refresh_from_db()
+        self.assertEqual(enrollment.enrollment_status, EnrollmentStatusType.PENDING)
 
 
 class LiveGoogleEndpointContractTests(TestCase):

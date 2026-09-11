@@ -8,9 +8,11 @@ Chromium.
 
 import threading
 import time
+import unittest
 from unittest.mock import patch
 
 from django.core.cache import cache
+from django.core.management import call_command
 from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
@@ -18,6 +20,7 @@ from rest_framework.test import APITestCase
 
 from assignments import pdf_cache
 from assignments.models import Assignment, AssignmentStatus
+from assignments.pdf_renderer import PDFRendererBusy
 from assignments.tests_download_pdf import objective_question
 from assignments.tests_rigor import RigorFixtureMixin
 from classrooms.models import EnrollmentStatusType, StudentCourse
@@ -64,14 +67,46 @@ class BuildCacheKeyTest(RigorFixtureMixin, APITestCase):
         unsaved = Assignment(title="Unsaved", course=self.course)
         self.assertIn("unsaved", pdf_cache.build_cache_key(unsaved, "student"))
 
-    def test_key_is_namespaced_for_the_existing_wildcard_invalidation(self):
-        # assignments/signals.py clear_assignment_cache deletes
-        # "assignments:*" on every Assignment save/delete.
-        self.assertTrue(
-            pdf_cache.build_cache_key(self.assignment, "student").startswith(
-                "assignments:"
+    def test_key_is_outside_every_wildcard_sweep_in_the_project(self):
+        """
+        A rendered PDF must not be collateral damage of somebody else's
+        cache invalidation.
+
+        Seven modules call delete_pattern with these patterns to clear the
+        per-user DRF list/retrieve JSON that users/mixins.py stores. Those
+        entries are keyed by user + query params alone, so a wildcard is
+        the only way to clear them - but a PDF key already carries the
+        assignment's updated_at, so sweeping it away buys nothing and
+        throws out every other assignment's renders too.
+        """
+        key = pdf_cache.build_cache_key(self.assignment, "teacher")
+        swept = [
+            "assignments:",
+            "courses:",
+            "sessions:",
+            "topics:",
+            "schools:",
+            "studentcourses:",
+            "studentsubmissions:",
+        ]
+        for prefix in swept:
+            self.assertFalse(
+                key.startswith(prefix), f"{key!r} would be swept by {prefix}*"
             )
-        )
+        # The substring patterns ("*user*", "*school*", "*teacheradmin*"...)
+        # match anywhere in the key, so check the whole string. Note the
+        # view type is the literal "teacher", which must not accidentally
+        # collide with the "*teacheradmin*" sweep.
+        for fragment in [
+            "superadmin",
+            "schooladmin",
+            "teacheradmin",
+            "studentadmin",
+            "user",
+            "school",
+            "assignmentgenerationsession",
+        ]:
+            self.assertNotIn(fragment, key, f"{key!r} would be swept by *{fragment}*")
 
 
 class PdfCacheReadWriteTest(RigorFixtureMixin, APITestCase):
@@ -136,6 +171,221 @@ class PdfCacheReadWriteTest(RigorFixtureMixin, APITestCase):
             pdf_cache.store_pdf(
                 self.assignment, "student", b"%PDF-abc"
             )  # must not raise
+
+
+class BulkWriteInvalidationTest(RigorFixtureMixin, APITestCase):
+    """
+    Write paths that bypass save() must still move the cache key.
+
+    pdf_cache's whole correctness argument is that `updated_at` is
+    auto_now, "so every write path gets it for free". bulk_update is the
+    exception: it refreshes no auto_now column and fires no signal, so a
+    repair command that rewrites the very content the PDF renders would
+    leave the pre-repair PDF being served for the rest of the cache's TTL -
+    a day by default - with nothing to invalidate it. The repair commands
+    therefore write `updated_at` alongside the field they are fixing.
+    """
+
+    def setUp(self):
+        cache.clear()
+        self.course = self.make_course(suffix="-bulkwrite")
+
+    def tearDown(self):
+        cache.clear()
+
+    def _reloaded_key(self, assignment, view_type="student"):
+        return pdf_cache.build_cache_key(
+            Assignment.objects.get(pk=assignment.pk), view_type
+        )
+
+    def test_repairing_option_letters_moves_the_cache_key(self):
+        assignment = Assignment.objects.create(
+            title="Doubled Markers",
+            course=self.course,
+            status=AssignmentStatus.PUBLISHED,
+            questions=[
+                {
+                    "question_number": 1,
+                    "question_type": "OBJECTIVE",
+                    "points": 1,
+                    "question_text": "Pick one",
+                    "options": ["A) A) first", "B. B) second"],
+                }
+            ],
+        )
+        before = self._reloaded_key(assignment)
+
+        call_command("strip_duplicate_option_letters", verbosity=0)
+
+        after = self._reloaded_key(assignment)
+        self.assertNotEqual(
+            before,
+            after,
+            "the repaired options would keep serving the pre-repair PDF",
+        )
+        # And the repair itself still happened.
+        self.assertEqual(
+            Assignment.objects.get(pk=assignment.pk).questions[0]["options"],
+            ["first", "second"],
+        )
+
+    def test_repairing_titles_moves_the_cache_key(self):
+        assignment = Assignment.objects.create(
+            title="Clean Title",
+            course=self.course,
+            status=AssignmentStatus.PUBLISHED,
+            questions=[objective_question()],
+        )
+        # The pre_save sanitizer would strip this on a normal save, so the
+        # pre-fix row it repairs has to be written past that signal.
+        Assignment.objects.filter(pk=assignment.pk).update(title="<p>Matrices Exam</p>")
+        before = self._reloaded_key(assignment)
+
+        call_command("strip_html_from_assignment_titles", verbosity=0)
+
+        self.assertNotEqual(
+            before,
+            self._reloaded_key(assignment),
+            "the stripped title would keep serving the markup in the PDF header",
+        )
+        self.assertEqual(
+            Assignment.objects.get(pk=assignment.pk).title, "Matrices Exam"
+        )
+
+
+@unittest.skipUnless(
+    hasattr(cache, "delete_pattern"),
+    "targeted invalidation needs a backend with delete_pattern (Redis)",
+)
+class InvalidationScopeTest(RigorFixtureMixin, APITestCase):
+    """
+    Invalidation must hit the assignment that changed, and nothing else.
+
+    Before this was scoped, pdf_cache keys lived under "assignments:pdf"
+    and assignments/signals.py swept "assignments:*" on EVERY Assignment
+    save or delete - so publishing one assignment discarded every cached
+    PDF for every assignment and every teacher in the process, including a
+    document the publish-time pre-render had produced seconds earlier.
+    Under normal write traffic that made the 24h TTL close to fiction.
+    """
+
+    def setUp(self):
+        cache.clear()
+        self.course = self.make_course(suffix="-sweepscope")
+        self.mine = Assignment.objects.create(
+            title="Mine",
+            course=self.course,
+            status=AssignmentStatus.PUBLISHED,
+            questions=[objective_question()],
+        )
+        self.unrelated = Assignment.objects.create(
+            title="Unrelated",
+            course=self.course,
+            status=AssignmentStatus.DRAFT,
+            questions=[objective_question()],
+        )
+
+    def tearDown(self):
+        cache.clear()
+
+    def test_saving_an_unrelated_assignment_leaves_this_ones_pdf_cached(self):
+        pdf_cache.store_pdf(self.mine, "student", b"%PDF-warm")
+        pdf_cache.store_pdf(self.mine, "teacher", b"%PDF-warm-teacher")
+
+        self.unrelated.total_points = 11
+        self.unrelated.save()
+
+        self.assertEqual(pdf_cache.get_cached_pdf(self.mine, "student"), b"%PDF-warm")
+        self.assertEqual(
+            pdf_cache.get_cached_pdf(self.mine, "teacher"), b"%PDF-warm-teacher"
+        )
+
+    def test_a_whole_course_of_saves_does_not_cool_one_warm_assignment(self):
+        """
+        The shape that made the old sweep so costly: a teacher working
+        through a batch of assignments while a class is downloading a
+        different one.
+        """
+        pdf_cache.store_pdf(self.mine, "student", b"%PDF-warm")
+
+        for index in range(10):
+            Assignment.objects.create(
+                title=f"Batch {index}",
+                course=self.course,
+                status=AssignmentStatus.PUBLISHED,
+                questions=[objective_question()],
+            )
+
+        self.assertEqual(pdf_cache.get_cached_pdf(self.mine, "student"), b"%PDF-warm")
+
+    def test_saving_this_assignment_drops_its_own_superseded_renders(self):
+        """
+        The key already carries updated_at, so a superseded render is
+        unreachable either way - this is about not leaving it to hold
+        Redis for a full day.
+        """
+        pdf_cache.store_pdf(self.mine, "student", b"%PDF-old")
+        stale_key = pdf_cache.build_cache_key(self.mine, "student")
+
+        self.mine.title = "Edited"
+        self.mine.save()
+
+        self.assertIsNone(cache.get(stale_key))
+
+    def test_deleting_an_assignment_removes_its_cached_teacher_pdf(self):
+        """
+        The teacher view embeds rubrics and model answers. Those must not
+        outlive the assignment row itself.
+        """
+        pdf_cache.store_pdf(self.mine, "teacher", b"%PDF-rubrics")
+        key = pdf_cache.build_cache_key(self.mine, "teacher")
+        self.assertIsNotNone(cache.get(key))
+
+        self.mine.delete()
+
+        self.assertIsNone(cache.get(key))
+
+    def test_invalidating_one_assignment_never_touches_another(self):
+        pdf_cache.store_pdf(self.mine, "student", b"%PDF-mine")
+        pdf_cache.store_pdf(self.unrelated, "student", b"%PDF-theirs")
+
+        pdf_cache.invalidate_assignment_pdfs(self.mine.id)
+
+        self.assertIsNone(pdf_cache.get_cached_pdf(self.mine, "student"))
+        self.assertEqual(
+            pdf_cache.get_cached_pdf(self.unrelated, "student"), b"%PDF-theirs"
+        )
+
+    def test_a_cache_backend_failure_during_invalidation_is_swallowed(self):
+        """
+        Invalidation is an optimisation, not a correctness requirement -
+        it must never turn a Redis hiccup into a failed assignment save.
+
+        This covers BOTH invalidation paths that run in post_save: the
+        targeted PDF delete and the wildcard sweep of the per-user list
+        JSON. The sweep used to let the exception straight through, so a
+        degraded Redis meant a teacher could not save an assignment at
+        all - a cache problem taking down writing.
+        """
+        with patch.object(
+            cache, "delete_pattern", side_effect=RuntimeError("redis down")
+        ):
+            self.mine.title = "Edited While Redis Is Down"
+            self.mine.save()  # must not raise
+
+        self.assertEqual(
+            Assignment.objects.get(pk=self.mine.pk).title,
+            "Edited While Redis Is Down",
+            "the write must have been committed, not rolled back",
+        )
+
+    def test_a_cache_backend_failure_does_not_block_deleting_an_assignment(self):
+        with patch.object(
+            cache, "delete_pattern", side_effect=RuntimeError("redis down")
+        ):
+            self.mine.delete()  # must not raise
+
+        self.assertFalse(Assignment.objects.filter(pk=self.mine.pk).exists())
 
 
 class SingleFlightTest(RigorFixtureMixin, APITestCase):
@@ -371,6 +621,52 @@ class DownloadPdfCachingTest(RigorFixtureMixin, APITestCase):
         self.assertEqual(second.status_code, status.HTTP_200_OK)
         mock_render.assert_called_once()
         self.assertEqual(b"".join(second.streaming_content), b"%PDF-rendered")
+
+    def test_a_cache_hit_is_served_even_while_the_renderer_is_shedding(self):
+        """
+        Load shedding must only refuse work the process would actually have
+        to *do*. The commit that added it states the threads freed by
+        shedding stay available for "requests the process can actually
+        serve (cache hits included, which never reach this method)" - so a
+        warm assignment has to keep downloading at full capacity while
+        uncached ones are being refused.
+
+        Unmocked on purpose: the real render_assignment_pdf is what calls
+        ensure_capacity(), so mocking it out (as every sibling test here
+        does) would make this pass no matter where the capacity check sat.
+        """
+        pdf_cache.store_pdf(self.assignment, "teacher", b"%PDF-warm")
+        self.client.force_authenticate(user=self.teacher)
+
+        with patch(
+            "assignments.pdf_document.ensure_capacity",
+            side_effect=PDFRendererBusy("at capacity"),
+        ) as shed:
+            response = self.client.get(self.url, {"view": "teacher"})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(b"".join(response.streaming_content), b"%PDF-warm")
+        shed.assert_not_called()
+
+    def test_an_uncached_download_is_shed_with_503_and_retry_after(self):
+        """
+        The other half of the same rule, through the real view: a cold
+        assignment during the same overload is refused fast, with the
+        status and header a client or proxy can act on - not a 500, and
+        not a parked thread.
+        """
+        self.client.force_authenticate(user=self.teacher)
+
+        with patch(
+            "assignments.pdf_document.ensure_capacity",
+            side_effect=PDFRendererBusy("at capacity"),
+        ):
+            response = self.client.get(self.url, {"view": "teacher"})
+
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertEqual(response["Retry-After"], "5")
+        # A refusal is not a render, so nothing may be cached from it.
+        self.assertIsNone(pdf_cache.get_cached_pdf(self.assignment, "teacher"))
 
     @patch("assignments.views.render_assignment_pdf")
     def test_editing_the_assignment_forces_a_fresh_render(self, mock_render):

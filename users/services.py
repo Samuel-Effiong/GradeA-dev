@@ -96,11 +96,16 @@ class OTPManager:
 
 def cleanup_expired_users():
     """
-    Synchronize the "online_users_set" index with individual heatbeat keys
-    """
+    Synchronize the presence index with the individual heartbeat keys.
 
-    # Get all memebers from the Index set
-    all_members = cache.smembers("online_users_set")
+    Key names come from users.middleware so the two sides cannot drift -
+    they were previously two independent string literals, which is how a
+    rename would silently orphan the set.
+    """
+    from users.middleware import ONLINE_SET_KEY, heartbeat_key_for
+
+    # Get all members from the index set
+    all_members = cache.smembers(ONLINE_SET_KEY)
 
     if not all_members:
         return 0
@@ -110,15 +115,16 @@ def cleanup_expired_users():
     for member in all_members:
         member_str = member.decode() if isinstance(member, bytes) else member
 
-        hearbeat_key = f"active_user:{member_str}"
+        user_type, _, user_id = member_str.partition(":")
+        heartbeat_key = heartbeat_key_for(user_type, user_id)
 
         # If the heartbeat key is gone, the user's TTL has expired
-        if not cache.has_key(hearbeat_key):
+        if not cache.has_key(heartbeat_key):
             expired_members.append(member_str)
 
         # Batch remove the expired users from the set
     if expired_members:
-        cache.srem("online_users_set", *expired_members)
+        cache.srem(ONLINE_SET_KEY, *expired_members)
 
     return len(expired_members)
 
@@ -130,7 +136,9 @@ def get_current_concurrent_users():
 
     # return len(all_active_data)
 
-    members = cache.smembers("online_users_set")
+    from users.middleware import ONLINE_SET_KEY
+
+    members = cache.smembers(ONLINE_SET_KEY)
     return len(members) if members else 0
 
 

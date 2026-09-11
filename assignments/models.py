@@ -151,12 +151,6 @@ class Assignment(models.Model):
         ),
     )
 
-    # grading_status = models.CharField(
-    #     max_length=20,
-    #     choices=[("NOT_STARTED", "NOT STARTED"), ("COMPLETED", "COMPLETED")],
-    #     default="NOT_STARTED",
-    # )
-
     # IN REVIEW FOR REMOVAL
     teacher = models.ForeignKey(
         CustomUser,
@@ -165,13 +159,6 @@ class Assignment(models.Model):
         blank=True,
         related_name="assignments",
     )
-
-    # def save(self, *args, **kwargs):
-    #     self.raw_input_hash = hashlib.sha256(
-    #         self.raw_input.encode("utf-8")
-    #     ).hexdigest()
-    #
-    #     super().save(*args, **kwargs)
 
     class Meta:
         ordering = ["title"]
@@ -195,14 +182,14 @@ class Assignment(models.Model):
 
 class AssignmentGenerationHistory(models.Model):
     """
-        Stores the history of assignment generation requests.
+    Stores the history of assignment generation requests.
 
-        This model maintains a record of:
-        - User prompts sent to the AI
-        - Assignments generated in response to those prompts
-    f
-        Used for the chat-like history UI where users can browse
-        and reuse previously generated assignments without re-running AI.
+    This model maintains a record of:
+    - User prompts sent to the AI
+    - Assignments generated in response to those prompts
+
+    Used for the chat-like history UI where users can browse
+    and reuse previously generated assignments without re-running AI.
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

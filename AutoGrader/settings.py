@@ -733,6 +733,18 @@ ASSIGNMENT_PDF_CACHE_MAX_BYTES = env.int(
     "ASSIGNMENT_PDF_CACHE_MAX_BYTES", default=5 * 1024 * 1024  # 5 MB
 )
 
+# How long a caller waiting on someone else's in-progress render of the
+# same PDF (assignments/pdf_cache.py get_or_render) waits before giving up
+# and rendering for itself. Must stay comfortably above a normal render -
+# the renderer's own bound is 30s plus queue slack - or waiters routinely
+# bail out and re-render exactly what they were waiting for, which is the
+# stampede single-flight exists to prevent. pdf_cache.py already read this
+# name; it was only ever reachable via its hardcoded fallback until it was
+# declared here.
+ASSIGNMENT_PDF_SINGLEFLIGHT_TIMEOUT_SECONDS = env.float(
+    "ASSIGNMENT_PDF_SINGLEFLIGHT_TIMEOUT_SECONDS", default=60.0
+)
+
 # How many PDFs one warm Chromium instance renders before
 # assignments/pdf_renderer.py closes it and starts a fresh one; 0 disables
 # recycling. A 120-render soak measured ~0.02 MB/render of growth, still

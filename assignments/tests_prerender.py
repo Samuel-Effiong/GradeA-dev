@@ -7,10 +7,13 @@ into cache hits. The renderer is mocked here - what's under test is when
 the task runs, what it caches, and how it behaves when things go wrong.
 """
 
+import threading
+import time
 from unittest.mock import patch
 
 from django.core.cache import cache
-from django.test import TestCase
+from django.db import connections
+from django.test import TestCase, TransactionTestCase
 
 from assignments import pdf_cache
 from assignments.models import Assignment, AssignmentStatus
@@ -211,3 +214,240 @@ class PublishHookTest(RigorFixtureMixin, TestCase):
             assignment.save()
 
         self.assertNotIn(self.PRERENDER, self._dispatched(mock_delay))
+
+
+class PublishSurvivesABrokerOutageTest(RigorFixtureMixin, TestCase):
+    """
+    Publishing must not depend on Celery being up.
+
+    Every other test in this file mocks `safe_delay` itself, which proves
+    the hook CALLS it but says nothing about what happens when the call
+    fails. These dispatches run in a transaction.on_commit hook, so an
+    exception escaping one would surface after the assignment was already
+    written - the teacher would see an error for a publish that actually
+    succeeded, and would very likely try again.
+
+    AutoGrader.dispatch.safe_delay is the thing that must absorb that; here
+    it is left REAL and the broker underneath it is broken instead.
+    """
+
+    def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        self.course = self.make_course(suffix="-brokeroutage")
+
+    def _publish_with_broker_error(self, error):
+        with patch(
+            "assignments.tasks.prerender_assignment_pdfs.delay", side_effect=error
+        ), patch(
+            "assignments.tasks.send_new_assignment_posted_notification.delay",
+            side_effect=error,
+        ):
+            with self.captureOnCommitCallbacks(execute=True):
+                return Assignment.objects.create(
+                    title="Published During An Outage",
+                    course=self.course,
+                    status=AssignmentStatus.PUBLISHED,
+                    questions=[objective_question()],
+                )
+
+    def test_a_redis_outage_does_not_fail_the_publish(self):
+        from redis.exceptions import ConnectionError as RedisConnectionError
+
+        assignment = self._publish_with_broker_error(
+            RedisConnectionError("broker unreachable")
+        )
+
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.status, AssignmentStatus.PUBLISHED)
+        self.assertTrue(Assignment.objects.filter(pk=assignment.pk).exists())
+
+    def test_an_operational_error_from_the_broker_does_not_fail_the_publish(self):
+        from kombu.exceptions import OperationalError
+
+        assignment = self._publish_with_broker_error(OperationalError("cannot connect"))
+
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.status, AssignmentStatus.PUBLISHED)
+
+    def test_a_socket_timeout_does_not_fail_the_publish(self):
+        assignment = self._publish_with_broker_error(TimeoutError("timed out"))
+
+        assignment.refresh_from_db()
+        self.assertEqual(assignment.status, AssignmentStatus.PUBLISHED)
+
+    def test_a_programming_error_in_the_dispatch_still_propagates(self):
+        """
+        safe_delay swallows OUTAGES, not bugs. A TypeError from calling the
+        task wrongly must not be hidden, or a broken dispatch would look
+        like a healthy one forever.
+        """
+        with self.assertRaises(TypeError):
+            self._publish_with_broker_error(TypeError("delay() got a bad argument"))
+
+    def test_the_assignment_is_still_downloadable_after_a_failed_prerender(self):
+        """
+        Pre-rendering only warms a cache. If it never ran, the download
+        path must still produce the PDF on demand.
+        """
+        from redis.exceptions import ConnectionError as RedisConnectionError
+
+        assignment = self._publish_with_broker_error(
+            RedisConnectionError("broker unreachable")
+        )
+
+        self.assertIsNone(pdf_cache.get_cached_pdf(assignment, "student"))
+
+        with patch(
+            "assignments.pdf_document.render_assignment_pdf", return_value=b"%PDF-live"
+        ):
+            rendered = pdf_cache.get_or_render(
+                assignment,
+                "student",
+                lambda: b"%PDF-live",
+            )
+
+        self.assertEqual(rendered, b"%PDF-live")
+
+
+class PrerenderIdempotencyTest(RigorFixtureMixin, TestCase):
+    """
+    Duplicate dispatch must be harmless.
+
+    Celery gives at-least-once delivery, and this task is additionally
+    dispatched from a signal that could fire more than once for the same
+    publish (a retried save, a redelivered message). Running it twice must
+    not render twice or produce different bytes.
+    """
+
+    def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        pdf_cache._inflight.clear()
+        self.addCleanup(pdf_cache._inflight.clear)
+        self.course = self.make_course(suffix="-idempotent")
+        self.assignment = Assignment.objects.create(
+            title="Run Me Twice",
+            course=self.course,
+            status=AssignmentStatus.PUBLISHED,
+            total_points=5,
+            questions=[objective_question()],
+        )
+
+    @patch("assignments.pdf_document.render_assignment_pdf")
+    def test_running_the_task_twice_renders_each_view_only_once(self, mock_render):
+        mock_render.side_effect = lambda a, inc: (
+            b"%PDF-teacher" if inc else b"%PDF-student"
+        )
+
+        first = prerender_assignment_pdfs(str(self.assignment.id))
+        calls_after_first = mock_render.call_count
+        second = prerender_assignment_pdfs(str(self.assignment.id))
+
+        self.assertEqual(calls_after_first, 2)
+        self.assertEqual(
+            mock_render.call_count, 2, "the second run re-rendered an already-warm PDF"
+        )
+        self.assertIn("student", first)
+        self.assertIn("nothing", second)
+
+    @patch("assignments.pdf_document.render_assignment_pdf")
+    def test_the_second_run_leaves_the_cached_bytes_identical(self, mock_render):
+        mock_render.side_effect = lambda a, inc: (
+            b"%PDF-teacher" if inc else b"%PDF-student"
+        )
+
+        prerender_assignment_pdfs(str(self.assignment.id))
+        before = (
+            pdf_cache.get_cached_pdf(self.assignment, "student"),
+            pdf_cache.get_cached_pdf(self.assignment, "teacher"),
+        )
+
+        prerender_assignment_pdfs(str(self.assignment.id))
+        after = (
+            pdf_cache.get_cached_pdf(self.assignment, "student"),
+            pdf_cache.get_cached_pdf(self.assignment, "teacher"),
+        )
+
+        self.assertEqual(before, after)
+        self.assertEqual(before[0], b"%PDF-student")
+        self.assertEqual(before[1], b"%PDF-teacher")
+
+
+class PrerenderConcurrentDispatchTest(RigorFixtureMixin, TransactionTestCase):
+    """
+    Two workers picking up a redelivered message at the same instant.
+
+    TransactionTestCase, not TestCase: the worker threads open their own
+    database connections and must be able to SEE the assignment, which an
+    uncommitted TestCase transaction would hide from them. Written as
+    TestCase first, both threads simply reported "Assignment no longer
+    exists" and rendered nothing - a green-looking test that proved
+    nothing at all.
+    """
+
+    # H-2 (docs/HARDENING_BACKLOG.md): threads opened by this test get their
+    # own DB connection. Any that outlives the test makes Django's final
+    # DROP DATABASE fail with "database is being accessed by other users",
+    # which exits the whole run non-zero even when every test passed. The
+    # workers close their own connections; this closes the main thread's and
+    # anything a worker died before releasing.
+    def tearDown(self):
+        connections.close_all()
+        super().tearDown()
+
+    def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        pdf_cache._inflight.clear()
+        self.addCleanup(pdf_cache._inflight.clear)
+        self.course = self.make_course(suffix="-concurrentdispatch")
+        self.assignment = Assignment.objects.create(
+            title="Redelivered Twice",
+            course=self.course,
+            status=AssignmentStatus.PUBLISHED,
+            total_points=5,
+            questions=[objective_question()],
+        )
+
+    @patch("assignments.pdf_document.render_assignment_pdf")
+    def test_two_concurrent_dispatches_still_render_once_per_view(self, mock_render):
+        renders = []
+        lock = threading.Lock()
+
+        def slow_render(assignment, include_rubric):
+            with lock:
+                renders.append(include_rubric)
+            time.sleep(0.3)
+            return b"%PDF-teacher" if include_rubric else b"%PDF-student"
+
+        mock_render.side_effect = slow_render
+        barrier = threading.Barrier(2)
+        errors = []
+
+        def run():
+            try:
+                barrier.wait(timeout=30)
+                prerender_assignment_pdfs(str(self.assignment.id))
+            except Exception as exc:  # pragma: no cover - a real failure
+                errors.append(exc)
+            finally:
+                connections.close_all()
+
+        threads = [threading.Thread(target=run) for _ in range(2)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=60)
+
+        self.assertEqual(errors, [])
+        # Exactly one student render and one teacher render - single-flight
+        # in pdf_cache collapses the duplicate dispatch rather than paying
+        # for the same document twice.
+        self.assertEqual(sorted(renders), [False, True], f"rendered {renders}")
+        self.assertEqual(
+            pdf_cache.get_cached_pdf(self.assignment, "student"), b"%PDF-student"
+        )
+        self.assertEqual(
+            pdf_cache.get_cached_pdf(self.assignment, "teacher"), b"%PDF-teacher"
+        )
