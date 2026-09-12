@@ -68,6 +68,7 @@ from .models import (  # CONVERSION_FACTOR,; UserSubscription,
     StripeSubscriptionStatus,
     SubscriptionPlan,
 )
+from .overage_pricing import assert_overage_price_in_sync
 
 logger = logging.getLogger(__name__)
 
@@ -214,6 +215,20 @@ class LicenseSubscriptionService:
             raise ValueError(
                 f"Teachers not active under this license: {', '.join(sorted(missing))}"
             )
+
+        # LAST, deliberately: this one reaches Stripe. Everything above is
+        # a local check, and a request that is going to be rejected for a
+        # bad allocation or an inactive teacher should be rejected cheaply
+        # with a message that says so — not spend a Stripe call first and
+        # then fail with a pricing error that explains nothing.
+        #
+        # Every school overage path — Stripe checkout, offline request and
+        # the quote each one returns — is priced from
+        # `plan.overage_block_price`, while Stripe charges whatever
+        # `stripe_overage_price_id` says. Measured drift between the two
+        # had schools quoted 897 and charged 1200. Refuse rather than
+        # quote a number we would not honour. See billing/overage_pricing.
+        assert_overage_price_in_sync(plan)
 
     @staticmethod
     def _resolve_effective_price(
@@ -2224,9 +2239,16 @@ class LicenseSubscriptionService:
                     )
                     latest_invoice_id = stripe_sub_refreshed.get("latest_invoice")
                     if latest_invoice_id:
-                        invoice = stripe.Invoice.retrieve(
-                            latest_invoice_id, expand=["payment_intent"]
-                        )
+                        # No expand: this branch only reads invoice["status"],
+                        # never the PaymentIntent. The old
+                        # expand=["payment_intent"] was already dead weight —
+                        # that field was removed from the Invoice object in
+                        # API 2025-03-31 and Stripe silently ignores the
+                        # expand rather than erroring. If a caller here ever
+                        # needs the PaymentIntent, use
+                        # resolve_invoice_payment_intent() with
+                        # INVOICE_PAYMENT_INTENT_EXPAND.
+                        invoice = stripe.Invoice.retrieve(latest_invoice_id)
                         if invoice.get("status") != "paid":
                             # Revert quantity
                             stripe.Subscription.modify(

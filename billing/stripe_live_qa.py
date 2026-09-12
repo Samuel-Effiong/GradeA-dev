@@ -61,12 +61,15 @@ about a customer who never existed.
 from __future__ import annotations
 
 import logging
+import re
 import time
 import uuid
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
 from datetime import timezone as dt_timezone
 from typing import Any, Callable, Optional
+from unittest.mock import patch
 
 from django.conf import settings
 
@@ -219,6 +222,19 @@ def guarded_call(fn: Callable, /, *args, **kwargs):
 # --------------------------------------------------------------------------
 # Results
 # --------------------------------------------------------------------------
+
+
+def _max_advanceable_timestamp(message: str):
+    """
+    The furthest timestamp Stripe will accept, parsed out of its own
+    two-intervals-at-a-time error.
+
+    The message reads: "... You can only advance it up to 1793975704
+    (2026-11-06 14:35:04 UTC). ..." — the first bare 10-digit integer
+    after "advance it up to" is the limit.
+    """
+    match = re.search(r"advance it up to (\d{10})", message)
+    return int(match.group(1)) if match else None
 
 
 @dataclass
@@ -381,6 +397,8 @@ class LiveQAHarness:
 
     # A clock advance is asynchronous and Stripe re-bills every attached
     # subscription while it runs, so this is generous by design.
+    # Enough hops to cross a multi-year horizon two intervals at a time.
+    MAX_CLOCK_ADVANCE_HOPS = 40
     CLOCK_READY_TIMEOUT = 300
     CLOCK_POLL_INTERVAL = 3
     CLOCK_POLL_MAX_INTERVAL = 15
@@ -407,6 +425,22 @@ class LiveQAHarness:
         self.customer_ids: list = []
         self.local_user_ids: list = []
         self.dispatched_event_ids: set = set()
+
+        # The Stripe test clock's frozen time, as a timezone-aware
+        # datetime, or None before any clock has been advanced.
+        #
+        # WHY THIS EXISTS: advancing a Stripe test clock moves STRIPE
+        # forward; it does not move US. The application decides whether a
+        # renewal is due by comparing `user_sub.billing_cycle_end` against
+        # `timezone.now()` — real wall-clock time. So Stripe would bill a
+        # new cycle while our server still thought the current period had
+        # weeks to run, and every renewal webhook was correctly declined
+        # with "the local billing period has not elapsed yet". Five
+        # scenarios (renewals, trial_conversion, deferred_downgrade,
+        # reconcile_sweep_after_missed_webhook, license_lifecycle_baseline)
+        # failed for that reason and that reason alone — the billing logic
+        # was right, the harness was lying about what time it was.
+        self.simulated_now: Optional[datetime] = None
 
     # -- metadata ---------------------------------------------------------
 
@@ -486,12 +520,106 @@ class LiveQAHarness:
             clock_id,
             datetime.fromtimestamp(to_timestamp, tz=dt_timezone.utc).isoformat(),
         )
-        guarded_call(
-            stripe.test_helpers.TestClock.advance,
-            clock_id,
-            frozen_time=to_timestamp,
+        # Stripe refuses to advance a test clock more than TWO billing
+        # intervals in one call ("You can only advance it up to <ts> ...
+        # based on the shortest subscription interval in the test clock").
+        # Scenarios that legitimately need to cross several cycles — an
+        # annual round trip, a full dunning sequence — hit that ceiling and
+        # died with an InvalidRequestError that looked like a product
+        # failure but is purely a limit on the tool.
+        #
+        # Stripe names the furthest permitted timestamp in the error, so
+        # step to that and go again rather than guessing an interval we do
+        # not know. Each hop still waits for `ready`, so intermediate
+        # cycles are billed exactly as they would be in real time — which
+        # is what a multi-cycle scenario is trying to observe anyway.
+        ready = None
+        target = to_timestamp
+        hops = 0
+        while hops < self.MAX_CLOCK_ADVANCE_HOPS:
+            hops += 1
+            try:
+                guarded_call(
+                    stripe.test_helpers.TestClock.advance,
+                    clock_id,
+                    frozen_time=target,
+                )
+            except stripe.error.InvalidRequestError as exc:
+                allowed = _max_advanceable_timestamp(str(exc))
+                if allowed is None or allowed <= self._frozen_time(clock_id):
+                    raise
+                logger.info(
+                    "[LIVE QA %s] Clock %s cannot jump straight to %s; "
+                    "stepping to Stripe's limit %s first (hop %d).",
+                    self.run_id,
+                    clock_id,
+                    to_timestamp,
+                    allowed,
+                    hops,
+                )
+                guarded_call(
+                    stripe.test_helpers.TestClock.advance,
+                    clock_id,
+                    frozen_time=allowed,
+                )
+                ready = self._wait_for_clock_ready(clock_id)
+                self.simulated_now = datetime.fromtimestamp(allowed, tz=dt_timezone.utc)
+                continue
+            ready = self._wait_for_clock_ready(clock_id)
+            break
+        else:
+            raise LiveQAInfrastructureError(
+                f"clock {clock_id} still had not reached {to_timestamp} after "
+                f"{self.MAX_CLOCK_ADVANCE_HOPS} stepped advances"
+            )
+        # Keep OUR notion of now in step with Stripe's, so that anything
+        # run under `local_clock()` sees the same instant Stripe does.
+        self.simulated_now = datetime.fromtimestamp(to_timestamp, tz=dt_timezone.utc)
+        return ready
+
+    @contextmanager
+    def local_clock(self):
+        """
+        Run a block as if the wall clock were at the test clock's frozen
+        time.
+
+        Patches ONLY `django.utils.timezone.now`, which is what the billing
+        code compares billing periods against. Deliberately NOT freezegun
+        and deliberately NOT `time.time()`/`time.monotonic()`: those are
+        what this harness itself uses for Stripe polling, rate limiting and
+        timeouts, and freezing them would hang the run.
+
+        Every module in billing does `from django.utils import timezone`
+        and then calls `timezone.now()`, so patching the function on the
+        module object reaches all of them. `auto_now_add` also resolves
+        through it, which is what we want — rows created while simulating a
+        future cycle should carry that cycle's timestamps.
+
+        A no-op when no clock has been advanced yet, so it is always safe
+        to wrap a block in it.
+        """
+        if self.simulated_now is None:
+            yield None
+            return
+
+        frozen = self.simulated_now
+        logger.info(
+            "[LIVE QA %s] Running under simulated local time %s.",
+            self.run_id,
+            frozen.isoformat(),
         )
-        return self._wait_for_clock_ready(clock_id)
+        with patch("django.utils.timezone.now", return_value=frozen):
+            yield frozen
+
+    def _frozen_time(self, clock_id: str) -> int:
+        """The clock's current frozen time, straight from Stripe.
+
+        Used as the guard on stepped advancing: if Stripe's stated limit is
+        not actually ahead of where the clock already is, stepping would
+        loop forever, so the original error is re-raised instead.
+        """
+        clock = guarded_call(stripe.test_helpers.TestClock.retrieve, clock_id)
+        return int(clock.get("frozen_time") or 0)
 
     def _wait_for_clock_ready(self, clock_id: str):
         deadline = time.monotonic() + self.CLOCK_READY_TIMEOUT
@@ -558,7 +686,19 @@ class LiveQAHarness:
                     # ledger row already records the failure, and a
                     # silent retry loop here would mask it.
                     self.dispatched_event_ids.add(event["id"])
-                    response = _record_and_dispatch(event, log_prefix=log_prefix)
+                    # Under the simulated clock: a renewal webhook arriving
+                    # for a period Stripe has already moved past must be
+                    # judged against the time STRIPE thinks it is, or the
+                    # handler correctly refuses to renew and the scenario
+                    # fails for a reason that is not a bug.
+                    with self.local_clock():
+                        # inline=True: production queues the handler to a
+                        # Celery worker, but a scenario asserts on its
+                        # effects as soon as the drain returns, so it must
+                        # run here. Same function the worker calls.
+                        response = _record_and_dispatch(
+                            event, log_prefix=log_prefix, inline=True
+                        )
                     dispatched.append((event["type"], response.status_code))
                     logger.info(
                         "%s dispatched %s (%s) -> %s",

@@ -225,13 +225,24 @@ class FinishStripeEventTests(TestCase):
 
 
 class DispatchTests(TestCase):
-    """_record_and_dispatch's HTTP contract and side effects."""
+    """
+    Handler execution and ledger settlement.
+
+    `inline=True` on purpose. The HTTP endpoint now CLAIMS the event and
+    queues it, returning in milliseconds — that split is what stops burst
+    traffic being lost (see WebhookEndpointTests). The work itself runs in
+    a Celery worker via `_run_handler_inline`, which is exactly the path
+    `inline=True` takes. So these assertions still cover the real
+    execution path; they simply no longer go through HTTP to reach it.
+    """
 
     def _dispatch(self, handler, event=None):
         with patch.dict(
             "billing.webhooks._EVENT_HANDLERS", {EVENT_TYPE: handler}, clear=False
         ):
-            return _record_and_dispatch(event or make_event(), log_prefix="test")
+            return _record_and_dispatch(
+                event or make_event(), log_prefix="test", inline=True
+            )
 
     def test_success_marks_succeeded(self):
         calls = []
@@ -312,7 +323,7 @@ class DispatchTests(TestCase):
     def test_unknown_event_type_is_recorded_and_settled(self):
         event = make_event(event_type="some.unhandled.event")
 
-        response = _record_and_dispatch(event, log_prefix="test")
+        response = _record_and_dispatch(event, log_prefix="test", inline=True)
 
         self.assertEqual(response.status_code, 200)
         row = StripeEvent.objects.get(stripe_event_id=EVENT_ID)
@@ -389,7 +400,7 @@ class WebhookRaceRegressionTests(TransactionTestCase):
                     clear=False,
                 ):
                     responses["a"] = _record_and_dispatch(
-                        make_event(), log_prefix="A"
+                        make_event(), log_prefix="A", inline=True
                     ).status_code
             finally:
                 connection.close()
@@ -404,7 +415,9 @@ class WebhookRaceRegressionTests(TransactionTestCase):
         )
 
         # Stripe's redelivery arrives while A is still inside the handler.
-        responses["b"] = _record_and_dispatch(make_event(), log_prefix="B").status_code
+        responses["b"] = _record_and_dispatch(
+            make_event(), log_prefix="B", inline=True
+        ).status_code
 
         self.assertEqual(
             responses["b"],
@@ -430,7 +443,7 @@ class WebhookRaceRegressionTests(TransactionTestCase):
             {EVENT_TYPE: recovered.append},
             clear=False,
         ):
-            final = _record_and_dispatch(make_event(), log_prefix="C")
+            final = _record_and_dispatch(make_event(), log_prefix="C", inline=True)
 
         self.assertEqual(final.status_code, 200)
         self.assertEqual(len(recovered), 1)
@@ -459,11 +472,77 @@ class WebhookEndpointTests(TestCase):
             real_stripe.Webhook, "construct_event", return_value=make_event()
         ), patch.dict(
             "billing.webhooks._EVENT_HANDLERS", {EVENT_TYPE: calls.append}, clear=False
+        ), patch(
+            "billing.tasks.process_stripe_event.delay"
+        ) as queued:
+            response = self._post()
+
+        # The endpoint CLAIMS and QUEUES; it no longer runs the handler.
+        # That is the burst-loss fix: measured on the deployed environment,
+        # only 2% of invoice.payment_succeeded deliveries survived burst
+        # hours while the handler held the request open, against 100% in
+        # quiet hours.
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            calls, [], "the endpoint must not run the handler synchronously"
+        )
+        queued.assert_called_once()
+        row = StripeEvent.objects.get(stripe_event_id=EVENT_ID)
+        self.assertEqual(
+            row.status,
+            StripeEventStatus.PROCESSING,
+            "the claim must be committed before the response, so a "
+            "redelivery races against a visible claim",
+        )
+        # The fencing token is what the worker must present to settle it.
+        self.assertEqual(queued.call_args.args[1], row.claimed_at.isoformat())
+
+    def test_a_broker_outage_returns_500_so_stripe_retries(self):
+        """
+        The one thing worse than a slow endpoint: answering 200 for work
+        that will never run. Stripe would stop retrying and the event is
+        gone.
+        """
+        with patch.object(
+            real_stripe.Webhook, "construct_event", return_value=make_event()
+        ), patch.dict(
+            "billing.webhooks._EVENT_HANDLERS",
+            {EVENT_TYPE: lambda o: None},
+            clear=False,
+        ), patch(
+            "billing.tasks.process_stripe_event.delay",
+            side_effect=RuntimeError("broker down"),
         ):
             response = self._post()
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(calls), 1)
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(
+            StripeEvent.objects.get(stripe_event_id=EVENT_ID).status,
+            StripeEventStatus.FAILED,
+            "an un-queueable event must be left claimable, not PROCESSING",
+        )
+
+    def test_the_queued_worker_completes_the_work(self):
+        """End to end: endpoint queues, worker runs it, row settles."""
+        from billing.tasks import process_stripe_event
+
+        calls = []
+        with patch.object(
+            real_stripe.Webhook, "construct_event", return_value=make_event()
+        ), patch.dict(
+            "billing.webhooks._EVENT_HANDLERS", {EVENT_TYPE: calls.append}, clear=False
+        ), patch(
+            "billing.tasks.process_stripe_event.delay"
+        ) as queued:
+            self._post()
+
+        args = queued.call_args.args
+        with patch.dict(
+            "billing.webhooks._EVENT_HANDLERS", {EVENT_TYPE: calls.append}, clear=False
+        ):
+            process_stripe_event(*args)
+
+        self.assertEqual(len(calls), 1, "the worker did not run the handler")
         self.assertEqual(
             StripeEvent.objects.get(stripe_event_id=EVENT_ID).status,
             StripeEventStatus.SUCCEEDED,
@@ -504,11 +583,15 @@ class WebhookEndpointTests(TestCase):
             real_stripe.Event, "retrieve", return_value=make_event()
         ), patch.dict(
             "billing.webhooks._EVENT_HANDLERS", {EVENT_TYPE: calls.append}, clear=False
-        ):
+        ), patch(
+            "billing.tasks.process_stripe_event.delay"
+        ) as queued:
             response = self._post("stripe-webhook-thin")
 
+        # Both endpoints share _record_and_dispatch, so both queue.
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls, [])
+        queued.assert_called_once()
 
     def test_thin_webhook_retrieve_failure_creates_no_row(self):
         with patch.object(
@@ -535,12 +618,22 @@ class SweepStaleStripeEventsTests(TestCase):
         """
         self.assertIn("Stripe event sweep", sweep_stale_stripe_events.apply().get())
 
-    def test_stale_claim_is_settled_as_failed(self):
+    def test_a_stale_claim_that_HAD_STARTED_is_settled_as_failed(self):
+        """
+        The handler was already running, so it may have got part-way
+        through Stripe calls no rollback can undo. Settling it for a human
+        is the only safe outcome — see
+        billing/tests/test_abandoned_claim_recovery.py for the full
+        treatment.
+        """
         seed_event(
             StripeEventStatus.PROCESSING,
             claimed_at=timezone.now()
             - STRIPE_EVENT_CLAIM_STALE_AFTER
             - timedelta(minutes=1),
+        )
+        StripeEvent.objects.filter(stripe_event_id=EVENT_ID).update(
+            handler_started_at=timezone.now() - timedelta(hours=1)
         )
 
         summary = sweep_stale_stripe_events.apply().get()
@@ -549,6 +642,31 @@ class SweepStaleStripeEventsTests(TestCase):
         self.assertEqual(row.status, StripeEventStatus.FAILED)
         self.assertIn("abandoned", row.last_error)
         self.assertIn("1 abandoned claim(s)", summary)
+
+    def test_a_stale_claim_that_NEVER_STARTED_is_re_dispatched(self):
+        """
+        The behaviour change asynchronous dispatch made necessary. The
+        worker died before touching anything, and Stripe already has its
+        200 and will never redeliver — so settling this FAILED would
+        strand it forever.
+        """
+        seed_event(
+            StripeEventStatus.PROCESSING,
+            claimed_at=timezone.now()
+            - STRIPE_EVENT_CLAIM_STALE_AFTER
+            - timedelta(minutes=1),
+        )
+
+        with patch("billing.tasks.process_stripe_event.delay") as delay:
+            sweep_stale_stripe_events.apply().get()
+
+        self.assertTrue(delay.called)
+        row = StripeEvent.objects.get(stripe_event_id=EVENT_ID)
+        self.assertEqual(
+            row.status,
+            StripeEventStatus.PROCESSING,
+            "an event that could be safely recovered was abandoned instead",
+        )
 
     def test_fresh_claim_and_succeeded_rows_are_left_alone(self):
         fresh = seed_event(StripeEventStatus.PROCESSING, claimed_at=timezone.now())

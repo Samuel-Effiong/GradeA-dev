@@ -236,6 +236,68 @@ class BillingTransactionVisibilityTests(TestCase):
             len(all_ids), len(set(all_ids)), f"duplicate rows returned: {all_ids}"
         )
 
+    def test_pagination_never_leaks_across_the_boundary(self):
+        """
+        Required before removing `.distinct()`: paging must not change WHO
+        you can see, and no row may appear on two pages or vanish between
+        them. Walks every page and checks the union.
+        """
+        # Give Alice's tenant enough rows to span several pages.
+        extra = [self._individual_tx(self.teacher_a, 100 + i) for i in range(45)]
+        self.as_(self.teacher_a)
+
+        seen, page, guard = [], 1, 0
+        while guard < 20:
+            guard += 1
+            response = self.client.get(self.list_url, {"page": page, "page_size": 10})
+            if response.status_code == 404:
+                break
+            self.assertEqual(response.status_code, 200)
+            rows = rows_of(response)
+            if not rows:
+                break
+            seen.extend(str(r["id"]) for r in rows)
+            page += 1
+
+        self.assertEqual(
+            len(seen), len(set(seen)), "a row appeared on more than one page"
+        )
+        expected = {str(self.tx_teacher_a.pk)} | {str(t.pk) for t in extra}
+        self.assertEqual(
+            set(seen), expected, "paging lost or gained rows versus the tenant scope"
+        )
+        # And nothing belonging to anyone else surfaced on any page.
+        for foreign in (self.tx_teacher_b, self.tx_school_a, self.tx_school_b):
+            self.assertNotIn(str(foreign.pk), seen)
+
+    def test_a_school_admin_pages_without_duplicates(self):
+        """
+        The admin branch is the one that joins through School — the join
+        `.distinct()` was defending against. Pinned across pages, not just
+        on page 1.
+        """
+        extra = [self._license_tx(self.school_a, 500 + i) for i in range(25)]
+        self.as_(self.admin_a)
+
+        seen, page, guard = [], 1, 0
+        while guard < 20:
+            guard += 1
+            response = self.client.get(self.list_url, {"page": page, "page_size": 10})
+            if response.status_code == 404:
+                break
+            rows = rows_of(response)
+            if not rows:
+                break
+            seen.extend(str(r["id"]) for r in rows)
+            page += 1
+
+        self.assertEqual(
+            len(seen), len(set(seen)), "duplicate rows across pages for a school admin"
+        )
+        for t in extra:
+            self.assertIn(str(t.pk), seen)
+        self.assertNotIn(str(self.tx_school_b.pk), seen)
+
     # --- superadmin -----------------------------------------------------
 
     def test_a_superadmin_sees_everything(self):

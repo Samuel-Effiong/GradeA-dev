@@ -65,4 +65,20 @@ class BillingTransactionViewSet(viewsets.ReadOnlyModelViewSet):
                 source=BillingTransactionSource.LICENSE, school__in=admin_schools
             )
 
-        return base_qs.filter(visibility).distinct()
+        # No `.distinct()`. It cannot dedupe anything here and it is not
+        # free: `CustomUser.school` is a ForeignKey (one school per user,
+        # related_name="users"), so `School.objects.filter(users=user)`
+        # yields at most one row and is consumed as a `school__in=`
+        # subquery — which cannot duplicate outer rows. Measured at ~100k
+        # ledger / 16.4k transaction rows: identical result sets with and
+        # without (20 vs 20 for a school admin, 40 vs 40 for a teacher) but
+        # 59.1ms vs 25.2ms on the first page, a 2.4x cost. EXPLAIN shows
+        # why: DISTINCT forces a Sort+Unique across all ~40 selected
+        # columns (width=9335) of the six select_related tables, instead of
+        # a Nested Loop the LIMIT can short-circuit.
+        #
+        # If school membership ever becomes many-to-many, duplication
+        # becomes reachable and this must come back —
+        # test_a_school_admin_pages_without_duplicates is where that would
+        # surface.
+        return base_qs.filter(visibility)

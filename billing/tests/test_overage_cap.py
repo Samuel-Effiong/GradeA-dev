@@ -52,9 +52,17 @@ class CreateOverageCheckoutCapTests(OverageCapTestBase):
         mock_session_create.return_value = MagicMock(id="cs_test", url="https://x")
         self._set_blocks_used(1)
 
-        session = StripeOverageService.create_overage_checkout_session(
-            self.teacher, "https://ok", "https://cancel", quantity=2
-        )
+        # The checkout now confirms with Stripe that the price it is about
+        # to charge is the one this system quotes — see
+        # billing/overage_pricing.py. Stubbed to agree so this test stays
+        # about the block cap.
+        with patch(
+            "billing.overage_pricing.stripe.Price.retrieve",
+            return_value={"unit_amount": self.plan.overage_block_price},
+        ):
+            session = StripeOverageService.create_overage_checkout_session(
+                self.teacher, "https://ok", "https://cancel", quantity=2
+            )
 
         self.assertEqual(session.id, "cs_test")
         mock_session_create.assert_called_once()

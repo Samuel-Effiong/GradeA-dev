@@ -300,7 +300,14 @@ class SubscriptionPlan(models.Model):
         max_digits=10,
         decimal_places=2,
         default=Decimal("0.00"),
-        help_text="Price in USD (e.g. 24.99)",
+        help_text=(
+            "Base subscription price in CENTS, matching Stripe's "
+            "`unit_amount` exactly — STANDARD is 1499, not 14.99. The field "
+            "name is right and the old help text was wrong; entering "
+            "dollars here would under-bill by 100x and the nightly "
+            "reconciliation would report it as drift against Stripe. "
+            "Decimal rather than integer only for historical reasons."
+        ),
     )
 
     # --- Credits ---
@@ -612,6 +619,43 @@ class CreditWallet(models.Model):
     )
 
     # Track overage usage
+    # Credits that a lost chargeback should have reclaimed but could not,
+    # because the customer had already spent them. Recorded as a debt
+    # rather than by deleting usage history — the work was really done and
+    # really cost us; hiding it would make the ledger lie.
+    dispute_deficit_credits = models.PositiveIntegerField(
+        default=0,
+        help_text=(
+            "Credits owed back after a lost chargeback that were already "
+            "consumed and so could not be reclaimed from a bucket."
+        ),
+    )
+    # The same debt, arising from a refund rather than a chargeback. Kept
+    # as a SEPARATE counter rather than folded into the dispute one so the
+    # two causes stay tellable apart in the audit trail — "we gave this
+    # money back" and "an issuer took it from us" are different events with
+    # different follow-up, even though their effect on entitlement is
+    # identical. See billing/payment_refunds.py.
+    refund_deficit_credits = models.PositiveIntegerField(
+        default=0,
+        help_text=(
+            "Credits owed back after a refund that were already consumed "
+            "and so could not be reclaimed from a bucket."
+        ),
+    )
+    # Set when a deficit is recorded. Checked by consume_credits so a
+    # customer whose payment was charged back or refunded cannot keep
+    # spending on it. Derived from the two counters above via
+    # sync_consumption_block() — never set directly, or the two causes can
+    # clear each other's block.
+    is_consumption_blocked = models.BooleanField(
+        default=False,
+        help_text=(
+            "Blocks further credit consumption while an unsettled dispute "
+            "or refund deficit exists. Cleared by hand once the account is "
+            "settled."
+        ),
+    )
     overage_blocks_used = models.PositiveSmallIntegerField(
         default=0,
         help_text="Number of overage blocks used in the current billing cycle",
@@ -879,7 +923,18 @@ class CreditWallet(models.Model):
             InsufficientCreditsError: If total available credits are less than requested.
         """
         # Lock CreditWallet row to serialize consumption requests
-        CreditWallet.objects.select_for_update().get(pk=self.pk)
+        locked = CreditWallet.objects.select_for_update().get(pk=self.pk)
+
+        # Re-read under the lock: a dispute landing concurrently must not be
+        # raced past by a consumption that read the flag a moment earlier.
+        if locked.is_consumption_blocked:
+            raise InsufficientCreditsError(
+                "Credit consumption is blocked on this account: a reversed "
+                f"payment left an unsettled deficit of "
+                f"{locked.total_deficit_credits} credits "
+                f"({locked.dispute_deficit_credits} from chargebacks, "
+                f"{locked.refund_deficit_credits} from refunds)."
+            )
 
         total_available = self.total_remaining_credits()
 
@@ -1056,6 +1111,28 @@ class CreditWallet(models.Model):
         """
         return math.ceil(self.overage_blocks_used / CONVERSION_FACTOR)
 
+    @property
+    def total_deficit_credits(self) -> int:
+        """Everything owed back, whatever took the money away."""
+        return (self.dispute_deficit_credits or 0) + (self.refund_deficit_credits or 0)
+
+    def sync_consumption_block(self, *, save=True):
+        """
+        Recompute the consumption block from BOTH deficit counters.
+
+        The single place allowed to write `is_consumption_blocked`. Setting
+        it from one counter alone is the bug this exists to prevent: a
+        chargeback won late would clear the block even though an unrelated
+        refund deficit was still outstanding, and vice versa.
+        """
+        blocked = self.total_deficit_credits > 0
+        if blocked == self.is_consumption_blocked:
+            return False
+        self.is_consumption_blocked = blocked
+        if save:
+            self.save(update_fields=["is_consumption_blocked", "updated_at"])
+        return True
+
 
 class CreditBucketType(models.TextChoices):
     MONTHLY = "MONTHLY", _("Monthly")
@@ -1174,6 +1251,17 @@ class CreditLedgerType(models.TextChoices):
     EXPIRE = "EXPIRE", _("Expire")
     PURCHASE = "PURCHASE", _("Purchase")
     PLAN_CHANGE = "PLAN_CHANGE", _("Plan Change")
+    # Credits clawed back because the payment that bought them was lost to
+    # a chargeback. A NEGATIVE amount, appended like everything else — the
+    # original GRANT row is never edited or deleted, so the history still
+    # shows what was given and a separate row shows what was taken back.
+    DISPUTE_REVERSAL = "DISPUTE_REVERSAL", _("Dispute Reversal")
+    # The same claw-back, because the payment was REFUNDED rather than
+    # charged back. Deliberately distinct from REFUND above, which means
+    # the opposite thing — REFUND returns credits TO the customer when a
+    # task failed; REFUND_REVERSAL takes credits back because we returned
+    # their money. Confusing the two would invert a balance.
+    REFUND_REVERSAL = "REFUND_REVERSAL", _("Refund Reversal")
 
 
 class CreditLedger(AppendOnlyModel):
@@ -1252,12 +1340,66 @@ class CreditLedger(AppendOnlyModel):
     metadata = models.JSONField(
         null=True, blank=True, help_text="Metadata for the credit ledger"
     )
+    #: Which Stripe payment this row is attributable to, promoted out of
+    #: `metadata` into a real indexed column.
+    #:
+    #: Reversing a payment needs the exact opposite of what the rest of
+    #: billing needs: not "what does this wallet hold" but "what did THIS
+    #: payment buy, wherever it landed". A school overage purchase spreads
+    #: one payment across many teachers' wallets, so there is no single
+    #: wallet to scope the question to. Reading it back out of the JSON
+    #: `metadata` would work but is a sequential scan of the fastest-growing
+    #: table in the schema, executed inside a webhook transaction holding
+    #: locks — the same cost that made the unscoped form of
+    #: `_overage_already_granted` unacceptable.
+    #:
+    #: Populated automatically by `build()` from the metadata the grant
+    #: paths already write, so it cannot drift from it and no existing call
+    #: site had to change. Backfilled for historical rows by migration 0065.
+    #:
+    #: Indexed via Meta.indexes rather than `db_index=True` so the index
+    #: can be built CONCURRENTLY (migration 0065) and can be PARTIAL — the
+    #: overwhelming majority of ledger rows are consumption, which has no
+    #: payment behind it, so indexing only the non-null rows keeps it a
+    #: fraction of the size of a full one.
+    stripe_payment_intent_id = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text=(
+            "Stripe PaymentIntent this entry is attributable to, when the "
+            "entry came from a payment. Used to attribute a refund or "
+            "chargeback back to the exact credits it bought."
+        ),
+    )
     created_at = models.DateTimeField(
         auto_now_add=True, help_text="Date and time when the credit ledger was created"
     )
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            # "What did this payment buy, wherever it landed" — the lookup
+            # every refund and chargeback reversal starts from. Partial:
+            # only rows that came from a payment carry the column, and a
+            # query always supplies a concrete id, so the planner can use
+            # it.
+            models.Index(
+                fields=["stripe_payment_intent_id"],
+                name="bill_ledger_pi_idx",
+                condition=models.Q(stripe_payment_intent_id__isnull=False),
+            ),
+            # The list endpoint is `filter(user_id=...)` + `-created_at`,
+            # and the table only had a standalone user_id index. Measured
+            # with EXPLAIN ANALYZE: the plan was a Bitmap Heap Scan on
+            # user_id feeding a top-N heapsort, i.e. it read EVERY row the
+            # user owns to return a page of 20. Cost grows linearly with a
+            # user's history, on the fastest-growing table in the schema.
+            models.Index(
+                fields=["user_id", "-created_at"],
+                name="bill_ledger_user_t_idx",
+            ),
+        ]
 
     @classmethod
     def build(cls, *, user=None, **kwargs):
@@ -1272,6 +1414,16 @@ class CreditLedger(AppendOnlyModel):
         if user is not None:
             kwargs["user_id"] = user.id
             kwargs["user_email"] = user.email
+        # Promote the payment attribution out of `metadata` rather than
+        # asking every call site to pass it twice. Derived, never
+        # overridden: if a caller sets the column explicitly that wins, but
+        # otherwise the column and the JSON can never disagree.
+        if not kwargs.get("stripe_payment_intent_id"):
+            payment_intent_id = (kwargs.get("metadata") or {}).get(
+                "stripe_payment_intent_id"
+            )
+            if payment_intent_id:
+                kwargs["stripe_payment_intent_id"] = str(payment_intent_id)
         return cls(**kwargs)
 
     @classmethod
@@ -1401,6 +1553,19 @@ class CreditUsageLog(AppendOnlyModel):
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["task_id"], name="billing_usagelog_task_idx"),
+            # Same shape as CreditLedger: the endpoint filters on the
+            # owner and orders by -created_at, and without a composite the
+            # planner reads the user's whole history to return one page.
+            # `wallet_id` is indexed here as well as `user_id` because the
+            # viewset scopes via `wallet__user`.
+            models.Index(
+                fields=["wallet", "-created_at"],
+                name="bill_usagelog_wallet_t_idx",
+            ),
+            models.Index(
+                fields=["user_id", "-created_at"],
+                name="bill_usagelog_user_t_idx",
+            ),
         ]
 
     @classmethod
@@ -2039,6 +2204,19 @@ class StripeEvent(models.Model):
             "identifies a claim abandoned by a killed worker."
         ),
     )
+    handler_started_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=_(
+            "When a worker actually began running the handler for the "
+            "current claim — NOT when the claim was taken. The gap between "
+            "the two is the whole point: a claim with no start means the "
+            "worker died before touching anything and the event can be "
+            "safely re-dispatched, while a claim WITH a start may have got "
+            "part-way through irreversible Stripe calls and must not be "
+            "replayed automatically."
+        ),
+    )
     completed_at = models.DateTimeField(
         null=True,
         blank=True,
@@ -2047,6 +2225,15 @@ class StripeEvent(models.Model):
     attempts = models.PositiveIntegerField(
         default=0,
         help_text=_("How many times a worker has claimed this event."),
+    )
+    recovery_attempts = models.PositiveIntegerField(
+        default=0,
+        help_text=_(
+            "How many times the sweeper has re-dispatched this event after "
+            "a worker abandoned its claim. Capped, so a task that dies the "
+            "same way every time stops being retried and starts being "
+            "reported."
+        ),
     )
     last_error = models.TextField(
         blank=True,
@@ -2117,6 +2304,13 @@ class BillingTransactionStatus(models.TextChoices):
     PARTIALLY_REFUNDED = "PARTIALLY_REFUNDED", _("Partially Refunded")
     VOIDED = "VOIDED", _("Voided")
     MANUAL = "MANUAL", _("Recorded Manually (Offline)")
+    # A chargeback is open against this payment. The money has ALREADY left
+    # our balance (Stripe debits at dispute creation, not at closure), but
+    # the outcome is undecided, so entitlement is deliberately untouched.
+    DISPUTED = "DISPUTED", _("Disputed (chargeback open)")
+    # The chargeback was upheld. The money is gone for good and the credits
+    # it bought have been reversed.
+    DISPUTE_LOST = "DISPUTE_LOST", _("Dispute lost (charged back)")
 
 
 class BillingTransactionMethod(models.TextChoices):
@@ -2296,6 +2490,277 @@ class BillingTransaction(models.Model):
         return round(self.refunded_amount_cents / 100, 2)
 
 
+class DisputeStatus(models.TextChoices):
+    """
+    Stripe's own dispute statuses, verified against the live test API on
+    2026-09-08 by driving a real dispute through its whole lifecycle.
+
+    The `warning_*` values are an INQUIRY — a pre-dispute question from the
+    issuer. No money moves for an inquiry, which is why nothing in the
+    entitlement logic reacts to them.
+    """
+
+    WARNING_NEEDS_RESPONSE = "warning_needs_response", _("Inquiry: needs response")
+    WARNING_UNDER_REVIEW = "warning_under_review", _("Inquiry: under review")
+    WARNING_CLOSED = "warning_closed", _("Inquiry: closed")
+    NEEDS_RESPONSE = "needs_response", _("Chargeback: needs response")
+    UNDER_REVIEW = "under_review", _("Chargeback: under review")
+    WON = "won", _("Won")
+    LOST = "lost", _("Lost")
+
+
+#: How far through the lifecycle each status is. Used to reject stale,
+#: out-of-order deliveries: Stripe does NOT guarantee event ordering, so a
+#: delayed `charge.dispute.created` can arrive after `charge.dispute.closed`
+#: and must not drag a settled dispute back to needs_response.
+DISPUTE_STATUS_RANK = {
+    DisputeStatus.WARNING_NEEDS_RESPONSE: 0,
+    DisputeStatus.WARNING_UNDER_REVIEW: 1,
+    DisputeStatus.WARNING_CLOSED: 2,
+    DisputeStatus.NEEDS_RESPONSE: 3,
+    DisputeStatus.UNDER_REVIEW: 4,
+    DisputeStatus.LOST: 5,
+    DisputeStatus.WON: 6,
+}
+
+
+class PaymentDispute(models.Model):
+    """
+    One Stripe dispute (chargeback or inquiry), mirrored locally.
+
+    WHY THIS EXISTS: nothing in billing reacted to disputes at all. A
+    chargeback silently removed the money and the dispute fee from the
+    Stripe balance while the local BillingTransaction still read PAID and
+    the customer kept the credits the payment bought. The evidence deadline
+    would pass unanswered, losing by default.
+
+    Keyed on `stripe_dispute_id`, which is what makes the handlers safe
+    against duplicate delivery: every dispute webhook carries the FULL
+    Dispute object with its current status, so each delivery is an
+    idempotent "set the state to this" rather than a step in a sequence
+    that must arrive in order.
+
+    Measured against real Stripe (test mode, 2026-09-08) — the amounts here
+    are separate on purpose:
+        dispute created : balance -2499, fee 1500  (net -3999)
+        dispute won     : balance +2499, fee    0  (the fee is NOT returned)
+    So winning still costs the fee, and `amount_cents` alone would overstate
+    what we get back.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    stripe_dispute_id = models.CharField(max_length=255, unique=True, db_index=True)
+    stripe_charge_id = models.CharField(max_length=255, blank=True, default="")
+    stripe_payment_intent_id = models.CharField(
+        max_length=255, blank=True, default="", db_index=True
+    )
+
+    # Nullable: a dispute can arrive for a payment we never recorded (an
+    # invoice paid before this app owned the account, say). That is exactly
+    # the case that must NOT be dropped — it becomes a row flagged for a
+    # human instead.
+    billing_transaction = models.ForeignKey(
+        "BillingTransaction",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="disputes",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="payment_disputes",
+    )
+
+    status = models.CharField(
+        max_length=32, choices=DisputeStatus.choices, db_index=True
+    )
+    reason = models.CharField(max_length=64, blank=True, default="")
+    amount_cents = models.IntegerField(default=0)
+    fee_cents = models.IntegerField(
+        default=0, help_text="Stripe's dispute fee. Not returned even on a win."
+    )
+    currency = models.CharField(max_length=10, default="usd")
+
+    evidence_due_by = models.DateTimeField(null=True, blank=True)
+    funds_withdrawn_at = models.DateTimeField(null=True, blank=True)
+    funds_reinstated_at = models.DateTimeField(null=True, blank=True)
+
+    # Credit reversal, recorded once and only once.
+    credits_reversed = models.BooleanField(default=False)
+    credits_reversed_amount = models.PositiveIntegerField(default=0)
+    credits_deficit_amount = models.PositiveIntegerField(
+        default=0,
+        help_text="Portion of the reversal that was already spent and could not be reclaimed.",
+    )
+    #: WHOSE deficit, as {wallet_id: credits}.
+    #:
+    #: A map rather than a single number because one school overage
+    #: payment spreads across several teachers, so a chargeback on it can
+    #: leave several of them blocked. A late win then has to lift the
+    #: block from each — and `billing_transaction.user` is the wrong
+    #: answer there, being one teacher at best and null for a license
+    #: payment. Without this, a won chargeback would leave teachers
+    #: permanently unable to spend.
+    deficit_by_wallet = models.JSONField(default=dict, blank=True)
+
+    opened_at = models.DateTimeField(null=True, blank=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+
+    raw_payload = models.JSONField(
+        null=True, blank=True, help_text="Last Dispute object received, for audit."
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["status", "created_at"])]
+
+    def __str__(self) -> str:
+        return f"{self.stripe_dispute_id} ({self.status})"
+
+    @property
+    def is_inquiry(self) -> bool:
+        """Inquiries move no money and must not touch entitlement."""
+        return str(self.status).startswith("warning")
+
+    @property
+    def total_loss_cents(self) -> int:
+        """What a lost dispute actually costs: the amount plus the fee."""
+        return self.amount_cents + self.fee_cents
+
+
+class PaymentRefund(models.Model):
+    """
+    The credit-side consequence of refunding a payment, tracked per
+    PaymentIntent.
+
+    WHY THIS EXISTS: `charge.refunded` recorded the money and stopped
+    there. Measured on a real handler run — a fully refunded 500-credit
+    overage purchase left the BillingTransaction REFUNDED and all 500
+    credits still spendable. Money state and entitlement state diverged
+    silently, which is exactly the thing that must never happen.
+
+    KEYED ON THE PAYMENT INTENT, NOT THE EVENT. Stripe's
+    `amount_refunded` is CUMULATIVE across every refund on the charge, so
+    the natural formulation is a target ("this payment is now 60%
+    refunded, so 60% of what it bought should be gone") rather than a
+    delta. That makes duplicate delivery a no-op and multiple partial
+    refunds compose correctly, with no separate idempotency ledger.
+
+    Both stored amounts are MONOTONIC — a delivery carrying a smaller
+    `amount_refunded` than one already seen is a stale redelivery arriving
+    out of order, and must never un-reverse credits already taken back.
+
+    ONE CHARGE PER PAYMENT INTENT is assumed, which holds for every flow
+    that reaches here: a PaymentIntent has at most one succeeded charge,
+    and only a succeeded charge can be refunded. A second charge id on the
+    same intent is logged for manual review rather than silently folded
+    into the totals.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    stripe_payment_intent_id = models.CharField(
+        max_length=255, unique=True, db_index=True
+    )
+    stripe_charge_id = models.CharField(max_length=255, blank=True, default="")
+
+    billing_transaction = models.ForeignKey(
+        "BillingTransaction",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="refunds",
+    )
+
+    amount_captured_cents = models.PositiveIntegerField(default=0)
+    amount_refunded_cents = models.PositiveIntegerField(
+        default=0, help_text="Cumulative across all refunds on the charge. Monotonic."
+    )
+    currency = models.CharField(max_length=10, default="usd")
+
+    credits_granted = models.PositiveIntegerField(
+        default=0,
+        help_text="Credits this payment bought, summed from its grant ledger rows.",
+    )
+    credits_reversed = models.PositiveIntegerField(
+        default=0, help_text="Cumulative credits reclaimed for this payment."
+    )
+    credits_deficit = models.PositiveIntegerField(
+        default=0,
+        help_text=(
+            "Portion of the reversal that was already spent and so could "
+            "not be reclaimed. Recorded as debt; usage history is never "
+            "rewritten."
+        ),
+    )
+
+    #: Wallets whose overage block allowance has already been given back,
+    #: as {wallet_id: blocks}. A map rather than a counter because one
+    #: school payment grants blocks to several teachers, and a later
+    #: partial refund must not return the same teacher's block twice.
+    blocks_restored_by_wallet = models.JSONField(default=dict, blank=True)
+
+    #: Set when the refund was issued as a deliberate goodwill gesture and
+    #: the customer is meant to KEEP what they bought — see
+    #: billing/payment_refunds.py for how an operator asks for this.
+    retain_credits = models.BooleanField(
+        default=False,
+        help_text=(
+            "Deliberate business decision to absorb the loss and let the "
+            "customer keep the credits. Set from Stripe refund metadata."
+        ),
+    )
+    notes = models.TextField(blank=True, default="")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["-created_at"])]
+
+    def __str__(self) -> str:
+        return (
+            f"{self.stripe_payment_intent_id} "
+            f"({self.amount_refunded_cents}/{self.amount_captured_cents} refunded)"
+        )
+
+    @property
+    def is_fully_refunded(self) -> bool:
+        return (
+            self.amount_captured_cents > 0
+            and self.amount_refunded_cents >= self.amount_captured_cents
+        )
+
+    @property
+    def refunded_fraction(self) -> float:
+        if not self.amount_captured_cents:
+            return 0.0
+        return min(1.0, self.amount_refunded_cents / self.amount_captured_cents)
+
+    @property
+    def target_credits_reversed(self) -> int:
+        """
+        How many credits SHOULD be gone given the money returned so far.
+
+        Floored, so rounding always favours the customer: a 50% refund of a
+        501-credit grant reclaims 250, not 251.
+        """
+        if self.amount_captured_cents <= 0 or self.credits_granted <= 0:
+            return 0
+        if self.amount_refunded_cents >= self.amount_captured_cents:
+            return self.credits_granted
+        return (
+            self.credits_granted * self.amount_refunded_cents
+        ) // self.amount_captured_cents
+
+
 class LiveQARunKind(models.TextChoices):
     SCENARIO = "SCENARIO", _("Scenario")
     CHAOS = "CHAOS", _("Chaos")
@@ -2306,12 +2771,23 @@ class LiveQARunStatus(models.TextChoices):
     RUNNING = "RUNNING", _("Running")
     PASSED = "PASSED", _("Passed")
     FAILED = "FAILED", _("Failed")
+    # The scheduled run fired but deliberately did no work — this worker is
+    # not a QA worker (ENABLE_STRIPE_LIVE_QA off, or live Stripe keys).
+    # Recorded rather than silent: "nothing ran because it is switched off"
+    # and "nothing ran because something is broken" look identical from the
+    # outside, and telling them apart is the whole point of this row.
+    SKIPPED = "SKIPPED", _("Skipped (not enabled here)")
+    # Fired, was supposed to run, and could not — a misconfigured QA
+    # environment. Distinct from FAILED, which means Stripe's real
+    # behaviour disagreed with the billing code.
+    ERROR = "ERROR", _("Could not run (misconfigured)")
 
 
 class LiveQARun(models.Model):
     """
-    One triggered run of the real-Stripe QA suite from the internal QA
-    web console (billing/qa_console.py), persisted here because the
+    One run of the real-Stripe QA suite — triggered from the internal QA
+    web console (billing/qa_console.py) OR by the nightly
+    `nightly_stripe_live_qa` Beat task, persisted here because the
     Celery result backend is Redis with a 1-hour expiry
     (CELERY_RESULT_EXPIRES) — this is the durable record of what ran,
     with what parameters, and what it found.
@@ -2360,3 +2836,178 @@ class LiveQARun(models.Model):
 
     def __str__(self):
         return f"{self.kind} run {self.id} ({self.status})"
+
+
+# ----------------------------------------------------------------------
+# Nightly Stripe price reconciliation
+# ----------------------------------------------------------------------
+
+
+class PriceReconciliationStatus(models.TextChoices):
+    """
+    The outcome of checking ONE local price expectation against the Stripe
+    Price it points at.
+
+    Deliberately more than a boolean. Collapsing these into "drift" was the
+    specific failure to avoid: a Stripe outage and a changed price produce
+    identical symptoms at the call site (we could not confirm the amount)
+    but demand opposite responses — one is a billing incident, the other is
+    a network blip that will clear on its own. An alert that cannot tell
+    them apart is one nobody trusts at 3am.
+    """
+
+    MATCHED = "MATCHED", _("Matched")
+    #: Local configuration disagreed with Stripe and was UPDATED to match.
+    #: The normal outcome of a price change, not a fault — Stripe is the
+    #: source of truth, so the application following it is the system
+    #: working. Distinguished from MATCHED so the audit trail can answer
+    #: "when did this price change, and from what?"
+    SYNCHRONIZED = "SYNCHRONIZED", _("Synchronized from Stripe")
+    #: Disagreement in something that CANNOT be synchronized because it
+    #: would change how customers are billed rather than what they are
+    #: charged — a billing interval, say. Reported for a human.
+    DRIFT_DETECTED = "DRIFT_DETECTED", _("Drift detected")
+    MISSING_PRICE_ID = "MISSING_PRICE_ID", _("Missing price id")
+    INVALID_PRICE = "INVALID_PRICE", _("Invalid price")
+    INACTIVE_PRICE = "INACTIVE_PRICE", _("Inactive price")
+    ACCOUNT_MISMATCH = "ACCOUNT_MISMATCH", _("Stripe account mismatch")
+    STRIPE_UNAVAILABLE = "STRIPE_UNAVAILABLE", _("Stripe unavailable")
+    CONFIGURATION_ERROR = "CONFIGURATION_ERROR", _("Configuration error")
+    #: The plan legitimately has no price of this kind — a free trial, an
+    #: internal plan, a beta tier that charges only for overage. Recorded
+    #: rather than skipped silently, so the run can show it was considered.
+    NOT_APPLICABLE = "NOT_APPLICABLE", _("Not applicable")
+
+
+#: Outcomes that mean the BILLING CONFIGURATION is wrong and a human needs
+#: to look. Deliberately excludes STRIPE_UNAVAILABLE — see the docstring
+#: above.
+PRICE_RECONCILIATION_ALERT_STATUSES = frozenset(
+    {
+        PriceReconciliationStatus.DRIFT_DETECTED,
+        PriceReconciliationStatus.MISSING_PRICE_ID,
+        PriceReconciliationStatus.INVALID_PRICE,
+        PriceReconciliationStatus.INACTIVE_PRICE,
+        PriceReconciliationStatus.ACCOUNT_MISMATCH,
+        PriceReconciliationStatus.CONFIGURATION_ERROR,
+    }
+)
+
+
+class PriceKind(models.TextChoices):
+    """
+    Which of a plan's two billing surfaces a result is about.
+
+    A plan carries both on one row — `stripe_price_id` for the recurring
+    subscription and `stripe_overage_price_id` for one-time credit blocks.
+    They are separate Stripe Prices and drift independently, which is why
+    every result names which one it checked.
+    """
+
+    BASE = "BASE", _("Base subscription price")
+    OVERAGE = "OVERAGE", _("Overage block price")
+
+
+class PriceReconciliationRun(models.Model):
+    """One nightly sweep. The parent of its per-price results."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    started_at = models.DateTimeField(default=timezone.now)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    #: The Stripe account these credentials actually address, read back
+    #: from Stripe rather than assumed. Account drift between environments
+    #: was a real finding in the billing audit, so every run records which
+    #: account it was talking to.
+    stripe_account_id = models.CharField(max_length=255, blank=True, default="")
+    #: Whatever API version the application itself uses. Never pinned by
+    #: the reconciler — verifying against a version production does not use
+    #: is how the last round of verification missed a removed field.
+    stripe_api_version = models.CharField(max_length=64, blank=True, default="")
+    plans_checked = models.PositiveIntegerField(default=0)
+    prices_checked = models.PositiveIntegerField(default=0)
+    matched_count = models.PositiveIntegerField(default=0)
+    synced_count = models.PositiveIntegerField(default=0)
+    alert_count = models.PositiveIntegerField(default=0)
+    unavailable_count = models.PositiveIntegerField(default=0)
+    summary = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-started_at"]
+        indexes = [models.Index(fields=["-started_at"])]
+
+    def __str__(self):
+        return f"Price reconciliation {self.id} ({self.summary or 'in progress'})"
+
+    @property
+    def needs_attention(self) -> bool:
+        return self.alert_count > 0
+
+
+class PriceReconciliationResult(models.Model):
+    """
+    One local expectation checked against one Stripe Price.
+
+    Every comparison stores BOTH sides. Recording only the verdict would
+    make the record useless for the thing it exists for — someone opening
+    it at 3am needs to see what we expected and what Stripe said, without
+    re-running anything or trusting that the code that wrote it was right.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    run = models.ForeignKey(
+        PriceReconciliationRun, on_delete=models.CASCADE, related_name="results"
+    )
+    plan = models.ForeignKey(
+        SubscriptionPlan, on_delete=models.CASCADE, related_name="price_reconciliations"
+    )
+    plan_name = models.CharField(max_length=100, blank=True, default="")
+    plan_category = models.CharField(max_length=20, blank=True, default="")
+    price_kind = models.CharField(max_length=10, choices=PriceKind.choices)
+    price_id = models.CharField(max_length=255, blank=True, default="")
+    status = models.CharField(max_length=24, choices=PriceReconciliationStatus.choices)
+
+    expected_amount = models.IntegerField(null=True, blank=True)
+    stripe_amount = models.IntegerField(null=True, blank=True)
+    expected_currency = models.CharField(max_length=10, blank=True, default="")
+    stripe_currency = models.CharField(max_length=10, blank=True, default="")
+    expected_active = models.BooleanField(null=True, blank=True)
+    stripe_active = models.BooleanField(null=True, blank=True)
+    expected_product = models.CharField(max_length=255, blank=True, default="")
+    stripe_product = models.CharField(max_length=255, blank=True, default="")
+    expected_recurring = models.JSONField(null=True, blank=True)
+    stripe_recurring = models.JSONField(null=True, blank=True)
+
+    #: Every field that disagreed, so an alert can name them without
+    #: re-deriving the comparison.
+    mismatched_fields = models.JSONField(default=list, blank=True)
+
+    #: --- Synchronisation audit trail ---------------------------------
+    #: Stripe is the source of truth for prices, so a disagreement is
+    #: RESOLVED by updating the local row rather than reported for a human
+    #: to resolve. That makes the before/after the only surviving record of
+    #: what the application used to charge, which is why it is stored
+    #: rather than merely logged: a log line rotates away, and this is the
+    #: answer to "when did this price change, and from what?".
+    synced = models.BooleanField(default=False)
+    synced_fields = models.JSONField(default=list, blank=True)
+    previous_local_amount = models.IntegerField(null=True, blank=True)
+    previous_local_product = models.CharField(max_length=255, blank=True, default="")
+
+    error_code = models.CharField(max_length=100, blank=True, default="")
+    error_message = models.TextField(blank=True, default="")
+    detected_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["plan_name", "price_kind"]
+        indexes = [
+            models.Index(fields=["status", "-detected_at"]),
+            models.Index(fields=["plan", "price_kind"]),
+        ]
+
+    def __str__(self):
+        return f"{self.plan_name} {self.price_kind}: {self.status}"
+
+    @property
+    def needs_attention(self) -> bool:
+        return self.status in PRICE_RECONCILIATION_ALERT_STATUSES

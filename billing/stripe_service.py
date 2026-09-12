@@ -77,6 +77,11 @@ from .models import (
     UserSubscription,
     get_tier_rank,
 )
+from .overage_pricing import assert_overage_price_in_sync
+from .payment_refunds import (
+    SYSTEM_REFUND_INTERVAL_CHANGE_DUPLICATE,
+    SYSTEM_REFUND_METADATA_KEY,
+)
 from .services import SubscriptionService
 from .subscription_resolver import (
     SOURCE_INDIVIDUAL,
@@ -98,6 +103,26 @@ logger = logging.getLogger(__name__)
 # "subscription" is the legacy pre-2018 spelling of subscription_cycle,
 # kept so an older pinned API version behaves identically.
 RENEWAL_BILLING_REASONS = frozenset({"subscription_cycle", "subscription"})
+
+# A Stripe SubscriptionSchedule phase transition — how a DEFERRED plan
+# change (a downgrade taking effect at the period boundary) actually bills —
+# does NOT use a renewal billing_reason. It bills the next period under
+# "subscription_update", the same reason Stripe uses for a MID-CYCLE
+# proration. Verified against the live test API on 2026-09-07:
+#
+#   scheduled downgrade at the boundary : subscription_update,
+#       period 2026-10-07 -> 2026-11-06  (BEYOND the local cycle end)
+#   mid-cycle upgrade, always_invoice   : subscription_update,
+#       period 2026-09-07 -> 2026-10-07  (ENDS AT the local cycle end)
+#
+# So the reason alone cannot tell them apart, and treating every
+# "subscription_update" as a renewal would grant a whole extra cycle of
+# credits for an upgrade proration — the exact incident RENEWAL_BILLING_
+# REASONS was narrowed to prevent (see test_renewal_guards.py). What
+# separates them is the INVOICE'S OWN PERIOD: a genuine period transition
+# pays for time we have not granted yet; a proration only ever covers the
+# remainder of the cycle we are already in.
+SCHEDULE_TRANSITION_BILLING_REASONS = frozenset({"subscription_update"})
 
 
 def _coerce_stripe_timestamp(value):
@@ -171,6 +196,74 @@ def extract_invoice_billing_period(invoice):
     end = _coerce_stripe_timestamp(_stripe_get(invoice, "period_end"))
     if start is not None and end is not None and end > start:
         return start, end
+
+    return None, None
+
+
+# What to pass as `expand` when an invoice's PaymentIntent is needed.
+#
+# `expand=["payment_intent"]` — what this module used to send — is a NO-OP on
+# every API version from 2025-03-31 onward: the field was removed from the
+# Invoice object, and Stripe silently ignores the expand rather than erroring.
+# Verified against the live test API on 2026-09-06 under the pinned version
+# 2026-02-25.clover: top-level `payment_intent`, `charge` and `subscription`
+# are all absent, and only this path yields the PaymentIntent.
+#
+# Expanding all the way to the PaymentIntent object (rather than stopping at
+# `payments`) costs nothing extra and gives callers `status`, which the 3D
+# Secure branches need. Without it the value comes back as a bare id string.
+INVOICE_PAYMENT_INTENT_EXPAND = ["payments.data.payment.payment_intent"]
+
+
+def resolve_invoice_payment_intent(invoice):
+    """
+    The PaymentIntent behind an invoice, as `(payment_intent_id, object)`.
+
+    Reads both locations, newest first:
+
+      * `invoice.payments.data[].payment.payment_intent` — where it lives as
+        of API 2025-03-31 and later, alongside the wider "invoice payments"
+        restructure that also moved `subscription` under `parent`;
+      * `invoice.payment_intent` — the pre-2025-03-31 top-level field, kept
+        as a fallback so an older pinned API version still works.
+
+    `object` is None when the caller did not expand far enough (the value is
+    then a bare id string). Callers needing `status` must pass
+    `expand=INVOICE_PAYMENT_INTENT_EXPAND`.
+
+    WHY THIS EXISTS: reading the dead top-level field returned None, so
+    `_void_or_refund_side_effect_invoice`'s `if pi_id:` guard never fired and
+    the compensating refund for a duplicate interval-change charge was never
+    issued — silently, with no exception and no log. The customer was left
+    double-charged. Found by the real-Stripe suite; invisible to every mocked
+    test, because a mock returns whatever shape its author wrote.
+
+    Returns (None, None) for an invoice with no payment at all.
+    """
+    payments = _stripe_get(invoice, "payments") or {}
+    entries = _stripe_get(payments, "data") or []
+
+    # An invoice can carry several payment attempts (a decline then a
+    # retry). Prefer one that actually succeeded: refunding or reading the
+    # status of a failed attempt would be wrong.
+    def _pick(entry):
+        payment = _stripe_get(entry, "payment") or {}
+        return _stripe_get(payment, "payment_intent")
+
+    candidates = [e for e in entries if _stripe_get(e, "status") == "paid"] or entries
+    for entry in candidates:
+        payment_intent = _pick(entry)
+        if not payment_intent:
+            continue
+        if isinstance(payment_intent, str):
+            return payment_intent, None
+        return _stripe_get(payment_intent, "id"), payment_intent
+
+    legacy = _stripe_get(invoice, "payment_intent")
+    if legacy:
+        if isinstance(legacy, str):
+            return legacy, None
+        return _stripe_get(legacy, "id"), legacy
 
     return None, None
 
@@ -1102,7 +1195,7 @@ class StripeSubscriptionMutationService:
 
         if latest_invoice_id:
             invoice = stripe.Invoice.retrieve(
-                latest_invoice_id, expand=["payment_intent"]
+                latest_invoice_id, expand=INVOICE_PAYMENT_INTENT_EXPAND
             )
 
             if invoice.get("status") != "paid":
@@ -1115,11 +1208,14 @@ class StripeSubscriptionMutationService:
                     stripe_subscription_id, item_id, old_price_id, invoice
                 )
 
-                payment_intent = invoice.get("payment_intent")
+                # Via the helper: the top-level field this used to read is
+                # gone from the API version we pin, so pi_status was always
+                # None and the 3D Secure branch below was unreachable.
+                _pi_id, payment_intent = resolve_invoice_payment_intent(invoice)
 
                 pi_status = (
-                    payment_intent.get("status")
-                    if isinstance(payment_intent, dict)
+                    _stripe_get(payment_intent, "status")
+                    if payment_intent is not None
                     else None
                 )
 
@@ -1426,17 +1522,12 @@ class StripeSubscriptionMutationService:
                 return
 
             invoice = stripe.Invoice.retrieve(
-                latest_invoice_id, expand=["payment_intent"]
+                latest_invoice_id, expand=INVOICE_PAYMENT_INTENT_EXPAND
             )
             status = invoice.get("status")
 
             if status == "paid":
-                payment_intent = invoice.get("payment_intent")
-                pi_id = (
-                    payment_intent["id"]
-                    if isinstance(payment_intent, dict)
-                    else payment_intent
-                )
+                pi_id, _payment_intent = resolve_invoice_payment_intent(invoice)
                 if pi_id:
                     # Idempotency key ties this refund to the specific
                     # PaymentIntent being neutralized: if this compensating
@@ -1445,9 +1536,23 @@ class StripeSubscriptionMutationService:
                     # duplicate invoice, Stripe itself refuses to issue a
                     # second refund rather than relying solely on human
                     # judgment to catch it.
+                    # Stamped so the `charge.refunded` this triggers is
+                    # recognisable as OUR housekeeping when it comes back
+                    # in. Without it, the refund handler finds no matching
+                    # BillingTransaction — correctly, since the duplicate
+                    # invoice was deliberately never recorded as a customer
+                    # charge — and files a manual-review alert against a
+                    # refund this system issued on purpose.
                     stripe.Refund.create(
                         payment_intent=pi_id,
                         idempotency_key=f"interval-change-refund-{pi_id}",
+                        metadata={
+                            SYSTEM_REFUND_METADATA_KEY: (
+                                SYSTEM_REFUND_INTERVAL_CHANGE_DUPLICATE
+                            ),
+                            "stripe_subscription_id": stripe_subscription_id,
+                            "duplicate_invoice_id": invoice["id"],
+                        },
                     )
                     logger.warning(
                         "Refunded duplicate interval-change invoice %s "
@@ -1593,13 +1698,13 @@ class StripeSubscriptionMutationService:
             latest_invoice_id = stripe_sub_refreshed.get("latest_invoice")
             if latest_invoice_id:
                 invoice = stripe.Invoice.retrieve(
-                    latest_invoice_id, expand=["payment_intent"]
+                    latest_invoice_id, expand=INVOICE_PAYMENT_INTENT_EXPAND
                 )
                 if invoice.get("status") != "paid":
-                    payment_intent = invoice.get("payment_intent")
+                    _pi_id, payment_intent = resolve_invoice_payment_intent(invoice)
                     pi_status = (
-                        payment_intent.get("status")
-                        if isinstance(payment_intent, dict)
+                        _stripe_get(payment_intent, "status")
+                        if payment_intent is not None
                         else None
                     )
                     if pi_status == "requires_action":
@@ -2105,6 +2210,19 @@ class StripeOverageService:
                 f"{plan.max_overage_blocks} block(s) per cycle "
                 f"({max(0, remaining_blocks)} remaining)."
             )
+
+        # AFTER the cap check, deliberately. This reaches Stripe, and a
+        # request that is going to be refused for exceeding the plan's cap
+        # should be refused locally, cheaply, with a message about the cap
+        # — not spend an API call only to fail with a pricing error that
+        # tells the customer nothing about why they cannot buy.
+        #
+        # The session below is priced by `stripe_overage_price_id`, but the
+        # amount this system quotes, logs and records comes from
+        # `plan.overage_block_price`. When those disagree the customer is
+        # shown one number and charged another, so refuse rather than
+        # proceed. See billing/overage_pricing.py.
+        assert_overage_price_in_sync(plan)
 
         customer_id = StripeCustomerService.get_or_create_customer(user)
 
@@ -2869,6 +2987,55 @@ class StripeWebhookHandler:
         wallet = CreditWallet.objects.select_for_update().get(id=metadata["wallet_id"])
         plan = SubscriptionPlan.objects.get(id=metadata["plan_id"])
         quantity = int(metadata["quantity"])
+
+        # Stripe's own guidance: "In some cases, two separate Event objects
+        # are generated and sent. To identify these duplicates, use the ID
+        # of the object in data.object along with the event.type." The
+        # StripeEvent ledger keys on the EVENT id, so two distinct events
+        # carrying the SAME checkout session both get claimed and both run.
+        #
+        # Without this guard that double-granted: measured, a customer who
+        # paid for one 500-credit block received two buckets totalling
+        # 1000 credits. The cap check below does not cover it — it only
+        # bites once the customer is already at their limit.
+        #
+        # Scoped to the wallet for the same reason as
+        # _overage_already_granted: the grant always writes its ledger row
+        # against a bucket belonging to this wallet, so a scoped lookup
+        # cannot miss a true match, and the unscoped form is a sequential
+        # scan of the fastest-growing table in the system.
+        payment_intent_id = session.get("payment_intent")
+        if payment_intent_id and StripeWebhookHandler._overage_already_granted(
+            payment_intent_id, wallet
+        ):
+            logger.info(
+                "Overage checkout session %s is a duplicate delivery — "
+                "PaymentIntent %s has already granted its block(s) to "
+                "wallet %s. Skipping.",
+                session.get("id"),
+                payment_intent_id,
+                wallet.id,
+            )
+            return
+
+        # Never grant on an unconfirmed payment. `checkout.session.completed`
+        # fires for asynchronous payment methods before the money settles,
+        # where payment_status is "unpaid" or "no_payment_required". The
+        # licence overage path already refuses these; this one did not, and
+        # would have handed over credits for a payment that had not been
+        # made. Flagged loudly rather than granted.
+        payment_status = session.get("payment_status")
+        if payment_status is not None and payment_status != "paid":
+            logger.error(
+                "Overage checkout session %s completed for wallet %s with "
+                "payment_status=%r (not 'paid') — credits NOT granted. "
+                "Asynchronous payment methods are not supported on this "
+                "flow. Needs manual reconciliation.",
+                session.get("id"),
+                wallet.id,
+                payment_status,
+            )
+            return
 
         if (wallet.overage_blocks_used or 0) + quantity > plan.max_overage_blocks:
             logger.error(
@@ -3753,13 +3920,41 @@ class StripeWebhookHandler:
                 description=f"Subscription invoice paid ({billing_reason})",
             )
 
+        # Does this invoice pay for time beyond the cycle we have already
+        # granted? Computed from the invoice itself rather than from the
+        # clock, so the answer does not depend on how promptly the webhook
+        # was processed.
+        invoice_start, invoice_end = extract_invoice_billing_period(invoice)
+        covers_a_new_period = (
+            invoice_end is not None and invoice_end > user_sub.billing_cycle_end
+        )
+        is_scheduled_transition = (
+            billing_reason in SCHEDULE_TRANSITION_BILLING_REASONS
+            and covers_a_new_period
+        )
+
         skip_reason = None
-        if billing_reason not in RENEWAL_BILLING_REASONS:
-            skip_reason = (
-                f"billing_reason={billing_reason!r} is not a new-period "
-                "renewal reason"
-            )
-        elif user_sub.billing_cycle_end > now:
+        if (
+            billing_reason not in RENEWAL_BILLING_REASONS
+            and not is_scheduled_transition
+        ):
+            if billing_reason in SCHEDULE_TRANSITION_BILLING_REASONS:
+                # The common, correct case for this reason: a mid-cycle
+                # proration. It only covers the remainder of the current
+                # cycle, so it must NOT renew — it buys no new time.
+                skip_reason = (
+                    f"billing_reason={billing_reason!r} covers "
+                    f"{invoice_end.isoformat() if invoice_end else 'no period'}, "
+                    f"which does not extend past the current cycle end "
+                    f"{user_sub.billing_cycle_end.isoformat()} — a mid-cycle "
+                    "proration, not a period transition"
+                )
+            else:
+                skip_reason = (
+                    f"billing_reason={billing_reason!r} is not a new-period "
+                    "renewal reason"
+                )
+        elif user_sub.billing_cycle_end > now and not is_scheduled_transition:
             skip_reason = (
                 "the local billing period has not elapsed yet — already "
                 "renewed by an earlier delivery or by the reconcile sweep"
@@ -4245,8 +4440,34 @@ class StripeWebhookHandler:
 
     @staticmethod
     @transaction.atomic
+    def handle_dispute_event(dispute):
+        """
+        Every dispute webhook — created / updated / closed /
+        funds_withdrawn / funds_reinstated — routes here.
+
+        One handler for all five on purpose: each carries the FULL Dispute
+        object with its current `status`, so the right thing to do is
+        decided by that status, not by which event happened to arrive.
+        That makes duplicate and out-of-order deliveries harmless, which
+        matters because Stripe guarantees neither.
+
+        See billing/disputes.py for the state machine and the business
+        rules it implements.
+        """
+        from .disputes import DisputeService
+
+        return DisputeService.apply(dispute)
+
+    @staticmethod
+    @transaction.atomic
     def handle_charge_refunded(charge):
-        BillingTransactionService.handle_refund(charge)
+        # Records the money AND brings entitlement back in line with it —
+        # previously this recorded only the money, so a fully refunded
+        # overage purchase left every credit spendable. See
+        # billing/payment_refunds.py for the rules.
+        from .payment_refunds import RefundService
+
+        return RefundService.apply(charge)
 
     # ------------------------------------------------------------------
     # payment_intent.succeeded (overage block fallback for 3DS / requires_action)

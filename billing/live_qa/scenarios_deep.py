@@ -533,7 +533,9 @@ def scenario_invoice_lookback_finds_renewal_behind_a_proration(
 
     from billing.tasks import reconcile_subscription_renewals
 
-    summary = reconcile_subscription_renewals()
+    # See scenarios_clock: the sweep filters on `billing_cycle_end__lte=now`.
+    with harness.local_clock():
+        summary = reconcile_subscription_renewals()
     logger.info("[LIVE QA %s] reconcile summary: %s", harness.run_id, summary)
 
     after = sub.local()

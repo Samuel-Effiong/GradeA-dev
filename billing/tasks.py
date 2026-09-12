@@ -20,9 +20,11 @@ Three independent tasks — each with a single, well-defined responsibility:
 """
 
 import logging
+from enum import Enum
 
 from celery import shared_task
 from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
 
 from .imports import stripe
@@ -52,6 +54,10 @@ from .stripe_service import (
 from .webhooks import STRIPE_EVENT_CLAIM_STALE_AFTER, STRIPE_RETRY_WINDOW
 
 logger = logging.getLogger(__name__)
+
+# Which tier the nightly Beat schedule runs. "fast" is the ~20-30 minute
+# envelope; "deep" takes hours and belongs in a weekly job.
+SCHEDULED_LIVE_QA_TIER = "fast"
 
 # How many recent paid invoices to scan when the newest one isn't the
 # renewal we're looking for (e.g. an upgrade proration landed after it).
@@ -708,6 +714,114 @@ def expire_active_trials(self):
     return summary
 
 
+#: How many times the sweeper will re-dispatch one event whose worker died
+#: before starting. Bounded so a task that dies the same way every hour
+#: (a poison payload, an OOM on one big event) stops being retried and
+#: starts being reported to a human instead of cycling forever.
+STRIPE_EVENT_MAX_RECOVERY_ATTEMPTS = 3
+
+
+class RecoveryOutcome(Enum):
+    """
+    What the sweeper should do with an abandoned event after trying to
+    recover it.
+
+    The three cases are genuinely different and collapsing them is a bug:
+    DEFERRED once returned the same value as DECLINED, and the sweeper
+    duly marked FAILED every event it had failed to re-queue during a
+    broker blip — stranding exactly the events this recovery exists to
+    save, since Stripe has long since had its 200 and will not redeliver.
+    """
+
+    REDISPATCHED = "redispatched"  # queued to a live worker; leave it be
+    DEFERRED = "deferred"  # try again next sweep; do NOT settle it
+    DECLINED = "declined"  # not recoverable; settle it as FAILED
+
+
+def _redispatch_abandoned_event(event) -> RecoveryOutcome:
+    """
+    Hand an abandoned-but-unstarted event back to a worker.
+
+    RACE SAFETY
+    -----------
+    The re-claim is one conditional UPDATE fenced on the OLD `claimed_at`,
+    which does three jobs at once:
+
+    * Two sweepers running concurrently: both read the same stale row, but
+      only one UPDATE matches — the loser's WHERE clause re-evaluates
+      against the winner's freshly written claimed_at and matches nothing.
+    * The original worker coming back from the dead: its terminal write in
+      `_finish_stripe_event` is fenced on ITS claim token, which no longer
+      matches, so it cannot settle a row it no longer owns.
+    * A Stripe redelivery arriving mid-recovery: the new claimed_at is
+      fresh, so `_claim_stripe_event` sees a live claim and answers 409
+      rather than starting a second concurrent run.
+
+    `handler_started_at` is left NULL and `recovery_attempts` incremented,
+    so if this attempt also dies before starting, the next sweep can try
+    again — up to the cap.
+    """
+    from .webhooks import _EVENT_HANDLERS
+
+    if event.event_type not in _EVENT_HANDLERS:
+        # Nothing to run. Settling it as SUCCEEDED would be a lie, so let
+        # the caller mark it FAILED through the normal path.
+        return RecoveryOutcome.DECLINED
+
+    new_token = timezone.now()
+    reclaimed = StripeEvent.objects.filter(
+        pk=event.pk,
+        status=StripeEventStatus.PROCESSING,
+        claimed_at=event.claimed_at,
+        handler_started_at__isnull=True,
+    ).update(
+        claimed_at=new_token,
+        recovery_attempts=F("recovery_attempts") + 1,
+        attempts=F("attempts") + 1,
+        last_error="",
+    )
+    if not reclaimed:
+        # Someone else got there first — another sweeper, a redelivery, or
+        # the original worker finally starting. All three are fine, and in
+        # all three the row now belongs to somebody else: leave it alone.
+        return RecoveryOutcome.DEFERRED
+
+    try:
+        process_stripe_event.delay(event.stripe_event_id, new_token.isoformat())
+    except Exception as exc:  # noqa: BLE001 - broker down; report, don't crash
+        # The queue is unavailable. Release the claim back to its stale
+        # state so the NEXT sweep retries, rather than leaving a fresh
+        # claim nobody is working on — that would look healthy for a full
+        # staleness window while nothing happened.
+        StripeEvent.objects.filter(
+            pk=event.pk,
+            status=StripeEventStatus.PROCESSING,
+            claimed_at=new_token,
+        ).update(
+            claimed_at=event.claimed_at,
+            last_error=f"recovery could not reach the broker: {exc!r}"[:2000],
+        )
+        logger.error(
+            "Could not re-queue abandoned Stripe event %s (%s): %r. Claim "
+            "released; the next sweep will try again.",
+            event.stripe_event_id,
+            event.event_type,
+            exc,
+        )
+        return RecoveryOutcome.DEFERRED
+
+    logger.warning(
+        "Recovered abandoned Stripe event %s (%s): its worker died before "
+        "the handler started, so no Stripe call was made and it is safe to "
+        "re-dispatch. Recovery attempt %d of %d.",
+        event.stripe_event_id,
+        event.event_type,
+        event.recovery_attempts + 1,
+        STRIPE_EVENT_MAX_RECOVERY_ATTEMPTS,
+    )
+    return RecoveryOutcome.REDISPATCHED
+
+
 @shared_task(bind=True, max_retries=0)
 def sweep_stale_stripe_events(self):
     """
@@ -746,8 +860,60 @@ def sweep_stale_stripe_events(self):
         claimed_at__lt=stale_cutoff,
     ).iterator()
 
+    recovered_count = 0
+    exhausted_count = 0
+    deferred_count = 0
+
     for event in stale_claims:
         try:
+            # --- Recoverable? -----------------------------------------
+            # A claim with no handler_started_at means the worker died
+            # between claiming and doing ANYTHING: no Stripe call was
+            # made, no row was written. Re-dispatching is safe, and it is
+            # also the only way the event will ever run — since Item 1
+            # made dispatch asynchronous the endpoint answers Stripe 200
+            # the moment it claims, so Stripe considers the delivery
+            # successful and will never redeliver. Marking it FAILED and
+            # waiting for a retry that is never coming is how a dead
+            # worker strands an event forever.
+            if (
+                event.handler_started_at is None
+                and event.recovery_attempts < STRIPE_EVENT_MAX_RECOVERY_ATTEMPTS
+            ):
+                outcome = _redispatch_abandoned_event(event)
+                if outcome is RecoveryOutcome.REDISPATCHED:
+                    recovered_count += 1
+                    continue
+                if outcome is RecoveryOutcome.DEFERRED:
+                    # Someone else owns it, or the broker was unreachable.
+                    # Either way this row must NOT be settled — marking it
+                    # FAILED here is what stranded events during a broker
+                    # blip, because Stripe will never redeliver them.
+                    deferred_count += 1
+                    continue
+
+            if (
+                event.handler_started_at is None
+                and event.recovery_attempts >= STRIPE_EVENT_MAX_RECOVERY_ATTEMPTS
+            ):
+                exhausted_count += 1
+                logger.error(
+                    "Stripe event %s (%s) has been re-dispatched %d time(s) "
+                    "and each worker died before starting. Giving up on "
+                    "automatic recovery — this needs a human: "
+                    "manage.py replay_stripe_events --dry-run",
+                    event.stripe_event_id,
+                    event.event_type,
+                    event.recovery_attempts,
+                )
+
+            # --- Not recoverable: died mid-handler --------------------
+            # handler_started_at is set, so this worker may have got
+            # part-way through Stripe calls that no database rollback can
+            # undo (Refund.create, Subscription.modify). Replaying that
+            # automatically could refund a customer twice with nobody
+            # watching, so it is marked FAILED for a human instead.
+            #
             # Fenced on claimed_at, same as _finish_stripe_event: if a
             # delivery re-claimed this row between the query and now, its
             # fresh claim must not be clobbered.
@@ -758,7 +924,13 @@ def sweep_stale_stripe_events(self):
             ).update(
                 status=StripeEventStatus.FAILED,
                 completed_at=now,
-                last_error="abandoned: processing claim went stale",
+                last_error=(
+                    "abandoned: processing claim went stale after the "
+                    "handler had started; NOT auto-replayed because it may "
+                    "have made irreversible Stripe calls"
+                    if event.handler_started_at
+                    else "abandoned: processing claim went stale"
+                ),
             )
         except Exception as exc:
             failed_count += 1
@@ -787,7 +959,10 @@ def sweep_stale_stripe_events(self):
 
     summary = (
         f"Stripe event sweep: "
+        f"{recovered_count} abandoned claim(s) re-dispatched, "
         f"{abandoned_count} abandoned claim(s) marked FAILED, "
+        f"{deferred_count} deferred to the next sweep, "
+        f"{exhausted_count} past the recovery cap, "
         f"{failed_retriable} FAILED within Stripe's retry window, "
         f"{failed_unretriable} FAILED past it, "
         f"{failed_count} sweep error(s)."
@@ -886,24 +1061,69 @@ def nightly_stripe_live_qa(self):
     because a broken billing assumption is exactly the class of bug that
     reaches customers as lost money.
     """
+    from .models import LiveQARun, LiveQARunKind, LiveQARunStatus
     from .stripe_live_qa import LiveQAConfigurationError, LiveQARefused, live_qa_enabled
 
+    # Recorded BEFORE the enablement check, and finalised on every path.
+    #
+    # This row is the fix for a real gap: the task was scheduled correctly
+    # and had fired 20 times on the deployed worker, but wrote nothing
+    # anywhere, so "ran and passed", "ran and failed" and "did nothing
+    # because it is switched off here" were indistinguishable from the
+    # database. Scenario failures went only to worker logs — at ERROR, but
+    # nobody was watching a log line. A real-Stripe suite you cannot tell
+    # the status of is not a safety net.
+    run = LiveQARun.objects.create(
+        kind=LiveQARunKind.SCENARIO,
+        status=LiveQARunStatus.RUNNING,
+        tier=SCHEDULED_LIVE_QA_TIER,
+        celery_task_id=str(getattr(self.request, "id", "") or ""),
+        started_at=timezone.now(),
+    )
+
+    def _finish(status, summary, result_data=None):
+        run.status = status
+        run.summary = summary
+        if result_data is not None:
+            run.result_data = result_data
+        run.finished_at = timezone.now()
+        run.save(
+            update_fields=[
+                "status",
+                "summary",
+                "result_data",
+                "finished_at",
+                "updated_at",
+            ]
+        )
+        return summary
+
     if not live_qa_enabled():
-        logger.debug(
-            "Stripe live QA is not enabled in this environment; skipping. "
+        # DEBUG, as before — a normal production worker must not log noise
+        # every night. The difference is that the DB now says so out loud.
+        message = (
+            "Stripe live QA skipped: not enabled in this environment. "
             "(Needs ENABLE_STRIPE_LIVE_QA and sk_test_ Stripe keys.)"
         )
-        return "Stripe live QA skipped: not enabled in this environment."
+        logger.debug(message)
+        return _finish(LiveQARunStatus.SKIPPED, message)
 
-    from .stripe_live_qa_scenarios import run_suite
+    from .qa_console import _serialize_result
+    from .stripe_live_qa_scenarios import run_suite, scenarios_for_tier
 
     try:
-        result = run_suite()
+        result = run_suite(scenarios_for_tier(SCHEDULED_LIVE_QA_TIER))
     except (LiveQARefused, LiveQAConfigurationError) as exc:
         # Misconfiguration, not a billing bug. WARNING, not ERROR: nobody
         # should be woken for a QA environment that is not set up.
         logger.warning("Stripe live QA could not run: %s", exc)
-        return f"Stripe live QA could not run: {exc}"
+        return _finish(LiveQARunStatus.ERROR, f"Stripe live QA could not run: {exc}")
+    except Exception as exc:  # noqa: BLE001 - must not leave the row RUNNING
+        logger.exception("Stripe live QA crashed before completing.")
+        return _finish(
+            LiveQARunStatus.ERROR,
+            f"Stripe live QA crashed before completing: {exc!r}",
+        )
 
     for scenario in result.scenarios:
         if scenario.passed:
@@ -928,7 +1148,11 @@ def nightly_stripe_live_qa(self):
 
     summary = result.summary()
     logger.info(summary)
-    return summary
+    return _finish(
+        LiveQARunStatus.PASSED if result.passed else LiveQARunStatus.FAILED,
+        summary,
+        _serialize_result(result),
+    )
 
 
 @shared_task(bind=True, max_retries=0)
@@ -1054,6 +1278,123 @@ def recalculate_conversion_probabilities(self):
         f"{scored_count} scored, {failed_count} failed."
     )
     logger.info(summary)
+    return summary
+
+
+#: Overlap guard for the nightly price sweep. A cache TTL rather than a
+#: row lock, so a worker killed mid-run releases it automatically — a lock
+#: that survives a crash would silently disable the reconciliation until
+#: someone noticed it had stopped reporting, which is the worst possible
+#: failure for a watchdog.
+#:
+#: Comfortably longer than a run (~18 Stripe reads) and comfortably shorter
+#: than the 24h gap to the next one.
+PRICE_RECONCILIATION_LOCK_KEY = "billing:price-reconciliation:running"
+PRICE_RECONCILIATION_LOCK_TIMEOUT_SECONDS = 30 * 60
+
+
+@shared_task(bind=True, max_retries=0)
+def reconcile_stripe_prices(self):
+    """
+    Nightly: does every plan still cost what this application thinks?
+
+    DETECTION ONLY. Writes nothing to Stripe and no billing state locally
+    — see billing/price_reconciliation.py. Repair stays a deliberate human
+    act via `manage.py reconcile_overage_prices --fix`; that `--fix` must
+    never be reachable from Beat, because which side of a mismatch is
+    wrong is a money decision.
+
+    Nightly rather than weekly. The whole sweep is ~18 Stripe reads for
+    the current plan set, so the cost of checking daily is negligible
+    against the cost of a wrong price standing for a week.
+    """
+    from django.core.cache import cache
+
+    from .price_reconciliation import reconcile_prices
+
+    # Two Beat instances, or a manual run overlapping the scheduled one,
+    # would duplicate every Stripe read and write two competing result
+    # sets for the same moment. Harmless to billing — nothing here mutates
+    # — but it makes the audit trail ambiguous, which defeats the point.
+    if not cache.add(
+        PRICE_RECONCILIATION_LOCK_KEY,
+        "1",
+        timeout=PRICE_RECONCILIATION_LOCK_TIMEOUT_SECONDS,
+    ):
+        summary = (
+            "Stripe price reconciliation: another run already holds the "
+            "lock; skipping this one."
+        )
+        logger.info(summary)
+        return summary
+
+    try:
+        run = reconcile_prices()
+        return run.summary
+    finally:
+        # Released on every path, including a raise. The TTL is the
+        # backstop for a hard kill that never reaches this line.
+        cache.delete(PRICE_RECONCILIATION_LOCK_KEY)
+
+
+@shared_task(bind=True, max_retries=0)
+def reconcile_overage_prices(self):
+    """
+    Daily detector for quoted-vs-charged overage price divergence.
+
+    THE SIBLING TASK DOES NOT COVER THIS
+    ------------------------------------
+    `reconcile_subscription_prices` compares a SUBSCRIPTION's Stripe price
+    against its local plan. Overage blocks are one-time `mode="payment"`
+    charges with their own price id, so nothing in that loop ever looked at
+    them — which is why six of nine plans could drift unnoticed until a
+    live-QA scenario happened to compare the two.
+
+    WHAT DRIFT COSTS
+    ----------------
+    The customer is quoted `plan.overage_block_price` and charged whatever
+    `stripe_overage_price_id` says. Measured: a school quoted 897 for three
+    blocks and charged 1200.
+
+    Detection, not repair — deliberately, and for the same reason as the
+    sibling task: which number is right is a pricing decision. The purchase
+    paths already REFUSE to quote while a plan is drifted (see
+    billing/overage_pricing.py), so this task's job is to raise the alarm
+    before a customer runs into that refusal, not to fix it.
+    """
+    from .overage_pricing import overage_price_drift
+
+    report = overage_price_drift()
+    if not report:
+        summary = "Overage price reconciliation: no plans with overage pricing."
+        logger.info(summary)
+        return summary
+
+    drifted = [row for row in report if not row["in_sync"] and not row["error"]]
+    unreadable = [row for row in report if row["error"]]
+
+    for row in drifted:
+        logger.error(
+            "OVERAGE PRICE DRIFT: plan %s quotes %s cents per block but "
+            "Stripe price %s charges %s. Purchases on this plan are being "
+            "REFUSED until the two agree.",
+            row["name"],
+            row["local_cents"],
+            row["stripe_price_id"],
+            row["stripe_cents"],
+        )
+    for row in unreadable:
+        logger.error(
+            "OVERAGE PRICE UNREADABLE: plan %s — %s",
+            row["name"],
+            row["error"],
+        )
+
+    summary = (
+        f"Overage price reconciliation: {len(report)} plan(s) checked, "
+        f"{len(drifted)} drifted, {len(unreadable)} unreadable."
+    )
+    (logger.error if (drifted or unreadable) else logger.info)(summary)
     return summary
 
 
@@ -1202,3 +1543,63 @@ def reconcile_subscription_prices(self):
     )
     logger.info(summary)
     return summary
+
+
+@shared_task(bind=True, max_retries=0)
+def process_stripe_event(self, event_id, claim_token_iso):
+    """
+    Run one already-claimed Stripe webhook event's handler.
+
+    The HTTP endpoint claims the event (a committed, race-safe conditional
+    UPDATE) and returns 200 in milliseconds; this task does the slow part.
+    That split is what stops burst traffic being lost: measured on the
+    deployed environment, only 2% of `invoice.payment_succeeded` deliveries
+    survived burst hours while 100% survived quiet hours, purely because
+    the handler held the request open for seconds.
+
+    `claim_token_iso` is the fencing token — the `claimed_at` the endpoint
+    wrote. `_finish_stripe_event` only settles the row if that token still
+    matches, so a task whose claim was stolen by the stale-claim sweeper
+    (because this worker was thought dead) cannot overwrite the new
+    owner's result.
+
+    max_retries=0: a failure marks the row FAILED, which is claimable, and
+    Stripe's own redelivery is the retry mechanism. Retrying here as well
+    would run the handler twice for one delivery.
+    """
+    from datetime import datetime
+
+    from .models import StripeEvent, StripeEventStatus
+    from .webhooks import _EVENT_HANDLERS, _finish_stripe_event, _run_handler_inline
+
+    try:
+        row = StripeEvent.objects.get(stripe_event_id=event_id)
+    except StripeEvent.DoesNotExist:
+        logger.error(
+            "process_stripe_event: no StripeEvent row for %s. The claim "
+            "should have been committed before this task was queued.",
+            event_id,
+        )
+        return f"missing StripeEvent {event_id}"
+
+    handler = _EVENT_HANDLERS.get(row.event_type)
+    if handler is None:
+        # The dispatch table changed between claim and execution.
+        _finish_stripe_event(
+            event_id,
+            datetime.fromisoformat(claim_token_iso),
+            StripeEventStatus.SUCCEEDED,
+        )
+        return f"{event_id}: no handler for {row.event_type}"
+
+    # Rebuild the shape the handler expects. The row stores event["data"],
+    # so `payload["object"]` is the same object the synchronous path passed.
+    event = {"id": event_id, "type": row.event_type, "data": row.payload}
+
+    response = _run_handler_inline(
+        event,
+        handler,
+        datetime.fromisoformat(claim_token_iso),
+        log_prefix="Stripe webhook (async)",
+    )
+    return f"{event_id}: {row.event_type} -> HTTP {response.status_code}"

@@ -66,10 +66,37 @@ class AuditIdentityMigrationTests(TransactionTestCase):
     def tearDown(self):
         # Leave the database fully migrated again, or every test that
         # runs after this one in the same process sees a stale schema.
+        #
+        # The restore target is the CURRENT billing leaf read from the
+        # graph — NOT BILLING_TO. BILLING_TO (0060) is the migration under
+        # test; it was also the leaf when this test was written, so the two
+        # were accidentally the same and the bug was invisible. The moment
+        # billing gained a 0061, this teardown started migrating the schema
+        # BACKWARDS and leaving it there, and every later test in the same
+        # process failed with "column ... does not exist" — 49 errors and 5
+        # failures across billing, none of them real.
+        #
+        # This is the same drift the module docstring already warns about
+        # for `users`: a migration name written down here cannot stay
+        # correct. Reading the leaf from the graph is the only version that
+        # cannot go stale.
         executor = MigrationExecutor(connection)
         executor.loader.build_graph()
-        executor.migrate(self._targets(executor.loader, BILLING_TO))
+        executor.migrate(self._restore_targets(executor.loader))
         super().tearDown()
+
+    def _restore_targets(self, loader):
+        """Current leaves of BOTH apps, so teardown restores rather than rewinds."""
+        targets = []
+        for app in ("billing", "users"):
+            leaves = list(loader.graph.leaf_nodes(app))
+            if len(leaves) != 1:
+                self.fail(
+                    f"expected exactly one leaf migration for `{app}`, got "
+                    f"{leaves!r}. A merge migration is probably needed."
+                )
+            targets.append(leaves[0])
+        return targets
 
     def _insert_user(self, apps, email):
         """

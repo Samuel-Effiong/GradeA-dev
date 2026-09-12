@@ -109,6 +109,16 @@ _EVENT_HANDLERS = {
     "payment_intent.succeeded": StripeWebhookHandler.handle_payment_intent_succeeded,
     "payment_intent.payment_failed": StripeWebhookHandler.handle_payment_intent_failed,
     "setup_intent.succeeded": StripeWebhookHandler.handle_setup_intent_succeeded,
+    # All five dispute events share one handler: each delivery carries the
+    # full Dispute object with its current status, so the outcome is
+    # decided by that status rather than by which event arrived. Stripe
+    # guarantees neither ordering nor uniqueness of delivery, and this is
+    # what makes both harmless.
+    "charge.dispute.created": StripeWebhookHandler.handle_dispute_event,
+    "charge.dispute.updated": StripeWebhookHandler.handle_dispute_event,
+    "charge.dispute.closed": StripeWebhookHandler.handle_dispute_event,
+    "charge.dispute.funds_withdrawn": StripeWebhookHandler.handle_dispute_event,
+    "charge.dispute.funds_reinstated": StripeWebhookHandler.handle_dispute_event,
 }
 
 
@@ -154,6 +164,7 @@ def _claim_stripe_event(event):
             "payload": event["data"],
             "status": StripeEventStatus.PROCESSING,
             "claimed_at": now,
+            "handler_started_at": None,
             "attempts": 1,
         },
     )
@@ -176,6 +187,10 @@ def _claim_stripe_event(event):
         .update(
             status=StripeEventStatus.PROCESSING,
             claimed_at=now,
+            # Cleared with the claim: this attempt has not started yet, and
+            # a stale marker from the previous owner would make the sweeper
+            # think a dead worker had got part-way in.
+            handler_started_at=None,
             attempts=F("attempts") + 1,
             event_type=event["type"],
             payload=event["data"],
@@ -241,7 +256,7 @@ def _finish_stripe_event(event_id, claim_token, status, error=""):
     return bool(updated)
 
 
-def _record_and_dispatch(event, *, log_prefix):
+def _record_and_dispatch(event, *, log_prefix, inline=False):
     """
     Shared claim + dispatch core for both webhook endpoints.
 
@@ -255,7 +270,14 @@ def _record_and_dispatch(event, *, log_prefix):
             must not claim success for work that has not finished. Stripe
             retries, and by then the event is either SUCCEEDED (-> 200) or
             FAILED (-> we actually do the work).
-      500 — the handler raised. Stripe retries; the FAILED row is claimable.
+      500 — the handler could not even be queued (broker down), or — when
+            `inline` is set — the handler itself raised. Stripe retries;
+            the FAILED row is claimable.
+
+    `inline=True` runs the handler in this process instead of queueing it.
+    That is the old behaviour, kept for the live-QA harness (which drives
+    real Stripe events through this path and asserts their effects straight
+    away) and for the Celery worker itself.
     """
     event_id = event["id"]
     event_type = event["type"]
@@ -290,6 +312,88 @@ def _record_and_dispatch(event, *, log_prefix):
         logger.debug("%s: unhandled event type %s.", log_prefix, event_type)
         _finish_stripe_event(event_id, claim_token, StripeEventStatus.SUCCEEDED)
         return HttpResponse(status=200)
+
+    if inline:
+        return _run_handler_inline(event, handler, claim_token, log_prefix=log_prefix)
+
+    # ASYNCHRONOUS BY DEFAULT — this is what keeps bursts from being lost.
+    #
+    # Measured on the deployed environment: during burst hours (>=20
+    # events/hour, which for a test-clock advance means dozens arriving at
+    # once) only 2% of `invoice.payment_succeeded` deliveries were ever
+    # recorded, against 100% during quiet hours. The unhandled event types
+    # — which return in ~1.3ms — were captured 100% throughout. The
+    # difference is entirely how long the endpoint takes to answer:
+    # handlers that make outbound Stripe calls hold the request for
+    # seconds (Subscription.retrieve alone measured 2.5s median / 8.3s
+    # p90), the workers saturate, Stripe's deliveries time out, and after
+    # its retries are exhausted the event is gone with no row to show for
+    # it. Stripe's own guidance is explicit: "Handle events
+    # asynchronously... any large spike in webhook deliveries might
+    # overwhelm your endpoint hosts."
+    #
+    # So the endpoint now does only what must happen synchronously — claim
+    # the event, which is already committed and race-safe — and hands the
+    # work to a Celery worker. The response goes back in milliseconds
+    # regardless of how slow the handler is.
+    #
+    # The row stays PROCESSING until the worker finishes. That is safe
+    # because `sweep_stale_stripe_events` already exists to settle claims
+    # abandoned by a killed worker, which is the same failure this creates.
+    # Imported here, not at module scope: billing.tasks imports this
+    # module for the claim/retry constants, so a top-level import would be
+    # circular.
+    from .tasks import process_stripe_event
+
+    try:
+        process_stripe_event.delay(event_id, claim_token.isoformat())
+    except Exception as exc:
+        # The broker is down. Do NOT answer 200: that would tell Stripe the
+        # event is handled when nothing will ever process it, and Stripe
+        # would stop retrying. Mark it FAILED (which is claimable) and let
+        # Stripe redeliver.
+        _finish_stripe_event(
+            event_id, claim_token, StripeEventStatus.FAILED, error=repr(exc)
+        )
+        logger.exception(
+            "%s: could not enqueue event %s (%s) for processing; returning "
+            "500 so Stripe retries rather than dropping it.",
+            log_prefix,
+            event_id,
+            event_type,
+        )
+        return HttpResponse(status=500)
+
+    logger.info(
+        "%s: event %s (%s) claimed and queued for processing.",
+        log_prefix,
+        event_id,
+        event_type,
+    )
+    return HttpResponse(status=200)
+
+
+def _run_handler_inline(event, handler, claim_token, *, log_prefix):
+    """
+    Run a handler in the calling process and settle the row.
+
+    Used by the Celery worker (billing.tasks.process_stripe_event) and by
+    the live-QA harness, which drives real Stripe events through this same
+    path and asserts on their effects immediately afterwards.
+    """
+    event_id = event["id"]
+    event_type = event["type"]
+
+    # Record that the handler is actually STARTING, fenced on the claim
+    # token so a worker whose claim was already stolen cannot backdate the
+    # thief's row. This is what lets the sweeper tell "the worker died
+    # before touching anything" (safe to re-dispatch) from "the worker died
+    # part-way through irreversible Stripe calls" (must not be replayed).
+    StripeEvent.objects.filter(
+        stripe_event_id=event_id,
+        status=StripeEventStatus.PROCESSING,
+        claimed_at=claim_token,
+    ).update(handler_started_at=timezone.now())
 
     try:
         handler(event["data"]["object"])
