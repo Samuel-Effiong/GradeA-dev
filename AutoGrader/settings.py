@@ -323,7 +323,6 @@ INSTALLED_APPS = [
     "classrooms",
     "assignments",
     "students",
-    "grading",
     "ocr_processor",
     "ai_processor",
     "dashboard",

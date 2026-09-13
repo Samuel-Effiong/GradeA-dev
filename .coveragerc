@@ -18,7 +18,6 @@ source =
     billing
     classrooms
     dashboard
-    grading
     ocr_processor
     students
     users

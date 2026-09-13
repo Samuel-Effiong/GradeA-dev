@@ -128,11 +128,10 @@ Three things a newcomer trips over:
 | `ai_processor` | ~14k | extraction, grading, evidence, second opinion, benchmarks | [ai-processor.md](ai-processor.md) · [ai-quality-harness.md](ai-quality-harness.md) |
 | `dashboard` | ~8k | analytics, at-risk, rigor roll-up, digests | [dashboard.md](dashboard.md) |
 | `billing` | ~30k | plans, credits, Stripe, licences, QA harness | [billing-core.md](billing-core.md) · [billing-stripe.md](billing-stripe.md) · [billing-licenses.md](billing-licenses.md) · [billing-qa-harness.md](billing-qa-harness.md) |
-| `grading` | **10** | **empty stub** — no models, no views, no migrations | — |
 | `ocr_processor` | **10** | **empty stub** — OCR is the vision model's job | — |
 | `scripts/` | ~290 | two CI guard scripts | [operations.md](operations.md) |
 
-`grading` and `ocr_processor` are registered in `INSTALLED_APPS` but contain only Django's generated boilerplate. Grading lives in `ai_processor` + `students`; OCR is done by the vision model reading page images, which is why `ocr_processor` was never built (`ai_processor/services.py:567` calls it *"an empty stub"* in passing).
+`ocr_processor` is registered in `INSTALLED_APPS` but contains only Django's generated boilerplate. OCR is done by the vision model reading page images, which is why it was never built (`ai_processor/services.py:567` calls it *"an empty stub"* in passing). A sibling `grading` stub of the same shape was deleted on 2026-09-12; grading lives in `ai_processor` + `students`.
 
 ---
 

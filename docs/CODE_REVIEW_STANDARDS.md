@@ -15,8 +15,10 @@ re-litigating settled tooling choices.
 ## 1. Architecture & app boundaries
 
 - Each Django app (`ai_processor`, `assignments`, `AutoGrader`, `billing`,
-  `classrooms`, `dashboard`, `grading`, `ocr_processor`, `students`, `users`)
-  owns one clear responsibility. A change that touches business logic in the
+  `classrooms`, `dashboard`, `ocr_processor`, `students`, `users`)
+  owns one clear responsibility. (An empty `grading` scaffold was removed
+  on 2026-09-12; grading records live in `students`, grading logic in
+  `ai_processor`.) A change that touches business logic in the
   wrong app is a boundary violation, not a convenience.
 - Cross-app calls go through a `services.py` / public function, never by
   reaching into another app's models or private helpers directly.
@@ -139,11 +141,13 @@ docstrings, import-order, print, eradicate), `isort`, `mypy`
   `name-tests-test` exclusion in `.pre-commit-config.yaml`).
 - New behavior ships with tests that pin it down hard enough to catch a
   regression, not just exercise the happy path once.
-- Coverage is measured against `.coveragerc`'s existing `source` list
-  (`ai_processor`, `assignments`, `AutoGrader`, `billing`, `classrooms`,
-  `dashboard`, `students`, `users`) — note `grading` and `ocr_processor`
-  are NOT in that source list; flag this as a gap to resolve, not something
-  to silently work around.
+- Coverage is measured against `.coveragerc`'s `source` list, which names
+  every installed first-party app (`grading` and `ocr_processor` were
+  missing when this checklist was first written; the §0 pass added them,
+  and the §6 pass then deleted the empty `grading` app outright). Note
+  that `ocr_processor` is still an empty scaffold, so its "100%" is 100%
+  of a few `apps.py` statements and says nothing about test coverage; a
+  reviewer should not cite it as evidence of anything.
 
 ## 10. Observability & error handling
 

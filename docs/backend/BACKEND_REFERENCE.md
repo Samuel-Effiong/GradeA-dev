@@ -189,8 +189,7 @@ unhandled 500 (whose message is replaced by `AutoGrader/error_messages.py::descr
 | **`ai_processor`** | All LLM interaction: prompts, schemas, the multi-tier grading pipeline, evidence verification, answer completeness, objective matching, grading cache, second opinion, benchmark harness | `services.py`, `evidence.py`, `objective_grading.py`, `answer_completeness.py`, `second_opinion.py`, `grading_cache.py`, `grading_schemas.py`, `extraction_schemas.py`, `tools.py`, `benchmark/` |
 | **`billing`** | Plans, wallets/buckets/ledger, individual subscriptions, school licenses, overage (Stripe + offline), Stripe integration + webhook ledger, refunds, manual grants, beta analytics, live-QA console | `models.py`, `services.py`, `license_service.py`, `stripe_service.py`, `webhooks.py`, `access_control.py`, `refunds.py`, `subscription_resolver.py`, `tasks.py`, `*_views.py` |
 | **`dashboard`** | Four role-scoped analytics surfaces, at-risk detection, rigor roll-ups, weekly digests, inactivity/at-risk alerting, credit-billed AI chat over dashboard data | `views.py`, `services.py`, `tasks.py`, `risk.py`, `rigor.py`, `at_risk_improvements.py`, `models.py`, `throttling.py` |
-| **`grading`** | **Empty.** `models.py`, `views.py`, `admin.py` contain only scaffolding comments. Registered in `INSTALLED_APPS`. | — |
-| **`ocr_processor`** | **Empty.** Same as above. OCR is actually performed inside `ai_processor/services.py::PDFService`/`OCRService`. | — |
+| **`ocr_processor`** | **Empty.** `models.py`, `views.py`, `admin.py` contain only scaffolding comments. Registered in `INSTALLED_APPS`. OCR is actually performed inside `ai_processor/services.py::PDFService`/`OCRService`. (A sibling empty `grading` scaffold was deleted 2026-09-12.) | — |
 
 ### Inter-module dependency direction
 
@@ -2602,9 +2601,11 @@ is the only scheduler available. If CI is ever added, the nightly replay belongs
    several thousand lines shipped in the deployed image. All are env-gated to no-op in production,
    but they are routed URLs on the production URLconf.
 
-8. **Two empty apps remain installed.** `grading` and `ocr_processor` contain nothing but
-   scaffolding comments; the OCR work they were presumably meant for lives in
-   `ai_processor/services.py::PDFService`/`OCRService`.
+8. **One empty app remains installed.** `ocr_processor` contains nothing but
+   scaffolding comments; the OCR work it was presumably meant for lives in
+   `ai_processor/services.py::PDFService`/`OCRService`. (The equally empty
+   `grading` app was deleted 2026-09-12 after verifying it had no models,
+   migrations, content types, permissions or importers.)
 
 ---
 
@@ -2650,7 +2651,7 @@ Ordered roughly by severity. Each is an observation about the current code, not 
 
 | # | Item |
 | --- | --- |
-| X1 | Apps `grading` and `ocr_processor` — empty, still in `INSTALLED_APPS` |
+| X1 | App `ocr_processor` — empty, still in `INSTALLED_APPS` (`grading`, originally listed here too, was deleted 2026-09-12) |
 | X2 | `CourseCategory` model + `CourseCategoryViewSet` — never routed |
 | X3 | `AssignmentGenerationHistory` model + two serializers — no view, superseded by `AssignmentGenerationSession`/`Message` |
 | X4 | `PasswordChangeOTP` — generated but never verified (see S2) |
