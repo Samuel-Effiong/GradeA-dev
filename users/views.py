@@ -60,6 +60,7 @@ from rest_framework_simplejwt.views import (
 )
 from rest_framework_simplejwt.views import TokenRefreshView as BaseTokenRefreshView
 
+from AutoGrader.cache_generation import SCOPE_USER, versioned_key
 from AutoGrader.dispatch import safe_delay
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
@@ -375,7 +376,11 @@ class CustomUserViewSet(UserCacheMixin, viewsets.ModelViewSet):
         - 401: Unauthorized - If user is not authenticated
         """
 
-        cache_key = f"user:user_id__{request.user.id}"
+        # `usr` alone: this payload is the user's own row and nothing else,
+        # and a CustomUser save bumps exactly that generation.
+        cache_key = versioned_key(
+            f"user:user_id__{request.user.id}", [(SCOPE_USER, request.user.id)]
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -601,7 +606,12 @@ class SettingsViewSet(UserCacheMixin, viewsets.ModelViewSet):
         Retrieve the currently authenticated user's settings.
         Returns the complete settings profile for the logged-in user with caching support.
         """
-        cache_key = f"settings:user_id__{request.user.id}:view__my_settings"
+        # `usr` alone: a Settings save bumps its owner's generation (see
+        # users.signals.clear_user_cache, which reads instance.user_id).
+        cache_key = versioned_key(
+            f"settings:user_id__{request.user.id}:view__my_settings",
+            [(SCOPE_USER, request.user.id)],
+        )
         data = cache.get(cache_key)
 
         if data is None:

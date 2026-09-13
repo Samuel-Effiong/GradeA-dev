@@ -57,6 +57,7 @@ from assignments.tasks import (
     grade_engine_async,
     upload_answers_engine_async,
 )
+from AutoGrader.cache_generation import SCOPE_USER, versioned_key
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.uploads import validate_upload_size
@@ -235,7 +236,20 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     # @method_decorator(vary_on_headers("Authorization"))
     def retrieve(self, request, *args, **kwargs):
         submission = self.get_object()
-        cache_key = f"studentsubmissions:user_id__{request.user.id}:instance_id__{submission.id}"
+        # `usr` ALONE, and this was corrected by a test rather than
+        # reasoned: `global` was added here first, on the assumption that
+        # the payload renders the teacher-owned assignment live. It does
+        # not. `assignment` is serialised as a bare UUID and `raw_input` is
+        # a snapshot materialised ONCE and persisted on the submission row,
+        # so a teacher retitling the assignment provably does not change
+        # this response. Everything this payload does reflect - score,
+        # feedback, grade status, raw_input - belongs to the submission,
+        # whose save bumps its student's generation.
+        cache_key = versioned_key(
+            f"studentsubmissions:user_id__{request.user.id}"
+            f":instance_id__{submission.id}",
+            [(SCOPE_USER, request.user.id)],
+        )
 
         data = cache.get(cache_key)
         if data:

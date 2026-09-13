@@ -1229,6 +1229,27 @@ CACHES = {
     }
 }
 
+# H-9: under `manage.py test`, isolate the cache PER PROCESS.
+#
+# django-redis implements `cache.clear()` as a raw FLUSHDB, which ignores
+# KEY_PREFIX. Test setUp/tearDown methods call it constantly, so two
+# concurrent test processes sharing this Redis destroy each other's cache,
+# H-1 generation counters, locks, throttle buckets and presence keys. That
+# produced a real, hard-to-diagnose regression failure in an unrelated
+# PDF-cache assertion.
+#
+# The fix is a per-process key prefix plus a `clear()` scoped to that
+# prefix (see AutoGrader/test_cache.py for why a prefix is used rather than
+# one of Redis's 16 database slots). Only `clear()` differs from the
+# production backend, and no production code path calls it.
+if "test" in sys.argv:
+    CACHES["default"] = {
+        **CACHES["default"],
+        "BACKEND": "AutoGrader.test_cache.PrefixScopedRedisCache",
+        "KEY_PREFIX": f"gaplus-t{os.getpid()}",
+    }
+
+
 # django-redis defaults to SCAN COUNT=10, i.e. one network round trip per
 # ~10 keys when delete_pattern walks the keyspace. Signal handlers call
 # delete_pattern on every user/course/enrollment save, so on a remote Redis

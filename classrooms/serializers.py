@@ -82,12 +82,6 @@ class TopicSerializer(serializers.ModelSerializer):
             "course": {"write_only": True},
         }
 
-        def validate_name(self, value):
-            """Validate that name is not empty."""
-            if not value.strip():
-                raise serializers.ValidationError("Name cannot be empty.")
-            return value
-
         validators = [
             UniqueTogetherValidator(
                 queryset=Topic.objects.all(),
@@ -95,6 +89,33 @@ class TopicSerializer(serializers.ModelSerializer):
                 message="This Course already has this topic",
             )
         ]
+
+    def validate_name(self, value):
+        """Validate that name is not empty."""
+        if not value.strip():
+            raise serializers.ValidationError("Name cannot be empty.")
+        return value
+
+    def validate_course(self, value):
+        """Reject a course the requesting teacher doesn't own.
+
+        `course` is a plain writable PK field, so without this a caller
+        could attach a topic to any course in the system just by knowing
+        (or enumerating) its UUID - the viewset's get_queryset() only
+        scopes reads and edits of existing rows, never the course a NEW
+        topic points at.
+        """
+        request = self.context.get("request")
+        user = getattr(request, "user", None) if request else None
+        if user is None or not user.is_authenticated:
+            return value
+
+        if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:
+            return value
+
+        if value.teacher_id != user.id:
+            raise serializers.ValidationError("You do not have access to this course.")
+        return value
 
 
 class CourseSerializer(serializers.ModelSerializer):
@@ -208,7 +229,11 @@ class CourseSerializer(serializers.ModelSerializer):
         if hasattr(obj, "assignment_count"):
             return obj.assignment_count
 
-        return obj.assignments.distinct().count()
+        # len() of the prefetch cache. `.distinct().count()` discarded it and
+        # issued a fresh COUNT for every course on the page; distinct() was
+        # pointless anyway, since assignments is a plain reverse FK and the
+        # query has no join that could duplicate a row.
+        return len(obj.assignments.all())
 
     @extend_schema_field(StudentSerializer(many=True))
     def get_students(self, obj):
@@ -234,8 +259,21 @@ class CourseSerializer(serializers.ModelSerializer):
                 ).select_related("student")
             ]
 
+        # The enrollment status each student holds in THIS course, passed
+        # down so StudentSerializer.get_enrollment_status can read it
+        # instead of issuing its own query per student.
+        if hasattr(obj, "active_enrollments"):
+            status_by_student = {
+                enrollment.student_id: enrollment.enrollment_status
+                for enrollment in obj.active_enrollments
+            }
+        else:
+            status_by_student = None
+
         serializer = StudentSerializer(
-            enrolled_students, many=True, context={"course": obj}
+            enrolled_students,
+            many=True,
+            context={"course": obj, "enrollment_status_by_student": status_by_student},
         )
 
         return serializer.data
@@ -273,7 +311,13 @@ class StudentCourseSerializer(serializers.ModelSerializer):
             "grade_letter",
             "auto_added",
         ]
-        read_only_fields = ["id", "created_at", "auto_added"]
+        # `student` and `course` are read-only. The viewset exposes no POST
+        # (see StudentCourseViewSet.http_method_names), so the only thing
+        # their writability ever achieved was letting a PATCH re-point an
+        # enrollment the teacher legitimately owns at ANOTHER teacher's
+        # course, or at a different student - get_queryset() scopes which
+        # row you may edit, not what you may write into it.
+        read_only_fields = ["id", "created_at", "auto_added", "student", "course"]
 
     def get_teacher(self, obj):
         return obj.course.teacher.get_full_name()
@@ -292,19 +336,35 @@ class StudentCourseSerializer(serializers.ModelSerializer):
             )
         return value
 
+    # The three counts below all read from the caches the viewset already
+    # populates (prefetch_related("course__assignments") and the scoped
+    # "student__submissions" Prefetch), rather than issuing their own
+    # queries. `.count()` and `.filter()` both bypass a prefetch cache, so
+    # the previous versions cost four extra round trips PER ROW - a 100-row
+    # page of /student-course was ~400 avoidable queries.
+
+    def _course_assignments(self, obj):
+        return obj.course.assignments.all()
+
+    def _submitted_assignment_ids(self, obj):
+        return {
+            submission.assignment_id
+            for submission in obj.student.submissions.all()
+            if submission.assignment.course_id == obj.course_id
+        }
+
     def get_total_no_of_assignment(self, obj):
-        return obj.course.assignments.count()
+        return len(self._course_assignments(obj))
 
     def get_total_assignment_submitted(self, obj):
-        return obj.course.assignments.filter(submissions__student=obj.student).count()
+        submitted = self._submitted_assignment_ids(obj)
+        return sum(1 for a in self._course_assignments(obj) if a.id in submitted)
 
     def get_submitted_assignment_percentage(self, obj):
-        if obj.course.assignments.count():
-            return (
-                obj.course.assignments.filter(submissions__student=obj.student).count()
-                / obj.course.assignments.count()
-            ) * 100
-        return 0
+        total = self.get_total_no_of_assignment(obj)
+        if not total:
+            return 0
+        return (self.get_total_assignment_submitted(obj) / total) * 100
 
     def get_grade_letter(self, obj):
         return get_grade_details(obj.final_grade) if obj.final_grade else None
@@ -382,7 +442,10 @@ class AddStudentToCourseSerializer(serializers.Serializer):
         1. Is not associated with a teacher account
         2. Is a valid email format (handled by EmailField)
         """
-        existing_user = CustomUser.objects.filter(email=value).first()
+        from .services import find_account_by_email, normalize_email
+
+        value = normalize_email(value)
+        existing_user = find_account_by_email(value)
 
         if existing_user and existing_user.user_type == UserTypes.TEACHER:
             raise serializers.ValidationError(
@@ -419,8 +482,12 @@ class DirectAddStudentSerializer(serializers.Serializer):
         if not value:
             return value
 
+        from .services import normalize_email
+
+        value = normalize_email(value)
+
         if CustomUser.objects.filter(
-            email=value,
+            email__iexact=value,
             user_type=UserTypes.TEACHER,
         ).exists():
             raise serializers.ValidationError(
@@ -472,7 +539,9 @@ class DirectAddStudentSerializer(serializers.Serializer):
             email = f"{safe_first}.{safe_last}{unique_suffix}@student.local"
 
         with transaction.atomic():
-            student = CustomUser.objects.filter(email=email).first()
+            from .services import find_account_by_email
+
+            student = find_account_by_email(email)
 
             if student:
                 # Check if already enrolled
@@ -482,6 +551,22 @@ class DirectAddStudentSerializer(serializers.Serializer):
                     raise serializers.ValidationError(
                         "Student is already enrolled in this course."
                     )
+
+                # This path attaches an EXISTING account, so it needs the
+                # same gate as single-add and bulk import. It is reachable
+                # with a caller-supplied email, so without this a teacher
+                # could pull another school's student in through the
+                # "direct add" form even after the other two routes were
+                # closed.
+                # Imported here, not at module scope: services.roster_import
+                # imports this module for DirectAddStudentSerializer, so a
+                # top-level import the other way is a genuine cycle.
+                from .services import EnrollmentError, check_existing_account_may_join
+
+                try:
+                    check_existing_account_may_join(student, course)
+                except EnrollmentError as exc:
+                    raise serializers.ValidationError(str(exc)) from exc
 
                 StudentCourse.objects.create(
                     student=student,
@@ -500,7 +585,16 @@ class DirectAddStudentSerializer(serializers.Serializer):
                     school=course.teacher.school,
                     is_active=True,
                 )
-                student.set_password("student123!")
+                # No password, rather than a shared literal. Every student
+                # created this way used to get the SAME known password, on
+                # an active account whose address follows a guessable
+                # pattern (first.last<0-9999>@student.local) - so anyone
+                # who learned the literal could sign in as any of them.
+                # These are teacher-managed roster entries that are never
+                # meant to be signed into directly; a student who later
+                # needs real access goes through the invitation flow, which
+                # sets a password of their own.
+                student.set_unusable_password()
                 student.save()
 
                 StudentCourse.objects.create(

@@ -37,6 +37,14 @@ from rest_framework.response import Response
 from ai_processor.models import AssistantType, ChatMessage, ChatSession, RoleType
 from ai_processor.services import AI_CONFIDENCE_THRESHOLD, ai_processor
 from assignments.models import Assignment, AssignmentStatus
+from AutoGrader.cache_generation import (
+    SCOPE_ANY_SCHOOL,
+    SCOPE_ANY_USER,
+    SCOPE_GLOBAL,
+    SCOPE_SCHOOL,
+    SCOPE_USER,
+    versioned_key,
+)
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from billing.models import CreditUsageLog
@@ -99,6 +107,19 @@ from users.services import (
 
 logger = logging.getLogger(__name__)
 
+#: TTL for the superadmin analytics dashboards (H-1 families 15-21).
+#:
+#: 24 hours, not the project's usual 15 minutes, and the reasoning is the
+#: point: once a generation counter is embedded in the key, freshness is
+#: guaranteed by the counter, so the TTL is no longer a staleness bound. It
+#: becomes a pure memory/garbage-collection knob for superseded entries.
+#:
+#: Measured: these dashboards see ~6.5 relevant mutations/day in production,
+#: while a 900s TTL expired them 96 times/day - so the TTL, not real change,
+#: was causing ~94% of rebuilds. At 24h that falls to ~7.5/day, a ~14x
+#: reduction, with NO staleness because versioning handles it.
+SUPERADMIN_DASHBOARD_TTL_SECONDS = 60 * 60 * 24
+
 # from dashboard.services import DashboardService
 
 
@@ -140,7 +161,10 @@ class SuperAdminDashboardView(viewsets.ViewSet):
     # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/adoption")
     def platform_adoption(self, request, *args, **kwargs):
-        cache_key = f"superadmins:user_id__{request.user.id}:view__adoption"
+        cache_key = versioned_key(
+            f"superadmins:user_id__{request.user.id}:view__adoption",
+            [(SCOPE_GLOBAL, None)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -204,7 +228,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
             serializer = PlatformAdoptionSerializer(data)
             data = serializer.data
 
-            cache.set(cache_key, data, 60 * 15)
+            cache.set(cache_key, data, SUPERADMIN_DASHBOARD_TTL_SECONDS)
 
         return Response(data)
 
@@ -226,7 +250,10 @@ class SuperAdminDashboardView(viewsets.ViewSet):
     # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/usage")
     def platform_usage(self, request, *args, **kwargs):
-        cache_key = f"superadmins:user_id__{request.user.id}:view__usage"
+        cache_key = versioned_key(
+            f"superadmins:user_id__{request.user.id}:view__usage",
+            [(SCOPE_GLOBAL, None)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -319,7 +346,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
             serializer = PlatformUsageSerializer(data)
             data = serializer.data
 
-            cache.set(cache_key, data, 60 * 15)
+            cache.set(cache_key, data, SUPERADMIN_DASHBOARD_TTL_SECONDS)
         return Response(data)
 
     @extend_schema(
@@ -341,7 +368,10 @@ class SuperAdminDashboardView(viewsets.ViewSet):
     # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/ai_performance")
     def platform_ai_performance(self, request, *args, **kwargs):
-        cache_key = f"superadmins:user_id__{request.user.id}:view__ai_performance"
+        cache_key = versioned_key(
+            f"superadmins:user_id__{request.user.id}:view__ai_performance",
+            [(SCOPE_GLOBAL, None)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -451,7 +481,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
             serializer = PlatformAIPerformanceSerializer(data)
             data = serializer.data
 
-            cache.set(cache_key, data, 60 * 15)
+            cache.set(cache_key, data, SUPERADMIN_DASHBOARD_TTL_SECONDS)
         return Response(data)
 
     @extend_schema(
@@ -479,7 +509,10 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         Tracks how the platform is moving from individual use to institutional adoption.
         """
 
-        cache_key = f"superadmins:user_id__{request.user.id}:view__scaling_signals"
+        cache_key = versioned_key(
+            f"superadmins:user_id__{request.user.id}:view__scaling_signals",
+            [(SCOPE_GLOBAL, None)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -555,7 +588,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
             serializer = ScalingSignalsSerializer(data)
             data = serializer.data
 
-            cache.set(cache_key, data, 60 * 15)
+            cache.set(cache_key, data, SUPERADMIN_DASHBOARD_TTL_SECONDS)
 
         return Response(data)
 
@@ -685,9 +718,11 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         paginator = StandardPageNumberPagination()
         page_number = request.query_params.get(paginator.page_query_param, "1")
         page_size = request.query_params.get(paginator.page_size_query_param, "")
-        cache_key = (
+        cache_key = versioned_key(
             f"superadmins:user_id__{request.user.id}:view__schools"
-            f":{page_number}:{page_size}"
+            f":{page_number}:{page_size}",
+            # Depends on the School table alone - NOT on global activity.
+            [(SCOPE_ANY_SCHOOL, None)],
         )
         data = cache.get(cache_key)
 
@@ -749,7 +784,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
             serializer = SchoolAnalyticsSerializer(result, many=True)
             data = paginator.get_paginated_response(serializer.data).data
 
-            cache.set(cache_key, data, 60 * 15)
+            cache.set(cache_key, data, SUPERADMIN_DASHBOARD_TTL_SECONDS)
 
         return Response(data)
 
@@ -797,9 +832,11 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         paginator = StandardPageNumberPagination()
         page_number = request.query_params.get(paginator.page_query_param, "1")
         page_size = request.query_params.get(paginator.page_size_query_param, "")
-        cache_key = (
+        cache_key = versioned_key(
             f"superadmins:user_id__{request.user.id}:view__teachers"
-            f":{page_number}:{page_size}"
+            f":{page_number}:{page_size}",
+            # Depends on the CustomUser table alone.
+            [(SCOPE_ANY_USER, None)],
         )
         data = cache.get(cache_key)
 
@@ -856,7 +893,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
             serializer = TeacherPerformanceSerializer(performance_data, many=True)
             data = paginator.get_paginated_response(serializer.data).data
 
-            cache.set(cache_key, data, 60 * 15)
+            cache.set(cache_key, data, SUPERADMIN_DASHBOARD_TTL_SECONDS)
         return Response(data)
 
     @extend_schema(
@@ -877,7 +914,10 @@ class SuperAdminDashboardView(viewsets.ViewSet):
     # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/students")
     def students(self, request, *args, **kwargs):
-        cache_key = f"superadmins:user_id__{request.user.id}:view__students"
+        cache_key = versioned_key(
+            f"superadmins:user_id__{request.user.id}:view__students",
+            [(SCOPE_GLOBAL, None)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -946,7 +986,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
             serializer = SuperAdminStudentPerformanceSerializer(data)
             data = serializer.data
 
-            cache.set(cache_key, data, 60 * 15)
+            cache.set(cache_key, data, SUPERADMIN_DASHBOARD_TTL_SECONDS)
 
         return Response(data)
 
@@ -971,30 +1011,35 @@ class SuperAdminDashboardView(viewsets.ViewSet):
     # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/concurrency")
     def concurrency(self, request, *args, **kwargs):
-        cache_key = f"superadmins:user_id__{request.user.id}:view__concurrency"
-        data = cache.get(cache_key)
+        # DELIBERATELY UNCACHED (H-1 family 22).
+        #
+        # This endpoint reads the Redis presence set, not the database, so
+        # there is no model mutation to hang a generation counter off - and
+        # presence is defined over a 300-second window, so the previous
+        # 900-second TTL could serve a "live" concurrency figure three
+        # windows out of date.
+        #
+        # Measured before removing the cache: 18ms cold vs 6.9ms warm, a
+        # 3x saving on an endpoint that already costs 5 queries and 4ms of
+        # SQL. That does not justify a cache, and certainly not one that
+        # makes a real-time number stale. Every other superadmin dashboard
+        # measured 6x-199x, which is what a cache is for.
+        range_key: str = request.query_params.get("range", "daily")
 
-        if data is None:
-            range_key: str = request.query_params.get("range", "daily")
+        start, end = get_time_range(range_key)
+        pcu = get_peak_concurrent_users(start, end)
+        peak_time = get_peak_time_of_day(start, end)
 
-            start, end = get_time_range(range_key)
-            pcu = get_peak_concurrent_users(start, end)
-            peak_time = get_peak_time_of_day(start, end)
-
-            payload = {
+        serializer = ConcurrencySerializer(
+            {
                 "time_range": range_key,
                 "start": start,
                 "end": end,
                 "peak_concurrent_users": pcu,
                 "peak_time_of_day": peak_time,
             }
-
-            serializer = ConcurrencySerializer(payload)
-            data = serializer.data
-
-            cache.set(cache_key, data, 60 * 15)
-
-        return Response(data)
+        )
+        return Response(serializer.data)
 
     @extend_schema(
         tags=["Super Admin"],
@@ -1303,7 +1348,10 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        cache_key = f"schooladmins:user_id__{user.id}:view__summary"
+        cache_key = versioned_key(
+            f"schooladmins:user_id__{user.id}:view__summary",
+            [(SCOPE_USER, user.id), (SCOPE_SCHOOL, user.school_id)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -1599,9 +1647,10 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        cache_key = (
+        cache_key = versioned_key(
             f"schooladmins:user_id__{user.id}:view__at_risk_trend"
-            f":{window_start.isoformat()}:{window_end.isoformat()}"
+            f":{window_start.isoformat()}:{window_end.isoformat()}",
+            [(SCOPE_USER, user.id), (SCOPE_SCHOOL, user.school_id)],
         )
         data = cache.get(cache_key)
 
@@ -1845,7 +1894,11 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         paginator = StandardPageNumberPagination()
         page_number = request.query_params.get(paginator.page_query_param, "1")
         page_size = request.query_params.get(paginator.page_size_query_param, "")
-        cache_key = f"teacher_performance_{school.id}_{page_number}_{page_size}"
+        cache_key = versioned_key(
+            f"dashboards:school_id__{school.id}"
+            f":view__teacher_performance:{page_number}:{page_size}",
+            [(SCOPE_SCHOOL, school.id)],
+        )
         data = cache.get(cache_key)
 
         if data is not None:
@@ -1961,7 +2014,10 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
             CustomUser, id=teacher_id, school=school, user_type=UserTypes.TEACHER
         )
 
-        cache_key = f"teacher_detail_{school.id}_{teacher.id}"
+        cache_key = versioned_key(
+            f"dashboards:school_id__{school.id}" f":view__teacher_detail:{teacher.id}",
+            [(SCOPE_SCHOOL, school.id), (SCOPE_USER, teacher.id)],
+        )
         data = cache.get(cache_key)
         if data is not None:
             return Response(data)
@@ -2459,7 +2515,10 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
     def students(self, request, *args, **kwargs):
         user = request.user
 
-        cache_key = f"schooladmins:user_id__{user.id}:view__students"
+        cache_key = versioned_key(
+            f"schooladmins:user_id__{user.id}:view__students",
+            [(SCOPE_USER, user.id), (SCOPE_SCHOOL, user.school_id)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -2603,7 +2662,11 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         year = request.query_params.get("year")
 
         # Cache per school and optional year
-        cache_key = f"assignment_activity_{school.id}_{year or 'all'}"
+        cache_key = versioned_key(
+            f"dashboards:school_id__{school.id}"
+            f":view__assignment_activity:{year or 'all'}",
+            [(SCOPE_SCHOOL, school.id)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -2709,7 +2772,10 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        cache_key = f"department_overview_{school.id}"
+        cache_key = versioned_key(
+            f"dashboards:school_id__{school.id}:view__department_overview",
+            [(SCOPE_SCHOOL, school.id)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -2892,7 +2958,11 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
     )
     def overview(self, request, session_id, *args, **kwargs):
         teacher = request.user
-        cache_key = f"teacheradmins:user_id__{teacher.id}:instance__id__{session_id}:view__overview"
+        cache_key = versioned_key(
+            f"teacheradmins:user_id__{teacher.id}"
+            f":instance__id__{session_id}:view__overview",
+            [(SCOPE_USER, teacher.id)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -3197,7 +3267,18 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         url_path=r"dashboard/courses/(?P<course_id>[-\w]+)",
     )
     def courses(self, request, course_id, *args, **kwargs):
-        cache_key = f"teacheradmins:user_id__{request.user.id}:instance_id__{course_id}:view__courses"
+        cache_key = versioned_key(
+            f"teacheradmins:user_id__{request.user.id}"
+            f":instance_id__{course_id}:view__courses",
+            # `usr` alone. A `crs` scope was tried here and removed: every
+            # SCOPE_COURSE bump in the project is accompanied by the
+            # teacher's SCOPE_USER bump (verified across all three signal
+            # modules), so adding `crs` to a key that already carries that
+            # teacher's generation narrows nothing and costs one extra
+            # Redis GET per request. Mutation-proved: removing `crs` broke
+            # no test, because it was doing no work.
+            [(SCOPE_USER, request.user.id)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -3331,7 +3412,11 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         url_path=r"dashboard/assignments/(?P<assignment_id>[-\w]+)",
     )
     def assignments(self, request, assignment_id, *args, **kwargs):
-        cache_key = f"teacheradmins:user_id__{request.user.id}:instance_id__{assignment_id}:view__assignments"
+        cache_key = versioned_key(
+            f"teacheradmins:user_id__{request.user.id}"
+            f":instance_id__{assignment_id}:view__assignments",
+            [(SCOPE_USER, request.user.id)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -3441,9 +3526,11 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         paginator = StandardPageNumberPagination()
         page_number = request.query_params.get(paginator.page_query_param, "1")
         page_size = request.query_params.get(paginator.page_size_query_param, "")
-        cache_key = (
+        cache_key = versioned_key(
             f"teacheradmins:user_id__{request.user.id}:instance_id__{course_id}"
-            f":view__students:{page_number}:{page_size}"
+            f":view__students:{page_number}:{page_size}",
+            # `usr` alone - same reasoning as view__courses above.
+            [(SCOPE_USER, request.user.id)],
         )
         data = cache.get(cache_key)
 

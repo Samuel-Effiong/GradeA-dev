@@ -3,10 +3,16 @@
 import logging
 
 from django.conf import settings
-from django.core.cache import cache
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
+from AutoGrader.cache_generation import (
+    SCOPE_ANY_USER,
+    SCOPE_GLOBAL,
+    SCOPE_USER,
+    bump_many,
+)
+from AutoGrader.cache_utils import delete_cache_patterns
 from billing.context import get_license_invitation_context
 from billing.models import BetaProfile, CreditWallet, PlanType, SubscriptionPlan
 from billing.services import SubscriptionService
@@ -18,16 +24,32 @@ logger = logging.getLogger(__name__)
 @receiver([post_save, post_delete], sender=CustomUser)
 @receiver([post_save, post_delete], sender=Settings)
 def clear_user_cache(sender, instance, **kwargs):
-    if hasattr(cache, "delete_pattern"):
-        cache.delete_pattern("*superadmin*")
-        cache.delete_pattern("*schooladmin*")
-        cache.delete_pattern("*teacheradmin*")
-        cache.delete_pattern("*studentadmin*")
-        cache.delete_pattern("*user*")
-        cache.delete_pattern("*school*")
-        cache.delete_pattern("*course*")
-        cache.delete_pattern("*studentcourse*")
-        cache.delete_pattern("*settings*")
+    # H-1 stage 2: bump only THIS user's generation. The wildcard "*user*"
+    # below matches 29 of the project's 35 cache families, which is why
+    # every CustomUser/Settings save is currently a de-facto full flush.
+    # The bump is the targeted replacement; both run until stage 3.
+    user_id = getattr(instance, "user_id", None) or instance.pk
+    # `anyusr` backs super-admin/dashboard/teachers, whose dependency is the
+    # CustomUser table and nothing else; `global` backs the superadmin
+    # dashboards that aggregate across everything.
+    bump_many([(SCOPE_USER, user_id), (SCOPE_ANY_USER, None), (SCOPE_GLOBAL, None)])
+    # Routed through the project's shared helper rather than calling
+    # `cache.delete_pattern` directly. This is a post_save/post_delete
+    # receiver, so Django runs it inside the caller's transaction: an
+    # unguarded call meant a Redis blip failed the user save itself, even
+    # though saving a user needs nothing from Redis. The helper treats
+    # invalidation as best-effort and logs rather than raising.
+    delete_cache_patterns(
+        "*superadmin*",
+        "*schooladmin*",
+        "*teacheradmin*",
+        "*studentadmin*",
+        "*user*",
+        "*school*",
+        "*course*",
+        "*studentcourse*",
+        "*settings*",
+    )
 
 
 @receiver(post_save, sender=CustomUser)

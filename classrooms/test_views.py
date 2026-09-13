@@ -641,7 +641,7 @@ class CourseViewSetTest(ClassroomBaseAPITest):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("already enrolled", str(response.data.get("detail", "")))
 
-    @patch("classrooms.views.send_email_task.delay")
+    @patch("classrooms.services.notifications.send_email_task.delay")
     def test_teacher_can_invite_multiple_pending_students_by_email(
         self, mock_send_email
     ):
@@ -662,7 +662,7 @@ class CourseViewSetTest(ClassroomBaseAPITest):
         FRONTEND_DOMAIN="teacher.example.test",
         STUDENT_FRONTEND_DOMAIN="student.example.test",
     )
-    @patch("classrooms.views.send_email_task.delay")
+    @patch("classrooms.services.notifications.send_email_task.delay")
     def test_new_student_invite_link_uses_student_frontend_domain(
         self, mock_send_email
     ):
@@ -685,7 +685,7 @@ class CourseViewSetTest(ClassroomBaseAPITest):
         FRONTEND_DOMAIN="teacher.example.test",
         STUDENT_FRONTEND_DOMAIN="student.example.test",
     )
-    @patch("classrooms.views.send_email_task.delay")
+    @patch("classrooms.services.notifications.send_email_task.delay")
     def test_existing_inactive_student_invite_link_uses_student_frontend_domain(
         self, mock_send_email
     ):
@@ -717,7 +717,7 @@ class CourseViewSetTest(ClassroomBaseAPITest):
         FRONTEND_DOMAIN="teacher.example.test",
         STUDENT_FRONTEND_DOMAIN="student.example.test",
     )
-    @patch("classrooms.views.send_email_task.delay")
+    @patch("classrooms.services.notifications.send_email_task.delay")
     def test_existing_active_student_added_login_link_uses_student_frontend_domain(
         self, mock_send_email
     ):
@@ -746,7 +746,7 @@ class CourseViewSetTest(ClassroomBaseAPITest):
         self.assertIn("student.example.test", merge_data["content"])
         self.assertNotIn("teacher.example.test", merge_data["content"])
 
-    @patch("classrooms.views.send_email_task.delay")
+    @patch("classrooms.services.notifications.send_email_task.delay")
     def test_teacher_cannot_remove_student_from_another_teachers_course(
         self, mock_send_email
     ):

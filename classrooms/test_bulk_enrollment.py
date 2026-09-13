@@ -108,7 +108,7 @@ class BulkEnrollmentTest(APITestCase):
         FRONTEND_DOMAIN="teacher.example.test",
         STUDENT_FRONTEND_DOMAIN="student.example.test",
     )
-    @patch("classrooms.views.send_email_task.delay")
+    @patch("classrooms.services.notifications.send_email_task.delay")
     def test_bulk_invite_link_uses_student_frontend_domain(self, mock_send_email):
         """A bulk-added row with an email (invitation flow, inactive
         student) gets a registration link on the student app, not the

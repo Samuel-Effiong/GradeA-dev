@@ -49,6 +49,14 @@ class StudentSerializer(serializers.ModelSerializer):
         if not course:
             return None
 
+        # A caller that already has the enrollments loaded can pass them in
+        # rather than making this re-query once per student - see
+        # CourseSerializer.get_students. Absent that, fall back to the
+        # query so every other caller behaves exactly as before.
+        status_by_student = self.context.get("enrollment_status_by_student")
+        if status_by_student is not None:
+            return status_by_student.get(obj.id)
+
         enrollment = obj.enrollments.filter(course=course).first()
         return enrollment.enrollment_status if enrollment else None
 
@@ -655,31 +663,56 @@ class StudentListSerializer(serializers.ModelSerializer):
             return None
         return obj.email
 
+    def _enrollments(self, obj):
+        """Every enrollment for this student, from the prefetch cache.
+
+        `.filter()` on a related manager always issues a fresh query, even
+        when the caller prefetched the relation. Six of the methods below
+        need an enrollment, so going through the cache once here is the
+        difference between ~1 query per student and ~6.
+        """
+        return list(obj.enrollments.all())
+
     def _get_relevant_course(self, obj):
+        """Which course this row is 'about', memoised per student.
+
+        Six SerializerMethodFields call this, and it used to run its
+        lookups again for every one of them - so a page of 20 students cost
+        well over a hundred queries before any of the counts below ran.
+        """
+        if not hasattr(self, "_relevant_course_cache"):
+            self._relevant_course_cache = {}
+        if obj.pk in self._relevant_course_cache:
+            return self._relevant_course_cache[obj.pk]
+
+        course = self._resolve_relevant_course(obj)
+        self._relevant_course_cache[obj.pk] = course
+        return course
+
+    def _resolve_relevant_course(self, obj):
+        enrollments = self._enrollments(obj)
         request = self.context.get("request")
+
         if request:
             course_id = request.query_params.get("enrollments__course")
             if course_id:
-                enrollment = obj.enrollments.filter(course_id=course_id).first()
-                if enrollment:
-                    return enrollment.course
+                for enrollment in enrollments:
+                    if str(enrollment.course_id) == str(course_id):
+                        return enrollment.course
 
             # fallback: first course taught by the authenticated user if teacher
             if (
                 hasattr(request.user, "user_type")
                 and request.user.user_type == "TEACHER"
             ):
-                enrollment = obj.enrollments.filter(
-                    course__teacher=request.user
-                ).first()
-                if enrollment:
-                    return enrollment.course
+                for enrollment in enrollments:
+                    if enrollment.course.teacher_id == request.user.id:
+                        return enrollment.course
 
-        enrollment = obj.enrollments.first()
-        return enrollment.course if enrollment else None
+        return enrollments[0].course if enrollments else None
 
     def get_enrolled_courses(self, obj):
-        return obj.enrollments.values_list("course__name", flat=True)
+        return [enrollment.course.name for enrollment in self._enrollments(obj)]
 
     def get_course_description(self, obj):
         course = self._get_relevant_course(obj)
@@ -694,7 +727,9 @@ class StudentListSerializer(serializers.ModelSerializer):
     def get_grade(self, obj):
         course = self._get_relevant_course(obj)
         if course:
-            enrollment = obj.enrollments.filter(course=course).first()
+            enrollment = next(
+                (e for e in self._enrollments(obj) if e.course_id == course.id), None
+            )
             if enrollment and enrollment.final_grade is not None:
                 grade_details = get_grade_details(enrollment.final_grade)
                 return {
@@ -708,13 +743,19 @@ class StudentListSerializer(serializers.ModelSerializer):
     def get_total_assignments_in_course(self, obj):
         course = self._get_relevant_course(obj)
         if course:
-            return course.assignments.count()
+            # len() of the prefetch cache, not .count(), which would issue a
+            # fresh COUNT per student.
+            return len(course.assignments.all())
         return 0
 
     def get_total_assignments_submitted(self, obj):
         course = self._get_relevant_course(obj)
         if course:
-            return obj.submissions.filter(assignment__course=course).count()
+            return sum(
+                1
+                for submission in obj.submissions.all()
+                if submission.assignment.course_id == course.id
+            )
         return 0
 
     def get_percentage_of_submission(self, obj):

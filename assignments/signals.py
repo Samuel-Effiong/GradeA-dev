@@ -11,6 +11,13 @@ from assignments.models import Assignment, AssignmentGenerationSession, Assignme
 from assignments.pdf_cache import invalidate_assignment_pdfs
 from assignments.rigor import score_assignment
 from assignments.services import _strip_html_from_title
+from AutoGrader.cache_generation import (
+    SCOPE_COURSE,
+    SCOPE_GLOBAL,
+    SCOPE_SCHOOL,
+    SCOPE_USER,
+    bump_many,
+)
 from AutoGrader.cache_utils import delete_cache_patterns
 
 # `delete_cache_patterns` is the project's shared helper (AutoGrader/
@@ -87,8 +94,40 @@ def queue_new_assignment_posted_notification(instance, created):
     transaction.on_commit(enqueue_notification)
 
 
+def _bump_assignment_scopes(assignment):
+    """Entities a change to this assignment can affect.
+
+    Resolved defensively: `post_delete` can fire with related rows already
+    gone, and a bump that raises would fail the delete itself.
+    """
+    course = getattr(assignment, "course", None)
+    teacher = getattr(assignment, "teacher", None)
+    school_id = getattr(teacher, "school_id", None) if teacher else None
+    if school_id is None and course is not None:
+        course_teacher = getattr(course, "teacher", None)
+        school_id = (
+            getattr(course_teacher, "school_id", None) if course_teacher else None
+        )
+
+    bump_many(
+        [
+            (SCOPE_COURSE, getattr(assignment, "course_id", None)),
+            (SCOPE_USER, getattr(assignment, "teacher_id", None)),
+            (SCOPE_SCHOOL, school_id),
+            (SCOPE_GLOBAL, None),
+        ]
+    )
+
+
 @receiver([post_save, post_delete], sender=Assignment)
 def clear_assignment_cache(sender, instance, **kwargs):
+    # H-1 stage 2: bump the entities whose cached responses this assignment
+    # can change. `assignment_activity_<school>_<year>` (dashboard family
+    # 32) is built from Assignment rows joined through
+    # course__teacher__school, so without the SCHOOL bump that response
+    # would never refresh - it is one of the four families that no
+    # invalidation mechanism reached at all before this change.
+    _bump_assignment_scopes(instance)
     # These patterns cover the per-user DRF list/retrieve JSON that
     # users/mixins.py caches. Those entries are keyed by user + query
     # params only, so nothing in the key reveals that they went stale and

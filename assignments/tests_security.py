@@ -28,7 +28,7 @@ from unittest.mock import patch
 
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.db import connections
+from django.db import connection, connections
 from django.test import TransactionTestCase
 from django.urls import reverse
 from rest_framework import status
@@ -1249,25 +1249,37 @@ class ConcurrentAccessRevocationTest(TenancyAttackFixture, TransactionTestCase):
         withdrawn = threading.Event()
         start = threading.Barrier(13)
 
+        # Every worker closes its OWN connection in `finally`. Django's
+        # connection handler is thread-local, so `connections.close_all()`
+        # in tearDown only reaches the main thread's connection - these
+        # thirteen threads (12 hammer + 1 revoke) were the exact 13 sessions
+        # that kept `DROP DATABASE test_...` failing and the full suite
+        # exiting non-zero after reporting OK (H-2).
         def hammer():
-            client = APIClient()
-            client.force_authenticate(user=self.subject)
-            start.wait(timeout=30)
-            for _ in range(6):
-                with patch(
-                    "assignments.views.render_assignment_pdf",
-                    return_value=b"%PDF-x",
-                ):
-                    response = client.get(url)
-                with lock:
-                    results.append((withdrawn.is_set(), response.status_code))
+            try:
+                client = APIClient()
+                client.force_authenticate(user=self.subject)
+                start.wait(timeout=30)
+                for _ in range(6):
+                    with patch(
+                        "assignments.views.render_assignment_pdf",
+                        return_value=b"%PDF-x",
+                    ):
+                        response = client.get(url)
+                    with lock:
+                        results.append((withdrawn.is_set(), response.status_code))
+            finally:
+                connection.close()
 
         def revoke():
-            start.wait(timeout=30)
-            self.enrollment.enrollment_status = EnrollmentStatusType.WITHDRAWN
-            self.enrollment.save(update_fields=["enrollment_status"])
-            cache.clear()
-            withdrawn.set()
+            try:
+                start.wait(timeout=30)
+                self.enrollment.enrollment_status = EnrollmentStatusType.WITHDRAWN
+                self.enrollment.save(update_fields=["enrollment_status"])
+                cache.clear()
+                withdrawn.set()
+            finally:
+                connection.close()
 
         threads = [threading.Thread(target=hammer) for _ in range(12)]
         threads.append(threading.Thread(target=revoke))

@@ -1,18 +1,13 @@
-import csv
-import io
 import logging
 import uuid
 
 from dateutil.relativedelta import relativedelta
-from django.conf import settings
 
 # from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.core.validators import validate_email
 
 # from django.core.mail import send_mail
-from django.db import transaction
 from django.db.models import (
     CharField,
     Count,
@@ -27,7 +22,6 @@ from django.db.models import (
 )
 from django.db.models.functions import Coalesce, Concat, TruncMonth
 from django.shortcuts import get_object_or_404
-from django.template.loader import render_to_string
 from django.utils import timezone
 
 # from django.utils.decorators import method_decorator
@@ -57,23 +51,23 @@ from rest_framework.response import Response
 # from ai_processor.services import ai_processor
 from assignments.models import Assignment
 from assignments.serializers import TaskInfoSerializer
-from AutoGrader.dispatch import safe_delay
+from AutoGrader.cache_generation import SCOPE_GLOBAL, SCOPE_USER, versioned_key
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
-from AutoGrader.tasks import send_email_task
 from billing.models import CreditUsageLog
 from classrooms.permissions import CanManageSession
 from students.models import BackgroundTaskType, StudentSubmission
 from students.serializers import StudentListSerializer
 from students.task_tracking import create_processing_task, launch_processing_task
 from users.mixins import UserCacheMixin
-from users.models import ACTIVATION_TOKEN_VALIDITY, CustomUser, UserTypes
+from users.models import CustomUser, UserTypes
 from users.permissions import HasCreditBalance
 from users.serializers import CustomUserSerializer
-from users.services import otp_manager
 from users.throttling import RegisterThrottle
 
+from . import services
 from .models import (  # , Classroom, ClassroomSettings
+    COURSE_ACCESS_ENROLLMENT_STATUSES,
     Course,
     CourseCategory,
     EnrollmentStatusType,
@@ -107,42 +101,6 @@ from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
 from .tasks import student_summary_async
 
 logger = logging.getLogger(__name__)
-
-
-def _is_email_value(value):
-    candidate = (value or "").strip()
-    if not candidate:
-        return False
-
-    try:
-        validate_email(candidate)
-        return True
-    except DjangoValidationError:
-        return False
-
-
-def _parse_row_without_headers(row):
-    email = ""
-    name_parts = []
-
-    for cell in row:
-        value = (cell or "").strip()
-        if not value:
-            continue
-
-        if _is_email_value(value):
-            if not email:
-                email = value
-            continue
-
-        name_parts.append(value)
-
-    return {
-        "first_name": name_parts[0] if len(name_parts) > 0 else "",
-        "last_name": name_parts[1] if len(name_parts) > 1 else "",
-        "middle_name": name_parts[2] if len(name_parts) > 2 else "",
-        "email": email,
-    }
 
 
 def _validate_uuid_query_param(value, param_name):
@@ -646,12 +604,6 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         return paginator.get_paginated_response(data)
 
-    # @action(
-    #     detail=True,
-    #     methods=['get'],
-    #     url_path='detail-summary',
-    #     permission_classes=[IsAuthenticated, IsNotStudent]
-    # )
     def retrieve(self, request, pk=None):
         school = self.get_object()
 
@@ -1283,6 +1235,19 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
             Course.objects.select_related("session", "teacher")
             .prefetch_related(
                 "topics",
+                # CourseSerializer nests AssignmentListSerializer and counts
+                # assignments; without this each course re-queried them.
+                "assignments",
+                # AssignmentListSerializer.get_submission_count calls
+                # .count() on the reverse relation, which reads a prefetch
+                # cache when one exists and issues a COUNT per assignment
+                # when it doesn't - 80 queries for a 3-course page. Only
+                # the two columns needed to count are loaded, so this
+                # doesn't drag whole submission rows into memory.
+                Prefetch(
+                    "assignments__submissions",
+                    queryset=StudentSubmission.objects.only("id", "assignment_id"),
+                ),
                 Prefetch(
                     "enrollments",
                     queryset=StudentCourse.objects.exclude(
@@ -1305,7 +1270,12 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if user.user_type == UserTypes.TEACHER:
             return course.filter(teacher=user)
         elif user.user_type == UserTypes.STUDENT:
-            return course.filter(enrollments__student=user)
+            # One rule, shared with assignments and topics - see
+            # COURSE_ACCESS_ENROLLMENT_STATUSES in classrooms.models.
+            return course.filter(
+                enrollments__student=user,
+                enrollments__enrollment_status__in=(COURSE_ACCESS_ENROLLMENT_STATUSES),
+            )
         else:
             return Course.objects.none()
 
@@ -1317,274 +1287,33 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
     )
     @action(detail=True, methods=["post"], url_path="students", url_name="students")
     def students(self, request, *args, **kwargs):
+        """Onboard a student to a course by email address."""
         serializer = AddStudentToCourseSerializer(data=request.data)
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)
 
-        email = serializer.validated_data["email"]
-
-        """Onboard students to a section."""
         # Scoped through get_queryset() (teacher=user for a teacher, .none()
         # for anyone else) so a teacher can't enroll a student into another
-        # teacher's course by guessing/incrementing a course id - a bare
-        # Course.objects.get(pk=...) here would bypass that entirely, since
-        # this custom @action never calls self.get_object().
+        # teacher's course by guessing a course id - this custom @action
+        # never calls self.get_object(), so a bare Course.objects.get() here
+        # would bypass the scoping entirely.
         course = get_object_or_404(self.get_queryset(), pk=self.kwargs["pk"])
 
         try:
-            with transaction.atomic():
-                # Re-fetch and lock now that ownership is already confirmed
-                # above. select_for_update() requires an open transaction -
-                # doing the initial lookup before entering this atomic()
-                # block (rather than locking the unscoped row up front) is
-                # what lets the ownership check's Http404 propagate as a
-                # clean 404 instead of being swallowed by the except Exception
-                # below.
-                course = Course.objects.select_for_update().get(pk=course.pk)
-                student = CustomUser.objects.filter(email=email).first()
-
-                if student:
-                    if StudentCourse.objects.filter(
-                        student=student, course=course
-                    ).exists():
-                        return Response(
-                            {"detail": "Student is already enrolled in this course."},
-                            status=status.HTTP_400_BAD_REQUEST,
-                        )
-
-                    if student.is_active:
-                        StudentCourse.objects.create(
-                            student=student,
-                            course=course,
-                            enrollment_status=EnrollmentStatusType.ENROLLED,
-                            auto_added=False,
-                        )
-
-                        context = {
-                            "course": course,
-                            "teacher": course.teacher,
-                            "student": student,
-                            "login_url": f"https://{settings.STUDENT_FRONTEND_DOMAIN}",
-                        }
-
-                        # html_content = render_to_string(
-                        #     "email/existing_student_course_enrollment.html",
-                        #     context=context,
-                        # )
-
-                        content = f"""
-                        You have been added to {course.name} by {course.teacher.get_full_name()}<br><br>
-
-                        Your access is already active, so you can sign in now and start participating right away.
-                        <br><br>
-
-                        Course Details:<br>
-                        - Course: {course.name}<br>
-                        - Teacher: {course.teacher.get_full_name()}<br>
-                        - Description: {course.description}<br><br>
-
-                        Open your dashboard here:<br>
-                        {context['login_url']}<br><br>
-
-                        We are glad to have you in the course.<br><br>
-
-                        Questions about the course? Contact {course.teacher.email}.
-                        """
-
-                        merge_data = {
-                            "title": f"You have been added to {course.name}",
-                            "name": f"{student.get_full_name()}",
-                            "content": content,
-                            "current_year": timezone.now().year,
-                            "support_email": settings.SUPPORT_EMAIL,
-                        }
-
-                        safe_delay(
-                            send_email_task,
-                            subject=f"You have been added to {course.name}",
-                            message="",
-                            from_email=settings.DEFAULT_FROM_EMAIL,
-                            recipient_list=[student.email],
-                            html_message=None,
-                            template_id="yzkq340r0n04d796",
-                            merge_data=merge_data,
-                        )
-                    else:
-                        if (
-                            not student.activation_token
-                            or not student.activation_expires
-                            or student.activation_expires < timezone.now()
-                        ):
-                            activation_token = student.renew_activation_token()
-                        else:
-                            activation_token = student.activation_token
-
-                        StudentCourse.objects.create(
-                            student=student,
-                            course=course,
-                            enrollment_status=EnrollmentStatusType.PENDING,
-                            auto_added=False,
-                        )
-
-                        frontend_domain = settings.STUDENT_FRONTEND_DOMAIN
-                        registration_link = (
-                            f"https://{frontend_domain}/register/student/"
-                            f"{activation_token}?email={email}"
-                        )
-
-                        top_content = f"""
-                        {course.teacher.get_full_name()} has invited you to join {course.name} on Grade A+ <br><br>
-
-                        Your student access has been prepared. Complete your registration to create your password,
-                        set up your profile, and enter the course with confidence.<br><br>
-
-                        Finish your registration here:<br>
-                        """
-
-                        bottom_content = f"""
-                        This invitation link expires in 24 hours.<br><br>
-
-                        If you were not expecting this invitation, you can ignore this email.<br><br>
-                        Questions about this course? Contact {course.teacher.email}.<br><br>
-                        """
-
-                        merge_data = {
-                            "title": f"Complete your registration for {course.name}",
-                            "name": f"{student.get_full_name()}",
-                            "top_content": top_content,
-                            "bottom_content": bottom_content,
-                            "activation_url": registration_link,
-                            "current_year": timezone.now().year,
-                            "support_email": settings.SUPPORT_EMAIL,
-                        }
-
-                        # context = {
-                        #     "course": course,
-                        #     "teacher": course.teacher,
-                        #     "registration_link": registration_link,
-                        #     "top_content": top_content,
-                        #     "bottom_content": bottom_content,
-                        # }
-
-                        # html_content = render_to_string(
-                        #     "email/student_course_registration.html", context=context
-                        # )
-
-                        # send_email_task.delay(
-                        #     subject="Complete Your Registration for the Course",
-                        #     message="",
-                        #     from_email=settings.DEFAULT_FROM_EMAIL,
-                        #     recipient_list=[student.email],
-                        #     html_message=html_content,
-                        # )
-
-                        safe_delay(
-                            send_email_task,
-                            subject="Your course invitation is ready. Finish setup and join your class",
-                            message="",
-                            from_email=settings.DEFAULT_FROM_EMAIL,
-                            recipient_list=[student.email],
-                            html_message=None,
-                            template_id="ynrw7gy0ye2l2k8e",
-                            merge_data=merge_data,
-                        )
-                else:
-                    # New student flow
-                    activation_token = otp_manager.generate_otp()
-
-                    # Create inactive user account
-                    student = CustomUser.objects.create(
-                        email=email,
-                        user_type=UserTypes.STUDENT,
-                        is_active=False,
-                        school=course.teacher.school,
-                        activation_token=activation_token,
-                        activation_expires=timezone.now() + ACTIVATION_TOKEN_VALIDITY,
-                    )
-
-                    # Create pending enrollment
-                    StudentCourse.objects.create(
-                        student=student,
-                        course=course,
-                        enrollment_status=EnrollmentStatusType.PENDING,
-                        auto_added=False,
-                    )
-
-                    # Generate registration link
-                    frontend_domain = settings.STUDENT_FRONTEND_DOMAIN
-                    registration_link = f"https://{frontend_domain}/register/student/{activation_token}?email={email}"
-
-                    context = {
-                        "course": course,
-                        "teacher": course.teacher,
-                        "registration_link": registration_link,
-                    }
-
-                    top_content = f"""
-                    {course.teacher.get_full_name()} has invited you to join {course.name} on Grade A+ <br><br>
-
-                    Your student access has been prepared. Complete your registration to create your password,
-                    set up your profile, and enter the course with confidence.<br><br>
-
-                    Finish your registration here:<br>
-                    """
-
-                    bottom_content = f"""
-                    This invitation link expires in 24 hours.<br><br>
-
-                    If you were not expecting this invitation, you can ignore this email.<br><br>
-                    Questions about this course? Contact {course.teacher.email}.<br><br>
-                    """
-
-                    # html_content = render_to_string(
-                    #     "email/student_course_registration.html", context=context
-                    # )
-
-                    # send_email_task.delay(
-                    #     subject="Complete Your Registration for the Course",
-                    #     message="",
-                    #     from_email=settings.DEFAULT_FROM_EMAIL,
-                    #     recipient_list=[student.email],
-                    #     html_message=html_content,
-                    # )
-
-                    merge_data = {
-                        "title": f"Complete your registration for {course.name}",
-                        "name": f"{student.get_full_name()}",
-                        "top_content": top_content,
-                        "bottom_content": bottom_content,
-                        "activation_url": registration_link,
-                        "current_year": timezone.now().year,
-                        "support_email": settings.SUPPORT_EMAIL,
-                    }
-
-                    safe_delay(
-                        send_email_task,
-                        subject="Your course invitation is ready. Finish setup and join your class",
-                        message="",
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        recipient_list=[student.email],
-                        html_message=None,
-                        template_id="ynrw7gy0ye2l2k8e",
-                        merge_data=merge_data,
-                    )
-
-                return Response(
-                    {
-                        "detail": "Student added to course successfully.",
-                        "is_new_student": student.is_active is False,
-                    },
-                    status=status.HTTP_200_OK,
-                )
-        except DjangoValidationError as e:
-            detail = e.message_dict if hasattr(e, "message_dict") else e.messages
-            raise ValidationError(detail) from e
-        except Exception as e:
-            logger.error("Failed to add student to course", exc_info=e)
+            student, is_new_student = services.enroll_student_by_email(
+                course=course, email=serializer.validated_data["email"]
+            )
+        except services.EnrollmentError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except DjangoValidationError as exc:
+            detail = exc.message_dict if hasattr(exc, "message_dict") else exc.messages
+            raise ValidationError(detail) from exc
+        except Exception as exc:
+            logger.error("Failed to add student to course", exc_info=exc)
             return Response(
                 {
                     "detail": describe_user_error(
-                        e,
+                        exc,
                         fallback_message=(
                             "We couldn't add this student to the course. "
                             "Please try again."
@@ -1593,6 +1322,14 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+        return Response(
+            {
+                "detail": "Student added to course successfully.",
+                "is_new_student": is_new_student,
+            },
+            status=status.HTTP_200_OK,
+        )
 
     @extend_schema(
         tags=["02 Course"],
@@ -1658,300 +1395,22 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         serializer = BulkAddStudentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        input_file = serializer.validated_data.get("file")
-        raw_data = serializer.validated_data.get("raw_data")
-
-        raw_rows = []
-        if input_file:
-            # Handle CSV file upload
-            decoded_file = input_file.read().decode("utf-8").splitlines()
-            reader = csv.reader(decoded_file)
-            raw_rows = list(reader)
-        elif raw_data:
-            # Handle Excel paste (TSV) or raw CSV string
-            delimiter = "\t" if "\t" in raw_data else ","
-            f = io.StringIO(raw_data.strip())
-            reader = csv.reader(f, delimiter=delimiter)
-            raw_rows = list(reader)
-
-        if not raw_rows:
-            raise ParseError("No valid student data found in input")
-
-        # Define header variations
-        header_variations = {
-            "first_name": ["First Name", "FirstName", "first_name", "first"],
-            "last_name": ["Last Name", "LastName", "last_name", "last"],
-            "middle_name": ["Middle Name", "middle_name", "middle"],
-            "email": ["Email", "email", "e-mail"],
-        }
-
-        # Header detection
-        first_row = [str(c).strip() for c in raw_rows[0]]
-        column_map = {}
-        is_header = False
-
-        # Try to map columns by header names
-        header_fields_found = set()
-        for field, variations in header_variations.items():
-            for i, cell in enumerate(first_row):
-                # Match exact or normalized variations
-                norm_cell = cell.lower().replace(" ", "_")
-                if cell in variations or norm_cell in [
-                    v.lower().replace(" ", "_") for v in variations
-                ]:
-                    column_map[field] = i
-                    header_fields_found.add(field)
-                    break
-
-        # If we found at least two of the expected fields, treat it as a header
-        if len(header_fields_found) >= 2:
-            is_header = True
-        else:
-            # If only one or zero fields matched, it's likely data or a very incomplete header.
-            # Reset column_map to avoid partial matches from the "header" row if we decide it's data.
-            column_map = {}
-
-        if is_header:
-            data_rows = raw_rows[1:]
-        else:
-            data_rows = raw_rows
-
-        results = []
-        success_count = 0
-        failure_count = 0
-
-        for row in data_rows:
-            if not any(row):  # Skip empty rows
-                continue
-
-            if is_header:
-
-                def get_row_val(field, row=row):
-                    idx = column_map.get(field)
-                    if idx is not None and idx < len(row):
-                        return (row[idx] or "").strip()
-                    return ""
-
-                first_name = get_row_val("first_name")
-                last_name = get_row_val("last_name")
-                middle_name = get_row_val("middle_name")
-                email = get_row_val("email")
-            else:
-                parsed_row = _parse_row_without_headers(row)
-                first_name = parsed_row["first_name"]
-                last_name = parsed_row["last_name"]
-                middle_name = parsed_row["middle_name"]
-                email = parsed_row["email"]
-
-            if not first_name or not last_name:
-                results.append(
-                    {
-                        "name": f"{first_name} {last_name}".strip() or "Unknown",
-                        "status": "failed",
-                        "error": "First and last names are required.",
-                    }
-                )
-                failure_count += 1
-                continue
-
-            try:
-                if email:
-                    with transaction.atomic():
-                        student = CustomUser.objects.filter(email=email).first()
-                        is_new = False
-                        if not student:
-                            is_new = True
-                            activation_token = otp_manager.generate_otp()
-                            student = CustomUser.objects.create(
-                                email=email,
-                                first_name=first_name,
-                                middle_name=middle_name,
-                                last_name=last_name,
-                                user_type=UserTypes.STUDENT,
-                                is_active=False,
-                                school=course.teacher.school,
-                                activation_token=activation_token,
-                                activation_expires=timezone.now()
-                                + ACTIVATION_TOKEN_VALIDITY,
-                            )
-
-                        if StudentCourse.objects.filter(
-                            student=student, course=course
-                        ).exists():
-                            results.append(
-                                {
-                                    "name": f"{first_name} {last_name}",
-                                    "status": "skipped",
-                                    "error": "Already enrolled",
-                                }
-                            )
-                            continue
-
-                        enrollment_status = (
-                            EnrollmentStatusType.PENDING
-                            if is_new
-                            else EnrollmentStatusType.ENROLLED
-                        )
-
-                        StudentCourse.objects.create(
-                            student=student,
-                            course=course,
-                            enrollment_status=enrollment_status,
-                            auto_added=False,
-                        )
-                        self._send_bulk_enrollment_email(student, course, is_new)
-                        results.append(
-                            {
-                                "name": student.get_full_name(),
-                                "status": "invited",
-                                "type": "invitation",
-                            }
-                        )
-                        success_count += 1
-                else:
-                    with transaction.atomic():
-                        student = CustomUser.objects.filter(
-                            first_name__iexact=first_name,
-                            last_name__iexact=last_name,
-                            middle_name__iexact=middle_name,
-                            user_type=UserTypes.STUDENT,
-                        ).first()
-
-                        if student:
-                            if StudentCourse.objects.filter(
-                                student=student, course=course
-                            ).exists():
-                                results.append(
-                                    {
-                                        "name": student.get_full_name(),
-                                        "status": "skipped",
-                                        "error": "Already enrolled",
-                                    }
-                                )
-                                continue
-
-                            StudentCourse.objects.create(
-                                student=student,
-                                course=course,
-                                enrollment_status=EnrollmentStatusType.ENROLLED,
-                                auto_added=True,
-                            )
-                            results.append(
-                                {
-                                    "name": student.get_full_name(),
-                                    "status": "enrolled",
-                                    "type": "direct_add",
-                                }
-                            )
-                            success_count += 1
-                        else:
-                            data = {
-                                "first_name": first_name,
-                                "middle_name": middle_name,
-                                "last_name": last_name,
-                            }
-                            direct_serializer = DirectAddStudentSerializer(
-                                data=data, context={"course": course}
-                            )
-                            if direct_serializer.is_valid():
-                                student = direct_serializer.save()
-                                results.append(
-                                    {
-                                        "name": student.get_full_name(),
-                                        "status": "enrolled",
-                                        "type": "direct_add",
-                                    }
-                                )
-                                success_count += 1
-                            else:
-                                error_msg = next(
-                                    iter(direct_serializer.errors.values())
-                                )[0]
-                                results.append(
-                                    {
-                                        "name": f"{first_name} {last_name}",
-                                        "status": "failed",
-                                        "error": error_msg,
-                                    }
-                                )
-                                failure_count += 1
-            except Exception as e:
-                logger.error(
-                    "Failed to bulk-add student %s %s",
-                    first_name,
-                    last_name,
-                    exc_info=e,
-                )
-                results.append(
-                    {
-                        "name": f"{first_name} {last_name}",
-                        "status": "failed",
-                        "error": describe_user_error(
-                            e,
-                            fallback_message=(
-                                "Could not add this student — check the row "
-                                "data and try again."
-                            ),
-                        ),
-                    }
-                )
-                failure_count += 1
+        try:
+            rows, total_processed = services.parse_roster(
+                input_file=serializer.validated_data.get("file"),
+                raw_data=serializer.validated_data.get("raw_data"),
+            )
+        except services.RosterImportError as exc:
+            if exc.field == "detail" and "No valid student data" in exc.message:
+                raise ParseError(exc.message) from exc
+            raise ValidationError({exc.field: [exc.message]}) from exc
 
         return Response(
-            {
-                "total_processed": len(data_rows),
-                "success_count": success_count,
-                "failure_count": failure_count,
-                "results": results,
-            },
+            services.import_roster(
+                course=course, rows=rows, total_processed=total_processed
+            ),
             status=status.HTTP_200_OK,
         )
-
-    def _send_bulk_enrollment_email(self, student, course, is_new):
-        if student.is_active:
-            content = (
-                f"You have been added to {course.name} by {course.teacher.get_full_name()}.<br><br>\n\n"
-                "Your access is already active."
-            )
-            merge_data = {
-                "title": f"You have been added to {course.name}",
-                "name": student.get_full_name(),
-                "content": content,
-                "current_year": timezone.now().year,
-                "support_email": settings.SUPPORT_EMAIL,
-            }
-            safe_delay(
-                send_email_task,
-                subject=f"You have been added to {course.name}",
-                message="",
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[student.email],
-                template_id="yzkq340r0n04d796",
-                merge_data=merge_data,
-            )
-        else:
-            registration_link = (
-                f"https://{settings.STUDENT_FRONTEND_DOMAIN}/register/student/"
-                f"{student.activation_token}?email={student.email}"
-            )
-            merge_data = {
-                "title": f"Complete your registration for {course.name}",
-                "name": student.get_full_name(),
-                "top_content": f"{course.teacher.get_full_name()} has invited you to join {course.name}.",
-                "bottom_content": "This invitation link expires in 24 hours.",
-                "activation_url": registration_link,
-                "current_year": timezone.now().year,
-                "support_email": settings.SUPPORT_EMAIL,
-            }
-            safe_delay(
-                send_email_task,
-                subject="Complete Your Registration for the Course",
-                message="",
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[student.email],
-                template_id="ynrw7gy0ye2l2k8e",
-                merge_data=merge_data,
-            )
 
     @extend_schema(
         tags=["02 Course"],
@@ -1985,111 +1444,44 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         url_name="remove-student",
     )
     def remove_student(self, request, pk=None, student_id=None, *args, **kwargs):
-        """Remove a student from a course"""
-        # Kept outside the try/except below, same reasoning as the
-        # students() action above: get_object() already scopes to the
-        # requesting teacher's own courses via get_queryset(), so a
+        """Remove a student from a course."""
+        # Kept outside the try/except below: get_object() already scopes to
+        # the requesting teacher's own courses via get_queryset(), so a
         # different teacher's course id raises Http404 here - inside the
         # try, that got caught by the blanket `except Exception` and
         # downgraded to a 500 instead of DRF's normal 404.
         course = self.get_object()
 
+        if request.user != course.teacher:
+            raise PermissionDenied(
+                "You do not have permission to remove students from this "
+                "course. Only course teacher can"
+            )
+
         try:
-            with transaction.atomic():
-                if request.user != course.teacher:
-                    raise PermissionDenied(
-                        "You do not have permission to remove students from this course. "
-                        "Only course teacher can"
-                    )
-
-                # Find the enrollment
-                enrollment = StudentCourse.objects.filter(
-                    course=course, student_id=student_id
-                ).first()
-
-                if not enrollment:
-                    raise ParseError("Student is not enrolled in this course.")
-
-                # Deactivate enrollment instead
-                # enrollment.withdrawn()
-                # enrollment.enrollment_status = EnrollmentStatusType.WITHDRAWN
-                #
-                # enrollment.save()
-
-                # Send notification to student
-                student = enrollment.student
-                # context = {
-                #     "course": course,
-                #     "teacher": course.teacher,
-                #     "student": student,
-                # }
-
-                enrollment.delete()
-                student.delete()
-
-                content = f"""
-                Your enrollment in {course.name} has been removed.<br><br>
-
-                Course details:<br>
-                - Course: {course.name}<br>
-                - Teacher: {course.teacher.get_full_name()}<br><br>
-
-                If you have any questions about this removal, please contact your teacher at {course.teacher.email}
-                """
-
-                # html_content = render_to_string(
-                #     "email/student_course_removal.html", context=context
-                # )
-
-                # send_email_task.delay(
-                #     subject=f"Removed from Course: {course.name}",
-                #     message="",
-                #     from_email=settings.DEFAULT_FROM_EMAIL,
-                #     recipient_list=[student.email],
-                #     html_message=html_content,
-                # )
-
-                merge_data = {
-                    "title": f"Your access to {course.name} has been updated",
-                    "name": f"{student.get_full_name()}",
-                    "content": content,
-                    "current_year": timezone.now().year,
-                    "support_email": settings.SUPPORT_EMAIL,
-                }
-
-                safe_delay(
-                    send_email_task,
-                    subject="You are no longer enrolled in this course",
-                    message="",
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[student.email],
-                    html_message=None,
-                    template_id="yzkq340r0n04d796",
-                    merge_data=merge_data,
-                )
-
-                return Response(
-                    {"detail": "Student removed from course successfully."},
-                    status=status.HTTP_200_OK,
-                )
-        except (ParseError, PermissionDenied):
-            # Let DRF's own exception handler turn these into their real
-            # 400/403 - the blanket `except Exception` below would otherwise
-            # downgrade them to a generic 500.
-            raise
-        except Exception as e:
-            logger.error("Failed to remove student from course", exc_info=e)
+            services.remove_student_from_course(course=course, student_id=student_id)
+        except services.EnrollmentError as exc:
+            # A 400, not a 404: the course exists and is theirs, the
+            # student simply isn't on its roster.
+            raise ParseError(str(exc)) from exc
+        except Exception as exc:
+            logger.error("Failed to remove student from course", exc_info=exc)
             return Response(
                 {
                     "detail": describe_user_error(
-                        e,
+                        exc,
                         fallback_message=(
-                            "We couldn't remove this student from the " "course."
+                            "We couldn't remove this student from the course."
                         ),
                     )
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+        return Response(
+            {"detail": "Student removed from course successfully."},
+            status=status.HTTP_200_OK,
+        )
 
     @extend_schema(
         tags=["02 Course"],
@@ -2114,95 +1506,20 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         url_name="renew-activation-token",
     )
     def handle_expired_token(self, request, token=None, *args, **kwargs):
-        """Handle expired activation token scenario."""
-
+        """Reissue an expired student activation link."""
         serializer = ExpiredTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         try:
-            # Find user by expired token
-            user = CustomUser.objects.filter(
-                activation_token=serializer.validated_data["token"],
-                is_active=False,
-            ).first()
-
-            if not user:
-                raise ParseError("Invalid token or user not found.")
-
-            enrollment = StudentCourse.objects.filter(
-                student=user, enrollment_status=EnrollmentStatusType.PENDING
-            ).first()
-
-            if not enrollment:
-                raise ParseError("No pending enrollment found for this user.")
-
-            new_token = user.renew_activation_token()
-
-            # Generate new registration link
-            registration_link = f"https://{settings.STUDENT_FRONTEND_DOMAIN}/register/student/{new_token}"
-            # Matches the real expiry renew_activation_token() just set on
-            # `user` above (see users.models.ACTIVATION_TOKEN_VALIDITY).
-            expiry_date = timezone.now() + ACTIVATION_TOKEN_VALIDITY
-
-            student_context = {
-                "course": enrollment.course,
-                "teacher": enrollment.course.teacher,
-                "registration_link": registration_link,
-            }
-
-            student_html = render_to_string(
-                "email/student_token_renewal.html", context=student_context
-            )
-
-            # Notify student
-            safe_delay(
-                send_email_task,
-                subject="Course Registration Link Renewed",
-                message="",
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                html_message=student_html,
-            )
-
-            teacher_context = {
-                "teacher": enrollment.course.teacher,
-                "student_email": user.email,
-                "course": enrollment.course,
-                "expiry_date": expiry_date,
-            }
-
-            teacher_html = render_to_string(
-                "email/teacher_token_renewal_notification.html", context=teacher_context
-            )
-
-            # Notify teacher
-            safe_delay(
-                send_email_task,
-                subject=f"Registration Link Renewed - {user.email}",
-                message="",
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[enrollment.course.teacher.email],
-                html_message=teacher_html,
-            )
-
-            return Response(
-                {
-                    "detail": "A new activation link has been sent to the student's email. Expires in 24 hours"
-                },
-                status=status.HTTP_200_OK,
-            )
-
-        except ParseError:
-            # Let DRF's own exception handler turn this into its real 400 -
-            # the blanket `except Exception` below would otherwise
-            # downgrade it to a generic 500.
-            raise
-        except Exception as e:
-            logger.error("Failed to renew activation token", exc_info=e)
+            services.renew_student_activation(token=serializer.validated_data["token"])
+        except services.EnrollmentError as exc:
+            raise ParseError(str(exc)) from exc
+        except Exception as exc:
+            logger.error("Failed to renew activation token", exc_info=exc)
             return Response(
                 {
                     "detail": describe_user_error(
-                        e,
+                        exc,
                         fallback_message=(
                             "We couldn't renew the activation link. Please "
                             "try again."
@@ -2212,14 +1529,22 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+        return Response(
+            {
+                "detail": (
+                    "A new activation link has been sent to the student's "
+                    "email. Expires in 24 hours"
+                )
+            },
+            status=status.HTTP_200_OK,
+        )
+
     @extend_schema(
         tags=["02 Course"],
         summary="List courses a student is enrolled in",
         # description="",
         responses=CourseSerializer(many=True),
     )
-    # @method_decorator(cache_page(60 * 5, key_prefix="courses:my_list"))
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_name="my-courses", url_path="my-courses")
     def my_courses(self, request, *args, **kwargs):
         """List courses the authenticated student is enrolled in, exclude withdrawn"""
@@ -2228,18 +1553,32 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if user.user_type != UserTypes.STUDENT:
             raise ParseError("Only students can access their enrolled courses.")
 
-        cache_key = f"courses:user_id__{request.user.id}"
+        # `usr` AND `global`. The student's own enrollments bump `usr`, but
+        # this payload also serializes course names, topics and assignments
+        # owned by the TEACHER - and a teacher's course edit bumps their own
+        # generation, not their students'. `global` closes that gap.
+        #
+        # The precise alternative was to bump every enrolled student on a
+        # course/topic/assignment change (~30 INCRs per edit, pipelined).
+        # Rejected on measurement: `global` moves ~6.5 times/day in
+        # production while this key's 5-minute TTL expires 288 times/day, so
+        # the extra invalidation is ~2% of misses - not worth a per-edit
+        # fan-out query.
+        cache_key = versioned_key(
+            f"courses:user_id__{request.user.id}",
+            [(SCOPE_USER, request.user.id), (SCOPE_GLOBAL, None)],
+        )
         cached_data = cache.get(cache_key)
 
         if cached_data is not None:
             return Response(cached_data)
 
-        student_courses = (
-            StudentCourse.objects.filter(student=user)
-            .select_related("course")
-            .exclude(enrollment_status__iexact=EnrollmentStatusType.WITHDRAWN)
-        )
-        courses = [sc.course for sc in student_courses]
+        # get_queryset() already scopes a student to their own non-withdrawn
+        # enrollments, and carries the prefetches/annotations CourseSerializer
+        # needs. Rebuilding the list by hand from bare Course rows meant
+        # student_count, topics, assignments and the roster were each fetched
+        # per course.
+        courses = self.get_queryset()
 
         serializer = self.get_serializer(courses, many=True)
         data = serializer.data
@@ -2247,32 +1586,6 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         cache.set(cache_key, data, 60 * 5)
         return Response(data)
 
-    @extend_schema(
-        tags=["02 Course"],
-        summary="Create topics for a course",
-        description="Create multiple topics for a specific course. Accepts a list of topic names or topic objects.",
-        request=TopicSerializer(many=True),
-        examples=[
-            OpenApiExample(
-                "List of Objects",
-                summary="Create topics using objects",
-                description="Send a list of topic objects with the 'name' field.",
-                value={"name": "Introduction to Algebra"},
-                request_only=True,
-            ),
-            OpenApiExample(
-                "List of Strings",
-                summary="Create topics using strings",
-                description="Send a simple list of topic names as strings.",
-                value="Introduction to Algebra",
-                request_only=True,
-            ),
-        ],
-        responses={
-            201: TopicSerializer(many=True),
-            400: OpenApiResponse(description="Invalid input"),
-        },
-    )
     @extend_schema(
         tags=["Courses"],
         summary="Generate an AI summary for a student in this course",
@@ -2387,29 +1700,32 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         serializer = TaskInfoSerializer(data)
         return Response(serializer.data)
 
-        # # Generate fresh summary
-        # summary = ai_processor.generate_student_summary(
-        #     teacher=request.user,
-        #     student=enrollment.student,
-        #     course=course,
-        # )
-        #
-        # enrollment.ai_summary = summary
-        # enrollment.ai_summary_generated_at = timezone.now()
-        # enrollment.save(update_fields=["ai_summary", "ai_summary_generated_at"])
-        #
-        # return Response(
-        #     {
-        #         "student_id": enrollment.student.id,
-        #         "student_name": enrollment.student.get_full_name(),
-        #         "course": course.name,
-        #         "summary": summary,
-        #         "generated_at": enrollment.ai_summary_generated_at,
-        #         "cached": False,
-        #     },
-        #     status=status.HTTP_200_OK,
-        # )
-
+    @extend_schema(
+        tags=["02 Course"],
+        summary="Create topics for a course",
+        description="Create multiple topics for a specific course. Accepts a list of topic names or topic objects.",
+        request=TopicSerializer(many=True),
+        examples=[
+            OpenApiExample(
+                "List of Objects",
+                summary="Create topics using objects",
+                description="Send a list of topic objects with the 'name' field.",
+                value={"name": "Introduction to Algebra"},
+                request_only=True,
+            ),
+            OpenApiExample(
+                "List of Strings",
+                summary="Create topics using strings",
+                description="Send a simple list of topic names as strings.",
+                value="Introduction to Algebra",
+                request_only=True,
+            ),
+        ],
+        responses={
+            201: TopicSerializer(many=True),
+            400: OpenApiResponse(description="Invalid input"),
+        },
+    )
     @action(detail=True, methods=["post"], url_path="topics", url_name="create-topics")
     def create_topics(self, request, pk=None):
         """Create topics for a specific course."""
@@ -2430,7 +1746,9 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 item["course"] = course.id
                 topics_data.append(item)
 
-        serializer = TopicSerializer(data=topics_data, many=True)
+        serializer = TopicSerializer(
+            data=topics_data, many=True, context=self.get_serializer_context()
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
@@ -2567,9 +1885,14 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
 
         if user.user_type == UserTypes.STUDENT:
+            # COMPLETED included, unlike before: a student who finished the
+            # course could still open its assignments (assignments/views.py)
+            # but the session containing them vanished from their sidebar.
             return Session.objects.filter(
                 courses__enrollments__student=user,
-                courses__enrollments__enrollment_status=EnrollmentStatusType.ENROLLED,
+                courses__enrollments__enrollment_status__in=(
+                    COURSE_ACCESS_ENROLLMENT_STATUSES
+                ),
             ).distinct()
 
         return Session.objects.none()
@@ -2714,16 +2037,6 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
     pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "delete", "patch", "options"]
-    #
-    # @method_decorator(cache_page(60 * 3, key_prefix="studentcourses:list"))
-    # @method_decorator(vary_on_headers("Authorization"))
-    # def list(self, request, *args, **kwargs):
-    #     return super().list(request, *args, **kwargs)
-    #
-    # @method_decorator(cache_page(60 * 3, key_prefix="studentcourses:detail"))
-    # @method_decorator(vary_on_headers("Authorization"))
-    # def retrieve(self, request, *args, **kwargs):
-    #     return super().retrieve(request, *args, **kwargs)
 
     def get_queryset(self):
         user = self.request.user
@@ -2733,7 +2046,24 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 active_enrollment = StudentCourse.objects.filter(
                     student=OuterRef("pk"), course__teacher=user
                 ).exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
-                return CustomUser.objects.filter(Exists(active_enrollment))
+                # StudentListSerializer walks enrollments -> course ->
+                # teacher and assignments, and submissions -> assignment,
+                # for every row. Unprefetched that was ~140 queries PER
+                # STUDENT (425 for a 3-row page, measured).
+                return CustomUser.objects.filter(
+                    Exists(active_enrollment)
+                ).prefetch_related(
+                    Prefetch(
+                        "enrollments",
+                        queryset=StudentCourse.objects.select_related(
+                            "course", "course__teacher"
+                        ).prefetch_related("course__assignments"),
+                    ),
+                    Prefetch(
+                        "submissions",
+                        queryset=StudentSubmission.objects.select_related("assignment"),
+                    ),
+                )
             return CustomUser.objects.none()
 
         # Scope the submissions prefetch to what the serializer can
@@ -2747,11 +2077,18 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if user.user_type == UserTypes.TEACHER:
             submissions_qs = submissions_qs.filter(assignment__course__teacher=user)
 
-        queryset = StudentCourse.objects.select_related(
-            "student", "course"
-        ).prefetch_related(
-            "course__assignments",
-            Prefetch("student__submissions", queryset=submissions_qs),
+        queryset = (
+            StudentCourse.objects
+            # course__teacher is walked by StudentCourseSerializer.get_teacher
+            # on every row; without it that is one extra query per row.
+            .select_related("student", "course", "course__teacher").prefetch_related(
+                "course__assignments",
+                Prefetch("student__submissions", queryset=submissions_qs),
+            )
+            # StudentCourse has no Meta.ordering, so paginating this
+            # unordered queryset gave Postgres licence to return rows in any
+            # order per page - a row could appear on two pages or on none.
+            .order_by("-created_at", "id")
         )
 
         if user.user_type == UserTypes.TEACHER:
@@ -3047,9 +2384,15 @@ class CourseCategoryViewSet(UserCacheMixin, viewsets.ModelViewSet):
 class TopicViewSet(UserCacheMixin, viewsets.ModelViewSet):
     queryset = Topic.objects.all()
     serializer_class = TopicSerializer
-    permission_class = (IsAuthenticated, IsTeacherOrReadOnly)
+    # `permission_classes`, not `permission_class`: the misspelling was
+    # silently ignored by DRF, which then fell back to the project-wide
+    # default of IsAuthenticated alone - so any authenticated user,
+    # students included, could create/edit/delete topics.
+    permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
     pagination_class = StandardPageNumberPagination
-    http_method_names = ["get", "head", "post", "delete", "patch", "option"]
+    # "options", not "option": the typo made DRF reject every OPTIONS
+    # request with 405, which breaks CORS preflight for this endpoint.
+    http_method_names = ["get", "head", "post", "delete", "patch", "options"]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ("name", "course__name")
     search_fields = ("name", "course__name")
@@ -3061,16 +2404,14 @@ class TopicViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if user.user_type == UserTypes.TEACHER:
             return Topic.objects.filter(course__teacher=user)
         elif user.user_type == UserTypes.STUDENT:
-            return Topic.objects.filter(course__enrollments__student=user)
+            # Previously matched on "an enrollment row exists", with no
+            # status condition - so a WITHDRAWN student kept reading the
+            # topic list of a course they had been removed from.
+            return Topic.objects.filter(
+                course__enrollments__student=user,
+                course__enrollments__enrollment_status__in=(
+                    COURSE_ACCESS_ENROLLMENT_STATUSES
+                ),
+            ).distinct()
         else:
             return Topic.objects.none()
-
-    # @method_decorator(cache_page(60 * 3, key_prefix="topics:list"))
-    # @method_decorator(vary_on_headers("Authorization"))
-    # def list(self, request, *args, **kwargs):
-    #     return super().list(request, *args, **kwargs)
-    #
-    # @method_decorator(cache_page(60 * 3, key_prefix="topics:detail"))
-    # @method_decorator(vary_on_headers("Authorization"))
-    # def retrieve(self, request, *args, **kwargs):
-    #     return super().retrieve(request, *args, **kwargs)
