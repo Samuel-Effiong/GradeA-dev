@@ -37,3 +37,7 @@ ai_processor/benchmark/archives/
 # Coverage artifacts
 .coverage
 htmlcov/
+
+# Generated per worktree by scripts/task-worktree.sh: a unique test database
+# name so concurrent sessions do not truncate each other mid-run.
+settings_worktree.py
