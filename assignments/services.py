@@ -17,7 +17,7 @@ from PIL import Image
 from PIL.Image import DecompressionBombError
 from rest_framework.exceptions import ParseError
 
-from ai_processor.services import ai_processor, pdf_service
+from ai_processor.services import PDFService, ai_processor
 from ai_processor.tools import (
     ImageCompressionError,
     compress_image_for_upload,
@@ -354,9 +354,17 @@ class AssignmentProcessingService:
                 }
             )
         elif uploaded_file.content_type == cls.PDF_FORMAT:
-            pdf_service.set_uploaded_file(uploaded_file)
+            # A FRESH PDFService per upload, never the module-level
+            # `pdf_service` singleton. That singleton carries the file it is
+            # working on as instance state, and both callers of this method
+            # are synchronous DRF views running under
+            # `gunicorn --worker-class gthread --threads 4` - so two uploads
+            # on one worker could interleave as set(A) / set(B) / extract(),
+            # and a student would be graded on another student's paper while
+            # that paper's contents were stored against this submission.
+            # See ai_processor/tests_pdf_service_concurrency.py.
             try:
-                images = pdf_service.extract()
+                images = PDFService(uploaded_file).extract()
             except (ValueError, ImageCompressionError) as exc:
                 raise ParseError(str(exc)) from exc
 

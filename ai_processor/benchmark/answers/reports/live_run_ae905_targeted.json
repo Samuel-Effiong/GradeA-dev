@@ -1,0 +1,209 @@
+{
+  "generated_at": "2026-09-14T10:57:53Z",
+  "documents": 1,
+  "records": [
+    {
+      "scenario": "AE-905",
+      "name": "live-answer-spans-chunk-seam",
+      "assignment_id": "d3f0f8fc-bdc2-4300-8014-fbf1d3cd3472",
+      "answers_payload": [
+        {
+          "question_number": "Q1",
+          "question_text": "What is the capital city of Iceland?",
+          "source_page": 1,
+          "transcription_notes": "Question text and answer 'Reykjavik' handwritten on page 1; no student name or ID visible at top.",
+          "answer_html": "<p>Reykjavik</p>",
+          "answer_status": "ANSWERED",
+          "confidence": 95
+        },
+        {
+          "question_number": "Q2",
+          "question_text": "Name the largest moon of Saturn.",
+          "source_page": 2,
+          "transcription_notes": "Question text and answer 'Titan' handwritten on page 2.",
+          "answer_html": "<p>Titan</p>",
+          "answer_status": "ANSWERED",
+          "confidence": 95
+        },
+        {
+          "question_number": "Q3",
+          "question_text": "Which gas is about 78% of Earth's atmosphere?",
+          "source_page": 3,
+          "transcription_notes": "Question text and partial answer 'The major component is' handwritten on page 3 with '(continued overleaf)' note. | Continuation text '...continued from previous page' followed by handwritten 'Nitrogen' visible on page 4. | Answer continues across a page-chunk boundary; the parts were joined in page order.",
+          "answer_html": "<p>The major component is</p>\n<p>Nitrogen</p>",
+          "answer_status": "ANSWERED",
+          "confidence": 90
+        },
+        {
+          "question_number": "Q4",
+          "question_text": "What is the chemical symbol for tungsten?",
+          "source_page": 5,
+          "transcription_notes": "Printed question text 'Q4. What is the chemical symbol for tungsten? (5 marks)' followed by handwritten 'W' on page 5.",
+          "answer_html": "<p>W</p>",
+          "answer_status": "ANSWERED",
+          "confidence": 95
+        }
+      ],
+      "notes": "The document that exposed the split-answer defect: before 2026-09-14 the real model returned only 'The major component is'.",
+      "tags": [
+        "live",
+        "chunked",
+        "cross-chunk",
+        "split-answer"
+      ],
+      "known_gap": "",
+      "pages": 5,
+      "pages_per_chunk": 3,
+      "expected_execution_path": "chunked",
+      "execution_path": "chunked",
+      "chunk_count": 2,
+      "expected_chunks": [
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          4,
+          5
+        ]
+      ],
+      "retry_extraction_calls": 0,
+      "calls": [
+        {
+          "kind": "extraction",
+          "pages": [
+            1,
+            2,
+            3
+          ],
+          "claimed": [
+            1,
+            3
+          ],
+          "schema_sent": true,
+          "model": "x-ai/grok-4.3",
+          "total_tokens": 15032,
+          "seconds": 126.8,
+          "raw_response": "{\n  \"student_name\": \"\",\n  \"student_name_raw\": null,\n  \"student_id\": \"\",\n  \"answers\": [\n    {\n      \"question_number\": \"Q1\",\n      \"question_text\": \"What is the capital city of Iceland?\",\n      \"source_page\": 1,\n      \"transcription_notes\": \"Question text and answer 'Reykjavik' handwritten on page 1; no student name or ID visible at top.\",\n      \"answer_html\": \"<p>Reykjavik</p>\",\n      \"answer_status\": \"ANSWERED\",\n      \"confidence\": 95\n    },\n    {\n      \"question_number\": \"Q2\",\n      \"question_text\": \"Name the largest moon of Saturn.\",\n      \"source_page\": 2,\n      \"transcription_notes\": \"Question text and answer 'Titan' handwritten on page 2.\",\n      \"answer_html\": \"<p>Titan</p>\",\n      \"answer_status\": \"ANSWERED\",\n      \"confidence\": 95\n    },\n    {\n      \"question_number\": \"Q3\",\n      \"question_text\": \"Which gas is about 78% of Earth's atmosphere?\",\n      \"source_page\": 3,\n      \"transcription_notes\": \"Question text and partial answer 'The major component is' handwritten on page 3 with '(continued overleaf)' note.\",\n      \"answer_html\": \"<p>The major component is</p>\",\n      \"answer_status\": \"ANSWERED\",\n      \"confidence\": 90\n    },\n    {\n      \"question_number\": \"Q4\",\n      \"question_text\": \"What is the chemical symbol for tungsten?\",\n      \"source_page\": null,\n      \"transcription_notes\": \"Question not found in this page range (pages 1-3).\",\n      \"answer_html\": \"\",\n      \"answer_status\": \"NOT_FOUND_IN_DOCUMENT\",\n      \"confidence\": 100\n    }\n  ],\n  \"extraction_confidence\": 92,\n  \"feedback\": \"No student name or ID present on any of the three pages. Roster not provided in input. Q1 and Q2 fully answered on pages 1-2. Q3 answer is partial and continues on a later page. Q4 not present in this chunk.\"\n}",
+          "error": null
+        },
+        {
+          "kind": "extraction",
+          "pages": [
+            4,
+            5
+          ],
+          "claimed": [
+            4,
+            5
+          ],
+          "schema_sent": true,
+          "model": "x-ai/grok-4.3",
+          "total_tokens": 12772,
+          "seconds": 10.15,
+          "raw_response": "{\n  \"student_name\": \"\",\n  \"student_name_raw\": null,\n  \"student_id\": \"\",\n  \"answers\": [\n    {\n      \"question_number\": \"Q1\",\n      \"question_text\": \"What is the capital city of Iceland?\",\n      \"source_page\": null,\n      \"transcription_notes\": \"No content for Q1 visible on pages 4-5; previously answered in earlier chunk.\",\n      \"answer_html\": \"\",\n      \"answer_status\": \"NOT_FOUND_IN_DOCUMENT\",\n      \"confidence\": 100\n    },\n    {\n      \"question_number\": \"Q2\",\n      \"question_text\": \"Name the largest moon of Saturn.\",\n      \"source_page\": null,\n      \"transcription_notes\": \"No content for Q2 visible on pages 4-5; previously answered in earlier chunk.\",\n      \"answer_html\": \"\",\n      \"answer_status\": \"NOT_FOUND_IN_DOCUMENT\",\n      \"confidence\": 100\n    },\n    {\n      \"question_number\": \"Q3\",\n      \"question_text\": \"Which gas is about 78% of Earth's atmosphere?\",\n      \"source_page\": 4,\n      \"transcription_notes\": \"Continuation text '...continued from previous page' followed by handwritten 'Nitrogen' visible on page 4.\",\n      \"answer_html\": \"<p>Nitrogen</p>\",\n      \"answer_status\": \"ANSWERED\",\n      \"confidence\": 95\n    },\n    {\n      \"question_number\": \"Q4\",\n      \"question_text\": \"What is the chemical symbol for tungsten?\",\n      \"source_page\": 5,\n      \"transcription_notes\": \"Printed question text 'Q4. What is the chemical symbol for tungsten? (5 marks)' followed by handwritten 'W' on page 5.\",\n      \"answer_html\": \"<p>W</p>\",\n      \"answer_status\": \"ANSWERED\",\n      \"confidence\": 95\n    }\n  ],\n  \"extraction_confidence\": 95,\n  \"feedback\": \"Pages 4-5 processed as final chunk. Q3 answer continues with 'Nitrogen'. Q4 answered with 'W'. Q1 and Q2 absent from this page range (already extracted earlier). No student name/ID present as expected for non-first chunk.\"\n}",
+          "error": null
+        }
+      ],
+      "expected": [
+        {
+          "question": "Q1",
+          "status": "ANSWERED",
+          "answer": "Reykjavik",
+          "pages": [
+            1
+          ],
+          "fragments": []
+        },
+        {
+          "question": "Q2",
+          "status": "ANSWERED",
+          "answer": "Titan",
+          "pages": [
+            2
+          ],
+          "fragments": []
+        },
+        {
+          "question": "Q3",
+          "status": "ANSWERED",
+          "answer": "Nitrogen",
+          "pages": [
+            3,
+            4
+          ],
+          "fragments": [
+            [
+              3,
+              "The major component is"
+            ],
+            [
+              4,
+              "Nitrogen"
+            ]
+          ]
+        },
+        {
+          "question": "Q4",
+          "status": "ANSWERED",
+          "answer": "W",
+          "pages": [
+            5
+          ],
+          "fragments": []
+        }
+      ],
+      "actual": [
+        {
+          "question": "Q1",
+          "status": "ANSWERED",
+          "source_page": 1,
+          "answer_html": "<p>Reykjavik</p>",
+          "transcription_notes": "Question text and answer 'Reykjavik' handwritten on page 1; no student name or ID visible at top."
+        },
+        {
+          "question": "Q2",
+          "status": "ANSWERED",
+          "source_page": 2,
+          "answer_html": "<p>Titan</p>",
+          "transcription_notes": "Question text and answer 'Titan' handwritten on page 2."
+        },
+        {
+          "question": "Q3",
+          "status": "ANSWERED",
+          "source_page": 3,
+          "answer_html": "<p>The major component is</p>\n<p>Nitrogen</p>",
+          "transcription_notes": "Question text and partial answer 'The major component is' handwritten on page 3 with '(continued overleaf)' note. | Continuation text '...continued from previous page' followed by handwritten 'Nitrogen' visible on page 4. | Answer continues across a page-chunk boundary; the parts were joined in page order."
+        },
+        {
+          "question": "Q4",
+          "status": "ANSWERED",
+          "source_page": 5,
+          "answer_html": "<p>W</p>",
+          "transcription_notes": "Printed question text 'Q4. What is the chemical symbol for tungsten? (5 marks)' followed by handwritten 'W' on page 5."
+        }
+      ],
+      "discrepancies": [],
+      "error": null,
+      "model_config": {
+        "main_model": "x-ai/grok-4.3",
+        "fallback_models": [
+          "deepseek/deepseek-v4-pro"
+        ],
+        "blank_verification_model": null,
+        "served_by": [
+          "x-ai/grok-4.3"
+        ]
+      },
+      "elapsed_seconds": 136.95,
+      "credits": {
+        "before": 1000000.0,
+        "after": 972196.0,
+        "consumed": 27804.0,
+        "tokens_reported": 27804,
+        "invariant_holds": true
+      }
+    }
+  ]
+}
