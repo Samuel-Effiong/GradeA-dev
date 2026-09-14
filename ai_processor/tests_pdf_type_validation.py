@@ -108,9 +108,9 @@ class RasterizerFaultOwnershipTest(SimpleTestCase):
                         labelled_pdf(real_pdf_bytes()), "p"
                     )
 
-                # The original error stays on the chain, so background-task
-                # messages (AutoGrader.error_messages.classify_infra_error)
-                # still recognise it.
+                # The original error stays on the exception chain, which is
+                # what the background-task error classifier walks to still
+                # recognise an unreadable file.
                 self.assertIs(caught.exception.__cause__.__cause__, fault)
 
     def test_server_side_poppler_faults_are_not_blamed_on_the_file(self):
