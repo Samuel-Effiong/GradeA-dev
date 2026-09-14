@@ -236,6 +236,18 @@ Closing H-10 is the owner's decision, recorded in the backlog by that session.
 
 **H-10.** Closed on 2026-09-14 in `544424a` by the H-1 session, under the owner's authorisation, after this post-merge gate. The Section 8 remediation is the fix.
 
+## 11. Follow-up integration into `beta`: `fb9b29c`, gate passed
+
+Three commits reached `beta` at `fb9b29c` by compare-and-swap from `1d00b9f`, with the owner's approval:
+
+- this evidence record;
+- the E800 register correction: the stale entry for the deleted `ai_processor/views.py` was removed, and the register now stands at 32 files and 347 hits;
+- the nightly Stripe price-check schedule, as a separate commit.
+
+The strict gate ran on that exact commit and passed: 4,146 OK, 20 skips all accounted for, fresh DB without `--keepdb`, fingerprint unchanged. Full record: `docs/evidence/S8_STRIPE_INTEGRATION_GATE_EVIDENCE.md`.
+
+Section 8 status is unchanged, because item 9 across the whole repository is still open.
+
 ## Completion criteria (owner, 2026-09-14)
 
 | Criterion | State |
