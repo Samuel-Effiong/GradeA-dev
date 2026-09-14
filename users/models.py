@@ -12,9 +12,6 @@ from encrypted_model_fields.fields import EncryptedCharField
 
 from users.services import OTPManager
 
-# from prometheus_client import Summary
-
-
 otp_manager = OTPManager()
 
 # How long an invite/renewal activation_token (a 6-digit code, by design -
@@ -40,10 +37,6 @@ class CustomUserManager(BaseUserManager):
         """Create and save a user with the given email and password"""
         if not email:
             raise ValueError(_("The Email must be set"))
-
-        # if 'date_of_birth' in extra_fields:
-        #     dob = extra_fields['date_of_birth']
-        #     Validators.validate_prevent_future_date(dob)
 
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
@@ -129,8 +122,6 @@ class CustomUser(AbstractUser):
     bio = models.TextField(blank=True, null=True)
     profile_image = models.ImageField(upload_to=get_user_name, null=True, blank=True)
     profile_image_url = models.CharField(max_length=255, null=True, blank=True)
-    # google_access_token = models.TextField(blank=True, null=True, help_text="Encrypted Google access token")
-    # google_refresh_token = models.TextField(blank=True, null=True, help_text="Encrypted Google refresh token")
 
     objects = CustomUserManager()
 
@@ -148,8 +139,6 @@ class CustomUser(AbstractUser):
         choices=RegistrationMethod.choices,
         default=RegistrationMethod.EMAIL,
     )
-
-    # stripe_customer_id = models.CharField(max_length=255, null=True, blank=True, db_index=True)
 
     failed_login_attempts = models.PositiveSmallIntegerField(default=0)
     locked_until = models.DateTimeField(null=True, blank=True)
@@ -170,17 +159,10 @@ class CustomUser(AbstractUser):
         verbose_name_plural = "Users"
 
     def is_student(self):
-        # if self.user_type == UserTypes.STUDENT:
-        #     return True
-        # return False
-
         return self.user_type == UserTypes.STUDENT
 
     def is_teacher(self):
         """Love God"""
-        # if self.user_type == UserTypes.TEACHER:
-        #     return True
-        # return False
         return self.user_type == UserTypes.TEACHER
 
     def is_beta_eligible(self):
@@ -198,8 +180,6 @@ class CustomUser(AbstractUser):
         Returns:
             Union[UserSubscription, LicenseSubscription, None]
         """
-        # from billing.models import LicenseSubscription, UserSubscription
-
         # Check if user is under an active License
         if self.is_teacher():
             active_allocation = (
@@ -477,7 +457,6 @@ class AccessMode(models.TextChoices):
 class BetaWhitelist(models.Model):
     id = models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)
     email = models.EmailField(unique=True)
-    # is_processed = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     mode = models.CharField(
         max_length=20,

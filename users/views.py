@@ -20,10 +20,6 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare
-
-# from django.utils.decorators import method_decorator
-# from django.views.decorators.cache import cache_page
-# from django.views.decorators.vary import vary_on_headers
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
@@ -243,17 +239,6 @@ class CustomUserViewSet(UserCacheMixin, viewsets.ModelViewSet):
     ordering_fields = ["first_name", "last_name", "email", "username"]
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-
-    # class Meta:
-    #     """Meta configuration describing model and exposed fields for the viewset.
-    #
-    #     Although DRF's ModelViewSet does not require an inner Meta normally,
-    #     this inner class documents which model and fields are intended to be
-    #     surfaced by this viewset for clarity and tooling.
-    #     """
-    #
-    #     model = CustomUser
-    #     fields = ["id", "username", "email", "user_type"]
 
     def get_permissions(self):
         """
@@ -1631,8 +1616,6 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                         **({"refresh_token": refresh_token} if refresh_token else {}),
                     },
                 )
-                # if access_token or refresh_token:
-                #     user.save(update_fields=["google_access_token", "google_refresh_token"])
 
             refresh = RefreshToken.for_user(user)
 
