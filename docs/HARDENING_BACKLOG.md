@@ -60,7 +60,7 @@ speed that decision up, not to pre-empt it.
 | H-9 | Test suite shares one Redis DB (isolation) | High | Whoever owns CI | **FIXED — per-process prefix + prefix-scoped clear(); 4/4 tests pass, two concurrent runs verified** |
 | H-10 | `super-admin/dashboard/students` 480-query N+1 | High | Section 8 (dashboard) | **CLOSED (2026-09-14)** — Section 8 remediation merged to beta `2715c64`; strict gate passed there (4,031 OK); query count flat |
 | H-11 | Synchronous billed AI calls inside `students` request handlers (`upload`, `grade`, `PATCH raw_input`) | **High - release-blocking** | Section 7 (students) + frontend | Open - tracked here from the §7 review pass, 2026-09-13 |
-| H-12 | Commented-out code (flake8 E800) burn-down - 17 files still carved out of the rule | Low | Each file's section owner (register in H-12) | Rule ON since 2026-09-13; `students` and `dashboard` clean; 17 files / 269 hits remain; whole repository in scope (owner decision 2026-09-14) |
+| H-12 | Commented-out code (flake8 E800) burn-down - 9 files still carved out of the rule | Low | Each file's section owner (register in H-12) | Rule ON since 2026-09-13; `students` and `dashboard` clean; 9 files / 192 hits remain; whole repository in scope (owner decision 2026-09-14) |
 | H-13 | Uploads while grading is RUNNING | Medium | Product + Section 7 | **DECIDED 2026-09-14: refuse (409). Implemented and gated in the §7 branch.** |
 
 ---
@@ -1055,6 +1055,8 @@ tenancy scoping, 409 for closure errors).
 
 **Item 9 progress (repository-wide burn-down, owner decision 2026-09-14):**- §4 assignments (admin, serializers, tests_rigor): `assignments/admin.py`, `assignments/serializers.py`, `assignments/tests_rigor.py` (17 hits) cleaned; AST-identical, E800 0
 
+**Item 9 progress (repository-wide burn-down, owner decision 2026-09-14):**- §2 billing (licensing, Stripe and credit services): `billing/access_control.py`, `billing/license_service.py`, `billing/license_views.py`, `billing/models.py`, `billing/services.py`, `billing/stripe_service.py`, `billing/stripe_view_schemas.py`, `billing/tasks.py` (77 hits) cleaned; AST-identical, E800 0
+
 **Owner decision (2026-09-14):**
 
 - The rule covers the **whole repository**. The carve-out list is a
@@ -1092,8 +1094,8 @@ The "What is commented out" column shows what each file holds.
 
 **Staged plan:**
 
-- **Stage 1:** ≤ 6 hits — 6 files, quick and low risk.
-- **Stage 2:** 7–21 hits — 7 files.
+- **Stage 1:** ≤ 6 hits — 3 files, quick and low risk.
+- **Stage 2:** 7–21 hits — 2 files.
 - **Stage 3:** ≥ 27 hits — 4 files, which need careful review.
 
 Each stage is done by the owning section, in coordination with any session
@@ -1101,21 +1103,13 @@ currently changing that app.
 
 Counts are kept live: every item 9 cleanup commit recounts with
 `flake8 --select=E800` and removes the files it cleaned:
-**17 files, 269 hits**.
+**9 files, 192 hits**.
 
 | File | Hits | What is commented out | Owner | Plan | Notes |
 |---|---|---|---|---|---|
-| `billing/license_service.py` | 4 | 4 statements | §2 billing | Stage 1 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
 | `billing/live_qa/invariants_individual.py` | 1 | 1 statements | §2 billing | Stage 1 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
 | `billing/management/commands/backfill.py` | 1 | 1 imports | §2 billing | Stage 1 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
-| `billing/stripe_view_schemas.py` | 4 | 4 statements | §2 billing | Stage 1 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
-| `billing/tasks.py` | 1 | 1 statements | §2 billing | Stage 1 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
 | `billing/tests/tests.py` | 5 | 3 imports, 2 statements | §2 billing | Stage 1 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
-| `billing/access_control.py` | 14 | 12 statements, 2 imports | §2 billing | Stage 2 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
-| `billing/license_views.py` | 14 | 13 statements, 1 imports | §2 billing | Stage 2 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
-| `billing/models.py` | 10 | 9 statements, 1 imports | §2 billing | Stage 2 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
-| `billing/services.py` | 12 | 11 statements, 1 imports | §2 billing | Stage 2 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
-| `billing/stripe_service.py` | 18 | 15 statements, 2 dict keys, 1 imports | §2 billing | Stage 2 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
 | `billing/views.py` | 21 | 11 statements, 7 imports, 3 dict keys | §2 billing | Stage 2 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
 | `assignments/views.py` | 20 | 12 statements, 8 imports | §4 assignments | Stage 2 |  |
 | `AutoGrader/settings.py` | 29 | 14 statements, 14 dict keys, 1 imports | §0 cross-cutting | Stage 3 | Settings values and dict keys: some may be deliberate environment alternatives, so move anything intentional into prose or the env docs rather than deleting it blindly. |

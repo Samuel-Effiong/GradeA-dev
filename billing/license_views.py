@@ -468,8 +468,6 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
         """
         license_sub = self.get_object()
 
-        # from datetime import timedelta
-
         from django.utils import timezone
 
         now = timezone.now()
@@ -582,27 +580,6 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
         serializer = ChangeLicensePlanSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         new_plan = serializer.validated_data["plan"]
-
-        # # plan_id = request.data.get("plan")
-        # # if not plan_id:
-        # #     return Response(
-        # #         {"detail": "The 'plan' field is required."},
-        # #         status=status.HTTP_400_BAD_REQUEST,
-        # #     )
-
-        # # try:
-        # #     new_plan = SubscriptionPlan.objects.get(id=plan_id, is_active=True)
-        # # except SubscriptionPlan.DoesNotExist:
-        # #     return Response(
-        # #         {"detail": "Plan not found or inactive."},
-        # #         status=status.HTTP_404_NOT_FOUND,
-        # #     )
-
-        # if new_plan.category != PlanCategory.LICENSE:
-        #     return Response(
-        #         {"detail": "Selected plan is not a LICENSE plan."},
-        #         status=status.HTTP_400_BAD_REQUEST,
-        #     )
 
         # Handle custom_price_cents
         if "custom_price_cents" in serializer.validated_data:

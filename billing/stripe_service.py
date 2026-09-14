@@ -36,8 +36,6 @@ from datetime import timezone as dt_timezone
 from typing import Optional
 
 from django.core.cache import cache
-
-# from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
@@ -1349,7 +1347,6 @@ class StripeSubscriptionMutationService:
         preview_proration_behavior = (
             "none" if is_interval_crossing else "always_invoice"
         )
-        # preview_proration_behavior = "always_invoice"
 
         try:
             preview = stripe.Invoice.create_preview(
@@ -1708,27 +1705,11 @@ class StripeSubscriptionMutationService:
                         else None
                     )
                     if pi_status == "requires_action":
-                        # Revert the price back to old to be safe
-                        # StripeSubscriptionMutationService._revert_license_price(
-                        #     license_sub.stripe_subscription_id,
-                        #     item_id,
-                        #     old_price_cents,
-                        #     license_sub.plan.product_id,
-                        #     license_sub.custom_price_cents is not None,
-                        # )
                         raise ValueError(
                             "Upgrade payment requires additional authentication (3D Secure). "
                             "Please update your payment method and retry."
                         )
                     # Revert and raise
-                    # StripeSubscriptionMutationService._revert_license_price(
-                    #     license_sub.stripe_subscription_id,
-                    #     item_id,
-                    #     old_price_cents,
-                    #     license_sub.plan.product_id,
-                    #     license_sub.custom_price_cents is not None,
-                    # )
-
                     stripe.Subscription.modify(
                         license_sub.stripe_subscription_id,
                         items=[{"id": item_id, "price": old_price_id}],
@@ -2585,28 +2566,6 @@ class IndividualPlanChangeService:
                     ),
                     "subscription": result["subscription"],
                 }
-                # if current_sub.stripe_schedule_id:
-                #     # A deferred change was previously scheduled but the
-                #     # user is now choosing an immediate one instead — the
-                #     # schedule must be released before directly modifying
-                #     # the subscription's price, or the two can conflict on
-                #     # Stripe's side. activate_subscription() (called inside
-                #     # change_plan()) deactivates this row and creates a
-                #     # fresh one with stripe_schedule_id=None, so no local
-                #     # cleanup is needed here beyond the release itself.
-                #     StripeSubscriptionScheduleService.release_schedule(current_sub)
-                # updated_sub = StripeSubscriptionMutationService.change_plan(
-                #     user_sub=current_sub, new_plan=target_plan
-                # )
-                # return {
-                #     "action": "upgraded",
-                #     "message": (
-                #         f"You've been upgraded to "
-                #         f"{target_plan.display_name or target_plan.name} and "
-                #         f"charged the prorated difference immediately."
-                #     ),
-                #     "subscription": updated_sub,
-                # }
 
             raise AssertionError(f"Unreachable branch: {branch!r}")  # pragma: no cover
         finally:
@@ -3758,15 +3717,6 @@ class StripeWebhookHandler:
     @staticmethod
     @transaction.atomic
     def handle_invoice_payment_succeeded(invoice):
-        # stripe_subscription_id = invoice.get("subscription")
-
-        # parent = invoice.get("parent") or {}
-
-        # stripe_subscription_id = (
-        #     invoice.get("subscription")
-        #     or parent.get("subscription_details", {}).get("subscription")
-        # )
-
         stripe_subscription_id = StripeWebhookHandler._extract_invoice_subscription_id(
             invoice
         )
@@ -4062,7 +4012,6 @@ class StripeWebhookHandler:
     @staticmethod
     @transaction.atomic
     def handle_invoice_payment_failed(invoice):
-        # stripe_subscription_id = invoice.get("subscription")
         stripe_subscription_id = StripeWebhookHandler._extract_invoice_subscription_id(
             invoice
         )

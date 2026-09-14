@@ -48,8 +48,6 @@ from rest_framework.response import Response
 
 from .models import PlanFeature, PlanFeatureKey
 
-# from billing.models import CreditWallet  #, UserSubscription
-
 logger = logging.getLogger(__name__)
 
 
@@ -689,49 +687,11 @@ def is_user_trial_expired(user) -> bool:
 
 
 # ============================================================================
-# INTEGRATION EXAMPLES
+# INTEGRATION
 # ============================================================================
 #
-# 1. In a view:
-#
-#    from billing.access_control import require_ai_access
-#
-#    @require_ai_access
-#    @action(detail=False, methods=['post'])
-#    def grade_assignment(self, request):
-#        # User is guaranteed to have access here
-#        ...
-#
-# 2. In serializer:
-#
-#    def to_representation(self, instance):
-#        ret = super().to_representation(instance)
-#        can_access, _ = can_user_access_ai(self.context['request'].user)
-#        ret['ai_access_enabled'] = can_access
-#        return ret
-#
-# 3. In middleware:
-#
-#    class AIAccessMiddleware:
-#        def __init__(self, get_response):
-#            self.get_response = get_response
-#
-#        def __call__(self, request):
-#            # Check before processing
-#            if request.path.startswith('/api/ai/'):
-#                can_access, reason = can_user_access_ai(request.user)
-#                if not can_access:
-#                    return Response({'detail': reason}, status=403)
-#            return self.get_response(request)
-#
-# 4. In Celery task:
-#
-#    @shared_task
-#    def grade_assignment_task(user_id, assignment_id):
-#        user = CustomUser.objects.get(id=user_id)
-#        can_access, reason = can_user_access_ai(user)
-#        if not can_access:
-#            logger.info("Task rejected: %s", reason)
-#            return {"error": reason}
-#        # Process grading...
-#
+# Views gate AI features with the require_ai_access decorator; its docstring
+# shows both forms (bare, and with feature=...). Code that runs outside a
+# request, such as Celery tasks, serializers and services, calls
+# can_user_access_ai(user, feature=...) directly and acts on the returned
+# (can_access, reason) pair.
