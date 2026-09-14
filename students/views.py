@@ -62,6 +62,7 @@ from users.permissions import HasCreditBalance
 
 from .exceptions import (
     SubmissionAlreadyGradedError,
+    SubmissionBeingGradedError,
     SubmissionGradingInProgressError,
     SubmissionLimitReachedError,
 )
@@ -87,6 +88,7 @@ from .serializers import (
 from .services import (
     _coerce_confidence,
     ensure_student_may_submit,
+    ensure_submission_open,
     grade_engine,
     notify_student_of_graded_submission,
     student_submission_to_html,
@@ -97,10 +99,14 @@ from .task_tracking import create_processing_task, launch_processing_task
 
 logger = logging.getLogger(__name__)
 
-# The two server-side rules that close a student's submission (graded, or
+# The server-side rules that close a submission (graded, being graded, or
 # out of attempts) are refusals of a well-formed request, not server
 # faults: 409, with the rule's own message.
-SUBMISSION_CLOSED_ERRORS = (SubmissionAlreadyGradedError, SubmissionLimitReachedError)
+SUBMISSION_CLOSED_ERRORS = (
+    SubmissionAlreadyGradedError,
+    SubmissionBeingGradedError,
+    SubmissionLimitReachedError,
+)
 
 
 def _submission_closed_response(exc):
@@ -605,13 +611,10 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # Editing the raw text is a re-submission by another route (it
         # re-extracts and overwrites `answers`), so the post-grading rule
         # applies here exactly as it does to a file upload.
-        if submission.graded_at is not None:
-            return _submission_closed_response(
-                SubmissionAlreadyGradedError(
-                    "This assignment has already been graded, so the "
-                    "submission can no longer be changed."
-                )
-            )
+        try:
+            ensure_submission_open(submission)
+        except SUBMISSION_CLOSED_ERRORS as exc:
+            return _submission_closed_response(exc)
 
         try:
             assignment_context = f"""

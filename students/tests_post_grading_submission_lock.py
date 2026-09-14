@@ -20,10 +20,13 @@ What is proven here, and how:
   layer and over real HTTP (LiveServerTestCase + JWT), all refused, row
   untouched. An upload racing the grade's own commit cannot deadlock it or
   corrupt the claim.
-* Grading in progress - NOT a new rule. A submission whose grading is
-  RUNNING still accepts an upload (previously agreed behaviour); what is
-  proven is that the upload cannot touch grading_state/grading_started_at
-  and that the grade still lands afterwards.
+* Grading in progress (H-13, decided 2026-09-14) - an upload is REFUSED
+  while a live grading claim exists, for students and teacher proxies
+  alike; a stale claim left by a dead worker does not lock the row. The
+  claim fields are never touched, and the grade still lands afterwards.
+* Teacher proxy uploads (decided 2026-09-14) - a graded row is immutable
+  through every ordinary upload path, so a teacher's re-upload for a graded
+  student is refused too.
 
 Run with:
     python manage.py test students.tests_post_grading_submission_lock
@@ -47,14 +50,16 @@ from assignments.models import Assignment, AssignmentStatus
 from assignments.tasks import upload_answers_engine_async
 from billing.models import CreditBucket, CreditBucketType, CreditWallet
 from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
-from students.exceptions import SubmissionAlreadyGradedError
+from students.exceptions import SubmissionAlreadyGradedError, SubmissionBeingGradedError
 from students.models import (
     BackgroundProcessingTask,
     BackgroundTaskStatus,
+    BatchUploadSession,
     GradingState,
     StudentSubmission,
 )
 from students.services import (
+    GRADING_CLAIM_STALE_AFTER,
     grade_engine,
     remaining_student_attempts,
     upload_answers_engine,
@@ -226,12 +231,11 @@ class PostGradingLockServiceTest(TestCase):
         self.assertEqual(created.assignment, other_assignment)
 
     @patch("students.services.ai_processor")
-    def test_upload_while_grading_is_running_is_accepted_and_leaves_the_claim_alone(
+    def test_upload_while_grading_is_running_is_refused_and_leaves_the_claim_alone(
         self, mock_ai
     ):
-        # Previously agreed behaviour, deliberately preserved: RUNNING is
-        # not "graded". What must hold is that the upload cannot disturb
-        # the active claim.
+        # H-13 (owner, 2026-09-14): refuse rather than accept while a live
+        # grading claim exists. The claim itself must not be disturbed.
         submission = _submission(self.assignment, self.student, graded=False)
         claimed_at = timezone.now() - timedelta(seconds=30)
         StudentSubmission.objects.filter(pk=submission.pk).update(
@@ -239,12 +243,53 @@ class PostGradingLockServiceTest(TestCase):
         )
         mock_ai.extract_answer_with_retry.return_value = EXTRACTED
 
+        with self.assertRaises(SubmissionBeingGradedError):
+            upload_answers_engine(self.assignment, "ignored", self.student)
+
+        # Refused BEFORE the billed extraction, from the pre-check.
+        mock_ai.extract_answer_with_retry.assert_not_called()
+        submission.refresh_from_db()
+        self.assertEqual(submission.answers[0]["answer_html"], "original")
+        self.assertEqual(submission.attempt_count, 1)
+        self.assertEqual(submission.grading_state, GradingState.RUNNING)
+        self.assertEqual(submission.grading_started_at, claimed_at)
+
+    @patch("students.services.ai_processor")
+    def test_stale_claim_from_a_dead_worker_does_not_lock_the_row(self, mock_ai):
+        # The same staleness rule the grading claim uses: a RUNNING claim
+        # older than GRADING_CLAIM_STALE_AFTER was abandoned, and must not
+        # lock the student out for the rest of the window.
+        submission = _submission(self.assignment, self.student, graded=False)
+        StudentSubmission.objects.filter(pk=submission.pk).update(
+            grading_state=GradingState.RUNNING,
+            grading_started_at=timezone.now()
+            - GRADING_CLAIM_STALE_AFTER
+            - timedelta(minutes=1),
+        )
+        mock_ai.extract_answer_with_retry.return_value = EXTRACTED
+
         upload_answers_engine(self.assignment, "ignored", self.student)
 
         submission.refresh_from_db()
         self.assertEqual(submission.answers[0]["answer_html"], "re-upload")
-        self.assertEqual(submission.grading_state, GradingState.RUNNING)
-        self.assertEqual(submission.grading_started_at, claimed_at)
+
+    @patch("students.services.ai_processor")
+    def test_claim_taken_during_extraction_is_caught_by_the_locked_check(self, mock_ai):
+        submission = _submission(self.assignment, self.student, graded=False)
+
+        def claim_lands_meanwhile(*args, **kwargs):
+            StudentSubmission.objects.filter(pk=submission.pk).update(
+                grading_state=GradingState.RUNNING, grading_started_at=timezone.now()
+            )
+            return EXTRACTED
+
+        mock_ai.extract_answer_with_retry.side_effect = claim_lands_meanwhile
+
+        with self.assertRaises(SubmissionBeingGradedError):
+            upload_answers_engine(self.assignment, "ignored", self.student)
+
+        submission.refresh_from_db()
+        self.assertEqual(submission.answers[0]["answer_html"], "original")
 
     def test_remaining_attempts_is_zero_once_graded(self):
         submission = _submission(self.assignment, self.student, graded=True, attempts=1)
@@ -264,15 +309,53 @@ class PostGradingLockServiceTest(TestCase):
         self.assertEqual(remaining_student_attempts(None), 3)
 
     @patch("students.services.ai_processor")
-    def test_recorded_assumption_teacher_proxy_upload_is_not_a_student_submission(
+    def test_teacher_proxy_upload_for_a_graded_student_is_refused(self, mock_ai):
+        """Owner decision (2026-09-14): a graded row is immutable through
+        every ordinary upload path. A teacher's re-upload of a scan for a
+        graded student is refused; a correction needs the future explicit
+        replace/re-grade workflow. (The proxy path can only know WHICH
+        student after the extraction has read the name, so this refusal is
+        the row-locked one, after the billed call.)"""
+        submission = _submission(self.assignment, self.student, graded=True)
+        before = _snapshot(submission)
+        mock_ai.extract_answer_with_retry.return_value = {
+            **EXTRACTED,
+            "student_name": f"{self.student.first_name} {self.student.last_name}",
+        }
+
+        with self.assertRaises(SubmissionAlreadyGradedError):
+            upload_answers_engine(
+                self.assignment, "ignored", self.teacher, is_proxy_upload=True
+            )
+
+        self.assertEqual(_snapshot(submission), before)
+
+    @patch("students.services.ai_processor")
+    def test_teacher_proxy_upload_while_grading_is_running_is_refused(self, mock_ai):
+        submission = _submission(self.assignment, self.student, graded=False)
+        claimed_at = timezone.now() - timedelta(seconds=30)
+        StudentSubmission.objects.filter(pk=submission.pk).update(
+            grading_state=GradingState.RUNNING, grading_started_at=claimed_at
+        )
+        mock_ai.extract_answer_with_retry.return_value = {
+            **EXTRACTED,
+            "student_name": f"{self.student.first_name} {self.student.last_name}",
+        }
+
+        with self.assertRaises(SubmissionBeingGradedError):
+            upload_answers_engine(
+                self.assignment, "ignored", self.teacher, is_proxy_upload=True
+            )
+
+        submission.refresh_from_db()
+        self.assertEqual(submission.answers[0]["answer_html"], "original")
+        self.assertEqual(submission.grading_started_at, claimed_at)
+
+    @patch("students.services.ai_processor")
+    def test_teacher_proxy_upload_for_an_ungraded_student_is_still_accepted(
         self, mock_ai
     ):
-        """The rule is about the STUDENT submitting again. A teacher
-        re-uploading a scan on the student's behalf is not covered by it
-        and stays allowed. This is the assumption recorded for the owner;
-        if the rule is meant to close the row to everyone, this is the
-        one test that flips."""
-        submission = _submission(self.assignment, self.student, graded=True)
+        submission = _submission(self.assignment, self.student, graded=False)
         mock_ai.extract_answer_with_retry.return_value = {
             **EXTRACTED,
             "student_name": f"{self.student.first_name} {self.student.last_name}",
@@ -284,6 +367,8 @@ class PostGradingLockServiceTest(TestCase):
 
         self.assertEqual(result.pk, submission.pk)
         self.assertEqual(result.answers[0]["answer_html"], "re-upload")
+        # A teacher upload is not one of the student's own attempts.
+        self.assertEqual(result.attempt_count, 1)
 
 
 class PostGradingLockAPITest(APITestCase):
@@ -458,6 +543,64 @@ class PostGradingLockAPITest(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
+    @patch("students.views.ai_processor")
+    def test_raw_text_edit_is_refused_while_grading_is_running(self, mock_ai):
+        ungraded = _submission(
+            Assignment.objects.create(
+                title="C",
+                course=self.course,
+                status=AssignmentStatus.PUBLISHED,
+                questions=[{"question_number": 1, "points": 10}],
+            ),
+            self.student,
+            graded=False,
+        )
+        StudentSubmission.objects.filter(pk=ungraded.pk).update(
+            grading_state=GradingState.RUNNING, grading_started_at=timezone.now()
+        )
+        self.client.force_authenticate(user=self.teacher)
+
+        response = self.client.patch(
+            reverse("student-submission-detail", kwargs={"pk": ungraded.pk}),
+            {"raw_input": "edited"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertIn("being graded", response.data["error"])
+        mock_ai.extract_answer_with_retry.assert_not_called()
+
+    @patch("students.views.AssignmentProcessingService.prepare_ai_content")
+    def test_sync_upload_is_refused_with_409_while_grading_is_running(
+        self, mock_prepare
+    ):
+        ungraded = _submission(
+            Assignment.objects.create(
+                title="D",
+                course=self.course,
+                status=AssignmentStatus.PUBLISHED,
+                questions=[{"question_number": 1, "points": 10}],
+            ),
+            self.student,
+            graded=False,
+        )
+        StudentSubmission.objects.filter(pk=ungraded.pk).update(
+            grading_state=GradingState.RUNNING, grading_started_at=timezone.now()
+        )
+
+        response = self.client.post(
+            reverse(
+                "student-submission-upload-answers",
+                kwargs={"assignment_id": ungraded.assignment_id},
+            ),
+            {"answer": self._file()},
+            format="multipart",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+        self.assertIn("being graded", response.data["error"])
+        mock_prepare.assert_not_called()
+
     def test_detail_reports_zero_remaining_attempts_once_graded(self):
         response = self.client.get(self.detail_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -505,6 +648,53 @@ class PostGradingLockTaskReplayTest(TestCase):
         tracked.refresh_from_db()
         self.assertEqual(tracked.status, BackgroundTaskStatus.FAILURE)
         self.assertIn("already been graded", tracked.error)
+        self.submission.refresh_from_db()
+        self.assertEqual(self.submission.answers[0]["answer_html"], "original")
+
+    @patch("students.services.ai_processor")
+    @patch("assignments.tasks.AssignmentProcessingService.prepare_ai_content")
+    @patch("assignments.tasks.AssignmentProcessingService.rebuild_uploaded_file")
+    def test_teacher_batch_upload_task_for_a_graded_student_is_refused(
+        self, mock_rebuild, mock_prepare, mock_ai
+    ):
+        """The batch (proxy) path reaches the refusal only after the
+        extraction has identified the student; the task records it as a
+        final, non-retried failure on the batch session."""
+        mock_prepare.return_value = "content"
+        mock_ai.extract_answer_with_retry.return_value = {
+            **EXTRACTED,
+            "student_name": f"{self.student.first_name} {self.student.last_name}",
+        }
+        session = BatchUploadSession.objects.create(
+            teacher=self.teacher, assignment=self.assignment, total_files=1
+        )
+        tracked = BackgroundProcessingTask.objects.create(
+            requested_by=self.teacher,
+            task_type="batch_answer_upload",
+            assignment=self.assignment,
+            batch_session=session,
+        )
+
+        result = upload_answers_engine_async.apply(
+            args=(
+                str(self.assignment.id),
+                {"name": "x"},
+                "prompt",
+                str(self.teacher.id),
+            ),
+            kwargs={
+                "processing_task_id": str(tracked.id),
+                "session_id": str(session.id),
+                "file_name": "scan.pdf",
+            },
+        ).get()
+
+        self.assertEqual(result["status"], "FAILURE")
+        self.assertEqual(mock_ai.extract_answer_with_retry.call_count, 1)
+        session.refresh_from_db()
+        [entry] = session.results
+        self.assertEqual(entry["status"], "FAILED")
+        self.assertIn("already been graded", entry["error"])
         self.submission.refresh_from_db()
         self.assertEqual(self.submission.answers[0]["answer_html"], "original")
 
@@ -596,6 +786,43 @@ class PostGradingLockConcurrencyTest(TransactionTestCase):
         self.assertEqual(outcomes, ["refused"] * self.WORKERS)
         self.assertEqual(_snapshot(submission), before)
 
+    def test_concurrent_teacher_proxy_uploads_against_a_graded_row_are_all_refused(
+        self,
+    ):
+        submission = _submission(self.assignment, self.student, graded=True)
+        before = _snapshot(submission)
+        outcomes = []
+        barrier = threading.Barrier(self.WORKERS)
+        ai = patch("students.services.ai_processor").start()
+        self.addCleanup(patch.stopall)
+        ai.extract_answer_with_retry.return_value = {
+            **EXTRACTED,
+            "student_name": f"{self.student.first_name} {self.student.last_name}",
+        }
+
+        def attempt():
+            try:
+                barrier.wait(timeout=10)
+                upload_answers_engine(
+                    self.assignment, "ignored", self.teacher, is_proxy_upload=True
+                )
+                outcomes.append("accepted")
+            except SubmissionAlreadyGradedError:
+                outcomes.append("refused")
+            except Exception as exc:  # pragma: no cover
+                outcomes.append(repr(exc))
+            finally:
+                connection.close()
+
+        threads = [threading.Thread(target=attempt) for _ in range(self.WORKERS)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=30)
+
+        self.assertEqual(outcomes, ["refused"] * self.WORKERS)
+        self.assertEqual(_snapshot(submission), before)
+
     def test_upload_racing_the_grades_own_commit_neither_deadlocks_nor_corrupts_it(
         self,
     ):
@@ -634,7 +861,7 @@ class PostGradingLockConcurrencyTest(TransactionTestCase):
             try:
                 upload_answers_engine(self.assignment, "ignored", self.student)
                 upload_outcome.append("accepted")
-            except SubmissionAlreadyGradedError:
+            except (SubmissionAlreadyGradedError, SubmissionBeingGradedError):
                 upload_outcome.append("refused")
             except Exception as exc:  # pragma: no cover
                 errors.append(("upload", repr(exc)))
@@ -662,16 +889,12 @@ class PostGradingLockConcurrencyTest(TransactionTestCase):
         self.assertEqual(submission.grading_state, GradingState.DONE)
         self.assertIsNotNone(submission.graded_at)
         self.assertEqual(float(submission.score), 8.0)
-        # The upload either got in before the grade committed (RUNNING is
-        # not closed) or was refused after it; both are correct, and neither
-        # may leave the row half-written.
-        self.assertIn(upload_outcome, [["accepted"], ["refused"]])
-        if upload_outcome == ["accepted"]:
-            self.assertEqual(submission.answers[0]["answer_html"], "re-upload")
-            self.assertEqual(submission.attempt_count, 2)
-        else:
-            self.assertEqual(submission.answers[0]["answer_html"], "original")
-            self.assertEqual(submission.attempt_count, 1)
+        # The uploader started after the claim was taken, so under H-13 it is
+        # refused whichever way the row lock resolves against the grade's
+        # commit - and the row is never half-written.
+        self.assertEqual(upload_outcome, ["refused"])
+        self.assertEqual(submission.answers[0]["answer_html"], "original")
+        self.assertEqual(submission.attempt_count, 1)
         # And now the row is closed for good.
         with self.assertRaises(SubmissionAlreadyGradedError):
             upload_answers_engine(self.assignment, "ignored", self.student)

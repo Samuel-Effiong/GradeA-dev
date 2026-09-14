@@ -15,6 +15,7 @@ from classrooms.models import Course, EnrollmentStatusType, Topic
 from students.exceptions import (
     CannotAssociateStudentError,
     SubmissionAlreadyGradedError,
+    SubmissionBeingGradedError,
     SubmissionGradingInProgressError,
     SubmissionLimitReachedError,
     TaskCancelledError,
@@ -55,6 +56,7 @@ logger = logging.getLogger(__name__)
 UPLOAD_REFUSALS = (
     CannotAssociateStudentError,
     SubmissionAlreadyGradedError,
+    SubmissionBeingGradedError,
     SubmissionLimitReachedError,
 )
 

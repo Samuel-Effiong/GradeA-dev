@@ -290,10 +290,32 @@ the question does not arise.
 
 * **H-11** (release-blocking, owner Section 7 + frontend): the three
   synchronous AI endpoints in `students/views.py`, plus V-2..V-6.
-* **H-13** (product decision): uploads accepted while grading is RUNNING.
+* **H-13**: decided and implemented on 2026-09-14 — see §11.
 * **H-12** (low): E800 carve-out burn-down; the Section 8 session has
   agreed to remove the dashboard entries in its own change.
-* Recorded assumption: teacher proxy uploads are not "the student
-  submitting again" and stay allowed after grading; one test flips if the
-  owner decides otherwise.
+* Teacher proxy uploads after grading: the owner decided on 2026-09-14
+  that they are refused too — see §11.
 * Not merged: the branch is ready for review; merging is the owner's call.
+
+## 11. Owner decisions of 2026-09-14 — proxy lock and H-13
+
+Two rules added after the §9 gate, in a follow-up commit on the same
+branch (a further full fresh-DB gate follows in §12):
+
+1. **Graded row is immutable through every ordinary upload path** —
+   teacher proxy uploads are now refused after grading (previously the
+   recorded assumption allowed them).
+2. **H-13: uploads are refused while a live grading claim exists**, for
+   students and proxies alike; a stale claim (older than
+   `GRADING_CLAIM_STALE_AFTER`, i.e. a dead worker's) does not lock the
+   row. New user-facing `SubmissionBeingGradedError`, 409 at the API,
+   final non-retried failure in the batch task.
+
+| State | Evidence |
+|---|---|
+| 1 | `tests_post_grading_submission_lock` now 29 tests: proxy after grading refused (row byte-identical); proxy during RUNNING refused, claim untouched; proxy on an ungraded row still accepted; student upload during RUNNING refused before the billed call; claim taken during extraction caught under the lock; stale claim does not lock; sync upload and raw-text edit 409 while RUNNING; batch task for a graded student records a FAILED batch entry with the verbatim reason after exactly one extraction. `tests_submission_concurrency`, `tests_proxy_upload_attribution`, `tests_upload_pipeline` unchanged and green (46 tests across the four modules). |
+| 2 | M22 proxy exempted from the lock → **FAILED (2)**; M23 live-claim check off → **FAILED (6)**; M24 staleness rule removed (any RUNNING locks) → **FAILED (1)**. All restored by md5. |
+| 3 | 8 concurrent teacher proxy uploads against a graded row → all refused, row unchanged; the grade-vs-upload race now resolves to a refusal every time (the claim precedes the AI call), no deadlock, grade lands. |
+| 4/5 | Claim taken between the pre-check and the row lock; replay through the batch task; a dead worker's stale claim. |
+| 7/8 | Real PostgreSQL row locks; DRF client against the real URL conf for the 409s. |
+| 9 | Proxy refusal is per (student, assignment) row; the student's other rows and other students are unaffected (existing scope tests). |

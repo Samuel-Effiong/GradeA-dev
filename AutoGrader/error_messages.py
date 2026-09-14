@@ -30,12 +30,14 @@ def _user_facing_exception_types():
     from students.exceptions import (
         CannotAssociateStudentError,
         SubmissionAlreadyGradedError,
+        SubmissionBeingGradedError,
         SubmissionLimitReachedError,
     )
 
     return (
         CannotAssociateStudentError,
         SubmissionAlreadyGradedError,
+        SubmissionBeingGradedError,
         SubmissionLimitReachedError,
         AIFeatureNotAvailableError,
         InsufficientCreditsError,

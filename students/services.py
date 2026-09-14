@@ -23,6 +23,7 @@ from users.services import get_opted_in_school_admins
 from .exceptions import (
     CannotAssociateStudentError,
     SubmissionAlreadyGradedError,
+    SubmissionBeingGradedError,
     SubmissionGradingInProgressError,
     SubmissionLimitReachedError,
 )
@@ -898,10 +899,13 @@ def upload_answers_engine(
                 .first()
             )
 
-            if is_student_self_upload and existing_submission:
+            if existing_submission:
                 # Authoritative: the row is locked, so this decision cannot
-                # race a concurrent upload or a grade landing on the row.
-                _check_student_may_resubmit(existing_submission)
+                # race a concurrent upload, a grading claim, or a grade
+                # landing on the row. Applies to proxy uploads too.
+                _check_submission_open(
+                    existing_submission, student_upload=is_student_self_upload
+                )
 
             if existing_submission:
                 # Re-submission - update answers and increment counter.
@@ -964,27 +968,50 @@ def upload_answers_engine(
     return submission
 
 
-def _check_student_may_resubmit(existing_submission):
-    """
-    The two server-side rules that close a student's submission on an
-    assignment, checked in this order:
+def _grading_claim_is_live(submission, now=None):
+    """A RUNNING claim younger than the staleness window: a worker is (or
+    must be assumed to be) grading this row right now. An older RUNNING
+    claim was left by a dead worker and does not count - see
+    _claim_submission_for_grading, which uses the same cutoff."""
+    now = now or timezone.now()
+    return (
+        submission.grading_state == GradingState.RUNNING
+        and submission.grading_started_at is not None
+        and submission.grading_started_at > now - GRADING_CLAIM_STALE_AFTER
+    )
 
-    1. Product rule (owner, 2026-09-13): once the submission has been
-       successfully graded, the student may not submit again. "Successfully
-       graded" is `graded_at` set - the only path that sets it is the grade
+
+def _check_submission_open(existing_submission, *, student_upload):
+    """
+    The server-side rules that close a submission row to uploads, checked
+    in this order. The first two apply to EVERY upload path - the
+    student's own and a teacher's proxy upload alike (owner, 2026-09-14:
+    a graded row is immutable through the ordinary upload paths; a
+    correction after grading needs an explicit replace/re-grade workflow).
+    The third is the student's own attempt allowance.
+
+    1. Graded: `graded_at` set - the only path that sets it is the grade
        persisting in _populate_and_save_grade, and it is what publish keys
-       on too. A run that is merely RUNNING does NOT close the submission:
-       that case keeps its previously agreed behaviour (the upload is
-       accepted; see the note on GRADING_RESULT_FIELDS for why it cannot
-       corrupt the active claim).
-    2. The attempt limit (MAX_STUDENT_SUBMISSION_ATTEMPTS).
+       on too. Closed for good.
+    2. Being graded (H-13, decided 2026-09-14): a live grading claim. The
+       upload is refused rather than accepted, so a row can never carry
+       answers newer than the grade that closes it.
+    3. The attempt limit (MAX_STUDENT_SUBMISSION_ATTEMPTS), students only.
     """
     if existing_submission.graded_at is not None:
         raise SubmissionAlreadyGradedError(
             "This assignment has already been graded, so it can no longer "
             "be submitted again."
         )
-    if (existing_submission.attempt_count or 0) >= MAX_STUDENT_SUBMISSION_ATTEMPTS:
+    if _grading_claim_is_live(existing_submission):
+        raise SubmissionBeingGradedError(
+            "This submission is being graded right now, so it cannot be "
+            "replaced. Please try again once grading has finished."
+        )
+    if (
+        student_upload
+        and (existing_submission.attempt_count or 0) >= MAX_STUDENT_SUBMISSION_ATTEMPTS
+    ):
         raise SubmissionLimitReachedError(
             "You have reached the maximum of "
             f"{MAX_STUDENT_SUBMISSION_ATTEMPTS} submissions for this assignment"
@@ -1004,7 +1031,7 @@ def remaining_student_attempts(submission):
 
 def ensure_student_may_submit(assignment, student):
     """
-    Cheap, lock-free pre-check of _check_student_may_resubmit for the
+    Cheap, lock-free pre-check of _check_submission_open for the
     request path and for the moment before a billed extraction call:
     raises SubmissionAlreadyGradedError / SubmissionLimitReachedError when
     the student is already locked out of `assignment`. Scoped to exactly
@@ -1013,11 +1040,17 @@ def ensure_student_may_submit(assignment, student):
     """
     existing = (
         StudentSubmission.objects.filter(assignment=assignment, student=student)
-        .only("graded_at", "attempt_count")
+        .only("graded_at", "attempt_count", "grading_state", "grading_started_at")
         .first()
     )
     if existing is not None:
-        _check_student_may_resubmit(existing)
+        _check_submission_open(existing, student_upload=True)
+
+
+def ensure_submission_open(submission):
+    """Refuse-if-closed for an existing row (the raw-text edit path): graded
+    or being graded. The attempt allowance is not consumed by an edit."""
+    _check_submission_open(submission, student_upload=False)
 
 
 def _match_enrolled_student(course, identified_name):

@@ -15,6 +15,18 @@ class SubmissionAlreadyGradedError(Exception):
     pass
 
 
+class SubmissionBeingGradedError(Exception):
+    """
+    Product decision (owner, 2026-09-14, H-13): while a grading run holds a
+    live claim on a student's submission, no upload - the student's own or
+    a teacher's proxy upload - may replace its answers. The alternative
+    (accepting the upload) left a row whose answers were newer than the
+    grade that then closed it. User-facing.
+    """
+
+    pass
+
+
 class SubmissionLimitReachedError(ValueError):
     """
     A student has used all of their allowed submission attempts on an

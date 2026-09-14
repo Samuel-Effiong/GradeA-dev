@@ -61,7 +61,7 @@ speed that decision up, not to pre-empt it.
 | H-10 | `super-admin/dashboard/students` 480-query N+1 | High | Section 8 (dashboard) | Measured, not fixed |
 | H-11 | Synchronous billed AI calls inside `students` request handlers (`upload`, `grade`, `PATCH raw_input`) | **High - release-blocking** | Section 7 (students) + frontend | Open - tracked here from the §7 review pass, 2026-09-13 |
 | H-12 | Commented-out code (flake8 E800) burn-down - 38 files carved out of the rule | Low | Each file's section owner | Rule ON since 2026-09-13; `students` clean; 38 files carved out |
-| H-13 | Product decision: an upload accepted while grading is RUNNING | Medium | Product + Section 7 | Decision needed (see item) |
+| H-13 | Uploads while grading is RUNNING | Medium | Product + Section 7 | **DECIDED 2026-09-14: refuse (409). Implemented and gated in the §7 branch.** |
 
 ---
 
@@ -985,29 +985,32 @@ session has agreed to clean `dashboard/views.py` and
 **Evidence:** the pre-commit run itself. No behaviour changes are
 involved; a regression run per cleaned app is sufficient.
 
-# H-13 — Product decision: uploads while grading is RUNNING
+# H-13 — Uploads while grading is RUNNING — DECIDED
 
-The §7 pass implemented the owner's rule "no re-submission once
-successfully graded" (`students/tests_post_grading_submission_lock.py`),
-and deliberately did NOT change the RUNNING case: a student's upload is
-still accepted while the AI run is in progress. That behaviour is now
-proven safe for the grading claim (the upload cannot touch
-`grading_state`/`grading_started_at`, and the grade still lands), but it
-leaves a row whose `answers` are newer than the grade that then closes
-it for good.
+**Owner decision (2026-09-14): refuse additional uploads while grading is
+in progress.** No implicit replacement or re-grade. The same decision
+extends the graded-row lock to **teacher proxy uploads**: a graded
+submission is immutable through every ordinary upload path, because
+"new answers + old grade" is not an acceptable production state. A
+correction after grading needs a future explicit replace/re-grade
+workflow with its own authorization, audit trail, credit behaviour and
+concurrency rules.
 
-**Decision needed** (one of):
-* (a) refuse uploads while `grading_state == RUNNING` with 409 "grading
-  in progress, try again shortly" - simplest, one more branch in
-  `_check_student_may_resubmit`;
-* (b) accept, and on grade completion mark `needs_review` with an
-  `answers_changed_during_grading` reason so the teacher sees it;
-* (c) accept, and re-queue a grading run for the new answers (a second
-  billed run per upload).
+**Implemented** (`students.services._check_submission_open`):
+* graded (`graded_at` set) → `SubmissionAlreadyGradedError`, every path;
+* live grading claim (RUNNING and younger than `GRADING_CLAIM_STALE_AFTER`,
+  the same staleness rule the claim itself uses, so a dead worker's claim
+  does not lock the row out) → `SubmissionBeingGradedError`, every path;
+* attempt limit → students only.
+Applied under the row lock for student and proxy uploads, pre-checked
+before the billed extraction where the student is known (student paths),
+and mapped to 409 at `upload`, `upload-async` and `PATCH raw_input`; the
+batch task records it as a final, non-retried failure.
 
-**Owner:** Product, with Section 7 implementing. No code change until
-decided; the RUNNING-case test locks today's behaviour so a change is a
-deliberate, visible edit.
+**Evidence:** `students/tests_post_grading_submission_lock.py` (service,
+API, task, 8-thread proxy and student concurrency, grade-commit race,
+stale-claim exception) and mutation checks M22-M24 in
+`docs/evidence/SECTION_7_GATE_EVIDENCE.md` §11.
 
 Several of these were found during Section 3 but are **not** Section 3
 changes — H-1 spans four apps, H-2 lives in `users`/`assignments`/`students`,
