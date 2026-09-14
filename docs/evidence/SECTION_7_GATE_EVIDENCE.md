@@ -240,5 +240,44 @@ three affected modules re-run: **11 tests OK**. The full final gate is §9.
 
 ## 9. Final production gate — against the committed tree
 
-Filled in by the docs-only follow-up commit after the gate ran on the
-code commit. See the bottom of this file.
+Two code commits on `task/section-7-students-review`, both on top of
+`1373eae`; this file's §9 is the only change in the docs-only commit that
+follows them.
+
+| Commit | Content |
+|---|---|
+| `54d3305` | the whole section 7 remediation (20 files, +1028/−544) |
+| `98682e6` | two test suites the first full gate turned up: `users/tests_task_viewset` asserted the removed duplicate revoke; the grade-vs-upload race test patched one module attribute from two threads (fixed to a single shared patch; re-run 3× green) |
+
+Everything below was run on **`98682e6`** with a **clean working tree**
+(`git status --short` empty), so the tree under test IS the commit.
+
+| Gate | Result |
+|---|---|
+| `pre-commit run --all-files` (black, isort, flake8 with E800 on, mypy, bandit, detect-secrets, gunicorn/webhook sync, and the file hygiene hooks) | **every hook Passed** |
+| `manage.py check` | no issues |
+| `makemigrations --check --dry-run` | no changes |
+| `scripts/check_migration_safety.py --base 1373eae` | 0027, 0028: additive only |
+| Full test suite, **fresh database** (`DROP`/`CREATE`, no `--keepdb`), `--parallel 1`, real PostgreSQL 18.6 + Redis 8.0.5 | **3,922 tests — OK, 12 skipped — exit 0** (1,592 s) |
+| Teardown | `Destroying test database for alias 'default'...` with **no** "other sessions using the database" line |
+
+The first full gate, on `54d3305`, ran **3,922 tests, 8 failures, exit 1**
+(the two suites named above; teardown already clean). Both were test
+defects, not product defects; nothing in application code changed
+between the two gates.
+
+Cross-app coverage in that run: every app's suite, including
+`AutoGrader/tests_cache_*` (H-1 families with legacy sweeps disabled),
+`assignments`, `classrooms`, `users`, `billing`, `dashboard`.
+
+## 10. Open items handed to the owner
+
+* **H-11** (release-blocking, owner Section 7 + frontend): the three
+  synchronous AI endpoints in `students/views.py`, plus V-2..V-6.
+* **H-13** (product decision): uploads accepted while grading is RUNNING.
+* **H-12** (low): E800 carve-out burn-down; the Section 8 session has
+  agreed to remove the dashboard entries in its own change.
+* Recorded assumption: teacher proxy uploads are not "the student
+  submitting again" and stay allowed after grading; one test flips if the
+  owner decides otherwise.
+* Not merged: the branch is ready for review; merging is the owner's call.
