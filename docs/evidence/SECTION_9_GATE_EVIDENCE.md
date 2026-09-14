@@ -176,6 +176,37 @@ host. The interrupt restored the file under test. Afterwards
 > All 13 mutants are re-run on a quiet host, after the Section 8 gate and
 > before the Section 9 strict gate, and that re-run is the one counted.
 
+### 7a. Counted run: quiet host — 13/13 KILLED
+
+- **When:** 2026-09-14 23:12:48–23:16:10 (+01:00).
+- **What:** committed `d59add7`, whose code is identical to `6d21d63`, on a
+  clean tree.
+- **Quiet host:** the Section 8 gate process had ended at 22:44. Immediately
+  before launch, `pgrep -af "manage.py test"` returned nothing. The H-1 and
+  Section 8 sessions confirmed they were holding all DB and Redis test
+  activity.
+- **Baseline:** the unmutated run of every targeted class passed, 30 tests
+  OK.
+
+| Mutant | Result (failing tests) |
+|---|---|
+| M1 remove `is_pdf` refusal | **KILLED** — 6 failures |
+| M2 stop catching poppler read errors | **KILLED** — 2 errors |
+| M3 catch everything | **KILLED** — 2 errors |
+| M4 per-file refusal escapes the loop | **KILLED** — 4 failures, 1 error |
+| M5 already-uploaded file extracted again | **KILLED** — 3 failures |
+| M6 no refund scope | **KILLED** — 3 failures |
+| M7 failed upload never releases its claim | **KILLED** — 5 failures |
+| M8 live claim ignored | **KILLED** — 3 failures (concurrency tests, 94 s) |
+| M9 stale claim never taken over | **KILLED** — 1 error |
+| M10 lost claim's save kept | **KILLED** — 1 failure |
+| M11 bad files retried again | **KILLED** — 1 failure, 2 errors (includes real Celery worker on Redis) |
+| M12 answer task no longer wraps the refusal | **KILLED** — 1 failure, 2 errors (includes real Celery worker on Redis) |
+| M13 file's own message replaced by fallback | **KILLED** — 3 failures |
+
+Every restore was sha256-verified, and the tree had `dirty_lines_after=0`.
+Script exit 0.
+
 ## 8. Strict final gate
 
 _Pending._ It follows the owner's procedure:
