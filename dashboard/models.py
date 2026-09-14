@@ -20,6 +20,13 @@ class StudentRiskAlertState(models.Model):
     )
     last_checked_at = models.DateTimeField(auto_now=True)
     last_alerted_at = models.DateTimeField(null=True, blank=True)
+    #: True from the moment a student starts an at-risk episode until the
+    #: alert for it has been queued to every opted-in admin. Separate from
+    #: `is_at_risk` because the two can disagree: a student can be at risk
+    #: with the alert still undelivered (the email queue was down), and the
+    #: daily task must keep retrying until it is delivered rather than treat
+    #: the student as "already alerted".
+    alert_pending = models.BooleanField(default=False)
 
     class Meta:
         constraints = [

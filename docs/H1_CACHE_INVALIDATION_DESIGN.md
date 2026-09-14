@@ -919,12 +919,14 @@ not family migration:
    `AutoGrader classrooms users students assignments dashboard`, each
    1,804 tests OK (13 skipped), exit 0, 0 leftover sessions and DBs (same
    evidence file, §4). These are dirty-tree runs, so they do not replace item 6;
-6. the **repository-wide release gate from the committed tree**: **OPEN.**
-   The gate ran on committed `1373eae` and PASSED: 3,859 tests OK, exit 0,
-   clean teardown, 261 migrations from empty, identical fingerprint before
-   and after. Evidence: `docs/evidence/H1_H2_RELEASE_GATE_EVIDENCE.md`. It
-   cannot close this item, because of item 7: the fix will be a new commit
-   that needs its own gate;
+6. the **repository-wide release gate from the committed tree**: **PASSED
+   on `f593be1` (2026-09-14)**, the tree carrying item 7's fix. 3,888 tests
+   OK, exit 0; the DB was fresh (no `--keepdb`) and was dropped afterwards;
+   0 connections; machine kept awake; fingerprint unchanged; 0 files
+   modified during the run. Evidence:
+   `docs/evidence/H1_USER_FANOUT_EVIDENCE.md` §6. The earlier `1373eae` gate
+   also passed (`docs/evidence/H1_H2_RELEASE_GATE_EVIDENCE.md`), but could
+   not close this item because of item 7;
 7. **NEW BLOCKER (2026-09-14): user-row changes do not reach other users'
    cached views.** A legacy-disabled probe found 16 stale endpoint/mutation
    pairs. Examples: a teacher rename leaves family 30 stale, a student
@@ -945,6 +947,19 @@ not family migration:
    It must be proven against real Redis, including isolation, meaning
    unrelated schools and users are not invalidated. H-1 stays OPEN until the
    fix passes the applicable gates and a new committed-tree final gate.
+   **DONE (2026-09-14):**
+   - fixed in `bfb6d8a`;
+   - 16 STALE → 0 under the legacy-disabled matrix, with isolation proven on
+     real Redis;
+   - 14 mutants, each survivor resolved;
+   - committed-tree final gate on `f593be1` PASSED (3,888 tests OK, exit 0,
+     fresh DB with no `--keepdb`, DB dropped, 0 connections).
+   Evidence: `docs/evidence/H1_USER_FANOUT_EVIDENCE.md`. The DONE status of
+   families 23, 25, 29, 30, 33 and the course/submission mixin families is
+   no longer qualified.
+8. **Remaining before Stage 3 (wildcard removal) is reviewable:** stampede
+   protection scope (item 2). That waits on H-10's fix (the Section 8
+   remediation) reaching `beta`, followed by a re-measurement.
 
 Only after those does removing the legacy wildcards become a reviewable
 change.

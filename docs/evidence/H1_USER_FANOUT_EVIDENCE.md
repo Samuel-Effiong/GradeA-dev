@@ -10,8 +10,9 @@ view that displays or counts that user.
 The defect was found on `1373eae` by a legacy-disabled probe that returned
 16 STALE pairs (`docs/evidence/H1_H2_RELEASE_GATE_EVIDENCE.md` §3).
 
-**Status: implemented and verified at unit/integration level. H-1 stays
-OPEN** until this is committed and a new committed-tree final gate passes.
+**Status: FIXED.** Committed as `bfb6d8a` / `f593be1`, and the
+committed-tree final gate PASSED (§6). **H-1 overall stays OPEN**: stampede
+protection scope and wildcard removal remain.
 
 ---
 
@@ -166,5 +167,39 @@ worktree ran **1,832 tests with 1 failure** (skipped=12) in 1018s.
 
 ### Re-run after the correction
 
-*Pending*, followed by the committed-tree final gate to the owner's
-2026-09-14 specification.
+The three suites touched by the correction ran together:
+`tests_cache_generation_wiring`, `tests_cache_user_fanout` and
+`tests_cache_dashboard_wide`. **55 tests OK.** The full repository suite then
+ran inside the final gate (§6).
+
+## 6. Final release gate — committed tree `f593be1`
+
+Run to the owner's 2026-09-14 specification, in the dedicated worktree
+`../Grade-Automator-Plus-h1-user-fanout`. No other session used it, and it was
+`git worktree lock`ed for the whole run. The whole gate ran under
+`systemd-inhibit --what=sleep:idle`, and `journalctl` shows **0** suspend
+events after 14:35.
+
+| # | Requirement | Result |
+|---|---|---|
+| 1 | Exact commit / tree / fingerprint | commit `f593be1bd3a06e165670724b23c32b9c139a6247` (= `beta`; the fix is `bfb6d8a`, then a one-line doc correction), tree `77a0094066daac26a78cbdf2229c06b099546c42`. NUL-safe sha256 fingerprint `e3b0c442…b855` (the empty input: no diff, no untracked files) **before and after**. 0 porcelain lines before and after. |
+| 2 | No other session modified the code under test | HEAD and tree unchanged after the run; `find -newer <start marker>` (excluding `.git` and `__pycache__`) returned **0 files**; worktree locked throughout |
+| 3 | Infrastructure | PostgreSQL 18.6, Redis 8.0.5, Python 3.12.10, Django 5.2.6, redis-py 7.1.0, django-redis 6.0.0 |
+| 4 | Pre-commit | range `1373eae..f593be1`: **exit 0**, 0 failed hooks |
+| 5 | System checks | `check`: 0 issues. `check --deploy --fail-level ERROR`: exit 0, with the same 65 warnings the parent already had (environment and schema, see the `1373eae` gate §2a) |
+| 6 | Migrations | `makemigrations --check`: no changes. **261** migrations applied to an empty database, and `migrate --check` exit 0 |
+| 7 | Fresh test DB, **no `--keepdb`** | `test_h1_user_fanout` confirmed absent before the suite. Command: `manage.py test --settings=settings_worktree --noinput -v 2` (no `--keepdb`, no `--parallel`, no label filter) |
+| 8 | Full repository suite | **Ran 3888 tests in 1291.6s — OK (skipped=12)**, 0 FAIL, 0 ERROR, **exit 0**. That is 3,859 at `1373eae` plus the 29 new fan-out tests. |
+| 9 | Complete, unfiltered output | `suite.log`: 39,633 lines, 2,910,690 bytes, sha256 `8c12365439c12b2d…` |
+| 10 | Test DB deleted afterwards | "Destroying test database" present; `pg_database` rows for it: **0** |
+| 11 | No leftover PostgreSQL connections | "other sessions using the database" lines: **0**; `pg_stat_activity` rows: **0** |
+| 12 | Redis | 101 exception lines, all injected by tests: 82 `redis unreachable` (77 from the classrooms resilience suite + 5 from `UserRowFailureTests`), 11 `down`, 4 `broker unreachable`, 2 `transient`, 1 `timed out`, 1 `connection refused`. **0** leftover keys under the suite's prefix `gaplus-t412782:*` |
+| 13 | Grading pipeline | **212 / 212 ok** |
+
+Real-AI tests stayed skipped: `RUN_REAL_AI` was unset, so no billed calls were
+made.
+
+**Conclusion.** Stage 3 item 7 is fixed and passes the committed-tree gate.
+This document's own addition, and the status lines updated alongside it, went
+in afterwards as a **docs-only** commit; its diff touches nothing outside
+`docs/`.

@@ -65,12 +65,12 @@ repos:
           - --max-line-length=120                  # Matches Black's line length
           - --select=B,C,E,F,W,T4,B9                          # Enable common checks
           - --ignore=W503,E203      # Align with Black formatting
-          # E800 (flake8-eradicate, commented-out code) is ON. The files below
-          # still carry legacy commented-out blocks and are carved out until
-          # HARDENING_BACKLOG H-12 burns them down - do not add to this list;
-          # remove entries as files are cleaned. Generated 2026-09-13 from
-          # `flake8 --select=E800 .` against 1373eae; the students app is clean and NOT listed.
-          - --per-file-ignores=ai_processor/services.py:E800 ai_processor/views.py:E800 assignments/admin.py:E800 assignments/serializers.py:E800 assignments/tasks.py:E800 assignments/tests_rigor.py:E800 assignments/views.py:E800 AutoGrader/settings.py:E800 AutoGrader/urls.py:E800 billing/access_control.py:E800 billing/license_service.py:E800 billing/license_views.py:E800 billing/live_qa/invariants_individual.py:E800 billing/management/commands/backfill.py:E800 billing/models.py:E800 billing/serializers.py:E800 billing/services.py:E800 billing/stripe_service.py:E800 billing/stripe_view_schemas.py:E800 billing/tasks.py:E800 billing/tests/tests.py:E800 billing/views.py:E800 classrooms/models.py:E800 classrooms/serializers.py:E800 classrooms/test_bulk_enrollment.py:E800 classrooms/test_views.py:E800 classrooms/views.py:E800 dashboard/AT_RISK_IMPLEMENTATION_GUIDE.py:E800 dashboard/at_risk_improvements.py:E800 dashboard/serializers.py:E800 dashboard/tests_rigor.py:E800 dashboard/urls.py:E800 dashboard/views.py:E800 templates/assignment_to_prosemirror.py:E800 users/models.py:E800 users/serializers.py:E800 users/services.py:E800 users/tests_throttle_client_identity.py:E800 users/views.py:E800
+          # E800 (flake8-eradicate, commented-out code) is ON for the whole repository.
+          # The files below are its only exceptions. Each one has a reason, an owner
+          # and a staged cleanup plan in docs/HARDENING_BACKLOG.md H-12. Never add to
+          # this list and never carve out a whole directory; remove a file's entry in
+          # the same commit that cleans it. students/ and dashboard/ are fully clean.
+          - --per-file-ignores=ai_processor/services.py:E800 ai_processor/views.py:E800 assignments/admin.py:E800 assignments/serializers.py:E800 assignments/tasks.py:E800 assignments/tests_rigor.py:E800 assignments/views.py:E800 AutoGrader/settings.py:E800 AutoGrader/urls.py:E800 billing/access_control.py:E800 billing/license_service.py:E800 billing/license_views.py:E800 billing/live_qa/invariants_individual.py:E800 billing/management/commands/backfill.py:E800 billing/models.py:E800 billing/serializers.py:E800 billing/services.py:E800 billing/stripe_service.py:E800 billing/stripe_view_schemas.py:E800 billing/tasks.py:E800 billing/tests/tests.py:E800 billing/views.py:E800 classrooms/models.py:E800 classrooms/serializers.py:E800 classrooms/test_bulk_enrollment.py:E800 classrooms/test_views.py:E800 classrooms/views.py:E800 templates/assignment_to_prosemirror.py:E800 users/models.py:E800 users/serializers.py:E800 users/services.py:E800 users/tests_throttle_client_identity.py:E800 users/views.py:E800
         exclude: (^|/)migrations/
     # Sort imports automatically with isort
 -   repo: https://github.com/pre-commit/mirrors-isort
