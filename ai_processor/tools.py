@@ -3,7 +3,7 @@ import ipaddress
 import logging
 import socket
 from io import BytesIO
-from typing import List
+from typing import List, Optional
 from urllib.parse import urljoin, urlparse
 
 import requests
@@ -42,15 +42,63 @@ class BlockedURLError(Exception):
     """Raised when a URL is not safe to fetch server-side (SSRF guard)."""
 
 
+def _is_restricted_address(ip) -> bool:
+    """
+    Whether this address is one the app server must never be steered into
+    connecting to: RFC1918 ranges, 127.0.0.0/8, the 169.254.169.254 cloud
+    metadata address (link-local), and the multicast/reserved/unspecified
+    blocks.
+    """
+    # `not is_global` is the primary test and the canonical one: it means
+    # "not publicly routable", and it catches ranges the individual flags
+    # miss. RFC 6598 shared address space (100.64.0.0/10, carrier-grade
+    # NAT and common in cloud/internal networks) is the concrete example -
+    # Python reports it as is_private=False AND is_reserved=False, so the
+    # flag list alone let it straight through.
+    #
+    # The explicit flags are kept alongside it: they document the intent,
+    # and they keep the check meaningful if `is_global` ever changes
+    # semantics for a family.
+    return bool(
+        not ip.is_global
+        or ip.is_private
+        or ip.is_loopback
+        or ip.is_link_local
+        or ip.is_multicast
+        or ip.is_reserved
+        or ip.is_unspecified
+    )
+
+
+def _assert_address_is_public(raw_address: str, hostname: str) -> None:
+    """Raise BlockedURLError if `raw_address` is not a public address."""
+    try:
+        ip = ipaddress.ip_address(raw_address)
+    except ValueError as e:
+        raise BlockedURLError(
+            f"Could not interpret {raw_address!r} as an IP address for "
+            f"{hostname!r}."
+        ) from e
+    if _is_restricted_address(ip):
+        raise BlockedURLError(
+            f"{hostname!r} resolves to a restricted address and cannot be fetched."
+        )
+
+
 def _assert_url_is_publicly_fetchable(url: str) -> None:
     """
     Reject URLs that aren't safe for the app server to make an outbound
     request to: non-http(s) schemes, and hosts that resolve to
-    private/loopback/link-local/reserved/multicast addresses (this covers
-    RFC1918 ranges, 127.0.0.1, and the 169.254.169.254 cloud metadata
-    address, which is link-local). Called before every request AND before
-    following every redirect hop, since redirects are how one otherwise-safe
-    URL can be turned into a fetch of an internal address.
+    private/loopback/link-local/reserved/multicast addresses. Called before
+    every request AND before following every redirect hop, since redirects
+    are how one otherwise-safe URL can be turned into a fetch of an
+    internal address.
+
+    NOTE: passing this check is necessary but NOT sufficient. It resolves
+    the name, and the connection is made separately afterwards, so a
+    hostile DNS server can answer with a public address here and a private
+    one microseconds later (DNS rebinding). `_assert_peer_is_public` below
+    closes that window by checking the address actually connected to.
     """
     parsed = urlparse(url.strip())
     scheme = (parsed.scheme or "").lower()
@@ -74,18 +122,61 @@ def _assert_url_is_publicly_fetchable(url: str) -> None:
         raise BlockedURLError(f"Could not resolve host {hostname!r}: {e}") from e
 
     for _family, _type, _proto, _canonname, sockaddr in addr_infos:
-        ip = ipaddress.ip_address(sockaddr[0])
-        if (
-            ip.is_private
-            or ip.is_loopback
-            or ip.is_link_local
-            or ip.is_multicast
-            or ip.is_reserved
-            or ip.is_unspecified
-        ):
-            raise BlockedURLError(
-                f"{hostname!r} resolves to a restricted address and cannot be fetched."
-            )
+        # sockaddr[0] is the address for both AF_INET and AF_INET6;
+        # str() because the tuple is typed heterogeneously.
+        _assert_address_is_public(str(sockaddr[0]), hostname)
+
+
+def _peer_address(response) -> Optional[str]:
+    """
+    The address this response is ACTUALLY connected to, or None if it
+    cannot be determined.
+
+    Reached through the urllib3 response's underlying socket. Deliberately
+    defensive about the attribute names, which differ between urllib3
+    versions - but a None return is treated as a hard failure by the
+    caller rather than waved through, because "we could not tell who we
+    connected to" is not a safe answer for an SSRF control.
+    """
+    raw = getattr(response, "raw", None)
+    connection = getattr(raw, "_connection", None) or getattr(raw, "connection", None)
+    sock = getattr(connection, "sock", None)
+    if sock is None:
+        return None
+    try:
+        peer = sock.getpeername()
+    except (OSError, AttributeError):
+        return None
+    if not peer:
+        return None
+    # IPv6 getpeername returns a 4-tuple; the address is first either way.
+    return peer[0]
+
+
+def _assert_peer_is_public(response, hostname: str) -> None:
+    """
+    Verify the address we actually connected to, not the one DNS promised.
+
+    This is what closes the DNS-rebinding window in
+    `_assert_url_is_publicly_fetchable`: that check resolves a name, and
+    the TCP connection is a separate, later act. A hostile resolver can
+    answer "93.184.216.34" for the check and "169.254.169.254" for the
+    connection, and the pre-check cannot see the difference.
+
+    FAILS CLOSED. If the peer cannot be determined (an unexpected urllib3
+    internal layout, say) this raises rather than continuing, because a
+    silently skipped SSRF check is indistinguishable from no SSRF check.
+    tests_ssrf_guard.py pins the introspection so a library upgrade that
+    breaks it fails in CI rather than quietly disarming this in
+    production.
+    """
+    peer = _peer_address(response)
+    if peer is None:
+        raise BlockedURLError(
+            f"Could not determine the address connected to for {hostname!r}; "
+            "refusing to read the response."
+        )
+    _assert_address_is_public(peer, hostname)
 
 
 def _fetch_validated(url: str) -> requests.Response:
@@ -106,6 +197,16 @@ def _fetch_validated(url: str) -> requests.Response:
             allow_redirects=False,
             stream=True,
         )
+
+        # Checked BEFORE the body is touched and before a redirect is
+        # followed: by this point the TCP connection exists, so this is
+        # the first moment the real peer is knowable - and the last moment
+        # before any attacker-controlled bytes are read.
+        try:
+            _assert_peer_is_public(res, urlparse(current_url).hostname or "")
+        except BlockedURLError:
+            res.close()
+            raise
 
         if res.is_redirect or res.is_permanent_redirect:
             location = res.headers.get("Location")
