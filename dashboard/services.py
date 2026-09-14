@@ -1,3 +1,4 @@
+import json
 from collections import Counter, defaultdict
 from datetime import timedelta
 
@@ -7,16 +8,18 @@ from django.db.models import (
     DurationField,
     ExpressionWrapper,
     F,
+    Min,
     Prefetch,
     Q,
     Sum,
 )
 from django.utils import timezone
 
+from ai_processor.services import AI_CONFIDENCE_THRESHOLD
 from assignments.models import Assignment, AssignmentStatus
 from classrooms.models import Course, EnrollmentStatusType, StudentCourse
 from dashboard.rigor import build_rigor_by_teacher, empty_rigor_payload
-from dashboard.risk import RiskInputs, StudentRiskEvaluator
+from dashboard.risk import TREND_INSUFFICIENT_DATA, RiskInputs, StudentRiskEvaluator
 from students.models import StudentSubmission
 from students.services import get_grade_details
 from users.models import CustomUser, UserTypes
@@ -100,9 +103,6 @@ class DashboardService:
         easiest = list(reversed(ranked[-2:]))
 
         return hardest, easiest
-
-    def get_ai_context(self, user):
-        pass
 
 
 class StudentWeeklySummaryService:
@@ -862,10 +862,14 @@ class WeeklyCourseSummaryService:
         )
 
     def _trend_from_values(self, previous_value, current_value, *, threshold):
+        # One spelling, shared with dashboard/risk.py. This used to return
+        # "INSUFFICIENT DATA" on one branch and "INSUFFICIENT_DATA" on the
+        # next, so the same condition read two different ways in the
+        # teacher's weekly email depending on which side had no data.
         if previous_value is None and current_value is None:
-            return "INSUFFICIENT DATA"
+            return TREND_INSUFFICIENT_DATA
         if previous_value is None:
-            return "IMPROVING" if current_value else "INSUFFICIENT_DATA"
+            return "IMPROVING" if current_value else TREND_INSUFFICIENT_DATA
         if current_value is None:
             return "DECLINING"
 
@@ -880,6 +884,501 @@ class WeeklyCourseSummaryService:
         if not counter:
             return None, 0
         return counter.most_common(1)[0]
+
+
+class TeacherPerformanceStatsService:
+    """Per-teacher performance statistics, for any number of teachers, in a
+    fixed number of queries.
+
+    The ONE implementation of these figures. It replaces two line-for-line
+    copies - `compute_teacher_performance_stats` in dashboard/views.py (the
+    school-admin teacher list and teacher detail) and the loop in
+    SchoolAdminWeeklySummaryService._build_teacher_activity (the weekly
+    email) - which had to be kept in step by hand, and each of which ran
+    about eight queries per teacher. A school with 60 teachers cost ~480
+    queries to render its weekly digest.
+
+    Here every figure is one grouped query across all requested teachers:
+    four queries, plus the two rigor roll-ups, however many teachers there
+    are. Each grouped query aggregates over a single relation, so no figure
+    can be inflated by a join fan-out.
+    """
+
+    #: "Growth" compares students in courses created in the last 180 days
+    #: with students in courses created before that.
+    GROWTH_WINDOW_DAYS = 180
+
+    def build(self, teachers, *, now=None):
+        """Return {teacher_id: payload} with an entry for every teacher."""
+        teachers = list(teachers)
+        if not teachers:
+            return {}
+
+        now = now or timezone.now()
+        growth_cutoff = now - timedelta(days=self.GROWTH_WINDOW_DAYS)
+        teacher_ids = [teacher.id for teacher in teachers]
+
+        course_counts = {
+            row["teacher_id"]: row["n"]
+            for row in Course.objects.filter(teacher_id__in=teacher_ids)
+            .values("teacher_id")
+            .annotate(n=Count("id"))
+            .order_by()
+        }
+
+        active_enrolments = StudentCourse.objects.filter(
+            course__teacher_id__in=teacher_ids
+        ).exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
+        enrolment_rows = {
+            row["course__teacher_id"]: row
+            for row in active_enrolments.values("course__teacher_id")
+            .annotate(
+                students=Count("student", distinct=True),
+                current_students=Count(
+                    "student",
+                    distinct=True,
+                    filter=Q(course__created_at__gte=growth_cutoff),
+                ),
+                past_students=Count(
+                    "student",
+                    distinct=True,
+                    filter=Q(course__created_at__lt=growth_cutoff),
+                ),
+            )
+            .order_by()
+        }
+
+        assignment_rows = {
+            row["course__teacher_id"]: row
+            for row in Assignment.objects.filter(course__teacher_id__in=teacher_ids)
+            .values("course__teacher_id")
+            .annotate(n=Count("id"), first_created_at=Min("created_at"))
+            .order_by()
+        }
+
+        graded_rows = {
+            row["assignment__course__teacher_id"]: row
+            for row in StudentSubmission.objects.filter(
+                assignment__course__teacher_id__in=teacher_ids,
+                graded_at__isnull=False,
+            )
+            .values("assignment__course__teacher_id")
+            .annotate(
+                n=Count("id"),
+                total_turnaround=Sum(
+                    ExpressionWrapper(
+                        F("graded_at") - F("submission_date"),
+                        output_field=DurationField(),
+                    )
+                ),
+                ai_confidence=Avg("grading_confidence"),
+            )
+            .order_by()
+        }
+
+        rigor_by_teacher = build_rigor_by_teacher(teacher_ids)
+
+        return {
+            teacher.id: self._payload(
+                teacher,
+                now=now,
+                courses=course_counts.get(teacher.id, 0),
+                enrolments=enrolment_rows.get(teacher.id) or {},
+                assignments=assignment_rows.get(teacher.id) or {},
+                graded=graded_rows.get(teacher.id) or {},
+                rigor=rigor_by_teacher.get(teacher.id) or empty_rigor_payload(),
+            )
+            for teacher in teachers
+        }
+
+    @staticmethod
+    def _payload(teacher, *, now, courses, enrolments, assignments, graded, rigor):
+        current_students = enrolments.get("current_students") or 0
+        past_students = enrolments.get("past_students") or 0
+        if past_students > 0:
+            growth = ((current_students - past_students) / past_students) * 100
+        elif current_students > 0:
+            growth = 100.0  # started from zero
+        else:
+            growth = None
+
+        # Assignments per week, over the lifetime since the first assignment.
+        assignments_count = assignments.get("n") or 0
+        first_created_at = assignments.get("first_created_at")
+        if first_created_at and assignments_count > 0:
+            weeks = (now - first_created_at).days / 7
+            assignments_per_week = assignments_count / weeks if weeks > 0 else 0
+        else:
+            assignments_per_week = None
+
+        # Average days from submission to grading, over graded submissions.
+        graded_count = graded.get("n") or 0
+        total_turnaround = graded.get("total_turnaround")
+        if graded_count > 0 and total_turnaround:
+            turnaround = total_turnaround.total_seconds() / (graded_count * 86400)
+        else:
+            turnaround = None
+
+        ai_confidence = graded.get("ai_confidence")
+
+        return {
+            "id": teacher.id,
+            "name": teacher.get_full_name(),
+            "email": teacher.email,
+            "courses": courses,
+            "students": enrolments.get("students") or 0,
+            "growth": round(growth, 1) if growth is not None else None,
+            "assignments_per_week": (
+                round(assignments_per_week, 1)
+                if assignments_per_week is not None
+                else None
+            ),
+            "turnaround": round(turnaround, 1) if turnaround is not None else None,
+            "ai_confidence": (
+                round(ai_confidence, 1) if ai_confidence is not None else None
+            ),
+            # `rigor` stays a plain 0-5 float for existing consumers; the
+            # components that make it actionable ride in `rigor_breakdown`.
+            "rigor": rigor.get("score"),
+            "rigor_breakdown": rigor,
+            "status": teacher.is_active,
+        }
+
+
+def dashboard_context_json(payload):
+    """Serialise dashboard data for an AI prompt.
+
+    Compact JSON: every character of context is paid for in tokens on every
+    request, and JSON is unambiguous to the model where a Python dict repr
+    (what the prompts used to receive) is not.
+    """
+    return json.dumps(payload, default=str, separators=(",", ":"), ensure_ascii=False)
+
+
+class SchoolAdminAIContextService:
+    """Data sections for the school-admin AI chat that are built here rather
+    than borrowed from a dashboard endpoint."""
+
+    #: A school admin's question is about their staff, so every teacher up to
+    #: this many is included; beyond it the section says how many were left
+    #: out, so the model never presents a partial list as the whole school.
+    MAX_TEACHERS = 100
+
+    def teachers(self, school):
+        teachers_qs = CustomUser.objects.filter(
+            school=school, user_type=UserTypes.TEACHER
+        ).order_by("first_name", "last_name", "id")
+        total = teachers_qs.count()
+        teachers = list(teachers_qs[: self.MAX_TEACHERS])
+        stats = TeacherPerformanceStatsService().build(teachers)
+
+        rows = []
+        for teacher in teachers:
+            row = stats[teacher.id]
+            rows.append(
+                {
+                    "teacher": row["name"],
+                    "active": row["status"],
+                    "courses": row["courses"],
+                    "students": row["students"],
+                    "student_growth_percent": row["growth"],
+                    "assignments_per_week": row["assignments_per_week"],
+                    "grading_turnaround_days": row["turnaround"],
+                    "ai_grading_confidence": row["ai_confidence"],
+                    "rigor_score_0_to_5": row["rigor"],
+                    "rigor_verdict": row["rigor_breakdown"].get("label"),
+                }
+            )
+
+        section = {"teachers_total": total, "teachers": rows}
+        if total > len(rows):
+            section["limit"] = (
+                f"Showing {len(rows)} of {total} teachers, alphabetically. "
+                f"The other {total - len(rows)} are not listed here."
+            )
+        return section
+
+
+class TeacherAIContextService:
+    """Everything the teacher AI chat needs, in a fixed number of queries.
+
+    REPLACES a context built by calling four dashboard endpoints in loops -
+    `overview` per session, `courses` per course, `assignments` PER
+    ASSIGNMENT and `students` per course - and pasting their full responses
+    into the prompt. Measured: ten more assignments added 37 queries to a
+    single chat request, and the prompt grew with every submission a
+    teacher had ever received.
+
+    Here: four queries whatever the teacher's size, and every list has a cap
+    plus an explicit total, so a limit is always stated in the data rather
+    than silently applied. The caps are high enough that a typical teacher is
+    never truncated at all.
+    """
+
+    MAX_COURSES = 50
+    MAX_RECENT_ASSIGNMENTS = 60
+    MAX_LOWEST_SCORING = 10
+    MAX_UPCOMING = 10
+    #: At-risk students are listed first, so they are the last to be cut.
+    MAX_STUDENT_ROWS = 200
+
+    risk_evaluator = StudentRiskEvaluator()
+
+    def build(self, teacher, *, now=None):
+        now = now or timezone.now()
+
+        courses = list(
+            Course.objects.filter(teacher=teacher)
+            .select_related("session")
+            .order_by("-is_active", "name", "id")
+        )
+        course_by_id = {course.id: course for course in courses}
+        course_ids = list(course_by_id)
+
+        # Per-assignment aggregates over the ONE `submissions` relation, so
+        # nothing is multiplied by a second join.
+        assignments = list(
+            Assignment.objects.filter(course_id__in=course_ids)
+            .annotate(
+                submission_total=Count("submissions"),
+                graded_total=Count(
+                    "submissions",
+                    filter=Q(submissions__score_percentage__isnull=False),
+                ),
+                average_score=Avg("submissions__score_percentage"),
+            )
+            .values(
+                "id",
+                "title",
+                "course_id",
+                "status",
+                "assignment_type",
+                "due_date",
+                "created_at",
+                "extraction_confidence",
+                "submission_total",
+                "graded_total",
+                "average_score",
+            )
+            .order_by("-created_at", "id")
+        )
+
+        enrolments = list(
+            StudentCourse.objects.filter(course_id__in=course_ids)
+            .exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
+            .values(
+                "course_id",
+                "student_id",
+                "student__first_name",
+                "student__last_name",
+            )
+            .order_by("student__last_name", "student__first_name", "student_id")
+        )
+
+        submissions = list(
+            StudentSubmission.objects.filter(
+                assignment__course_id__in=course_ids
+            ).values(
+                "student_id",
+                "assignment_id",
+                "assignment__course_id",
+                "submission_date",
+                "score_percentage",
+                "grading_confidence",
+            )
+        )
+
+        return self._assemble(
+            now, courses, course_by_id, assignments, enrolments, submissions
+        )
+
+    def _assemble(
+        self, now, courses, course_by_id, assignments, enrolments, submissions
+    ):
+        # Same definition of "work a student could have submitted by now" as
+        # the at-risk dashboards: published, and either undated or due.
+        due_by_course = defaultdict(int)
+        published_by_course = defaultdict(int)
+        for assignment in assignments:
+            if assignment["status"] != AssignmentStatus.PUBLISHED:
+                continue
+            published_by_course[assignment["course_id"]] += 1
+            if assignment["due_date"] is None or assignment["due_date"] <= now:
+                due_by_course[assignment["course_id"]] += 1
+
+        submitted_ids = defaultdict(set)
+        dated_scores = defaultdict(list)
+        submissions_by_course = defaultdict(int)
+        graded_scores_by_course = defaultdict(list)
+        for submission in submissions:
+            key = (submission["student_id"], submission["assignment__course_id"])
+            submitted_ids[key].add(submission["assignment_id"])
+            submissions_by_course[submission["assignment__course_id"]] += 1
+            if submission["score_percentage"] is not None:
+                score = float(submission["score_percentage"])
+                dated_scores[key].append((submission["submission_date"], score))
+                graded_scores_by_course[submission["assignment__course_id"]].append(
+                    score
+                )
+
+        students = []
+        at_risk_by_course = defaultdict(int)
+        for enrolment in enrolments:
+            key = (enrolment["student_id"], enrolment["course_id"])
+            course = course_by_id[enrolment["course_id"]]
+            result = self.risk_evaluator.evaluate(
+                RiskInputs(
+                    expected_assignment_count=due_by_course[enrolment["course_id"]],
+                    submitted_count=len(submitted_ids[key]),
+                    graded_scores=dated_scores[key],
+                )
+            )
+            if result.at_risk:
+                at_risk_by_course[enrolment["course_id"]] += 1
+            name = f"{enrolment['student__first_name']} {enrolment['student__last_name']}".strip()
+            students.append(
+                {
+                    "student": name,
+                    "course": course.name,
+                    "at_risk": result.at_risk,
+                    "average_score": result.average_grade,
+                    "submitted": len(submitted_ids[key]),
+                    "due_assignments": due_by_course[enrolment["course_id"]],
+                    "submission_rate_percent": result.submission_rate,
+                    "trend": result.grade_trend,
+                    "risk_reasons": result.reasons,
+                }
+            )
+        students.sort(
+            key=lambda row: (
+                not row["at_risk"],
+                row["average_score"] is None,
+                row["average_score"] if row["average_score"] is not None else 0.0,
+                row["student"].lower(),
+            )
+        )
+
+        course_rows = []
+        for course in courses:
+            scores = graded_scores_by_course[course.id]
+            course_rows.append(
+                {
+                    "course": course.name,
+                    "session": course.session.name if course.session else None,
+                    "active": course.is_active,
+                    "students": sum(
+                        1 for e in enrolments if e["course_id"] == course.id
+                    ),
+                    "published_assignments": published_by_course[course.id],
+                    "due_assignments": due_by_course[course.id],
+                    "submissions": submissions_by_course[course.id],
+                    "graded_submissions": len(scores),
+                    "average_score": (
+                        round(sum(scores) / len(scores), 2) if scores else None
+                    ),
+                    "at_risk_students": at_risk_by_course[course.id],
+                }
+            )
+
+        def assignment_row(assignment):
+            average = assignment["average_score"]
+            return {
+                "title": assignment["title"],
+                "course": course_by_id[assignment["course_id"]].name,
+                "status": assignment["status"],
+                "type": assignment["assignment_type"],
+                "due_date": assignment["due_date"],
+                "submissions": assignment["submission_total"],
+                "graded": assignment["graded_total"],
+                "average_score": (
+                    round(float(average), 2) if average is not None else None
+                ),
+                "extraction_confidence": assignment["extraction_confidence"],
+            }
+
+        lowest_scoring = sorted(
+            (a for a in assignments if a["average_score"] is not None),
+            key=lambda a: (a["average_score"], a["title"]),
+        )[: self.MAX_LOWEST_SCORING]
+        upcoming = sorted(
+            (
+                a
+                for a in assignments
+                if a["status"] == AssignmentStatus.PUBLISHED
+                and a["due_date"] is not None
+                and a["due_date"] > now
+            ),
+            key=lambda a: a["due_date"],
+        )[: self.MAX_UPCOMING]
+
+        extraction = [
+            a["extraction_confidence"]
+            for a in assignments
+            if a["extraction_confidence"] is not None
+        ]
+        grading = [
+            s["grading_confidence"]
+            for s in submissions
+            if s["grading_confidence"] is not None
+        ]
+        low = sum(1 for v in extraction if v < AI_CONFIDENCE_THRESHOLD) + sum(
+            1 for v in grading if v < AI_CONFIDENCE_THRESHOLD
+        )
+        records = len(extraction) + len(grading)
+
+        limits = []
+
+        def capped(rows, cap, what, order):
+            if len(rows) > cap:
+                limits.append(
+                    f"{what}: showing {cap} of {len(rows)} ({order}); the rest "
+                    f"are counted in the totals but not listed."
+                )
+            return rows[:cap]
+
+        at_risk_total = sum(1 for row in students if row["at_risk"])
+        # Every capped list is cut BEFORE the payload is assembled, so the
+        # limits they record are in `limits` when it is read.
+        listed_courses = capped(
+            course_rows, self.MAX_COURSES, "courses", "active first, then by name"
+        )
+        listed_assignments = capped(
+            [assignment_row(a) for a in assignments],
+            self.MAX_RECENT_ASSIGNMENTS,
+            "recent_assignments",
+            "newest first",
+        )
+        listed_students = capped(
+            students,
+            self.MAX_STUDENT_ROWS,
+            "students",
+            "at-risk first, then lowest average",
+        )
+        return {
+            "generated_at": now,
+            "limits": limits or ["Nothing was left out: every record is listed."],
+            "courses_total": len(course_rows),
+            "courses": listed_courses,
+            "assignments_total": len(assignments),
+            "recent_assignments": listed_assignments,
+            "lowest_scoring_assignments": [assignment_row(a) for a in lowest_scoring],
+            "upcoming_assignments": [assignment_row(a) for a in upcoming],
+            "student_enrolments_total": len(students),
+            "at_risk_students_total": at_risk_total,
+            "students": listed_students,
+            "ai_trust": {
+                "average_extraction_confidence": (
+                    round(sum(extraction) / len(extraction), 2) if extraction else None
+                ),
+                "average_grading_confidence": (
+                    round(sum(grading) / len(grading), 2) if grading else None
+                ),
+                "low_confidence_rate_percent": (
+                    round(low / records * 100, 2) if records else 0.0
+                ),
+                "low_confidence_threshold": AI_CONFIDENCE_THRESHOLD,
+            },
+        }
 
 
 class SchoolAdminWeeklySummaryService:
@@ -924,11 +1423,20 @@ class SchoolAdminWeeklySummaryService:
             school=school, user_type=UserTypes.TEACHER, is_active=True
         ).count()
 
-        active_student_count = CustomUser.objects.filter(
-            enrollments__course__teacher__school=school,
-            is_active=True,
-            user_type=UserTypes.STUDENT,
-        ).count()
+        # .distinct(): the filter joins through enrollments, so without it a
+        # student enrolled in five courses was counted five times. Measured:
+        # one student in two courses reported as 2. The live dashboard
+        # summary already used .distinct(), so the weekly email and the
+        # dashboard disagreed about the same school on the same day.
+        active_student_count = (
+            CustomUser.objects.filter(
+                enrollments__course__teacher__school=school,
+                is_active=True,
+                user_type=UserTypes.STUDENT,
+            )
+            .distinct()
+            .count()
+        )
 
         active_course_count = Course.objects.filter(
             teacher__school=school, is_active=True
@@ -1105,126 +1613,11 @@ class SchoolAdminWeeklySummaryService:
         window-scoped to this week — mirrors SchoolAdminDashboardView
         .teacher_performance intentionally, since a single week is too
         short a window for meaningful growth/rigor/turnaround trends."""
-        # Only `courses` is prefetched: every metric below runs through fresh
-        # manager queries and aggregates, so the previous
-        # courses__enrollments / courses__assignments / ...__submissions
-        # prefetch pulled every submission row in the school into memory and
-        # was then never read.
-        teachers = (
+        teachers = list(
             CustomUser.objects.filter(school=school, user_type=UserTypes.TEACHER)
-            .distinct()
-            .prefetch_related("courses")
         )
-
-        now = timezone.now()
-        six_months_ago = now - timedelta(days=self.TEACHER_GROWTH_WINDOW_DAYS)
-
-        teachers = list(teachers)
-        # Two queries for the whole school, rather than two per teacher.
-        rigor_by_teacher = build_rigor_by_teacher([teacher.id for teacher in teachers])
-
-        result = []
-        for teacher in teachers:
-            courses = teacher.courses.all()
-            course_ids = [course.id for course in courses]
-            courses_count = len(course_ids)
-
-            students_count = (
-                StudentCourse.objects.filter(course_id__in=course_ids)
-                .exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
-                .values("student")
-                .distinct()
-                .count()
-            )
-
-            current_students = (
-                StudentCourse.objects.filter(
-                    course_id__in=course_ids, course__created_at__gte=six_months_ago
-                )
-                .exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
-                .values("student")
-                .distinct()
-                .count()
-            )
-            past_students = (
-                StudentCourse.objects.filter(
-                    course_id__in=course_ids, course__created_at__lt=six_months_ago
-                )
-                .exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
-                .values("student")
-                .distinct()
-                .count()
-            )
-            if past_students > 0:
-                growth = ((current_students - past_students) / past_students) * 100
-            elif current_students > 0:
-                growth = 100.0
-            else:
-                growth = None
-
-            assignments = Assignment.objects.filter(course_id__in=course_ids)
-            assignments_count = assignments.count()
-            first_assignment = assignments.order_by("created_at").first()
-            if first_assignment and assignments_count > 0:
-                weeks = (now - first_assignment.created_at).days / 7
-                assignments_per_week = assignments_count / weeks if weeks > 0 else 0
-            else:
-                assignments_per_week = None
-
-            graded_submissions = StudentSubmission.objects.filter(
-                assignment__course_id__in=course_ids, graded_at__isnull=False
-            )
-            graded_count = graded_submissions.count()
-            if graded_count > 0:
-                total_duration = graded_submissions.aggregate(
-                    total=Sum(
-                        ExpressionWrapper(
-                            F("graded_at") - F("submission_date"),
-                            output_field=DurationField(),
-                        )
-                    )
-                )["total"]
-                turnaround = (
-                    total_duration.total_seconds() / (graded_count * 86400)
-                    if total_duration
-                    else None
-                )
-            else:
-                turnaround = None
-
-            ai_confidence = graded_submissions.aggregate(
-                avg_conf=Avg("grading_confidence")
-            )["avg_conf"]
-
-            # Composite rigor (dashboard/rigor.py): cognitive demand from
-            # per-question Bloom's levels, achieved outcomes, and rubric
-            # coverage. Precomputed in bulk above.
-            rigor = rigor_by_teacher.get(teacher.id) or empty_rigor_payload()
-
-            result.append(
-                {
-                    "id": teacher.id,
-                    "name": teacher.get_full_name(),
-                    "email": teacher.email,
-                    "courses": courses_count,
-                    "students": students_count,
-                    "growth": round(growth, 1) if growth is not None else None,
-                    "assignments_per_week": (
-                        round(assignments_per_week, 1)
-                        if assignments_per_week is not None
-                        else None
-                    ),
-                    "turnaround": (
-                        round(turnaround, 1) if turnaround is not None else None
-                    ),
-                    "ai_confidence": (
-                        round(ai_confidence, 1) if ai_confidence is not None else None
-                    ),
-                    "rigor": rigor.get("score"),
-                    "rigor_breakdown": rigor,
-                    "status": teacher.is_active,
-                }
-            )
+        stats = TeacherPerformanceStatsService().build(teachers)
+        result = [stats[teacher.id] for teacher in teachers]
 
         result.sort(key=lambda row: (not row["status"], row["name"].lower()))
         return result

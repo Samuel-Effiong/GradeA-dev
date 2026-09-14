@@ -337,31 +337,36 @@ def send_at_risk_student_alerts(self):
                 for state in StudentRiskAlertState.objects.filter(school=school)
             }
 
-            newly_at_risk = []
+            # ALERT OBLIGATION. A student owes the school's admins one alert
+            # per at-risk episode, and the obligation is discharged only once
+            # that alert has been queued. It used to be discharged up front -
+            # the state was marked alerted before the email was queued - so a
+            # queue outage on the day a student first became at-risk lost the
+            # alert for good: the next run saw a student who was "already at
+            # risk" and sent nothing. Measured before the fix: run 1 with the
+            # broker down queued 0; run 2 after recovery also queued 0.
+            owed = []
             for student in current_students:
                 state = existing_states.get(student.id)
-                is_new = state is None or not state.is_at_risk
-
-                obj, created = StudentRiskAlertState.objects.get_or_create(
-                    student_id=student.id,
-                    school=school,
-                    defaults={
-                        "is_at_risk": True,
-                        "average_score": student.avg_score,
-                        "last_alerted_at": now,
-                    },
-                )
-                if not created:
-                    obj.is_at_risk = True
-                    obj.average_score = student.avg_score
+                if state is None:
+                    state = StudentRiskAlertState.objects.create(
+                        student_id=student.id,
+                        school=school,
+                        is_at_risk=True,
+                        average_score=student.avg_score,
+                        alert_pending=True,
+                    )
+                else:
                     update_fields = ["is_at_risk", "average_score"]
-                    if is_new:
-                        obj.last_alerted_at = now
-                        update_fields.append("last_alerted_at")
-                    obj.save(update_fields=update_fields)
-
-                if is_new:
-                    newly_at_risk.append(student)
+                    if not state.is_at_risk:
+                        # A new episode after a recovery.
+                        state.alert_pending = True
+                        update_fields.append("alert_pending")
+                    state.is_at_risk = True
+                    state.average_score = student.avg_score
+                    state.save(update_fields=update_fields)
+                if state.alert_pending:
+                    owed.append((student, state))
 
             recovered_ids = [
                 student_id
@@ -369,11 +374,14 @@ def send_at_risk_student_alerts(self):
                 if state.is_at_risk and student_id not in current_ids
             ]
             if recovered_ids:
+                # Recovery also discharges an undelivered alert: sending it
+                # now would announce a risk that no longer exists.
                 StudentRiskAlertState.objects.filter(
                     school=school, student_id__in=recovered_ids
-                ).update(is_at_risk=False, average_score=None)
+                ).update(is_at_risk=False, average_score=None, alert_pending=False)
 
-            if newly_at_risk:
+            if owed:
+                owed_students = [student for student, _ in owed]
                 context = {
                     "school": school,
                     "newly_at_risk_students": [
@@ -385,17 +393,18 @@ def send_at_risk_student_alerts(self):
                                 else None
                             ),
                         }
-                        for student in newly_at_risk
+                        for student in owed_students
                     ],
                 }
                 html_message = render_to_string(
                     "email/school_admin_at_risk_alert.html", context=context
                 )
-                names = ", ".join(student.get_full_name() for student in newly_at_risk)
+                names = ", ".join(student.get_full_name() for student in owed_students)
                 message = (
-                    f"{len(newly_at_risk)} student(s) newly flagged as at-risk "
+                    f"{len(owed_students)} student(s) newly flagged as at-risk "
                     f"at {school.name}: {names}"
                 )
+                queued_for_every_admin = True
                 for admin in admins:
                     try:
                         send_email_task.delay(
@@ -407,13 +416,25 @@ def send_at_risk_student_alerts(self):
                         )
                         emails_queued += 1
                     except Exception:
+                        queued_for_every_admin = False
                         logger.exception(
-                            "Failed to queue at-risk admin email",
+                            "Failed to queue at-risk admin email; the alert "
+                            "stays pending and is retried on the next run",
                             extra={
                                 "admin_id": str(admin.id),
                                 "school_id": str(school.id),
                             },
                         )
+
+                # Discharged only when EVERY opted-in admin's email was
+                # queued. On a partial failure the whole alert is retried, so
+                # an admin whose copy did queue may receive it twice. That is
+                # deliberate: a duplicate alert is recoverable, a lost one is
+                # not.
+                if queued_for_every_admin:
+                    StudentRiskAlertState.objects.filter(
+                        pk__in=[state.pk for _, state in owed]
+                    ).update(alert_pending=False, last_alerted_at=now)
 
             schools_processed += 1
         except Exception:

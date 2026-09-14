@@ -87,7 +87,8 @@ Three small state tables. All the interesting numbers are computed on demand.
 | `is_at_risk` | Boolean | no | `False` | the transition being detected |
 | `average_score` | Decimal(5,2) | yes | — | cleared to `None` on recovery |
 | `last_checked_at` | DateTime | no | `auto_now` | |
-| `last_alerted_at` | DateTime | yes | — | only bumped on a **new** flag |
+| `last_alerted_at` | DateTime | yes | — | set when the episode's alert is queued to every opted-in admin |
+| `alert_pending` | Boolean | no | `False` | `True` from the start of an at-risk episode until its alert is queued to **every** opted-in admin; migration `0003` |
 
 Unique on `(student, school)`. **A mutable cache with no history** — which is exactly why the next model exists.
 
@@ -188,11 +189,9 @@ Alongside the boolean, `evaluate()` returns human-readable `issue_tags` and `rea
 
 The `conceptual_gaps` / `low_scores` split is a genuinely useful distinction: the same low average means something different depending on whether the student is turning work in.
 
-### Dead code
+### Removed: the commented-out at-risk alternatives
 
-[dashboard/at_risk_improvements.py](../../dashboard/at_risk_improvements.py) is **430 lines entirely commented out** — an alternative multi-level `AtRiskCalculator` with variance, momentum, and recency scoring. `AT_RISK_IMPLEMENTATION_GUIDE.py` (363 lines) is a `.py` file used as prose documentation. Neither is imported by anything.
-
-> **UNVERIFIED:** whether `at_risk_improvements.py` is an abandoned experiment or a staged replacement. To resolve: check git history for when it was commented out, or ask the author.
+`dashboard/at_risk_improvements.py` (430 lines, entirely commented out: a multi-level `AtRiskCalculator` with variance, momentum and recency scoring) and `dashboard/AT_RISK_IMPLEMENTATION_GUIDE.py` (363 lines of prose in a `.py` file) were deleted in the §8 dashboard remediation, with the owner's approval. Neither was imported, loaded dynamically, tested, or referenced by any script, build or deploy config, and neither described current behaviour: `risk.py`'s `StudentRiskEvaluator` above is the only at-risk definition. Both remain in git history if the ideas are ever wanted.
 
 ---
 
@@ -310,10 +309,10 @@ sequenceDiagram
             T->>T: continue (snapshot kept, no alert state)
         else
             T->>DB: load existing StudentRiskAlertState rows
-            T->>T: is_new = state is None OR not state.is_at_risk
-            T->>DB: upsert state for every current at-risk student
-            T->>DB: clear is_at_risk for recovered students
-            T->>T: email only the NEWLY at-risk
+            T->>DB: upsert state; a new episode sets alert_pending
+            T->>DB: clear is_at_risk AND alert_pending for recovered students
+            T->>T: email every student whose alert is still pending
+            T->>DB: clear alert_pending only if every admin's email queued
         end
     end
 ```
@@ -322,12 +321,14 @@ sequenceDiagram
 Three decisions ([tasks.py:292-305](../../dashboard/tasks.py#L292-L305)):
 
 1. **Snapshots are written for every school regardless of opt-in** — so the trend chart works even for a school nobody subscribed to.
-2. **Alerts fire only on a `false→true` transition**, *"never on students who remain at-risk from a previous run"* — otherwise every admin gets the same names daily forever.
+2. **One alert per at-risk episode, and it is not lost.** A `false→true` transition creates an *obligation* (`alert_pending=True`); the obligation is discharged only once the alert has been queued to every opted-in admin. Students who remain at-risk after their alert was delivered are never re-sent — otherwise every admin gets the same names daily forever. Before the §8 remediation the state was marked "alerted" *before* queueing, so a broker outage on the day a student first became at-risk lost that alert permanently (measured: outage run queued 0, recovery run also queued 0).
 3. Schools with zero opted-in admins get a snapshot but **no alert-state bookkeeping**. The consequence is stated and accepted: *"if an admin opts in later, the next run treats the whole current at-risk set as 'newly at-risk' and sends a one-time catch-up alert, **which is intentional**."*
 
-Recovered students are cleared with `is_at_risk=False, average_score=None` ([tasks.py:367-373](../../dashboard/tasks.py#L367-L373)), so a later relapse re-alerts.
+Recovered students are cleared with `is_at_risk=False, average_score=None, alert_pending=False`, so a later relapse re-alerts — and an alert still undelivered at recovery is dropped rather than announcing a risk that no longer exists.
 
-`last_alerted_at` is only bumped when `is_new` ([tasks.py:352-356](../../dashboard/tasks.py#L352-L356)) — it records the alert, not the check.
+**Partial queue failure** (some admins' emails queued, some not) keeps the alert pending and the next run re-sends it to every admin. An admin whose copy did queue may get it twice; that is deliberate — a duplicate alert is recoverable, a lost one is not.
+
+`last_alerted_at` is set when the alert is discharged — it records the delivery, not the check. Regression coverage: `AtRiskAlertDeliveryTest` in `dashboard/tests_dashboard_remediation.py` (outage then recovery, multi-run outage, partial failure, recovery during outage, no duplicate after delivery).
 
 Per-school failures are caught and counted as `schools_skipped` ([tasks.py:414-421](../../dashboard/tasks.py#L414-L421)); the return string reports processed and skipped counts.
 
@@ -378,24 +379,33 @@ A free-text chat over the caller's own dashboard data, exposed on **four** surfa
 ```mermaid
 flowchart TD
     A[POST custom-ai-prompt] --> B[CustomAIPromptThrottle: 10/min per USER]
-    B --> C[get_or_create ChatSession for this user+assistant_type]
-    C --> D["call every dashboard action on self,<br/>each in its own try/except → empty dict on failure"]
-    D --> E[interpolate into a labelled context template]
-    E --> F[atomic: append USER message]
-    F --> G[ai_processor.custom_ai_prompt_retry]
-    G --> H[append ASSISTANT message]
+    B --> D["build labelled context sections<br/>(dashboard_context_section)"]
+    D -- a section raises --> L["log it + mark the section UNAVAILABLE"]
+    D --> G["run_dashboard_ai_chat:<br/>custom_ai_prompt_retry — NO transaction open"]
+    L --> G
+    G --> H["atomic: get_or_create ChatSession,<br/>append USER + ASSISTANT together"]
     H --> I[200 with the reply]
-    G -- any exception --> J[500 via describe_user_error]
+    G -- any exception --> J["500 via describe_user_error<br/>(nothing persisted)"]
 ```
-*Caption: the context is assembled by calling the viewset's own actions and reading `.data`.*
+*Caption: sections are built first; the provider call runs outside any transaction; the chat turn is written in one short transaction only when there is a reply.*
 
-### The context is built by self-calling
+### How each surface builds its context
 
-`self.platform_adoption(request, ...).data`, `self.platform_usage(...)`, and seven more — **each wrapped in its own `try/except` that falls back to `{}`** ([views.py:1022-1067](../../dashboard/views.py#L1022-L1067)). So a broken sub-report degrades that section to empty rather than failing the whole chat.
+All three surfaces share `dashboard_context_section` and `run_dashboard_ai_chat` in `dashboard/views.py`.
 
-The cost: **one chat message runs nine full dashboard reports**, each of which fans out into its own aggregate queries. This is the most expensive endpoint in the app per request, before the AI call is even made.
+| Surface | Context |
+|---|---|
+| Super admin | nine `### …` sections, each the `.data` of one of the view's own dashboard actions |
+| School admin | `SUMMARY`, `STUDENTS` from the view's actions; `TEACHERS` from `SchoolAdminAIContextService.teachers` — **every** teacher in the school up to `MAX_TEACHERS` (100), with `teachers_total` and an explicit "Showing N of M" note beyond that |
+| Teacher | one `TEACHING DATA` section from `TeacherAIContextService.build` — four queries regardless of size |
 
-The nine sections are interpolated into a plainly-labelled template (`### PLATFORM ADOPTION METRICS`, etc.) ([views.py:1069-1094](../../dashboard/views.py#L1069-L1094)).
+**A section that fails is logged and the model is told** (`UNAVAILABLE: … tell the user this data is temporarily unavailable`), never sent `{}`. The old `except Exception: {}` hid a real defect for as long as it existed: the school-admin chat called `self.teachers`, a method that no longer exists on that view, so every request sent the model an empty teachers section with no log line.
+
+**Teacher context is bounded, and its limits are stated.** It used to call four dashboard endpoints in loops — one *per assignment* — and paste every response whole (measured: +37 queries per 10 assignments). `TeacherAIContextService` returns courses, recent / lowest-scoring / upcoming assignments, per-enrolment student risk (the canonical `StudentRiskEvaluator`), and AI-trust figures. Every list has a cap (`MAX_COURSES`, `MAX_RECENT_ASSIGNMENTS`, `MAX_STUDENT_ROWS`, …) and a matching `*_total`; any cut is recorded in `limits`, and when nothing is cut `limits` says so. At-risk students sort first, so they are the last rows to be cut.
+
+**No transaction across the provider call.** The user and assistant messages are appended together afterwards, so a failed call still leaves no orphaned user message. One consequence to know: credit consumption is committed by the billing layer during the call, independently of the chat append — if the append itself failed after a successful call, the credits stay spent without a stored reply.
+
+Real-provider verification: `dashboard/tests_real_ai_chat.py` (opt-in `RUN_REAL_AI=1`) plants invented names and counts, asks a question only answerable from them, and checks the reply uses them — for the teacher chat and for the school-admin teachers section.
 
 ### Injection framing and throttling
 
@@ -426,8 +436,9 @@ Rate: `custom_ai_prompt: 10/min` ([settings.py:1049](../../AutoGrader/settings.p
 | At-risk task never ran for a school | no snapshot for that day — a **gap** in the trend chart | none; snapshots are not backfilled |
 | Admin opts in after the fact | one-time catch-up alert naming the whole current at-risk set | **intentional** |
 | Teacher joined recently | skipped by the grace period | automatic once past the threshold |
-| A dashboard sub-report raises during custom-ai-prompt | that section becomes `{}`; the AI answers with a gap it cannot see | check logs — **the failure is invisible in the reply** |
-| AI call fails | 500 with an actionable message; **the USER message is already appended** inside the atomic block | the transaction rolls back, so the message is not orphaned |
+| A dashboard sub-report raises during custom-ai-prompt | logged (`Dashboard AI context section failed to load`, with section, user and task type); the section is sent as `UNAVAILABLE` so the reply says the data is missing | fix the logged error |
+| AI call fails | 500 with an actionable message; **nothing is persisted** (messages are written only after a reply) | retry |
+| Email queue down during the at-risk run | the alert stays `alert_pending` | delivered automatically by the next successful run |
 | Custom AI prompt over 10/min | 429 | wait |
 | `evidence` below 5 graded submissions | reported as `None`, verdict says "not enough work graded yet" | by design |
 | `demand` unavailable | whole rigor score is `None`, verdict "Not enough data yet" | run `backfill_assignment_rigor` if the data should exist |

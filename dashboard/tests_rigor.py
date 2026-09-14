@@ -450,28 +450,22 @@ class WeeklySummaryRigorTest(RigorSchoolFixture, TestCase):
 
         self.assertEqual(self._count_summary_queries(), baseline)
 
-    def test_rigor_costs_nothing_per_additional_teacher(self):
-        """Rigor's two roll-up queries are paid once for the whole school.
+    def test_teacher_activity_costs_nothing_per_additional_teacher(self):
+        """The whole teacher-activity section is a fixed number of queries.
 
-        Adding teachers still costs the surrounding loop's own per-teacher
-        metrics, but rigor must contribute nothing to that growth -- it used
-        to add two aggregate queries per teacher on top.
+        This used to pin a cost of SEVEN queries per idle teacher, which was
+        the per-teacher loop's floor; its purpose was to catch rigor adding
+        two more on top. Since the §8 remediation every per-teacher figure,
+        rigor included, comes from TeacherPerformanceStatsService's grouped
+        queries, so the stricter invariant is now the right one: adding
+        teachers must not add queries at all.
         """
         before = self._count_summary_queries()
         for i in range(3):
             self.make_teacher(f"scale-{i}")
         after = self._count_summary_queries()
 
-        per_teacher_cost = (after - before) / 3
-        self.assertEqual(per_teacher_cost, self.LOOP_QUERIES_PER_IDLE_TEACHER)
-
-    #: Cost of one *idle* teacher (no assignments, no graded submissions) in
-    #: _build_teacher_activity: enrolment count, growth (current + past),
-    #: assignment count, first assignment, graded count, AI confidence. The
-    #: turnaround Sum is skipped because graded_count is 0. Rigor is
-    #: deliberately absent from this list -- if it reappears, this number
-    #: jumps by 2 per teacher and the test fails, which is the point.
-    LOOP_QUERIES_PER_IDLE_TEACHER = 7
+        self.assertEqual(after, before)
 
     def _count_summary_queries(self):
         from django.db import connection

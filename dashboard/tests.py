@@ -1517,6 +1517,13 @@ class StudentDashboardOverviewGPAAPITest(APITestCase):
                 score=pct,
                 score_percentage=pct,
                 graded_at=self.now,
+                # Released to the student, as the real publish flow does
+                # (students/views.py, assignments/views.py). This fixture
+                # previously left is_published at its False default and only
+                # passed because the overview leaked UNRELEASED grades to
+                # students - fixed in the §8 review, see
+                # tests_dashboard_audit_fixes.StudentGradeVisibilityTest.
+                is_published=True,
             )
 
         self.client.force_authenticate(user=self.student)

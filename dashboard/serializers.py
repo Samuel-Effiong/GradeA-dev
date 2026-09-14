@@ -316,6 +316,18 @@ class TeacherStudentAnalyticsSerializer(serializers.Serializer):
     at_risk = serializers.BooleanField(read_only=True)
 
 
+class PaginatedTeacherStudentAnalyticsSerializer(serializers.Serializer):
+    """Schema-only: the StandardPageNumberPagination envelope the teacher
+    `students` endpoint returns. Declared by hand because that endpoint is a
+    ViewSet action that paginates manually, which drf-spectacular cannot
+    detect on its own."""
+
+    count = serializers.IntegerField()
+    next = serializers.URLField(allow_null=True)
+    previous = serializers.URLField(allow_null=True)
+    results = TeacherStudentAnalyticsSerializer(many=True)
+
+
 class SignupTotalsSerializer(serializers.Serializer):
     """Serializer for total signup counts by user type"""
 
