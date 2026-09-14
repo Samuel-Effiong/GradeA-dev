@@ -39,6 +39,9 @@ class TaskViewSetTest(APITestCase):
             description="A course for task cleanup tests.",
         )
 
+    # cancel_processing_task revokes exactly once, through app.control.revoke;
+    # AsyncResult.revoke (which is that same call) is no longer invoked as
+    # well, so its mock must stay untouched (section 7 pass, R-8).
     @patch("students.task_tracking.celery_app.control.revoke")
     @patch("students.task_tracking.AsyncResult.revoke")
     def test_cancel_endpoint_marks_tracked_task_cancelled(
@@ -59,7 +62,7 @@ class TaskViewSetTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         processing_task.refresh_from_db()
         self.assertEqual(processing_task.status, BackgroundTaskStatus.CANCELLED)
-        mock_async_revoke.assert_called_once_with(terminate=True, signal="SIGTERM")
+        mock_async_revoke.assert_not_called()
         mock_control_revoke.assert_called_once_with(
             task_id, terminate=True, signal="SIGTERM"
         )
@@ -170,7 +173,7 @@ class TaskViewSetTest(APITestCase):
 
         processing_task.refresh_from_db()
         self.assertEqual(processing_task.status, BackgroundTaskStatus.CANCELLED)
-        mock_async_revoke.assert_called_once()
+        mock_async_revoke.assert_not_called()
         mock_control_revoke.assert_called_once()
 
     @patch("students.task_tracking.celery_app.control.revoke")
@@ -199,7 +202,7 @@ class TaskViewSetTest(APITestCase):
 
         processing_task.refresh_from_db()
         self.assertEqual(processing_task.status, BackgroundTaskStatus.CANCELLED)
-        mock_async_revoke.assert_called_once_with(terminate=True, signal="SIGTERM")
+        mock_async_revoke.assert_not_called()
         mock_control_revoke.assert_called_once_with(
             task_id, terminate=True, signal="SIGTERM"
         )
@@ -346,7 +349,7 @@ class TaskViewSetTest(APITestCase):
             remaining_statuses["success.pdf"], BackgroundTaskStatus.SUCCESS
         )
 
-        self.assertEqual(mock_async_revoke.call_count, 2)
+        self.assertEqual(mock_async_revoke.call_count, 0)
         self.assertEqual(mock_control_revoke.call_count, 2)
 
     def test_cancel_session_rejects_other_users_session(self):
@@ -394,7 +397,7 @@ class TaskViewSetTest(APITestCase):
         self.assertEqual(
             processing_task.meta["deleted_assignment_id"], str(assignment.id)
         )
-        mock_async_revoke.assert_called_once_with(terminate=True, signal="SIGTERM")
+        mock_async_revoke.assert_not_called()
         mock_control_revoke.assert_called_once_with(
             task_id, terminate=True, signal="SIGTERM"
         )
@@ -427,7 +430,7 @@ class TaskViewSetTest(APITestCase):
         processing_task.refresh_from_db()
         self.assertEqual(processing_task.status, BackgroundTaskStatus.CANCELLED)
         self.assertEqual(processing_task.assignment_id, assignment.id)
-        mock_async_revoke.assert_called_once_with(terminate=True, signal="SIGTERM")
+        mock_async_revoke.assert_not_called()
         mock_control_revoke.assert_called_once_with(
             task_id, terminate=True, signal="SIGTERM"
         )
@@ -468,7 +471,7 @@ class TaskViewSetTest(APITestCase):
         processing_task.refresh_from_db()
         self.assertEqual(processing_task.status, BackgroundTaskStatus.CANCELLED)
         self.assertIsNone(processing_task.assignment_id)
-        mock_async_revoke.assert_called_once_with(terminate=True, signal="SIGTERM")
+        mock_async_revoke.assert_not_called()
         mock_control_revoke.assert_called_once_with(
             task_id, terminate=True, signal="SIGTERM"
         )
