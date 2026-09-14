@@ -2,12 +2,8 @@ import logging
 import uuid
 
 from dateutil.relativedelta import relativedelta
-
-# from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
 from django.core.exceptions import ValidationError as DjangoValidationError
-
-# from django.core.mail import send_mail
 from django.db.models import (
     CharField,
     Count,
@@ -23,10 +19,6 @@ from django.db.models import (
 from django.db.models.functions import Coalesce, Concat, TruncMonth
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-
-# from django.utils.decorators import method_decorator
-# from django.views.decorators.cache import cache_page
-# from django.views.decorators.vary import vary_on_headers
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
@@ -48,7 +40,6 @@ from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-# from ai_processor.services import ai_processor
 from assignments.models import Assignment
 from assignments.serializers import TaskInfoSerializer
 from AutoGrader.cache_generation import SCOPE_GLOBAL, SCOPE_USER, versioned_key
@@ -1542,7 +1533,6 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
     @extend_schema(
         tags=["02 Course"],
         summary="List courses a student is enrolled in",
-        # description="",
         responses=CourseSerializer(many=True),
     )
     @action(detail=False, methods=["get"], url_name="my-courses", url_path="my-courses")
@@ -2268,22 +2258,6 @@ class CourseCategoryViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if search_query:
             queryset = queryset.filter(name__icontains=search_query)
         return queryset
-
-    # @method_decorator(cache_page(60 * 3, key_prefix="coursecategories:list"))
-    # @method_decorator(vary_on_headers("Authorization"))
-    # def list(self, request, *args, **kwargs):
-    #     """
-    #     List all course categories with optional search and pagination.
-    #     """
-    #     return super().list(request, *args, **kwargs)
-    #
-    # @method_decorator(cache_page(60 * 3, key_prefix="coursecategories:detail"))
-    # @method_decorator(vary_on_headers("Authorization"))
-    # def retrieve(self, request, *args, **kwargs):
-    #     """
-    #     Retrieve a specific course category by ID.
-    #     """
-    #     return super().retrieve(request, *args, **kwargs)
 
     @extend_schema(
         tags=["Course Categories"],

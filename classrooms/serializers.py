@@ -209,13 +209,6 @@ class CourseSerializer(serializers.ModelSerializer):
         return course
 
     def get_student_count(self, obj) -> int:
-        # return (
-        #     StudentCourse.objects.filter(course=obj)
-        #     .exclude(enrollment_status__iexact="withdrawn")
-        #     .distinct()
-        #     .count()
-        # )
-
         if hasattr(obj, "student_count"):
             return obj.student_count
 
@@ -237,16 +230,6 @@ class CourseSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(StudentSerializer(many=True))
     def get_students(self, obj):
-        # # TODO: Add users, to ensure that it is by the teacher
-        # enrolled_students = (
-        #     CustomUser.objects.filter(enrollments__course=obj)
-        #     .exclude(
-        #         enrollments__course=obj,
-        #         enrollments__enrollment_status__iexact="withdrawn",
-        #     )
-        #     .distinct()
-        # )
-
         if hasattr(obj, "active_enrollments"):
             enrolled_students = [
                 enrollment.student for enrollment in obj.active_enrollments
@@ -400,7 +383,7 @@ class StudentCourseDetailSerializer(StudentCourseSerializer):
         for assignment in assignments:
             submission = submissions.get(assignment.id)
 
-            # Logic: status and score
+            # Status and score for this assignment
             if not submission:
                 now = timezone.now()
 
