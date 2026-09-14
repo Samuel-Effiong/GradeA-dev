@@ -3,7 +3,7 @@
 Status: **GAPS FOUND / BLOCKERS FIXED / REMEDIATION IN PROGRESS.**
 
 - **Dashboard work (items 1-8 and the dashboard part of item 9):** in `beta` since merge `2715c64`, which passed the strict gate (§10). Every later `beta` descends from that merge.
-- **Still open:** item 9 across the whole repository. By the owner's decision of 2026-09-14 it covers every file, and 33 files with 351 hits are tracked in `docs/HARDENING_BACKLOG.md` H-12.
+- **Still open:** item 9 across the whole repository. By the owner's decision of 2026-09-14 it covers every file, and 32 files with 347 hits are tracked (recounted on `30b7b95`: Section 5 deleted `ai_processor/views.py` and its stale exemption was removed) in `docs/HARDENING_BACKLOG.md` H-12.
 
 The sections below record what has been verified so far. The measurement scripts ran in throwaway copies; the numbers are recorded here because the scratchpad does not survive sessions.
 
