@@ -1,0 +1,15 @@
+started_utc 2026-09-14T15:13:46Z
+exit 0
+ended_utc 2026-09-14T15:36:13Z
+elapsed_seconds 1347
+log_lines 59267
+log_sha256 20321cc3b1af19ff0e85451f345c9d07381044ef0ca0ded7899c6d3069d56bbc
+ran_line Ran 4003 tests in 1331.919s
+result_line OK (skipped=18)
+fail_error_lines 0
+other_sessions_lines 0
+destroy_line Destroying test database for alias 'default' ('test_s5_final_gate_eb6f3a0')...
+pg_database_rows_after 0
+pg_stat_activity_connections_after 0
+any_s5_gate_databases_left 0
+fingerprint_identical yes
