@@ -419,19 +419,17 @@ class PostGradingLockAPITest(APITestCase):
         mock_launch.assert_not_called()
         self.assertFalse(BackgroundProcessingTask.objects.exists())
 
-    @patch("students.views.ai_processor")
+    @patch("students.services.ai_processor")
     def test_raw_text_edit_is_refused_with_409(self, mock_ai):
         # The edit endpoint re-extracts and overwrites `answers`, so the
-        # rule applies to it. Note the permission mapping in
-        # StudentSubmissionViewSet.get_permissions routes PATCH
-        # (partial_update) to teacher-only - a student gets 403 before
-        # reaching this rule (recorded as R-6 finding V-3) - so the guard
-        # is exercised as the teacher who owns the course.
+        # rule applies to it - for the student (own submission) and for the
+        # course teacher alike (R-6 finding V-3: PATCH now follows its
+        # docstring instead of falling through to teacher-only).
         self.client.force_authenticate(user=self.student)
         response = self.client.patch(
             self.detail_url, {"raw_input": "edited"}, format="json"
         )
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
 
         self.client.force_authenticate(user=self.teacher)
         response = self.client.patch(
@@ -543,7 +541,7 @@ class PostGradingLockAPITest(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    @patch("students.views.ai_processor")
+    @patch("students.services.ai_processor")
     def test_raw_text_edit_is_refused_while_grading_is_running(self, mock_ai):
         ungraded = _submission(
             Assignment.objects.create(

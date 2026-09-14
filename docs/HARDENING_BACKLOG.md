@@ -59,7 +59,7 @@ speed that decision up, not to pre-empt it.
 | H-8 | Test file naming / stray docs | Low | Section 3 | Not started |
 | H-9 | Test suite shares one Redis DB (isolation) | High | Whoever owns CI | **FIXED — per-process prefix + prefix-scoped clear(); 4/4 tests pass, two concurrent runs verified** |
 | H-10 | `super-admin/dashboard/students` 480-query N+1 | High | Section 8 (dashboard) | **Fix = Section 8 dashboard remediation (owner decision 2026-09-14). NOT closed** — see closure conditions |
-| H-11 | Synchronous billed AI calls inside `students` request handlers (`upload`, `grade`, `PATCH raw_input`) | **High - release-blocking** | Section 7 (students) + frontend | Open - tracked here from the §7 review pass, 2026-09-13 |
+| H-11 | Synchronous billed AI calls inside `students` request handlers (`upload`, `grade`, `PATCH raw_input`) | **High - release-blocking** | Section 7 (students) + frontend | **OPEN.** 2026-09-14: async edit path built and gated, V-2..V-4/V-6 closed, duplicate-request guards added; **remaining: client migration confirmed, then retire the three synchronous routes** (see item) |
 | H-12 | Commented-out code (flake8 E800) burn-down - 38 files carved out of the rule | Low | Each file's section owner | Rule ON since 2026-09-13; `students` clean; 38 files carved out |
 | H-13 | Uploads while grading is RUNNING | Medium | Product + Section 7 | **DECIDED 2026-09-14: refuse (409). Implemented and gated in the §7 branch.** |
 
@@ -1010,6 +1010,67 @@ regression; evidence recorded in `docs/evidence/`.
 **Until closed:** the sync endpoints keep working exactly as today, with
 the §7 pass's server-side rules applied to them (post-grading lock,
 tenancy scoping, 409 for closure errors).
+
+### Owner scope clarification (2026-09-14) and progress
+
+The owner ruled: no new duplicate async implementations for upload and
+grade - they already have `upload-async`, `grade-async` and
+`schedule-grade-async`. H-11 is a **migration/retirement** task for those
+two, plus wiring the existing `extract_answer_background_task` into an
+async edit path. The synchronous routes are **not** to be removed until
+the frontend/client dependency is confirmed.
+
+**Done in the §7 branch (2026-09-14):**
+
+* `POST submissions/<pk>/update-async` — queues the (previously unrouted
+  and broken: it wrote to fields that do not exist) extraction task,
+  rewired to the same service the synchronous PATCH now uses
+  (`students.services.update_submission_from_raw_text`): closure rules
+  checked before the billed call and again under the row lock, one refund
+  scope over extraction + persistence, column-scoped save. `202 + task_id`.
+* Duplicate-request guards (a client retrying after a proxy timeout must
+  not queue a second billed run): `update-async` locks the submission row,
+  `upload-async` locks the student's user row; both refuse (409) while an
+  extraction task for the target is PENDING/STARTED.
+* Task-level idempotency claim on the tracked row
+  (`students.task_tracking.claim_processing_task_start`): a Redis
+  redelivery of a running extraction skips; a stale STARTED claim (dead
+  worker, older than `EXTRACTION_TASK_STALE_AFTER_SECONDS`) is taken over.
+* V-2 closed: user-caused failures answer 400 with their own text (500
+  only for genuine faults) on `upload`, `PATCH` and `grade`.
+  V-3 decided: `PATCH`/`update-async` follow the docstring — the
+  submission's own student and the course teacher, both queryset-scoped.
+  V-4 closed by the shared service. V-6 closed (dead kwarg removed).
+  V-5 (`StudentViewSet` unrouted) is a deletion and stays for sign-off.
+* Evidence: `students/tests_async_edit_path.py` — route, tenancy,
+  duplicate guards, task success/refusal/retry/refund, redelivery on a
+  real Celery worker, 12 concurrent live-HTTP clients → exactly one task,
+  and an opt-in **real provider** call (`RUN_REAL_AI=1`, run once:
+  answer extracted from the text, wallet charged exactly once). Mutation
+  M25–M30 in `docs/evidence/SECTION_7_GATE_EVIDENCE.md` §13.
+
+**Client dependency check (what could be done from this repository):**
+no frontend code lives here; the only references to the synchronous
+routes are the backend docs (`docs/backend/students-and-submissions.md`,
+`BACKEND_REFERENCE.md`, which already lists them as finding P3) and this
+app's own tests. **Confirmation from the frontend owner is still
+required** before retirement.
+
+**Remaining to close H-11:**
+1. Frontend/client confirmation that `upload-async`, `grade-async` /
+   `schedule-grade-async` and `update-async` are what clients call.
+2. Retire `POST .../upload`, `POST .../grade` and `PATCH .../<pk>` (or
+   turn them into thin dispatchers returning 202) — a response-contract
+   change, done with the frontend.
+3. Give `upload_answers_engine_async` the same tracked-row idempotency
+   claim the edit task now has (the grading task has its own claim; the
+   upload task still relies on the request-level guard alone). Section 9
+   is changing that task concurrently; do this after their change lands.
+4. Full ten-state gate on the retirement change, per the owner's list:
+   real provider, proxy timeouts, duplicate/replayed requests, concurrent
+   submissions, task tracking, credit charged exactly once, failure after
+   charge, retries, and a timed-out client retry never creating a second
+   billed run.
 
 # H-12 — Commented-out code burn-down (flake8-eradicate E800)
 

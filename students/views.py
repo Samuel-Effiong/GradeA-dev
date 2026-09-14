@@ -5,6 +5,7 @@ import uuid
 from django.conf import settings
 from django.core.cache import cache
 from django.core.files.uploadedfile import UploadedFile
+from django.db import transaction
 from django.db.models import F
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -37,7 +38,6 @@ from rest_framework.status import (
     HTTP_500_INTERNAL_SERVER_ERROR,
 )
 
-from ai_processor.services import ai_processor
 from assignments.models import Assignment, AssignmentStatus
 from assignments.serializers import (
     BatchUploadResponseSerializer,
@@ -46,16 +46,17 @@ from assignments.serializers import (
 )
 from assignments.services import AssignmentProcessingService
 from assignments.tasks import (
+    extract_answer_background_task,
     formatted_grade_async,
     grade_engine_async,
     upload_answers_engine_async,
 )
 from AutoGrader.cache_generation import SCOPE_USER, versioned_key
-from AutoGrader.error_messages import describe_user_error
+from AutoGrader.error_messages import describe_user_error, is_user_facing_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.uploads import validate_upload_size
 from classrooms.models import EnrollmentStatusType
-from classrooms.permissions import IsStudent, IsTeacher, IsTeacherOrReadOnly
+from classrooms.permissions import IsStudent, IsTeacher
 from users.mixins import UserCacheMixin
 from users.models import CustomUser, UserTypes
 from users.permissions import HasCreditBalance
@@ -65,6 +66,7 @@ from .exceptions import (
     SubmissionBeingGradedError,
     SubmissionGradingInProgressError,
     SubmissionLimitReachedError,
+    SubmissionProcessingInProgressError,
 )
 from .models import (
     BackgroundTaskType,
@@ -82,16 +84,18 @@ from .serializers import (
     StudentSubmissionListSerializer,
     StudentSubmissionSerializer,
     StudentSubmissionTeacherFeedbackSerializer,
+    StudentSubmissionUpdateAsyncSerializer,
     StudentSubmissionUpdateSerializer,
     StudentSubmissionUploadAsyncSerializer,
 )
 from .services import (
-    _coerce_confidence,
+    ensure_no_active_extraction,
     ensure_student_may_submit,
     ensure_submission_open,
     grade_engine,
     notify_student_of_graded_submission,
     student_submission_to_html,
+    update_submission_from_raw_text,
     upload_answers_engine,
 )
 from .signals import invalidate_submission_caches
@@ -106,11 +110,26 @@ SUBMISSION_CLOSED_ERRORS = (
     SubmissionAlreadyGradedError,
     SubmissionBeingGradedError,
     SubmissionLimitReachedError,
+    SubmissionProcessingInProgressError,
 )
 
 
 def _submission_closed_response(exc):
     return Response({"error": str(exc)}, status=HTTP_409_CONFLICT)
+
+
+def _failure_response(exc, fallback_message):
+    """A refusal the user can act on is a 400 with its own text; anything
+    else is a 500 with the operation's fallback text (never the raw
+    exception)."""
+    return Response(
+        {"error": describe_user_error(exc, fallback_message=fallback_message)},
+        status=(
+            HTTP_400_BAD_REQUEST
+            if is_user_facing_error(exc)
+            else HTTP_500_INTERNAL_SERVER_ERROR
+        ),
+    )
 
 
 def _assignment_open_to_student(assignment_id, student):
@@ -363,6 +382,13 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         ]:
             # These are student actions that (mostly) consume AI credits
             permission_classes = [IsAuthenticated, IsStudent, HasCreditBalance]
+        elif self.action in ["partial_update", "update_async"]:
+            # The raw-text edit re-extracts (billed). Open to the
+            # submission's own student and to the course's teacher - both
+            # already scoped by get_queryset - as the docstring above always
+            # said; the mapping used to route PATCH to teacher-only by
+            # falling through to the default branch (R-6 finding V-3).
+            permission_classes = [IsAuthenticated, HasCreditBalance]
         elif self.action in [
             "batch_upload",
             "grade",
@@ -495,17 +521,10 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             return _submission_closed_response(exc)
         except Exception as e:
             logger.error("Failed to process submission upload", exc_info=e)
-            return Response(
-                {
-                    "error": describe_user_error(
-                        e,
-                        fallback_message=(
-                            "We couldn't process your submission. Please "
-                            "check the file and try again."
-                        ),
-                    )
-                },
-                status=HTTP_500_INTERNAL_SERVER_ERROR,
+            return _failure_response(
+                e,
+                "We couldn't process your submission. Please check the file "
+                "and try again.",
             )
 
     @extend_schema(
@@ -574,15 +593,24 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             uploaded_file
         )
 
-        task_id = None
+        # One queued extraction per (student, assignment) at a time. The
+        # student's own user row is the lock, so two simultaneous requests
+        # (a double click, or a client retrying after a proxy timeout)
+        # serialise here and exactly one of them queues the billed task.
+        try:
+            with transaction.atomic():
+                CustomUser.objects.select_for_update().get(pk=request.user.pk)
+                ensure_no_active_extraction(assignment=assignment, student=request.user)
+                processing_task = create_processing_task(
+                    requested_by=request.user,
+                    task_type=BackgroundTaskType.ANSWER_EXTRACTION,
+                    assignment=assignment,
+                    file_name=uploaded_file.name,
+                    meta={"step": "Queued for answer extraction"},
+                )
+        except SUBMISSION_CLOSED_ERRORS as exc:
+            return _submission_closed_response(exc)
 
-        processing_task = create_processing_task(
-            requested_by=request.user,
-            task_type=BackgroundTaskType.ANSWER_EXTRACTION,
-            assignment=assignment,
-            file_name=uploaded_file.name,
-            meta={"step": "Queued for answer extraction"},
-        )
         task = launch_processing_task(
             upload_answers_engine_async,
             processing_task,
@@ -600,84 +628,100 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         return Response(serializer.data, status=HTTP_200_OK)
 
     def partial_update(self, request, *args, **kwargs):
+        """
+        Synchronous raw-text edit: re-extracts answers inside the request.
+        Kept for client compatibility until H-11 retires it; the
+        asynchronous twin is `update-async` below. Both call the same
+        service, so the rules (open assignment, not graded, not being
+        graded, refund on failure, column-scoped save) cannot diverge.
+        """
         raw_input = request.data.get("raw_input")
+        if not raw_input or not str(raw_input).strip():
+            raise ParseError("raw_input is required.")
 
         submission = self.get_object()
-        assignment = submission.assignment
-
-        if assignment.status != AssignmentStatus.PUBLISHED:
+        if submission.assignment.status != AssignmentStatus.PUBLISHED:
             raise ParseError("Cannot update submission for a non-published assignment.")
 
-        # Editing the raw text is a re-submission by another route (it
-        # re-extracts and overwrites `answers`), so the post-grading rule
-        # applies here exactly as it does to a file upload.
         try:
-            ensure_submission_open(submission)
+            submission = update_submission_from_raw_text(
+                request.user, submission, raw_input
+            )
+        except SUBMISSION_CLOSED_ERRORS as exc:
+            return _submission_closed_response(exc)
+        except Exception as e:
+            logger.error("Failed to save submission update", exc_info=e)
+            return _failure_response(
+                e, "We couldn't save your update. Please try again."
+            )
+
+        serializer = StudentSubmissionListSerializer(submission)
+        return Response(serializer.data, status=HTTP_201_CREATED)
+
+    @extend_schema(
+        tags=["07 Student Submissions"],
+        summary="Re-extract a submission's answers from edited text, asynchronously",
+        description=(
+            "Queues the re-extraction as a tracked background task and returns "
+            "202 with a task id to poll. Refuses (409) if the submission is "
+            "graded, being graded, or already being processed by an earlier "
+            "request."
+        ),
+        request=StudentSubmissionUpdateSerializer,
+        responses={202: StudentSubmissionUpdateAsyncSerializer},
+    )
+    @action(
+        detail=True,
+        methods=["POST"],
+        url_path="update-async",
+        url_name="update-async",
+    )
+    def update_async(self, request, pk=None):
+        raw_input = request.data.get("raw_input")
+        if not raw_input or not str(raw_input).strip():
+            raise ParseError("raw_input is required.")
+
+        submission = self.get_object()
+        if submission.assignment.status != AssignmentStatus.PUBLISHED:
+            raise ParseError("Cannot update submission for a non-published assignment.")
+
+        # The submission row is the lock: two simultaneous requests (double
+        # click, or a retry after a proxy timeout) serialise here, the
+        # closure rules are re-read under the lock, and exactly one of
+        # them queues the billed task.
+        try:
+            with transaction.atomic():
+                locked = StudentSubmission.objects.select_for_update().get(
+                    pk=submission.pk
+                )
+                ensure_submission_open(locked)
+                ensure_no_active_extraction(submission=locked)
+                processing_task = create_processing_task(
+                    requested_by=request.user,
+                    task_type=BackgroundTaskType.ANSWER_EXTRACTION,
+                    assignment=submission.assignment,
+                    submission=submission,
+                    meta={"step": "Queued for answer re-extraction"},
+                )
         except SUBMISSION_CLOSED_ERRORS as exc:
             return _submission_closed_response(exc)
 
-        try:
-            assignment_context = f"""
-            This is the Assignment Context to use in properly extracting the student submissions
-            {assignment.questions}
-            """
+        task = launch_processing_task(
+            extract_answer_background_task,
+            processing_task,
+            str(submission.id),
+            raw_input,
+            str(request.user.id),
+        )
 
-            prompt = """
-            Analyze the content of an educational assignment that is sent to you in PROSEMIRROR FORMAT and return a JSON
-
-            IMPORTANT: Return only valid JSON matching the required structure.
-            Do not include any explanatory text before or after the JSON
-            """
-
-            content = [
-                {"type": "text", "text": prompt},
-                {"type": "text", "text": raw_input},
-            ]
-
-            student_submission = ai_processor.extract_answer_with_retry(
-                request.user,
-                content,
-                assignment_context,
-                assignment_model=assignment,
-                max_retries=3,
-            )
-
-            if student_submission is not None:
-
-                serializer = StudentSubmissionSerializer(
-                    submission, data=student_submission, partial=True
-                )
-                serializer.is_valid(raise_exception=True)
-                submission = serializer.save()
-
-                answer_html = student_submission_to_html(submission)
-                submission.raw_input = (
-                    AssignmentProcessingService.html_to_prosemirror_text(answer_html)
-                )
-                # Persist the extractor's confidence - the dashboard
-                # threshold-flags low-confidence extractions, which stayed 0
-                # forever while this field was silently dropped here.
-                submission.extraction_confidence = _coerce_confidence(
-                    student_submission.get("extraction_confidence")
-                )
-                submission.save()
-
-                serializer = StudentSubmissionListSerializer(submission)
-
-                return Response(serializer.data, status=HTTP_201_CREATED)
-        except Exception as e:
-            logger.error("Failed to save submission update", exc_info=e)
-            return Response(
-                {
-                    "error": describe_user_error(
-                        e,
-                        fallback_message=(
-                            "We couldn't save your update. Please try again."
-                        ),
-                    )
-                },
-                status=HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        serializer = StudentSubmissionUpdateAsyncSerializer(
+            {
+                "submission_id": submission.id,
+                "task_id": task.id,
+                "message": "Answer re-extraction started",
+            }
+        )
+        return Response(serializer.data, status=HTTP_202_ACCEPTED)
 
     @extend_schema(
         tags=["07 Student Submissions"],
@@ -720,17 +764,10 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         except Exception as e:
             logger.error("Grading failed", exc_info=e)
-            return Response(
-                {
-                    "error": describe_user_error(
-                        e,
-                        fallback_message=(
-                            "Grading failed. Please try again — if the "
-                            "problem continues, contact support."
-                        ),
-                    )
-                },
-                status=HTTP_500_INTERNAL_SERVER_ERROR,
+            return _failure_response(
+                e,
+                "Grading failed. Please try again — if the problem continues, "
+                "contact support.",
             )
 
     @extend_schema(
@@ -845,11 +882,8 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
     @action(
         detail=True,
         methods=["GET"],
-        # NOTE: this kwarg is dead — get_permissions() below overrides it and
-        # actually runs this action as [IsAuthenticated, IsTeacher,
-        # HasCreditBalance]. Don't "fix" it to match without auditing that
-        # override; doing so would newly expose this endpoint to students.
-        permission_classes=[IsAuthenticated, IsTeacherOrReadOnly],
+        # Permissions come from get_permissions(): teacher + credits. The
+        # per-action kwarg that used to sit here was never consulted.
         url_path="teacher_feedback",
     )
     def teacher_feedback(self, request, pk=None):

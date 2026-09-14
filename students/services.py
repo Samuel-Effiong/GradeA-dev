@@ -21,13 +21,21 @@ from users.models import CustomUser, UserTypes
 from users.services import get_opted_in_school_admins
 
 from .exceptions import (
+    AssignmentNotOpenError,
     CannotAssociateStudentError,
     SubmissionAlreadyGradedError,
     SubmissionBeingGradedError,
     SubmissionGradingInProgressError,
     SubmissionLimitReachedError,
+    SubmissionProcessingInProgressError,
 )
-from .models import BackgroundTaskType, GradingState, StudentSubmission
+from .models import (
+    BackgroundProcessingTask,
+    BackgroundTaskStatus,
+    BackgroundTaskType,
+    GradingState,
+    StudentSubmission,
+)
 from .signals import invalidate_submission_caches
 from .task_tracking import (
     cancellable_final_save,
@@ -1051,6 +1059,119 @@ def ensure_submission_open(submission):
     """Refuse-if-closed for an existing row (the raw-text edit path): graded
     or being graded. The attempt allowance is not consumed by an edit."""
     _check_submission_open(submission, student_upload=False)
+
+
+ACTIVE_TASK_STATUSES = (BackgroundTaskStatus.PENDING, BackgroundTaskStatus.STARTED)
+
+# The prompt the raw-text edit path sends alongside the edited ProseMirror
+# text. Kept here (not in the view) so the synchronous and asynchronous
+# routes cannot drift.
+RAW_TEXT_EXTRACTION_PROMPT = """
+Analyze the content of an educational assignment that is sent to you in PROSEMIRROR FORMAT and return a JSON
+
+IMPORTANT: Return only valid JSON matching the required structure.
+Do not include any explanatory text before or after the JSON
+"""
+
+
+def ensure_no_active_extraction(*, submission=None, assignment=None, student=None):
+    """
+    Refuse a second answer-extraction while one is still running for the
+    same target. A client that timed out and retried must not queue a
+    second billed run: the first task is still going to land. Callers hold
+    a row lock (the submission, or the student's user row for a first
+    upload) so two simultaneous requests cannot both pass this check.
+    """
+    active = BackgroundProcessingTask.objects.filter(
+        task_type__in=(
+            BackgroundTaskType.ANSWER_EXTRACTION,
+            BackgroundTaskType.BATCH_ANSWER_UPLOAD,
+        ),
+        status__in=ACTIVE_TASK_STATUSES,
+    )
+    if submission is not None:
+        active = active.filter(submission=submission)
+    else:
+        active = active.filter(assignment=assignment, requested_by=student)
+    if active.exists():
+        raise SubmissionProcessingInProgressError(
+            "This submission is still being processed from an earlier "
+            "request. Please wait for it to finish before sending it again."
+        )
+
+
+def update_submission_from_raw_text(
+    user, submission, raw_input, processing_task_id=None
+):
+    """
+    Re-extract a submission's answers from edited raw (ProseMirror) text and
+    persist them. The single implementation behind both the synchronous
+    PATCH route and extract_answer_background_task.
+
+    Order matters: the closure rules are checked BEFORE the billed
+    extraction (a graded or in-grading row can never accept the edit, so
+    it must not cost a credit), then again under the row lock before the
+    write, because a grade or a claim can land during the extraction. The
+    extraction and the write share one refund scope, so a failure after the
+    charge - a malformed result, a refusal under the lock, the save itself -
+    reclaims the credit rather than charging for an edit that never landed.
+    """
+    assignment = submission.assignment
+    if assignment.status != AssignmentStatus.PUBLISHED:
+        raise AssignmentNotOpenError(
+            "This assignment is not currently open for submissions."
+        )
+    if not raw_input or not str(raw_input).strip():
+        raise ValueError("There is no text to extract answers from.")
+
+    ensure_submission_open(submission)
+    ensure_task_not_cancelled(processing_task_id)
+
+    assignment_context = f"""
+    This is the Assignment Context to use in properly extracting the student submissions
+    {assignment.questions}
+    """
+    content = [
+        {"type": "text", "text": RAW_TEXT_EXTRACTION_PROMPT},
+        {"type": "text", "text": raw_input},
+    ]
+
+    with billing_refund_scope(
+        reason="submission edit failed before the new answers were persisted"
+    ):
+        extracted = ai_processor.extract_answer_with_retry(
+            user,
+            content,
+            assignment_context,
+            assignment_model=assignment,
+            max_retries=3,
+            processing_task_id=processing_task_id,
+        )
+        answers = extracted.get("answers") if isinstance(extracted, dict) else None
+        if not isinstance(answers, list):
+            raise ValueError(
+                "Answer extraction returned no usable `answers` list "
+                f"(got {type(answers).__name__}); refusing to persist it."
+            )
+
+        with transaction.atomic():
+            locked = StudentSubmission.objects.select_for_update().get(pk=submission.pk)
+            _check_submission_open(locked, student_upload=False)
+            ensure_task_not_cancelled(processing_task_id)
+            locked.answers = answers
+            locked.raw_input = AssignmentProcessingService.html_to_prosemirror_text(
+                student_submission_to_html(locked)
+            )
+            locked.extraction_confidence = _coerce_confidence(
+                extracted.get("extraction_confidence")
+            )
+            with cancellable_final_save(processing_task_id):
+                # Only what this path owns - never a full-row save from an
+                # instance that predates the extraction.
+                locked.save(
+                    update_fields=["answers", "raw_input", "extraction_confidence"]
+                )
+    return locked
 
 
 def _match_enrolled_student(course, identified_name):

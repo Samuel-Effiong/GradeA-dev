@@ -17,7 +17,8 @@ All paths relative to `/api/v1/`. `SimpleRouter(trailing_slash=False)` ([student
 | GET | `submissions` | `IsAuthenticated` (scoped) | [students/views.py:172](../../students/views.py#L172) |
 | GET | `submissions/<pk>` | `IsAuthenticated` (scoped) | [students/views.py:236](../../students/views.py#L236) |
 | POST | `submissions` | — **raises `NotImplementedError`** | [students/views.py:275](../../students/views.py#L275) |
-| PATCH | `submissions/<pk>` | `IsStudent, HasCreditBalance` | [students/views.py:538](../../students/views.py#L538) |
+| PATCH | `submissions/<pk>` | `IsAuthenticated, HasCreditBalance` (own submission or own course; **synchronous AI re-extraction, slated for retirement under H-11**) | `students/views.py::partial_update` |
+| POST | `submissions/<pk>/update-async` | `IsAuthenticated, HasCreditBalance` (own submission or own course) — queues `extract_answer_background_task`, `202 + task_id`; `409` if graded, being graded, or already being processed | `students/views.py::update_async` |
 | DELETE | `submissions/<pk>` | `IsTeacher` | default |
 | POST | `submissions/<assignment_id>/upload` | `IsStudent, HasCreditBalance` | [students/views.py:400](../../students/views.py#L400) |
 | POST | `submissions/<assignment_id>/upload-async` | `IsStudent, HasCreditBalance` | [students/views.py:476](../../students/views.py#L476) |
