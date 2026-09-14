@@ -1,15 +1,21 @@
 # Section 8 (dashboard) remediation: verification evidence
 
-Status: **GAPS FOUND / BLOCKERS FIXED / REMEDIATION IN PROGRESS.** Not complete.
-Two things are still open:
+Status: **GAPS FOUND / BLOCKERS FIXED / REMEDIATION IN PROGRESS.**
 
-- item 9, E800, sequenced behind the Section 7 session's `.pre-commit-config.yaml` change;
-- the repository-wide gate on the final reconciled tree.
+- **Dashboard work (items 1-8 and the dashboard part of item 9):** committed, and it passed the strict final gate on `371268f` (§9).
+- **Still open:** item 9 across the whole repository. By the owner's decision of 2026-09-14 it covers every file, and 33 files with 351 hits are tracked in `docs/HARDENING_BACKLOG.md` H-12.
 
 The sections below record what has been verified so far. The measurement scripts ran in throwaway copies; the numbers are recorded here because the scratchpad does not survive sessions.
 
-**Tree.** Branch `task/dashboard-audit-reconciled` is based on `1373eae`, the H-1 cache-generation commit. The Section 8 changes are applied on top and uncommitted.
-Dashboard Python fingerprint at the time of writing: `sha256(sorted sha256 of dashboard/**/*.py) = 559d86fb100fa430…`.
+**Tree.** Branch `task/dashboard-audit-reconciled`, based on `1373eae` (the H-1 cache-generation commit):
+
+| Commit | What |
+|---|---|
+| `ec67363` | Section 8 remediation, items 1-8 |
+| `405c857` | Merge of Section 7's `54d3305`, which turns E800 on. The only conflict was task-table rows 7/8, resolved by keeping each section's own row. |
+| `df05d90` | Dashboard E800 cleanup, exemption-list trim, H-12 register |
+| `371268f` | Merge of Section 7's `98682e6`, `88360b5` and `efbeafe`: its two test-suite fixes and its evidence. The merge message names only the first two, but the history contains all three. |
+| *(docs commit after the gate)* | This evidence file and audit row 8. No code. |
 
 ## 1. Reconciliation with H-1
 
@@ -105,14 +111,7 @@ All of these came from probes against the original code; each has a regression t
 These suites cannot show the family-30 teacher rename or join case; that belongs to the H-1 session, as described above.
 | Interim full repository suite (`python manage.py test --settings=settings_worktree --parallel 1`) | **3931 tests OK**, 14 skipped, exit 0. The teardown "other sessions" line was not captured. |
 
-The full-suite run above is interim. It ran before item 9 (E800) and used `--keepdb`. A `--keepdb` run never drops the test database, so it cannot detect a leaked-connection regression (H-2): the "N other sessions using the database" failure only fires on that DROP.
-
-The **repository-wide gate** on the final tree, once item 9 lands, will therefore:
-
-- use a fresh test database, **without** `--keepdb`;
-- keep the full output;
-- run under `systemd-inhibit --what=sleep`;
-- afterwards confirm there is no `test_dashboard_audit_reconciled` row in `pg_database` and 0 connections to it in `pg_stat_activity`.
+The full-suite run above was interim: it ran before E800 and used `--keepdb`. **The strict gate in §9 supersedes it.**
 
 ## 8. Item 9: commented-out code (E800), dashboard part
 
@@ -145,6 +144,66 @@ The **repository-wide gate** on the final tree, once item 9 lands, will therefor
 The remaining list was checked to equal **exactly** the set of files that still have E800 hits, with no stale entries and no missing ones. `pre-commit run flake8 --all-files` passes with it.
 
 **Item 9 overall: open.** The owner decided on 2026-09-14 that item 9 covers the whole repository. 33 files and 351 hits remain. Each is tracked with its hit count, what is commented out, reason, owning section and staged plan in the `docs/HARDENING_BACKLOG.md` H-12 register. Entries are removed as each area is cleaned, and no directory-wide carve-outs are allowed. `migrations/` is excluded from the whole flake8 hook because it is generated code; that exclusion is documented in the register.
+
+## 9. Strict final gate: `371268f`
+
+**How it ran.**
+
+- **Isolation:** a dedicated detached worktree (`../Grade-Automator-Plus-s8-final-gate`), used by nothing else.
+- **Test database:** a fresh one, `test_s8_final_gate`, with **no** `--keepdb`.
+- **Output:** complete and unfiltered.
+- **Sleep:** held off with `systemd-inhibit --what=sleep:idle` for the whole run.
+- **Timing:** started 2026-09-14T12:59:11+01:00, finished 2026-09-14T13:27:43+01:00.
+
+**Fingerprint.** Identical before and after the run:
+
+| | |
+|---|---|
+| `HEAD` | `371268feae1c1086e1cc17440dde1da52714586d` |
+| index | `sha256(git ls-files -s)` = `a65a3559bfe60567f8a217ce51af69002de192010a8a944cb41af986acc0d11d` |
+| tracked content | `sha256` of every tracked file's `sha256` = `55b56322f0149e12a52a49560b27eeb7bc71782d70b3c04664a9d9b3064fc85f` |
+| `git status --porcelain` | 0 lines, before and after |
+
+**Results.**
+
+| Step | Result |
+|---|---|
+| Sleep lock available before start | yes |
+| Test DB before: `pg_database` rows / `pg_stat_activity` connections | 0 / 0 |
+| `pre-commit run --all-files` (E800 enforced with the 33-file register) | **exit 0** |
+| `scripts/check_migration_safety.py --base beta` | **exit 0**. `dashboard/0003`, `students/0027` and `students/0028` are all additive only. |
+| `makemigrations --check --dry-run` | **exit 0**, no changes detected |
+| `python manage.py test --noinput --parallel 1` | **exit 0**: **Ran 3994 tests in 1620.574s, OK (skipped=14)**. The 14 skips are opt-in real-provider and load tests. |
+| Teardown | `Destroying test database for alias 'default'...`, with **no** "other sessions using the database" warning |
+| Test DB after: `pg_database` rows / `pg_stat_activity` connections | **0 / 0** |
+| Fingerprint after | unchanged |
+| Full-suite log | 34,593 lines, sha256 `46288b004e370bb7e7fd54c434baf061a152cc5f82c59e70042190a35f1f4547` |
+
+**Earlier attempt, aborted.** A gate on `df05d90` was stopped during its `pre-commit` step and never counted. That commit lacked Section 7's `98682e6`, which its own fresh-DB gate needed; without it, `users/tests_task_viewset.py` has 7 known failures that are not Section 8's. The test database the aborted run had created, with 0 connections, was dropped, and its absence was confirmed before the real run started.
+
+**Commit after the gate.** The docs commit that records this changes only this file and `docs/CODEBASE_AUDIT_SECTIONS.md`. No code, configuration or test changed after the gated tree.
+
+**Independent measurement.** The H-1 session measured this remediation separately, for H-10 closure. It used its own worktree on `ec67363`, real Postgres and uncached requests, at 2, 6 and 18 teachers. Query counts were flat on `ec67363` and grew linearly on `1373eae`:
+
+| Endpoint | `1373eae` (2 / 6 / 18 teachers) | `ec67363` |
+|---|---|---|
+| super-admin students | 14 / 30 / 78 | 6 / 6 / 6 |
+| school-admin students | 13 / 29 / 77 | 5 / 5 / 5 |
+| `teacher_performance` | 24 / 60 / 168 | 10 / 10 / 10 |
+| super-admin teachers | 8 / 16 / 40 | 8 / 8 / 8 |
+| `teacher_detail` | 19 / 19 / 19 | 14 / 14 / 14 |
+
+Closing H-10 is the owner's decision, recorded in the backlog by that session.
+
+## Completion criteria (owner, 2026-09-14)
+
+| Criterion | State |
+|---|---|
+| Dashboard files removed from the E800 exemption list | **met** (`df05d90`) |
+| Strict final repository-wide gate passes on the final committed tree | **met** (`371268f`, §9) |
+| Remaining item 9 scope resolved or formally approved | **not met.** Item 9 covers the whole repository: 33 files and 351 hits, tracked in the H-12 register. |
+
+Section 8 therefore remains **GAPS FOUND / BLOCKERS FIXED / REMEDIATION IN PROGRESS**.
 
 ## Known consequences, accepted or handed off
 
