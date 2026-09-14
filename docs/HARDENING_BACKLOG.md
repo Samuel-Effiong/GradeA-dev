@@ -57,7 +57,7 @@ speed that decision up, not to pre-empt it.
 | H-6 | `CourseCategoryViewSet` — unrouted and broken | Medium | Section 3 (classrooms) | Not started |
 | H-7 | `direct_add_student` response shape and status code | Low | Section 3 + frontend | Not started |
 | H-8 | Test file naming / stray docs | Low | Section 3 | Not started |
-| H-9 | Test suite shares one Redis DB (isolation) | High | Whoever owns CI | **FIXED — per-process prefix + prefix-scoped clear(); 4/4 tests pass, two concurrent runs verified** |
+| H-9 | Test suite shares one Redis DB (isolation) | High | Whoever owns CI | **REOPENED (2026-09-14): regression** — 12 test modules bypassed the fix with their own unscoped `CACHES` override and aborted a concurrent gate. Fix implemented (`real_redis_caches()` + guard test); verification in progress |
 | H-10 | `super-admin/dashboard/students` 480-query N+1 | High | Section 8 (dashboard) | **CLOSED (2026-09-14)** — Section 8 remediation merged to beta `2715c64`; strict gate passed there (4,031 OK); query count flat |
 | H-11 | Synchronous billed AI calls inside `students` request handlers (`upload`, `grade`, `PATCH raw_input`) | **High - release-blocking** | Section 7 (students) + frontend | Open - tracked here from the §7 review pass, 2026-09-13 |
 | H-12 | Commented-out code (flake8 E800) burn-down - 33 files still carved out of the rule | Low | Each file's section owner (register in H-12) | Rule ON since 2026-09-13; `students` and `dashboard` clean; 33 files / 351 hits remain; whole repository in scope (owner decision 2026-09-14) |
@@ -568,6 +568,57 @@ tolerated). Adversarial/stress/live-stack: not applicable — record why.
 # H-9 — the whole test suite shares one Redis DB (test isolation)
 
 **Found 2026-09-12 while investigating a cross-app regression failure.**
+
+> **REGRESSION (2026-09-14) — H-9 reopened.** The 2026-09-12 fix below
+> isolated the project-wide test cache, but twelve modules that must run on
+> real Redis wrote their own `CACHES` override. That override replaced the
+> fix entirely. It used the unscoped `django_redis.cache.RedisCache`: eleven
+> modules on a fixed database number (3–15) with the shared `gaplus` prefix,
+> and `users/tests_activity_middleware_load` on the default database. Their
+> `cache.clear()` is FLUSHDB, so two concurrent test runs wiped each other's
+> cache entries and H-1 generation counters. It surfaced for real: a
+> Section 9 mutation run overlapped the Section 8 strict gate on shared
+> Redis for ~3 minutes, and Section 8 aborted and re-ran.
+>
+> The four original acceptance tests kept passing throughout, because they
+> only exercised the default cache. A dedicated database number is not
+> isolation: every run of the same module picks the same number.
+>
+> **Fix** (branch `task/h9-redis-db-isolation`):
+> - `AutoGrader.test_cache.real_redis_caches(location)` returns a
+>   real-Redis override with the prefix-scoped backend and the
+>   per-process prefix. All twelve modules use it.
+> - `tests_cache_generation` builds raw keys with `cache.make_key()`.
+> - `tests_cache_superadmin_1522` scans only its own prefix.
+> - `SuiteOverridesCannotBypassIsolationTests` fails the suite if any test
+>   module configures the unscoped backend again, and proves two processes
+>   sharing one fixed database cannot wipe each other.
+>
+> **Scope widened (owner, 2026-09-14, relayed via Section 9):** every
+> session must be able to run full strict gates at the same time as other
+> sessions without interference. So the Celery broker and result backend
+> are namespaced too. Under `manage.py test` each process gets kombu
+> `global_keyprefix` and `result_backend_transport_options.global_keyprefix`
+> equal to its cache prefix. That isolates queues, exchange bindings and
+> kombu's global `unacked` hash and index, which acks_late redelivery uses.
+> Production `visibility_timeout` is unchanged. The real-worker tests
+> delete their queues through kombu, not a raw client.
+> `CeleryBrokerIsolationTests` checks the prefixes are applied, proves a
+> same-named queue purged by another process leaves our messages intact,
+> and fails if any test builds a raw client from `CELERY_BROKER_URL`.
+> The settings branch covers every test run (main checkout, worktrees,
+> CI, two runs in one worktree), so `scripts/task-worktree.sh` only
+> documents it.
+>
+> **Acceptance proof (owner's):** two FULL strict test runs from the
+> committed fix, overlapping in time on the same Redis, each on its own
+> fresh PostgreSQL test DB. Both must pass with exit 0 and clean
+> teardown, and mid-run sampling must show both process prefixes live at
+> once.
+>
+> **Status:** implemented; verification in progress. Until it lands,
+> full-suite gates and mutation runs from different sessions must not
+> overlap in time.
 
 `REDIS_LOCAL_URL=redis://127.0.0.1:6379/0`, so **every pre-existing test
 suite in the project shares Redis DB 0** with any other process using it -

@@ -33,6 +33,7 @@ from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.test import TransactionTestCase, override_settings
 
+from AutoGrader.test_cache import real_redis_caches
 from classrooms.models import Course, School, Session, StudentCourse, Topic
 from users.models import UserTypes
 
@@ -40,14 +41,7 @@ User = get_user_model()
 
 # A dedicated Redis DB so a developer's or another suite's keys are never in
 # range of the flush this test performs.
-REDIS_CACHE = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/12",
-        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
-        "KEY_PREFIX": "gaplus",
-    }
-}
+REDIS_CACHE = real_redis_caches("redis://127.0.0.1:6379/12")
 
 #: Every non-cache key shape the project writes through the Django cache.
 #: Values are irrelevant; only whether the key SURVIVES invalidation matters.

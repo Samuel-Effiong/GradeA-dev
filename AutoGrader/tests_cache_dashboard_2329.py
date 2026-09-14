@@ -38,20 +38,14 @@ from AutoGrader.cache_generation import (
     SCOPE_USER,
     get_generation,
 )
+from AutoGrader.test_cache import real_redis_caches
 from classrooms.models import Course, School, Session, StudentCourse
 from dashboard.models import SchoolAtRiskSnapshot
 from users.models import UserTypes
 
 User = get_user_model()
 
-REDIS_CACHE = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/6",
-        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
-        "KEY_PREFIX": "gaplus",
-    }
-}
+REDIS_CACHE = real_redis_caches("redis://127.0.0.1:6379/6")
 
 LEGACY_MODULES = (
     "classrooms.signals",

@@ -36,19 +36,13 @@ from AutoGrader.cache_generation import (
     SCOPE_GLOBAL,
     get_generation,
 )
+from AutoGrader.test_cache import real_redis_caches
 from classrooms.models import Course, School, Session, StudentCourse
 from users.models import UserTypes
 
 User = get_user_model()
 
-REDIS_CACHE = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/5",
-        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
-        "KEY_PREFIX": "gaplus",
-    }
-}
+REDIS_CACHE = real_redis_caches("redis://127.0.0.1:6379/5")
 
 LEGACY_MODULES = (
     "classrooms.signals",
@@ -298,7 +292,9 @@ class ConcurrencyIsNotCachedTests(SuperadminBase):
         from django.core.cache import cache as live_cache
 
         client = live_cache.client.get_client(write=True)
-        leftovers = list(client.scan_iter(match="*concurrency*", count=1000))
+        leftovers = list(
+            client.scan_iter(match=live_cache.make_key("*concurrency*"), count=1000)
+        )
         self.assertEqual(
             leftovers,
             [],

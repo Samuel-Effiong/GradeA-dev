@@ -31,16 +31,10 @@ from AutoGrader.cache_generation import (
     get_generation,
     versioned_key,
 )
+from AutoGrader.test_cache import real_redis_caches
 
 REDIS_URL = "redis://127.0.0.1:6379/9"
-REDIS_CACHE = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": REDIS_URL,
-        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
-        "KEY_PREFIX": "gaplus",
-    }
-}
+REDIS_CACHE = real_redis_caches(REDIS_URL)
 
 A = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
 B = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
@@ -56,7 +50,7 @@ class GenerationCoreTests(SimpleTestCase):
         cache.clear()
 
     def raw(self, scope, entity_id=None):
-        return f"gaplus:1:{generation_key(scope, entity_id)}"
+        return cache.make_key(generation_key(scope, entity_id))
 
     # ---- functional ----
 
@@ -185,7 +179,7 @@ class GenerationCoreTests(SimpleTestCase):
         """The other half of the volatile-lru argument: entries must be
         evictable, so the eviction order is entries-first."""
         cache.set("courses:user_id__" + A, "payload", 300)
-        self.assertGreater(self.redis.ttl(f"gaplus:1:courses:user_id__{A}"), 0)
+        self.assertGreater(self.redis.ttl(cache.make_key("courses:user_id__" + A)), 0)
 
     # ---- failure simulation ----
 
@@ -364,7 +358,7 @@ class PipelinedBumpTests(SimpleTestCase):
         bump_many([(SCOPE_USER, A), (SCOPE_SCHOOL, B)])
         for scope, eid in ((SCOPE_USER, A), (SCOPE_SCHOOL, B)):
             self.assertEqual(
-                self.redis.ttl(f"gaplus:1:{generation_key(scope, eid)}"),
+                self.redis.ttl(cache.make_key(generation_key(scope, eid))),
                 -1,
                 f"{scope} counter gained a TTL via the pipelined path",
             )
@@ -470,7 +464,7 @@ class HighConcurrencyCounterTests(SimpleTestCase):
     def assert_no_ttl(self, *pairs):
         for scope, eid in pairs:
             self.assertEqual(
-                self.redis.ttl(f"gaplus:1:{generation_key(scope, eid)}"),
+                self.redis.ttl(cache.make_key(generation_key(scope, eid))),
                 -1,
                 f"{scope}:{eid} counter acquired a TTL under concurrency",
             )

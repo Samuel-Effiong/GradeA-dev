@@ -25,6 +25,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from assignments.models import Assignment, AssignmentStatus
+from AutoGrader.test_cache import real_redis_caches
 from billing.models import CreditBucket, CreditBucketType, CreditWallet
 from classrooms.models import (
     Course,
@@ -44,16 +45,11 @@ LOCMEM = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"
 #: Cache invalidation in this app is done with `delete_pattern`, which ONLY
 #: django-redis provides - `delete_cache_patterns` silently no-ops on any
 #: other backend. Testing revocation on LocMem therefore proves nothing
-#: about production, so the cache attacks below run against a real Redis on
-#: a dedicated database number (15, not the app's 0) to stay clear of a
-#: developer's or another test run's keys.
-REDIS_CACHE = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/15",
-        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
-    }
-}
+#: about production, so the cache attacks below run against a real Redis.
+#: The dedicated database number (15) is not what isolates them from a
+#: concurrent test run - every run of this module picks 15. The per-process
+#: key prefix and prefix-scoped clear() in real_redis_caches() do (H-9).
+REDIS_CACHE = real_redis_caches("redis://127.0.0.1:6379/15")
 
 
 def make_user(email, user_type, school=None, **fields):

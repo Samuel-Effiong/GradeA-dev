@@ -106,6 +106,12 @@ Exists for one reason: a UNIQUE test database name. Concurrent sessions
 sharing one test database truncate each other's tables mid-run, and the
 resulting failures look like real bugs but do not reproduce.
 
+Redis needs no setting here. AutoGrader/settings.py gives every test
+PROCESS its own cache key prefix and Celery broker/result-backend key
+prefix, which isolates concurrent runs even within one worktree (H-9).
+Do not point this worktree at a different Redis database number instead:
+a database number is shared by every run that picks it.
+
     python manage.py test --settings=settings_worktree
 """
 

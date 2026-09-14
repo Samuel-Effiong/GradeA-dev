@@ -496,7 +496,8 @@ CELERY_TIMEZONE = TIME_ZONE
 # duplicate execution — this setting just keeps ordinary redeliveries rare
 # in the first place, since even a caught duplicate wastes a worker slot and
 # an API round trip before being skipped.
-CELERY_BROKER_TRANSPORT_OPTIONS = {
+#: `int | str` because the test branch below adds a string `global_keyprefix`.
+CELERY_BROKER_TRANSPORT_OPTIONS: dict[str, int | str] = {
     "visibility_timeout": 3600,  # 1 hour
 }
 
@@ -1242,11 +1243,27 @@ CACHES = {
 # prefix (see AutoGrader/test_cache.py for why a prefix is used rather than
 # one of Redis's 16 database slots). Only `clear()` differs from the
 # production backend, and no production code path calls it.
+#
+# The Celery broker and result backend share the same Redis, so they get the
+# same per-process namespace. kombu's `global_keyprefix` prefixes EVERY broker
+# key: queues, exchange bindings, and the global `unacked` hash and index that
+# acks_late redelivery relies on. Without it, two concurrent real-worker test
+# runs share those structures. A per-run queue name alone isolates the task
+# messages, not the rest. Production transport options (visibility_timeout)
+# are kept; only the prefix is added.
 if "test" in sys.argv:
+    _TEST_REDIS_PREFIX = f"gaplus-t{os.getpid()}"
     CACHES["default"] = {
         **CACHES["default"],
         "BACKEND": "AutoGrader.test_cache.PrefixScopedRedisCache",
-        "KEY_PREFIX": f"gaplus-t{os.getpid()}",
+        "KEY_PREFIX": _TEST_REDIS_PREFIX,
+    }
+    CELERY_BROKER_TRANSPORT_OPTIONS = {
+        **CELERY_BROKER_TRANSPORT_OPTIONS,
+        "global_keyprefix": f"{_TEST_REDIS_PREFIX}:",
+    }
+    CELERY_RESULT_BACKEND_TRANSPORT_OPTIONS = {
+        "global_keyprefix": f"{_TEST_REDIS_PREFIX}:",
     }
 
 

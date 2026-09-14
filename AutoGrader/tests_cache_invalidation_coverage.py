@@ -26,14 +26,9 @@ H-1 lands, and they say so.
 from django.core.cache import cache
 from django.test import SimpleTestCase, override_settings
 
-REDIS_CACHE = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/11",
-        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
-        "KEY_PREFIX": "gaplus",
-    }
-}
+from AutoGrader.test_cache import real_redis_caches
+
+REDIS_CACHE = real_redis_caches("redis://127.0.0.1:6379/11")
 
 U1 = "11111111-1111-1111-1111-111111111111"
 U2 = "22222222-2222-2222-2222-222222222222"
