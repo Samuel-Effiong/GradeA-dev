@@ -39,7 +39,6 @@ class StudentSubmissionStatusSerializer(serializers.Serializer):
     max_points = serializers.IntegerField(read_only=True, allow_null=True)
     grade_status = serializers.CharField(read_only=True)
     is_published = serializers.BooleanField(read_only=True)
-    # teacher_feedback = serializers.CharField(read_only=True, allow_null=True)
 
 
 class QuestionSerializer(serializers.Serializer):
@@ -152,15 +151,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
                 "Topic must belong to the same course as the assignment"
             )
 
-        # del data['course']
-
         questions = data.get("questions", [])
-
-        # if questions and "question_count" in data:
-        #     if len(questions) != data["question_count"]:
-        #         raise serializers.ValidationError(
-        #             "Question count does not match the number of questions provided."
-        #         )
 
         assignment_type = data.get("assignment_type")
         if assignment_type and assignment_type != "HYBRID":
@@ -183,7 +174,6 @@ class AssignmentSerializer(serializers.ModelSerializer):
         try:
             with transaction.atomic():
                 # Create the assignment instance with remaining validated data
-                # assignment = Assignment.objects.create(**validated_data)
                 assignment = super().create(validated_data)
 
                 questions = validated_data.get("questions", [])
@@ -198,11 +188,6 @@ class AssignmentSerializer(serializers.ModelSerializer):
                         "rubric": question.get("rubric", []),
                     }
                     criteria.append(criterion)
-
-                # Rubric.objects.create(
-                #     assignment=assignment,
-                #     criteria=criteria,
-                # )
 
                 return assignment
         except Exception as e:
@@ -371,8 +356,6 @@ class AssignmentListStudentSerializer(serializers.ModelSerializer):
         if submission and submission.is_published:
             if submission.score is not None:
                 return float(submission.score)
-            # elif submission.ai_score is not None:
-            #     return float(submission.ai_score)
         return None
 
     def get_grade_letter(self, obj):
@@ -550,8 +533,6 @@ class AssignmentDetailStudentSerializer(AssignmentListStudentSerializer):
     student_submission_raw_input = serializers.SerializerMethodField()
     assignment_raw_input = serializers.SerializerMethodField()
     remaining_attempts = serializers.SerializerMethodField()
-    # answers = serializers.SerializerMethodField()
-    # submissions = serializers.SerializerMethodField()
 
     class Meta(AssignmentListStudentSerializer.Meta):
         fields = AssignmentListStudentSerializer.Meta.fields + [
