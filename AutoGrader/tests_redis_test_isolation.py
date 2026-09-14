@@ -401,9 +401,16 @@ class CeleryBrokerIsolationTests(SimpleTestCase):
         queue = f"h9-shared-queue-{uuid.uuid4().hex[:8]}"
         with celery_app.connection_for_write() as conn:
             probe = conn.SimpleQueue(queue)
+            # Counted with the channel's `_size()` (LLEN), NOT
+            # `SimpleQueue.qsize()`. `qsize()` is a passive queue_declare,
+            # whose existence check uses Redis EXISTS, which kombu's
+            # `global_keyprefix` does not prefix, so it reports a prefixed
+            # queue as missing. LLEN is prefixed, as are the commands real
+            # publishing and consuming use.
+            channel = conn.default_channel
             try:
                 probe.put({"probe": "survives"})
-                self.assertEqual(probe.qsize(), 1)
+                self.assertEqual(channel._size(queue), 1)
 
                 result = subprocess.run(
                     [sys.executable, "-c", PURGE_QUEUE_IN_ANOTHER_PROCESS],
@@ -421,7 +428,7 @@ class CeleryBrokerIsolationTests(SimpleTestCase):
                 )
 
                 self.assertEqual(
-                    probe.qsize(),
+                    channel._size(queue),
                     1,
                     "another test process purging a queue of the same name "
                     "removed this process's broker message",
