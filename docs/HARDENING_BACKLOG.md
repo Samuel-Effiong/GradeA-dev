@@ -49,7 +49,7 @@ speed that decision up, not to pre-empt it.
 
 | ID | Item | Priority | Proposed owner | Status |
 |---|---|---|---|---|
-| H-1 | System-wide cache invalidation architecture | **Highest** | Backend/infra lead | **Stage 2: COMPLETE (33/33 applicable migrated). H-1 OVERALL: OPEN — Stage 3 hardening outstanding.** |
+| H-1 | System-wide cache invalidation architecture | **Highest** | Backend/infra lead | **Stage 2: COMPLETE (33/33 applicable migrated). Stage 3 item 7 (user-row fan-out): FIXED, committed-tree gate passed on `f593be1`. H-1 OVERALL: OPEN.** Stampede-protection scope (after H-10 reaches beta) and wildcard removal remain. |
 | H-2 | Full-suite exit code / test DB connection leaks | High | Whoever owns CI | **Closed** — fixed, verified with three consecutive clean full runs and failure/mutation simulation |
 | H-3 | `student123!` account remediation | High | Product + backend | Data gathered, deferred by owner |
 | H-4 | Duplicated `delete_cache_patterns` implementations | Medium | Folds into H-1 | Not started |
