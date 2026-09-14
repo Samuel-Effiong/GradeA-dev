@@ -167,6 +167,15 @@ host. The interrupt restored the file under test. Afterwards
 
 **11/11 run killed; all restores sha-verified. M12–M13 still to run.**
 
+> **Caveat: this run is INTERIM and is not counted as the mutation gate.**
+> Every mutant above (20:47:48–~20:51Z) overlapped the first minutes of the
+> Section 8 strict gate, which Section 8 then aborted for that reason.
+> Concurrent test processes share one Redis server, and 11 test modules
+> flush fixed Redis databases (the H-1 session is fixing that). So a
+> contended run's failures cannot be proven to come from the mutant alone.
+> All 13 mutants are re-run on a quiet host, after the Section 8 gate and
+> before the Section 9 strict gate, and that re-run is the one counted.
+
 ## 8. Strict final gate
 
 _Pending._ It follows the owner's procedure:
