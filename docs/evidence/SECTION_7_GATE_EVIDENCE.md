@@ -319,3 +319,23 @@ branch (a further full fresh-DB gate follows in §12):
 | 4/5 | Claim taken between the pre-check and the row lock; replay through the batch task; a dead worker's stale claim. |
 | 7/8 | Real PostgreSQL row locks; DRF client against the real URL conf for the 409s. |
 | 9 | Proxy refusal is per (student, assignment) row; the student's other rows and other students are unaffected (existing scope tests). |
+
+## 12. Gate 3 — merged tip, after the 2026-09-14 decisions
+
+Branch state: `ac731a9` (proxy lock + H-13 refusal) then merge commit
+`2d48d73` bringing in beta's `f593be1` (H-1 user-row fan-out); the only
+merge conflict was the backlog owner table, resolved by keeping the H-1
+session's H-10 row and this branch's H-11..H-13 rows. Working tree clean
+(`git status --short` empty), tree `7255a6aa…`.
+
+| Gate | Result |
+|---|---|
+| `pre-commit run --all-files` | every hook Passed |
+| `manage.py check` / `makemigrations --check` / `check_migration_safety.py --base f593be1` | clean / no changes / additive |
+| Full suite, fresh database, `--parallel 1`, under `systemd-inhibit --what=sleep` | **3,959 tests — OK, 12 skipped — exit 0** (1,211 s; 15:12:30 → 15:33:39) |
+| Teardown | `Destroying test database` with no "other sessions" line; afterwards `pg_database` count for the test DB **0**, `pg_stat_activity` count **0** |
+| Suspend | run held under a sleep inhibitor; `journalctl -k` shows **0** suspend entry/exit events from 12:30 onward |
+| Tree during the run | `find -newer <start marker>` (excluding `.git`, `__pycache__`) returns nothing; clean before and after |
+
+The 37 additional tests over §9 are the H-1 fan-out suite from `f593be1`
+plus this branch's new proxy/H-13 tests.
