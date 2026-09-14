@@ -3,8 +3,6 @@ import time
 from datetime import timedelta
 
 from django.core.cache import cache
-
-# from django.conf import settings
 from django.db import transaction
 from django.db.models import Case, F, Q, Sum, Value, When
 from django.db.models.aggregates import Avg, Count
@@ -12,14 +10,8 @@ from django.db.models.functions import ExtractHour, TruncDay, TruncWeek
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
-
-# from django.utils.decorators import method_decorator
-# from django.views.decorators.cache import cache_page
-# from django.views.decorators.vary import vary_on_headers
 from django_filters.rest_framework import DjangoFilterBackend
-
-# from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import (  # inline_serializer,
+from drf_spectacular.utils import (
     OpenApiExample,
     OpenApiParameter,
     OpenApiResponse,
@@ -30,8 +22,6 @@ from drf_spectacular.utils import (  # inline_serializer,
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
-
-# from rest_framework.exceptions import ParseError
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -110,8 +100,6 @@ from .subscription_resolver import (
 )
 
 logger = logging.getLogger(__name__)
-
-# from rest_framework.generics import GenericAPIView
 
 
 def get_or_create_dashboard_chat_session(user, assistant_type):
@@ -1204,7 +1192,6 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
     def wallet(self, request, *args, **kwargs):
         wallet = request.user.credit_wallet
 
-        # wallet_total_remaining_credits = wallet.total_remaining_credits
         wallet.active_buckets_count = wallet.buckets.filter(
             expires_at__gt=timezone.now()
         ).count()
@@ -2055,8 +2042,6 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             "p90_credit_used": p90_credits,
             "average_days_to_reach_cap": avg_days_to_reach_cap,
             "percent_unused_credits": round(unused_credits_pct, 2),
-            # "usage_distribution": usage_distribution,
-            # "daily_time_series": daily_time_series,
         }
 
         serializer = BetaCohortStatsSerializer(data)
@@ -2143,28 +2128,13 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
 
         seven_days_ago = timezone.now() - timedelta(days=7)
 
-        # 1. Build the "Power User" Filter
-        # Each 'Q' object represents one of your four core business rules
-        # power_user_query = (
-        #     Q(
-        #         # Trigger 1: High consumption (>= 80% of their 20M grant)
-        #         has_hit_80_percent=True
-        #     )
-        #     | Q(
-        #         # Trigger 2: High frequency (Logged in >=8 distinct days)
-        #         distinct_login_days__gte=8
-        #     )
-        #     | Q(
-        #         # Trigger 3: Sticky behavior (Active in the final week of Beta)
-        #         last_active_at__gte=seven_days_ago
-        #     )
-        #     | Q(
-        #         # Trigger 4: Core value (Uses Grading more than Assignment Creation)
-        #         credits_used_grading__gt=F("credits_used_creation")
-        #     )
-        # )
+        # The four "power user" rules - at least 80% of the beta credit grant
+        # used, logins on 8 or more distinct days, activity in the last 7 days,
+        # and more grading than assignment creation - were once applied here as
+        # a filter. The endpoint now ranks every teacher lead instead, and the
+        # same signals are reported per lead under "flags" below.
 
-        # 2. Fetch the leads with their conversion probability score
+        # 1. Fetch the leads with their conversion probability score
         queryset = self.get_queryset().filter(user__user_type=UserTypes.TEACHER)
 
         search_query = request.query_params.get("search")
@@ -2176,18 +2146,14 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                 | Q(user__email__icontains=search_query)
             )
 
-        leads = (
-            queryset
-            # .filter(power_user_query)
-            .select_related("user").order_by(
-                "-conversion_probability", "-total_credits_used"
-            )
+        leads = queryset.select_related("user").order_by(
+            "-conversion_probability", "-total_credits_used"
         )
 
         page = self.paginate_queryset(leads)
         leads = page if page is not None else leads
 
-        # 3. Structure the response for the Sales Team
+        # 2. Structure the response for the Sales Team
         data = []
         for p in leads:
             data.append(
@@ -2228,7 +2194,6 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                         ),
                         "is_power_grader": p.credits_used_grading
                         > p.credits_used_creation,
-                        # "grading_heavy": p.credits_used_grading > p.credits_used_creation,
                         "frequent_user": p.distinct_login_days >= 8,
                     },
                 }
