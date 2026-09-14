@@ -218,6 +218,66 @@ class RealAssignmentExtractionTest(TestCase):
             data["extraction_started_at"], data["extraction_completed_at"]
         )
 
+    def test_a_real_extraction_from_a_PDF_upload(self):
+        """
+        The PDF branch of prepare_ai_content, end to end against the real
+        provider.
+
+        Added during the Section 5 review because that branch is the one
+        that changed: it used to drive the shared module-level
+        `pdf_service` singleton (set-then-use, racy under gthread) and now
+        constructs a PDFService per upload. The sibling test above covers
+        only the IMAGE branch, so without this the changed line would have
+        no real-call coverage at all - and a mock cannot tell you whether
+        the rasterized pages this builds are ones the provider accepts.
+        """
+        import fitz
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        document = fitz.open()
+        page = document.new_page()
+        page.insert_text((72, 90), "Geography and Astronomy Quiz", fontsize=20)
+        page.insert_text(
+            (72, 140), "Answer both questions. Each is worth 5 marks.", fontsize=13
+        )
+        page.insert_text((72, 190), f"1. {QUESTION_ONE} (5 marks)", fontsize=13)
+        page.insert_text((72, 230), f"2. {QUESTION_TWO} (5 marks)", fontsize=13)
+        pdf_bytes = document.tobytes()
+        document.close()
+
+        uploaded = SimpleUploadedFile(
+            "quiz.pdf", pdf_bytes, content_type="application/pdf"
+        )
+
+        # REAL prepare_ai_content through the PDF branch: real pdftoppm
+        # rasterization, real compression, real base64 payload.
+        content = AssignmentProcessingService.prepare_ai_content(
+            uploaded,
+            "Analyze this assignment PDF and return a JSON.\n"
+            "IMPORTANT: Return only valid JSON matching the required structure.",
+        )
+        self.assertEqual(content[0]["type"], "text")
+        image_blocks = [b for b in content if b.get("type") == "image_url"]
+        self.assertEqual(len(image_blocks), 1, "one rasterized page expected")
+
+        # REAL billed call.
+        data = AssignmentProcessingService.extract_assignment_data(
+            self.teacher, content, course=self.course
+        )
+
+        print("\n=== REAL PDF EXTRACTION RESULT ===")
+        print("title:", data.get("title"))
+        print("question_count:", data.get("question_count"))
+        for question in data.get("questions") or []:
+            print("  Q:", str(question.get("question_text"))[:90])
+
+        questions = data.get("questions") or []
+        self.assertGreaterEqual(len(questions), 2)
+        # Grounded in OUR document, not the model's priors.
+        blob = " ".join(str(q.get("question_text", "")) for q in questions).lower()
+        self.assertIn("iceland", blob)
+        self.assertIn("saturn", blob)
+
     def test_the_extracted_document_survives_the_prosemirror_round_trip(self):
         """
         The real output has to convert into what the editor loads. A model

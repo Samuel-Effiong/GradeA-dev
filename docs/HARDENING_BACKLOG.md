@@ -58,7 +58,7 @@ speed that decision up, not to pre-empt it.
 | H-7 | `direct_add_student` response shape and status code | Low | Section 3 + frontend | Not started |
 | H-8 | Test file naming / stray docs | Low | Section 3 | Not started |
 | H-9 | Test suite shares one Redis DB (isolation) | High | Whoever owns CI | **FIXED — per-process prefix + prefix-scoped clear(); 4/4 tests pass, two concurrent runs verified** |
-| H-10 | `super-admin/dashboard/students` 480-query N+1 | High | Section 8 (dashboard) | **Fix = Section 8 dashboard remediation (owner decision 2026-09-14). NOT closed** — see closure conditions |
+| H-10 | `super-admin/dashboard/students` 480-query N+1 | High | Section 8 (dashboard) | **CLOSED (2026-09-14)** — Section 8 remediation merged to beta `2715c64`; strict gate passed there (4,031 OK); query count flat |
 | H-11 | Synchronous billed AI calls inside `students` request handlers (`upload`, `grade`, `PATCH raw_input`) | **High - release-blocking** | Section 7 (students) + frontend | **OPEN.** 2026-09-14: async edit path built and gated, V-2..V-4/V-6 closed, duplicate-request guards added; **remaining: client migration confirmed, then retire the three synchronous routes** (see item) |
 | H-12 | Commented-out code (flake8 E800) burn-down - 33 files still carved out of the rule | Low | Each file's section owner (register in H-12) | Rule ON since 2026-09-13; `students` and `dashboard` clean; 33 files / 351 hits remain; whole repository in scope (owner decision 2026-09-14) |
 | H-13 | Uploads while grading is RUNNING | Medium | Product + Section 7 | **DECIDED 2026-09-14: refuse (409). Implemented and gated in the §7 branch.** |
@@ -797,10 +797,25 @@ The query count is flat on `ec67363` and grew linearly before it, so
 condition 3 is met **for `ec67363`**. At 18 teachers, teacher_performance went
 from 169.5ms to 20.9ms; latency is indicative only, as other runs were active.
 
-H-10 is still **not closed**:
-- conditions 1 and 2 must hold on the tree that is actually merged;
-- the Section 8 strict final gate (`df05d90`) had not reported at the time
-  of writing.
+## CLOSED (2026-09-14)
+
+The owner told us to merge the dashboard work and close H-10 once the
+resulting `beta` tree passed verification. Sections 7 and 8 were merged into
+`beta` as `2715c642fc4b` (tree `2a68fe26…`), and the owner's strict gate
+passed on that exact commit: **4,031 tests OK** (14 skipped), exit 0, fresh
+DB with no `--keepdb`, DB dropped, 0 connections, machine kept awake, tree
+unchanged.
+
+All three conditions now hold **on `beta`**:
+1. **Dashboard tests pass:** `tests_dashboard_remediation` 47,
+   `tests_dashboard_audit_fixes` 23, `tests_rigor` 35, `dashboard.tests` 73,
+   all ok.
+2. **H-1 cache suites pass** inside the same gate: fan-out 29,
+   dashboard-wide 11, wiring 15, plus the rest.
+3. **Query count is flat** (table above). `dashboard/` on `beta` is
+   byte-identical to the measured code.
+
+Evidence: `docs/evidence/H10_INTEGRATION_GATE_EVIDENCE.md`.
 
 ---
 

@@ -44,6 +44,12 @@ QUESTIONS = [
     {"question_number": 2, "question_text": "Q2", "points": 10},
 ]
 
+#: Placeholder submission content. extract_answer_image is mocked in these
+#: tests, so what it contains is never read - but it must not be EMPTY:
+#: extract_answer_with_retry refuses an empty submission before any billed
+#: call (see tests_answer_benchmark_inputs.EmptySubmissionTest).
+CONTENT = [{"type": "text", "text": "submission"}]
+
 
 def payload(*answers):
     return {"student_name": "Ada", "answers": list(answers)}
@@ -68,7 +74,7 @@ class ExtractionGateTest(SimpleTestCase):
         ) as mocked:
             result = self.processor.extract_answer_with_retry(
                 user=None,
-                content=[],
+                content=CONTENT,
                 assignment="ctx",
                 assignment_model=self.assignment,
                 **kwargs,
@@ -146,7 +152,7 @@ class GateDisabledTest(SimpleTestCase):
         ) as mocked:
             result = self.processor.extract_answer_with_retry(
                 user=None,
-                content=[],
+                content=CONTENT,
                 assignment="ctx",
                 assignment_model=assignment_model,
             )
