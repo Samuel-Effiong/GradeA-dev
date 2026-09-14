@@ -4,11 +4,17 @@ Section 5 (`ai_processor`). Built against the 43-section "Answer Extraction -
 Comprehensive Benchmark & Verification Specification". Last updated
 2026-09-14.
 
-**Section 5 remains OPEN.** The split-answer defect is fixed and validated
-against the real provider, and every gate below passes on the working tree.
-The owner's final gate has NOT run: it must test an exact committed tree, in
-a dedicated worktree, against a fresh test database. Nothing here is
-committed.
+**SECTION 5 - FIXES VALIDATED / FINAL PRODUCTION GATE PASSED on
+`eb6f3a0` - CLOSURE DECISION PENDING (owner).**
+
+- The split-answer and question-number defects are fixed and validated
+  against the real provider.
+- The owner's final gate passed on the exact commit
+  `eb6f3a06b9b864a462540276f7f5cb403256c4b7`. See "Final gate on the
+  committed tree" below.
+- Section 5 is not closed until the owner decides.
+- The commit is on `task/section-5-answer-extraction`; it is not merged into
+  `beta`.
 
 Permanent requirement, set by the owner on 2026-09-14:
 > A student's answer must never be silently truncated because it crosses a
@@ -18,8 +24,8 @@ Permanent requirement, set by the owner on 2026-09-14:
 
 | Item | Value |
 |---|---|
-| Branch / HEAD | `beta` at `1373eae`. The newer commits there are the H-1 cache session's and do not touch these files. |
-| Working tree | shared, uncommitted, other sessions active |
+| Base | `beta` at `084d0e4`. The commits between `1373eae` and `084d0e4` are the H-1 cache session's and touch none of these files. |
+| Committed as | `eb6f3a06b9b864a462540276f7f5cb403256c4b7` (tree `fc787681f599f80fa00b8ed972ac98eee07205ea`) on `task/section-5-answer-extraction`, parent `beta` `084d0e4`. The commit contains only the 79 Section 5 paths. Not merged into `beta`. |
 | Changed by this work (tracked) | `ai_processor/services.py`, `ai_processor/tests_answer_extraction_gate.py` |
 | Created by this work | `ai_processor/benchmark/answers/**`, `ai_processor/tests_answer_benchmark_{scenarios,failures,inputs,concurrency,grading,live}.py`, `ai_processor/tests_answer_chunk_merge.py`, `ai_processor/management/commands/answer_extraction_benchmark.py`, this file |
 
@@ -168,7 +174,7 @@ The raw records are in `ai_processor/benchmark/answers/reports/`:
 |---|---|---|---|
 | Full `manage.py test`, before the split-answer work (2026-09-14 08:57-09:36Z) | shared working tree, `--keepdb`, HEAD `1373eae` throughout (reflog: `beta` did not move between 2026-09-13 18:15Z and 2026-09-14 13:31Z) | 3,961 tests OK, 0 failures, 17 skipped | interim |
 | Full `manage.py test`, after both fixes (2026-09-14 13:29:57Z, 1,305 s) | shared working tree, `--keepdb`; started at HEAD `1373eae` plus this work | **3,974 tests OK, 0 failures, 18 skipped**, exit 0 | interim, with a caveat below |
-| **Owner's final gate** | **exact commit, dedicated detached worktree, fresh database without `--keepdb`, unfiltered log, `pre-commit run --all-files`, migration-safety check, `makemigrations --check`, full suite, PostgreSQL teardown checks** | **NOT RUN - requires this work to be committed first** | **pending** |
+| **Owner's final gate** | **exact commit `eb6f3a0`, dedicated locked detached worktree, fresh databases without `--keepdb`, unfiltered logs** | **PASSED - 4,003 tests OK; static, migration, real-provider and mutation checks all pass (see "Final gate on the committed tree")** | **final** |
 
 **Caveat on the second run: the fingerprint could not detect the change
 that happened.** The H-1 session committed `bfb6d8a` and `f593be1` to `beta`
@@ -187,7 +193,152 @@ What the run actually covered is the tree as imported when it started:
 did not exist at test discovery and was not run. This limitation is exactly
 why the owner's final gate requires a dedicated detached worktree at a fixed
 commit.
-| **Owner's final gate** | **exact commit, dedicated detached worktree, fresh database without `--keepdb`, unfiltered log, `pre-commit run --all-files`, migration-safety check, `makemigrations --check`, full suite, PostgreSQL teardown checks** | **NOT RUN - requires this work to be committed first** | **pending** |
+## Final gate on the committed tree
+
+All artifacts are in `docs/evidence/s5_final_gate/`:
+- a summary per step (`00`-`11`)
+- the complete raw logs, gzipped, with their sha256 in
+  `RAW_LOG_SHA256SUMS.txt`
+- the mutation report
+- the live extraction and grading records from this run
+- `SHA256SUMS.txt` over every artifact
+
+### 1. Identity and isolation
+
+| Item | Value |
+|---|---|
+| Commit | `eb6f3a06b9b864a462540276f7f5cb403256c4b7` |
+| Tree | `fc787681f599f80fa00b8ed972ac98eee07205ea` |
+| Parent | `084d0e4fe68ca56682343294cb17daf914785008` (`beta` when committed) |
+| Checkout | `../Grade-Automator-Plus-s5-final-gate`, a detached worktree at the SHA, **locked** for the whole gate, used by no other session. Only the gitignored `.env` symlink and `settings_worktree.py` were added. |
+
+The fingerprint was taken at four points: before, after the static checks,
+after the full suite, and at the end. It was identical every time:
+
+| Fingerprint field | Value |
+|---|---|
+| HEAD | `eb6f3a0…` |
+| `sha256(git ls-files -s)` | `99d76ffaa14ad4eb3fd0a727f3e067a57abc18c0335c7ae208288c4f8f23e0ed` |
+| sha256 over every tracked file's content | `794298e66d78de1ead33ad4736b8818a5670bc4ebd57796efdb45086df39087b` |
+| `git status --porcelain` | 0 lines |
+| `task/section-5-answer-extraction` | still `eb6f3a0` |
+
+This fingerprint compares the checkout with its own fixed SHA, not with a
+moving branch. So, unlike the earlier interim runs, a commit by another
+session to `beta` or any other branch cannot hide a change here. During the
+gate the H-1 session committed its Sections 7 and 8 integration merge on its
+own branch, and the fingerprint did not move.
+
+The real-provider and mutation runs used `git archive` exports of the same
+SHA. Both exports' content hashes equal the checkout's: `794298e6…`.
+
+### 2. Infrastructure
+
+Real PostgreSQL 18.6, real Redis 8.0.5, Python 3.12.10, Django 5.2.6.
+
+### 3. Static, system and migration checks (exact commit)
+
+| Check | Result |
+|---|---|
+| `pre-commit run --from-ref 084d0e4 --to-ref eb6f3a0` | exit 0, no failed hooks |
+| `pre-commit run --all-files` | **exit 0**, every hook Passed or Skipped with no files to check, **0 files modified**. Run in a throwaway detached worktree at the same SHA, removed afterwards. |
+| `manage.py check` | 0 issues, exit 0 |
+| `manage.py check --deploy --fail-level ERROR` | exit 0, 65 warnings (below) |
+| `makemigrations --check --dry-run` | "No changes detected", exit 0 |
+| `scripts/check_migration_safety.py --base beta` | "No new migration files in this diff.", exit 0 |
+
+The 65 deployment warnings are exactly the set the H-1/H-2 release gate
+traced to the development `.env` and to existing schema code:
+- 51 `drf_spectacular.W001`
+- 8 `drf_spectacular.W002`
+- one each of `security.W004`, `W008`, `W009`, `W012`, `W016` and `W018`
+
+### 4. Full repository suite (exact commit)
+
+| Item | Value |
+|---|---|
+| Command | `systemd-inhibit --what=sleep:idle python manage.py test --noinput -v 2 --settings=settings_worktree`, with `RUN_REAL_AI` unset and **no `--keepdb`** |
+| Test database | `test_s5_final_gate_eb6f3a0`; `pg_database` had 0 rows for it beforehand |
+| Result | **Ran 4003 tests in 1331.9s - OK (skipped=18)**, **exit 0**, 0 `FAIL:`/`ERROR:` lines |
+| Time | 2026-09-14T15:13:46Z to 15:36:13Z (1,347 s) |
+| Complete log | 59,267 lines, sha256 `20321cc3b1af19ff0e85451f345c9d07381044ef0ca0ded7899c6d3069d56bbc` |
+| Teardown | "Destroying test database for alias 'default' ('test_s5_final_gate_eb6f3a0')..." present; **0 "other sessions using the database" lines**; afterwards **0 `pg_database` rows** and **0 `pg_stat_activity` connections** |
+
+The 18 skips are the opt-in real-AI tests, which run separately in section 5.
+
+### 5. Real-provider checks (exact commit, billed)
+
+- **Command:** `RUN_REAL_AI=1 systemd-inhibit … manage.py test --noinput -v 2`
+  on `ai_processor.tests_answer_benchmark_live`,
+  `ai_processor.tests_real_chunked_extraction` and
+  `assignments.tests_real_extraction`.
+- **Database:** fresh `test_s5_live_eb6f3a0`, without `--keepdb`. It had 0
+  rows before, and 0 rows and 0 connections after.
+- **Result: Ran 11 tests - OK, exit 0.** Each test's outcome was resolved
+  individually: 11 ok, 0 skipped, 0 failed.
+  - `LiveAnswerExtractionBenchmarkTest.test_live_corpus`
+  - `LiveEndToEndGradingTest.test_extraction_through_real_grading`
+  - `RealChunkedAnswerExtractionSafetyTest.test_blank_and_not_found_do_not_collapse_into_one_silent_zero`
+  - `RealChunkedAssignmentExtractionTest.test_a_multipage_paper_extracts_every_question_exactly_once`
+  - `RealAssignmentExtractionTest`: `test_a_real_extraction_from_a_PDF_upload`,
+    `test_a_real_extraction_returns_a_usable_assignment`,
+    `test_the_extracted_document_survives_the_prosemirror_round_trip`
+  - the four `LiveCorpusShapeTest` checks
+- **Time and log:** 2026-09-14T15:42:52Z to 16:07:00Z. 1,220 lines, sha256
+  `c0148ffd90bf0200efccb66966cd79d702130d356189a4aad0cecca5669c61f0`.
+
+Live corpus results (model `x-ai/grok-4.3`):
+
+| ID | Pages | Chunks | Retries | Tokens = credits |
+|---|---|---|---|---|
+| AE-903 | 3 | 1 | 0 | 22,907 |
+| AE-906 | 6 | 2 | 0 | 46,766 |
+| AE-907 | 7 | 3 | 0 | 59,133 |
+| AE-909 | 9 | 3 | 0 | 69,731 |
+| AE-912 | 12 | 4 | 0 | 63,284 |
+| AE-921 | 21 | 7 | 0 | 111,751 |
+| AE-905 | 5 | 2 | 0 | 28,181 |
+| AE-915 | 8 | 3 | 0 | 43,028 |
+| AE-916 | 5 | 2 | 0 | 42,399 |
+
+- **Extraction:** 0 discrepancies on every document, and credits equalled
+  reported tokens on every document. Extraction total: **487,180 tokens**.
+- **Extraction then real grading** (AE-905, AE-906, AE-916): **171,772
+  tokens**.
+  - Review flags: AE-905 none, AE-906 Q9, AE-916 Q9.
+  - Totals: 20/20, 20/30 and 25/35.
+  - The credit check held on all three.
+- **Recorded total:** 658,952 tokens.
+- **Not measured:** the other two real-AI modules
+  (`tests_real_chunked_extraction`, `tests_real_extraction`) make billed calls
+  but do not record their tokens.
+
+### 6. Mutation testing (exact commit)
+
+| Item | Value |
+|---|---|
+| Where | a `git archive` export of `eb6f3a0`, with its own database `test_s5_mut_eb6f3a0` |
+| Result | **35 of 35 KILLED**, baseline exit 0, **0 restore failures**; the export's content hash after every restore still equals the commit's (`794298e6…`) |
+| Time and log | 2026-09-14T15:42:56Z to 16:05:40Z; sha256 `c0b2425a0c666988b363d15c56b39b883da88eb3319ab3b2d06cae189b68b41c` |
+| Database cleanup | the runner reuses its database between mutants, so it was dropped by hand after confirming 0 connections. No `test_s5_*` database remains. |
+
+### 7. What this gate does and does not establish
+
+- **It establishes** that the exact committed Section 5 tree, `eb6f3a0`,
+  passes all of the following, and that the checkout under test did not
+  change during the run:
+  - the full repository suite on a fresh database, with clean teardown
+  - all static, system and migration checks
+  - the real-provider checks
+  - mutation testing
+- **It does not merge anything into `beta`.** Merging is the owner's decision.
+  When it happens, `assignments/services.py` and
+  `docs/CODEBASE_AUDIT_SECTIONS.md` will need an ordinary three-way merge
+  against the Sections 7 and 8 integration.
+- **Correction recorded in this file.** An evidence-table edit made before
+  the gate left a duplicate "Owner's final gate … NOT RUN" row in the copy
+  committed in `eb6f3a0`. It is removed in the docs-only follow-up commit
+  that records this gate. No code or test file was involved.
 
 ## Follow-up items (retained, not fixed here)
 
