@@ -53,16 +53,10 @@ core_urlpatterns = [
     path("health/beat", beat_health_check, name="beat-health"),
     # 404s unless EXPOSE_CLIENT_DIAGNOSTICS is set - see AutoGrader/health.py.
     path("health/client", client_identity, name="client-identity"),
-    # path("tasks/<str:task_id>/status/", task_status, name="task_status"),
 ]
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    # path("api/v1/auth/", include("djoser.urls.jwt")),
     path("api/v1/", include(schema_urlpatterns)),
-    # path("", include("assignments.urls")),
-    # path("", include("classrooms.urls")),
-    # path("", include("users.urls")),
-    # path("", include("students.urls")),
     path("api/v1/", include(core_urlpatterns)),
 ]
