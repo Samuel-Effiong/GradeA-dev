@@ -207,12 +207,59 @@ host. The interrupt restored the file under test. Afterwards
 Every restore was sha256-verified, and the tree had `dirty_lines_after=0`.
 Script exit 0.
 
-## 8. Strict final gate
+## 8. Strict final gate — PASSED on `d59add7`
 
-_Pending._ It follows the owner's procedure:
-- a detached worktree at the exact commit, fingerprinted before and after;
-- a fresh uniquely named test database, no `--keepdb`;
-- unfiltered output kept, run under `systemd-inhibit`;
-- `pre-commit --all-files`, migration safety `--base beta`,
-  `makemigrations --check` and the full suite must all exit 0;
-- the database is confirmed dropped afterwards.
+The gate ran on the owner's procedure, on commit
+`d59add730bff61a220a180e5d99b99dcca87a402` (branch
+`task/section-9-remediation`, base Section 7's gated `ec28d90`). Its code is
+identical to `6d21d63` and `cada6c5`; the difference is docs only.
+
+**Setup and host**
+
+- Dedicated detached worktree `../Grade-Automator-Plus-s9-final-gate-d59add7`,
+  used by no other session.
+- Fresh test DB `test_s9_final_gate_d59add7`, no `--keepdb`, `--parallel 1`.
+- Run under `systemd-inhibit --what=sleep:idle`.
+- The host was quiet. The mutation run just before it and the gate itself
+  were serialised with the Section 8 and H-1 sessions, which held all DB and
+  Redis test activity (§7a).
+
+| Step | Result |
+|---|---|
+| Test DB before | `pg_database` rows **0**, connections **0** |
+| Fingerprint before | HEAD `d59add7…`, index sha256 `a77e6c41…f45a8`, content sha256 `a300634e…677f`, status lines **0** |
+| `pre-commit run --all-files` | **exit 0** |
+| `scripts/check_migration_safety.py --base beta` | **exit 0**; `0039` additive |
+| `manage.py check` | **exit 0** |
+| `makemigrations --check --dry-run` | **exit 0** |
+| Full suite (23:17:34 → 23:48:40, +01:00) | **4194 tests, OK (skipped=22), exit 0**; `FAIL`/`ERROR` lines **0** |
+| Teardown | `Destroying test database` present; "other sessions" lines **0** |
+| Test DB after | `pg_database` rows **0**, connections **0** |
+| Fingerprint after | **identical** to before (all four values) |
+| Files newer than start | 1990, **all** under `.mypy_cache/` (gitignored, written by pre-commit's mypy hook); no tracked file changed |
+
+- **Full, unfiltered output:** 55,929 lines, sha256
+  `5d4815b27395b6aeaa1466f2641d646f0d78eeefd108b8108f21029c2df90abc`.
+- **Skips:** the 22 skipped are Section 7's gate's 21 plus this section's
+  opt-in real-provider test (`RUN_REAL_AI`). That is consistent with the
+  counts, but individual skip reasons were not printed at this verbosity.
+
+**Where the raw output lives:** `docs/evidence/section_9_final_gate/`, with
+the precedent set by Section 5's post-merge gate:
+- `full_suite.log.gz`, `precommit_all_files.log.gz`, the counted
+  `mutations_quiet_host.log.gz`, `chain.log.gz`, and
+  `real_provider_batch_upload.log.gz`;
+- `gate_report.txt` and both fingerprints;
+- `RAW_LOG_SHA256SUMS.txt`, the sha256 of each log before compression;
+- `RAW_LOG_LINE_COUNTS.txt`;
+- `SHA256SUMS.txt`, covering the stored files.
+
+**What this gate does and does not prove.** It proves Section 9 on top of
+Section 7's `ec28d90`. `beta` has since moved to `91f752b`: it now carries
+Section 8 (`fb9b29c`) but still not Section 7. A read-only trial merge of
+`d59add7` with beta `71d4175` merges code cleanly, and `assignments/tasks.py`
+and `AutoGrader/error_messages.py` both auto-merge. It conflicts only in
+`docs/CODEBASE_AUDIT_SECTIONS.md` and `docs/HARDENING_BACKLOG.md`.
+
+**Merging into `beta` is the owner's decision.** The integrated tip that
+finally lands needs its own gate, per the Section 7 / Section 8 practice.
