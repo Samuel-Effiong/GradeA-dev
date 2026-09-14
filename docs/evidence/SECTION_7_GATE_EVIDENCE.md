@@ -270,6 +270,22 @@ Cross-app coverage in that run: every app's suite, including
 `AutoGrader/tests_cache_*` (H-1 families with legacy sweeps disabled),
 `assignments`, `classrooms`, `users`, `billing`, `dashboard`.
 
+### 9a. Post-run checks (owner's final-gate spec, 2026-09-14)
+
+Measured after the §9 run, from the same worktree:
+
+| Check | Result |
+|---|---|
+| `select count(*) from pg_database where datname like 'test_s7_fresh_teardown_227b%'` | **0** — the test database is gone |
+| `select count(*) from pg_stat_activity where datname like 'test_s7_fresh_teardown_227b%'` | **0** — no leftover sessions |
+| Suspend during the run | The gate ran 11:55:37 → 12:22:34 (log file create/last-write times; `Ran 3922 tests in 1592s`). `journalctl -k` for the day shows a single `PM: suspend exit` at **09:43:38**, two hours before the run started, and none inside the window. |
+| Tree before / after | `git status --short` empty before the run (recorded in the log header: `HEAD 98682e6…`, dirty files 0) and empty after; `find <worktree> -newer <start marker>` (excluding `.git`, `__pycache__`, and this evidence file, which the docs-only commit wrote afterwards) returns nothing. |
+| Identity now | commit `88360b5`, tree `c02e1202…`, working-tree fingerprint `e3b0c442…` (the SHA-256 of empty input — i.e. no diff from HEAD and no untracked files). The tested code tree is `98682e6`'s; `88360b5` differs from it only by this file. |
+
+The run was not wrapped in `systemd-inhibit`; the journal is the evidence
+that no suspend occurred. Future gates should use the inhibit wrapper so
+the question does not arise.
+
 ## 10. Open items handed to the owner
 
 * **H-11** (release-blocking, owner Section 7 + frontend): the three
