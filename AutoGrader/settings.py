@@ -837,6 +837,24 @@ CELERY_BEAT_SCHEDULE = {
         "task": "billing.tasks.reconcile_subscription_prices",
         "schedule": crontab(minute=30, hour=4),
     },
+    # Nightly plan-price reconciliation: every active plan's BASE and
+    # OVERAGE Stripe Price, checked against what the application believes
+    # it costs. The sibling task above compares a SUBSCRIPTION's price to
+    # its plan; this one compares the PLAN ROW to Stripe, which is a
+    # different question and the one that catches a price edited in the
+    # dashboard.
+    #
+    # Nightly, not weekly: the whole sweep is ~18 Stripe reads, so daily
+    # detection costs nothing measurable and a wrong price cannot stand for
+    # a week. Detection only — it makes no corrective write, and the
+    # `--fix` path stays a deliberate human command.
+    #
+    # 02:30 puts it in the quiet window, clear of the 00:00 renewals sweep
+    # and the 04:30 subscription-price check.
+    "reconcile-stripe-prices-nightly": {
+        "task": "billing.tasks.reconcile_stripe_prices",
+        "schedule": crontab(minute=30, hour=2),
+    },
     # The BetaProfile scoring engine. Its docstring has always said "Called
     # by midnight"; until now nothing called it, so the sales-lead endpoints
     # ranked every teacher at a permanent 0.0. Runs at 00:30 rather than
@@ -959,6 +977,10 @@ BEAT_HEALTH_EXPECTATIONS = {
     "process-annual_plan-credit-grants": (timedelta(days=1), timedelta(days=2)),
     "process-license-monthly-credit-refreshes": (timedelta(days=1), timedelta(days=2)),
     "reconcile-subscriptions-daily": (timedelta(days=1), timedelta(days=2)),
+    # Registered here, not just in the schedule: this task is itself a
+    # watchdog, and a watchdog nobody watches is one that can stop
+    # reporting without anyone noticing it went quiet.
+    "reconcile-stripe-prices-nightly": (timedelta(days=1), timedelta(days=2)),
     "cleanup-expired-credit-buckets": (timedelta(days=1), timedelta(days=2)),
     "nightly-stripe-live-qa": (timedelta(days=1), timedelta(days=2)),
     "nightly-grading-benchmark-replay": (timedelta(days=1), timedelta(days=2)),
