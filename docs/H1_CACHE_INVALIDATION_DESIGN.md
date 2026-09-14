@@ -910,7 +910,11 @@ not family migration:
    the H-10 N+1. After H-10, scope is decided per operation from three
    things: measured rebuild cost, concurrency behaviour (how many
    simultaneous viewers the page realistically has), and
-   production-representative scale;
+   production-representative scale.
+   **Update (2026-09-14): H-10 is merged and closed** (beta `2715c64`, strict
+   gate passed). Next, per the owner's order: re-measure rebuild and
+   stampede behaviour on `beta`, then decide which families justify
+   protection;
 3. **H-9** Redis test isolation: **FIXED**, see `HARDENING_BACKLOG.md` H-9;
 4. **H-2** (13 leaked test DB sessions): **FIXED on the working tree**, see
    `docs/evidence/H2_TEST_TEARDOWN_EVIDENCE.md`;
@@ -957,9 +961,17 @@ not family migration:
    Evidence: `docs/evidence/H1_USER_FANOUT_EVIDENCE.md`. The DONE status of
    families 23, 25, 29, 30, 33 and the course/submission mixin families is
    no longer qualified.
-8. **Remaining before Stage 3 (wildcard removal) is reviewable:** stampede
-   protection scope (item 2). That waits on H-10's fix (the Section 8
-   remediation) reaching `beta`, followed by a re-measurement.
+8. **Remaining, in the owner's order (2026-09-14):**
+   1. ~~merge H-10~~ **done**: beta `2715c64`, strict gate passed;
+   2. re-measure cache rebuild and stampede behaviour after the dashboard
+      optimisation;
+   3. decide which families actually need stampede protection, from those
+      measurements;
+   4. Stage 3: remove the legacy wildcard clearing, with its own
+      verification that every former wildcard invalidation has an explicit
+      replacement and that no broad `SCAN`/wildcard production invalidation
+      remains.
+   H-1 stays OPEN until 3 and 4 are done.
 
 Only after those does removing the legacy wildcards become a reviewable
 change.
