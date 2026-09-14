@@ -6,8 +6,6 @@ from ai_processor.models import ChatMessage, ChatSession
 from assignments.models import Assignment
 from classrooms.models import Course
 
-# from assignments.models import Assignment
-
 
 class PeakTimeSerializer(serializers.Serializer):
     hour = serializers.IntegerField()
@@ -35,22 +33,6 @@ class StudentAssignmentListSerializer(serializers.Serializer):
     total_score = serializers.IntegerField()
     feedback = serializers.CharField()
     submission_status = serializers.CharField(max_length=30)
-
-    # class Meta:
-    #     model = Assignment
-    #     fields = [
-    #         "course",
-    #         "teacher",
-    #         "assignment",
-    #         "title",
-    #         "due_date",
-    #         "submission_date",
-    #         "score",
-    #         "score_percentage",
-    #         "total_score",
-    #         "feedback",
-    #         "submission_status",
-    #     ]
 
 
 class AssignmentPerformanceSerializer(serializers.Serializer):

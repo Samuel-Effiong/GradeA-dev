@@ -52,8 +52,6 @@ from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from billing.models import CreditUsageLog
 from billing.services import FEATURE_TO_ANALYTICS_FIELD
-
-# from assignments.services import AssignmentProcessingService
 from classrooms.models import (
     Course,
     EnrollmentStatusType,
@@ -62,11 +60,9 @@ from classrooms.models import (
     StudentCourse,
 )
 from classrooms.permissions import IsSchoolAdmin, IsStudent, IsSuperAdmin, IsTeacher
-
-# from dashboard.services import analyze_question_difficulty
 from dashboard.models import SchoolAtRiskSnapshot
 from dashboard.risk import RiskInputs, StudentRiskEvaluator
-from dashboard.serializers import (  # SchoolAdminTeacherPerformanceSerializer,
+from dashboard.serializers import (
     AssignmentActivityOverTimeChartSerializer,
     ConcurrencySerializer,
     CourseAnalyticsSerializer,
@@ -128,8 +124,6 @@ logger = logging.getLogger(__name__)
 #: was causing ~94% of rebuilds. At 24h that falls to ~7.5/day, a ~14x
 #: reduction, with NO staleness because versioning handles it.
 SUPERADMIN_DASHBOARD_TTL_SECONDS = 60 * 60 * 24
-
-# from dashboard.services import DashboardService
 
 
 def get_or_create_dashboard_chat_session(user, assistant_type):
@@ -245,8 +239,6 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         """,
         responses={200: PlatformAdoptionSerializer},
     )
-    # @method_decorator(cache_page(60 * 30, key_prefix="superadmin:dashboard:adoption"))
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/adoption")
     def platform_adoption(self, request, *args, **kwargs):
         cache_key = versioned_key(
@@ -334,8 +326,6 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         """,
         responses={200: PlatformUsageSerializer},
     )
-    # @method_decorator(cache_page(60 * 30, key_prefix="superadmin:dashboard:usage"))
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/usage")
     def platform_usage(self, request, *args, **kwargs):
         cache_key = versioned_key(
@@ -450,10 +440,6 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         """,
         responses={200: PlatformAIPerformanceSerializer},
     )
-    # @method_decorator(
-    #     cache_page(60 * 30, key_prefix="superadmin:dashboard:performance")
-    # )
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/ai_performance")
     def platform_ai_performance(self, request, *args, **kwargs):
         cache_key = versioned_key(
@@ -561,8 +547,6 @@ class SuperAdminDashboardView(viewsets.ViewSet):
                     "regrade_rate": regrade_rate,
                     "avg_assignment_processing_time": avg_assignment_processing_time,
                     "avg_grading_processing_time": avg_grading_time,
-                    # "queue_backlog": None,
-                    # "error_rate": None,
                 },
             }
 
@@ -586,10 +570,6 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         """,
         responses={200: ScalingSignalsSerializer},
     )
-    # @method_decorator(
-    #     cache_page(60 * 30, key_prefix="superadmin:dashboard:scaling_signals")
-    # )
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/scaling_signals")
     def scaling_signals(self, request, *args, **kwargs):
         """
@@ -681,8 +661,6 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         return Response(data)
 
     @extend_schema(tags=["Super Admin"])
-    # @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:summary"))
-    # @method_decorator(vary_on_headers("Authorization"))
     def summary(self, request, *args, **kwargs):
         # Implementation for summary endpoint
 
@@ -799,8 +777,6 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         ],
         responses={200: SchoolAnalyticsSerializer(many=True)},
     )
-    # @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:schools"))
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/schools")
     def schools(self, request, *args, **kwargs):
         paginator = StandardPageNumberPagination()
@@ -910,8 +886,6 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         ],
         responses={200: TeacherPerformanceSerializer(many=True)},
     )
-    # @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:teachers"))
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/teachers")
     def teachers(self, request, *args, **kwargs):
         """
@@ -1038,8 +1012,6 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         """,
         responses={200: SuperAdminStudentPerformanceSerializer},
     )
-    # @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:students"))
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/students")
     def students(self, request, *args, **kwargs):
         cache_key = versioned_key(
@@ -1055,7 +1027,6 @@ class SuperAdminDashboardView(viewsets.ViewSet):
                 total_assignments=Count("course__assignments", distinct=True),
             )
 
-            # total_students = CustomUser.objects.filter(user_type=UserTypes.STUDENT, is_active=True).count()
             actual_submissions = StudentSubmission.objects.count()
 
             expected_submissions = _expected_submission_total(
@@ -1134,8 +1105,6 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         ],
         responses={200: ConcurrencySerializer},
     )
-    # @method_decorator(cache_page(60 * 3, key_prefix="superadmin:dashboard:concurrency"))
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/concurrency")
     def concurrency(self, request, *args, **kwargs):
         # DELIBERATELY UNCACHED (H-1 family 22).
@@ -1171,7 +1140,6 @@ class SuperAdminDashboardView(viewsets.ViewSet):
     @extend_schema(
         tags=["Super Admin"],
         summary="Get AI detailed information about analytics ",
-        # description="Retrieve user activity statistics within a specified time range",
         request=CustomAIPrompt,
         responses={200: CustomAIReply},
     )
@@ -1348,7 +1316,6 @@ def _expected_submission_total(courses):
 
 class SchoolAdminDashboardView(viewsets.ViewSet):
     permission_classes = [IsSchoolAdmin]
-    # http_method_names = ["get", "head", "options"]
 
     AT_RISK_TREND_WINDOW_WEEKS = 8
     AT_RISK_TREND_MAX_WINDOW_WEEKS = 52
@@ -1366,8 +1333,6 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         """,
         responses={200: SchoolAdminSummarySerializer},
     )
-    # @method_decorator(cache_page(60 * 3, key_prefix="schooladmin:dashboard:summary"))
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/summary")
     def summary(self, request, *args, **kwargs):
         user = request.user
@@ -1399,12 +1364,6 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 user_type=UserTypes.TEACHER,
                 is_active=True,
             ).count()
-
-            # active_students = CustomUser.objects.filter(
-            #     school=school,
-            #     user_type=UserTypes.STUDENT,
-            #     is_active=True,
-            # ).count()
 
             active_students = (
                 CustomUser.objects.filter(
@@ -1728,99 +1687,6 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
 
             cache.set(cache_key, data, 60 * 60)
         return Response(data)
-
-    # @extend_schema(
-    #     tags=["School Admin"],
-    #     summary="School Teachers Performance",
-    #     description="""
-    #     Retrieve performance and engagement metrics for all teachers within the school.
-
-    #     Metrics for each teacher include:
-    #     - Basic identification (Teacher ID, Name).
-    #     - Course Load: Total number of courses assigned.
-    #     - Student Reach: Total number of unique students enrolled in their courses.
-    #     - Academic Performance: Average student performance (final grades) across all their courses.
-    #     - Engagement: Assignment completion rates (actual submissions vs. expected based on enrollments).
-    #     """,
-    #     responses={200: SchoolAdminTeacherPerformanceSerializer(many=True)},
-    # )
-    # # @method_decorator(cache_page(60 * 3, key_prefix="schooladmin:dashboard:teachers"))
-    # # @method_decorator(vary_on_headers("Authorization"))
-    # @action(detail=False, methods=["get"], url_path="dashboard/teachers")
-    # def teachers(self, request, *args, **kwargs):
-    #     """
-    #     Returns performance metrics for all teachers in the admin's school:
-    #     - Number of courses per teacher
-    #     - Number of students per teacher
-    #     - Average student performance per teacher
-    #     - Assignment completion rates per teacher
-    #     """
-
-    #     user = request.user
-    #     cache_key = f"schooladmins:user_id__{user.id}:view__teachers"
-    #     data = cache.get(cache_key)
-
-    #     if data is None:
-    #         school = user.school
-
-    #         if not school:
-    #             return Response(
-    #                 {
-    #                     "detail": "User is not associated with any school",
-    #                 },
-    #                 status=400,
-    #             )
-
-    #         teacher_queryset = CustomUser.objects.filter(
-    #             school=school, user_type=UserTypes.TEACHER, is_active=True
-    #         ).annotate(
-    #             course_count=Count("courses", distinct=True),
-    #             student_count=Count("courses__enrollments__student", distinct=True),
-    #             average_grade=Avg("courses__enrollments__final_grade"),
-    #             actual_submissions=Count(
-    #                 "courses__assignments__submissions", distinct=True
-    #             ),
-    #         )
-
-    #         performance_data = []
-    #         for teacher in teacher_queryset:
-    #             stats = teacher.courses.aggregate(
-    #                 total_assignments=Count("assignments", distinct=True),
-    #                 total_enrollments=Count("enrollments", distinct=True),
-    #             )
-
-    #             expected_submissions = (stats["total_assignments"] or 0) * (
-    #                 stats["total_enrollments"] or 0
-    #             )
-
-    #             completion_rate = (
-    #                 (teacher.actual_submissions / expected_submissions * 100)
-    #                 if expected_submissions > 0
-    #                 else 0
-    #             )
-
-    #             performance_data.append(
-    #                 {
-    #                     "teacher_id": teacher.id,
-    #                     "teacher_name": f"{teacher.first_name} {teacher.last_name}",
-    #                     "number_of_courses": teacher.course_count,
-    #                     "number_of_students": teacher.student_count,
-    #                     "average_student_performance": round(
-    #                         float(teacher.average_grade or 0), 2
-    #                     ),
-    #                     "assignment_completion_rate": round(
-    #                         min(float(completion_rate), 100), 2
-    #                     ),
-    #                 }
-    #             )
-
-    #         serializer = SchoolAdminTeacherPerformanceSerializer(
-    #             performance_data, many=True
-    #         )
-    #         data = serializer.data
-
-    #         cache.set(cache_key, data, 60 * 15)
-    #     return Response(data)
 
     @extend_schema(
         tags=["School Admin"],
@@ -2538,8 +2404,6 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         """,
         responses={200: SchoolAdminStudentPerformanceSerializer},
     )
-    # @method_decorator(cache_page(60 * 3, key_prefix="schooladmin:dashboard:students"))
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(detail=False, methods=["get"], url_path="dashboard/students")
     def students(self, request, *args, **kwargs):
         user = request.user
@@ -2918,7 +2782,6 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
 
 class TeacherAdminDashboardView(viewsets.ViewSet):
     permission_classes = [IsTeacher]
-    # http_method_names = ["get", "options", "head"]
 
     risk_evaluator = StudentRiskEvaluator()
 
@@ -2947,8 +2810,6 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         ],
         responses={200: TeacherDashboardOverviewSerializer},
     )
-    # @method_decorator(cache_page(60 * 3, key_prefix="teacheradmin:dashboard:overview"))
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(
         detail=False,
         methods=["get"],
@@ -3263,8 +3124,6 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         ],
         responses={200: TeacherCourseAnalyticsSerializer},
     )
-    # @method_decorator(cache_page(60 * 3, key_prefix="teacheradmin:dashboard:courses"))
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(
         detail=False,
         methods=["get"],
@@ -3406,10 +3265,6 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         ],
         responses={200: TeacherAssignmentAnalyticsSerializer},
     )
-    # @method_decorator(
-    #     cache_page(60 * 3, key_prefix="teacheradmin:dashboard:assignments")
-    # )
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(
         detail=False,
         methods=["get"],
@@ -3452,20 +3307,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 "ai_grading_confidence": round(float(avg_grading_confidence), 2),
             }
 
-            # FIXME: Implement the hardest and easiest questions
-            # hardest, easiest = analyze_question_difficulty(submissions)
-
-            # assignment_metrics.update(
-            #     {
-            #         # "hardest_questions": hardest,
-            #         # "easiest_questions": easiest,
-            #         "custom_ai_prompt": {
-            #             "enabled": False,
-            #             "scope": "assignment",
-            #             "prompt": assignment.custom_ai_prompt,
-            #         }
-            #     }
-            # )
+            # Not implemented: hardest/easiest questions per assignment.
 
             serializer = TeacherAssignmentAnalyticsSerializer(assignment_metrics)
             data = serializer.data
@@ -3519,8 +3361,6 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         ],
         responses={200: PaginatedTeacherStudentAnalyticsSerializer},
     )
-    # @method_decorator(cache_page(60 * 3, key_prefix="teacheradmin:dashboard:students"))
-    # @method_decorator(vary_on_headers("Authorization"))
     @action(
         detail=False,
         methods=["get"],
@@ -3636,10 +3476,6 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                     for s in student_course_submissions
                 ]
 
-                # student_summary_task_id = student_summary_async(
-                #     str(student.id), str(request.user.id), str(course.id)
-                # )
-
                 rows.append(
                     {
                         "student_id": student.id,
@@ -3742,7 +3578,6 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
 
 class StudentAdminDashboardView(viewsets.ViewSet):
     permission_classes = [IsStudent]
-    # http_method_names = ["get", "options", "head"]
 
     @extend_schema(
         tags=["Student Admin"],

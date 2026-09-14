@@ -114,6 +114,38 @@ The **repository-wide gate** on the final tree, once item 9 lands, will therefor
 - run under `systemd-inhibit --what=sleep`;
 - afterwards confirm there is no `test_dashboard_audit_reconciled` row in `pg_database` and 0 connections to it in `pg_stat_activity`.
 
+## 8. Item 9: commented-out code (E800), dashboard part
+
+**Division of work.** The Section 7 session owns the E800 switch-on in `.pre-commit-config.yaml`: commit `54d3305`, which exempts 39 files. Its H-12 backlog entry says that list may only shrink. Section 8 cleans its own files and then removes their entries.
+
+**Removed.** 84 E800 hits across `dashboard/views.py` (79), `dashboard/serializers.py` (4) and `dashboard/tests_rigor.py` (1), plus the unflagged lines of the same dead blocks:
+
+- **Imports and names:** three commented-out imports, and a stale inline `# SchoolAdminTeacherPerformanceSerializer,` on an import line.
+- **Decorators:** every commented-out `@method_decorator(cache_page…/vary_on_headers…)` stack.
+- **Dead values:** two dead dict keys and a dead `description=`.
+- **Class attributes:** three `# http_method_names` lines.
+- **Dead statements:** `total_students`, `active_students` and `student_summary_async`.
+- **Whole methods:** the entire commented-out school-admin `teachers` method (92 lines). `teacher_performance` superseded it.
+- **Serializer leftovers:** an old `Meta` block in a plain `Serializer`.
+- **Unfinished feature:** the stubbed hardest/easiest-questions block. Its FIXME is kept as a one-line plain-English note.
+- **Reworded, not removed:** the arithmetic comment in `tests_rigor.py`. It was a false positive that explains a test value.
+
+**Proof that no code changed.** Each file was parsed before and after and its AST compared, with import statements normalised because isort reflowed blank lines once a comment was gone. All three files are **identical**. The pre-cleanup snapshot was confirmed by checksum.
+
+**Result.** `flake8 --select=E800 dashboard/` finds **0** (migrations excluded, as in the hook). Pre-commit passes. The diff is 187 lines removed and 4 added.
+
+**Regression after the cleanup.** The full `dashboard` test suite passes: **218 tests OK**, 2 skipped (opt-in real AI).
+
+**Carve-out list: done.** Section 7's `54d3305`, which switches E800 on, was merged into this branch. All six dashboard entries were then removed from `--per-file-ignores`:
+
+- `views.py`, `serializers.py`, `tests_rigor.py`: now clean;
+- `urls.py`: already clean;
+- `at_risk_improvements.py`, `AT_RISK_IMPLEMENTATION_GUIDE.py`: deleted in item 8.
+
+The remaining list was checked to equal **exactly** the set of files that still have E800 hits, with no stale entries and no missing ones. `pre-commit run flake8 --all-files` passes with it.
+
+**Item 9 overall: open.** The owner decided on 2026-09-14 that item 9 covers the whole repository. 33 files and 351 hits remain. Each is tracked with its hit count, what is commented out, reason, owning section and staged plan in the `docs/HARDENING_BACKLOG.md` H-12 register. Entries are removed as each area is cleaned, and no directory-wide carve-outs are allowed. `migrations/` is excluded from the whole flake8 hook because it is generated code; that exclusion is documented in the register.
+
 ## Known consequences, accepted or handed off
 
 - **AI chat credits.** Credits are consumed by the billing layer during the provider call, which is no longer inside the chat transaction. If writing the chat turn afterwards failed, the credits would stay spent with no stored reply. The old design held a DB transaction open across up to three provider round trips.

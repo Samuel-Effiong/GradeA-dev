@@ -60,7 +60,7 @@ speed that decision up, not to pre-empt it.
 | H-9 | Test suite shares one Redis DB (isolation) | High | Whoever owns CI | **FIXED — per-process prefix + prefix-scoped clear(); 4/4 tests pass, two concurrent runs verified** |
 | H-10 | `super-admin/dashboard/students` 480-query N+1 | High | Section 8 (dashboard) | Measured, not fixed |
 | H-11 | Synchronous billed AI calls inside `students` request handlers (`upload`, `grade`, `PATCH raw_input`) | **High - release-blocking** | Section 7 (students) + frontend | Open - tracked here from the §7 review pass, 2026-09-13 |
-| H-12 | Commented-out code (flake8 E800) burn-down - 38 files carved out of the rule | Low | Each file's section owner | Rule ON since 2026-09-13; `students` clean; 38 files carved out |
+| H-12 | Commented-out code (flake8 E800) burn-down - 33 files still carved out of the rule | Low | Each file's section owner (register in H-12) | Rule ON since 2026-09-13; `students` and `dashboard` clean; 33 files / 351 hits remain; whole repository in scope (owner decision 2026-09-14) |
 | H-13 | Product decision: an upload accepted while grading is RUNNING | Medium | Product + Section 7 | Decision needed (see item) |
 
 ---
@@ -965,25 +965,117 @@ tenancy scoping, 409 for closure errors).
 
 # H-12 — Commented-out code burn-down (flake8-eradicate E800)
 
-`docs/CODE_REVIEW_STANDARDS.md` §2 lists flake8-eradicate as enforced;
-`.pre-commit-config.yaml` had `E800` in its `--ignore` list, so it never
-was. The §7 pass turned the rule ON and carved out, by name, the 38 files
-that still carried legacy commented-out blocks (930 E800 hits repo-wide
-at the time, 500+ of them in `dashboard/`). The carve-out list is in the
-flake8 hook's `--per-file-ignores` and is **frozen**: nothing may be added
-to it, and each file is removed from it as it is cleaned. The Section 8
-session has agreed to clean `dashboard/views.py` and
-`dashboard/serializers.py` and drop them from the list in its own change.
+`docs/CODE_REVIEW_STANDARDS.md` §2 lists flake8-eradicate as enforced, but
+`.pre-commit-config.yaml` had `E800` in its `--ignore` list, so it never was.
 
-**Owner:** each file's section owner (the list is by app).
+**History:**
 
-**Acceptance:** `--per-file-ignores` is empty and removed; `flake8
---select=E800 .` is clean. Documentation-as-code
-(`dashboard/AT_RISK_IMPLEMENTATION_GUIDE.py`) is either converted to a
-`.md` under `docs/` or given an explicit, justified `# noqa: E800`.
+- **§7 pass:** turned the rule ON and carved out, by name, the files that
+  still carried legacy commented-out blocks. That was 930 E800 hits
+  repo-wide, 500+ of them in `dashboard/`.
+- **§8 pass:** cleaned all of `dashboard/` (84 hits on the merged tree) and
+  removed its six entries.
+  - Four files were cleaned: `views.py`, `serializers.py`, `tests_rigor.py`,
+    and `urls.py`, which was already clean.
+  - Two entries were for files §8 deleted (`at_risk_improvements.py`,
+    `AT_RISK_IMPLEMENTATION_GUIDE.py`), so that also settles the
+    documentation-as-code question.
+  - Every removal was proved comment-only by an AST comparison.
 
-**Evidence:** the pre-commit run itself. No behaviour changes are
-involved; a regression run per cleaned app is sufficient.
+**Owner decision (2026-09-14):**
+
+- The rule covers the **whole repository**. The carve-out list is a
+  temporary register, not a policy.
+- Every remaining exemption must have a reason, an owner and a cleanup plan.
+  They are listed below.
+- Entries are removed progressively as each area is cleaned.
+- No whole directory may be exempted just to make the check pass.
+- The rule is not achieved while unexplained exemptions remain.
+
+**Rules for the list (enforced by review):**
+
+- Nothing may be added.
+- A file's entry is removed in the same commit that cleans it.
+- The list must always equal exactly the set of files that still have E800
+  hits. The §8 commit verified this. A stale entry for an already-clean file
+  counts as a defect.
+
+**Evidence each cleanup must include:**
+
+1. `flake8 --select=E800 <file>` is clean;
+2. an AST comparison of the file before and after showing identical code,
+   which proves only comments were removed. Import statements are normalised
+   if isort reflows them. For §8's version, see
+   `docs/evidence/SECTION_8_DASHBOARD_REMEDIATION_EVIDENCE.md` §8;
+3. a regression run of that app's tests.
+
+A block that records something intentional, such as an alternative
+configuration, is rewritten as prose, not deleted.
+
+**Why these files are exempt:** each still contains commented-out code from
+before E800 was enforced, and nobody has reviewed it yet. It is not known
+whether any block is intentional. That is the reason for every row below.
+The "What is commented out" column shows what each file holds.
+
+**Staged plan:**
+
+- **Stage 1:** ≤ 6 hits — 18 files, quick and low risk.
+- **Stage 2:** 7–21 hits — 11 files.
+- **Stage 3:** ≥ 27 hits — 4 files, which need careful review.
+
+Each stage is done by the owning section, in coordination with any session
+currently changing that app.
+
+Counts are from `flake8 --select=E800` on the §8 branch after merging
+`54d3305`: **33 files, 351 hits**.
+
+| File | Hits | What is commented out | Owner | Plan | Notes |
+|---|---|---|---|---|---|
+| `AutoGrader/urls.py` | 6 | 6 statements | §0 cross-cutting | Stage 1 |  |
+| `users/serializers.py` | 1 | 1 imports | §1 users | Stage 1 |  |
+| `users/services.py` | 6 | 5 statements, 1 imports | §1 users | Stage 1 |  |
+| `users/tests_throttle_client_identity.py` | 2 | 2 statements | §1 users | Stage 1 | Test file: low risk. |
+| `users/views.py` | 6 | 3 imports, 3 statements | §1 users | Stage 1 |  |
+| `templates/assignment_to_prosemirror.py` | 2 | 2 statements | §10 templates | Stage 1 |  |
+| `billing/license_service.py` | 4 | 4 statements | §2 billing | Stage 1 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
+| `billing/live_qa/invariants_individual.py` | 1 | 1 statements | §2 billing | Stage 1 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
+| `billing/management/commands/backfill.py` | 1 | 1 imports | §2 billing | Stage 1 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
+| `billing/stripe_view_schemas.py` | 4 | 4 statements | §2 billing | Stage 1 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
+| `billing/tasks.py` | 1 | 1 statements | §2 billing | Stage 1 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
+| `billing/tests/tests.py` | 5 | 3 imports, 2 statements | §2 billing | Stage 1 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
+| `classrooms/models.py` | 6 | 6 statements | §3 classrooms | Stage 1 |  |
+| `classrooms/test_bulk_enrollment.py` | 1 | 1 imports | §3 classrooms | Stage 1 | Test file: low risk. |
+| `classrooms/test_views.py` | 1 | 1 imports | §3 classrooms | Stage 1 | Test file: low risk. |
+| `assignments/admin.py` | 4 | 4 statements | §4 assignments | Stage 1 |  |
+| `assignments/tests_rigor.py` | 2 | 2 statements | §4 assignments | Stage 1 | Test file: low risk. |
+| `ai_processor/views.py` | 1 | 1 imports | §5 ai_processor | Stage 1 |  |
+| `users/models.py` | 12 | 10 statements, 2 imports | §1 users | Stage 2 |  |
+| `billing/access_control.py` | 14 | 12 statements, 2 imports | §2 billing | Stage 2 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
+| `billing/license_views.py` | 14 | 13 statements, 1 imports | §2 billing | Stage 2 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
+| `billing/models.py` | 10 | 9 statements, 1 imports | §2 billing | Stage 2 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
+| `billing/services.py` | 12 | 11 statements, 1 imports | §2 billing | Stage 2 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
+| `billing/stripe_service.py` | 18 | 15 statements, 2 dict keys, 1 imports | §2 billing | Stage 2 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
+| `billing/views.py` | 21 | 11 statements, 7 imports, 3 dict keys | §2 billing | Stage 2 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
+| `classrooms/serializers.py` | 9 | 9 statements | §3 classrooms | Stage 2 |  |
+| `classrooms/views.py` | 9 | 6 imports, 3 statements | §3 classrooms | Stage 2 |  |
+| `assignments/serializers.py` | 11 | 11 statements | §4 assignments | Stage 2 |  |
+| `assignments/views.py` | 20 | 12 statements, 8 imports | §4 assignments | Stage 2 |  |
+| `AutoGrader/settings.py` | 29 | 14 statements, 14 dict keys, 1 imports | §0 cross-cutting | Stage 3 | Settings values and dict keys: some may be deliberate environment alternatives, so move anything intentional into prose or the env docs rather than deleting it blindly. |
+| `billing/serializers.py` | 39 | 39 statements | §2 billing | Stage 3 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
+| `assignments/tasks.py` | 27 | 22 statements, 2 imports, 2 dict keys, 1 prints | §4 assignments | Stage 3 |  |
+| `ai_processor/services.py` | 52 | 45 statements, 7 imports | §5 ai_processor | Stage 3 |  |
+
+**The one directory-wide exclusion:** `exclude: (^|/)migrations/` on the
+whole flake8 hook, not only E800. It predates H-12. Migrations are generated
+by `makemigrations`, and hand-editing them to satisfy a linter risks changing
+schema history, so this exclusion is justified and is **not** part of the
+burn-down. It is recorded here so the register accounts for every exception.
+
+**Acceptance:**
+
+- `--per-file-ignores` is empty and removed from `.pre-commit-config.yaml`;
+- `flake8 --select=E800 .` is clean, with only migrations excluded;
+- this register is deleted.
 
 # H-13 — Product decision: uploads while grading is RUNNING
 

@@ -302,7 +302,7 @@ class TeacherRigorAggregationTest(RigorSchoolFixture, TestCase):
 
         self.assertEqual(payload["evidence"], 3.0)
         self.assertEqual(payload["submissions_scored"], MIN_GRADED_SUBMISSIONS)
-        # (0.6*2.0 + 0.25*3.0) / 0.85
+        # Weighted mean: 0.6 x 2.0 plus 0.25 x 3.0, divided by the 0.85 total weight.
         self.assertEqual(payload["score"], round((1.2 + 0.75) / 0.85, 1))
 
     def test_ungraded_submissions_do_not_drag_evidence_down(self):
