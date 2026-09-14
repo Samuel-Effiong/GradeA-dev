@@ -60,7 +60,7 @@ speed that decision up, not to pre-empt it.
 | H-9 | Test suite shares one Redis DB (isolation) | High | Whoever owns CI | **REOPENED (2026-09-14): regression** — 12 test modules bypassed the fix with their own unscoped `CACHES` override and aborted a concurrent gate. Fix implemented (`real_redis_caches()` + guard test); verification in progress |
 | H-10 | `super-admin/dashboard/students` 480-query N+1 | High | Section 8 (dashboard) | **CLOSED (2026-09-14)** — Section 8 remediation merged to beta `2715c64`; strict gate passed there (4,031 OK); query count flat |
 | H-11 | Synchronous billed AI calls inside `students` request handlers (`upload`, `grade`, `PATCH raw_input`) | **High - release-blocking** | Section 7 (students) + frontend | Open - tracked here from the §7 review pass, 2026-09-13 |
-| H-12 | Commented-out code (flake8 E800) burn-down - 33 files still carved out of the rule | Low | Each file's section owner (register in H-12) | Rule ON since 2026-09-13; `students` and `dashboard` clean; 33 files / 351 hits remain; whole repository in scope (owner decision 2026-09-14) |
+| H-12 | Commented-out code (flake8 E800) burn-down - 32 files still carved out of the rule | Low | Each file's section owner (register in H-12) | Rule ON since 2026-09-13; `students` and `dashboard` clean; 32 files / 347 hits remain; whole repository in scope (owner decision 2026-09-14) |
 | H-13 | Uploads while grading is RUNNING | Medium | Product + Section 7 | **DECIDED 2026-09-14: refuse (409). Implemented and gated in the §7 branch.** |
 
 ---
@@ -1133,15 +1133,16 @@ The "What is commented out" column shows what each file holds.
 
 **Staged plan:**
 
-- **Stage 1:** ≤ 6 hits — 18 files, quick and low risk.
+- **Stage 1:** ≤ 6 hits — 17 files, quick and low risk.
 - **Stage 2:** 7–21 hits — 11 files.
 - **Stage 3:** ≥ 27 hits — 4 files, which need careful review.
 
 Each stage is done by the owning section, in coordination with any session
 currently changing that app.
 
-Counts are from `flake8 --select=E800` on the §8 branch after merging
-`54d3305`: **33 files, 351 hits**.
+Counts were recounted with `flake8 --select=E800` on `beta` `30b7b95`, after Section 5
+deleted `ai_processor/views.py` and cleaned 3 hits in `ai_processor/services.py`:
+**32 files, 347 hits**.
 
 | File | Hits | What is commented out | Owner | Plan | Notes |
 |---|---|---|---|---|---|
@@ -1162,7 +1163,6 @@ Counts are from `flake8 --select=E800` on the §8 branch after merging
 | `classrooms/test_views.py` | 1 | 1 imports | §3 classrooms | Stage 1 | Test file: low risk. |
 | `assignments/admin.py` | 4 | 4 statements | §4 assignments | Stage 1 |  |
 | `assignments/tests_rigor.py` | 2 | 2 statements | §4 assignments | Stage 1 | Test file: low risk. |
-| `ai_processor/views.py` | 1 | 1 imports | §5 ai_processor | Stage 1 |  |
 | `users/models.py` | 12 | 10 statements, 2 imports | §1 users | Stage 2 |  |
 | `billing/access_control.py` | 14 | 12 statements, 2 imports | §2 billing | Stage 2 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
 | `billing/license_views.py` | 14 | 13 statements, 1 imports | §2 billing | Stage 2 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
@@ -1177,7 +1177,7 @@ Counts are from `flake8 --select=E800` on the §8 branch after merging
 | `AutoGrader/settings.py` | 29 | 14 statements, 14 dict keys, 1 imports | §0 cross-cutting | Stage 3 | Settings values and dict keys: some may be deliberate environment alternatives, so move anything intentional into prose or the env docs rather than deleting it blindly. |
 | `billing/serializers.py` | 39 | 39 statements | §2 billing | Stage 3 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
 | `assignments/tasks.py` | 27 | 22 statements, 2 imports, 2 dict keys, 1 prints | §4 assignments | Stage 3 |  |
-| `ai_processor/services.py` | 52 | 45 statements, 7 imports | §5 ai_processor | Stage 3 |  |
+| `ai_processor/services.py` | 49 | 42 statements, 7 imports | §5 ai_processor | Stage 3 |  |
 
 **The one directory-wide exclusion:** `exclude: (^|/)migrations/` on the
 whole flake8 hook, not only E800. It predates H-12. Migrations are generated

@@ -2,8 +2,8 @@
 
 Status: **GAPS FOUND / BLOCKERS FIXED / REMEDIATION IN PROGRESS.**
 
-- **Dashboard work (items 1-8 and the dashboard part of item 9):** committed, and it passed the strict final gate on `371268f` (§9).
-- **Still open:** item 9 across the whole repository. By the owner's decision of 2026-09-14 it covers every file, and 33 files with 351 hits are tracked in `docs/HARDENING_BACKLOG.md` H-12.
+- **Dashboard work (items 1-8 and the dashboard part of item 9):** in `beta` since merge `2715c64`, which passed the strict gate (§10). Every later `beta` descends from that merge.
+- **Still open:** item 9 across the whole repository. By the owner's decision of 2026-09-14 it covers every file, and 32 files with 347 hits are tracked (recounted on `30b7b95`: Section 5 deleted `ai_processor/views.py` and its stale exemption was removed) in `docs/HARDENING_BACKLOG.md` H-12.
 
 The sections below record what has been verified so far. The measurement scripts ran in throwaway copies; the numbers are recorded here because the scratchpad does not survive sessions.
 
@@ -195,12 +195,65 @@ The remaining list was checked to equal **exactly** the set of files that still 
 
 Closing H-10 is the owner's decision, recorded in the backlog by that session.
 
+## 10. Integration into `beta`: merge `2715c64`, gate passed
+
+**Who did it and why.** The integration was done by the H-1 session (`grade-automator-plus-79`), not the Section 8 session. The owner chose one integrator so that two merges into `beta` could not race. The Section 8 session stood down and verified the result.
+
+**Merge structure.**
+
+| Step | Result |
+|---|---|
+| `084d0e4` (beta, H-1 user fan-out) + Section 7 tip `29f4f59` | `8c438d5`, clean |
+| `8c438d5` + Section 8 branch tip `c6d7cfe` | **`2715c64`**. One conflict, the HARDENING_BACKLOG owner table, resolved row by row: H-1/H-10 from beta, H-11/H-13 from Section 7, H-12 from Section 8. |
+| `beta` | moved `084d0e4 → 2715c64` by compare-and-swap |
+| `544424a` | the H-1 session's docs-only commit recording the gate and closing H-10. It does not touch this file or audit row 8. |
+
+**Verified by the Section 8 session, read-only from the shared object store.**
+
+- **What `2715c64` contains:** `084d0e4`, `29f4f59` and `c6d7cfe`.
+- **Dashboard code:** `dashboard/` has **0 diff lines** against the Section 8 gated commit `371268f`.
+- **Files carried over identical to `c6d7cfe`:** `.pre-commit-config.yaml` and this evidence file.
+- **Backlog:** the H-12 section body and row match Section 8's, and the H-13 row matches Section 7's. No conflict markers remain.
+- **Audit table:** row 8 matches `c6d7cfe`.
+- **E800 carve-out:** 33 entries, none under `dashboard/`. The H-1 session also re-checked it with flake8 over the merged tree: 33 listed, 33 files with hits, none missing and none stale.
+- **Tree id:** `2715c64^{tree}` = `2a68fe267d666df981f9edfc342111eaddf5801e`.
+- **Test method counts in the merged tree** equal the gate's per-module OK counts: `tests_dashboard_remediation` 47, `tests_dashboard_audit_fixes` 23, `tests_rigor` 35, `dashboard.tests` 73. `tests_real_ai_chat` has 2, both opt-in and skipped.
+
+**Strict gate on `2715c64`, run by the H-1 session.** Full record: `docs/evidence/H10_INTEGRATION_GATE_EVIDENCE.md`.
+
+| Step | Result |
+|---|---|
+| Full suite, fresh `test_h10_integration`, **no `--keepdb`**, unfiltered | **Ran 4031 tests in 1822s, OK (skipped=14), exit 0** |
+| Teardown | test DB destroyed. 0 "other sessions" lines; afterwards `pg_database` 0, `pg_stat_activity` 0. |
+| Sleep | `systemd-inhibit` on, 0 suspend events |
+| Tree identity | `2a68fe267d666df981f9edfc342111eaddf5801e` before and after, 0 files modified during the run |
+| pre-commit (`084d0e4..HEAD`), `check`, `makemigrations --check` | exit 0, 0 issues, clean. 264 migrations applied from empty. |
+| Section 8 modules | `tests_dashboard_remediation` 47 OK, `tests_dashboard_audit_fixes` 23 OK, `tests_rigor` 35 OK, `dashboard.tests` 73 OK, `tests_real_ai_chat` 2 skipped (opt-in) |
+| H-1 cache suites | `tests_cache_user_fanout` 29, `tests_cache_dashboard_wide` 11, `tests_cache_generation_wiring` 15, all OK |
+| Unfiltered log | 40,179 lines, sha256 `ee1ca454cacc3903…` |
+
+**A fingerprint defect, caught and corrected.** The gate report first gave its content fingerprint as `e3b0c44298fc1c14…`. That value is the sha256 of **empty input**, so on its own it proved nothing. The run is still sound: the git tree id before and after, plus 0 modified files, is a real content identity, and that is what the H-1 evidence records as primary. The H-1 gate script now cross-checks the fingerprint against diff-byte and untracked counts, and aborts on disagreement. The Section 8 gate script (§9) hashes every tracked file's content, and future runs also abort if the result equals the empty-input hash.
+
+**H-10.** Closed on 2026-09-14 in `544424a` by the H-1 session, under the owner's authorisation, after this post-merge gate. The Section 8 remediation is the fix.
+
+## 11. Follow-up integration into `beta`: `fb9b29c`, gate passed
+
+Three commits reached `beta` at `fb9b29c` by compare-and-swap from `1d00b9f`, with the owner's approval:
+
+- this evidence record;
+- the E800 register correction: the stale entry for the deleted `ai_processor/views.py` was removed, and the register now stands at 32 files and 347 hits;
+- the nightly Stripe price-check schedule, as a separate commit.
+
+The strict gate ran on that exact commit and passed: 4,146 OK, 20 skips all accounted for, fresh DB without `--keepdb`, fingerprint unchanged. Full record: `docs/evidence/S8_STRIPE_INTEGRATION_GATE_EVIDENCE.md`.
+
+Section 8 status is unchanged, because item 9 across the whole repository is still open.
+
 ## Completion criteria (owner, 2026-09-14)
 
 | Criterion | State |
 |---|---|
 | Dashboard files removed from the E800 exemption list | **met** (`df05d90`) |
-| Strict final repository-wide gate passes on the final committed tree | **met** (`371268f`, §9) |
+| Strict final repository-wide gate passes on the final committed tree | **met**: `371268f` (§9), and the integrated `beta` merge `2715c64` (§10) |
 | Remaining item 9 scope resolved or formally approved | **not met.** Item 9 covers the whole repository: 33 files and 351 hits, tracked in the H-12 register. |
 
 Section 8 therefore remains **GAPS FOUND / BLOCKERS FIXED / REMEDIATION IN PROGRESS**.
