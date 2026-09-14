@@ -1045,19 +1045,15 @@ tenancy scoping, 409 for closure errors).
     documentation-as-code question.
   - Every removal was proved comment-only by an AST comparison.
 
-**Item 9 progress (repository-wide burn-down, owner decision 2026-09-14):**- §10 templates: `templates/assignment_to_prosemirror.py` (2 hits) cleaned; AST-identical, E800 0
+**Item 9 progress (repository-wide burn-down, owner decision 2026-09-14):**
 
-**Item 9 progress (repository-wide burn-down, owner decision 2026-09-14):**- §0 cross-cutting (AutoGrader/urls.py): `AutoGrader/urls.py` (6 hits) cleaned; AST-identical, E800 0
-
-**Item 9 progress (repository-wide burn-down, owner decision 2026-09-14):**- §1 users: `users/models.py`, `users/serializers.py`, `users/services.py`, `users/tests_throttle_client_identity.py`, `users/views.py` (27 hits) cleaned; AST-identical, E800 0
-
-**Item 9 progress (repository-wide burn-down, owner decision 2026-09-14):**- §3 classrooms: `classrooms/models.py`, `classrooms/serializers.py`, `classrooms/test_bulk_enrollment.py`, `classrooms/test_views.py`, `classrooms/views.py` (26 hits) cleaned; AST-identical, E800 0
-
-**Item 9 progress (repository-wide burn-down, owner decision 2026-09-14):**- §4 assignments (admin, serializers, tests_rigor): `assignments/admin.py`, `assignments/serializers.py`, `assignments/tests_rigor.py` (17 hits) cleaned; AST-identical, E800 0
-
-**Item 9 progress (repository-wide burn-down, owner decision 2026-09-14):**- §2 billing (licensing, Stripe and credit services): `billing/access_control.py`, `billing/license_service.py`, `billing/license_views.py`, `billing/models.py`, `billing/services.py`, `billing/stripe_service.py`, `billing/stripe_view_schemas.py`, `billing/tasks.py` (77 hits) cleaned; AST-identical, E800 0
-
-**Item 9 progress (repository-wide burn-down, owner decision 2026-09-14):**- §2 billing (serializers, views, tests and tools): `billing/serializers.py`, `billing/views.py`, `billing/tests/tests.py`, `billing/live_qa/invariants_individual.py`, `billing/management/commands/backfill.py` (67 hits) cleaned; AST-identical, E800 0
+- §10 templates: `templates/assignment_to_prosemirror.py` (2 hits) cleaned; AST-identical, E800 0
+- §0 cross-cutting (AutoGrader/urls.py): `AutoGrader/urls.py` (6 hits) cleaned; AST-identical, E800 0
+- §1 users: `users/models.py`, `users/serializers.py`, `users/services.py`, `users/tests_throttle_client_identity.py`, `users/views.py` (27 hits) cleaned; AST-identical, E800 0
+- §3 classrooms: `classrooms/models.py`, `classrooms/serializers.py`, `classrooms/test_bulk_enrollment.py`, `classrooms/test_views.py`, `classrooms/views.py` (26 hits) cleaned; AST-identical, E800 0
+- §4 assignments (admin, serializers, tests_rigor): `assignments/admin.py`, `assignments/serializers.py`, `assignments/tests_rigor.py` (17 hits) cleaned; AST-identical, E800 0
+- §2 billing (licensing, Stripe and credit services): `billing/access_control.py`, `billing/license_service.py`, `billing/license_views.py`, `billing/models.py`, `billing/services.py`, `billing/stripe_service.py`, `billing/stripe_view_schemas.py`, `billing/tasks.py` (77 hits) cleaned; AST-identical, E800 0
+- §2 billing (serializers, views, tests and tools): `billing/serializers.py`, `billing/views.py`, `billing/tests/tests.py`, `billing/live_qa/invariants_individual.py`, `billing/management/commands/backfill.py` (67 hits) cleaned; AST-identical, E800 0
 
 **Owner decision (2026-09-14):**
 
@@ -1097,7 +1093,7 @@ The "What is commented out" column shows what each file holds.
 **Staged plan:**
 
 - **Stage 1:** ≤ 6 hits — 0 files, quick and low risk.
-- **Stage 2:** 7–21 hits — 1 files.
+- **Stage 2:** 7–21 hits — 1 file.
 - **Stage 3:** ≥ 27 hits — 3 files, which need careful review.
 
 Each stage is done by the owning section, in coordination with any session
