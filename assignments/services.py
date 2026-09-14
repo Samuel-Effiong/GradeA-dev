@@ -17,7 +17,7 @@ from PIL import Image
 from PIL.Image import DecompressionBombError
 from rest_framework.exceptions import ParseError
 
-from ai_processor.services import ai_processor, pdf_service
+from ai_processor.services import PDFService, ai_processor
 from ai_processor.tools import (
     ImageCompressionError,
     compress_image_for_upload,
@@ -242,6 +242,26 @@ def _render_lettered_option_html(letter: str, sanitized_option_html: str) -> str
     return "".join(lxml_html.tostring(child, encoding="unicode") for child in children)
 
 
+def lock_placeholder_assignment_for_cleanup(assignment_id):
+    """
+    Lock and return an assignment that a cancelled create/upload task left
+    behind, or None if it is missing or has already received submissions
+    (in which case it is real work and must survive the cancellation).
+
+    Must be called inside a transaction: the row lock is what stops a
+    submission from landing between this check and the caller's delete.
+    This is the assignments app's side of
+    students.task_tracking.cleanup_cancelled_task_artifacts - the students
+    app owns the tracked task, this app owns the assignment row.
+    """
+    from assignments.models import Assignment
+
+    assignment = Assignment.objects.select_for_update().filter(id=assignment_id).first()
+    if assignment is None or assignment.submissions.exists():
+        return None
+    return assignment
+
+
 def _parse_due_date(due_date):
     """
     Render `due_date` as "Month DD, YYYY", or None if absent/unparsable.
@@ -354,9 +374,17 @@ class AssignmentProcessingService:
                 }
             )
         elif uploaded_file.content_type == cls.PDF_FORMAT:
-            pdf_service.set_uploaded_file(uploaded_file)
+            # A FRESH PDFService per upload, never the module-level
+            # `pdf_service` singleton. That singleton carries the file it is
+            # working on as instance state, and both callers of this method
+            # are synchronous DRF views running under
+            # `gunicorn --worker-class gthread --threads 4` - so two uploads
+            # on one worker could interleave as set(A) / set(B) / extract(),
+            # and a student would be graded on another student's paper while
+            # that paper's contents were stored against this submission.
+            # See ai_processor/tests_pdf_service_concurrency.py.
             try:
-                images = pdf_service.extract()
+                images = PDFService(uploaded_file).extract()
             except (ValueError, ImageCompressionError) as exc:
                 raise ParseError(str(exc)) from exc
 

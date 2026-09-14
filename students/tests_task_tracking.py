@@ -1,7 +1,8 @@
 import uuid
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, PropertyMock, patch
 
 from django.test import TestCase
+from redis.exceptions import ConnectionError as RedisConnectionError
 
 from assignments.models import Assignment
 from AutoGrader.dispatch import ProcessingTemporarilyUnavailable
@@ -19,13 +20,14 @@ from students.task_tracking import (
     DEFAULT_TASK_FAILURE_MESSAGE,
     cancel_processing_task,
     cancellable_final_save,
-    celery_app,
     cleanup_cancelled_task_artifacts,
     describe_task_error,
+    ensure_task_not_cancelled,
     launch_processing_task,
     mark_processing_task_cancelled,
     mark_processing_task_failure,
     mark_processing_task_started,
+    normalize_processing_task_status,
 )
 from users.models import CustomUser, UserTypes
 
@@ -127,9 +129,11 @@ class RevokeAppBindingTest(TestCase):
 
     @patch("students.task_tracking.celery_app.control.revoke")
     @patch("students.task_tracking.AsyncResult")
-    def test_cancel_binds_async_result_to_configured_app(
+    def test_cancel_revokes_exactly_once_through_the_configured_app(
         self, mock_async_result_cls, mock_control_revoke
     ):
+        # AsyncResult.revoke() is app.control.revoke() under the hood; the
+        # cancel path used to call both and broadcast the revoke twice.
         task_id = str(uuid.uuid4())
         processing_task = BackgroundProcessingTask.objects.create(
             requested_by=self.teacher,
@@ -140,13 +144,10 @@ class RevokeAppBindingTest(TestCase):
 
         cancel_processing_task(processing_task)
 
-        mock_async_result_cls.assert_called_once_with(task_id, app=celery_app)
-        mock_async_result_cls.return_value.revoke.assert_called_once_with(
-            terminate=True, signal="SIGTERM"
-        )
         mock_control_revoke.assert_called_once_with(
             task_id, terminate=True, signal="SIGTERM"
         )
+        mock_async_result_cls.return_value.revoke.assert_not_called()
 
 
 class CleanupCancelledTaskArtifactsTest(TestCase):
@@ -436,3 +437,64 @@ class MarkProcessingTaskFailureMessageTest(TestCase):
 
         self.processing_task.refresh_from_db()
         self.assertEqual(self.processing_task.error, "This task stopped unexpectedly.")
+
+
+class BrokerOutageDuringStatusAndCancelTest(TestCase):
+    """
+    normalize_processing_task_status runs inside status-poll GET views and
+    cancel_processing_task inside the cancel POST. Both talk to Redis
+    (result backend / control channel) AFTER the DB already holds the
+    answer. A Redis outage must degrade to "report / record what the DB
+    says", never to a 500 on a poll or on a cancellation that was in fact
+    already recorded.
+    """
+
+    def setUp(self):
+        self.teacher = CustomUser.objects.create_user(
+            email="broker-status-teacher@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            first_name="Broker",
+            last_name="Status",
+        )
+
+    def _started_task(self):
+        return BackgroundProcessingTask.objects.create(
+            requested_by=self.teacher,
+            celery_task_id=str(uuid.uuid4()),
+            task_type=BackgroundTaskType.SUBMISSION_GRADING,
+            status=BackgroundTaskStatus.STARTED,
+        )
+
+    @patch("students.task_tracking.AsyncResult")
+    def test_status_poll_falls_back_to_tracked_status_when_backend_is_down(
+        self, mock_async_result_cls
+    ):
+        task = self._started_task()
+        type(mock_async_result_cls.return_value).state = PropertyMock(
+            side_effect=RedisConnectionError("result backend unreachable")
+        )
+
+        status = normalize_processing_task_status(task)
+
+        self.assertEqual(status, BackgroundTaskStatus.STARTED)
+        task.refresh_from_db()
+        self.assertEqual(task.status, BackgroundTaskStatus.STARTED)
+
+    @patch("students.task_tracking.celery_app.control.revoke")
+    @patch("students.task_tracking.AsyncResult")
+    def test_cancel_is_recorded_even_when_the_revoke_cannot_be_sent(
+        self, mock_async_result_cls, mock_control_revoke
+    ):
+        task = self._started_task()
+        mock_control_revoke.side_effect = RedisConnectionError("broker unreachable")
+
+        result = cancel_processing_task(task)
+
+        self.assertEqual(result.status, BackgroundTaskStatus.CANCELLED)
+        task.refresh_from_db()
+        self.assertEqual(task.status, BackgroundTaskStatus.CANCELLED)
+        self.assertIsNotNone(task.finished_at)
+        # The worker learns of the cancellation cooperatively from the row.
+        with self.assertRaises(TaskCancelledError):
+            ensure_task_not_cancelled(task.id)

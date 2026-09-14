@@ -5,20 +5,30 @@ from html import escape
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
+from django.db.models import Value
+from django.db.models.functions import Concat
 from django.template.loader import render_to_string
 from django.utils import timezone
 
 from ai_processor.services import ai_processor
 from assignments.models import Assignment, AssignmentStatus
 from assignments.services import AssignmentProcessingService
+from AutoGrader.celery import app as celery_app
 from AutoGrader.tasks import send_email_task
 from billing.refunds import billing_refund_scope
 from classrooms.tasks import student_summary_async
 from users.models import CustomUser, UserTypes
 from users.services import get_opted_in_school_admins
 
-from .exceptions import CannotAssociateStudentError, SubmissionGradingInProgressError
+from .exceptions import (
+    CannotAssociateStudentError,
+    SubmissionAlreadyGradedError,
+    SubmissionBeingGradedError,
+    SubmissionGradingInProgressError,
+    SubmissionLimitReachedError,
+)
 from .models import BackgroundTaskType, GradingState, StudentSubmission
+from .signals import invalidate_submission_caches
 from .task_tracking import (
     cancellable_final_save,
     create_processing_task,
@@ -26,10 +36,10 @@ from .task_tracking import (
     launch_processing_task,
 )
 
-# from .serializers import StudentSubmissionSerializer
-
-
 logger = logging.getLogger(__name__)
+
+# How many times a student may submit their own answers to one assignment.
+MAX_STUDENT_SUBMISSION_ATTEMPTS = 3
 
 
 def student_submission_to_html(submission) -> str:
@@ -99,18 +109,6 @@ def student_submission_to_html(submission) -> str:
 
     questions_html += "</section>"
 
-    # feedback_html = ""
-    # if submission.get("feedback"):
-    #     feedback_html = f"""
-    #     <hr/>
-    #     <section>
-    #         <h3>Grading Feedback</h3>
-    #         <div style="padding:12px; border:1px solid #ddd;">
-    #             {submission.get("feedback")}
-    #         </div>
-    #     </section>
-    #     """
-
     return f"""
     <article class="student-submission">
         {meta_html}
@@ -169,24 +167,45 @@ def _mark_grading_claim_failed(submission_id):
     StudentSubmission.objects.filter(pk=submission_id).update(
         grading_state=GradingState.FAILED
     )
-    # .update() bypasses post_save, so the cache-invalidation signal
-    # (students.signals.clear_student_submission_cache) never fires —
+    # .update() bypasses post_save, so the cache-invalidation receiver
+    # (students.signals.clear_student_submission_cache) never fires -
     # without this a failed submission keeps serving its cached
     # pre-failure detail (grading_state RUNNING) for up to CACHE_TTL, and
-    # nobody sees that the run needs retrying. Imported lazily: signals is
-    # loaded at app-ready and importing it at module scope here would pull
-    # this module (and ai_processor) into that path.
-    from .signals import delete_cache_patterns
-
-    delete_cache_patterns(
-        "*superadmin*",
-        "*schooladmin*",
-        "*teacheradmin*",
-        "*studentadmin*",
-        "courses:*",
-        "assignments:*",
-        "studentsubmissions:*",
+    # nobody sees that the run needs retrying. Uses the receiver's own
+    # helper so the generation bumps and wildcard families can't drift
+    # from what a normal save() would have cleared.
+    submission = (
+        StudentSubmission.objects.select_related("assignment__course__teacher")
+        .filter(pk=submission_id)
+        .first()
     )
+    if submission is not None:
+        invalidate_submission_caches(submission)
+
+
+# Every column the grading pipeline is allowed to write. The final save is
+# restricted to these (not a full-row save) because a run takes minutes,
+# and the in-memory instance was loaded before it started: a full save
+# would write back the stale copy of every OTHER column - a re-upload's
+# `answers`/`attempt_count`, a publish's `is_published`, a formatter's
+# `formatted_grade` - silently reverting whatever landed in between.
+GRADING_RESULT_FIELDS = (
+    "ai_graded_at",
+    "ai_grading_completed_at",
+    "score",
+    "ai_score",
+    "max_points",
+    "score_percentage",
+    "feedback",
+    "grading_confidence",
+    "graded_at",
+    "grading_state",
+    "needs_review",
+    "review_reasons",
+    "review_severity",
+    "review_tier",
+    "raw_input",
+)
 
 
 # Review-queue ordering. review_severity used to store the raw
@@ -404,12 +423,21 @@ def _populate_and_save_grade(submission, grading, processing_task_id):
     )
 
     with cancellable_final_save(processing_task_id):
-        submission.save()
+        submission.save(update_fields=GRADING_RESULT_FIELDS)
+
+
+# The formatted-grade follow-up lives in assignments.tasks, which imports
+# this module. Dispatching by registered name (a Celery signature) instead
+# of importing the function removes the students.services <-> assignments.
+# tasks import cycle: nothing here needs the task object, only its name.
+FORMATTED_GRADE_TASK_NAME = "assignments.tasks.formatted_grade_async"
+
+
+def _formatted_grade_task():
+    return celery_app.signature(FORMATTED_GRADE_TASK_NAME)
 
 
 def _run_grading_pipeline(user, submission, processing_task_id):
-    from assignments.tasks import formatted_grade_async
-
     ensure_task_not_cancelled(processing_task_id)
     answer_json = submission.get_answer()
     submission.ai_graded_at = timezone.now()
@@ -466,7 +494,7 @@ def _run_grading_pipeline(user, submission, processing_task_id):
                 meta={"step": "Queued for formatted grade generation"},
             )
             launch_processing_task(
-                formatted_grade_async,
+                _formatted_grade_task(),
                 formatted_processing_task,
                 str(submission.id),
                 user_prompt,
@@ -608,41 +636,6 @@ def notify_teacher_of_student_submission(submission):
         f"for {submission.assignment.course.name}."
     )
 
-    # content = f"""
-    # {submission.student.get_full_name()} has submitted work for {submission.assignment.title or 'an assignment'}
-    # for {submission.assignment.course.name}.
-    #
-    # <b>Submission Detail</b>
-    #
-    # <ul>
-    #     <li><strong>Student:</strong> {submission.student.get_full_name()}</li>
-    #     <li><strong>Course:</strong> {submission.assignment.course.name}</li>
-    #     <li><strong>Assignment:</strong> {submission.assignment.title}</li>
-    #     <li><strong>Submitted At:</strong> {submission.submission_date}</li>
-    # </ul>
-    #
-    # You can review the submission from your Grade A+ Dashboard.
-    # """
-
-    # merge_data = {
-    #     "name": f"{teacher.first_name}",
-    #     "content": content,
-    #     "support_email": settings.SUPPORT_EMAIL,
-    #     "current_year": timezone.now().year,
-    # }
-
-    # html_content = render_to_string("email/token_activation.html", context=context)
-
-    # return send_email_task.delay(
-    #     subject="Verify your email and get started with faster, smarter grading",
-    #     message="",
-    #     from_email=settings.DEFAULT_FROM_EMAIL,
-    #     recipient_list=[user.email],
-    #     html_message=None,
-    #     template_id="ynrw7gy0ye2l2k8e",
-    #     merge_data=merge_data,
-    # )
-
     try:
         html_content = render_to_string(
             "email/student_submission_notification.html", context=context
@@ -761,9 +754,11 @@ def notify_students_of_assignment_edit(assignment):
     Modeled directly on notify_student_of_graded_submission: same opt-in
     guard, same synthetic-account exclusion, same Celery dispatch.
     """
+    # student__settings too: the opt-in check below reads it per student,
+    # which was one extra query per submitter on an assignment-wide loop.
     submissions = StudentSubmission.objects.filter(
         assignment=assignment
-    ).select_related("student")
+    ).select_related("student", "student__settings")
 
     for submission in submissions:
         student = submission.student
@@ -830,6 +825,13 @@ def upload_answers_engine(
     {assignment.questions}
     """
 
+    # Refuse BEFORE the billed extraction call when the student is already
+    # locked out (graded, or out of attempts). Not the authoritative check
+    # - that is under the row lock further down - but a submission that
+    # can never be accepted must not cost the student's teacher a credit.
+    if request_user.user_type == UserTypes.STUDENT and not is_proxy_upload:
+        ensure_student_may_submit(assignment, request_user)
+
     ensure_task_not_cancelled(processing_task_id)
     student_submission = ai_processor.extract_answer_with_retry(
         request_user,
@@ -860,35 +862,28 @@ def upload_answers_engine(
         target_student = request_user
 
         if is_proxy_upload:
-            identified_name = student_submission.get("student_name")
-            if not identified_name:
-                raise CannotAssociateStudentError(
-                    "Student name cannot be found in the submission"
-                )
-
-            name_parts = identified_name.split(" ", 1)
-            first_name = name_parts[0]
-            last_name = name_parts[1] if len(name_parts) > 1 else ""
-
-            target_student = CustomUser.objects.filter(
-                enrollments__course=assignment.course,
-                enrollments__enrollment_status="ENROLLED",
-                first_name__icontains=first_name,
-                last_name__icontains=last_name,
-            ).first()
-
-            if not target_student:
-                raise CannotAssociateStudentError(
-                    "Student not among the enrolled students in the course"
-                )
+            target_student = _match_enrolled_student(
+                assignment.course, student_submission.get("student_name")
+            )
+        else:
+            # Post-extraction re-check. The authoritative check is under
+            # the row lock below; this one exists because the extraction
+            # above took real time, and a grade can have landed meanwhile.
+            ensure_student_may_submit(assignment, request_user)
 
         # ----------------------------------------------------------------
         # Atomic submission limit enforcement + get-or-create + increment.
         #
-        # Uses select_for_update() to prevent a TOCTOU race condition where
-        # concurrent uploads from the same student could both pass the
-        # attempt_count >= 3 guard simultaneously, each increment the
-        # counter, and together bypass the 3-submission limit.
+        # select_for_update() on the student's row prevents the TOCTOU race
+        # where two concurrent uploads from the same student both pass the
+        # attempt_count guard, each increment the counter, and together
+        # bypass the submission limit. For that to hold, the lock has to
+        # stay held until the increment is COMMITTED - so the save is
+        # inside this block. (It used to be outside: the block released
+        # the lock with the new count only in memory, the second upload
+        # then read the old count from the DB, and both passed the guard.)
+        # What sits under the lock besides the save is CPU-only HTML
+        # rendering, milliseconds, and never a network call.
         #
         # attempt_count tracks *total submissions ever made*, starting at 1
         # on the very first upload and increasing on every subsequent one.
@@ -898,22 +893,22 @@ def upload_answers_engine(
         )
 
         with transaction.atomic():
-            # Lock the existing row (if any) for the duration of this block.
             existing_submission = (
                 StudentSubmission.objects.select_for_update()
                 .filter(assignment=assignment, student=target_student)
                 .first()
             )
 
-            if is_student_self_upload and existing_submission:
-                current_count = existing_submission.attempt_count or 0
-                if current_count >= 3:
-                    raise ValueError(
-                        "You have reached the maximum of 3 submissions for this assignment"
-                    )
+            if existing_submission:
+                # Authoritative: the row is locked, so this decision cannot
+                # race a concurrent upload, a grading claim, or a grade
+                # landing on the row. Applies to proxy uploads too.
+                _check_submission_open(
+                    existing_submission, student_upload=is_student_self_upload
+                )
 
             if existing_submission:
-                # Re-submission — update answers and increment counter.
+                # Re-submission - update answers and increment counter.
                 created = False
                 submission = existing_submission
                 ensure_task_not_cancelled(processing_task_id)
@@ -924,7 +919,7 @@ def upload_answers_engine(
                 if is_student_self_upload:
                     submission.attempt_count = (submission.attempt_count or 0) + 1
             else:
-                # First submission — create the row and set counter to 1.
+                # First submission - create the row and set counter to 1.
                 # submission_date is set explicitly here (rather than left
                 # to auto_now_add) because student_submission_to_html()
                 # below renders this instance before it's ever saved, and
@@ -938,28 +933,179 @@ def upload_answers_engine(
                     submission_date=timezone.now(),
                 )
 
-        # ----------------------------------------------------------------
-        # Build raw_input outside the lock (it's CPU-only, no DB writes
-        # needed during construction), then persist everything in one save.
-        # ----------------------------------------------------------------
-        ensure_task_not_cancelled(processing_task_id)
-        answer_html = student_submission_to_html(submission)
-        submission.raw_input = AssignmentProcessingService.html_to_prosemirror_text(
-            answer_html
-        )
-        # Persist the extractor's confidence - the dashboard threshold-flags
-        # low-confidence extractions, which stayed 0 forever while this
-        # field was silently dropped on the upload path.
-        submission.extraction_confidence = _coerce_confidence(
-            student_submission.get("extraction_confidence")
-        )
-        with cancellable_final_save(processing_task_id):
-            submission.save()
+            ensure_task_not_cancelled(processing_task_id)
+            answer_html = student_submission_to_html(submission)
+            submission.raw_input = AssignmentProcessingService.html_to_prosemirror_text(
+                answer_html
+            )
+            # Persist the extractor's confidence - the dashboard
+            # threshold-flags low-confidence extractions, which stayed 0
+            # forever while this field was silently dropped on the upload
+            # path.
+            submission.extraction_confidence = _coerce_confidence(
+                student_submission.get("extraction_confidence")
+            )
+            with cancellable_final_save(processing_task_id):
+                if created:
+                    submission.save()
+                else:
+                    # Only the columns this path owns. A full-row save here
+                    # would write back the stale copy of every other column
+                    # (score, feedback, is_published, grading_state...)
+                    # from an instance loaded before the AI extraction ran.
+                    submission.save(
+                        update_fields=[
+                            "answers",
+                            "attempt_count",
+                            "raw_input",
+                            "extraction_confidence",
+                        ]
+                    )
 
         if created and request_user.user_type == UserTypes.STUDENT:
             notify_teacher_of_student_submission(submission)
 
     return submission
+
+
+def _grading_claim_is_live(submission, now=None):
+    """A RUNNING claim younger than the staleness window: a worker is (or
+    must be assumed to be) grading this row right now. An older RUNNING
+    claim was left by a dead worker and does not count - see
+    _claim_submission_for_grading, which uses the same cutoff."""
+    now = now or timezone.now()
+    return (
+        submission.grading_state == GradingState.RUNNING
+        and submission.grading_started_at is not None
+        and submission.grading_started_at > now - GRADING_CLAIM_STALE_AFTER
+    )
+
+
+def _check_submission_open(existing_submission, *, student_upload):
+    """
+    The server-side rules that close a submission row to uploads, checked
+    in this order. The first two apply to EVERY upload path - the
+    student's own and a teacher's proxy upload alike (owner, 2026-09-14:
+    a graded row is immutable through the ordinary upload paths; a
+    correction after grading needs an explicit replace/re-grade workflow).
+    The third is the student's own attempt allowance.
+
+    1. Graded: `graded_at` set - the only path that sets it is the grade
+       persisting in _populate_and_save_grade, and it is what publish keys
+       on too. Closed for good.
+    2. Being graded (H-13, decided 2026-09-14): a live grading claim. The
+       upload is refused rather than accepted, so a row can never carry
+       answers newer than the grade that closes it.
+    3. The attempt limit (MAX_STUDENT_SUBMISSION_ATTEMPTS), students only.
+    """
+    if existing_submission.graded_at is not None:
+        raise SubmissionAlreadyGradedError(
+            "This assignment has already been graded, so it can no longer "
+            "be submitted again."
+        )
+    if _grading_claim_is_live(existing_submission):
+        raise SubmissionBeingGradedError(
+            "This submission is being graded right now, so it cannot be "
+            "replaced. Please try again once grading has finished."
+        )
+    if (
+        student_upload
+        and (existing_submission.attempt_count or 0) >= MAX_STUDENT_SUBMISSION_ATTEMPTS
+    ):
+        raise SubmissionLimitReachedError(
+            "You have reached the maximum of "
+            f"{MAX_STUDENT_SUBMISSION_ATTEMPTS} submissions for this assignment"
+        )
+
+
+def remaining_student_attempts(submission):
+    """How many more times the student may submit: 0 once graded (product
+    rule), otherwise what the attempt limit leaves. None (no submission
+    yet) means the full allowance."""
+    if submission is None:
+        return MAX_STUDENT_SUBMISSION_ATTEMPTS
+    if submission.graded_at is not None:
+        return 0
+    return max(0, MAX_STUDENT_SUBMISSION_ATTEMPTS - (submission.attempt_count or 0))
+
+
+def ensure_student_may_submit(assignment, student):
+    """
+    Cheap, lock-free pre-check of _check_submission_open for the
+    request path and for the moment before a billed extraction call:
+    raises SubmissionAlreadyGradedError / SubmissionLimitReachedError when
+    the student is already locked out of `assignment`. Scoped to exactly
+    (student, assignment): another student's grade, or this student's
+    grade on another assignment, has no effect.
+    """
+    existing = (
+        StudentSubmission.objects.filter(assignment=assignment, student=student)
+        .only("graded_at", "attempt_count", "grading_state", "grading_started_at")
+        .first()
+    )
+    if existing is not None:
+        _check_submission_open(existing, student_upload=True)
+
+
+def ensure_submission_open(submission):
+    """Refuse-if-closed for an existing row (the raw-text edit path): graded
+    or being graded. The attempt allowance is not consumed by an edit."""
+    _check_submission_open(submission, student_upload=False)
+
+
+def _match_enrolled_student(course, identified_name):
+    """
+    Resolve the student name the extractor read off a teacher-uploaded
+    submission to exactly one ENROLLED student on the course.
+
+    Exact (case-insensitive) first+last match wins. Only if there is no
+    exact match do we fall back to substring matching, and in either case
+    a match is accepted ONLY when it is unique: the previous `.first()`
+    silently attributed the upload to an arbitrary student whenever the
+    name was ambiguous - "Sam" matched Samuel and Samantha, a single-token
+    name matched every student whose first name contained it - so one
+    student's work and grade landed on another student's record with no
+    error anywhere. Refusing is the only safe answer; the teacher can
+    upload for that student directly.
+    """
+    name = " ".join((identified_name or "").split())
+    if not name:
+        raise CannotAssociateStudentError(
+            "Student name cannot be found in the submission"
+        )
+
+    enrolled = CustomUser.objects.filter(
+        enrollments__course=course,
+        enrollments__enrollment_status="ENROLLED",
+    ).distinct()
+
+    # Exact: the whole name against "first last", so multi-word first names
+    # ("Mary Ann Smith") match without guessing where the split is.
+    exact = enrolled.annotate(
+        full_name=Concat("first_name", Value(" "), "last_name")
+    ).filter(full_name__iexact=name)
+    # Two rows are enough to know it's ambiguous; never load a whole roster.
+    matches = list(exact[:2])
+    if not matches:
+        first_name, _, last_name = name.partition(" ")
+        fuzzy = enrolled.filter(
+            first_name__icontains=first_name, last_name__icontains=last_name
+        )
+        matches = list(fuzzy[:2])
+
+    if not matches:
+        raise CannotAssociateStudentError(
+            "Student not among the enrolled students in the course"
+        )
+    if len(matches) > 1:
+        # Teacher-facing text: literal double quotes, not !r (see the same
+        # choice in notify_school_admins_of_grading_complete).
+        raise CannotAssociateStudentError(
+            f'The name "{name}" matches more than one enrolled student in this '  # noqa: B907
+            "course, so the submission could not be attributed safely. Please "
+            "upload it for the right student directly."
+        )
+    return matches[0]
 
 
 def get_grade_details(percentage):
