@@ -106,7 +106,7 @@ It was raised well above the grading task's own hard kill point *"so a healthy, 
 | `users.sync_user_to_mailerlite` | `max_retries=3`, delay 60s | on activation |
 | `users.sample_periodic_task` | none | **dead code** — never scheduled, never called |
 
-`students/tasks.py` is **entirely commented out**.
+The `students` app defines no Celery tasks; its grading and upload tasks live in `assignments/tasks.py`. (`students/tasks.py`, which held only a commented-out draft, was removed in the section 7 audit pass on 2026-09-13.)
 
 ### Derived time limits
 

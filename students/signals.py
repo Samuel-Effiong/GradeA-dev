@@ -19,6 +19,20 @@ from students.models import BatchUploadSession, StudentSubmission
 # invalidation as best-effort (stale for at most CACHE_TTL beats losing a
 # committed write) and coalesces patterns inside a batched block.
 
+# Every wildcard family a submission change can make stale. One definition,
+# shared with the service-layer paths that write a submission via
+# QuerySet.update() (which never fires post_save), so those paths can't
+# drift from what the receiver clears.
+SUBMISSION_CACHE_PATTERNS = (
+    "*superadmin*",
+    "*schooladmin*",
+    "*teacheradmin*",
+    "*studentadmin*",
+    "courses:*",
+    "assignments:*",
+    "studentsubmissions:*",
+)
+
 
 def _bump_submission_scopes(submission):
     """Entities a submission change can affect.
@@ -45,23 +59,23 @@ def _bump_submission_scopes(submission):
     )
 
 
-@receiver([post_save, post_delete], sender=StudentSubmission)
-def clear_student_submission_cache(sender, instance, **kwargs):
+def invalidate_submission_caches(submission):
+    """Everything a submission change makes stale: generation counters and
+    wildcard families. Public so service code that bypasses save() (a
+    QuerySet.update() on the grading claim) invalidates exactly what the
+    receiver would have."""
     # H-1 stage 2. `teacher_performance_<school>_*` and
     # `teacher_detail_<school>_<teacher>` (dashboard families 30-31) are
     # built from grading statistics, so a submission has to move the school
     # and teacher generations or those dashboards keep serving pre-grading
     # numbers for their whole TTL.
-    _bump_submission_scopes(instance)
-    delete_cache_patterns(
-        "*superadmin*",
-        "*schooladmin*",
-        "*teacheradmin*",
-        "*studentadmin*",
-        "courses:*",
-        "assignments:*",
-        "studentsubmissions:*",
-    )
+    _bump_submission_scopes(submission)
+    delete_cache_patterns(*SUBMISSION_CACHE_PATTERNS)
+
+
+@receiver([post_save, post_delete], sender=StudentSubmission)
+def clear_student_submission_cache(sender, instance, **kwargs):
+    invalidate_submission_caches(instance)
 
 
 @receiver([post_save, post_delete], sender=BatchUploadSession)

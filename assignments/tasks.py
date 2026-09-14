@@ -9,11 +9,14 @@ from django.utils import timezone
 from ai_processor.services import ai_processor
 
 # from celery.exceptions import Ignore
+from AutoGrader.error_messages import describe_background_task_error
 from AutoGrader.tasks import send_email_task
 from classrooms.models import Course, EnrollmentStatusType, Topic
 from students.exceptions import (
     CannotAssociateStudentError,
+    SubmissionAlreadyGradedError,
     SubmissionGradingInProgressError,
+    SubmissionLimitReachedError,
     TaskCancelledError,
 )
 from students.models import BatchUploadSession, BatchUploadType, StudentSubmission
@@ -46,6 +49,14 @@ from .services import AssignmentProcessingService
 
 
 logger = logging.getLogger(__name__)
+
+# Final answers about one upload - never retried, always reported with the
+# exception's own (user-facing) message. See upload_answers_engine_async.
+UPLOAD_REFUSALS = (
+    CannotAssociateStudentError,
+    SubmissionAlreadyGradedError,
+    SubmissionLimitReachedError,
+)
 
 
 @shared_task(bind=True)
@@ -502,17 +513,51 @@ def grade_engine_async(
         raise
     except SubmissionGradingInProgressError:
         # C3: this is a redelivered/duplicate task racing a still-running
-        # original - a clean skip, not a failure. Finish SUCCESS so Celery
+        # original - a clean skip, not a failure. Return SUCCESS so Celery
         # doesn't retry it and the user isn't shown an error for a run that
         # is, in fact, happening.
-        mark_processing_task_success(
-            processing_task_id,
-            meta={
-                "step": "Skipped — already being graded",
-                "skipped": True,
-                "submission_id": submission_id,
-            },
+        #
+        # Which tracked task to touch depends on WHO the duplicate is:
+        #
+        # * A Redis redelivery of the ORIGINAL's own message carries the
+        #   same Celery task id and the same processing_task_id. The
+        #   tracked row belongs to the run that holds the claim, so this
+        #   execution must leave it alone: marking it SUCCESS+skipped here
+        #   told the frontend "done" with no grade, and then the terminal-
+        #   status guard blocked the original's real FAILURE from ever
+        #   being recorded.
+        # * A genuinely separate dispatch (a second grade-async click, or a
+        #   task racing the synchronous grade view) has its own tracked
+        #   row, which nobody else will finish - so it is closed here as a
+        #   skip.
+        #
+        # A tracked row with no celery id yet is treated as this delivery's
+        # own: attach_celery_task runs right after publish, so an unset id
+        # means the row was created microseconds ago for this very message,
+        # and leaving a row open is recoverable while closing the wrong one
+        # is not.
+        tracked = get_processing_task_by_id(processing_task_id)
+        own_delivery = tracked is not None and (
+            tracked.celery_task_id in (None, "", str(self.request.id))
         )
+        if own_delivery:
+            logger.info(
+                "Redelivered grading task %s for submission %s skipped: the "
+                "original delivery still holds the claim; tracked task %s "
+                "left to it.",
+                self.request.id,
+                submission_id,
+                processing_task_id,
+            )
+        else:
+            mark_processing_task_success(
+                processing_task_id,
+                meta={
+                    "step": "Skipped — already being graded",
+                    "skipped": True,
+                    "submission_id": submission_id,
+                },
+            )
         return {
             "status": states.SUCCESS,
             "submission_id": submission_id,
@@ -754,20 +799,41 @@ def upload_answers_engine_async(
             session = BatchUploadSession.objects.get(id=session_id)
             session.update_result(file_name, "CANCELLED", error=str(exc))
         raise
-    except CannotAssociateStudentError as exc:
-        mark_processing_task_failure(
+    except UPLOAD_REFUSALS as exc:
+        # A refusal is a final answer about THIS upload (no student to
+        # attach it to; the student is locked out of the assignment), not
+        # a transient fault - retrying it three times would only re-bill
+        # the extraction. Recorded verbatim (these are user-facing
+        # messages) and reported as a non-retried failure.
+        task = mark_processing_task_failure(
             processing_task_id,
             exc,
-            meta={"step": "Student association failed", "assignment_id": assignment_id},
+            meta={"step": "Submission refused", "assignment_id": assignment_id},
         )
-        session = BatchUploadSession.objects.get(id=session_id)
-        session.update_result(file_name, "FAILED", error=str(exc))
-        return {
-            "status": states.FAILURE,
-            "message": "Cannot Identify or Associate Student with this Paper",
-        }
+        if session_id:
+            session = BatchUploadSession.objects.get(id=session_id)
+            session.update_result(
+                file_name, "FAILED", error=task.error if task else str(exc)
+            )
+        return {"status": states.FAILURE, "message": str(exc)}
     except Exception as exc:
-        mark_processing_task_failure(
+        if self.request.retries < self.max_retries:
+            # Not a failure yet. Marking FAILURE here (as this used to)
+            # made the tracked row terminal, so the retry's own success
+            # could never be recorded - the UI showed a failed upload for
+            # a submission that had in fact been created.
+            update_processing_task(
+                processing_task_id,
+                meta={
+                    "step": (
+                        f"Retrying ({self.request.retries + 1}/{self.max_retries})"
+                    ),
+                    "last_error": describe_background_task_error(exc),
+                },
+            )
+            raise self.retry(exc=exc, countdown=3) from exc
+
+        task = mark_processing_task_failure(
             processing_task_id,
             exc,
             meta={"step": "Answer extraction failed", "assignment_id": assignment_id},
@@ -777,11 +843,12 @@ def upload_answers_engine_async(
                 "continues."
             ),
         )
-        if self.request.retries < self.max_retries:
-            raise self.retry(exc=exc, countdown=3) from Exception
-
-        session = BatchUploadSession.objects.get(id=session_id)
-        session.update_result(file_name, "FAILED", error=str(exc))
+        if session_id:
+            session = BatchUploadSession.objects.get(id=session_id)
+            # The classified, user-safe message - never the raw exception.
+            session.update_result(
+                file_name, "FAILED", error=task.error if task else None
+            )
         raise exc
 
 

@@ -59,6 +59,9 @@ speed that decision up, not to pre-empt it.
 | H-8 | Test file naming / stray docs | Low | Section 3 | Not started |
 | H-9 | Test suite shares one Redis DB (isolation) | High | Whoever owns CI | **FIXED — per-process prefix + prefix-scoped clear(); 4/4 tests pass, two concurrent runs verified** |
 | H-10 | `super-admin/dashboard/students` 480-query N+1 | High | Section 8 (dashboard) | Measured, not fixed |
+| H-11 | Synchronous billed AI calls inside `students` request handlers (`upload`, `grade`, `PATCH raw_input`) | **High - release-blocking** | Section 7 (students) + frontend | Open - tracked here from the §7 review pass, 2026-09-13 |
+| H-12 | Commented-out code (flake8 E800) burn-down - 38 files carved out of the rule | Low | Each file's section owner | Rule ON since 2026-09-13; `students` clean; 38 files carved out |
+| H-13 | Product decision: an upload accepted while grading is RUNNING | Medium | Product + Section 7 | Decision needed (see item) |
 
 ---
 
@@ -881,6 +884,130 @@ package and probably belongs under `docs/`.
 ---
 
 ## Note on scope discipline
+
+# H-11 — Synchronous billed AI calls inside `students` request handlers
+
+**Found by the §7 review pass (2026-09-13) while auditing
+`students/views.py`, which no audit section had listed.** Recorded here so
+it cannot fall between sections again: it is release-blocking, it has an
+owner, and it has its own gate.
+
+Three actions on `StudentSubmissionViewSet` run the billed AI pipeline
+inside the HTTP request, against standards §7 ("nothing in a
+request/response cycle does synchronous work that belongs in a Celery
+task - AI grading calls..."):
+
+| Action | What runs in the request | Async twin that already exists |
+|---|---|---|
+| `POST submissions/<assignment>/upload` (`upload_answers`) | file → AI answer extraction → save | `upload-async` |
+| `POST submissions/<pk>/grade` (`grade`) | the full grading pipeline (several sequential AI calls with retries, up to `GRADING_TASK_TIME_LIMIT_SECONDS`) | `grade-async` |
+| `PATCH submissions/<pk>` (`partial_update`) | raw text → AI re-extraction → save | none |
+
+Consequences today: a gunicorn worker is held for the whole AI run
+(minutes for `grade`), the request can outlive the proxy timeout while
+the charge has already been made, a client retry after a timeout is a
+second billed run (the grading claim stops the double *grade*, but the
+sync `grade` view then answers 409 for a run the client cannot poll), and
+the sync `upload` path has no tracked task, so nothing the frontend can
+poll records its failure.
+
+Also recorded from the same audit, all in `students/views.py` /
+`serializers.py`, to be resolved with this item because they share the
+endpoints:
+
+* **V-2** `upload_answers` and `partial_update` answer HTTP 500 for every
+  failure, including user-caused ones (bad file, extraction returned no
+  answers) - only the two post-grading closure errors now map to 409.
+* **V-3** `get_permissions` routes `partial_update` (PATCH) to
+  teacher-only while its docstring and the OpenAPI text describe it as the
+  student's edit path. Either the docstring or the mapping is wrong;
+  decide which before the endpoint moves async.
+* **V-4** `partial_update` ends with a full-row `submission.save()` - the
+  same stale-instance clobber class fixed in the service layer (F-4).
+* **V-5** `StudentViewSet` is defined but not routed (`students/urls.py`
+  registers only submissions); dead or missing, decide which.
+* **V-6** `teacher_feedback` declares `IsTeacherOrReadOnly` on the action
+  but `get_permissions` overrides it to teacher+credits (already commented
+  in code; the dead kwarg should go once V-3 is decided).
+
+**Owner:** Section 7 (students) for the backend; the frontend owner for
+the client switch-over. Proposed by the §7 reviewer; assignment is
+management's.
+
+**Scope:** make the three sync actions either (a) thin dispatchers that
+create a tracked task and return 202 with a task id (the `-async` twins
+already do this), or (b) removed once the frontend has switched - decided
+with the frontend, since (a) changes their response contract. Map
+user-caused failures to 4xx with the existing `describe_user_error` text.
+Resolve V-2..V-6 in the same change.
+
+**Acceptance criteria:**
+1. No `students` view calls `ai_processor.*`, `grade_engine` or
+   `upload_answers_engine` synchronously (static check: a test that greps
+   `students/views.py` for those names, so it cannot regress silently).
+2. Every submission-mutating action creates a `BackgroundProcessingTask`
+   the frontend can poll, and its failure is recorded on that row with a
+   user-safe message.
+3. A client retry after a timeout cannot produce a second billed run
+   (idempotency proven under redelivery, as for R-1).
+4. V-2..V-6 each closed with a test.
+
+**Required evidence (per the verification standard above):** functional
+through the live API; adversarial (retry/replay after timeout, the same
+tenancy probes as `students/tests_submission_tenancy.py`); concurrency
+(N parallel clients, one billed run); failure simulation (broker down →
+503, not 500; AI provider timeout → refund, task FAILURE); mutation;
+regression; evidence recorded in `docs/evidence/`.
+
+**Until closed:** the sync endpoints keep working exactly as today, with
+the §7 pass's server-side rules applied to them (post-grading lock,
+tenancy scoping, 409 for closure errors).
+
+# H-12 — Commented-out code burn-down (flake8-eradicate E800)
+
+`docs/CODE_REVIEW_STANDARDS.md` §2 lists flake8-eradicate as enforced;
+`.pre-commit-config.yaml` had `E800` in its `--ignore` list, so it never
+was. The §7 pass turned the rule ON and carved out, by name, the 38 files
+that still carried legacy commented-out blocks (930 E800 hits repo-wide
+at the time, 500+ of them in `dashboard/`). The carve-out list is in the
+flake8 hook's `--per-file-ignores` and is **frozen**: nothing may be added
+to it, and each file is removed from it as it is cleaned. The Section 8
+session has agreed to clean `dashboard/views.py` and
+`dashboard/serializers.py` and drop them from the list in its own change.
+
+**Owner:** each file's section owner (the list is by app).
+
+**Acceptance:** `--per-file-ignores` is empty and removed; `flake8
+--select=E800 .` is clean. Documentation-as-code
+(`dashboard/AT_RISK_IMPLEMENTATION_GUIDE.py`) is either converted to a
+`.md` under `docs/` or given an explicit, justified `# noqa: E800`.
+
+**Evidence:** the pre-commit run itself. No behaviour changes are
+involved; a regression run per cleaned app is sufficient.
+
+# H-13 — Product decision: uploads while grading is RUNNING
+
+The §7 pass implemented the owner's rule "no re-submission once
+successfully graded" (`students/tests_post_grading_submission_lock.py`),
+and deliberately did NOT change the RUNNING case: a student's upload is
+still accepted while the AI run is in progress. That behaviour is now
+proven safe for the grading claim (the upload cannot touch
+`grading_state`/`grading_started_at`, and the grade still lands), but it
+leaves a row whose `answers` are newer than the grade that then closes
+it for good.
+
+**Decision needed** (one of):
+* (a) refuse uploads while `grading_state == RUNNING` with 409 "grading
+  in progress, try again shortly" - simplest, one more branch in
+  `_check_student_may_resubmit`;
+* (b) accept, and on grade completion mark `needs_review` with an
+  `answers_changed_during_grading` reason so the teacher sees it;
+* (c) accept, and re-queue a grading run for the new answers (a second
+  billed run per upload).
+
+**Owner:** Product, with Section 7 implementing. No code change until
+decided; the RUNNING-case test locks today's behaviour so a change is a
+deliberate, visible edit.
 
 Several of these were found during Section 3 but are **not** Section 3
 changes — H-1 spans four apps, H-2 lives in `users`/`assignments`/`students`,
