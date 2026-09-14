@@ -4,17 +4,20 @@ Section 5 (`ai_processor`). Built against the 43-section "Answer Extraction -
 Comprehensive Benchmark & Verification Specification". Last updated
 2026-09-14.
 
-**SECTION 5 - FIXES VALIDATED / FINAL PRODUCTION GATE PASSED on
-`eb6f3a0` - CLOSURE DECISION PENDING (owner).**
+**SECTION 5 - CLOSED / PRODUCTION GATE PASSED.** Closure approved by the
+owner on 2026-09-14.
 
-- The split-answer and question-number defects are fixed and validated
-  against the real provider.
-- The owner's final gate passed on the exact commit
+- The production gate passed on the exact commit
   `eb6f3a06b9b864a462540276f7f5cb403256c4b7`. See "Final gate on the
   committed tree" below.
-- Section 5 is not closed until the owner decides.
-- The commit is on `task/section-5-answer-extraction`; it is not merged into
-  `beta`.
+- The split-answer and question-number defects were validated against the
+  real provider.
+- The docs-only evidence corrections `2a05dc5` and `516fa39` are part of the
+  evidence trail.
+- The owner approved merging into the current `beta`. A separate post-merge
+  gate establishes the state of the resulting `beta` tree. The Section 5 gate
+  above belongs to `eb6f3a0` only, and is not claimed for any later `beta`.
+- Closing Section 5 does **not** close H-11, H-1, H-13 or Section 9.
 
 Permanent requirement, set by the owner on 2026-09-14:
 > A student's answer must never be silently truncated because it crosses a
@@ -339,6 +342,15 @@ Live corpus results (model `x-ai/grok-4.3`):
   the gate left a duplicate "Owner's final gate … NOT RUN" row in the copy
   committed in `eb6f3a0`. It is removed in the docs-only follow-up commit
   that records this gate. No code or test file was involved.
+
+### 8. Closure
+
+Approved by the owner on 2026-09-14: **SECTION 5 - CLOSED / PRODUCTION GATE
+PASSED**, based on the gate on `eb6f3a0` recorded above.
+
+What remains open:
+- The follow-up items below are retained as independent work.
+- H-11, H-1, H-13 and Section 9 are separate items and remain open.
 
 ## Follow-up items (retained, not fixed here)
 
