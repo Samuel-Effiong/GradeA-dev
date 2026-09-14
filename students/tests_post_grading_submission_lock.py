@@ -569,12 +569,16 @@ class PostGradingLockConcurrencyTest(TransactionTestCase):
         outcomes = []
         barrier = threading.Barrier(self.WORKERS)
 
+        # One patch, installed from the main thread: `patch()` swaps a module
+        # attribute, so per-thread patches of the same name race each other.
+        ai = patch("students.services.ai_processor").start()
+        self.addCleanup(patch.stopall)
+        ai.extract_answer_with_retry.return_value = EXTRACTED
+
         def attempt():
             try:
                 barrier.wait(timeout=10)
-                with patch("students.services.ai_processor") as mock_ai:
-                    mock_ai.extract_answer_with_retry.return_value = EXTRACTED
-                    upload_answers_engine(self.assignment, "ignored", self.student)
+                upload_answers_engine(self.assignment, "ignored", self.student)
                 outcomes.append("accepted")
             except SubmissionAlreadyGradedError:
                 outcomes.append("refused")
@@ -603,16 +607,22 @@ class PostGradingLockConcurrencyTest(TransactionTestCase):
         grade_may_finish = threading.Event()
         errors = []
 
+        # One shared patch for both threads (see the test above): the grader
+        # resolves `ai_processor` at call time, so a second patch installed
+        # by the uploader would hand it the wrong mock.
+        ai = patch("students.services.ai_processor").start()
+        self.addCleanup(patch.stopall)
+
+        def slow_grade(*args, **kwargs):
+            grade_may_finish.wait(timeout=10)
+            return VALID_GRADE
+
+        ai.extract_grade_with_retry.side_effect = slow_grade
+        ai.extract_answer_with_retry.return_value = EXTRACTED
+
         def grade():
             try:
-                with patch("students.services.ai_processor") as mock_ai:
-
-                    def slow_grade(*args, **kwargs):
-                        grade_may_finish.wait(timeout=10)
-                        return VALID_GRADE
-
-                    mock_ai.extract_grade_with_retry.side_effect = slow_grade
-                    grade_engine(self.teacher, submission)
+                grade_engine(self.teacher, submission)
             except Exception as exc:  # pragma: no cover
                 errors.append(("grade", repr(exc)))
             finally:
@@ -622,9 +632,7 @@ class PostGradingLockConcurrencyTest(TransactionTestCase):
 
         def upload():
             try:
-                with patch("students.services.ai_processor") as mock_ai:
-                    mock_ai.extract_answer_with_retry.return_value = EXTRACTED
-                    upload_answers_engine(self.assignment, "ignored", self.student)
+                upload_answers_engine(self.assignment, "ignored", self.student)
                 upload_outcome.append("accepted")
             except SubmissionAlreadyGradedError:
                 upload_outcome.append("refused")
@@ -665,10 +673,8 @@ class PostGradingLockConcurrencyTest(TransactionTestCase):
             self.assertEqual(submission.answers[0]["answer_html"], "original")
             self.assertEqual(submission.attempt_count, 1)
         # And now the row is closed for good.
-        with patch("students.services.ai_processor") as mock_ai:
-            mock_ai.extract_answer_with_retry.return_value = EXTRACTED
-            with self.assertRaises(SubmissionAlreadyGradedError):
-                upload_answers_engine(self.assignment, "ignored", self.student)
+        with self.assertRaises(SubmissionAlreadyGradedError):
+            upload_answers_engine(self.assignment, "ignored", self.student)
 
 
 class PostGradingLockLiveHTTPTest(LiveServerTestCase):
