@@ -6,8 +6,6 @@ from ai_processor.models import ChatMessage, ChatSession
 from assignments.models import Assignment
 from classrooms.models import Course
 
-# from assignments.models import Assignment
-
 
 class PeakTimeSerializer(serializers.Serializer):
     hour = serializers.IntegerField()
@@ -35,22 +33,6 @@ class StudentAssignmentListSerializer(serializers.Serializer):
     total_score = serializers.IntegerField()
     feedback = serializers.CharField()
     submission_status = serializers.CharField(max_length=30)
-
-    # class Meta:
-    #     model = Assignment
-    #     fields = [
-    #         "course",
-    #         "teacher",
-    #         "assignment",
-    #         "title",
-    #         "due_date",
-    #         "submission_date",
-    #         "score",
-    #         "score_percentage",
-    #         "total_score",
-    #         "feedback",
-    #         "submission_status",
-    #     ]
 
 
 class AssignmentPerformanceSerializer(serializers.Serializer):
@@ -314,6 +296,18 @@ class TeacherStudentAnalyticsSerializer(serializers.Serializer):
     assignment_history = StudentAssignmentHistorySerializer(many=True, read_only=True)
     ai_student_summary = serializers.CharField(read_only=True)
     at_risk = serializers.BooleanField(read_only=True)
+
+
+class PaginatedTeacherStudentAnalyticsSerializer(serializers.Serializer):
+    """Schema-only: the StandardPageNumberPagination envelope the teacher
+    `students` endpoint returns. Declared by hand because that endpoint is a
+    ViewSet action that paginates manually, which drf-spectacular cannot
+    detect on its own."""
+
+    count = serializers.IntegerField()
+    next = serializers.URLField(allow_null=True)
+    previous = serializers.URLField(allow_null=True)
+    results = TeacherStudentAnalyticsSerializer(many=True)
 
 
 class SignupTotalsSerializer(serializers.Serializer):
