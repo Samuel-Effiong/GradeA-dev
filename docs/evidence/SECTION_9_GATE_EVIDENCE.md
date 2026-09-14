@@ -133,8 +133,39 @@ clean.
 
 ## 7. Mutation re-run on the committed tree
 
-_Pending — waits for the Section 7 gate on `ec28d90` so the shared PostgreSQL
-is not loaded during it._
+The run started 2026-09-14 21:47:48 (+01:00) on committed `6d21d63` (clean
+tree, `dirty_lines=0`). That commit's code is identical to `cada6c5`; the
+difference is docs only.
+
+- Each mutant is one exact-string replacement that must match exactly once.
+- After each mutant, the file is restored from a uniquely named copy and its
+  sha256 is verified.
+- **KILLED** counts only real `FAIL:` / `ERROR: test_…` lines, never an
+  import or collection error.
+- An unmutated baseline of every targeted class ran first: **30 tests, OK**.
+
+About 4 minutes in, the run was deliberately stopped with SIGINT so the
+Section 8 strict gate, which had started 3 minutes earlier, ran on a quiet
+host. The interrupt restored the file under test. Afterwards
+`git status --porcelain` was empty and `git diff HEAD` was empty.
+
+| Mutant | Break | Result |
+|---|---|---|
+| M1 | PDF: remove the `is_pdf` refusal | **KILLED** — 6 failures |
+| M2 | PDF: stop catching poppler read errors | **KILLED** — 2 errors |
+| M3 | PDF: catch everything (blames server faults on the file) | **KILLED** — 2 errors |
+| M4 | View: a per-file refusal escapes the loop again | **KILLED** — 4 failures, 1 error (bad file first/middle/last, all-invalid, replay) |
+| M5 | Claim: an already-uploaded file is extracted again | **KILLED** — 3 failures (both replays, task path) |
+| M6 | No refund scope around extraction and save | **KILLED** — 3 failures (failed save, unusable response ×2) |
+| M7 | A failed upload never releases its claim | **KILLED** — 5 failures |
+| M8 | A live claim held by another request is ignored | **KILLED** — 3 failures (concurrent retry, racing batches, live claim) |
+| M9 | A stale claim is never taken over | **KILLED** — 1 error |
+| M10 | A lost claim's save is kept | **KILLED** — 1 failure |
+| M11 | Bad files retried again (removed from `UPLOAD_REFUSALS`) | **KILLED** — 1 failure, 2 errors (includes the real Celery worker on Redis) |
+| M12 | Answer task no longer wraps the file refusal | _interrupted — re-run pending_ |
+| M13 | The file's own message is replaced by the fallback | _not reached — re-run pending_ |
+
+**11/11 run killed; all restores sha-verified. M12–M13 still to run.**
 
 ## 8. Strict final gate
 
