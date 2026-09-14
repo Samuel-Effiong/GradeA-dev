@@ -1,126 +1,147 @@
 # Section 9 (`ocr_processor`) — verification evidence
 
-Preserved record of the §9 pass of `docs/CODEBASE_AUDIT_SECTIONS.md`.
+Preserved record of the §9 review and remediation of
+`docs/CODEBASE_AUDIT_SECTIONS.md`.
 
-**This is NOT the definitive release gate.** It was run in an isolated
-worktree on an uncommitted change. The definitive gate is a fresh run on
-the final merged, committed tree.
+**Status: GAPS FOUND — remediation committed, strict final gate PENDING.**
+Nothing here is the definitive gate. §8 is that gate, and it has not run yet.
 
 ---
 
-## 1. Tree under test
+## 1. What this section covers, and what changed
 
-| | |
+| Part | Finding | Severity | State |
+|---|---|---|---|
+| A | A PNG/JPEG labelled `application/pdf` crashed `pdftoppm` → 500 | should-fix (§3) | Fixed; owner approved in principle |
+| B | Teacher multi-file sync upload: a later bad file returned a request-level 400 after earlier files were extracted, charged and saved; a retry re-charged and duplicated them | **blocker** (§3/§5) | Fixed, pending gate |
+| C | `upload_answers_engine_async` retried a deterministic bad file 3 more times | should-fix (§6) | Fixed, pending gate |
+| D | Extraction ran outside any refund scope: a failed save or rejected response kept its charge | billing (owner decision) | Fixed, pending gate |
+| — | `ocr_processor` app is empty boilerplate | cleanup | **Not touched** (owner: separate item) |
+
+### Owner decisions (2026-09-14)
+
+1. **Retry guard:** a per-course SHA-256 file fingerprint; no frontend change.
+2. **Response:** keep today's shapes — 201 all succeeded, 207 mixed
+   (`successful` / `failed` / `summary`), 400 all failed. Adds
+   `already_uploaded` to each successful entry.
+3. **Base:** build on Section 7's branch at its gated commit, confirmed with
+   that session.
+4. **Refunds:** a file that ends as failed is never charged.
+
+### Design as built
+
+- `AssignmentUploadFingerprint` (additive migration `0039`): unique on
+  `(course, sha256)`. A row is:
+  - claimed before any AI call;
+  - completed in the same transaction that saves the assignment;
+  - deleted if the upload fails;
+  - deleted with its assignment (CASCADE), so a deleted assignment can be
+    uploaded again.
+
+  A claim older than 40 minutes is stale and may be taken over; that window
+  is longer than `upload_assignment_async`'s 35-minute hard limit. A claim
+  token stops a request that lost its claim from completing or releasing
+  the newer claimant's.
+- `assignments/file_uploads.upload_assignment_file` is the one per-file path,
+  used by both the sync view and `upload_assignment_async`. Extraction and the
+  save run inside `billing_refund_scope`.
+- `InvalidUploadFileError` and `UploadAlreadyInProgressError`
+  (`assignments/exceptions.py`) are on the user-facing allowlist.
+  `InvalidUploadFileError` is also in `UPLOAD_REFUSALS`, so it is never
+  retried. Server-side rasterizer faults (missing poppler, timeout) still
+  retry.
+
+**Known limits, not changed:**
+- Within a file that finally *succeeds*, a charge from an earlier internal
+  extraction attempt that was rejected is kept.
+- Cancelling after the save has committed keeps the charge.
+
+Both behave as before this change.
+
+## 2. Commits
+
+Branch `task/section-9-remediation`, on Section 7's `ec28d90`. That commit is
+Section 7's `0c1a9c7` merged with beta `30b7b95`, confirmed by the Section 7
+session as the commit to build on.
+
+| Commit | Content |
 |---|---|
-| Worktree | `Grade-Automator-Plus-section-9-ocr-processor-review` |
-| Branch | `task/section-9-ocr-processor-review` |
-| HEAD commit | `1373eaeac02d14d6ab79d532be56db1eb7fc4585` |
-| HEAD subject | *Version the cache instead of wildcard-flushing it, and fix the test gate* |
-| Working tree | **DIRTY** — `ai_processor/services.py` modified, `docs/CODEBASE_AUDIT_SECTIONS.md` modified, `ai_processor/tests_pdf_type_validation.py` new |
-| **Gate fingerprint** | **`ce28db19f9055e534d9f5aa7e04748056afc40fe9446a8f1040e8891907e239d`** |
+| `d481fd6` | Part A — refuse `is_pdf=False`; poppler read errors → 400 |
+| `de0c750` | Parts B–D — per-file outcomes, fingerprint, refund scope, retry policy |
+| `e70fde5` | Comment-only fix flagged by flake8-eradicate (E800) |
+| `cada6c5` | Real-provider test |
 
-Computed immediately before the full regression run started. It covers the
-code fix, the new tests and the §9 text correction. This evidence file and
-the task-table row were written afterwards; neither is code.
+The rebase was conflict-free in code. The only conflict over the session was
+the audit task-table rows (keep Section 8's row 8 and this section's row 9).
+`UPLOAD_REFUSALS` auto-merged with Section 7's `AssignmentNotOpenError`.
 
-> Reproduce, and never inherit:
-> ```sh
-> { git diff HEAD; git ls-files --others --exclude-standard -z \
->     | sort -z | xargs -0 -r sha256sum; } | sha256sum
-> ```
+## 3. Composition with other sections
 
-### 1a. What the worktree does NOT contain
+- **Section 5** (`ai_processor/services.py`, now on beta): Part A only edits
+  `PDFService.extract`. It keeps what Section 5's tests pin there:
+  - the method takes no arguments beyond `self`;
+  - it returns one entry per page;
+  - the module-level `pdf_service` object still exists.
 
-The worktree starts from HEAD, so it excludes the main tree's uncommitted
-work from other sessions. Two things matter here:
+  Its `UnreadableUploadTest` accepts `(ParseError, PDFPageCountError)`, and
+  "image bytes named .pdf" now raises `ParseError`.
+- **Section 7** (`assignments/tasks.py`, `students/views.py`): this section's
+  exceptions live in a new `assignments/exceptions.py`, so there is no edit to
+  `students/exceptions.py`. `UploadAlreadyInProgressError` covers only the
+  teacher assignment-file path; Section 7's
+  `SubmissionProcessingInProgressError` stays the only guard on student
+  upload-async.
 
-- **`assignments/services.py`, main tree:** swaps the shared `pdf_service`
-  object for a fresh `PDFService(uploaded_file)` per upload. This fix only
-  touches `PDFService.extract`, which that change calls unchanged, so the
-  two combine without overlap. The same forged-file defect was reproduced on
-  the main tree's code too (see §3).
-- **`ai_processor/tests_pdf_service_concurrency.py` and
-  `tests_answer_benchmark_inputs.py`** (untracked, main tree) were **not
-  run**. The first tests the per-upload change above, which HEAD does not
-  have. The second imports the untracked `ai_processor/benchmark/answers/`.
-  Its `UnreadableUploadTest` accepts `ParseError` or `PDFPageCountError`.
-  After this fix, the "image bytes named .pdf" case raises `ParseError`, so
-  it should still pass. That is inferred, not run.
+## 4. Real-provider verification — PASSED
 
-## 2. Infrastructure — probed
+`RUN_REAL_AI=1 python manage.py test assignments.tests_real_upload_billing`,
+2026-09-14 20:26:45–20:27:07 (+01:00), on `60f28c3` + the then-uncommitted
+test file (committed unchanged as `cada6c5`).
 
-| | |
+The run used a real wallet, subscription and ledger on PostgreSQL, with one
+real billed extraction.
+
+| Step | Result |
 |---|---|
-| Python | 3.12.10 |
-| PostgreSQL | 18.6 |
-| Redis | 8.0.5 |
-| Django / DRF | 5.2.6 / 3.16.1 |
-| PyMuPDF | 1.23.8 |
-| pdf2image | 1.17.0 |
-| poppler (`pdftoppm`) | 26.01.0 |
-| Pillow | 12.0.0 |
-| Test DB | `test_section_9_ocr_processor_review` (worktree-unique) |
+| Batch: `quiz.png` (legible worksheet) + `broken.pdf` (not a PDF) | **207**; `quiz.png` created, `already_uploaded: false`; `broken.pdf` failed |
+| Charges after first request | kept `[15545]`, refunded `[]` — the good file charged once, the bad file never reached the AI |
+| Identical replay | **207**; same assignment id, `already_uploaded: true`; `broken.pdf` failed again |
+| Charges after replay | kept `[15545]`, refunded `[]` — **no new charge**; still 1 assignment |
 
-## 3. The defect, reproduced before fixing
+Exit 0, 1 test OK.
 
-Forged files were sent through the real
-`AssignmentProcessingService.prepare_ai_content`, with no mocks.
+## 5. Earlier runs whose raw logs were lost — NOT counted
 
-| Upload | HEAD | Main tree (uncommitted) |
-|---|---|---|
-| Shell script / zip / `%PDF` garbage / zero bytes, labelled `application/pdf` | 400 | 400 |
-| Text labelled `image/png` | 400 | 400 |
-| Real PDF labelled `text/html` or `application/octet-stream` | 400 | 400 |
-| **PNG or JPEG bytes labelled `application/pdf`** | **unhandled `PDFPageCountError` → 500** | **same** |
-| Real PDF, honest label | accepted | accepted |
-| 50 MB + 1 byte | 413 | — |
+A session restart on 2026-09-14 wiped the scratchpad. The runs below did
+happen, but their complete output no longer exists. Under this project's
+evidence rule they are **not** counted. Every one is re-run on the committed
+tree (§7–§8).
 
-**Root cause (probed):** `fitz.open(stream=..., filetype="pdf")` opens PNG
-and JPEG bytes as a one-page document with `is_pdf=False`. That passes the
-page-count checks, and `pdftoppm` then fails outside any handler.
+- Part A alone, pre-rebase: 3 mutants killed; full suite 3866 OK (12 skipped),
+  run with `--keepdb`. This part of the record did survive, in the previous
+  version of this file.
+- Parts B–D, pre-rebase working tree: 121 targeted tests OK; 10 mutants
+  (M4–M13) killed, restores sha-verified.
+- On the rebased `6f5014d`: 138 targeted tests OK (1 skipped: an unrelated
+  Redis-cache test), `check` clean, `makemigrations --check` clean, migration
+  safety "additive only". Pre-commit then flagged E800, fixed in `e70fde5`.
 
-## 4. Mutation results
+## 6. Pre-commit on the current tip
 
-Each mutant was applied to `ai_processor/services.py` and run against
-`ai_processor.tests_pdf_type_validation`. The file was then restored from a
-uniquely named copy, and its md5 was checked against the fixed version
-(`975f98a2480f2dedb73422431247bd87`) after every restore.
+`pre-commit run --files <all 14 Section 9 files>` on `cada6c5`: exit 0, tree
+clean.
 
-| Mutant | Result |
-|---|---|
-| M1 — remove the `is_pdf` refusal | **killed** — 6 failures |
-| M2 — stop catching `PDFPageCountError` / `PDFSyntaxError` | **killed** — 2 errors |
-| M3 — catch `Exception` (blames a missing/timed-out poppler on the file) | **killed** — 2 errors |
+## 7. Mutation re-run on the committed tree
 
-All 3 restores were md5-verified. New test file unmutated: **7 tests, OK**.
+_Pending — waits for the Section 7 gate on `ec28d90` so the shared PostgreSQL
+is not loaded during it._
 
-## 5. Pre-commit
+## 8. Strict final gate
 
-`pre-commit run --files ai_processor/services.py
-ai_processor/tests_pdf_type_validation.py` returned exit 0 with no files
-rewritten. The seven `ocr_processor/` files also returned exit 0 (unchanged).
-
-## 6. Full repository regression
-
-`python manage.py test --settings=settings_worktree --keepdb --noinput`
-(no labels, so every app):
-
-| | |
-|---|---|
-| Started / finished | 2026-09-14 13:56:14 / 14:17:27 (+01:00) |
-| Result | **3866 tests, OK (skipped=12), exit 0** — 0 FAIL, 0 ERROR |
-| `services.py` after run | md5-identical to the fixed version (no mutant leaked into the run) |
-
-The run ran after the mutation step, never alongside it, because mutants
-edit `services.py` on disk.
-
-## 7. Open — not fixed here (needs sign-off)
-
-**Multi-file sync assignment upload hides already-charged work.** A probe
-(scratchpad, not committed) posted `good.png` then `forged.png` to
-`assignment-upload`. It measured **1 AI extraction run (credits charged), 1
-assignment created, response 400** naming only `forged.png`, with no mention
-of `good.png`. Cause: `prepare_ai_content` is called outside the per-file
-`try` at `assignments/views.py:858`. The fix changes that endpoint's
-response for this case (400 → 207 with `successful`/`failed`), which is a
-public API contract change, so it was not applied.
+_Pending._ It follows the owner's procedure:
+- a detached worktree at the exact commit, fingerprinted before and after;
+- a fresh uniquely named test database, no `--keepdb`;
+- unfiltered output kept, run under `systemd-inhibit`;
+- `pre-commit --all-files`, migration safety `--base beta`,
+  `makemigrations --check` and the full suite must all exit 0;
+- the database is confirmed dropped afterwards.
