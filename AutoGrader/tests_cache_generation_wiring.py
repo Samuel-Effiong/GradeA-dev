@@ -153,12 +153,20 @@ class SignalBumpWiringTests(TransactionTestCase):
 
     def test_saving_a_user_bumps_only_that_user(self):
         """The headline replacement: today every CustomUser save is a
-        de-facto full flush because "*user*" matches 29 of 35 families."""
+        de-facto full flush because "*user*" matches 29 of 35 families.
+
+        Renaming a teacher moves the teacher AND their school - but nothing
+        else. This test originally asserted the school must NOT move, and
+        that encoded a real defect: the school admin's teacher-performance
+        dashboard lists each teacher's name and is keyed on the school, so a
+        legacy-disabled probe showed it serving the old name (H-1 Stage 3
+        item 7). The student and the course are still untouched.
+        """
         before = self.snapshot()
         self.teacher.first_name = "Renamed"
         self.teacher.save(update_fields=["first_name"])
-        self.assert_advanced(before, "teacher")
-        self.assert_unchanged(before, "student", "course", "school")
+        self.assert_advanced(before, "teacher", "school")
+        self.assert_unchanged(before, "student", "course")
 
     def test_a_bump_failure_does_not_break_the_mutation(self):
         """Receivers run inside the caller's transaction."""

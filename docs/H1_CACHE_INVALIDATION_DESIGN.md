@@ -920,7 +920,31 @@ not family migration:
    1,804 tests OK (13 skipped), exit 0, 0 leftover sessions and DBs (same
    evidence file, §4). These are dirty-tree runs, so they do not replace item 6;
 6. the **repository-wide release gate from the committed tree**: **OPEN.**
-   It needs this work committed first, and nothing has been committed.
+   The gate ran on committed `1373eae` and PASSED: 3,859 tests OK, exit 0,
+   clean teardown, 261 migrations from empty, identical fingerprint before
+   and after. Evidence: `docs/evidence/H1_H2_RELEASE_GATE_EVIDENCE.md`. It
+   cannot close this item, because of item 7: the fix will be a new commit
+   that needs its own gate;
+7. **NEW BLOCKER (2026-09-14): user-row changes do not reach other users'
+   cached views.** A legacy-disabled probe found 16 stale endpoint/mutation
+   pairs. Examples: a teacher rename leaves family 30 stale, a student
+   rename leaves family 29 and the teacher's course/submission lists stale,
+   and a teacher changing school leaves 23/25/30/33 stale.
+   `clear_user_cache` bumps only `usr(self)`/`anyusr`/`global`, while those
+   views are keyed on the school or on the viewing teacher. Dual-running
+   hides it in production. The families involved were marked DONE on proofs
+   that never mutated a user row, so their DONE status is qualified until
+   this is fixed. Full table:
+   `docs/evidence/H1_H2_RELEASE_GATE_EVIDENCE.md` §3.
+   **Owner decision (2026-09-14): precise fan-out, no global flush.** A
+   change to a viewer-visible CustomUser field invalidates:
+   - the user's current school;
+   - on a move, the old school as well as the new one;
+   - for students, the teachers whose views show them (and those teachers'
+     schools).
+   It must be proven against real Redis, including isolation, meaning
+   unrelated schools and users are not invalidated. H-1 stays OPEN until the
+   fix passes the applicable gates and a new committed-tree final gate.
 
 Only after those does removing the legacy wildcards become a reviewable
 change.
@@ -1000,3 +1024,5 @@ counter-eviction protection, single-flight, and the grep gate.
    proof.
 4. **Staleness tolerance** — only needed if stale-while-revalidate is
    revisited; not required by this design.
+5. ~~**How to fan out user-row changes (Stage 3 item 7).**~~ **DECIDED
+   (2026-09-14): precise fan-out.** See Stage 3 item 7.
