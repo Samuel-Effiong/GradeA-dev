@@ -200,3 +200,62 @@ class UpdateAssignmentFromExtractionNotificationHookTest(TestCase):
         )
 
         mock_notify.assert_not_called()
+
+
+class NotifyStudentsOfAssignmentEditQueryCountTest(TestCase):
+    """The opt-in check reads each student's Settings row. Without
+    select_related on it, that was one extra query per submitter - an N+1
+    on an assignment-wide loop. The query count must not grow with the
+    number of submitters."""
+
+    def setUp(self):
+        self.teacher = CustomUser.objects.create_user(
+            email="n1-teacher@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+        )
+        session = Session.objects.create(name="Term", teacher=self.teacher)
+        self.course = Course.objects.create(
+            name="Course", teacher=self.teacher, session=session
+        )
+        self.assignment = Assignment.objects.create(
+            title="MCQ",
+            course=self.course,
+            questions=[{"question_number": 1, "options": ["one", "two"]}],
+        )
+
+    def _add_submitters(self, count, offset=0):
+        for index in range(offset, offset + count):
+            student = CustomUser.objects.create_user(
+                email=f"n1-student-{index}@example.com",
+                password="password123",  # pragma: allowlist secret
+                user_type=UserTypes.STUDENT,
+                first_name="Student",
+                last_name=str(index),
+            )
+            student.settings.notify_assignment_edited = True
+            student.settings.save()
+            StudentSubmission.objects.create(
+                assignment=self.assignment, student=student, answers=[]
+            )
+
+    @patch("students.services.send_email_task.delay")
+    def test_query_count_is_flat_in_the_number_of_submitters(self, mock_delay):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        self._add_submitters(1)
+        with CaptureQueriesContext(connection) as with_one:
+            notify_students_of_assignment_edit(self.assignment)
+        self.assertEqual(mock_delay.call_count, 1)
+
+        self._add_submitters(5, offset=1)
+        with CaptureQueriesContext(connection) as with_six:
+            notify_students_of_assignment_edit(self.assignment)
+        self.assertEqual(mock_delay.call_count, 1 + 6)
+
+        self.assertEqual(
+            len(with_one.captured_queries),
+            len(with_six.captured_queries),
+            "query count grew with the number of submitters (N+1 on settings)",
+        )

@@ -1,5 +1,4 @@
-# students/task_context.py
-from typing import Any, Dict  # Optional
+from typing import Any, Dict
 
 from .models import (
     BackgroundProcessingTask,
@@ -7,8 +6,6 @@ from .models import (
     BatchUploadSession,
     BatchUploadType,
 )
-
-# from django.db import models
 
 
 def get_task_context(processing_task: BackgroundProcessingTask) -> Dict[str, Any]:

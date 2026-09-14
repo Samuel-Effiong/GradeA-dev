@@ -32,6 +32,10 @@ from django.utils import timezone
 from assignments.models import Assignment
 from classrooms.models import Course, Session
 from students.exceptions import TaskCancelledError
+
+# The formatter is dispatched by registered task name (a Celery signature
+# built by students.services._formatted_grade_task) rather than by
+# importing assignments.tasks, so that factory is the seam to observe.
 from students.models import BackgroundTaskType, GradingState, StudentSubmission
 from students.services import grade_engine
 from students.task_tracking import cancel_processing_task, create_processing_task
@@ -77,7 +81,7 @@ class GradingFollowupDispatchTest(TransactionTestCase):
             answers=[{"question_number": 1, "answer_html": "An answer."}],
         )
 
-    @patch("assignments.tasks.formatted_grade_async")
+    @patch("students.services._formatted_grade_task")
     @patch("students.services.student_summary_async")
     @patch("students.services.ai_processor")
     def test_followups_dispatch_only_after_the_grade_is_actually_committed(
@@ -98,11 +102,11 @@ class GradingFollowupDispatchTest(TransactionTestCase):
             result.id = "fake-celery-task-id"
             return result
 
-        mock_formatted.delay.side_effect = capture_committed_state
+        mock_formatted.return_value.delay.side_effect = capture_committed_state
 
         grade_engine(self.teacher, self.submission)
 
-        mock_formatted.delay.assert_called_once()
+        mock_formatted.return_value.delay.assert_called_once()
         mock_summary.delay.assert_called_once()
         self.assertTrue(
             seen["graded_at_is_set"],
@@ -111,7 +115,7 @@ class GradingFollowupDispatchTest(TransactionTestCase):
         )
         self.assertEqual(seen["grading_state"], GradingState.DONE)
 
-    @patch("assignments.tasks.formatted_grade_async")
+    @patch("students.services._formatted_grade_task")
     @patch("students.services.student_summary_async")
     @patch("students.services.ai_processor")
     def test_followups_are_not_dispatched_if_cancelled_before_final_save(
@@ -143,10 +147,10 @@ class GradingFollowupDispatchTest(TransactionTestCase):
                 processing_task_id=str(processing_task.id),
             )
 
-        mock_formatted.delay.assert_not_called()
+        mock_formatted.return_value.delay.assert_not_called()
         mock_summary.delay.assert_not_called()
 
-    @patch("assignments.tasks.formatted_grade_async")
+    @patch("students.services._formatted_grade_task")
     @patch("students.services.student_summary_async")
     @patch("students.services.ai_processor")
     def test_followups_are_not_dispatched_when_the_ai_call_itself_fails(
@@ -157,5 +161,5 @@ class GradingFollowupDispatchTest(TransactionTestCase):
         with self.assertRaises(RuntimeError):
             grade_engine(self.teacher, self.submission)
 
-        mock_formatted.delay.assert_not_called()
+        mock_formatted.return_value.delay.assert_not_called()
         mock_summary.delay.assert_not_called()

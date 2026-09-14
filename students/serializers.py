@@ -9,7 +9,7 @@ from .second_opinion_serializers import (
     QuestionEvaluationSerializer,
     SecondOpinionSerializer,
 )
-from .services import get_grade_details
+from .services import get_grade_details, remaining_student_attempts
 
 
 class StudentSerializer(serializers.ModelSerializer):
@@ -93,7 +93,7 @@ class StudentSubmissionSerializer(serializers.ModelSerializer):
             "submission_date",
             "student_name",
             "assignment_title",
-            "grade_at",
+            "graded_at",
             "grading_confidence",
             "raw_input",
             "formatted_grade",
@@ -103,9 +103,6 @@ class StudentSubmissionSerializer(serializers.ModelSerializer):
         return f"{obj.student.first_name} {obj.student.last_name}"
 
     def update(self, instance, validated_data):
-        # request = self.context.get("request")
-        # user = request.user if request else None
-
         # ONly track regardes AFTER AI has graded
         if instance.ai_graded_at:
             score_changed = (
@@ -124,10 +121,8 @@ class StudentSubmissionSerializer(serializers.ModelSerializer):
 
         return super().update(instance, validated_data)
 
-    def get_remaining_attempts(self, obj):
-        if obj:
-            return max(0, 3 - (obj.attempt_count or 0))
-        return 3
+    def get_remaining_attempts(self, obj) -> int:
+        return remaining_student_attempts(obj)
 
 
 class StudentSubmissionUpdateSerializer(serializers.ModelSerializer):
@@ -229,16 +224,13 @@ class StudentSubmissionListSerializer(serializers.ModelSerializer):
         # display. Falls back to the assignment total for ungraded rows.
         return obj.max_points or obj.assignment.total_points
 
-    def get_remaining_attempts(self, obj):
-        if obj:
-            return max(0, 3 - (obj.attempt_count or 0))
-        return 3
+    def get_remaining_attempts(self, obj) -> int:
+        return remaining_student_attempts(obj)
 
 
 class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
     score = serializers.SerializerMethodField()
     score_percentage = serializers.SerializerMethodField()
-    # feedback = serializers.SerializerMethodField()
     formatted_grade = serializers.SerializerMethodField()
     full_name = serializers.CharField(source="student.get_full_name", read_only=True)
     first_name = serializers.CharField(source="student.first_name", read_only=True)
@@ -356,16 +348,6 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
             return None
         return obj.score_percentage
 
-    # def get_feedback(self, obj):
-    #     request = self.context.get("request")
-    #     if (
-    #         request
-    #         and request.user.user_type == "STUDENT"
-    #         and not obj.is_published
-    #     ):
-    #         return None
-    #     return obj.feedback
-
     def get_formatted_grade(self, obj):
         request = self.context.get("request")
         if request and request.user.user_type == "STUDENT" and not obj.is_published:
@@ -389,10 +371,8 @@ class StudentSubmissionDetailSerializer(serializers.ModelSerializer):
         # See StudentSubmissionListSerializer.get_max_points.
         return obj.max_points or obj.assignment.total_points
 
-    def get_remaining_attempts(self, obj):
-        if obj:
-            return max(0, 3 - (obj.attempt_count or 0))
-        return 3
+    def get_remaining_attempts(self, obj) -> int:
+        return remaining_student_attempts(obj)
 
 
 class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerializer):
@@ -407,7 +387,6 @@ class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerialize
     assignment_due_date = serializers.CharField(
         source="assignment__due_date", read_only=True
     )
-    # assignment_status = serializers.SerializerMethodField()
 
     course_title = serializers.CharField(
         source="assignment__course__title", read_only=True
@@ -424,7 +403,6 @@ class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerialize
             "assignment",
             "assignment_title",
             "assignment_due_date",
-            # "assignment_status",
             "course_title",
             "submission_status",
             "score",
@@ -444,7 +422,6 @@ class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerialize
             "assignment",
             "assignment_title",
             "assignment_due_date",
-            # "assignment_status",
             "course_title",
             "submission_status",
             "raw_input",
@@ -573,21 +550,8 @@ class StudentSubmissionDetailStudentVersionSerializer(serializers.ModelSerialize
         # See StudentSubmissionListSerializer.get_max_points.
         return obj.max_points or obj.assignment.total_points
 
-    def get_remaining_attempts(self, obj):
-        if obj:
-            return max(0, 3 - (obj.attempt_count or 0))
-        return 3
-
-    # def get_assignment_status(self, obj):
-    #     "To check if student submitted for this assignment"
-    #     # submission = self._get_submission(obj)
-    #     if obj:
-    #         return "Submitted"
-
-    #     if obj.assignment.due_date and obj.assignment.due_date < timezone.now():
-    #         return "Overdue"
-
-    #     return "Pending"
+    def get_remaining_attempts(self, obj) -> int:
+        return remaining_student_attempts(obj)
 
 
 class StudentSubmissionGradeUpdateSerializer(serializers.ModelSerializer):

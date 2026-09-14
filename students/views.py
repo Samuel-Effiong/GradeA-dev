@@ -1,4 +1,3 @@
-# from django.shortcuts import render
 import json
 import logging
 import uuid
@@ -13,10 +12,6 @@ from django_celery_beat.models import (  # , PeriodicTask, PeriodicTasks
     ClockedSchedule,
     PeriodicTask,
 )
-
-# from django.utils.decorators import method_decorator
-# from django.views.decorators.cache import cache_page
-# from django.views.decorators.vary import vary_on_headers
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
@@ -26,8 +21,6 @@ from drf_spectacular.utils import (
     extend_schema,
     extend_schema_view,
 )
-
-# from PIL.Image import Image
 from rest_framework import filters, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotAcceptable, ParseError
@@ -61,12 +54,17 @@ from AutoGrader.cache_generation import SCOPE_USER, versioned_key
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.uploads import validate_upload_size
+from classrooms.models import EnrollmentStatusType
 from classrooms.permissions import IsStudent, IsTeacher, IsTeacherOrReadOnly
 from users.mixins import UserCacheMixin
 from users.models import CustomUser, UserTypes
 from users.permissions import HasCreditBalance
 
-from .exceptions import SubmissionGradingInProgressError
+from .exceptions import (
+    SubmissionAlreadyGradedError,
+    SubmissionGradingInProgressError,
+    SubmissionLimitReachedError,
+)
 from .models import (
     BackgroundTaskType,
     BatchUploadSession,
@@ -88,20 +86,50 @@ from .serializers import (
 )
 from .services import (
     _coerce_confidence,
+    ensure_student_may_submit,
     grade_engine,
     notify_student_of_graded_submission,
     student_submission_to_html,
     upload_answers_engine,
 )
-from .signals import delete_cache_patterns
+from .signals import invalidate_submission_caches
 from .task_tracking import create_processing_task, launch_processing_task
 
 logger = logging.getLogger(__name__)
 
-# from openai.types import Batch
+# The two server-side rules that close a student's submission (graded, or
+# out of attempts) are refusals of a well-formed request, not server
+# faults: 409, with the rule's own message.
+SUBMISSION_CLOSED_ERRORS = (SubmissionAlreadyGradedError, SubmissionLimitReachedError)
 
 
-# Create your views here.
+def _submission_closed_response(exc):
+    return Response({"error": str(exc)}, status=HTTP_409_CONFLICT)
+
+
+def _assignment_open_to_student(assignment_id, student):
+    """
+    The assignment a student may submit to: one on a course they are
+    ENROLLED in. Looked up through that scope rather than by bare id -
+    the bare lookup let any student holding an assignment id (they are
+    UUIDs, but "nobody will guess it" is not a tenant boundary) create a
+    submission inside another course, another teacher, another school.
+    404, not 403, so the endpoint does not confirm the id exists.
+    """
+    return get_object_or_404(
+        Assignment.objects.filter(
+            course__enrollments__student=student,
+            course__enrollments__enrollment_status=EnrollmentStatusType.ENROLLED,
+        ).distinct(),
+        id=assignment_id,
+    )
+
+
+def _assignment_taught_by(assignment_id, teacher):
+    """The assignment a teacher may act on: one on a course they teach."""
+    return get_object_or_404(Assignment, id=assignment_id, course__teacher=teacher)
+
+
 @extend_schema_view(
     list=extend_schema(
         tags=["07 Student Submissions"],
@@ -232,8 +260,6 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
         return queryset.order_by(*expressions) if expressions else queryset
 
-    # @method_decorator(cache_page(60 * 3, key_prefix="studentsubmissions:detail"))
-    # @method_decorator(vary_on_headers("Authorization"))
     def retrieve(self, request, *args, **kwargs):
         submission = self.get_object()
         # `usr` ALONE, and this was corrected by a test rather than
@@ -412,7 +438,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         permission_classes=[IsAuthenticated, IsStudent, HasCreditBalance],
     )
     def upload_answers(self, request, assignment_id=None, *args, **kwargs):
-        assignment = get_object_or_404(Assignment, id=assignment_id)
+        assignment = _assignment_open_to_student(assignment_id, request.user)
 
         if assignment.status != AssignmentStatus.PUBLISHED:
             raise ParseError("This assignment is not currently open for submissions.")
@@ -432,6 +458,15 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         validate_upload_size(uploaded_file)
 
+        # Refuse before any file processing or AI spend when the student is
+        # already locked out of this assignment (graded, or out of
+        # attempts). The service re-checks under a row lock; this is the
+        # cheap, early answer for the common case.
+        try:
+            ensure_student_may_submit(assignment, request.user)
+        except SUBMISSION_CLOSED_ERRORS as exc:
+            return _submission_closed_response(exc)
+
         prompt = """
         Analyze the image of an educational assignment and return a JSON
 
@@ -447,6 +482,11 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             serializer = StudentSubmissionDetailSerializer(submission)
 
             return Response(serializer.data, status=HTTP_201_CREATED)
+        except SUBMISSION_CLOSED_ERRORS as exc:
+            # The authoritative (row-locked) check inside the service fired:
+            # a grade or a concurrent upload landed between the pre-check
+            # above and the save.
+            return _submission_closed_response(exc)
         except Exception as e:
             logger.error("Failed to process submission upload", exc_info=e)
             return Response(
@@ -488,7 +528,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         url_name="upload-async",
     )
     def upload_answers_async(self, request, assignment_id=None, *args, **kwargs):
-        assignment = get_object_or_404(Assignment, id=assignment_id)
+        assignment = _assignment_open_to_student(assignment_id, request.user)
 
         if assignment.status != AssignmentStatus.PUBLISHED:
             raise ParseError("This assignment is not currently open for submissions.")
@@ -507,6 +547,15 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
 
         validate_upload_size(uploaded_file)
+
+        # Same early refusal as the synchronous upload. The Celery task
+        # re-checks under a row lock, so a replay that slips past this
+        # (a grade landing after dispatch) is still refused before it can
+        # write - see students.services.upload_answers_engine.
+        try:
+            ensure_student_may_submit(assignment, request.user)
+        except SUBMISSION_CLOSED_ERRORS as exc:
+            return _submission_closed_response(exc)
 
         prompt = """
         Analyze the image of an educational assignment and return a JSON
@@ -538,11 +587,6 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         )
         task_id = task.id
 
-        # task = upload_answers_engine_async(
-        #     str(assignment.id), content, str(request.user.id)
-        # )
-        # task_id = task_id
-
         data = {"task_id": task_id, "message": "Answer Extraction Started"}
 
         serializer = StudentSubmissionUploadAsyncSerializer(data)
@@ -557,6 +601,17 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         if assignment.status != AssignmentStatus.PUBLISHED:
             raise ParseError("Cannot update submission for a non-published assignment.")
+
+        # Editing the raw text is a re-submission by another route (it
+        # re-extracts and overwrites `answers`), so the post-grading rule
+        # applies here exactly as it does to a file upload.
+        if submission.graded_at is not None:
+            return _submission_closed_response(
+                SubmissionAlreadyGradedError(
+                    "This assignment has already been graded, so the "
+                    "submission can no longer be changed."
+                )
+            )
 
         try:
             assignment_context = f"""
@@ -838,11 +893,6 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 )
                 task_id = task.id
 
-                # formatted_grade = ai_processor.formatted_grade(user_prompt)
-
-                # submission.formatted_grade = formatted_grade
-                # submission.save()
-
                 data = {
                     "submission_id": submission.id,
                     "task_id": task_id,
@@ -1019,20 +1069,6 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         response_serializer = StudentSubmissionDetailSerializer(submission)
         return Response(response_serializer.data, status=HTTP_200_OK)
 
-    # @action(
-    #     detail=False, methods=["POST"], url_path=r"batch_upload/(?P<assignment_id>[-\w]+)",
-    #     permission_classes=[IsAuthenticated, IsTeacher],
-    # )
-    # def teacher_batch_upload(self, request, assignment_id=None, *args, **kwargs):
-    #     """
-    #      Teachers can upload multiple submissions for students at once.
-    #      Files: multipart/form-data "files"
-    #      Optional: student_info_list: JSON list of IDs or names
-    #      """
-    #     files = request.FILES.getlist("files")
-    #     if not files:
-    #         raise ParseError("No files uploaded. Please try again.")
-
     @extend_schema(
         tags=["07 Student Submissions"],
         operation_id="batch_upload_student_submissions",
@@ -1101,7 +1137,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         url_path=r"(?P<assignment_id>[-\w]+)/batch-upload",
     )
     def batch_upload(self, request, assignment_id=None):
-        assignment = get_object_or_404(Assignment, id=assignment_id)
+        assignment = _assignment_taught_by(assignment_id, request.user)
         files = request.FILES.getlist("answers")
 
         if not files:
@@ -1214,20 +1250,11 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         if newly_published:
             notify_student_of_graded_submission(submission)
-            # .update() bypasses post_save, so the cache-invalidation
-            # signal (students.signals.clear_student_submission_cache)
-            # never fires — without this a student polling their
+            # A queryset update bypasses post_save, so the cache-invalidation
+            # receiver never fires; without this a student polling their
             # submission keeps seeing it unpublished (and their grade
             # withheld) for up to CACHE_TTL after the teacher published it.
-            delete_cache_patterns(
-                "*superadmin*",
-                "*schooladmin*",
-                "*teacheradmin*",
-                "*studentadmin*",
-                "courses:*",
-                "assignments:*",
-                "studentsubmissions:*",
-            )
+            invalidate_submission_caches(submission)
 
         serializer = StudentSubmissionDetailSerializer(
             submission, context=self.get_serializer_context()
@@ -1275,107 +1302,15 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         )
         if resolved:
             submission.refresh_from_db(fields=["needs_review", "review_reasons"])
-            # .update() bypasses post_save, so the cache-invalidation
-            # signal (students.signals.clear_student_submission_cache)
-            # never fires — without this the cached detail payload keeps
-            # reporting needs_review=true for up to CACHE_TTL.
-            delete_cache_patterns(
-                "*superadmin*",
-                "*schooladmin*",
-                "*teacheradmin*",
-                "*studentadmin*",
-                "courses:*",
-                "assignments:*",
-                "studentsubmissions:*",
-            )
+            # A queryset update bypasses post_save, so the cache-invalidation
+            # receiver never fires; without this the cached detail payload
+            # keeps reporting needs_review=true for up to CACHE_TTL.
+            invalidate_submission_caches(submission)
 
         serializer = StudentSubmissionDetailSerializer(
             submission, context=self.get_serializer_context()
         )
         return Response(serializer.data, status=HTTP_200_OK)
-
-    # @extend_schema(
-    #     tags=["07 Student Submissions"],
-    #     summary="Retrieve batch upload session results",
-    #     description="""
-    #     Retrieve the processing status and results of a batch upload session.
-    #
-    #     This endpoint returns the progress of the background tasks, indicating how many
-    #     files have been processed and the overall completion status. It provides lists of
-    #     successfully processed submissions and those that failed.
-    #     """,
-    #     responses={
-    #         200: OpenApiResponse(
-    #             description="Session results retrieved successfully.",
-    #             response=OpenApiTypes.OBJECT,
-    #             examples=[
-    #                 OpenApiExample(
-    #                     "In Progress",
-    #                     value={
-    #                         "progress": "2 / 3",
-    #                         "is_complete": False,
-    #                         "success_count": 2,
-    #                         "failure_count": 0,
-    #                         "success_list": [
-    #                             {
-    #                                 "status": "SUCCESS",
-    #                                 "file_name": "student_a.pdf",
-    #                                 "submission_id": "b2c3d4e5",
-    #                             },
-    #                         ],
-    #                         "failure_list": [],
-    #                     },
-    #                 ),
-    #                 OpenApiExample(
-    #                     "Completed with failures",
-    #                     value={
-    #                         "progress": "3 / 3",
-    #                         "is_complete": True,
-    #                         "success_count": 2,
-    #                         "failure_count": 1,
-    #                         "success_list": [
-    #                             {"status": "SUCCESS", "file_name": "student_a.pdf"},
-    #                         ],
-    #                         "failure_list": [
-    #                             {
-    #                                 "status": "FAILED",
-    #                                 "file_name": "unknown_file.pdf",
-    #                                 "error": "Could not identify or associate a student with this paper",
-    #                             }
-    #                         ],
-    #                     },
-    #                 ),
-    #             ],
-    #         ),
-    #         404: OpenApiResponse(
-    #             description="Session not found.",
-    #         ),
-    #     },
-    # )
-    # @action(detail=True, methods=["GET"], url_path="session-results")
-    # def session_results(self, request, pk=None):
-    #     session = get_object_or_404(BatchUploadSession, id=pk)
-    #
-    #     # Separate into two clean lists for the UI
-    #     success = [r for r in session.results if r["status"] == "SUCCESS"]
-    #     failures = [r for r in session.results if r["status"] == "FAILED"]
-    #
-    #     completed = len(session.results)
-    #     total = session.total_files
-    #
-    #     percentage = (completed / total) * 100 if total > 0 else 0
-    #
-    #     return Response(
-    #         {
-    #             "progress": f"{completed} / {total}",
-    #             "percent": round(percentage),
-    #             "is_complete": completed == total,
-    #             "success_count": len(success),
-    #             "failure_count": len(failures),
-    #             "success_list": success,
-    #             "failure_list": failures,
-    #         }
-    #     )
 
 
 class StudentViewSet(viewsets.ReadOnlyModelViewSet):

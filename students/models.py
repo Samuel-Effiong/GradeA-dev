@@ -3,8 +3,6 @@ import uuid
 from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
 
-# from idlelib.pyparse import trans
-
 
 class GradingState(models.TextChoices):
     """
@@ -27,7 +25,6 @@ class GradingState(models.TextChoices):
     FAILED = "FAILED", _("Failed")
 
 
-# Create your models here.
 class StudentSubmission(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     assignment = models.ForeignKey(
@@ -168,7 +165,13 @@ class StudentSubmission(models.Model):
         blank=True,
         help_text=_("The time student submission was graded by AI"),
     )
-    ai_grading_completed_at = models.DateField(
+    # DateTimeField, paired with ai_graded_at above: the superadmin AI
+    # performance dashboard reports their difference as the average grading
+    # duration. This was a DateField until migration 0027 - a date minus a
+    # timestamp is (midnight - the real time), so every reported duration
+    # was negative garbage. 0028 backfills historical rows from graded_at,
+    # which the same save sets milliseconds later.
+    ai_grading_completed_at = models.DateTimeField(
         null=True,
         blank=True,
         help_text=_("The time the ai finished grading the student submission"),
@@ -308,8 +311,16 @@ class BatchUploadSession(models.Model):
                 }
             )
 
+        # Read-modify-write on a JSON list, called concurrently by every task
+        # a "Grade All" / batch upload fans out. Without the row lock two
+        # workers read the same list, each append their own entry, and the
+        # second save silently drops the first worker's result - the batch
+        # then reports fewer results than files and the frontend polls a
+        # session that can never complete. select_for_update serialises
+        # the appends on the row (the surrounding atomic() is what makes
+        # the lock hold until the save commits).
         with transaction.atomic():
-            session = BatchUploadSession.objects.select_related().get(id=self.id)
+            session = BatchUploadSession.objects.select_for_update().get(id=self.id)
             session.results.append(new_entry)
             session.save(update_fields=["results"])
 
