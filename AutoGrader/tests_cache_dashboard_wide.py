@@ -330,12 +330,21 @@ class DashboardWideOverInvalidationTests(DashboardWideBase):
         self.assert_still(before, "any_user", "school_a", "school_b", "teacher_a")
 
     def test_a_new_user_does_not_touch_the_school_table_counter(self):
+        """A new teacher joins school A.
+
+        This test used to assert `school_a` did NOT move - and that encoded
+        a real defect. School A's teacher-performance and summary dashboards
+        list and count the school's teachers, so a legacy-disabled probe
+        showed both serving the pre-join payload (H-1 Stage 3 item 7). The
+        user's OWN school must move; the School-TABLE counter and every
+        other tenant must not.
+        """
         before = self.generations()
 
         make_user("wide-extra@x.test", UserTypes.TEACHER, self.school_a)
 
-        self.assert_moved(before, "any_user", "global")
-        self.assert_still(before, "any_school", "school_a", "school_b", "teacher_a")
+        self.assert_moved(before, "any_user", "global", "school_a")
+        self.assert_still(before, "any_school", "school_b", "teacher_a")
 
     def test_a_tenant_a_mutation_never_moves_tenant_b(self):
         before = self.generations()

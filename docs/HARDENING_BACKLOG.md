@@ -58,7 +58,7 @@ speed that decision up, not to pre-empt it.
 | H-7 | `direct_add_student` response shape and status code | Low | Section 3 + frontend | Not started |
 | H-8 | Test file naming / stray docs | Low | Section 3 | Not started |
 | H-9 | Test suite shares one Redis DB (isolation) | High | Whoever owns CI | **FIXED — per-process prefix + prefix-scoped clear(); 4/4 tests pass, two concurrent runs verified** |
-| H-10 | `super-admin/dashboard/students` 480-query N+1 | High | Section 8 (dashboard) | Measured, not fixed |
+| H-10 | `super-admin/dashboard/students` 480-query N+1 | High | Section 8 (dashboard) | **Fix = Section 8 dashboard remediation (owner decision 2026-09-14). NOT closed** — see closure conditions |
 | H-11 | Synchronous billed AI calls inside `students` request handlers (`upload`, `grade`, `PATCH raw_input`) | **High - release-blocking** | Section 7 (students) + frontend | Open - tracked here from the §7 review pass, 2026-09-13 |
 | H-12 | Commented-out code (flake8 E800) burn-down - 38 files carved out of the rule | Low | Each file's section owner | Rule ON since 2026-09-13; `students` clean; 38 files carved out |
 | H-13 | Uploads while grading is RUNNING | Medium | Product + Section 7 | **DECIDED 2026-09-14: refuse (409). Implemented and gated in the §7 branch.** |
@@ -753,6 +753,54 @@ bumped); response byte-identical before and after; wall time reduced.
 query count and latency at the measured scale), mutation (reverting the
 annotation fails the flatness test), regression. Adversarial/failure
 classes: not applicable — record why.
+
+## Owner decision (2026-09-14): the fix is the Section 8 remediation
+
+H-10 points at the Section 8 dashboard remediation (session
+grade-automator-plus-01), so there is no competing H-1 fix. Per that session,
+the remediation covers three places:
+- `_expected_submission_total(courses)` replaces the per-course
+  `assignments.count() * enrollments.count()` in the super-admin and
+  school-admin students views;
+- `TeacherPerformanceStatsService().build(teachers)` replaces the
+  per-teacher N+1 in teacher_performance, teacher_detail and the weekly
+  digest;
+- `dashboard/tests_dashboard_remediation.py` adds flatness, parity and
+  tenant tests.
+
+**Closed only when all three hold** (owner):
+1. the dashboard fix's own tests pass;
+2. the H-1 cache suites pass against the resulting code;
+3. a fresh real measurement shows the **query count stays effectively flat
+   as the dataset grows**. A single faster request is not evidence.
+
+Recorded so far, not closing: on the uncommitted reconciled tree
+(`1373eae` + Section 8 patch), the six H-1 cache suites passed (80 OK), and
+an interim full suite passed (3,931 OK, 14 skipped). That full run used
+`--keepdb`, so it is **not** final-gate evidence: `--keepdb` skips the
+test-DB drop, which is the only point where a leaked connection shows up.
+
+**Condition 3 — fresh real measurement (2026-09-14).** The same test was run
+on `1373eae` (before) and `ec67363` (Section 8 remediation). Requests were
+uncached, on real Postgres: one school, 2 courses per teacher, 3 students
+per course.
+
+| Endpoint | Queries at 2 / 6 / 18 teachers, `1373eae` | Queries at 2 / 6 / 18 teachers, `ec67363` |
+|---|---|---|
+| super-admin students | 14 / 30 / 78 | **6 / 6 / 6** |
+| school-admin students | 13 / 29 / 77 | **5 / 5 / 5** |
+| school-admin teacher_performance | 24 / 60 / 168 | **10 / 10 / 10** |
+| super-admin teachers | 8 / 16 / 40 | **8 / 8 / 8** |
+| school-admin teacher_detail | 19 / 19 / 19 | 14 / 14 / 14 |
+
+The query count is flat on `ec67363` and grew linearly before it, so
+condition 3 is met **for `ec67363`**. At 18 teachers, teacher_performance went
+from 169.5ms to 20.9ms; latency is indicative only, as other runs were active.
+
+H-10 is still **not closed**:
+- conditions 1 and 2 must hold on the tree that is actually merged;
+- the Section 8 strict final gate (`df05d90`) had not reported at the time
+  of writing.
 
 ---
 

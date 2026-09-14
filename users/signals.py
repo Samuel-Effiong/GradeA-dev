@@ -3,12 +3,13 @@
 import logging
 
 from django.conf import settings
-from django.db.models.signals import post_delete, post_save
+from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 
 from AutoGrader.cache_generation import (
     SCOPE_ANY_USER,
     SCOPE_GLOBAL,
+    SCOPE_SCHOOL,
     SCOPE_USER,
     bump_many,
 )
@@ -19,6 +20,140 @@ from billing.services import SubscriptionService
 from users.models import CustomUser, Settings
 
 logger = logging.getLogger(__name__)
+
+# CustomUser fields that OTHER users' cached views display, count or filter
+# on: the school admin's teacher list and summary, a teacher's roster, course
+# and submission lists (H-1 Stage 3 item 7). A change to anything else -
+# password, lockout counters, activation tokens, bio - is visible only to the
+# user themself, so it moves only their own generation.
+VIEWER_VISIBLE_USER_FIELDS = (
+    "first_name",
+    "middle_name",
+    "last_name",
+    "email",
+    "is_active",
+    "user_type",
+    "school",
+    "profile_image",
+    "profile_image_url",
+)
+_VISIBLE_ATTNAMES = tuple(
+    CustomUser._meta.get_field(name).attname for name in VIEWER_VISIBLE_USER_FIELDS
+)
+# `save(update_fields=...)` accepts either spelling (`school` / `school_id`).
+_VISIBLE_UPDATE_NAMES = frozenset(VIEWER_VISIBLE_USER_FIELDS) | frozenset(
+    _VISIBLE_ATTNAMES
+)
+
+_PRE_SAVE_STATE = "_cachegen_visible_state_before_save"
+
+
+def _normalise(value):
+    # An empty ImageField reads back as "" from `.values()` but as a FieldFile
+    # whose str() is "" from the instance; treat both as "no value".
+    return None if value in (None, "") else str(value)
+
+
+def _visible_update(update_fields):
+    return update_fields is None or bool(set(update_fields) & _VISIBLE_UPDATE_NAMES)
+
+
+def viewer_scopes_for_users(user_ids, school_ids):
+    """Generations of the OTHER users' views that display these users.
+
+    * each school the users belong or belonged to - school-admin dashboards
+      are keyed on the school;
+    * the teacher of every course the users are enrolled in, and that
+      teacher's school - a teacher's roster, course and submission lists are
+      keyed on the teacher.
+
+    One query regardless of how many users or courses, so the cost of a
+    profile change does not grow with enrolments.
+    """
+    from classrooms.models import Course
+
+    scopes = [(SCOPE_SCHOOL, school_id) for school_id in school_ids if school_id]
+    teachers = (
+        Course.objects.filter(enrollments__student_id__in=list(user_ids))
+        .values_list("teacher_id", "teacher__school_id")
+        .distinct()
+    )
+    for teacher_id, teacher_school_id in teachers:
+        scopes.append((SCOPE_USER, teacher_id))
+        if teacher_school_id:
+            scopes.append((SCOPE_SCHOOL, teacher_school_id))
+    return scopes
+
+
+@receiver(pre_save, sender=CustomUser)
+def remember_visible_state_before_save(
+    sender, instance, raw=False, update_fields=None, **kwargs
+):
+    """Snapshot the viewer-visible fields, so post_save can tell a real
+    change from a save that touched nothing anyone else sees, and knows the
+    PREVIOUS school on a move."""
+    setattr(instance, _PRE_SAVE_STATE, None)
+    if raw or instance._state.adding or not _visible_update(update_fields):
+        return
+    setattr(
+        instance,
+        _PRE_SAVE_STATE,
+        CustomUser.objects.filter(pk=instance.pk).values(*_VISIBLE_ATTNAMES).first(),
+    )
+
+
+def _viewer_scopes_for_signal(instance, signal_kwargs):
+    if "created" not in signal_kwargs:  # post_delete
+        # A deleted user's enrolments and courses are CASCADE-deleted first,
+        # and those rows' own receivers already bump the teachers and schools
+        # that displayed them. Mutation testing showed a separate pre_delete
+        # teacher lookup broke nothing when removed, so it is not repeated
+        # here. What no cascade covers is the user's own school listing them:
+        # a teacher with no courses has nothing to cascade.
+        return [(SCOPE_SCHOOL, instance.school_id)] if instance.school_id else []
+
+    if signal_kwargs["created"]:
+        # A brand-new user has no enrolments yet; only their school's
+        # dashboards (which list and count its members) can change.
+        return [(SCOPE_SCHOOL, instance.school_id)] if instance.school_id else []
+
+    if not _visible_update(signal_kwargs.get("update_fields")):
+        return []
+
+    before = getattr(instance, _PRE_SAVE_STATE, None)
+    if before is not None and all(
+        _normalise(before[attname]) == _normalise(getattr(instance, attname))
+        for attname in _VISIBLE_ATTNAMES
+    ):
+        return []
+
+    # `before is None` means the prior state is unknown (the row vanished, or
+    # a raw save): fail towards freshness rather than skip the fan-out.
+    previous_school_id = before["school_id"] if before is not None else None
+    return viewer_scopes_for_users(
+        [instance.pk], [instance.school_id, previous_school_id]
+    )
+
+
+def invalidate_user_caches(users):
+    """Invalidate what a change to these users' rows makes stale.
+
+    For write paths that bypass post_save - a `QuerySet.update()` such as
+    the admin's bulk activate/deactivate - and so would otherwise refresh
+    nothing at all, under either mechanism. One query and one Redis round
+    trip for any number of users.
+    """
+    users = list(users)
+    if not users:
+        return
+    scopes = [(SCOPE_ANY_USER, None), (SCOPE_GLOBAL, None)]
+    scopes.extend((SCOPE_USER, user.pk) for user in users)
+    scopes.extend(
+        viewer_scopes_for_users(
+            [user.pk for user in users], [user.school_id for user in users]
+        )
+    )
+    bump_many(list(dict.fromkeys(scopes)))
 
 
 @receiver([post_save, post_delete], sender=CustomUser)
@@ -32,7 +167,15 @@ def clear_user_cache(sender, instance, **kwargs):
     # `anyusr` backs super-admin/dashboard/teachers, whose dependency is the
     # CustomUser table and nothing else; `global` backs the superadmin
     # dashboards that aggregate across everything.
-    bump_many([(SCOPE_USER, user_id), (SCOPE_ANY_USER, None), (SCOPE_GLOBAL, None)])
+    scopes = [(SCOPE_USER, user_id), (SCOPE_ANY_USER, None), (SCOPE_GLOBAL, None)]
+    if sender is CustomUser:
+        # H-1 Stage 3 item 7: the user is also DISPLAYED to others - their
+        # school's admins and their teachers - whose views are keyed on the
+        # school or the teacher, not on this user.
+        scopes.extend(_viewer_scopes_for_signal(instance, kwargs))
+    # One pipelined round trip; duplicates (a student whose two teachers
+    # share a school) are dropped so a count stays one bump per entity.
+    bump_many(list(dict.fromkeys(scopes)))
     # Routed through the project's shared helper rather than calling
     # `cache.delete_pattern` directly. This is a post_save/post_delete
     # receiver, so Django runs it inside the caller's transaction: an
