@@ -123,7 +123,7 @@ on**. Multi-dependency keys embed multiple generations.
 
 | Mutation | Bumps |
 |---|---|
-| `CustomUser` / `Settings` save | `gen:user:<id>` **only** — replaces today's global flush |
+| `CustomUser` / `Settings` save | `gen:user:<id>` — replaces today's global flush. **Superseded for CustomUser (Stage 3 item 7, 2026-09-14):** a change to a viewer-visible field also bumps `sch` of the user's school, the previous school on a move, and, for students, `usr` + `sch` of their courses' teachers. See `docs/evidence/H1_USER_FANOUT_EVIDENCE.md`. |
 | `StudentCourse` save/delete | `gen:user:<student>`, `gen:user:<course.teacher>`, `gen:course:<course>`, `gen:school:<teacher.school>` |
 | `Course` / `Topic` / `Session` save | `gen:user:<teacher>`, `gen:course:<course>`, `gen:school:<teacher.school>` |
 | `Assignment` save | `gen:course:<course>`, `gen:school:<...>` |
