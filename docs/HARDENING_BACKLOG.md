@@ -57,7 +57,7 @@ speed that decision up, not to pre-empt it.
 | H-6 | `CourseCategoryViewSet` — unrouted and broken | Medium | Section 3 (classrooms) | Not started |
 | H-7 | `direct_add_student` response shape and status code | Low | Section 3 + frontend | Not started |
 | H-8 | Test file naming / stray docs | Low | Section 3 | Not started |
-| H-9 | Test suite shares one Redis DB (isolation) | High | Whoever owns CI | **REOPENED (2026-09-14): regression** — 12 test modules bypassed the fix with their own unscoped `CACHES` override and aborted a concurrent gate. Fix implemented (`real_redis_caches()` + guard test); verification in progress |
+| H-9 | Test suite shares one Redis DB (isolation) | High | Whoever owns CI | **IMPLEMENTED / MERGED / VERIFICATION PENDING** — regression reopened 2026-09-14 (12 modules bypassed the fix; a concurrent gate aborted). Fix `4820e33`, merged with current beta on `task/h9-redis-db-isolation`. Landing on beta owner-approved subject to verification. Cross-session test runs stay serial until the overlap proof passes |
 | H-10 | `super-admin/dashboard/students` 480-query N+1 | High | Section 8 (dashboard) | **CLOSED (2026-09-14)** — Section 8 remediation merged to beta `2715c64`; strict gate passed there (4,031 OK); query count flat |
 | H-11 | Synchronous billed AI calls inside `students` request handlers (`upload`, `grade`, `PATCH raw_input`) | **High - release-blocking** | Section 7 (students) + frontend | Open - tracked here from the §7 review pass, 2026-09-13 |
 | H-12 | Commented-out code (flake8 E800) burn-down - 32 files still carved out of the rule | Low | Each file's section owner (register in H-12) | Rule ON since 2026-09-13; `students` and `dashboard` clean; 32 files / 347 hits remain; whole repository in scope (owner decision 2026-09-14) |
@@ -616,9 +616,36 @@ tolerated). Adversarial/stress/live-stack: not applicable — record why.
 > teardown, and mid-run sampling must show both process prefixes live at
 > once.
 >
-> **Status:** implemented; verification in progress. Until it lands,
-> full-suite gates and mutation runs from different sessions must not
-> overlap in time.
+> **Status: IMPLEMENTED / MERGED / VERIFICATION PENDING** (owner,
+> 2026-09-14). The fix is `4820e33`, merged with current beta on
+> `task/h9-redis-db-isolation`. The owner approves landing it on beta,
+> subject to the verification below completing successfully.
+>
+> **Operational restriction, in force until the overlap proof passes:**
+> full-suite gates, mutation runs and live-worker tests from different
+> sessions must not overlap in time. Merging the fix does NOT lift it;
+> only the proof does.
+>
+> **Order:** Section 9's host-quiet gate, then targeted H-9 verification
+> on current beta, then the concurrent full-run proof, then the H-1
+> stampede measurement on current beta, then the closure decision.
+>
+> **Moves to CLOSED only when ALL hold:**
+> 1. the targeted tests pass (the changed modules plus both Celery
+>    real-worker/broker modules);
+> 2. two FULL test runs, running simultaneously, both pass;
+> 3. each uses its own isolated, fresh PostgreSQL test DB;
+> 4. real Redis is used throughout;
+> 5. Redis sampling during the overlap shows both runs' independent
+>    namespaces live at the same time;
+> 6. no cross-run deletion or contamination occurs;
+> 7. both tear down cleanly with zero leaked DB connections;
+> 8. the final regression stays clean.
+>
+> H-9 closure is **not** blocked by the repository-wide Item 9 (E800)
+> cleanup. The two only share files. Whichever lands on beta second
+> rebases and preserves BOTH the H-9 and the H-12 backlog and pre-commit
+> changes.
 
 `REDIS_LOCAL_URL=redis://127.0.0.1:6379/0`, so **every pre-existing test
 suite in the project shares Redis DB 0** with any other process using it -
