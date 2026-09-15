@@ -8,8 +8,6 @@ from django.utils import timezone
 from rest_framework.exceptions import ParseError
 
 from ai_processor.services import ai_processor
-
-# from celery.exceptions import Ignore
 from AutoGrader.error_messages import describe_background_task_error
 from AutoGrader.tasks import send_email_task
 from classrooms.models import Course, EnrollmentStatusType, Topic
@@ -47,9 +45,6 @@ from .exceptions import InvalidUploadFileError
 from .file_uploads import sha256_of_upload_payload, upload_assignment_file
 from .models import Assignment, AssignmentStatus
 from .services import AssignmentProcessingService
-
-# from django.db import transaction
-
 
 logger = logging.getLogger(__name__)
 
@@ -108,8 +103,6 @@ def grade_all_submissions(self, user_id, assignment_id, processing_task_id=None)
             "step": "Initializing",
         },
     )
-
-    # assignment = Assignment.objects.get(id=assignment_id)
 
     for index, submission in enumerate(submissions):
         ensure_task_not_cancelled(processing_task_id)
@@ -226,37 +219,6 @@ def extract_assignment_background_task(
             keep_existing_title=keep_existing_title,
             processing_task_id=processing_task_id,
         )
-
-        #
-        #
-        # extraction_started_at = timezone.now()
-        # assignment_questions = ai_processor.extract_assignment_with_retry(
-        #     user, content, max_retries=3
-        # )
-        # extraction_completed_at = timezone.now()
-        #
-        # self.update_state(state="PROGRESS", meta={"step": "Saving assignment content"})
-        #
-        # assignment_questions["ai_generated"] = True
-        # ai_raw_payload = {
-        #     "title": (
-        #         assignment.title if assignment.title else assignment_questions["title"]
-        #     ),
-        #     "instructions": assignment_questions["instructions"],
-        #     "questions": assignment_questions["questions"],
-        # }
-        #
-        # print("Saving assignment content")
-        #
-        # assignment_questions["ai_raw_payload"] = ai_raw_payload
-        # assignment_questions["extraction_started_at"] = extraction_started_at
-        # assignment_questions["extraction_completed_at"] = extraction_completed_at
-        #
-        # serializer = AssignmentSerializer(
-        #     assignment, data=assignment_questions, partial=True
-        # )
-        # serializer.is_valid(raise_exception=True)
-        # serializer.save()
 
         print("Assignment saved successfully")
         mark_processing_task_success(
@@ -963,7 +925,6 @@ def upload_assignment_async(
         mark_processing_task_started(
             processing_task_id, meta={"step": "Loading assignment context"}
         )
-        # self.update_state(state="PROGRESS", meta={"step": "Loading context"})
 
         user = CustomUser.objects.get(id=user_id)
         course = Course.objects.get(id=course_id, teacher=user)
@@ -1039,8 +1000,6 @@ def upload_assignment_async(
                 "continues."
             ),
         )
-        # if self.request.retries == self.max_retries:
-        #     raise self.retry(exc=e, countdown=3) from Exception
 
         session = BatchUploadSession.objects.get(id=session_id)
         session.update_result(file_name, "FAILED", error=str(e))

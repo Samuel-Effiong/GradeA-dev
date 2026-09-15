@@ -70,7 +70,7 @@ repos:
           # and a staged cleanup plan in docs/HARDENING_BACKLOG.md H-12. Never add to
           # this list and never carve out a whole directory; remove a file's entry in
           # the same commit that cleans it. students/ and dashboard/ are fully clean.
-          - --per-file-ignores=ai_processor/services.py:E800 assignments/tasks.py:E800 assignments/views.py:E800
+          - --per-file-ignores=ai_processor/services.py:E800
         exclude: (^|/)migrations/
     # Sort imports automatically with isort
 -   repo: https://github.com/pre-commit/mirrors-isort
