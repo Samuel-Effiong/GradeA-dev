@@ -12,7 +12,6 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 love God
 """
 
-# import logging
 import os
 import sys
 from datetime import timedelta
@@ -967,7 +966,7 @@ CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 # routine few-minutes scheduling delay never fires a false alarm - see the
 # task docstring for exactly what "overdue" means.
 BEAT_HEALTH_EXPECTATIONS = {
-    # name: (expected_interval, alert_threshold)
+    # Each entry: task name -> (expected interval, alert threshold)
     "record-concurrent-users-every-minute": (
         timedelta(minutes=1),
         timedelta(minutes=10),
@@ -1002,20 +1001,9 @@ STATIC_ROOT = os.path.join(BASE_DIR, "static")
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 MEDIA_URL = "/media/"
 
-#
-# STORAGES = {
-#     "default": {
-#         "BACKEND": "django.core.files.storage.FileSystemStorage",
-#     },
-#     # ManifestStaticFilesStorage is recommended in production, to prevent
-#     # outdated JavaScript / CSS assets being served from cache
-#     # (e.g. after a Wagtail upgrade).
-#     # See https://docs.djangoproject.com/en/5.1/ref/contrib/staticfiles/#manifeststaticfilesstorage
-#     "staticfiles": {
-#         "BACKEND": "django.contrib.staticfiles.storage.ManifestStaticFilesStorage",
-#     },
-# }
-
+# Production uses ManifestStaticFilesStorage so outdated JavaScript and CSS
+# assets are never served from a cache after a deploy.
+# See https://docs.djangoproject.com/en/5.1/ref/contrib/staticfiles/#manifeststaticfilesstorage
 if ENVIRONMENT == "prod":
     STORAGES = {
         "default": {
@@ -1083,11 +1071,9 @@ REST_FRAMEWORK = {
     # not working at all in production.
     #
     # DRF keys an anonymous throttle on BaseThrottle.get_ident(). With
-    # NUM_PROXIES unset it falls through to
-    #
-    #     return ''.join(xff.split()) if xff else remote_addr
-    #
-    # i.e. the key is the ENTIRE X-Forwarded-For chain. Railway's edge
+    # NUM_PROXIES unset it returns the X-Forwarded-For header with all of its
+    # whitespace removed, and falls back to REMOTE_ADDR only when that header
+    # is absent - i.e. the key is the ENTIRE X-Forwarded-For chain. Railway's edge
     # APPENDS to that header rather than replacing it, so the caller owns
     # its left-hand portion: each fake value invents a fresh bucket.
     # Measured against the live beta service before this was set - 14
@@ -1153,19 +1139,9 @@ DJOSER = {
     "ACTIVATION_URL": "activate/{uid}/{token}",
     "USERNAME_CHANGED_EMAIL_CONFIRMATION": False,
     "LOGOUT_ON_PASSWORD_CHANGE": True,
-    # Override the default Djoser serializers:
-    # "SERIALIZERS": {
-    #     "user_create": "users.serializers.CustomUserCreateSerializer",
-    #     "user": "users.serializers.CustomUserSerializer",
-    #     "current_user": "users.serializers.CustomUserSerializer",
-    # },
-    "EMAIL": {
-        # "activation": "home.emails.ActivationEmail",
-        # "confirmation": "home.emails.ConfirmationEmail",
-        # "password_reset": "home.emails.PasswordResetEmail",
-    },
-    # NOTE: djoser's URLs are not wired up (see the commented include in
-    # AutoGrader/urls.py) - authentication is served by users.views.AuthViewSet
+    "EMAIL": {},
+    # NOTE: djoser's URLs are not wired up - AutoGrader/urls.py never includes
+    # them - so authentication is served by users.views.AuthViewSet
     # instead. A commented-out "PERMISSIONS" block used to sit here and read
     # like live access control, including an AllowAny entry; it was removed
     # because nothing in it was ever in effect. Authorization for the real
@@ -1200,34 +1176,21 @@ SPECTACULAR_SETTINGS = {
     "SWAGGER_UI_SETTINGS": {
         "defaultModelsExpandDepth": -1,
         "defaultModelExpandDepth": -1,
-        # "docExpansion": "none",
     },
     "EXTENSIONS": {
         "polymorphic_assignment": "assignments.schema.PolymorphicAssignmentExtension",
     },
 }
 
-# EMAIL_BACKEND = "anymail.backends.sendinblue.EmailBackend"
-# DEFAULT_FROM_EMAIL = "Grade A+ <samueleffiong80@gmail.com>"
-# SUPPORT_EMAIL = "GradeA+@gmail.com"
-
 EMAIL_BACKEND = "anymail.backends.mailersend.EmailBackend"
-# DEFAULT_FROM_EMAIL = "GradeA+ <samueleffiong80@gmail.com>"
-# SUPPORT_EMAIL = "support@test-65qngkdjmm3lwr12.mlsender.net"
 SUPPORT_EMAIL = "support@gradeautomator.com"
 
 
 # This must match the domain in your screenshot
 DEFAULT_FROM_EMAIL = "Grade A+ <support@gradeautomator.com>"
-# DEFAULT_FROM_EMAIL = "Grade A+ <support@test-65qngkdjmm3lwr12.mlsender.net>"
-
-# ANYMAIL = {
-#     "SENDINBLUE_API_KEY": env.str("SENDINBLUE_API_KEY"),
-# }
 
 ANYMAIL = {
     "MAILERSEND_API_TOKEN": env.str("MAILSEND_API_KEY"),
-    # "MAILERSEND_API_TOKEN": env.str("MAILSEND_LOCAL_API"),
 }
 
 CACHES = {
@@ -1333,7 +1296,7 @@ else:
 # --- Personal vs business email rules ---------------------------------------
 #
 # The canonical consumer-provider and disposable-provider lists live in
-# users/utils.py (PERSONAL_EMAIL_DOMAINS / DISPOSABLE_EMAIL_DOMAINS). They
+# users/utils.py, as PERSONAL_EMAIL_DOMAINS and DISPOSABLE_EMAIL_DOMAINS. They
 # used to be duplicated here, which meant the settings copy silently won and
 # the module copy was dead code waiting to drift. The settings below only
 # EXTEND those lists, so an environment can add domains without having to
@@ -1369,7 +1332,7 @@ ENABLE_BILLING_TIME_TRAVEL = env.bool("ENABLE_BILLING_TIME_TRAVEL", default=Fals
 # checkout flow. Only takes effect when ENABLE_BILLING_TIME_TRAVEL is on
 # AND the Stripe key is a test key. Empty (the default) means no customer
 # ever gets one. Use "*" to cover every customer in a dedicated QA
-# environment. Example: BILLING_TEST_CLOCK_EMAIL_DOMAINS=yopmail.com
+# environment. For example, set BILLING_TEST_CLOCK_EMAIL_DOMAINS to yopmail.com.
 BILLING_TEST_CLOCK_EMAIL_DOMAINS = env.list(
     "BILLING_TEST_CLOCK_EMAIL_DOMAINS", default=[]
 )

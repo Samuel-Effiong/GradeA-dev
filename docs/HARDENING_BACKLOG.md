@@ -60,7 +60,7 @@ speed that decision up, not to pre-empt it.
 | H-9 | Test suite shares one Redis DB (isolation) | High | Whoever owns CI | **VERIFIED (2026-09-15)** — all 8 owner closure criteria met: two full suites ran simultaneously, 4,153 OK each, exit 0, clean teardown, both Redis namespaces live. Old code collided 5/8, the fix 0/8. Evidence: `docs/evidence/H9_REDIS_ISOLATION_EVIDENCE.md`. Formal CLOSED decision follows the H-1 stampede measurement (owner's order) |
 | H-10 | `super-admin/dashboard/students` 480-query N+1 | High | Section 8 (dashboard) | **CLOSED (2026-09-14)** — Section 8 remediation merged to beta `2715c64`; strict gate passed there (4,031 OK); query count flat |
 | H-11 | Synchronous billed AI calls inside `students` request handlers (`upload`, `grade`, `PATCH raw_input`) | **High - release-blocking** | Section 7 (students) + frontend | Open - tracked here from the §7 review pass, 2026-09-13 |
-| H-12 | Commented-out code (flake8 E800) burn-down - 4 files still carved out of the rule | Low | Each file's section owner (register in H-12) | Rule ON since 2026-09-13; `students` and `dashboard` clean; 4 files / 125 hits remain; whole repository in scope (owner decision 2026-09-14) |
+| H-12 | Commented-out code (flake8 E800) burn-down - 3 files still carved out of the rule | Low | Each file's section owner (register in H-12) | Rule ON since 2026-09-13; `students` and `dashboard` clean; 3 files / 96 hits remain; whole repository in scope (owner decision 2026-09-14) |
 | H-13 | Uploads while grading is RUNNING | Medium | Product + Section 7 | **DECIDED 2026-09-14: refuse (409). Implemented and gated in the §7 branch.** |
 
 ---
@@ -1139,6 +1139,7 @@ tenancy scoping, 409 for closure errors).
 - §4 assignments (admin, serializers, tests_rigor): `assignments/admin.py`, `assignments/serializers.py`, `assignments/tests_rigor.py` (17 hits) cleaned; AST-identical, E800 0
 - §2 billing (licensing, Stripe and credit services): `billing/access_control.py`, `billing/license_service.py`, `billing/license_views.py`, `billing/models.py`, `billing/services.py`, `billing/stripe_service.py`, `billing/stripe_view_schemas.py`, `billing/tasks.py` (77 hits) cleaned; AST-identical, E800 0
 - §2 billing (serializers, views, tests and tools): `billing/serializers.py`, `billing/views.py`, `billing/tests/tests.py`, `billing/live_qa/invariants_individual.py`, `billing/management/commands/backfill.py` (67 hits) cleaned; AST-identical, E800 0
+- §0 cross-cutting (AutoGrader/settings.py): `AutoGrader/settings.py` (29 hits) cleaned; AST-identical, E800 0
 
 **Owner decision (2026-09-14):**
 
@@ -1179,19 +1180,18 @@ The "What is commented out" column shows what each file holds.
 
 - **Stage 1:** ≤ 6 hits — 0 files, quick and low risk.
 - **Stage 2:** 7–21 hits — 1 file.
-- **Stage 3:** ≥ 27 hits — 3 files, which need careful review.
+- **Stage 3:** ≥ 27 hits — 2 files, which need careful review.
 
 Each stage is done by the owning section, in coordination with any session
 currently changing that app.
 
 Counts are kept live: every item 9 cleanup commit recounts with
 `flake8 --select=E800` and removes the files it cleaned:
-**4 files, 125 hits**.
+**3 files, 96 hits**.
 
 | File | Hits | What is commented out | Owner | Plan | Notes |
 |---|---|---|---|---|---|
 | `assignments/views.py` | 20 | 12 statements, 8 imports | §4 assignments | Stage 2 |  |
-| `AutoGrader/settings.py` | 29 | 14 statements, 14 dict keys, 1 imports | §0 cross-cutting | Stage 3 | Settings values and dict keys: some may be deliberate environment alternatives, so move anything intentional into prose or the env docs rather than deleting it blindly. |
 | `assignments/tasks.py` | 27 | 22 statements, 2 imports, 2 dict keys, 1 prints | §4 assignments | Stage 3 |  |
 | `ai_processor/services.py` | 49 | 42 statements, 7 imports | §5 ai_processor | Stage 3 |  |
 

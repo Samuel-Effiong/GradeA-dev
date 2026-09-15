@@ -29,7 +29,7 @@
 
 **URL prefix.** Every app URL is mounted twice-nested: `urlpatterns` includes `core_urlpatterns` under `api/v1/`, and `core_urlpatterns` includes each app's `urls.py` at the empty prefix ([AutoGrader/urls.py:41-54](../../AutoGrader/urls.py#L41-L54)). So an app route declared as `assignments` is served at `/api/v1/assignments`. `APPEND_SLASH = False` ([settings.py:131](../../AutoGrader/settings.py#L131)) and `DEFAULT_ROUTER_TRAILING_SLASH: False` ([settings.py:1014](../../AutoGrader/settings.py#L1014)) — **trailing slashes are not accepted and not redirected to**; `/api/v1/assignments/` is a 404.
 
-**djoser is installed but not routed.** `djoser` is in `INSTALLED_APPS` and `DJOSER` settings exist, but its URL include is commented out ([AutoGrader/urls.py:58](../../AutoGrader/urls.py#L58)); auth is served by `users.views.AuthViewSet` instead. The settings block says so explicitly ([settings.py:1086-1091](../../AutoGrader/settings.py#L1086-L1091)). Treat the `DJOSER` dict as mostly inert configuration — but see [users-and-auth.md](users-and-auth.md), because some djoser *machinery* (not its URLs) is still used.
+**djoser is installed but not routed.** `djoser` is in `INSTALLED_APPS` and `DJOSER` settings exist, but [AutoGrader/urls.py](../../AutoGrader/urls.py) never includes its URLs; auth is served by `users.views.AuthViewSet` instead. The settings block says so explicitly (the `NOTE` inside the `DJOSER` dict in [settings.py](../../AutoGrader/settings.py)). Treat the `DJOSER` dict as mostly inert configuration — but see [users-and-auth.md](users-and-auth.md), because some djoser *machinery* (not its URLs) is still used.
 
 ---
 
