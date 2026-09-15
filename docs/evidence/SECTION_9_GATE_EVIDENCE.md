@@ -263,3 +263,138 @@ and `AutoGrader/error_messages.py` both auto-merge. It conflicts only in
 
 **Merging into `beta` is the owner's decision.** The integrated tip that
 finally lands needs its own gate, per the Section 7 / Section 8 practice.
+
+## 9. Integrated gate — PASSED on `7641ed7` (Section 9 + beta + Section 7)
+
+The owner approved it on 2026-09-15: merge current beta into the Section 9
+branch and gate the merged commit, including evidence that the Redis
+isolation fix (H-9, `29cc1c7`) is present and still holds. Nothing was
+merged into beta.
+
+### 9.1 How the integrated commit was built
+
+| Commit | What |
+|---|---|
+| `2d7c3b6` | Merge beta `29cc1c7` (H-9). Two document conflicts. |
+| `40486f8` | Scale tests (`assignments/tests_upload_batch_scale.py`), added because no stress test covered the upload path |
+| `187b1a6` | Merge Section 7 at its gated commit `7dc6c70` (its strict gate passed: 4170 OK, 21 skipped; confirmed by the Section 7 session). Clean. |
+| `f314569` | Merge beta `9240fc6` (docs only). Clean. |
+| **`7641ed7`** | Fix (below). **The gated commit.** |
+
+**The two document conflicts in `2d7c3b6`:**
+- `docs/CODEBASE_AUDIT_SECTIONS.md`: Section 8's row was taken from beta,
+  which is a strict superset of the older row plus the newer E800 recount;
+  Section 9's row was kept from this branch.
+- `docs/HARDENING_BACKLOG.md`: H-11 was kept from this branch (Section 7's
+  progress) and H-12 was taken from beta (32 files / 347 hits).
+
+A script checked every resolved row against Section 7's own resolution of
+the same merge (`9568d7f`), and all were byte-identical. The only text
+dropped was the superseded "33 files / 351 hits" count.
+
+**Ancestry verified:** `29cc1c7`, `7dc6c70` and `9240fc6` are all ancestors
+of `7641ed7`.
+
+**The fix, and the first attempt that is NOT counted.** Phase A first ran on
+`f314569`:
+- 186 of 187 targeted tests passed, 13/13 mutants were killed, and 4 live
+  tests passed.
+- **The failure was H-9's guard,
+  `test_no_test_module_builds_its_own_broker_client`.** It flagged
+  `assignments/tests_upload_task_retry_policy.py:339`. That real-worker
+  test's `tearDown` deleted its queue with a raw redis client built from the
+  broker URL, which under H-9's per-process broker prefix deletes nothing.
+  The file predates H-9 and was not on beta, so H-9's own sweep never
+  reached it.
+- **`7641ed7` deletes the queue through `celery_app.connection_for_write()`.**
+  This is the same fix Section 7 made in `7dc6c70`. The guard and the
+  real-worker class passed before committing, and everything below was then
+  re-run on `7641ed7`.
+
+### 9.2 Phase A, on `7641ed7` (review worktree, per-process Redis prefix)
+
+A host check before each step confirmed that every other running test tree
+contained `29cc1c7`. The only overlap was Section 7's post-merge run on
+`d260e1b`.
+
+| Category | What ran | Result |
+|---|---|---|
+| Baseline / regression | 15 targeted modules (Section 9's suites; upload pipeline; `assignments.tests_security`; students upload, post-grading lock, async edit path, submission tenancy and concurrency, grading redelivery live; `AutoGrader.tests_redis_test_isolation`, `tests_celery_signals`, `tests_uploads`) | **187 tests, OK** (1 skipped), 0 FAIL/ERROR |
+| Concurrency | concurrent retries, stale/live/taken-over claims, 6-way scale race, grading redelivery on a live worker, submission concurrency | included above, all OK |
+| Adversarial | forged files (image labelled PDF, garbage PDF), bad file in first/middle/last position, all-invalid batch, hostile uploads | included above, all OK |
+| Failure | provider outage, unusable response (charged then refunded), failed save (refunded, released), deterministic bad file never retried | included above, all OK |
+| Stress / scale | 30-file batch (24 good, 6 bad); six concurrent replays of it | OK — 1.28 s; 1.45 s with **exactly 24 provider calls**; final replay all `already_uploaded`, no new charge |
+| Mutation | 13 mutants, exact-string, sha-verified restore | **13/13 KILLED**, tree clean after |
+| Real infrastructure | real PostgreSQL 18.6, Redis 8.0.5, real Celery worker on the prefixed broker | OK (in A1) |
+| Live / end-to-end (billed) | `RUN_REAL_AI=1`: `tests_real_upload_billing`, `tests_real_extraction` (image and PDF) | **4 tests, OK** — batch 207, **15,723 credits kept once**, none refunded; identical replay 207, charges unchanged |
+| Security / isolation | tenancy and hostile-upload suites; H-9 isolation module, including the broker guard | OK (in A1) |
+
+### 9.3 Phase B: final gate, as two FULL suites simultaneously from `7641ed7`
+
+**Setup:**
+- Two detached, locked worktrees
+  (`…-s9-gate-a-7641ed7`, `…-s9-gate-b-7641ed7`).
+- Fresh test DBs `test_s9_gate_a_7641ed7` / `test_s9_gate_b_7641ed7`, no
+  `--keepdb`, `--parallel 1`, both under `systemd-inhibit`.
+- Both suites launched at 04:26:33 and finished by 05:04:06 (+01:00).
+
+| | Side A | Side B |
+|---|---|---|
+| Pre-checks (side A tree) | `pre-commit run --all-files` 0 · `check_migration_safety --base beta` 0 · `check` 0 · `makemigrations --check` 0 | — (same commit) |
+| Test DB before | absent, 0 connections | absent, 0 connections |
+| Fingerprint before = after | index `f3eb2380…82f3`, content `843ca28b…251d`, 0 status lines — **identical** | same values — **identical** |
+| Tests | **4203 — OK (skipped=22)** | **4203 — OK (skipped=22)** |
+| Duration | 2,221.8 s | 2,226.3 s |
+| Exit | **0** | **0** |
+| FAIL / ERROR lines | 0 | 0 |
+| "other sessions" teardown lines | 0 | 0 |
+| `Destroying test database` | present | present |
+| Test DB after | gone, 0 connections | gone, 0 connections |
+| Files changed during run (outside `.mypy_cache`) | 0 | 0 |
+| Log lines / sha256 | 59,480 / `c0fe7ce8…4432` | 59,124 / `9760698c…216b` |
+
+**Counts reconcile.**
+- *Tests:* 4203 = Section 7's gated 4170 + Section 9's 33 tests (31 at
+  `d59add7`, plus the 2 scale tests).
+- *Skips:* 22 = Section 7's 21 + Section 9's opt-in real-provider test.
+
+**Redis isolation after the merge.** Keys per per-process prefix were
+counted on the app's Redis every 240 s while both suites ran: side A was
+`gaplus-t355180`, side B was `gaplus-t355178`.
+
+| Probe | Both alive | A keys | B keys | Other prefixes / keys |
+|---|---|---|---|---|
+| 04:26:53 | yes | 1 | 1 | 15 / 266 |
+| 04:30:53 | yes | 199 | 185 | 15 / 266 |
+| 04:34:54 | yes | 117 | 111 | 16 / 363 |
+| 04:38:54 | yes | 65 | 65 | 16 / 356 |
+| 04:42:54 | yes | 612 | 612 | 16 / 318 |
+| 04:46:55 | yes | 1048 | 1032 | 16 / 865 |
+| 04:50:55 | yes | 693 | 675 | 16 / 1232 |
+| 04:54:55 | yes | 80 | 80 | 16 / 912 |
+| 04:58:55 | yes | 1 | 1 | 16 / 333 |
+| 05:02:56 | yes | 20 | 19 | 16 / 254 |
+| after both | — | 69 | 69 | 16 / 254 |
+
+**What the sampling shows:**
+- Both namespaces were live at the same time throughout. Each count rose
+  and fell independently, and neither run's keys were wiped by the other.
+- Keys under other prefixes (earlier finished processes, plus Section 7's
+  concurrent post-merge run) rose and fell with that other run, and ended at
+  254 against 266 at the start. The 12-key drop is consistent with the 300 s
+  cache TTL expiry H-9 recorded, and was not attributed further.
+- The ~69 keys left under each side's prefix afterwards are the generation
+  counters H-9 records as expected (no TTL by H-1 design).
+
+**Raw evidence:** `docs/evidence/section_9_integrated_gate/`.
+- **Logs** (compressed, with `RAW_LOG_SHA256SUMS.txt` for the uncompressed
+  originals, `RAW_LOG_LINE_COUNTS.txt`, and `SHA256SUMS.txt` for the stored
+  files): both full suites, the pre-checks, phase A's targeted, mutation and
+  live logs, both chain logs (the uncounted first attempt and the counted
+  run), and the quick check.
+- **Plain text:** the phase B report and all four fingerprints.
+
+**Beta moved during the gate** to `6a8e714`, Section 7's landing: merge
+`d260e1b` of the same `7dc6c70` plus docs. Its code is identical to what
+`7641ed7` already contains. The only code differing between beta and
+`7641ed7` is Section 9's own 13 files, and a trial merge is clean.
