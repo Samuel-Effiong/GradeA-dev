@@ -28,6 +28,7 @@ def _user_facing_exception_types():
     from billing.errors import InsufficientCreditsError
     from billing.license_service import IndividualSubscriptionConflictError
     from students.exceptions import (
+        AssignmentNotOpenError,
         CannotAssociateStudentError,
         SubmissionAlreadyGradedError,
         SubmissionBeingGradedError,
@@ -39,6 +40,7 @@ def _user_facing_exception_types():
         SubmissionAlreadyGradedError,
         SubmissionBeingGradedError,
         SubmissionLimitReachedError,
+        AssignmentNotOpenError,
         AIFeatureNotAvailableError,
         InsufficientCreditsError,
         IndividualSubscriptionConflictError,
@@ -52,6 +54,13 @@ def _passthrough_message(error):
         if message:
             return message
     return None
+
+
+def is_user_facing_error(error):
+    """True when `error` is one of the exceptions written to be shown to a
+    user - i.e. a refusal of the request, not a server fault. Views use
+    this to answer 4xx instead of 500."""
+    return isinstance(error, _user_facing_exception_types())
 
 
 def describe_user_error(error, fallback_message=None):
