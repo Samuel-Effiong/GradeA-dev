@@ -2,8 +2,8 @@
 
 **Status: IN PROGRESS.**
 
-- **Done:** 29 of 32 files are cleaned (251 of the 347 hits counted on `beta` `91f752b`), on branch `task/item9-e800-burndown`. The branch also merges `beta` `29cc1c7`, the H-9 Redis test-isolation fix, as `34a1d1c`. None of it is on `beta` yet.
-- **Remaining:** 3 files and 96 hits, deferred until the Section 7 and Section 9 branches that edit them land.
+- **Done:** 31 of 32 files are cleaned (298 of the 347 hits counted on `beta` `91f752b`), on branch `task/item9-e800-burndown`. The branch merges `beta` three times as Section 7 and Section 9 landed: `34a1d1c` (`29cc1c7`, the H-9 fix), `d5d95be` (`6a8e714`, Section 7), `96d0a6b` (`87acd13`, Section 9). None of it is on `beta` yet.
+- **Remaining:** 1 file, `ai_processor/services.py` (49 hits), deferred until Section 9's separate `create_file`-removal cleanup lands on `beta` (that cleanup also edits this file; item 9 waits so the two edits don't collide).
 - **Section 8** stays **GAPS FOUND / BLOCKERS FIXED / REMEDIATION IN PROGRESS** until item 9 is finished and passes its final gate.
 
 ## Scope (owner decision, 2026-09-14)
@@ -45,8 +45,16 @@
 | `7734659` | §2 billing | access_control, license_service, license_views, models, services, stripe_service, stripe_view_schemas, tasks | 77 | 12 files changed, 28 insertions(+), 214 deletions(-) |
 | `9b10778` | §2 billing | serializers, views, tests/tests.py, live_qa/invariants_individual, management/commands/backfill | 67 | 9 files changed, 28 insertions(+), 136 deletions(-) |
 | `e45c51f` | §0 cross-cutting | AutoGrader/settings.py (built on `29cc1c7`), plus the djoser docs in project-config.md and the HTML reference | 29 | 8 files changed, 22 insertions(+), 69 deletions(-) |
+| `2eaa8b9` | §4 assignments | assignments/tasks.py, assignments/views.py (built on `96d0a6b`) | 47 | 4 files changed, 12 insertions(+), 65 deletions(-) |
 
 Every commit also removes its files from `--per-file-ignores` and refreshes the H-12 register. Merge `34a1d1c` brought in `beta` `29cc1c7`, the H-9 fix, cleanly. Commit `895b02e` rebuilt the H-12 progress list, which the runner had duplicated.
+
+Two later merges brought in beta docs-only changes with no code conflicts:
+
+- `d5d95be` merges `beta` `6a8e714` (Section 7 landing). `docs/CODEBASE_AUDIT_SECTIONS.md` conflicted on adjacent rows; kept this branch's row 8 and beta's row 7.
+- `96d0a6b` merges `beta` `87acd13` (Section 9 landing). Same file, same shape of conflict; kept this branch's row 8 and beta's row 9.
+
+Both merges left `assignments/tasks.py` and `assignments/views.py` at their post-Section-7/Section-9 line counts, which `2eaa8b9`'s edits target directly (26 and 19 hits respectively, re-inventoried after the merges rather than reused from the original 347-hit count).
 
 ## Classification decisions worth reviewing
 
@@ -107,6 +115,7 @@ Both runs ran alone on the host, on a fresh test DB without `--keepdb`, with `--
 |---|---|---|
 | `4162220`: the 28 files before `settings.py` | `pre-commit --all-files` with E800 enforced; a repo-wide E800 count; `manage.py test users classrooms assignments billing AutoGrader` | all 24 hooks pass. E800 shows only the then-4 deferred files. **2,919 tests OK**, 13 skipped, exit 0. The test DB was created and destroyed, with 0 connections and 0 "other sessions" lines. Fingerprint unchanged. |
 | `e45c51f`: after `settings.py`, which contains `29cc1c7` | `manage.py check`; `makemigrations --check`; `manage.py test AutoGrader users` | no issues; no changes. **785 tests OK**, 2 skipped, exit 0. Test DB destroyed, 0 connections. |
+| `2eaa8b9`: after the tasks.py/views.py cleanup | `manage.py test assignments` | **548 tests OK**, 12 skipped, exit 0, in 221.16s. Log at `/tmp/item9-logs/assignments-regression.log`. This run used `--keepdb`, unlike the two runs above, so it is not a fresh-DB proof; the fresh-DB, no-`--keepdb` run for this app happens at the final gate. |
 
 **Overlap record for the `e45c51f` run** (03:28:49–03:34:20, host local time):
 
@@ -114,20 +123,18 @@ Both runs ran alone on the host, on a fresh test DB without `--keepdb`, with `--
 - **After it:** Section 7's gate process started at 03:37:30.
 - **During it:** nothing.
 
-## Deferred: 3 files, 96 hits
+## Deferred: 1 file, 49 hits
 
 | File | Hits | Waiting for | Why |
 |---|---|---|---|
-| `ai_processor/services.py` | 49 | Section 9 branch | the branch edits this file |
-| `assignments/tasks.py` | 27 | Section 7 and Section 9 branches | both edit this file |
-| `assignments/views.py` | 20 | Section 9 branch | the branch edits this file |
+| `ai_processor/services.py` | 49 | Section 9's separate `create_file`-removal branch | that branch removes the dead `create_file` method, which contains 2 of these 49 flagged lines; b3 (Section 9) asked to land that cleanup first so the two edits to this file don't collide, and confirmed the 2 lines belong to the method being deleted |
 
-Cleaning these first would force the owning sessions into merge conflicts. Each will be cleaned, with the same verification, once its branch is on `beta`.
+`assignments/tasks.py` and `assignments/views.py` were cleaned in `2eaa8b9`, once Section 7's and Section 9's own edits to them had both landed on `beta` (merges `d5d95be`, `96d0a6b`). Cleaning `ai_processor/services.py` first would force Section 9's `create_file` branch into a merge conflict, so it is cleaned once that branch is on `beta`.
 
 ## Still to do before item 9 can close
 
-1. **Per-app regression runs: done** for the 29 cleaned files; see Regression runs. The final full-suite run still happens at the gate.
-2. **Clean the 4 deferred files** once their branches land.
+1. **Per-app regression runs: done** for the 31 cleaned files; see Regression runs. The final full-suite run still happens at the gate.
+2. **Clean `ai_processor/services.py`** once Section 9's `create_file`-removal branch lands.
 3. **Retire the exemption mechanism.** Once `flake8 --select=E800 .` is clean, remove `--per-file-ignores` and the H-12 register.
 4. **Repository-wide checks:** pre-commit with E800 enforced, static and security checks, and the full suite.
 5. **Strict final gate on the exact committed tree:** fresh DB with no `--keepdb`, fingerprint before and after, logs stored permanently.
