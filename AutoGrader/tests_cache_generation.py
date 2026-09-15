@@ -12,6 +12,8 @@ when read sites are wired up.
 """
 
 import threading
+from collections import Counter
+from contextlib import contextmanager
 from unittest.mock import patch
 
 import redis
@@ -38,6 +40,40 @@ REDIS_CACHE = real_redis_caches(REDIS_URL)
 
 A = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
 B = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+
+
+@contextmanager
+def redis_commands_sent_by_this_process():
+    """Count, by name, the Redis commands THIS process sends.
+
+    The server's own per-command statistics cannot be used for this, and
+    neither can resetting them: another test run sharing the Redis server
+    issues its own SCAN/SET/INCRBY into the same server-wide counters, and
+    a reset wipes counters other runs rely on. That exact collision failed
+    an overlapping full-suite run (H-9).
+
+    Every command redis-py sends is packed by one of two methods:
+    `pack_command` for a single command, `pack_commands` for a pipeline.
+    `pack_commands` does not call `pack_command`, so wrapping both counts
+    each command exactly once.
+    """
+    counts = Counter()
+    connection_class = redis.connection.AbstractConnection
+    pack_one = connection_class.pack_command
+    pack_many = connection_class.pack_commands
+
+    def counting_pack_command(self, *args):
+        counts[str(args[0]).upper()] += 1
+        return pack_one(self, *args)
+
+    def counting_pack_commands(self, commands):
+        for command in commands:
+            counts[str(command[0]).upper()] += 1
+        return pack_many(self, commands)
+
+    with patch.object(connection_class, "pack_command", counting_pack_command):
+        with patch.object(connection_class, "pack_commands", counting_pack_commands):
+            yield counts
 
 
 @override_settings(CACHES=REDIS_CACHE)
@@ -123,16 +159,13 @@ class GenerationCoreTests(SimpleTestCase):
 
     def test_bumping_never_issues_a_keyspace_scan(self):
         """The entire point: O(1) invalidation, no SCAN at any volume."""
-        self.redis.config_resetstat()
-        for i in range(50):
-            bump_generation(SCOPE_USER, f"{A}-{i}")
-        stats = {
-            k.replace("cmdstat_", ""): v["calls"]
-            for k, v in self.redis.info("commandstats").items()
-        }
-        self.assertEqual(
-            stats.get("scan", 0), 0, "generation bumping issued a keyspace SCAN"
+        with redis_commands_sent_by_this_process() as sent:
+            for i in range(50):
+                bump_generation(SCOPE_USER, f"{A}-{i}")
+        self.assertGreater(
+            sum(sent.values()), 0, "the counter saw no commands - it measures nothing"
         )
+        self.assertEqual(sent["SCAN"], 0, "generation bumping issued a keyspace SCAN")
 
     def test_an_unknown_scope_is_rejected(self):
         with self.assertRaises(ValueError):
@@ -375,20 +408,12 @@ class PipelinedBumpTests(SimpleTestCase):
         """The whole point. Measured as Redis command count: 2 per counter
         (SET NX + INCR) issued in a single pipeline, versus the per-key path
         which also pays a round trip each."""
-        self.redis.config_resetstat()
-        bump_many([(SCOPE_USER, f"{A}-{i}") for i in range(100)])
-        stats = {
-            k.replace("cmdstat_", ""): v["calls"]
-            for k, v in self.redis.info("commandstats").items()
-        }
-        self.assertEqual(stats.get("scan", 0), 0)
-        self.assertEqual(
-            stats.get("set", 0), 100, "expected exactly one SET NX per counter"
-        )
-        # redis-py's .incr() issues INCRBY, so that is the stat name.
-        self.assertEqual(
-            stats.get("incrby", 0), 100, "expected exactly one INCRBY per counter"
-        )
+        with redis_commands_sent_by_this_process() as sent:
+            bump_many([(SCOPE_USER, f"{A}-{i}") for i in range(100)])
+        self.assertEqual(sent["SCAN"], 0)
+        self.assertEqual(sent["SET"], 100, "expected exactly one SET NX per counter")
+        # redis-py's .incr() issues INCRBY, so that is the command name.
+        self.assertEqual(sent["INCRBY"], 100, "expected exactly one INCRBY per counter")
 
     def test_it_falls_back_when_the_pipeline_fails(self):
         """A pipeline failure must degrade to individual bumps, not to

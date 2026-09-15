@@ -267,6 +267,32 @@ class SuiteOverridesCannotBypassIsolationTests(SimpleTestCase):
             "test run - use AutoGrader.test_cache.real_redis_caches() instead",
         )
 
+    def test_no_test_module_measures_redis_server_wide(self):
+        """Server-wide Redis statistics are shared by every concurrent run.
+
+        The server's per-command statistics count every client's commands, so
+        another run's SCANs land in this run's assertion, and resetting them
+        wipes the counters for everyone. Both failed a real overlapping
+        full-suite run. Count this process's own commands instead (see
+        `redis_commands_sent_by_this_process` in tests_cache_generation).
+        """
+        needles = ("config_" + "resetstat", "command" + "stats")
+        offenders = []
+        for path in _test_modules():
+            text = path.read_text(encoding="utf-8")
+            for lineno, line in enumerate(text.splitlines(), start=1):
+                stripped = line.lstrip()
+                if stripped.startswith("#"):
+                    continue
+                if any(needle in line for needle in needles):
+                    offenders.append(f"{path.relative_to(REPO_ROOT)}:{lineno}")
+        self.assertEqual(
+            offenders,
+            [],
+            "these test modules read or reset server-wide Redis statistics, which "
+            "concurrent test runs share - count this process's commands instead",
+        )
+
     def test_the_real_redis_override_is_scoped_to_this_process(self):
         config = real_redis_caches(SHARED_FIXED_DB)["default"]
         self.assertEqual(
