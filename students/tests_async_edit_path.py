@@ -516,7 +516,7 @@ class ExtractionTaskLiveWorkerTest(TransactionTestCase):
         )
         # Through the project app's connection, so the per-process broker key
         # prefix (kombu global_keyprefix) is honoured; a raw redis client
-        # built from CELERY_BROKER_URL would bypass it and delete nothing.
+        # built from the broker URL setting would bypass it and delete nothing.
         with celery_app.connection_for_write() as conn:
             conn.default_channel.queue_delete(self.queue)
         super().tearDown()
