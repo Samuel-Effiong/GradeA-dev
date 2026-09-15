@@ -915,6 +915,12 @@ not family migration:
    gate passed). Next, per the owner's order: re-measure rebuild and
    stampede behaviour on `beta`, then decide which families justify
    protection;
+   **DECIDED (owner, 2026-09-15): no stampede protection for now** — no
+   locking and no TTL jitter on any cache family. Reconsider if a shared cache entry takes 200 ms+ to rebuild; expensive pages gain meaningful concurrent users; or the school-admin summary reaches 1 second in production.
+   The measured 1.4 s school-admin summary stays tracked as a performance
+   issue (`HARDENING_BACKLOG.md` H-14); it does not by itself justify
+   stampede protection given the per-user cache design and expected
+   concurrency. Evidence: `docs/evidence/H1_STAMPEDE_MEASUREMENT.md`;
 3. **H-9** Redis test isolation: **FIXED**, see `HARDENING_BACKLOG.md` H-9;
 4. **H-2** (13 leaked test DB sessions): **FIXED on the working tree**, see
    `docs/evidence/H2_TEST_TEARDOWN_EVIDENCE.md`;
@@ -963,15 +969,17 @@ not family migration:
    no longer qualified.
 8. **Remaining, in the owner's order (2026-09-14):**
    1. ~~merge H-10~~ **done**: beta `2715c64`, strict gate passed;
-   2. re-measure cache rebuild and stampede behaviour after the dashboard
-      optimisation;
-   3. decide which families actually need stampede protection, from those
-      measurements;
+   2. ~~re-measure cache rebuild and stampede behaviour after the dashboard
+      optimisation~~ **done** (`docs/evidence/H1_STAMPEDE_MEASUREMENT.md`);
+   3. ~~decide which families actually need stampede protection~~
+      **DECIDED: none for now**, with triggers (item 2);
    4. Stage 3: remove the legacy wildcard clearing, with its own
       verification that every former wildcard invalidation has an explicit
       replacement and that no broad `SCAN`/wildcard production invalidation
       remains.
-   H-1 stays OPEN until 3 and 4 are done.
+   H-1 stays OPEN until 4 is done. **4 is in progress (owner-approved
+   2026-09-15)**, kept separate from the stampede decision, under its own
+   full verification gate.
 
 Only after those does removing the legacy wildcards become a reviewable
 change.
@@ -1046,6 +1054,8 @@ counter-eviction protection, single-flight, and the grep gate.
    Fixing H-10 first would change which families qualify, so single-flight
    should be classified against post-H-10 measurements.
    **DECIDED (2026-09-13): H-10 first, then re-measure.** See Stage 3 item 2.
+   **RESOLVED (2026-09-15):** re-measured after H-10 at three scales; no
+   family needs single-flight. See Stage 3 item 2.
 3. **Stage 3 timing** — removing the wildcard receivers is the only
    irreversible step; it should be a separate release after the coverage
    proof.

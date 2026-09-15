@@ -4,7 +4,8 @@ This record lives in the repo, not a scratchpad. Scratchpads are wiped
 between sessions. Raw logs are in `docs/evidence/h9_redis_isolation/` and
 listed in `SHA256SUMS.txt`.
 
-**Status: VERIFIED.** All eight owner closure criteria are met (§5).
+**Status: CLOSED (owner, 2026-09-15).** All eight owner closure criteria are met (§5),
+verified on `29cc1c7`.
 
 - The owner approved landing on beta subject to this verification.
 - Under the owner's order (Section 9 gate → targeted verification →

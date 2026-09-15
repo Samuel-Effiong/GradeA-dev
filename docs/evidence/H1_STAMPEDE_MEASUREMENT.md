@@ -9,7 +9,11 @@ rebuild and stampede behaviour on current beta. Then decide which cache
 families actually need stampede protection. Wildcard removal (Stage 3) comes
 after that decision.
 
-**Status: measured. Recommendation below (§6) awaits the owner's decision.**
+**Status: DECIDED (owner, 2026-09-15).** The owner accepted §6: **no stampede
+protection for now** (no locking, no jitter). Reconsider if a shared cache entry takes 200 ms+ to rebuild; expensive pages gain meaningful concurrent users; or the school-admin summary reaches 1 second in production.
+The measured 1.4 s school-admin summary stays tracked as a performance issue
+(`HARDENING_BACKLOG.md` H-14), not a stampede justification. H-15 and H-16
+track the other two findings.
 
 ---
 
