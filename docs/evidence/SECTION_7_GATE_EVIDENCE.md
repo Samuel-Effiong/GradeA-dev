@@ -396,3 +396,74 @@ worktree; fingerprint before and after; fresh uniquely named DB, no
 
 The H-11 work (§13) is inside this run: `students.tests_async_edit_path`
 (17 + 1 opt-in; the opt-in real-provider test ran separately, §13 state 8).
+
+## 15. Gate 6 — strict gate on `7dc6c70` (H-9 isolation fix merged)
+
+Beta gained the H-9 Redis test-isolation fix (`29cc1c7`), which rewrote two
+of this section's test modules. Merged as `9568d7f` (one conflict, the
+backlog owner table: this branch's H-11 row, beta's 32-file H-12 row;
+both rewritten test modules byte-identical to `29cc1c7`). Two commits on
+top, both confined to `students/tests_async_edit_path.py`: `cd6f52e`
+deletes the live test's private queue through the app's broker connection
+so the per-process broker prefix is honoured, and `7dc6c70` rewords a
+comment that named the broker URL setting (the H-9 guard test flags it).
+Application code is unchanged from the `ec28d90` gate except for what
+beta brought in. Pre-gate targeted run on `7dc6c70`: the H-9 guard,
+`tests_async_edit_path` with its live worker, and both rewritten modules,
+36 tests OK, 1 skipped (the opt-in billed test).
+
+Owner's strict procedure, in full:
+
+| | |
+|---|---|
+| Commit | `7dc6c70ca38086fa5d5fa2d919484e92c9b2de3d` |
+| Worktree | `../Grade-Automator-Plus-s7-gate6`, detached, created for this run, removed after |
+| Fingerprint before = after | HEAD as above; `sha256(git ls-files -s)` `0a9599ad…3b2e1288`; content sha256 `03086515…6619f8b`; porcelain 0 |
+| Test DB | `test_s7_gate_7dc6c70`; `pg_database` rows before: 0 |
+| `pre-commit run --all-files` | exit 0 |
+| `scripts/check_migration_safety.py --base beta` | exit 0 |
+| `makemigrations --check --dry-run` | exit 0 |
+| Host | no other test run active at launch; the two sessions sharing the host confirmed idle, and every active tree contained `29cc1c7` |
+| Full `manage.py test --noinput --parallel 1`, under `systemd-inhibit --what=sleep:idle` | **4,170 tests — OK, 21 skipped — exit 0** (1,711 s; 03:37:31 → 04:06:15) |
+| Log | 54,690 lines, sha256 `5153e6c654c60acefdd8890f1bfe8f4f97fc17a1713fd864c3e1ccc370e0277b` |
+| Teardown | "Destroying test database" 1; "other sessions using the database" 0; afterwards `pg_database` rows 0, `pg_stat_activity` connections 0 |
+| Suspend | `journalctl -k` from 03:30: none |
+| Tree during the run | `find -newer <start marker>` (excluding `.git`, `__pycache__`): nothing |
+
+## 16. Landed on beta — merge `d260e1b` (owner-approved 2026-09-15)
+
+The owner approved merging `task/section-7-students-review` at its gated
+commit `7dc6c70` into `beta`. The merge was built and verified in its own
+worktree (`../Grade-Automator-Plus-s7-land`), then `beta` was
+fast-forwarded to it in the main checkout. §15 (the gate on `7dc6c70`,
+recorded on the branch in `a8a0b03`) is carried onto `beta` by this
+commit.
+
+| | |
+|---|---|
+| Merge commit | `d260e1bc3cfa0c04a13be19201ace2898621437f`, parents `9240fc6` (beta) + `7dc6c70` (gated Section 7) |
+| Conflicts | none — textually clean; no conflict resolution, no application-code edits |
+| Code vs gated `7dc6c70` | `git diff --quiet 7dc6c70 d260e1b -- . ':!docs'` → identical. Beta changed no code between `29cc1c7` (already merged into the branch) and `9240fc6`, so the full gate on `7dc6c70` (§15) covers every line of code on `beta` |
+| Section 7 application files | `students/`, `assignments/tasks.py`, `assignments/services.py`, `AutoGrader/error_messages.py`: identical to `7dc6c70` |
+| Beta's backlog preserved | every item H-1..H-16 has exactly one owner-table row and one section before and after; the only beta line not carried over is the older H-11 row, which this branch had already replaced with its newer OPEN / release-blocking row. H-16's row and section are byte-identical to beta's |
+| Beta's other docs | all 13 other files beta changed since `29cc1c7` (H-1 design doc, H-9 and stampede evidence, raw measurement archives): byte-identical in the merge |
+| Static checks on `d260e1b` | `manage.py check`, `makemigrations --check`, `check_migration_safety.py --base beta`, `pre-commit run --all-files`: all exit 0, tree unchanged |
+| Post-merge regression on `d260e1b` | `students` (whole app), `AutoGrader.tests_redis_test_isolation`, `AutoGrader.tests_cache_superadmin_1522`, `AutoGrader.tests_cache_dashboard_freshness`, `users.tests_task_viewset`, `assignments.tests_security`; fresh DB `test_s7_land_d260e1b`, no `--keepdb`, under `systemd-inhibit`: **361 tests — OK, 1 skipped (opt-in billed test) — exit 0**, 04:18:10 → 04:22:32 |
+| Regression log | 4,381 lines, sha256 `824da2b85ac3471532a2715e29b21f244dda0c1458f53a9e9971ca5ea4dc62e1` |
+| Teardown | "Destroying test database" present, no "other sessions" line; afterwards `pg_database` rows 0, `pg_stat_activity` connections 0 |
+| Tree during the run | fingerprint identical before and after (`sha256(git ls-files -s)` `b5f82b00…167834a2`, content `ee112c36…fe67656`, porcelain 0) |
+| Host | one overlapping run from Section 9's tree (targeted suites, containing `29cc1c7`, so Redis-isolated per H-9); no suspend |
+| Beta | fast-forwarded `9240fc6` → `d260e1b` with `git merge --ff-only` in the main checkout (beta had not moved; the checkout's two untracked doc folders do not overlap the merge) |
+
+Open items unchanged by the merge:
+
+* **H-11 stays OPEN and release-blocking** until the frontend owner
+  confirms clients use `upload-async`, `grade-async` /
+  `schedule-grade-async` and `update-async`; then the synchronous AI paths
+  are retired under their own ten-state gate.
+* **H-16** (teacher submission list, 63 queries per page) remains a
+  separate hardening item; its proposed owner is Section 7, no owner has
+  been assigned, and it was not started.
+* The H-11 section on `beta` carries two overlapping "remaining work"
+  lists, both written by Section 7 on 2026-09-14 (`0320c87`, `be275b2`);
+  they agree, and are left as they are rather than edited during a merge.
