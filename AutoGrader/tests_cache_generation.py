@@ -52,26 +52,28 @@ def redis_commands_sent_by_this_process():
     a reset wipes counters other runs rely on. That exact collision failed
     an overlapping full-suite run (H-9).
 
-    Every command redis-py sends is packed by one of two methods:
-    `pack_command` for a single command, `pack_commands` for a pipeline.
-    `pack_commands` does not call `pack_command`, so wrapping both counts
-    each command exactly once.
+    redis-py sends every command by one of two paths. A single command goes
+    through `send_command`, which packs it with the serializer directly (it
+    does NOT call `pack_command`, so wrapping `pack_command` counts nothing).
+    A pipeline goes through `pack_commands` and `send_packed_command`, and
+    never calls `send_command`. Wrapping `send_command` and `pack_commands`
+    therefore counts each command exactly once.
     """
     counts = Counter()
     connection_class = redis.connection.AbstractConnection
-    pack_one = connection_class.pack_command
+    send_one = connection_class.send_command
     pack_many = connection_class.pack_commands
 
-    def counting_pack_command(self, *args):
+    def counting_send_command(self, *args, **kwargs):
         counts[str(args[0]).upper()] += 1
-        return pack_one(self, *args)
+        return send_one(self, *args, **kwargs)
 
     def counting_pack_commands(self, commands):
         for command in commands:
             counts[str(command[0]).upper()] += 1
         return pack_many(self, commands)
 
-    with patch.object(connection_class, "pack_command", counting_pack_command):
+    with patch.object(connection_class, "send_command", counting_send_command):
         with patch.object(connection_class, "pack_commands", counting_pack_commands):
             yield counts
 
