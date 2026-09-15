@@ -2,8 +2,8 @@
 
 **Status: IN PROGRESS.**
 
-- **Done:** 28 of 32 files are cleaned (222 of the 347 hits counted on `beta` `91f752b`), on branch `task/item9-e800-burndown`. None of it is on `beta` yet.
-- **Remaining:** 4 files and 125 hits, deferred until the branches that edit them land.
+- **Done:** 29 of 32 files are cleaned (251 of the 347 hits counted on `beta` `91f752b`), on branch `task/item9-e800-burndown`. The branch also merges `beta` `29cc1c7`, the H-9 Redis test-isolation fix, as `34a1d1c`. None of it is on `beta` yet.
+- **Remaining:** 3 files and 96 hits, deferred until the Section 7 and Section 9 branches that edit them land.
 - **Section 8** stays **GAPS FOUND / BLOCKERS FIXED / REMEDIATION IN PROGRESS** until item 9 is finished and passes its final gate.
 
 ## Scope (owner decision, 2026-09-14)
@@ -44,8 +44,9 @@
 | `3268459` | §4 assignments | assignments/ admin, serializers, tests_rigor | 17 | 7 files changed, 12 insertions(+), 40 deletions(-) |
 | `7734659` | §2 billing | access_control, license_service, license_views, models, services, stripe_service, stripe_view_schemas, tasks | 77 | 12 files changed, 28 insertions(+), 214 deletions(-) |
 | `9b10778` | §2 billing | serializers, views, tests/tests.py, live_qa/invariants_individual, management/commands/backfill | 67 | 9 files changed, 28 insertions(+), 136 deletions(-) |
+| `e45c51f` | §0 cross-cutting | AutoGrader/settings.py (built on `29cc1c7`), plus the djoser docs in project-config.md and the HTML reference | 29 | 8 files changed, 22 insertions(+), 69 deletions(-) |
 
-Every commit also removes its files from `--per-file-ignores` and refreshes the H-12 register. Commit `895b02e` rebuilt the H-12 progress list, which the runner had duplicated.
+Every commit also removes its files from `--per-file-ignores` and refreshes the H-12 register. Merge `34a1d1c` brought in `beta` `29cc1c7`, the H-9 fix, cleanly. Commit `895b02e` rebuilt the H-12 progress list, which the runner had duplicated.
 
 ## Classification decisions worth reviewing
 
@@ -83,12 +84,41 @@ The first billing attempt was refused: whole-module AST dumps differed for `bill
 - **Fix:** the checker now compares statement bodies exactly, and type-ignore markers by count and tag. Commits `a9c2e73`–`3268459` had already passed the stricter whole-module comparison.
 - **Re-apply:** the uncommitted billing edits were backed up, reset and re-applied. The result was byte-identical to the first attempt.
 
-## Deferred: 4 files, 125 hits
+## Two more safety stops, on the settings commit
+
+Both stops refused the commit before it was made. Each was diagnosed before anything was retried.
+
+1. **The code check compared against the wrong base.**
+   - **What happened:** it compared `AutoGrader/settings.py` against the original item 9 base `91f752b`. That file had legitimately changed since, because the H-9 merge rewrote its test settings branch. My cleanup changed only comments: all 137 statements were identical to the pre-section commit `34a1d1c`.
+   - **Fix:** the checker now verifies each section against the commit it starts from. The edits were reset from backup and re-applied.
+2. **`detect-secrets` removed one baseline entry.**
+   - **Why the hook refused:** comment-only removals should only shift recorded line numbers, and this was a removed entry.
+   - **What the entry was:** `settings.py`'s only entry, a "Secret Keyword" false positive, triggered by the word "password", on the deleted dead djoser comment `# "password_reset": "home.emails.PasswordResetEmail",`. That line lay inside the section's own delete range, and its text exists nowhere in the edited file.
+   - **Result:** the entry was accepted with that proof, and no secret was added.
+   - **Runner change:** it now accepts a removed baseline entry only under exactly that proof. Any added secret, or any other change, still refuses.
+
+Doc dependency caught during this section: the DJOSER note in `settings.py`, `docs/backend/project-config.md` and the HTML backend reference all pointed at the commented djoser include in `AutoGrader/urls.py`, which `babaf5d` had removed. All three were corrected, and the line-number citations that drift were dropped.
+
+## Regression runs
+
+Both runs ran alone on the host, on a fresh test DB without `--keepdb`, with `--parallel 1` and under `systemd-inhibit`. Full logs are in the permanent tooling folder.
+
+| Tree | What ran | Result |
+|---|---|---|
+| `4162220`: the 28 files before `settings.py` | `pre-commit --all-files` with E800 enforced; a repo-wide E800 count; `manage.py test users classrooms assignments billing AutoGrader` | all 24 hooks pass. E800 shows only the then-4 deferred files. **2,919 tests OK**, 13 skipped, exit 0. The test DB was created and destroyed, with 0 connections and 0 "other sessions" lines. Fingerprint unchanged. |
+| `e45c51f`: after `settings.py`, which contains `29cc1c7` | `manage.py check`; `makemigrations --check`; `manage.py test AutoGrader users` | no issues; no changes. **785 tests OK**, 2 skipped, exit 0. Test DB destroyed, 0 connections. |
+
+**Overlap record for the `e45c51f` run** (03:28:49–03:34:20, host local time):
+
+- **Before it:** the H-1 session's 17-second load burst ran 03:28:31–03:28:48, against its own DB and its own Redis on :6390, and ended before this run started.
+- **After it:** Section 7's gate process started at 03:37:30.
+- **During it:** nothing.
+
+## Deferred: 3 files, 96 hits
 
 | File | Hits | Waiting for | Why |
 |---|---|---|---|
 | `ai_processor/services.py` | 49 | Section 9 branch | the branch edits this file |
-| `AutoGrader/settings.py` | 29 | H-1 Redis/Celery isolation fix (H-9) | the fix edits the test settings branch |
 | `assignments/tasks.py` | 27 | Section 7 and Section 9 branches | both edit this file |
 | `assignments/views.py` | 20 | Section 9 branch | the branch edits this file |
 
@@ -96,7 +126,7 @@ Cleaning these first would force the owning sessions into merge conflicts. Each 
 
 ## Still to do before item 9 can close
 
-1. **Per-app regression runs** for users, classrooms, assignments, billing and AutoGrader. They are strictly serial under the shared-Redis rule and queued after the H-1 session's overlap proof.
+1. **Per-app regression runs: done** for the 29 cleaned files; see Regression runs. The final full-suite run still happens at the gate.
 2. **Clean the 4 deferred files** once their branches land.
 3. **Retire the exemption mechanism.** Once `flake8 --select=E800 .` is clean, remove `--per-file-ignores` and the H-12 register.
 4. **Repository-wide checks:** pre-commit with E800 enforced, static and security checks, and the full suite.
