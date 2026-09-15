@@ -51,11 +51,13 @@ REDIS_URL = getattr(settings, "CACHES", {}).get("default", {}).get("LOCATION")
 
 # A prefix nothing else in this repo (or another session's test run) uses,
 # so these tests can hammer the real Redis without touching anyone's keys.
+# The prefix-scoped backend matters as much as the prefix: the plain
+# backend's clear() is FLUSHDB, which ignores any prefix (H-9).
 RUN_PREFIX = f"acttest-{uuid.uuid4().hex[:8]}"
 
 REAL_REDIS_CACHE = {
     "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
+        "BACKEND": "AutoGrader.test_cache.PrefixScopedRedisCache",
         "LOCATION": REDIS_URL,
         "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
         "KEY_PREFIX": RUN_PREFIX,

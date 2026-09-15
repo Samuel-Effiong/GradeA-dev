@@ -12,6 +12,8 @@ when read sites are wired up.
 """
 
 import threading
+from collections import Counter
+from contextlib import contextmanager
 from unittest.mock import patch
 
 import redis
@@ -31,19 +33,49 @@ from AutoGrader.cache_generation import (
     get_generation,
     versioned_key,
 )
+from AutoGrader.test_cache import real_redis_caches
 
 REDIS_URL = "redis://127.0.0.1:6379/9"
-REDIS_CACHE = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": REDIS_URL,
-        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
-        "KEY_PREFIX": "gaplus",
-    }
-}
+REDIS_CACHE = real_redis_caches(REDIS_URL)
 
 A = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
 B = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+
+
+@contextmanager
+def redis_commands_sent_by_this_process():
+    """Count, by name, the Redis commands THIS process sends.
+
+    The server's own per-command statistics cannot be used for this, and
+    neither can resetting them: another test run sharing the Redis server
+    issues its own SCAN/SET/INCRBY into the same server-wide counters, and
+    a reset wipes counters other runs rely on. That exact collision failed
+    an overlapping full-suite run (H-9).
+
+    redis-py sends every command by one of two paths. A single command goes
+    through `send_command`, which packs it with the serializer directly (it
+    does NOT call `pack_command`, so wrapping `pack_command` counts nothing).
+    A pipeline goes through `pack_commands` and `send_packed_command`, and
+    never calls `send_command`. Wrapping `send_command` and `pack_commands`
+    therefore counts each command exactly once.
+    """
+    counts = Counter()
+    connection_class = redis.connection.AbstractConnection
+    send_one = connection_class.send_command
+    pack_many = connection_class.pack_commands
+
+    def counting_send_command(self, *args, **kwargs):
+        counts[str(args[0]).upper()] += 1
+        return send_one(self, *args, **kwargs)
+
+    def counting_pack_commands(self, commands):
+        for command in commands:
+            counts[str(command[0]).upper()] += 1
+        return pack_many(self, commands)
+
+    with patch.object(connection_class, "send_command", counting_send_command):
+        with patch.object(connection_class, "pack_commands", counting_pack_commands):
+            yield counts
 
 
 @override_settings(CACHES=REDIS_CACHE)
@@ -56,7 +88,7 @@ class GenerationCoreTests(SimpleTestCase):
         cache.clear()
 
     def raw(self, scope, entity_id=None):
-        return f"gaplus:1:{generation_key(scope, entity_id)}"
+        return cache.make_key(generation_key(scope, entity_id))
 
     # ---- functional ----
 
@@ -129,16 +161,13 @@ class GenerationCoreTests(SimpleTestCase):
 
     def test_bumping_never_issues_a_keyspace_scan(self):
         """The entire point: O(1) invalidation, no SCAN at any volume."""
-        self.redis.config_resetstat()
-        for i in range(50):
-            bump_generation(SCOPE_USER, f"{A}-{i}")
-        stats = {
-            k.replace("cmdstat_", ""): v["calls"]
-            for k, v in self.redis.info("commandstats").items()
-        }
-        self.assertEqual(
-            stats.get("scan", 0), 0, "generation bumping issued a keyspace SCAN"
+        with redis_commands_sent_by_this_process() as sent:
+            for i in range(50):
+                bump_generation(SCOPE_USER, f"{A}-{i}")
+        self.assertGreater(
+            sum(sent.values()), 0, "the counter saw no commands - it measures nothing"
         )
+        self.assertEqual(sent["SCAN"], 0, "generation bumping issued a keyspace SCAN")
 
     def test_an_unknown_scope_is_rejected(self):
         with self.assertRaises(ValueError):
@@ -185,7 +214,7 @@ class GenerationCoreTests(SimpleTestCase):
         """The other half of the volatile-lru argument: entries must be
         evictable, so the eviction order is entries-first."""
         cache.set("courses:user_id__" + A, "payload", 300)
-        self.assertGreater(self.redis.ttl(f"gaplus:1:courses:user_id__{A}"), 0)
+        self.assertGreater(self.redis.ttl(cache.make_key("courses:user_id__" + A)), 0)
 
     # ---- failure simulation ----
 
@@ -364,7 +393,7 @@ class PipelinedBumpTests(SimpleTestCase):
         bump_many([(SCOPE_USER, A), (SCOPE_SCHOOL, B)])
         for scope, eid in ((SCOPE_USER, A), (SCOPE_SCHOOL, B)):
             self.assertEqual(
-                self.redis.ttl(f"gaplus:1:{generation_key(scope, eid)}"),
+                self.redis.ttl(cache.make_key(generation_key(scope, eid))),
                 -1,
                 f"{scope} counter gained a TTL via the pipelined path",
             )
@@ -381,20 +410,12 @@ class PipelinedBumpTests(SimpleTestCase):
         """The whole point. Measured as Redis command count: 2 per counter
         (SET NX + INCR) issued in a single pipeline, versus the per-key path
         which also pays a round trip each."""
-        self.redis.config_resetstat()
-        bump_many([(SCOPE_USER, f"{A}-{i}") for i in range(100)])
-        stats = {
-            k.replace("cmdstat_", ""): v["calls"]
-            for k, v in self.redis.info("commandstats").items()
-        }
-        self.assertEqual(stats.get("scan", 0), 0)
-        self.assertEqual(
-            stats.get("set", 0), 100, "expected exactly one SET NX per counter"
-        )
-        # redis-py's .incr() issues INCRBY, so that is the stat name.
-        self.assertEqual(
-            stats.get("incrby", 0), 100, "expected exactly one INCRBY per counter"
-        )
+        with redis_commands_sent_by_this_process() as sent:
+            bump_many([(SCOPE_USER, f"{A}-{i}") for i in range(100)])
+        self.assertEqual(sent["SCAN"], 0)
+        self.assertEqual(sent["SET"], 100, "expected exactly one SET NX per counter")
+        # redis-py's .incr() issues INCRBY, so that is the command name.
+        self.assertEqual(sent["INCRBY"], 100, "expected exactly one INCRBY per counter")
 
     def test_it_falls_back_when_the_pipeline_fails(self):
         """A pipeline failure must degrade to individual bumps, not to
@@ -470,7 +491,7 @@ class HighConcurrencyCounterTests(SimpleTestCase):
     def assert_no_ttl(self, *pairs):
         for scope, eid in pairs:
             self.assertEqual(
-                self.redis.ttl(f"gaplus:1:{generation_key(scope, eid)}"),
+                self.redis.ttl(cache.make_key(generation_key(scope, eid))),
                 -1,
                 f"{scope}:{eid} counter acquired a TTL under concurrency",
             )
