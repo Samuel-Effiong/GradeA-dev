@@ -369,3 +369,30 @@ permissions per its docstring, dead permission kwarg removed.
 | 8 | Real Celery worker: a redelivery of the running edit task skips (tracked row stays STARTED, one AI call) and the original lands; a stale STARTED claim is taken over. **Real provider** (`RUN_REAL_AI=1`, OpenRouter, run once, 6.6 s): the answer text came back containing "Reykjavik", confidence > 0, wallet debited, exactly one `CreditUsageLog` row. |
 | 9 | Tenancy on the new route via `get_object` scoping (404 for the wrong student or teacher); permissions per the docstring, credit-checked against the teacher's wallet. |
 | 10 | Gate 4 (§14, on the merged tip). |
+
+## 14. Gate 5 — strict gate on `ec28d90` (H-11 work + beta 30b7b95)
+
+Gate 4 on `0c1a9c7` never completed: the session restarted mid-run and its
+log was lost, so it is not evidence. Beta had meanwhile moved to `30b7b95`
+(Section 5); merged as `ec28d90` (one conflict, the backlog owner table:
+beta's H-10 row, this branch's H-11 row, every other row kept). This gate
+follows the owner's strict procedure (commit first; dedicated detached
+worktree; fingerprint before and after; fresh uniquely named DB, no
+`--keepdb`; unfiltered log; sleep inhibitor; pg checks after).
+
+| | |
+|---|---|
+| Commit | `ec28d90b9ba419fbed6dd0de7e621f007a814659` |
+| Worktree | `../Grade-Automator-Plus-s7-gate`, detached, created for this run and removed after |
+| Fingerprint before = after | HEAD as above; `sha256(git ls-files -s)` `e30a237b…c70cd4a3`; content sha256 `60f1005d…8abdc2bd`; porcelain 0 |
+| Test DB | `test_s7_gate_ec28d90`; `pg_database` rows before: 0 |
+| `pre-commit run --all-files` | exit 0 |
+| `scripts/check_migration_safety.py --base beta` | exit 0 (no new migration files in the diff) |
+| `makemigrations --check --dry-run` | exit 0 |
+| Full `manage.py test --noinput --parallel 1`, under `systemd-inhibit --what=sleep:idle` | **4,163 tests — OK, 21 skipped — exit 0** (1,703 s; 2026-09-14 20:30:22 → 2026-09-14 21:01:06) |
+| Log | 54,798 lines, sha256 `103094a5091342a24ff5b04ec0b242bc0b47f9c623dbb93f2460396375a518d9` |
+| Teardown | "Destroying test database" present; "other sessions using the database" lines: 0; afterwards `pg_database` rows 0, `pg_stat_activity` connections 0 |
+| Suspend | `journalctl -k`: one suspend 20:03:45 → 20:09:37, before the window; none inside it |
+
+The H-11 work (§13) is inside this run: `students.tests_async_edit_path`
+(17 + 1 opt-in; the opt-in real-provider test ran separately, §13 state 8).

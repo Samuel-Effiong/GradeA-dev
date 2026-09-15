@@ -1111,6 +1111,47 @@ regression; evidence recorded in `docs/evidence/`.
 the §7 pass's server-side rules applied to them (post-grading lock,
 tenancy scoping, 409 for closure errors).
 
+**Progress (2026-09-14, commit `0320c87`, gated in `ec28d90` — evidence
+§13/§14):** scope narrowed by the owner to migration/retirement for
+upload and grade (their async twins exist) plus wiring the existing
+extraction task into an async edit path.
+
+Done:
+* `POST submissions/<pk>/update-async` — queues the rewired
+  `extract_answer_background_task` as a tracked task, 202 + task id.
+* One service (`update_submission_from_raw_text`) behind PATCH and the
+  async route: closure rules before the billed call and again under the
+  row lock, refund scope over extraction + persist, column-scoped save.
+* Idempotency claim on the tracked row (`claim_processing_task_start`):
+  a Redis redelivery of a running extraction skips instead of billing
+  twice; a stale claim from a dead worker is taken over.
+* Duplicate-request guards on `update-async` (submission row lock) and
+  `upload-async` (student user row lock): a client retrying after a
+  proxy timeout gets 409 instead of a second billed run.
+* V-2 (400 for user-caused failures on the three sync routes), V-3 (PATCH
+  follows its docstring: own student or course teacher, credit-checked),
+  V-4 (column-scoped save), V-6 (dead permission kwarg removed).
+* Real provider call for the edit path (OpenRouter, once): charged once.
+
+Remaining (H-11 stays OPEN and release-blocking):
+1. **Client dependency check** — this repository holds no frontend; the
+   only references to the synchronous `upload`, `grade` and PATCH routes
+   are in `docs/backend/`. The frontend owner must confirm the client
+   uses `upload-async`, `grade-async`/`schedule-grade-async` and
+   `update-async`, and that no other client calls the sync routes.
+2. **Retire** the synchronous AI execution in `upload_answers`, `grade`
+   and `partial_update` once (1) is confirmed — delete, or keep as thin
+   dispatchers returning 202 if a compatibility window is needed.
+3. **V-5** `StudentViewSet` unrouted: delete or route (file deletion needs
+   sign-off).
+4. The same tracked-row idempotency claim for `upload_answers_engine_async`
+   (the upload task still marks started unconditionally; Section 9 is
+   changing that task, so this is coordinated with it).
+5. The retirement change goes through the full ten-state gate: real
+   provider, proxy-timeout scenarios, duplicate/replayed requests,
+   concurrency, credit charged exactly once, failure after charge, task
+   retries, real HTTP end-to-end.
+
 ### Owner scope clarification (2026-09-14) and progress
 
 The owner ruled: no new duplicate async implementations for upload and
