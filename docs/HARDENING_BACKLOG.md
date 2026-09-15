@@ -49,7 +49,7 @@ speed that decision up, not to pre-empt it.
 
 | ID | Item | Priority | Proposed owner | Status |
 |---|---|---|---|---|
-| H-1 | System-wide cache invalidation architecture | **Highest** | Backend/infra lead | **Stage 2: COMPLETE (33/33 applicable migrated). Stage 3 item 7 (user-row fan-out): FIXED, committed-tree gate passed on `f593be1`. H-1 OVERALL: OPEN.** Stampede-protection scope (after H-10 reaches beta) and wildcard removal remain. |
+| H-1 | System-wide cache invalidation architecture | **Highest** | Backend/infra lead | **Stage 2: COMPLETE (33/33 applicable migrated). Stage 3 item 7 (user-row fan-out): FIXED. Stage 3 item 2 (stampede protection): DECIDED 2026-09-15 — none for now, by measurement, with re-evaluation triggers. H-1 OVERALL: OPEN** — Stage 3 legacy wildcard removal in progress, under its own full gate. |
 | H-2 | Full-suite exit code / test DB connection leaks | High | Whoever owns CI | **Closed** — fixed, verified with three consecutive clean full runs and failure/mutation simulation |
 | H-3 | `student123!` account remediation | High | Product + backend | Data gathered, deferred by owner |
 | H-4 | Duplicated `delete_cache_patterns` implementations | Medium | Folds into H-1 | Not started |
@@ -57,11 +57,14 @@ speed that decision up, not to pre-empt it.
 | H-6 | `CourseCategoryViewSet` — unrouted and broken | Medium | Section 3 (classrooms) | Not started |
 | H-7 | `direct_add_student` response shape and status code | Low | Section 3 + frontend | Not started |
 | H-8 | Test file naming / stray docs | Low | Section 3 | Not started |
-| H-9 | Test suite shares one Redis DB (isolation) | High | Whoever owns CI | **VERIFIED (2026-09-15)** — all 8 owner closure criteria met: two full suites ran simultaneously, 4,153 OK each, exit 0, clean teardown, both Redis namespaces live. Old code collided 5/8, the fix 0/8. Evidence: `docs/evidence/H9_REDIS_ISOLATION_EVIDENCE.md`. Formal CLOSED decision follows the H-1 stampede measurement (owner's order) |
+| H-9 | Test suite shares one Redis DB (isolation) | High | Whoever owns CI | **CLOSED (owner, 2026-09-15)** — verified on `29cc1c7`: two full suites ran concurrently on the same Redis, 4,153 tests OK each, exit 0, clean teardown, both per-process namespaces live; old code collided 5/8, the fix 0/8. Evidence: `docs/evidence/H9_REDIS_ISOLATION_EVIDENCE.md`. Overlapping runs are safe only between trees that contain `29cc1c7` |
 | H-10 | `super-admin/dashboard/students` 480-query N+1 | High | Section 8 (dashboard) | **CLOSED (2026-09-14)** — Section 8 remediation merged to beta `2715c64`; strict gate passed there (4,031 OK); query count flat |
 | H-11 | Synchronous billed AI calls inside `students` request handlers (`upload`, `grade`, `PATCH raw_input`) | **High - release-blocking** | Section 7 (students) + frontend | **OPEN.** 2026-09-14: async edit path built and gated, V-2..V-4/V-6 closed, duplicate-request guards added; **remaining: client migration confirmed, then retire the three synchronous routes** (see item) |
 | H-12 | Commented-out code (flake8 E800) burn-down - 32 files still carved out of the rule | Low | Each file's section owner (register in H-12) | Rule ON since 2026-09-13; `students` and `dashboard` clean; 32 files / 347 hits remain; whole repository in scope (owner decision 2026-09-14) |
 | H-13 | Uploads while grading is RUNNING | Medium | Product + Section 7 | **DECIDED 2026-09-14: refuse (409). Implemented and gated in the §7 branch.** |
+| H-14 | School-admin summary rebuild cost (cache family 23) | Medium | Section 8 (dashboard) | Open — 1.4 s cold rebuild at 240 courses/school, growing with rows processed; performance issue, not a stampede justification (owner, 2026-09-15) |
+| H-15 | `global`-scoped per-user cache families invalidate as a herd | Medium | Backend/infra lead (H-1 follow-up) | Open — one change anywhere expires every user's copy (my_courses, superadmin dashboards); 50-student herd p50 792 ms / p95 1,262 ms at realistic scale |
+| H-16 | Teacher submission list issues 63 queries per page | Low | Section 7 (students) | Open — per-row query pattern, flat across data sizes but grows with page size |
 
 ---
 
@@ -616,9 +619,10 @@ tolerated). Adversarial/stress/live-stack: not applicable — record why.
 > teardown, and mid-run sampling must show both process prefixes live at
 > once.
 >
-> **Status: VERIFIED (2026-09-15).** Every closure criterion below is met;
-> see `docs/evidence/H9_REDIS_ISOLATION_EVIDENCE.md` §5. The formal CLOSED
-> decision follows the H-1 stampede measurement (owner's order). The
+> **Status: CLOSED (owner, 2026-09-15).** Every closure criterion below is
+> met and independently verified on `29cc1c7`, including two concurrent full
+> suites (4,153 tests each); see `docs/evidence/H9_REDIS_ISOLATION_EVIDENCE.md`
+> §5. The
 > serial-runs restriction below is lifted by the passing proof, but only for
 > test runs from a tree that contains this fix. Branches that predate it still
 > run the flushing suites and must merge beta before overlapping.
@@ -1353,6 +1357,61 @@ batch task records it as a final, non-retried failure.
 API, task, 8-thread proxy and student concurrency, grade-commit race,
 stale-claim exception) and mutation checks M22-M24 in
 `docs/evidence/SECTION_7_GATE_EVIDENCE.md` §11.
+
+# H-14 — School-admin summary rebuild cost (cache family 23)
+
+**Found 2026-09-15** by the H-1 post-H-10 stampede measurement
+(`docs/evidence/H1_STAMPEDE_MEASUREMENT.md`).
+
+The school-admin summary rebuilds in **1,429 ms** at a realistic large
+school (240 courses/school, 6,000 students), up from 211 ms at 24
+courses/school. Its query count is flat (17), so this is not an N+1: the
+cost grows with the rows each query processes. The entry is invalidated by
+any activity in the school (`sch`), so admins of busy schools will often
+load it cold.
+
+**Owner decision (2026-09-15):** tracked as a performance issue. It does
+**not** by itself justify stampede protection, given the per-user cache
+design and expected concurrency.
+
+**Acceptance:** cold rebuild measured before and after at the same seeds,
+identical payload, query count still flat, and the H-1 freshness tests for
+family 23 still passing with legacy invalidation disabled.
+
+---
+
+# H-15 — `global`-scoped per-user cache families invalidate as a herd
+
+**Found 2026-09-15** by the same measurement.
+
+Student `my_courses` (family 11) and the superadmin dashboards (16, 21) are
+cached per user but depend on the `global` generation. Any change anywhere
+therefore expires every user's copy at once, and they rebuild independently.
+Single-flight cannot help, because every key is different. Measured at
+realistic scale: 50 students' `my_courses` after one `global` bump took
+p50 792 ms / p95 1,262 ms (all 50 rebuilt).
+
+**Scope:** narrow each family's dependency to what its payload actually
+reads (e.g. family 11 on its courses' and teachers' generations instead of
+`global`), derived from code, not names.
+
+**Acceptance:** herd size and latency re-measured; freshness proved with
+legacy invalidation disabled; no cross-tenant staleness.
+
+---
+
+# H-16 — Teacher submission list issues 63 queries per page
+
+**Found 2026-09-15** by the same measurement.
+
+The teacher's `student-submission-list` (UserCacheMixin) runs 63 queries per
+cold build at every data size: a per-row query pattern. It is not slow at
+the measured sizes (~47 ms) but grows with page size.
+
+**Acceptance:** query count flat in page size (asserted, not budgeted),
+identical payload, freshness unchanged.
+
+---
 
 Several of these were found during Section 3 but are **not** Section 3
 changes — H-1 spans four apps, H-2 lives in `users`/`assignments`/`students`,
