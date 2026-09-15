@@ -58,6 +58,35 @@ def test_key_prefix():
     return f"gaplus-t{os.getpid()}"
 
 
+def real_redis_caches(location):
+    """A `CACHES` override for a suite that must run on REAL Redis.
+
+    Use this instead of hand-writing a `django_redis.cache.RedisCache`
+    override. That hand-written form reintroduced H-9 in twelve modules
+    (eleven on a fixed database number with the shared `gaplus` prefix, one
+    on the default database). The unscoped backend's `clear()` is a raw
+    FLUSHDB of the whole database, so two concurrent test runs wiped each
+    other's cache and generation counters mid-test. It aborted a real gate
+    on an overlap.
+
+    A dedicated database number is NOT isolation: every run of the same
+    module picks the same number. The per-process prefix plus a
+    prefix-scoped `clear()` is, so `location` only chooses which Redis
+    database the keys live in.
+
+    `AutoGrader/tests_redis_test_isolation.py` fails the suite if any test
+    module configures the unscoped backend again.
+    """
+    return {
+        "default": {
+            "BACKEND": "AutoGrader.test_cache.PrefixScopedRedisCache",
+            "LOCATION": location,
+            "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+            "KEY_PREFIX": test_key_prefix(),
+        }
+    }
+
+
 class PrefixScopedRedisCache(RedisCache):
     """A `RedisCache` whose `clear()` cannot reach another process's keys."""
 

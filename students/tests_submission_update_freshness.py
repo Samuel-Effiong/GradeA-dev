@@ -26,19 +26,13 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from assignments.models import Assignment, AssignmentStatus
+from AutoGrader.test_cache import real_redis_caches
 from classrooms.models import Course, Session
 from students.models import GradingState, StudentSubmission
 from students.services import _claim_submission_for_grading, _mark_grading_claim_failed
 from users.models import CustomUser, UserTypes
 
-REDIS_CACHE = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/7",
-        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
-        "KEY_PREFIX": "gaplus",
-    }
-}
+REDIS_CACHE = real_redis_caches("redis://127.0.0.1:6379/7")
 
 
 @override_settings(CACHES=REDIS_CACHE)

@@ -57,10 +57,10 @@ speed that decision up, not to pre-empt it.
 | H-6 | `CourseCategoryViewSet` — unrouted and broken | Medium | Section 3 (classrooms) | Not started |
 | H-7 | `direct_add_student` response shape and status code | Low | Section 3 + frontend | Not started |
 | H-8 | Test file naming / stray docs | Low | Section 3 | Not started |
-| H-9 | Test suite shares one Redis DB (isolation) | High | Whoever owns CI | **FIXED — per-process prefix + prefix-scoped clear(); 4/4 tests pass, two concurrent runs verified** |
+| H-9 | Test suite shares one Redis DB (isolation) | High | Whoever owns CI | **VERIFIED (2026-09-15)** — all 8 owner closure criteria met: two full suites ran simultaneously, 4,153 OK each, exit 0, clean teardown, both Redis namespaces live. Old code collided 5/8, the fix 0/8. Evidence: `docs/evidence/H9_REDIS_ISOLATION_EVIDENCE.md`. Formal CLOSED decision follows the H-1 stampede measurement (owner's order) |
 | H-10 | `super-admin/dashboard/students` 480-query N+1 | High | Section 8 (dashboard) | **CLOSED (2026-09-14)** — Section 8 remediation merged to beta `2715c64`; strict gate passed there (4,031 OK); query count flat |
 | H-11 | Synchronous billed AI calls inside `students` request handlers (`upload`, `grade`, `PATCH raw_input`) | **High - release-blocking** | Section 7 (students) + frontend | **OPEN.** 2026-09-14: async edit path built and gated, V-2..V-4/V-6 closed, duplicate-request guards added; **remaining: client migration confirmed, then retire the three synchronous routes** (see item) |
-| H-12 | Commented-out code (flake8 E800) burn-down - 33 files still carved out of the rule | Low | Each file's section owner (register in H-12) | Rule ON since 2026-09-13; `students` and `dashboard` clean; 33 files / 351 hits remain; whole repository in scope (owner decision 2026-09-14) |
+| H-12 | Commented-out code (flake8 E800) burn-down - 32 files still carved out of the rule | Low | Each file's section owner (register in H-12) | Rule ON since 2026-09-13; `students` and `dashboard` clean; 32 files / 347 hits remain; whole repository in scope (owner decision 2026-09-14) |
 | H-13 | Uploads while grading is RUNNING | Medium | Product + Section 7 | **DECIDED 2026-09-14: refuse (409). Implemented and gated in the §7 branch.** |
 
 ---
@@ -568,6 +568,91 @@ tolerated). Adversarial/stress/live-stack: not applicable — record why.
 # H-9 — the whole test suite shares one Redis DB (test isolation)
 
 **Found 2026-09-12 while investigating a cross-app regression failure.**
+
+> **REGRESSION (2026-09-14) — H-9 reopened.** The 2026-09-12 fix below
+> isolated the project-wide test cache, but twelve modules that must run on
+> real Redis wrote their own `CACHES` override. That override replaced the
+> fix entirely. It used the unscoped `django_redis.cache.RedisCache`: eleven
+> modules on a fixed database number (3–15) with the shared `gaplus` prefix,
+> and `users/tests_activity_middleware_load` on the default database. Their
+> `cache.clear()` is FLUSHDB, so two concurrent test runs wiped each other's
+> cache entries and H-1 generation counters. It surfaced for real: a
+> Section 9 mutation run overlapped the Section 8 strict gate on shared
+> Redis for ~3 minutes, and Section 8 aborted and re-ran.
+>
+> The four original acceptance tests kept passing throughout, because they
+> only exercised the default cache. A dedicated database number is not
+> isolation: every run of the same module picks the same number.
+>
+> **Fix** (branch `task/h9-redis-db-isolation`):
+> - `AutoGrader.test_cache.real_redis_caches(location)` returns a
+>   real-Redis override with the prefix-scoped backend and the
+>   per-process prefix. All twelve modules use it.
+> - `tests_cache_generation` builds raw keys with `cache.make_key()`.
+> - `tests_cache_superadmin_1522` scans only its own prefix.
+> - `SuiteOverridesCannotBypassIsolationTests` fails the suite if any test
+>   module configures the unscoped backend again, and proves two processes
+>   sharing one fixed database cannot wipe each other.
+>
+> **Scope widened (owner, 2026-09-14, relayed via Section 9):** every
+> session must be able to run full strict gates at the same time as other
+> sessions without interference. So the Celery broker and result backend
+> are namespaced too. Under `manage.py test` each process gets kombu
+> `global_keyprefix` and `result_backend_transport_options.global_keyprefix`
+> equal to its cache prefix. That isolates queues, exchange bindings and
+> kombu's global `unacked` hash and index, which acks_late redelivery uses.
+> Production `visibility_timeout` is unchanged. The real-worker tests
+> delete their queues through kombu, not a raw client.
+> `CeleryBrokerIsolationTests` checks the prefixes are applied, proves a
+> same-named queue purged by another process leaves our messages intact,
+> and fails if any test builds a raw client from `CELERY_BROKER_URL`.
+> The settings branch covers every test run (main checkout, worktrees,
+> CI, two runs in one worktree), so `scripts/task-worktree.sh` only
+> documents it.
+>
+> **Acceptance proof (owner's):** two FULL strict test runs from the
+> committed fix, overlapping in time on the same Redis, each on its own
+> fresh PostgreSQL test DB. Both must pass with exit 0 and clean
+> teardown, and mid-run sampling must show both process prefixes live at
+> once.
+>
+> **Status: VERIFIED (2026-09-15).** Every closure criterion below is met;
+> see `docs/evidence/H9_REDIS_ISOLATION_EVIDENCE.md` §5. The formal CLOSED
+> decision follows the H-1 stampede measurement (owner's order). The
+> serial-runs restriction below is lifted by the passing proof, but only for
+> test runs from a tree that contains this fix. Branches that predate it still
+> run the flushing suites and must merge beta before overlapping.
+>
+> _Previous status:_ IMPLEMENTED / MERGED / VERIFICATION PENDING (owner,
+> 2026-09-14). The fix is `4820e33`, merged with current beta on
+> `task/h9-redis-db-isolation`. The owner approves landing it on beta,
+> subject to the verification below completing successfully.
+>
+> **Operational restriction, in force until the overlap proof passes:**
+> full-suite gates, mutation runs and live-worker tests from different
+> sessions must not overlap in time. Merging the fix does NOT lift it;
+> only the proof does.
+>
+> **Order:** Section 9's host-quiet gate, then targeted H-9 verification
+> on current beta, then the concurrent full-run proof, then the H-1
+> stampede measurement on current beta, then the closure decision.
+>
+> **Moves to CLOSED only when ALL hold:**
+> 1. the targeted tests pass (the changed modules plus both Celery
+>    real-worker/broker modules);
+> 2. two FULL test runs, running simultaneously, both pass;
+> 3. each uses its own isolated, fresh PostgreSQL test DB;
+> 4. real Redis is used throughout;
+> 5. Redis sampling during the overlap shows both runs' independent
+>    namespaces live at the same time;
+> 6. no cross-run deletion or contamination occurs;
+> 7. both tear down cleanly with zero leaked DB connections;
+> 8. the final regression stays clean.
+>
+> H-9 closure is **not** blocked by the repository-wide Item 9 (E800)
+> cleanup. The two only share files. Whichever lands on beta second
+> rebases and preserves BOTH the H-9 and the H-12 backlog and pre-commit
+> changes.
 
 `REDIS_LOCAL_URL=redis://127.0.0.1:6379/0`, so **every pre-existing test
 suite in the project shares Redis DB 0** with any other process using it -
@@ -1143,15 +1228,16 @@ The "What is commented out" column shows what each file holds.
 
 **Staged plan:**
 
-- **Stage 1:** ≤ 6 hits — 18 files, quick and low risk.
+- **Stage 1:** ≤ 6 hits — 17 files, quick and low risk.
 - **Stage 2:** 7–21 hits — 11 files.
 - **Stage 3:** ≥ 27 hits — 4 files, which need careful review.
 
 Each stage is done by the owning section, in coordination with any session
 currently changing that app.
 
-Counts are from `flake8 --select=E800` on the §8 branch after merging
-`54d3305`: **33 files, 351 hits**.
+Counts were recounted with `flake8 --select=E800` on `beta` `30b7b95`, after Section 5
+deleted `ai_processor/views.py` and cleaned 3 hits in `ai_processor/services.py`:
+**32 files, 347 hits**.
 
 | File | Hits | What is commented out | Owner | Plan | Notes |
 |---|---|---|---|---|---|
@@ -1172,7 +1258,6 @@ Counts are from `flake8 --select=E800` on the §8 branch after merging
 | `classrooms/test_views.py` | 1 | 1 imports | §3 classrooms | Stage 1 | Test file: low risk. |
 | `assignments/admin.py` | 4 | 4 statements | §4 assignments | Stage 1 |  |
 | `assignments/tests_rigor.py` | 2 | 2 statements | §4 assignments | Stage 1 | Test file: low risk. |
-| `ai_processor/views.py` | 1 | 1 imports | §5 ai_processor | Stage 1 |  |
 | `users/models.py` | 12 | 10 statements, 2 imports | §1 users | Stage 2 |  |
 | `billing/access_control.py` | 14 | 12 statements, 2 imports | §2 billing | Stage 2 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
 | `billing/license_views.py` | 14 | 13 statements, 1 imports | §2 billing | Stage 2 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
@@ -1187,7 +1272,7 @@ Counts are from `flake8 --select=E800` on the §8 branch after merging
 | `AutoGrader/settings.py` | 29 | 14 statements, 14 dict keys, 1 imports | §0 cross-cutting | Stage 3 | Settings values and dict keys: some may be deliberate environment alternatives, so move anything intentional into prose or the env docs rather than deleting it blindly. |
 | `billing/serializers.py` | 39 | 39 statements | §2 billing | Stage 3 | Billing: comments only, and no billing logic may change. The AST proof is mandatory. |
 | `assignments/tasks.py` | 27 | 22 statements, 2 imports, 2 dict keys, 1 prints | §4 assignments | Stage 3 |  |
-| `ai_processor/services.py` | 52 | 45 statements, 7 imports | §5 ai_processor | Stage 3 |  |
+| `ai_processor/services.py` | 49 | 42 statements, 7 imports | §5 ai_processor | Stage 3 |  |
 
 **The one directory-wide exclusion:** `exclude: (^|/)migrations/` on the
 whole flake8 hook, not only E800. It predates H-12. Migrations are generated
