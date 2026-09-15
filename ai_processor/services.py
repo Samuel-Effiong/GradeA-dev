@@ -23,6 +23,7 @@ from openai import OpenAI
 
 # from paddleocr import PaddleOCR
 from pdf2image import convert_from_bytes, convert_from_path
+from pdf2image.exceptions import PDFPageCountError, PDFSyntaxError
 from PIL import Image
 
 # from ai_processor.models import ChatMessage, ChatSession
@@ -5059,8 +5060,20 @@ class PDFService:
         try:
             with fitz.open(stream=pdf_bytes, filetype="pdf") as pdf:
                 page_count = pdf.page_count
+                is_pdf = pdf.is_pdf
         except Exception as e:
             raise ValueError(f"Could not read this PDF: {e}") from e
+
+        # filetype="pdf" is only a hint: PyMuPDF sniffs the bytes and opens a
+        # PNG or JPEG as a one-page document. The Content-Type checked above
+        # is the client's claim, so without this a photo labelled
+        # application/pdf passed every check here and then crashed pdftoppm -
+        # a 500 for what is an ordinary bad upload.
+        if not is_pdf:
+            raise ValueError(
+                "This file is not a PDF. If it is a photo or scan, upload it "
+                "as an image instead."
+            )
 
         if page_count == 0:
             raise ValueError("This PDF has no pages.")
@@ -5083,13 +5096,19 @@ class PDFService:
 
             for chunk_start in range(1, page_count + 1, self.EXTRACT_CHUNK_SIZE):
                 chunk_end = min(chunk_start + self.EXTRACT_CHUNK_SIZE - 1, page_count)
-                page_paths = convert_from_path(
-                    pdf_path,
-                    first_page=chunk_start,
-                    last_page=chunk_end,
-                    output_folder=rendered_dir,
-                    paths_only=True,
-                )
+                try:
+                    page_paths = convert_from_path(
+                        pdf_path,
+                        first_page=chunk_start,
+                        last_page=chunk_end,
+                        output_folder=rendered_dir,
+                        paths_only=True,
+                    )
+                except (PDFPageCountError, PDFSyntaxError) as e:
+                    # A document PyMuPDF could open but poppler cannot: the
+                    # file's fault, so a client error. A missing poppler
+                    # install or a timeout is ours, and is left to propagate.
+                    raise ValueError(f"Could not read this PDF: {e}") from e
                 for page_path in page_paths:
                     try:
                         with Image.open(page_path) as page_image:

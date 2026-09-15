@@ -180,6 +180,57 @@ class Assignment(models.Model):
         ]
 
 
+class AssignmentUploadFingerprint(models.Model):
+    """
+    One row per distinct uploaded assignment file per course, keyed by the
+    SHA-256 of its bytes.
+
+    Uploading an assignment file is billed per file, and a teacher who sees
+    part of a batch fail will reasonably upload the whole batch again. This
+    row makes that retry safe: a file whose assignment already exists gets
+    that assignment back instead of being extracted and charged again.
+
+    Claimed before any AI call, completed in the same transaction that saves
+    the assignment, deleted if the upload fails, and deleted with its
+    assignment, so a deleted assignment can be uploaded again. See
+    assignments/file_uploads.py.
+    """
+
+    class Status(models.TextChoices):
+        PROCESSING = "PROCESSING", _("PROCESSING")
+        COMPLETED = "COMPLETED", _("COMPLETED")
+
+    course = models.ForeignKey(
+        "classrooms.Course",
+        on_delete=models.CASCADE,
+        related_name="upload_fingerprints",
+    )
+    sha256 = models.CharField(max_length=64)
+    status = models.CharField(
+        max_length=10, choices=Status.choices, default=Status.PROCESSING
+    )
+    # Changes whenever a stale claim is taken over, so a request that lost
+    # its claim can neither complete nor release the newer claimant's.
+    claim_token = models.UUIDField(default=uuid.uuid4)
+    claimed_at = models.DateTimeField()
+    assignment = models.OneToOneField(
+        Assignment,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="upload_fingerprint",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["course", "sha256"],
+                name="unique_upload_fingerprint_per_course",
+            )
+        ]
+
+
 class AssignmentGenerationHistory(models.Model):
     """
     Stores the history of assignment generation requests.

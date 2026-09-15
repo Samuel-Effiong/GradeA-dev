@@ -24,6 +24,10 @@ def _user_facing_exception_types():
     # can be imported early/anywhere without pulling in the full import
     # chains of billing/students, and without caring which app happens to
     # finish loading first.
+    from assignments.exceptions import (
+        InvalidUploadFileError,
+        UploadAlreadyInProgressError,
+    )
     from billing.access_control import AIFeatureNotAvailableError
     from billing.errors import InsufficientCreditsError
     from billing.license_service import IndividualSubscriptionConflictError
@@ -36,6 +40,8 @@ def _user_facing_exception_types():
     )
 
     return (
+        InvalidUploadFileError,
+        UploadAlreadyInProgressError,
         CannotAssociateStudentError,
         SubmissionAlreadyGradedError,
         SubmissionBeingGradedError,

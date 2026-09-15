@@ -58,6 +58,7 @@ from users.mixins import UserCacheMixin
 from users.models import UserTypes
 from users.permissions import HasCreditBalance
 
+from .file_uploads import sha256_of_uploaded_file, upload_assignment_file
 from .models import (  # Rubric
     Assignment,
     AssignmentGenerationMessage,
@@ -831,9 +832,13 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         successful = []
         failed = []
 
-        # Processing Loop
+        # Every file gets its own outcome. A file refused by
+        # prepare_ai_content used to escape this loop and turn the whole
+        # request into a 400 after earlier files had already been extracted,
+        # charged and saved - so a teacher retrying the "failed" request paid
+        # for those files again. upload_assignment_file also answers a file
+        # that was already uploaded with its existing assignment, uncharged.
         for uploaded_file in files:
-            # Check if it's an instance of UploadedFile
             file_name = getattr(uploaded_file, "name", "unknown_file")
 
             if not isinstance(uploaded_file, UploadedFile):
@@ -855,33 +860,23 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 failed.append({"file_name": file_name, "error": str(exc.detail)})
                 continue
 
-            content = AssignmentProcessingService.prepare_ai_content(
-                uploaded_file, prompt_text
-            )
             try:
-                assignment_questions = (
-                    AssignmentProcessingService.extract_assignment_data(
-                        request.user,
-                        content,
-                        course=course,
-                        topic=topic,
-                        generate_raw_input=True,
-                        upload=True,
-                    )
+                outcome = upload_assignment_file(
+                    request.user,
+                    uploaded_file,
+                    prompt_text,
+                    course=course,
+                    topic=topic,
+                    sha256=sha256_of_uploaded_file(uploaded_file),
                 )
-
-                with transaction.atomic():
-                    serializer = AssignmentSerializer(data=assignment_questions)
-                    serializer.is_valid(raise_exception=True)
-                    assignment = serializer.save()
 
                 successful.append(
                     {
                         "file_name": file_name,
-                        "assignment": AssignmentListSerializer(assignment).data,
+                        "assignment": AssignmentListSerializer(outcome.assignment).data,
+                        "already_uploaded": outcome.already_uploaded,
                     }
                 )
-                # results.append(assignment_questions)
 
             except Exception as e:
                 logger.error(
@@ -923,9 +918,9 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if successful:
             return Response(successful, status=status.HTTP_201_CREATED)
 
-        if failed:
-            return Response(failed, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        # `files` is never empty here, so every file landed in one of the
+        # two lists: no successes means every file failed.
+        return Response(failed, status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
         tags=["Assignments"],

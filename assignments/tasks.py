@@ -3,9 +3,9 @@ from datetime import timedelta
 
 from celery import shared_task, states
 from django.conf import settings
-from django.db import transaction
 from django.template.loader import render_to_string
 from django.utils import timezone
+from rest_framework.exceptions import ParseError
 
 from ai_processor.services import ai_processor
 
@@ -35,18 +35,17 @@ from students.task_tracking import (
     cleanup_cancelled_task_artifacts,
     ensure_task_not_cancelled,
     get_processing_task_by_id,
-    lock_processing_task_for_final_save,
     mark_processing_task_cancelled,
     mark_processing_task_failure,
     mark_processing_task_started,
     mark_processing_task_success,
-    merge_task_meta,
     update_processing_task,
 )
 from users.models import CustomUser, UserTypes
 
+from .exceptions import InvalidUploadFileError
+from .file_uploads import sha256_of_upload_payload, upload_assignment_file
 from .models import Assignment, AssignmentStatus
-from .serializers import AssignmentSerializer
 from .services import AssignmentProcessingService
 
 # from django.db import transaction
@@ -64,6 +63,7 @@ EXTRACTION_TASK_STALE_AFTER_SECONDS = 60 * 60
 UPLOAD_REFUSALS = (
     AssignmentNotOpenError,
     CannotAssociateStudentError,
+    InvalidUploadFileError,
     SubmissionAlreadyGradedError,
     SubmissionBeingGradedError,
     SubmissionLimitReachedError,
@@ -785,7 +785,14 @@ def upload_answers_engine_async(
         )
         ensure_task_not_cancelled(processing_task_id)
         uploaded_file = AssignmentProcessingService.rebuild_uploaded_file(file_payload)
-        content = AssignmentProcessingService.prepare_ai_content(uploaded_file, prompt)
+        try:
+            content = AssignmentProcessingService.prepare_ai_content(
+                uploaded_file, prompt
+            )
+        except ParseError as exc:
+            # An unreadable or mislabelled file fails the same way on every
+            # attempt: a final refusal (UPLOAD_REFUSALS), never a retry.
+            raise InvalidUploadFileError(exc.detail) from exc
 
         self.update_state(state="PROGRESS", meta={"step": "Extracting answers"})
         update_processing_task(processing_task_id, meta={"step": "Extracting answers"})
@@ -967,39 +974,19 @@ def upload_assignment_async(
         )
         ensure_task_not_cancelled(processing_task_id)
         uploaded_file = AssignmentProcessingService.rebuild_uploaded_file(file_payload)
-        content = AssignmentProcessingService.prepare_ai_content(
-            uploaded_file, prompt_text
-        )
-
-        update_processing_task(
-            processing_task_id, meta={"step": "Extracting assignment"}
-        )
-        ensure_task_not_cancelled(processing_task_id)
-        assignment_questions = AssignmentProcessingService.extract_assignment_data(
+        # Checks the file, extracts and saves it with its charges refunded if
+        # it fails, and answers a file this course already has an assignment
+        # for with that assignment instead of extracting it again.
+        outcome = upload_assignment_file(
             user,
-            content,
+            uploaded_file,
+            prompt_text,
             course=course,
             topic=topic,
-            generate_raw_input=True,
-            upload=True,
+            sha256=sha256_of_upload_payload(file_payload),
             processing_task_id=processing_task_id,
         )
-
-        # self.update_state(state="PROGRESS", meta={"step": "Saving assignments"})
-        update_processing_task(processing_task_id, meta={"step": "Saving assignment"})
-        with transaction.atomic():
-            processing_task = lock_processing_task_for_final_save(processing_task_id)
-            serializer = AssignmentSerializer(data=assignment_questions)
-            serializer.is_valid(raise_exception=True)
-            assignment = serializer.save()
-
-            if processing_task:
-                processing_task.assignment = assignment
-                processing_task.meta = merge_task_meta(
-                    processing_task.meta,
-                    {"assignment_id": str(assignment.id)},
-                )
-                processing_task.save(update_fields=["assignment", "meta", "updated_at"])
+        assignment = outcome.assignment
 
         ensure_task_not_cancelled(processing_task_id)
 
@@ -1014,14 +1001,20 @@ def upload_assignment_async(
         mark_processing_task_success(
             processing_task_id,
             meta={
-                "step": "Assignment uploaded successfully",
+                "step": (
+                    "This file was already uploaded; the existing assignment was kept"
+                    if outcome.already_uploaded
+                    else "Assignment uploaded successfully"
+                ),
                 "assignment_id": str(assignment.id),
                 "file_name": file_name,
+                "already_uploaded": outcome.already_uploaded,
             },
         )
         return {
             "status": states.SUCCESS,
             "assignment_id": str(assignment.id),
+            "already_uploaded": outcome.already_uploaded,
             "message": "Assignment uploaded successfully",
         }
 
