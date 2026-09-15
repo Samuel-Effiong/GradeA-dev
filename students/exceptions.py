@@ -54,3 +54,21 @@ class SubmissionGradingInProgressError(Exception):
     """
 
     pass
+
+
+class AssignmentNotOpenError(Exception):
+    """The assignment is not PUBLISHED, so it does not accept submissions
+    or submission edits. User-facing."""
+
+    pass
+
+
+class SubmissionProcessingInProgressError(Exception):
+    """
+    A tracked answer-extraction task for this submission (or for this
+    student on this assignment) is still PENDING/STARTED. A second request
+    while it runs - typically a client retrying after a proxy timeout -
+    must not queue a second billed extraction. User-facing.
+    """
+
+    pass

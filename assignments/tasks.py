@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 
 from celery import shared_task, states
 from django.conf import settings
@@ -13,6 +14,7 @@ from AutoGrader.error_messages import describe_background_task_error
 from AutoGrader.tasks import send_email_task
 from classrooms.models import Course, EnrollmentStatusType, Topic
 from students.exceptions import (
+    AssignmentNotOpenError,
     CannotAssociateStudentError,
     SubmissionAlreadyGradedError,
     SubmissionBeingGradedError,
@@ -21,14 +23,15 @@ from students.exceptions import (
     TaskCancelledError,
 )
 from students.models import BatchUploadSession, BatchUploadType, StudentSubmission
-from students.serializers import StudentSubmissionSerializer
 from students.services import (
     GRADING_TASK_TIME_LIMIT_SECONDS,
     grade_engine,
+    update_submission_from_raw_text,
     upload_answers_engine,
 )
 from students.task_tracking import (
     cancellable_final_save,
+    claim_processing_task_start,
     cleanup_cancelled_task_artifacts,
     ensure_task_not_cancelled,
     get_processing_task_by_id,
@@ -53,7 +56,13 @@ logger = logging.getLogger(__name__)
 
 # Final answers about one upload - never retried, always reported with the
 # exception's own (user-facing) message. See upload_answers_engine_async.
+# A STARTED extraction claim older than this was left by a dead worker and
+# may be taken over by a redelivery. Sized above the extraction's own retry
+# budget (3 attempts of a multi-minute call is still well under this).
+EXTRACTION_TASK_STALE_AFTER_SECONDS = 60 * 60
+
 UPLOAD_REFUSALS = (
+    AssignmentNotOpenError,
     CannotAssociateStudentError,
     SubmissionAlreadyGradedError,
     SubmissionBeingGradedError,
@@ -365,77 +374,100 @@ def update_assignment_background_task(
         raise
 
 
-@shared_task(bind=True)
+@shared_task(bind=True, max_retries=3)
 def extract_answer_background_task(
-    self, submission_id, content, processing_task_id=None
+    self, submission_id, raw_input, user_id, processing_task_id=None
 ):
+    """
+    Asynchronous twin of the raw-text edit (PATCH submissions/<pk>): the
+    edited ProseMirror text is re-extracted into answers off the request
+    thread. Dispatched by StudentSubmissionViewSet.update_async. Same
+    retry policy as upload_answers_engine_async: refusals are final and
+    recorded verbatim; anything else is retried up to max_retries and only
+    then recorded as a failure.
+    """
     try:
         ensure_task_not_cancelled(processing_task_id)
-        mark_processing_task_started(
-            processing_task_id, meta={"step": "Extracting answer content"}
-        )
+        # The tracked row is the idempotency claim (there is no RUNNING
+        # state on the submission for an extraction): a redelivery of this
+        # message while the original execution is still running must not
+        # run the billed extraction a second time.
+        # A Celery retry (retries > 0) is this same execution continuing
+        # and already holds the row; only a first delivery contends for it.
+        if self.request.retries == 0 and not claim_processing_task_start(
+            processing_task_id,
+            stale_after=timedelta(seconds=EXTRACTION_TASK_STALE_AFTER_SECONDS),
+            meta={"step": "Extracting answer content"},
+        ):
+            logger.info(
+                "Redelivered answer-extraction task %s for submission %s skipped: "
+                "the original delivery still holds tracked task %s.",
+                self.request.id,
+                submission_id,
+                processing_task_id,
+            )
+            return {
+                "status": states.SUCCESS,
+                "submission_id": str(submission_id),
+                "message": (
+                    "This submission is already being processed by another "
+                    "worker — duplicate run skipped."
+                ),
+            }
         self.update_state(state="PROGRESS", meta={"step": "Extracting answer content"})
 
-        print("Extracting answer content")
-
-        submission = StudentSubmission.objects.get(id=submission_id)
-
-        extraction_started_at = timezone.now()
-        ensure_task_not_cancelled(processing_task_id)
-        answer_json = ai_processor.extract_answer_with_retry(
-            submission.student,
-            content,
-            submission.assignment.questions,
-            assignment_model=submission.assignment,
-            max_retries=3,
-            processing_task_id=processing_task_id,
+        submission = StudentSubmission.objects.select_related("assignment").get(
+            id=submission_id
         )
-        extraction_completed_at = timezone.now()
+        user = CustomUser.objects.get(id=user_id)
 
-        self.update_state(state="PROGRESS", meta={"step": "Saving answer content"})
-        update_processing_task(
-            processing_task_id, meta={"step": "Saving answer content"}
+        submission = update_submission_from_raw_text(
+            user, submission, raw_input, processing_task_id=processing_task_id
         )
 
-        submission.answer = answer_json
-        submission.extraction_started_at = extraction_started_at
-        submission.extraction_completed_at = extraction_completed_at
-
-        serializer = StudentSubmissionSerializer(
-            submission, data=answer_json, partial=True
-        )
-        serializer.is_valid(raise_exception=True)
-        with cancellable_final_save(processing_task_id):
-            serializer.save()
-
-        print("Answer saved successfully")
         mark_processing_task_success(
             processing_task_id,
             meta={
-                "step": "Answer extracted successfully",
+                "step": "Answers extracted successfully",
                 "submission_id": str(submission.id),
             },
         )
-
         return {
             "status": states.SUCCESS,
-            "submission_id": submission_id,
-            "message": "Answer extracted successfully",
+            "submission_id": str(submission.id),
+            "message": "Answers extracted successfully",
         }
     except TaskCancelledError:
         mark_processing_task_cancelled(
             processing_task_id, meta={"step": "Answer extraction cancelled"}
         )
         raise
+    except UPLOAD_REFUSALS as exc:
+        mark_processing_task_failure(
+            processing_task_id,
+            exc,
+            meta={"step": "Submission edit refused", "submission_id": submission_id},
+        )
+        return {"status": states.FAILURE, "message": str(exc)}
     except Exception as exc:
+        if self.request.retries < self.max_retries:
+            update_processing_task(
+                processing_task_id,
+                meta={
+                    "step": (
+                        f"Retrying ({self.request.retries + 1}/{self.max_retries})"
+                    ),
+                    "last_error": describe_background_task_error(exc),
+                },
+            )
+            raise self.retry(exc=exc, countdown=3) from exc
         mark_processing_task_failure(
             processing_task_id,
             exc,
             meta={"step": "Answer extraction failed", "submission_id": submission_id},
             fallback_message=(
-                "We couldn't extract the answers from this submission. The "
-                "file may be corrupted or in an unsupported format — please "
-                "try re-uploading, or contact support if this continues."
+                "We couldn't extract the answers from this text. Please "
+                "try again, or contact support if this continues."
             ),
         )
         raise

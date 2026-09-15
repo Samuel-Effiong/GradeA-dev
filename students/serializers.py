@@ -588,6 +588,14 @@ class StudentSubmissionUploadAsyncSerializer(serializers.Serializer):
     message = serializers.CharField(read_only=True)
 
 
+class StudentSubmissionUpdateAsyncSerializer(serializers.Serializer):
+    """Serializer for the async raw-text re-extraction task ID"""
+
+    submission_id = serializers.UUIDField(read_only=True)
+    task_id = serializers.UUIDField(read_only=True)
+    message = serializers.CharField(read_only=True)
+
+
 class StudentSubmissionFormattedGradeAsyncSerializer(serializers.Serializer):
     """Serializer for async formatted grade task ID"""
 

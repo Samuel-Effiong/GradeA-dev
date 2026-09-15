@@ -5,6 +5,7 @@ from contextlib import contextmanager
 
 from celery.result import AsyncResult
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from AutoGrader.celery import app as celery_app
@@ -162,6 +163,43 @@ def update_processing_task(
 
         task.save(update_fields=update_fields)
         return task
+
+
+def claim_processing_task_start(processing_task_id, *, stale_after, meta=None):
+    """
+    Idempotency claim for tasks that have no domain-level claim of their
+    own (answer extraction, unlike grading, has no RUNNING state on the
+    row it writes). One conditional UPDATE: PENDING → STARTED, or a STARTED
+    row whose started_at is older than `stale_after` (a worker that died
+    holding it) → STARTED again with a fresh started_at. Returns True when
+    this execution won. A Redis redelivery of the same message while the
+    original is still running loses, and must skip the billed work rather
+    than run it a second time.
+
+    Without a processing_task_id there is nothing to claim; the caller
+    proceeds (untracked flows keep today's behaviour).
+    """
+    if not processing_task_id:
+        return True
+
+    now = timezone.now()
+    with transaction.atomic():
+        won = (
+            BackgroundProcessingTask.objects.filter(id=processing_task_id)
+            .filter(
+                Q(status=BackgroundTaskStatus.PENDING)
+                | Q(
+                    status=BackgroundTaskStatus.STARTED,
+                    started_at__lt=now - stale_after,
+                )
+            )
+            .update(status=BackgroundTaskStatus.STARTED, started_at=now, updated_at=now)
+        )
+        if won and meta:
+            task = BackgroundProcessingTask.objects.get(id=processing_task_id)
+            task.meta = merge_task_meta(task.meta, meta)
+            task.save(update_fields=["meta", "updated_at"])
+    return bool(won)
 
 
 def mark_processing_task_started(processing_task_id, meta=None):

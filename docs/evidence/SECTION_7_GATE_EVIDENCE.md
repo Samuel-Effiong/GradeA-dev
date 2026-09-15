@@ -339,3 +339,60 @@ session's H-10 row and this branch's H-11..H-13 rows. Working tree clean
 
 The 37 additional tests over §9 are the H-1 fan-out suite from `f593be1`
 plus this branch's new proxy/H-13 tests.
+
+## 13. H-11 (partial) — async edit path, duplicate guards, 4xx mapping
+
+Scope as the owner clarified it on 2026-09-14: no new async systems for
+upload and grade (their async twins exist); wire the existing extraction
+task into an async edit path; address V-2..V-6; do NOT retire the
+synchronous routes until the client dependency is confirmed. H-11 stays
+open; what remains is in `docs/HARDENING_BACKLOG.md` under H-11.
+
+Changes: `students.services.update_submission_from_raw_text` (one
+implementation behind `PATCH` and the new `POST .../update-async`),
+`assignments.tasks.extract_answer_background_task` rewired (it was
+unrouted and wrote to fields that do not exist), a tracked-row idempotency
+claim (`claim_processing_task_start`), duplicate-request guards on
+`update-async` (submission row lock) and `upload-async` (student user row
+lock), 400 for user-caused failures on the three sync routes, PATCH
+permissions per its docstring, dead permission kwarg removed.
+
+| State | Evidence (`students/tests_async_edit_path.py`, 17 tests + 1 opt-in) |
+|---|---|
+| 1 | Route: 202 + task id, tracked ANSWER_EXTRACTION row on the submission, task args exact, no AI call in the request, row untouched until the worker writes; teacher of the course 202; missing text / draft assignment 400 or 404. Task: success writes only the three extraction columns (`formatted_grade`, `attempt_count` untouched), billed as the requesting user; `PATCH` uses the same service. Neighbouring suites (`tests_post_grading_submission_lock`, `tests_submission_tenancy`, `users.tests_task_viewset`, `tests_task_tracking`) green: 90 tests. |
+| 2 | M25 task claim removed → **FAILED**; M26 update-async duplicate guard removed → **FAILED (3)**; M27 upload-async guard removed → **FAILED**; M28 refund scope removed → **FAILED**; M29 4xx mapping removed → **FAILED**; M30 locked re-check removed → **FAILED**. 6/6, all restored by md5. |
+| 3 | 12 concurrent real-HTTP `update-async` requests (LiveServer, JWT) for one submission → exactly one 202, eleven 409, one tracked task, one dispatch, no AI call. |
+| 4 | A retry after the first request is queued (PENDING) or running (STARTED) → 409; a grade landing during the extraction → refused under the lock, once, not retried; other student / other teacher 404; anonymous 401. |
+| 5 | Transient provider failure → Celery retry, then SUCCESS recorded (the retry does not collide with the task's own claim); failure after the charge (malformed result) → `SubscriptionService.refund_credits` called with the recorded billing task id, row unchanged. |
+| 6 | The 12-client run above; the worker test runs the task on a 3-thread pool. |
+| 7 | Real PostgreSQL row locks; real Redis broker/result backend for the worker test (private queue, deleted at teardown; pool-thread connections closed on `task_postrun`). |
+| 8 | Real Celery worker: a redelivery of the running edit task skips (tracked row stays STARTED, one AI call) and the original lands; a stale STARTED claim is taken over. **Real provider** (`RUN_REAL_AI=1`, OpenRouter, run once, 6.6 s): the answer text came back containing "Reykjavik", confidence > 0, wallet debited, exactly one `CreditUsageLog` row. |
+| 9 | Tenancy on the new route via `get_object` scoping (404 for the wrong student or teacher); permissions per the docstring, credit-checked against the teacher's wallet. |
+| 10 | Gate 4 (§14, on the merged tip). |
+
+## 14. Gate 5 — strict gate on `ec28d90` (H-11 work + beta 30b7b95)
+
+Gate 4 on `0c1a9c7` never completed: the session restarted mid-run and its
+log was lost, so it is not evidence. Beta had meanwhile moved to `30b7b95`
+(Section 5); merged as `ec28d90` (one conflict, the backlog owner table:
+beta's H-10 row, this branch's H-11 row, every other row kept). This gate
+follows the owner's strict procedure (commit first; dedicated detached
+worktree; fingerprint before and after; fresh uniquely named DB, no
+`--keepdb`; unfiltered log; sleep inhibitor; pg checks after).
+
+| | |
+|---|---|
+| Commit | `ec28d90b9ba419fbed6dd0de7e621f007a814659` |
+| Worktree | `../Grade-Automator-Plus-s7-gate`, detached, created for this run and removed after |
+| Fingerprint before = after | HEAD as above; `sha256(git ls-files -s)` `e30a237b…c70cd4a3`; content sha256 `60f1005d…8abdc2bd`; porcelain 0 |
+| Test DB | `test_s7_gate_ec28d90`; `pg_database` rows before: 0 |
+| `pre-commit run --all-files` | exit 0 |
+| `scripts/check_migration_safety.py --base beta` | exit 0 (no new migration files in the diff) |
+| `makemigrations --check --dry-run` | exit 0 |
+| Full `manage.py test --noinput --parallel 1`, under `systemd-inhibit --what=sleep:idle` | **4,163 tests — OK, 21 skipped — exit 0** (1,703 s; 2026-09-14 20:30:22 → 2026-09-14 21:01:06) |
+| Log | 54,798 lines, sha256 `103094a5091342a24ff5b04ec0b242bc0b47f9c623dbb93f2460396375a518d9` |
+| Teardown | "Destroying test database" present; "other sessions using the database" lines: 0; afterwards `pg_database` rows 0, `pg_stat_activity` connections 0 |
+| Suspend | `journalctl -k`: one suspend 20:03:45 → 20:09:37, before the window; none inside it |
+
+The H-11 work (§13) is inside this run: `students.tests_async_edit_path`
+(17 + 1 opt-in; the opt-in real-provider test ran separately, §13 state 8).
