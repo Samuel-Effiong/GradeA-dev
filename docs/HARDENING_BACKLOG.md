@@ -57,7 +57,7 @@ speed that decision up, not to pre-empt it.
 | H-6 | `CourseCategoryViewSet` — unrouted and broken | Medium | Section 3 (classrooms) | Not started |
 | H-7 | `direct_add_student` response shape and status code | Low | Section 3 + frontend | Not started |
 | H-8 | Test file naming / stray docs | Low | Section 3 | Not started |
-| H-9 | Test suite shares one Redis DB (isolation) | High | Whoever owns CI | **IMPLEMENTED / MERGED / VERIFICATION PENDING** — regression reopened 2026-09-14 (12 modules bypassed the fix; a concurrent gate aborted). Fix `4820e33`, merged with current beta on `task/h9-redis-db-isolation`. Landing on beta owner-approved subject to verification. Cross-session test runs stay serial until the overlap proof passes |
+| H-9 | Test suite shares one Redis DB (isolation) | High | Whoever owns CI | **VERIFIED (2026-09-15)** — all 8 owner closure criteria met: two full suites ran simultaneously, 4,153 OK each, exit 0, clean teardown, both Redis namespaces live. Old code collided 5/8, the fix 0/8. Evidence: `docs/evidence/H9_REDIS_ISOLATION_EVIDENCE.md`. Formal CLOSED decision follows the H-1 stampede measurement (owner's order) |
 | H-10 | `super-admin/dashboard/students` 480-query N+1 | High | Section 8 (dashboard) | **CLOSED (2026-09-14)** — Section 8 remediation merged to beta `2715c64`; strict gate passed there (4,031 OK); query count flat |
 | H-11 | Synchronous billed AI calls inside `students` request handlers (`upload`, `grade`, `PATCH raw_input`) | **High - release-blocking** | Section 7 (students) + frontend | Open - tracked here from the §7 review pass, 2026-09-13 |
 | H-12 | Commented-out code (flake8 E800) burn-down - 32 files still carved out of the rule | Low | Each file's section owner (register in H-12) | Rule ON since 2026-09-13; `students` and `dashboard` clean; 32 files / 347 hits remain; whole repository in scope (owner decision 2026-09-14) |
@@ -616,7 +616,14 @@ tolerated). Adversarial/stress/live-stack: not applicable — record why.
 > teardown, and mid-run sampling must show both process prefixes live at
 > once.
 >
-> **Status: IMPLEMENTED / MERGED / VERIFICATION PENDING** (owner,
+> **Status: VERIFIED (2026-09-15).** Every closure criterion below is met;
+> see `docs/evidence/H9_REDIS_ISOLATION_EVIDENCE.md` §5. The formal CLOSED
+> decision follows the H-1 stampede measurement (owner's order). The
+> serial-runs restriction below is lifted by the passing proof, but only for
+> test runs from a tree that contains this fix. Branches that predate it still
+> run the flushing suites and must merge beta before overlapping.
+>
+> _Previous status:_ IMPLEMENTED / MERGED / VERIFICATION PENDING (owner,
 > 2026-09-14). The fix is `4820e33`, merged with current beta on
 > `task/h9-redis-db-isolation`. The owner approves landing it on beta,
 > subject to the verification below completing successfully.
