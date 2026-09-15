@@ -23,10 +23,8 @@ import time
 import uuid
 from unittest.mock import patch
 
-import redis
 from celery.contrib.testing.worker import start_worker
 from celery.signals import task_postrun, worker_shutdown
-from django.conf import settings
 from django.core.cache import cache
 from django.db import connections
 from django.test import TestCase, TransactionTestCase
@@ -336,7 +334,11 @@ class UploadTasksOnRealWorkerTest(TransactionTestCase):
         worker_shutdown.disconnect(
             self._on_worker_shutdown, dispatch_uid=f"{self.id()}-shutdown"
         )
-        redis.Redis.from_url(settings.CELERY_BROKER_URL).delete(self.queue)
+        # Through the project app's connection, so the per-process broker key
+        # prefix (kombu global_keyprefix, H-9) is honoured; a raw redis client
+        # built from the broker URL setting would bypass it and delete nothing.
+        with celery_app.connection_for_write() as conn:
+            conn.default_channel.queue_delete(self.queue)
         super().tearDown()
 
     def _on_postrun(self, sender=None, task_id=None, state=None, retval=None, **kw):
