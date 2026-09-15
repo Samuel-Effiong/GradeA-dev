@@ -323,7 +323,6 @@ INSTALLED_APPS = [
     "classrooms",
     "assignments",
     "students",
-    "ocr_processor",
     "ai_processor",
     "dashboard",
     "billing",
@@ -565,8 +564,9 @@ ANSWER_COMPLETENESS_ENFORCEMENT = env.str(
 # ONLY shape a lost answer can hide in - an answer that WAS transcribed is
 # by definition not lost - so rather than trying to verify every answer
 # against a source text we do not have (submissions are read from page
-# images; ocr_processor is an empty stub), this re-reads the pages asking
-# one narrow question about just those questions.
+# images by the vision model directly, with no separate OCR transcript to
+# diff against), this re-reads the pages asking one narrow question about
+# just those questions.
 #
 # Cost is bounded and self-limiting: zero extra calls on a fully answered
 # submission, and the more blanks there are - i.e. the higher the risk one
