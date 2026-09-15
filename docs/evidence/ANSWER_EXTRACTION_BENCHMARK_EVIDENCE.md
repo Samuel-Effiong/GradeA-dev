@@ -28,7 +28,7 @@ Permanent requirement, set by the owner on 2026-09-14:
 | Item | Value |
 |---|---|
 | Base | `beta` at `084d0e4`. The commits between `1373eae` and `084d0e4` are the H-1 cache session's and touch none of these files. |
-| Committed as | `eb6f3a06b9b864a462540276f7f5cb403256c4b7` (tree `fc787681f599f80fa00b8ed972ac98eee07205ea`) on `task/section-5-answer-extraction`, parent `beta` `084d0e4`. The commit contains only the 79 Section 5 paths. Not merged into `beta`. |
+| Committed as | `eb6f3a06b9b864a462540276f7f5cb403256c4b7` (tree `fc787681f599f80fa00b8ed972ac98eee07205ea`) on `task/section-5-answer-extraction`, parent `beta` `084d0e4`. The commit contains only the 79 Section 5 paths. Merged into `beta` as `30b7b95` on 2026-09-14 (owner-approved). |
 | Changed by this work (tracked) | `ai_processor/services.py`, `ai_processor/tests_answer_extraction_gate.py` |
 | Created by this work | `ai_processor/benchmark/answers/**`, `ai_processor/tests_answer_benchmark_{scenarios,failures,inputs,concurrency,grading,live}.py`, `ai_processor/tests_answer_chunk_merge.py`, `ai_processor/management/commands/answer_extraction_benchmark.py`, this file |
 
@@ -351,6 +351,18 @@ PASSED**, based on the gate on `eb6f3a0` recorded above.
 What remains open:
 - The follow-up items below are retained as independent work.
 - H-11, H-1, H-13 and Section 9 are separate items and remain open.
+
+## Post-merge gate on `beta` (30b7b95)
+
+The merge into `beta` has its own gate, recorded in
+`docs/evidence/beta_post_s5_gate/README.md`. It is the gate for the `beta`
+tree at `30b7b95d912c3ed33ee8b0ae8695b3299cd7ad92`, not a re-statement of the
+Section 5 gate above.
+
+Result, in the same locked-checkout, fresh-database, unfiltered-log form:
+- full suite: 4,146 tests, OK, 20 skipped, exit 0, clean teardown
+- static and migration checks and `pre-commit --all-files`: pass
+- targeted real-provider check (AE-905, AE-916, real PDF upload): 7/7
 
 ## Follow-up items (retained, not fixed here)
 
