@@ -19,7 +19,7 @@ class PayloadTooLarge(APIException):
 
 
 # A scanned assignment PDF is the largest legitimate upload this project
-# handles; 25 MB comfortably covers a multi-page scan at print resolution
+# handles; 50 MB comfortably covers a multi-page scan at print resolution
 # without leaving room for the kind of upload that only makes sense as
 # abuse of a paid AI-extraction endpoint.
 MAX_UPLOAD_SIZE_BYTES = 50 * 1024 * 1024

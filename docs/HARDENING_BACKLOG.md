@@ -59,12 +59,13 @@ speed that decision up, not to pre-empt it.
 | H-8 | Test file naming / stray docs | Low | Section 3 | Not started |
 | H-9 | Test suite shares one Redis DB (isolation) | High | Whoever owns CI | **CLOSED (owner, 2026-09-15)** — verified on `29cc1c7`: two full suites ran concurrently on the same Redis, 4,153 tests OK each, exit 0, clean teardown, both per-process namespaces live; old code collided 5/8, the fix 0/8. Evidence: `docs/evidence/H9_REDIS_ISOLATION_EVIDENCE.md`. Overlapping runs are safe only between trees that contain `29cc1c7` |
 | H-10 | `super-admin/dashboard/students` 480-query N+1 | High | Section 8 (dashboard) | **CLOSED (2026-09-14)** — Section 8 remediation merged to beta `2715c64`; strict gate passed there (4,031 OK); query count flat |
-| H-11 | Synchronous billed AI calls inside `students` request handlers (`upload`, `grade`, `PATCH raw_input`) | **High - release-blocking** | Section 7 (students) + frontend | **OPEN.** 2026-09-14: async edit path built and gated, V-2..V-4/V-6 closed, duplicate-request guards added; **remaining: client migration confirmed, then retire the three synchronous routes** (see item) |
+| H-11 | Synchronous billed AI calls inside `students` request handlers (`upload`, `grade`, `PATCH raw_input`) | **High - release-blocking** | Section 7 (students) + frontend | **OPEN.** 2026-09-14: async edit path built and gated, V-2..V-4/V-6 closed, duplicate-request guards added; **remaining: client migration confirmed, then retire the three synchronous routes** (see item). Not a blocker for the Section 9 promotion to beta (owner, 2026-09-15); remains release-blocking for production |
 | H-12 | Commented-out code (flake8 E800) burn-down - 1 files still carved out of the rule | Low | Each file's section owner (register in H-12) | Rule ON since 2026-09-13; `students` and `dashboard` clean; 1 files / 49 hits remain; whole repository in scope (owner decision 2026-09-14) |
 | H-13 | Uploads while grading is RUNNING | Medium | Product + Section 7 | **DECIDED 2026-09-14: refuse (409). Implemented and gated in the §7 branch.** |
 | H-14 | School-admin summary rebuild cost (cache family 23) | Medium | Section 8 (dashboard) | Open — 1.4 s cold rebuild at 240 courses/school, growing with rows processed; performance issue, not a stampede justification (owner, 2026-09-15) |
 | H-15 | `global`-scoped per-user cache families invalidate as a herd | Medium | Backend/infra lead (H-1 follow-up) | Open — one change anywhere expires every user's copy (my_courses, superadmin dashboards); 50-student herd p50 792 ms / p95 1,262 ms at realistic scale |
-| H-16 | Teacher submission list issues 63 queries per page | Low | Section 7 (students) | Open — per-row query pattern, flat across data sizes but grows with page size |
+| H-16 | Teacher submission list issues 63 queries per page | Low | Section 7 (students) | **COMPLETE (2026-09-15)** — `select_related` on the list queryset; 63/304 → flat 4; see item |
+| H-17 | Course payload leaked draft assignments and classmates' real emails to student viewers | **High - security** | Section 3 (classrooms) | **CLOSED (2026-09-16)** — `CourseSerializer` served every assignment (draft/unpublished included) and every enrolled student's real email address to a student viewer, regardless of assignment status or whose row it was. Fixed: `get_assignments`/`get_assignment_count` filter to `PUBLISHED` for a student viewer; `get_students` nulls out `email` for every row but the viewer's own. 15 dedicated tests (`classrooms/tests_course_payload_student_exposure.py`), 2 mutation tests (both killed), 250-test `classrooms` regression clean, query counts flat across roster size (roster=2 and roster=6 both 7/8/7/7). Landed on beta `ee30f08` (merge of `task/course-detail-data-exposure` gated commit `1d920f8`). Teacher/other-viewer payloads unchanged. |
 
 ---
 
@@ -1381,16 +1382,37 @@ legacy invalidation disabled; no cross-tenant staleness.
 
 ---
 
-# H-16 — Teacher submission list issues 63 queries per page
+# H-16 — Teacher submission list issues 63 queries per page — COMPLETE
 
-**Found 2026-09-15** by the same measurement.
+**Found 2026-09-15** by the same measurement. **Assigned to Section 7 and
+fixed 2026-09-15.**
 
-The teacher's `student-submission-list` (UserCacheMixin) runs 63 queries per
-cold build at every data size: a per-row query pattern. It is not slow at
-the measured sizes (~47 ms) but grows with page size.
+The teacher's `student-submission-list` (UserCacheMixin) ran 63 queries per
+cold build at every data size: a per-row query pattern. It was not slow at
+the measured sizes (~47 ms) but grew with page size — up to 304 queries at
+`page_size=100`.
+
+Cause: `StudentSubmissionViewSet.get_queryset` returned a bare queryset for
+the `list` action, and `StudentSubmissionListSerializer` reads each row's
+`student`, `assignment` and `assignment.course` — three relations fetched
+lazily, once per row.
+
+Fix: `select_related("student", "assignment__course")`, added to
+`get_queryset` for the `list` action only. Both relations are non-nullable
+foreign keys, so the joins are `INNER JOIN` and cannot widen the tenant
+filter already applied.
 
 **Acceptance:** query count flat in page size (asserted, not budgeted),
-identical payload, freshness unchanged.
+identical payload, freshness unchanged. All three met.
+
+**Evidence:** `docs/evidence/H16_SUBMISSION_LIST_QUERIES_EVIDENCE.md` —
+query count 63/154/304 → flat 4 (5 with the assignment filter, itself
+flat) across page sizes 1–100 and two data sizes; payload byte-identical
+to the unoptimised serializer for every one of 32 request shapes; tenancy
+unaffected (proven, not assumed); 3/3 mutants killed, restored by
+checksum; regression 318 tests OK across `students` and every cache suite
+touching this endpoint; scoped to `students/views.py` (14 insertions, 2
+deletions) plus a new test module, nothing else.
 
 ---
 
