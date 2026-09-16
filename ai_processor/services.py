@@ -13,20 +13,15 @@ from typing import Any, Dict, Optional
 
 import fitz
 import tiktoken
-
-# import numpy as np
 from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
 from environ import Env
 from openai import OpenAI
-
-# from paddleocr import PaddleOCR
 from pdf2image import convert_from_bytes, convert_from_path
 from pdf2image.exceptions import PDFPageCountError, PDFSyntaxError
 from PIL import Image
 
-# from ai_processor.models import ChatMessage, ChatSession
 from ai_processor.tools import compress_image_for_upload, encode_image, perform_search
 from billing.access_control import (
     NO_CREDITS_REMAINING_REASON,
@@ -77,28 +72,12 @@ from .second_opinion import (
 )
 from .tools import safe_sort_key
 
-# from billing.services import SubscriptionService
-
-# from PIL import Image
-# from pytesseract import pytesseract
-
-
 env = Env()
 env.read_env(".env")
 
 OPENROUTER_API_KEY: str = env.str(
     "OPENROUTER_API_KEY",
 )
-
-# PERSONAL_OPENROUTER = env.str("PERSONAL_OPENROUTER")
-#
-# DEEPSEEK_API_KEY: str = env.str(
-#     "DEEPSEEK_API_KEY",
-# )
-#
-# HF_TOKEN_API_KEY: str = env.str(
-#     "HF_TOKEN_API_KEY",
-# )
 
 AI_CONFIDENCE_THRESHOLD = 80
 
@@ -671,21 +650,6 @@ class AIProcessor:
             base_url="https://openrouter.ai/api/v1",
             api_key=OPENROUTER_API_KEY,
         )
-
-        # self.client = OpenAI(
-        #     base_url="https://openrouter.ai/api/v1",
-        #     api_key=PERSONAL_OPENROUTER,
-        # )
-
-        # self.client = OpenAI(
-        #     base_url="https://api.deepseek.com",
-        #     api_key=DEEPSEEK_API_KEY
-        # )
-        #
-        # self.client = OpenAI(
-        #     base_url="https://router.huggingface.co/v1",
-        #     api_key=HF_TOKEN_API_KEY
-        # )
 
     def __ai_model(
         self,
@@ -1273,7 +1237,6 @@ Do not include any explanatory text before or after the JSON
                 for item in content
                 if isinstance(item, dict) and item.get("type") == "image_url"
             ]
-            # text_items = [item for item in content if item.get("type") != "image_url"]
 
             logger.info(
                 f"[Chunked Extraction] Large document detected: {len(image_items)} pages. "
@@ -1825,7 +1788,6 @@ Do not include any explanatory text before or after the JSON
             )
 
         # Get all the student in this assignment course
-        # enrolled_student_names = ""
         student_names = []
         if assignment_model and hasattr(assignment_model, "course"):
 
@@ -1845,8 +1807,6 @@ Do not include any explanatory text before or after the JSON
         )
         student_roster += "\n\n".join(student_names)
 
-        # roster = {"role": "user", "content": student_roster}
-
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": assignment},
@@ -1855,9 +1815,6 @@ Do not include any explanatory text before or after the JSON
         ]
 
         try:
-            # response = self.__ai_model(system_prompt, user_prompt=content)
-            # response = self.__ai_model(messages=messages)
-
             ensure_task_not_cancelled(processing_task_id)
             response = self.execute_graded_task(
                 user=user,
@@ -4221,7 +4178,6 @@ Now, respond to the following teacher's instruction using the rules above
         """
 
         messages.append({"role": "user", "content": user_prompt})
-        # messages.append({"role": "user", "content": json_structure})
 
         additional_instruction = {
             "role": "system",
@@ -4338,8 +4294,6 @@ Now, respond to the following teacher's instruction using the rules above
         system_prompt = GRADE_FORMATTER
 
         try:
-            # response = self.__ai_model(system_prompt, user_prompt)
-
             user_prompts = [{"type": "text", "text": user_prompt}]
             system_prompts = [{"type": "text", "text": system_prompt}]
 
@@ -4504,7 +4458,6 @@ Now, respond to the following teacher's instruction using the rules above
                         total_prompt += prompt["text"]
                     elif prompt["type"] == "image_url":
                         image_bytes.append(prompt.get("bytes"))
-            # total_prompt += user_prompt
 
         if system_prompt:
             if isinstance(system_prompt, str):
@@ -5004,8 +4957,6 @@ class PDFService:
     EXTRACT_CHUNK_SIZE = 50
 
     def __init__(self, uploaded_file: UploadedFile = None):
-        # self.ocr_service = OCRService()
-
         self.uploaded_file = uploaded_file
 
         self.extracted_data = {
@@ -5120,18 +5071,6 @@ class PDFService:
 
         return images_byte
 
-        # First, try to extract text directly from the PDF
-        # self.__extract_text_based(pdf_bytes)
-
-        # If no text was extracted, it's likely a scanned PDF
-        # if not self.extracted_data["questions"]:
-        #     self.__extract_text_with_ocr(pdf_bytes)
-        #
-        # self.extracted_data["page_count"] = self.__get_page_count(pdf_bytes)
-        # self.extracted_data["title"] = Path(self.uploaded_file.name).stem
-        #
-        # return self.extracted_data
-
     def __get_page_count(self, pdf_bytes):
         """Helper to get the number of pages"""
         with fitz.open(stream=pdf_bytes, filetype="pdf") as pdf:
@@ -5170,8 +5109,6 @@ class PDFService:
 
             for image in images:
                 image_byte.append(image.tobytes())
-                # text = ocr_service.extract_with_paddle(image)
-                # full_text += text
 
             self.extracted_data["questions"] = full_text
         except Exception as e:
@@ -5207,35 +5144,6 @@ class OCRService:
         except Exception as e:
             logger.warning("Image dimension extraction failed: %s", e)
             return (1920, 1000)
-
-    # def __init__(self):
-    #     if OCRService._paddle_ocr_model is None:
-    #         from paddleocr import PaddleOCR
-
-    #         OCRService._paddle_ocr_model = PaddleOCR(
-    #             use_doc_orientation_classify=True,
-    #             use_doc_unwarping=True,
-    #             use_textline_orientation=True,
-    #         )
-
-    # def extract_with_paddle(self, image):
-    #     model = OCRService._paddle_ocr_model
-    #     img_np = np.array(image.convert("RGB"))
-    #     result = model.predict(img_np)
-
-    #     text = ""
-    #     for res in result:
-    #         text = res.json["res"]["rec_texts"]
-    #     return "\n".join(text)
-
-    # def extract_with_pytessaract(self, image):
-    #     """
-
-    #     :param image: PIL Image
-    #     :return:
-    #     """
-    #     text = pytesseract.image_to_string(image)
-    #     return text
 
 
 ocr_service = OCRService()

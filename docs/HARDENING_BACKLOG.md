@@ -60,7 +60,7 @@ speed that decision up, not to pre-empt it.
 | H-9 | Test suite shares one Redis DB (isolation) | High | Whoever owns CI | **CLOSED (owner, 2026-09-15)** — verified on `29cc1c7`: two full suites ran concurrently on the same Redis, 4,153 tests OK each, exit 0, clean teardown, both per-process namespaces live; old code collided 5/8, the fix 0/8. Evidence: `docs/evidence/H9_REDIS_ISOLATION_EVIDENCE.md`. Overlapping runs are safe only between trees that contain `29cc1c7` |
 | H-10 | `super-admin/dashboard/students` 480-query N+1 | High | Section 8 (dashboard) | **CLOSED (2026-09-14)** — Section 8 remediation merged to beta `2715c64`; strict gate passed there (4,031 OK); query count flat |
 | H-11 | Synchronous billed AI calls inside `students` request handlers (`upload`, `grade`, `PATCH raw_input`) | **High - release-blocking** | Section 7 (students) + frontend | **OPEN.** 2026-09-14: async edit path built and gated, V-2..V-4/V-6 closed, duplicate-request guards added; **remaining: client migration confirmed, then retire the three synchronous routes** (see item). Not a blocker for the Section 9 promotion to beta (owner, 2026-09-15); remains release-blocking for production |
-| H-12 | Commented-out code (flake8 E800) burn-down - 1 files still carved out of the rule | Low | Each file's section owner (register in H-12) | Rule ON since 2026-09-13; `students` and `dashboard` clean; 1 files / 49 hits remain; whole repository in scope (owner decision 2026-09-14) |
+| H-12 | Commented-out code (flake8 E800) burn-down - 0 files still carved out of the rule | Low | Each file's section owner (register in H-12) | Rule ON since 2026-09-13; `students` and `dashboard` clean; 0 files / 0 hits remain; whole repository in scope (owner decision 2026-09-14) |
 | H-13 | Uploads while grading is RUNNING | Medium | Product + Section 7 | **DECIDED 2026-09-14: refuse (409). Implemented and gated in the §7 branch.** |
 | H-14 | School-admin summary rebuild cost (cache family 23) | Medium | Section 8 (dashboard) | Open — 1.4 s cold rebuild at 240 courses/school, growing with rows processed; performance issue, not a stampede justification (owner, 2026-09-15) |
 | H-15 | `global`-scoped per-user cache families invalidate as a herd | Medium | Backend/infra lead (H-1 follow-up) | Open — one change anywhere expires every user's copy (my_courses, superadmin dashboards); 50-student herd p50 792 ms / p95 1,262 ms at realistic scale |
@@ -1248,6 +1248,7 @@ required** before retirement.
 - §2 billing (serializers, views, tests and tools): `billing/serializers.py`, `billing/views.py`, `billing/tests/tests.py`, `billing/live_qa/invariants_individual.py`, `billing/management/commands/backfill.py` (67 hits) cleaned; AST-identical, E800 0
 - §0 cross-cutting (AutoGrader/settings.py): `AutoGrader/settings.py` (29 hits) cleaned; AST-identical, E800 0
 - §4 assignments (tasks, views): `assignments/tasks.py`, `assignments/views.py` (47 hits) cleaned; AST-identical, E800 0
+- §5 ai_processor: `ai_processor/services.py` (47 hits) cleaned; AST-identical, E800 0
 
 **Owner decision (2026-09-14):**
 
@@ -1287,19 +1288,24 @@ The "What is commented out" column shows what each file holds.
 **Staged plan:**
 
 - **Stage 1:** ≤ 6 hits — 0 files, quick and low risk.
-- **Stage 2:** 7–21 hits — 1 file.
-- **Stage 3:** ≥ 27 hits — 1 files, which need careful review.
+- **Stage 2:** 7–21 hits — 0 files.
+- **Stage 3:** ≥ 27 hits — 0 files, which need careful review.
 
 Each stage is done by the owning section, in coordination with any session
 currently changing that app.
 
 Counts are kept live: every item 9 cleanup commit recounts with
 `flake8 --select=E800` and removes the files it cleaned:
-**1 files, 49 hits**.
+**0 files, 0 hits**.
 
 | File | Hits | What is commented out | Owner | Plan | Notes |
 |---|---|---|---|---|---|
-| `ai_processor/services.py` | 49 | 42 statements, 7 imports | §5 ai_processor | Stage 3 |  |
+| _(none — register is empty)_ | | | | | |
+
+The register is empty, but is not yet deleted: the acceptance criteria below
+also require a repository-wide E800 check, a full regression run and a
+strict final gate on the exact committed tree, none of which have run since
+the last file was cleaned. Item 9 stays open until those pass.
 
 **The one directory-wide exclusion:** `exclude: (^|/)migrations/` on the
 whole flake8 hook, not only E800. It predates H-12. Migrations are generated
