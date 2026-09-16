@@ -375,7 +375,19 @@ class StudentCourseSerializer(serializers.ModelSerializer):
     # page of /student-course was ~400 avoidable queries.
 
     def _course_assignments(self, obj):
-        return obj.course.assignments.all()
+        # This viewset serves both the owning teacher and the enrolled
+        # student (see StudentCourseViewSet.get_queryset). A teacher sees
+        # every assignment they authored, drafts included - see
+        # test_the_counts_are_still_correct. A student must not learn a
+        # draft exists at all, so their counts have to agree with the
+        # PUBLISHED-only filter get_assignments applies below, or the
+        # stats and the assignment table disagree (the bug this fixes).
+        assignments = obj.course.assignments.all()
+        request = self.context.get("request")
+        user = getattr(request, "user", None) if request else None
+        if getattr(user, "user_type", None) != UserTypes.STUDENT:
+            return list(assignments)
+        return [a for a in assignments if a.status == AssignmentStatus.PUBLISHED]
 
     def _submitted_assignment_ids(self, obj):
         return {
@@ -412,11 +424,9 @@ class StudentCourseDetailSerializer(StudentCourseSerializer):
         # the prefetched .all() would discard the prefetch cache and issue
         # a fresh query per enrollment row — the exact N+1 the view's
         # prefetch_related("course__assignments") exists to prevent.
-        assignments = [
-            a
-            for a in obj.course.assignments.all()
-            if a.status == AssignmentStatus.PUBLISHED
-        ]
+        # Shares _course_assignments with the stats fields above so the
+        # table and the header counts can never disagree again.
+        assignments = self._course_assignments(obj)
 
         # Filter pre-fetched submissions for this specific student
 
