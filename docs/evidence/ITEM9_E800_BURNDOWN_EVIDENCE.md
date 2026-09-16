@@ -1,9 +1,9 @@
 # Item 9: repository-wide commented-out-code (E800) burn-down
 
-**Status: CLEANUP DONE, CLOSURE NOT YET REACHED.**
+**Status: CLEANUP DONE. STRICT FINAL GATE PASSED on `7e5f0c6`. Not yet on `beta`.**
 
-- **Done:** all 32 files are cleaned. `flake8 --select=E800 .` is 0 files / 0 hits repository-wide, on branch `task/item9-e800-burndown`. `--per-file-ignores` is empty and the H-12 register has no rows. The branch merges `beta` four times as H-9, Section 7 and Section 9 landed: `34a1d1c` (`29cc1c7`, the H-9 fix), `d5d95be` (`6a8e714`, Section 7), `96d0a6b` (`87acd13`, Section 9), `0eef001` (`53e31c3`, Section 9's later `create_file`-removal cleanup). None of it is on `beta` yet.
-- **Not yet done:** the repository-wide E800 check, the full regression suite and the strict final gate on the exact committed tree, all still to run per-app so far, not repo-wide — see Still to do. The H-12 register and `--per-file-ignores` mechanism are left in place, empty, until those pass.
+- **Done:** all 32 files are cleaned. `flake8 --select=E800 .` is 0 files / 0 hits repository-wide, on branch `task/item9-e800-burndown`. `--per-file-ignores` is empty and the H-12 register has no rows. The branch merges `beta` four times as H-9, Section 7 and Section 9 landed: `34a1d1c` (`29cc1c7`, the H-9 fix), `d5d95be` (`6a8e714`, Section 7), `96d0a6b` (`87acd13`, Section 9), `0eef001` (`53e31c3`, Section 9's later `create_file`-removal cleanup). The strict final gate (below) passed on the exact committed tip, `7e5f0c6`. None of it is on `beta` yet.
+- **Not yet done:** retiring the H-12 register/exemption mechanism (its own acceptance criteria are now met, but it is kept until the branch actually lands on `beta`, in case `beta` moves before this does and something else reintroduces a hit); coordinating the merge to `beta` with any other branch in flight.
 - **Section 8** stays **GAPS FOUND / BLOCKERS FIXED / REMEDIATION IN PROGRESS** until item 9 is finished and passes its final gate.
 
 ## Scope (owner decision, 2026-09-14)
@@ -133,15 +133,35 @@ Both runs ran alone on the host, on a fresh test DB without `--keepdb`, with `--
 
 All 32 files are cleaned. `assignments/tasks.py` and `assignments/views.py` were cleaned in `2eaa8b9`, once Section 7's and Section 9's own edits to them had both landed on `beta` (merges `d5d95be`, `96d0a6b`). `ai_processor/services.py` was cleaned last, in `c4c5bf8`, once Section 9's separate `create_file`-removal branch landed on `beta` (`53e31c3`, merged in as `0eef001`) — cleaning it first would have forced that branch into a merge conflict.
 
+## Strict final gate: PASSED on `7e5f0c6`
+
+Run in a detached worktree (`Grade-Automator-Plus-item9-gate`, own test DB name `test_item9_gate`), alone on the host, under `systemd-inhibit`. Raw logs kept at `/tmp/item9-logs/` (see Tooling for the permanent copies).
+
+| Check | Result |
+|---|---|
+| Tree state before the run | Detached HEAD at `7e5f0c6`, 0 uncommitted changes, 0 untracked files (besides the worktree's own `.env`/`settings_worktree.py`, neither tracked by git) |
+| Fingerprint before | tree `675c591e…`, tracked-content sha256 `967d0a0d…` |
+| `pre-commit run --all-files` | All 24 hooks pass, repo-wide, including `flake8` with E800 fully enforced (no `--per-file-ignores` entries left) |
+| `flake8 --select=E800 .` | 0 files, 0 hits repository-wide (only the harmless `\D`/`\Delta` `SyntaxWarning` noted earlier, which E800 does not flag) |
+| `manage.py check` | System check identified no issues |
+| `manage.py makemigrations --check --dry-run` | No changes detected |
+| Full suite, fresh DB, no `--keepdb`, `--parallel 1` | First attempt: **4232 tests OK, errors=2, skipped=22** — both errors were `users.tests_google_auth.LiveGoogleEndpointContractTests`, a class documented as making real, unmocked calls to Google's live OAuth endpoints; a `NameResolutionError` mid-run pointed to a transient DNS blip, not a code defect. Confirmed by re-running just those two tests immediately after (`OK`, both passed) and by manually resolving/connecting to both Google hosts from the shell (both succeeded). The test DB was dropped and the full suite re-run from scratch to get one clean pass rather than accept a partial result. |
+| Full suite, second attempt, fresh DB | **Ran 4232 tests in 2249.369s — OK (skipped=22)**, exit 0. Log: `/tmp/item9-logs/gate-full-suite-2.log` |
+| Test DB teardown | `Destroying test database for alias 'default'...`; `test_item9_gate` absent from `pg_database` and 0 rows in `pg_stat_activity` afterward |
+| Fingerprint after | tree `675c591e…` (unchanged), tracked-content sha256 `967d0a0d…` (unchanged), 0 untracked files, 0 bytes diff vs `HEAD` |
+| Sleep/idle | Inhibited for the whole run via `systemd-inhibit --what=sleep:idle` |
+
+**Verdict: PASS.** Every check above held; nothing was accepted on a partial or re-run-until-green basis except the one documented, independently-confirmed network flake.
+
 ## Still to do before item 9 can close
 
-1. **Per-app regression runs: done** for all 32 cleaned files; see Regression runs. Each ran with `--keepdb`, so none of them is the fresh-DB proof the gate needs.
-2. **Repository-wide `flake8 --select=E800 .`: confirmed 0 files, 0 hits** as of `c4c5bf8`, but not yet re-confirmed as part of a `pre-commit --all-files` run on the fully merged, final tree.
-3. **Full repository-wide regression suite:** not yet run. Only per-app suites have run so far.
-4. **Static and security checks repo-wide:** not yet run as a single pass (bandit/mypy/detect-secrets have only run per-commit on changed files via pre-commit).
-5. **Strict final gate on the exact committed tree:** fresh DB with no `--keepdb`, fingerprint before and after, logs stored permanently. Not started.
-6. **Retire the exemption mechanism** (delete the H-12 register section and its acceptance-criteria language, confirm `--per-file-ignores` stays empty) only after steps 2-5 all pass on the tree that will actually land on `beta`.
-7. **Merge to `beta`,** coordinated with any other branch still in flight, once the gate passes.
+1. **Per-app regression runs: done** for all 32 cleaned files; see Regression runs.
+2. **Repository-wide E800 check: done** — see the strict final gate above.
+3. **Full repository-wide regression suite: done** — see the strict final gate above.
+4. **Static and security checks repo-wide: done** — `pre-commit run --all-files` includes bandit, mypy and detect-secrets across the whole repository; see the strict final gate above.
+5. **Strict final gate on the exact committed tree: done** — PASSED on `7e5f0c6`; see above.
+6. **Retire the exemption mechanism** (delete the H-12 register section and its acceptance-criteria language, confirm `--per-file-ignores` stays empty) — kept in place for now, in case something lands on `beta` first that reintroduces a hit before this branch merges. Retire it in the same commit that merges this branch to `beta`, once `beta`'s own tip is re-checked clean.
+7. **Merge to `beta`,** coordinated with any other branch still in flight.
 
 ## Tooling (permanent, outside the repo)
 
@@ -152,3 +172,4 @@ All 32 files are cleaned. `assignments/tasks.py` and `assignments/views.py` were
 - `section-N.json`: the exact edits per commit, with line assertions
 - `section-N.log`: verification output
 - `section-6-first-attempt/`: backup of the refused first billing attempt
+- `strict_final_gate/`: raw logs from the strict final gate on `7e5f0c6` — `gate-full-suite.log` (first attempt, 2 network-flake errors), `gate-full-suite-2.log` (clean re-run, the one the PASS verdict rests on), `precommit-all-files.log`, plus the earlier per-app regression logs (`full-suite-regression.log`, `ai_processor-regression.log`, `assignments-regression.log`)
