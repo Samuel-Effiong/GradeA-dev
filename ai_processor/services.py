@@ -1936,8 +1936,8 @@ Do not include any explanatory text before or after the JSON
         WHY ONLY THE BLANKS. A lost answer can only ever hide inside a
         claimed blank - an answer that WAS transcribed is by definition not
         lost. And a full verification pass is not available to us: the
-        submission is read from page images and ocr_processor is an empty
-        stub, so there is no independent transcript to diff a transcription
+        submission is read from page images by the vision model directly,
+        so there is no independent OCR transcript to diff a transcription
         against. Asking one narrow question about the specific questions
         that came back empty is therefore both the cheapest check and the
         only one aimed at the failure that actually matters.
