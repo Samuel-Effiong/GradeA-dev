@@ -1,9 +1,9 @@
 # Item 9: repository-wide commented-out-code (E800) burn-down
 
-**Status: IN PROGRESS.**
+**Status: CLEANUP DONE, CLOSURE NOT YET REACHED.**
 
-- **Done:** 31 of 32 files are cleaned (298 of the 347 hits counted on `beta` `91f752b`), on branch `task/item9-e800-burndown`. The branch merges `beta` three times as Section 7 and Section 9 landed: `34a1d1c` (`29cc1c7`, the H-9 fix), `d5d95be` (`6a8e714`, Section 7), `96d0a6b` (`87acd13`, Section 9). None of it is on `beta` yet.
-- **Remaining:** 1 file, `ai_processor/services.py` (49 hits), deferred until Section 9's separate `create_file`-removal cleanup lands on `beta` (that cleanup also edits this file; item 9 waits so the two edits don't collide).
+- **Done:** all 32 files are cleaned. `flake8 --select=E800 .` is 0 files / 0 hits repository-wide, on branch `task/item9-e800-burndown`. `--per-file-ignores` is empty and the H-12 register has no rows. The branch merges `beta` four times as H-9, Section 7 and Section 9 landed: `34a1d1c` (`29cc1c7`, the H-9 fix), `d5d95be` (`6a8e714`, Section 7), `96d0a6b` (`87acd13`, Section 9), `0eef001` (`53e31c3`, Section 9's later `create_file`-removal cleanup). None of it is on `beta` yet.
+- **Not yet done:** the repository-wide E800 check, the full regression suite and the strict final gate on the exact committed tree, all still to run per-app so far, not repo-wide — see Still to do. The H-12 register and `--per-file-ignores` mechanism are left in place, empty, until those pass.
 - **Section 8** stays **GAPS FOUND / BLOCKERS FIXED / REMEDIATION IN PROGRESS** until item 9 is finished and passes its final gate.
 
 ## Scope (owner decision, 2026-09-14)
@@ -46,6 +46,7 @@
 | `9b10778` | §2 billing | serializers, views, tests/tests.py, live_qa/invariants_individual, management/commands/backfill | 67 | 9 files changed, 28 insertions(+), 136 deletions(-) |
 | `e45c51f` | §0 cross-cutting | AutoGrader/settings.py (built on `29cc1c7`), plus the djoser docs in project-config.md and the HTML reference | 29 | 8 files changed, 22 insertions(+), 69 deletions(-) |
 | `2eaa8b9` | §4 assignments | assignments/tasks.py, assignments/views.py (built on `96d0a6b`) | 47 | 4 files changed, 12 insertions(+), 65 deletions(-) |
+| `c4c5bf8` | §5 ai_processor | ai_processor/services.py (built on `0eef001`, which merges `53e31c3` for Section 9's `create_file` removal) | 47 | 5 files changed, 14 insertions(+), 100 deletions(-) |
 
 Every commit also removes its files from `--per-file-ignores` and refreshes the H-12 register. Merge `34a1d1c` brought in `beta` `29cc1c7`, the H-9 fix, cleanly. Commit `895b02e` rebuilt the H-12 progress list, which the runner had duplicated.
 
@@ -55,6 +56,10 @@ Two later merges brought in beta docs-only changes with no code conflicts:
 - `96d0a6b` merges `beta` `87acd13` (Section 9 landing). Same file, same shape of conflict; kept this branch's row 8 and beta's row 9.
 
 Both merges left `assignments/tasks.py` and `assignments/views.py` at their post-Section-7/Section-9 line counts, which `2eaa8b9`'s edits target directly (26 and 19 hits respectively, re-inventoried after the merges rather than reused from the original 347-hit count).
+
+A fourth merge, `0eef001`, brought in `beta` `53e31c3`: Section 9's separate cleanup that removed `AIProcessor`'s dead `create_file` method. Two of the original 49 hits in `ai_processor/services.py` belonged to that method and left with it; `c4c5bf8` re-inventoried the file at its new 47-hit count rather than reusing 49. This merge conflicted on `docs/CODEBASE_AUDIT_SECTIONS.md` (kept this branch's row 8, beta's row 9, which records the `create_file` removal and the rest of Section 9's post-promotion cleanup) and `docs/HARDENING_BACKLOG.md` (kept beta's H-11 note about the Section 9 promotion, this branch's H-12 live count).
+
+`c4c5bf8` removed dead imports, three abandoned alternate AI-provider client configs (a personal OpenRouter key, DeepSeek, Hugging Face) and the env vars only they read, several dead statements stranded in otherwise-live methods, an entire unreachable tail after a `return` statement, and `OCRService`'s three dead PaddleOCR/pytesseract methods — confirmed dead by Section 9's own audit that `OCRService` only measures image dimensions and never performed OCR. This was the last exempted file: `--per-file-ignores` is now empty and the H-12 register has no rows.
 
 ## Classification decisions worth reviewing
 
@@ -116,6 +121,7 @@ Both runs ran alone on the host, on a fresh test DB without `--keepdb`, with `--
 | `4162220`: the 28 files before `settings.py` | `pre-commit --all-files` with E800 enforced; a repo-wide E800 count; `manage.py test users classrooms assignments billing AutoGrader` | all 24 hooks pass. E800 shows only the then-4 deferred files. **2,919 tests OK**, 13 skipped, exit 0. The test DB was created and destroyed, with 0 connections and 0 "other sessions" lines. Fingerprint unchanged. |
 | `e45c51f`: after `settings.py`, which contains `29cc1c7` | `manage.py check`; `makemigrations --check`; `manage.py test AutoGrader users` | no issues; no changes. **785 tests OK**, 2 skipped, exit 0. Test DB destroyed, 0 connections. |
 | `2eaa8b9`: after the tasks.py/views.py cleanup | `manage.py test assignments` | **548 tests OK**, 12 skipped, exit 0, in 221.16s. Log at `/tmp/item9-logs/assignments-regression.log`. This run used `--keepdb`, unlike the two runs above, so it is not a fresh-DB proof; the fresh-DB, no-`--keepdb` run for this app happens at the final gate. |
+| `c4c5bf8`: after the ai_processor/services.py cleanup | `manage.py test ai_processor` | **793 tests OK**, 5 skipped, exit 0, in 232.28s. Log at `/tmp/item9-logs/ai_processor-regression.log`. Also `--keepdb`; the fresh-DB run happens at the final gate. |
 
 **Overlap record for the `e45c51f` run** (03:28:49–03:34:20, host local time):
 
@@ -123,21 +129,19 @@ Both runs ran alone on the host, on a fresh test DB without `--keepdb`, with `--
 - **After it:** Section 7's gate process started at 03:37:30.
 - **During it:** nothing.
 
-## Deferred: 1 file, 49 hits
+## Deferred: none
 
-| File | Hits | Waiting for | Why |
-|---|---|---|---|
-| `ai_processor/services.py` | 49 | Section 9's separate `create_file`-removal branch | that branch removes the dead `create_file` method, which contains 2 of these 49 flagged lines; b3 (Section 9) asked to land that cleanup first so the two edits to this file don't collide, and confirmed the 2 lines belong to the method being deleted |
-
-`assignments/tasks.py` and `assignments/views.py` were cleaned in `2eaa8b9`, once Section 7's and Section 9's own edits to them had both landed on `beta` (merges `d5d95be`, `96d0a6b`). Cleaning `ai_processor/services.py` first would force Section 9's `create_file` branch into a merge conflict, so it is cleaned once that branch is on `beta`.
+All 32 files are cleaned. `assignments/tasks.py` and `assignments/views.py` were cleaned in `2eaa8b9`, once Section 7's and Section 9's own edits to them had both landed on `beta` (merges `d5d95be`, `96d0a6b`). `ai_processor/services.py` was cleaned last, in `c4c5bf8`, once Section 9's separate `create_file`-removal branch landed on `beta` (`53e31c3`, merged in as `0eef001`) — cleaning it first would have forced that branch into a merge conflict.
 
 ## Still to do before item 9 can close
 
-1. **Per-app regression runs: done** for the 31 cleaned files; see Regression runs. The final full-suite run still happens at the gate.
-2. **Clean `ai_processor/services.py`** once Section 9's `create_file`-removal branch lands.
-3. **Retire the exemption mechanism.** Once `flake8 --select=E800 .` is clean, remove `--per-file-ignores` and the H-12 register.
-4. **Repository-wide checks:** pre-commit with E800 enforced, static and security checks, and the full suite.
-5. **Strict final gate on the exact committed tree:** fresh DB with no `--keepdb`, fingerprint before and after, logs stored permanently.
+1. **Per-app regression runs: done** for all 32 cleaned files; see Regression runs. Each ran with `--keepdb`, so none of them is the fresh-DB proof the gate needs.
+2. **Repository-wide `flake8 --select=E800 .`: confirmed 0 files, 0 hits** as of `c4c5bf8`, but not yet re-confirmed as part of a `pre-commit --all-files` run on the fully merged, final tree.
+3. **Full repository-wide regression suite:** not yet run. Only per-app suites have run so far.
+4. **Static and security checks repo-wide:** not yet run as a single pass (bandit/mypy/detect-secrets have only run per-commit on changed files via pre-commit).
+5. **Strict final gate on the exact committed tree:** fresh DB with no `--keepdb`, fingerprint before and after, logs stored permanently. Not started.
+6. **Retire the exemption mechanism** (delete the H-12 register section and its acceptance-criteria language, confirm `--per-file-ignores` stays empty) only after steps 2-5 all pass on the tree that will actually land on `beta`.
+7. **Merge to `beta`,** coordinated with any other branch still in flight, once the gate passes.
 
 ## Tooling (permanent, outside the repo)
 
