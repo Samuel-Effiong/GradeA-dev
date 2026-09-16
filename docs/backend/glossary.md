@@ -176,7 +176,7 @@ Terms in this codebase that mean something more specific than they sound like.
 | Term | Actually |
 |---|---|
 | `grading` app | **no longer exists** — an empty stub deleted 2026-09-12. Grading lives in `ai_processor` + `students` |
-| `ocr_processor` app | **an empty stub.** OCR is the vision model's job |
+| `ocr_processor` app | **no longer exists** — an empty stub deleted 2026-09-15. OCR is the vision model's job |
 | `Session` | an academic term |
 | `ai_generated` | **inverted** — extraction sets it to `False` |
 | `BetaWhitelist` / `Waitlist` | gate nothing; kept as records |

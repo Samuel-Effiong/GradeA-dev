@@ -156,7 +156,7 @@ Exit codes: `0` clean, `1` unacknowledged risk, **`2` a migration could not be i
 
 The check `importlib`-imports each new migration and inspects `Migration.operations`, so it sees what Django will actually do rather than pattern-matching the source.
 
-**179 migrations exist** across nine apps (billing 58, assignments 38, users 35, students 25, classrooms 16, ai_processor 5, dashboard 2; `grading` and `ocr_processor` have none).
+**179 migrations exist** across seven apps (billing 58, assignments 38, users 35, students 25, classrooms 16, ai_processor 5, dashboard 2). The two apps that had none, `grading` and `ocr_processor`, were both empty stubs and have since been deleted (2026-09-12 and 2026-09-15).
 
 ### Index creation
 

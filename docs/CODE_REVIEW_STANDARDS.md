@@ -15,10 +15,12 @@ re-litigating settled tooling choices.
 ## 1. Architecture & app boundaries
 
 - Each Django app (`ai_processor`, `assignments`, `AutoGrader`, `billing`,
-  `classrooms`, `dashboard`, `ocr_processor`, `students`, `users`)
-  owns one clear responsibility. (An empty `grading` scaffold was removed
-  on 2026-09-12; grading records live in `students`, grading logic in
-  `ai_processor`.) A change that touches business logic in the
+  `classrooms`, `dashboard`, `students`, `users`)
+  owns one clear responsibility. (Two empty scaffolds were removed after
+  being proven unused: `grading` on 2026-09-12 — grading records live in
+  `students`, grading logic in `ai_processor` — and `ocr_processor` on
+  2026-09-15 — OCR is the vision model reading page images directly, not a
+  separate app.) A change that touches business logic in the
   wrong app is a boundary violation, not a convenience.
 - Cross-app calls go through a `services.py` / public function, never by
   reaching into another app's models or private helpers directly.
@@ -143,11 +145,11 @@ docstrings, import-order, print, eradicate), `isort`, `mypy`
   regression, not just exercise the happy path once.
 - Coverage is measured against `.coveragerc`'s `source` list, which names
   every installed first-party app (`grading` and `ocr_processor` were
-  missing when this checklist was first written; the §0 pass added them,
-  and the §6 pass then deleted the empty `grading` app outright). Note
-  that `ocr_processor` is still an empty scaffold, so its "100%" is 100%
-  of a few `apps.py` statements and says nothing about test coverage; a
-  reviewer should not cite it as evidence of anything.
+  missing when this checklist was first written; the §0 pass added them.
+  Both were then proven to be empty scaffolds and deleted outright — the
+  §6 pass removed `grading` on 2026-09-12, the §9 pass removed
+  `ocr_processor` on 2026-09-15 — so both lines were removed from
+  `.coveragerc` along with the apps).
 
 ## 10. Observability & error handling
 
