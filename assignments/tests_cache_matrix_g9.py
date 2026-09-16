@@ -1,9 +1,13 @@
 """H-1 Stage 3, gap G9: AssignmentGenerationSession changes are wildcard-only.
 
-`clear_assignment_generation_session_cache` (assignments/signals.py) calls
-only `delete_cache_patterns(...)` -- no `bump_many` at all. With the legacy
-wildcards disabled, deleting a generation session leaves the owning
-teacher's own cached generation-session list stale.
+`clear_assignment_generation_session_cache` (assignments/signals.py) used
+to call only `delete_cache_patterns(...)` -- no `bump_many` at all. With
+the legacy wildcards disabled, deleting a generation session left the
+owning teacher's own cached generation-session list stale.
+
+FIXED (H-1 Stage 3): the receiver now also bumps `usr(session.user_id)`.
+This suite proves the owner's list refreshes and an unrelated teacher's
+own list (empty either way) stays UNAFFECTED.
 
 Fixtures follow the Stage 3 rule (plan §0): the session is created directly
 with exactly the fields the real `generate` endpoint sets (`user`, `course`,
@@ -21,7 +25,7 @@ from rest_framework.test import APIClient
 
 from assignments.models import AssignmentGenerationSession
 from AutoGrader.tests_cache_matrix_support import (
-    STALE,
+    UNAFFECTED,
     FreshnessMatrixMixin,
     Read,
     legacy_wildcards_disabled,
@@ -54,6 +58,9 @@ class GenerationSessionDeleteFreshnessTests(FreshnessMatrixMixin, TransactionTes
         self.assertTrue(self.patched_modules, "no legacy module was patched")
 
         self.teacher = make_active_user("g9-teacher@x.test", UserTypes.TEACHER, "G9T")
+        self.other_teacher = make_active_user(
+            "g9-other-teacher@x.test", UserTypes.TEACHER, "G9Other"
+        )
         self.term = Session.objects.create(name="G9 term", teacher=self.teacher)
         self.course = Course.objects.create(
             name="G9 course", teacher=self.teacher, session=self.term
@@ -65,7 +72,14 @@ class GenerationSessionDeleteFreshnessTests(FreshnessMatrixMixin, TransactionTes
         self.list_url = reverse("assignment-generation-session-list")
 
     def reads(self):
-        return [Read("teacher's generation-session list", self.teacher, self.list_url)]
+        return [
+            Read("teacher's generation-session list", self.teacher, self.list_url),
+            Read(
+                "unrelated teacher's own generation-session list",
+                self.other_teacher,
+                self.list_url,
+            ),
+        ]
 
     def delete_session(self):
         client = APIClient()
@@ -78,13 +92,18 @@ class GenerationSessionDeleteFreshnessTests(FreshnessMatrixMixin, TransactionTes
         )
         self.assertEqual(response.status_code, 204, response.content)
 
-    def test_session_delete_currently_leaves_the_owners_list_stale(self):
+    def test_session_delete_now_refreshes_the_owners_list_only(self):
         result = self.run_matrix(
-            "delete generation session (G9 gap, wildcard-only receiver)",
+            "delete generation session (G9 fixed)",
             self.reads(),
             self.delete_session,
         )
+        self.assert_no_stale(
+            result, expect_changed=["teacher's generation-session list"]
+        )
         verdicts = {o.label: o.verdict for o in result.outcomes}
         self.assertEqual(
-            verdicts, {"teacher's generation-session list": STALE}, result.table()
+            verdicts["unrelated teacher's own generation-session list"],
+            UNAFFECTED,
+            result.table(),
         )

@@ -73,6 +73,42 @@ def invalidate_submission_caches(submission):
     delete_cache_patterns(*SUBMISSION_CACHE_PATTERNS)
 
 
+def invalidate_submission_caches_bulk(submissions):
+    """Same as `invalidate_submission_caches`, for many submissions at once.
+
+    H-1 Stage 3 (gap G3): `publish_all_grades` (assignments/views.py) does
+    one bulk `.update()` for a whole batch, which bypasses `post_save` for
+    every row in it - so invalidating only `submissions[0]` (the previous
+    shape of this fix) left every OTHER student in the batch reading their
+    pre-publish result. Every student's `usr` is bumped in a single
+    pipelined `bump_many` call, so the round-trip cost stays O(1) rather
+    than O(batch size); course/teacher/school/global are shared across the
+    batch and so are bumped once each, not once per submission.
+    """
+    submissions = [s for s in submissions if s is not None]
+    if not submissions:
+        return
+
+    scopes = [(SCOPE_USER, s.student_id) for s in submissions]
+
+    first = submissions[0]
+    assignment = getattr(first, "assignment", None)
+    course = getattr(assignment, "course", None) if assignment else None
+    teacher = getattr(course, "teacher", None) if course else None
+
+    scopes.append((SCOPE_USER, getattr(course, "teacher_id", None) if course else None))
+    scopes.append(
+        (SCOPE_COURSE, getattr(assignment, "course_id", None) if assignment else None)
+    )
+    scopes.append(
+        (SCOPE_SCHOOL, getattr(teacher, "school_id", None) if teacher else None)
+    )
+    scopes.append((SCOPE_GLOBAL, None))
+
+    bump_many(scopes)
+    delete_cache_patterns(*SUBMISSION_CACHE_PATTERNS)
+
+
 @receiver([post_save, post_delete], sender=StudentSubmission)
 def clear_student_submission_cache(sender, instance, **kwargs):
     invalidate_submission_caches(instance)

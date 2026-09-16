@@ -1,14 +1,18 @@
 """H-1 Stage 3, gap G2: the student-admin dashboard keys are unversioned.
 
-`StudentAdminDashboardView.summary`/`assignments`/`overview` build their own
-cache key (`studentadmins:user_id__<id>:...`) with plain `cache.get`/
-`cache.set` -- no `versioned_key`, no generation-counter scope, and no
-invalidation call anywhere clears the `studentadmins:` prefix. This is stale
-under BOTH mechanisms today, not only once the wildcards are removed: a
-withdrawn student's cached summary keeps serving 200 with course data past
-the point production access-checks would return 404. The matrix records
-this as a security-relevant staleness case (access outlives revocation),
-not just a freshness nit.
+`StudentAdminDashboardView.summary`/`assignments`/`overview` used to build
+their own cache key (`studentadmins:user_id__<id>:...`) with plain
+`cache.get`/`cache.set` -- no `versioned_key`, no generation-counter scope,
+and no invalidation call anywhere cleared the `studentadmins:` prefix. This
+was stale under BOTH mechanisms, not only once the wildcards are removed: a
+withdrawn student's cached summary kept serving 200 with course data past
+the point production access-checks would return 404 -- a security-relevant
+staleness case (access outliving revocation), not just a freshness nit.
+
+FIXED (H-1 Stage 3): all three keys are now built with `versioned_key`,
+scoped to `usr(student)`. No new receiver was needed - `clear_student_course_
+cache` already bumps the withdrawn student's own `usr` on every StudentCourse
+change; the key simply wasn't listening for it before.
 
 Fixtures follow the Stage 3 rule (plan §0): rows are created directly, with
 exactly the fields production sets; the mutation under test (withdrawal)
@@ -25,7 +29,7 @@ from rest_framework.test import APIClient
 
 from assignments.models import Assignment, AssignmentStatus
 from AutoGrader.tests_cache_matrix_support import (
-    STALE,
+    UNAFFECTED,
     FreshnessMatrixMixin,
     Read,
     legacy_wildcards_disabled,
@@ -48,13 +52,13 @@ def question(number=1):
     }
 
 
-def make_active_user(email, user_type):
+def make_active_user(email, user_type, first_name="G2"):
     return User.objects.create_user(
         email=email,
         password="password123",  # nosec  # pragma: allowlist secret
         user_type=user_type,
         is_active=True,
-        first_name="G2",
+        first_name=first_name,
         last_name=user_type.title(),
     )
 
@@ -74,7 +78,12 @@ class StudentAdminSummaryFreshnessTests(FreshnessMatrixMixin, TransactionTestCas
         self.assertTrue(self.patched_modules, "no legacy module was patched")
 
         self.teacher = make_active_user("g2-teacher@x.test", UserTypes.TEACHER)
-        self.student = make_active_user("g2-student@x.test", UserTypes.STUDENT)
+        self.student = make_active_user(
+            "g2-student@x.test", UserTypes.STUDENT, first_name="G2Student"
+        )
+        self.other_student = make_active_user(
+            "g2-other-student@x.test", UserTypes.STUDENT, first_name="G2Other"
+        )
 
         self.session = Session.objects.create(name="G2 term", teacher=self.teacher)
         self.course = Course.objects.create(
@@ -82,6 +91,11 @@ class StudentAdminSummaryFreshnessTests(FreshnessMatrixMixin, TransactionTestCas
         )
         self.enrollment = StudentCourse.objects.create(
             student=self.student,
+            course=self.course,
+            enrollment_status=EnrollmentStatusType.ENROLLED,
+        )
+        self.other_enrollment = StudentCourse.objects.create(
+            student=self.other_student,
             course=self.course,
             enrollment_status=EnrollmentStatusType.ENROLLED,
         )
@@ -95,7 +109,14 @@ class StudentAdminSummaryFreshnessTests(FreshnessMatrixMixin, TransactionTestCas
         self.summary_url = reverse("student-summary", args=[self.course.pk])
 
     def reads(self):
-        return [Read("student's course summary", self.student, self.summary_url)]
+        return [
+            Read("student's course summary", self.student, self.summary_url),
+            Read(
+                "other student's course summary",
+                self.other_student,
+                self.summary_url,
+            ),
+        ]
 
     def withdraw(self):
         client = APIClient()
@@ -106,16 +127,24 @@ class StudentAdminSummaryFreshnessTests(FreshnessMatrixMixin, TransactionTestCas
         )
         self.assertEqual(response.status_code, 200, response.content)
 
-    def test_withdrawal_currently_leaves_the_cached_summary_stale(self):
+    def test_withdrawal_now_revokes_the_withdrawn_students_cached_access(self):
         result = self.run_matrix(
-            "withdraw enrolled student (G2 gap, unversioned key)",
+            "withdraw enrolled student (G2 fixed)",
             self.reads(),
             self.withdraw,
         )
-        verdicts = {o.label: o.verdict for o in result.outcomes}
-        self.assertEqual(verdicts, {"student's course summary": STALE}, result.table())
-        # Spell out the security angle explicitly: the cached response
-        # keeps returning 200 with course data after access was revoked.
-        stale = result.outcomes[0]
-        self.assertEqual(stale.cached_after[0], 200, result.table())
-        self.assertEqual(stale.truth_after[0], 404, result.table())
+        self.assert_no_stale(result, expect_changed=["student's course summary"])
+        by_label = {o.label: o for o in result.outcomes}
+        # Spell out the security angle explicitly: the cached response no
+        # longer outlives the withdrawal - both the cache and the truth
+        # move from 200 to 404 together.
+        withdrawn = by_label["student's course summary"]
+        self.assertEqual(withdrawn.cached_after[0], 404, result.table())
+        self.assertEqual(withdrawn.truth_after[0], 404, result.table())
+        # Tenant isolation: the OTHER enrolled student's own cached summary
+        # is untouched by their classmate's withdrawal.
+        self.assertEqual(
+            by_label["other student's course summary"].verdict,
+            UNAFFECTED,
+            result.table(),
+        )

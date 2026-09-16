@@ -5,11 +5,19 @@ invalidate nothing.
 `repair_question_blooms_levels`, `strip_duplicate_option_letters`,
 `backfill_assignment_rigor`) write with `bulk_update`, which fires no
 signal at all -- not `post_save`, so not the legacy wildcard receiver
-either. A teacher's cached assignment list keeps showing the un-repaired
-title until the cache entry's TTL expires on its own.
+either. A teacher's cached assignment list kept showing the un-repaired
+title until the cache entry's TTL expired on its own.
+
+FIXED (H-1 Stage 3): each command's `_flush` now calls
+`bump_assignment_course_scopes_bulk` (assignments/signals.py) once per
+batch with the batch's distinct course ids, after the write. All four
+commands got the same fix, since all four share the same bulk_update
+pattern; this suite exercises one of them (the title repair) as the
+representative case. This suite also proves an unrelated teacher's own
+assignment list stays UNAFFECTED.
 
 This is pre-existing staleness the owner decided Stage 3 fixes too (plan
-§ "Old staleness"): live under BOTH mechanisms today.
+§ "Old staleness"): it was live under BOTH mechanisms.
 
 Fixtures follow the Stage 3 rule (plan §0): the assignment carries exactly
 the malformed title the command is written to repair (production wrote
@@ -30,7 +38,7 @@ from django.urls import reverse
 from assignments.models import Assignment, AssignmentStatus
 from assignments.signals import sanitize_assignment_title
 from AutoGrader.tests_cache_matrix_support import (
-    STALE,
+    UNAFFECTED,
     FreshnessMatrixMixin,
     Read,
     legacy_wildcards_disabled,
@@ -75,6 +83,9 @@ class TitleRepairCommandFreshnessTests(FreshnessMatrixMixin, TransactionTestCase
         self.assertTrue(self.patched_modules, "no legacy module was patched")
 
         self.teacher = make_active_user("p4-teacher@x.test", UserTypes.TEACHER, "P4T")
+        self.other_teacher = make_active_user(
+            "p4-other-teacher@x.test", UserTypes.TEACHER, "P4Other"
+        )
         self.session = Session.objects.create(name="P4 term", teacher=self.teacher)
         self.course = Course.objects.create(
             name="P4 course", teacher=self.teacher, session=self.session
@@ -105,18 +116,30 @@ class TitleRepairCommandFreshnessTests(FreshnessMatrixMixin, TransactionTestCase
         self.list_url = reverse("assignment-list")
 
     def reads(self):
-        return [Read("teacher's assignment list", self.teacher, self.list_url)]
+        return [
+            Read("teacher's assignment list", self.teacher, self.list_url),
+            Read(
+                "unrelated teacher's own assignment list",
+                self.other_teacher,
+                self.list_url,
+            ),
+        ]
 
     def run_repair_command(self):
         call_command("strip_html_from_assignment_titles", stdout=StringIO())
         self.assignment.refresh_from_db()
         self.assertNotIn("<p>", self.assignment.title)
 
-    def test_repair_command_currently_leaves_the_teachers_list_stale(self):
+    def test_repair_command_now_refreshes_only_the_owning_teacher(self):
         result = self.run_matrix(
-            "strip_html_from_assignment_titles (P4 gap, bulk_update fires no signal)",
+            "strip_html_from_assignment_titles (P4 fixed)",
             self.reads(),
             self.run_repair_command,
         )
+        self.assert_no_stale(result, expect_changed=["teacher's assignment list"])
         verdicts = {o.label: o.verdict for o in result.outcomes}
-        self.assertEqual(verdicts, {"teacher's assignment list": STALE}, result.table())
+        self.assertEqual(
+            verdicts["unrelated teacher's own assignment list"],
+            UNAFFECTED,
+            result.table(),
+        )

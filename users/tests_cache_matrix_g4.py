@@ -3,13 +3,20 @@ school move.
 
 `UserCacheMixin.get_cache_key` scopes a `retrieve` read by the REQUESTING
 user's own generation only (`SCOPE_USER, user_id`). When a teacher moves to
-another school, `_viewer_scopes_for_signal` (users/signals.py) bumps
+another school, `_viewer_scopes_for_signal` (users/signals.py) used to bump
 `SCOPE_SCHOOL` for the old and new school -- correct for dashboards keyed on
-the school -- but nothing bumps the viewing school admin's OWN `usr`
-generation, so their cached `GET users/<teacher.pk>` keeps serving a 200 for
-a teacher who has since left their school and dropped out of their
+the school -- but nothing bumped the viewing school admin's OWN `usr`
+generation, so their cached `GET users/<teacher.pk>` kept serving a 200 for
+a teacher who had since left their school and dropped out of their
 queryset entirely (`get_queryset` filters school admins to
 `Q(school_id=user.school_id)`).
+
+FIXED (H-1 Stage 3): `viewer_scopes_for_users` (users/signals.py) now also
+bumps `usr` for every SCHOOL_ADMIN of each affected school. This suite
+proves BOTH directions of the move: the OLD school's admin loses their
+cached access (200 -> 404, matching the real queryset) and the NEW
+school's admin gains it immediately (404 -> 200) rather than being stuck
+on a stale "not found".
 
 Fixtures follow the Stage 3 rule (plan §0): rows are created directly, with
 exactly the fields production sets (`CustomUser.school` is written by both
@@ -27,7 +34,6 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from AutoGrader.tests_cache_matrix_support import (
-    STALE,
     FreshnessMatrixMixin,
     Read,
     legacy_wildcards_disabled,
@@ -75,6 +81,12 @@ class SchoolAdminUserViewFreshnessTests(FreshnessMatrixMixin, TransactionTestCas
             "G4Teacher",
             school=self.school_a,
         )
+        self.admin_b = make_active_user(
+            "g4-admin-b@x.test",
+            UserTypes.SCHOOL_ADMIN,
+            "G4AdminB",
+            school=self.school_b,
+        )
         self.superadmin = make_active_user(
             "g4-super@x.test",
             UserTypes.SUPER_ADMIN,
@@ -86,7 +98,14 @@ class SchoolAdminUserViewFreshnessTests(FreshnessMatrixMixin, TransactionTestCas
 
     def reads(self):
         return [
-            Read("school admin's view of the teacher", self.admin, self.teacher_url)
+            Read(
+                "old school admin's view of the teacher", self.admin, self.teacher_url
+            ),
+            Read(
+                "new school admin's view of the teacher",
+                self.admin_b,
+                self.teacher_url,
+            ),
         ]
 
     def move_teacher_to_school_b(self):
@@ -97,18 +116,23 @@ class SchoolAdminUserViewFreshnessTests(FreshnessMatrixMixin, TransactionTestCas
         )
         self.assertEqual(response.status_code, 200, response.content)
 
-    def test_school_move_currently_leaves_the_admins_cached_view_stale(self):
+    def test_school_move_now_refreshes_both_admins_immediately(self):
         result = self.run_matrix(
-            "move teacher to another school (G4 gap, no admin usr bump)",
+            "move teacher to another school (G4 fixed)",
             self.reads(),
             self.move_teacher_to_school_b,
         )
-        verdicts = {o.label: o.verdict for o in result.outcomes}
-        self.assertEqual(
-            verdicts,
-            {"school admin's view of the teacher": STALE},
-            result.table(),
+        self.assert_no_stale(
+            result,
+            expect_changed=[
+                "old school admin's view of the teacher",
+                "new school admin's view of the teacher",
+            ],
         )
-        stale = result.outcomes[0]
-        self.assertEqual(stale.cached_after[0], 200, result.table())
-        self.assertEqual(stale.truth_after[0], 404, result.table())
+        by_label = {o.label: o for o in result.outcomes}
+        old = by_label["old school admin's view of the teacher"]
+        self.assertEqual(old.cached_after[0], 404, result.table())
+        self.assertEqual(old.truth_after[0], 404, result.table())
+        new = by_label["new school admin's view of the teacher"]
+        self.assertEqual(new.cached_after[0], 200, result.table())
+        self.assertEqual(new.truth_after[0], 200, result.table())

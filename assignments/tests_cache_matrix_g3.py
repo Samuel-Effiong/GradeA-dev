@@ -2,11 +2,18 @@
 
 `publish_all_grades` (assignments/views.py) snapshots every submission being
 published for the first time, bulk-`.update()`s them all to
-`is_published=True`, then invalidates caches for exactly one of them --
-`newly_published[0]` -- because `.update()` bypasses `post_save` and the
-view fires the receiver by hand for a single instance instead of the whole
-batch. Every other student in the batch keeps reading a pre-publish
+`is_published=True`, then USED TO invalidate caches for exactly one of them
+-- `newly_published[0]` -- because `.update()` bypasses `post_save` and the
+view fired the receiver by hand for a single instance instead of the whole
+batch. Every other student in the batch kept reading a pre-publish
 submission list past the point their grade actually went out.
+
+FIXED (H-1 Stage 3): `invalidate_submission_caches_bulk` (students/signals.py)
+bumps every submission's student in one pipelined `bump_many`, plus the
+shared course/teacher/school/global scopes once. This suite proves both
+students in the batch are FRESH after publish-all, and that an unrelated
+teacher's submission list for their OWN course stays UNAFFECTED (tenant
+isolation).
 
 Fixtures follow the Stage 3 rule (plan §0): the graded, unpublished
 submissions are created directly with exactly the fields grading sets
@@ -27,8 +34,7 @@ from rest_framework.test import APIClient
 
 from assignments.models import Assignment, AssignmentStatus
 from AutoGrader.tests_cache_matrix_support import (
-    FRESH,
-    STALE,
+    UNAFFECTED,
     FreshnessMatrixMixin,
     Read,
     legacy_wildcards_disabled,
@@ -74,6 +80,9 @@ class PublishAllGradesFreshnessTests(FreshnessMatrixMixin, TransactionTestCase):
         self.assertTrue(self.patched_modules, "no legacy module was patched")
 
         self.teacher = make_active_user("g3-teacher@x.test", UserTypes.TEACHER)
+        self.other_teacher = make_active_user(
+            "g3-other-teacher@x.test", UserTypes.TEACHER, first_name="G3Other"
+        )
         self.first_student = make_active_user(
             "g3-first@x.test", UserTypes.STUDENT, first_name="G3First"
         )
@@ -126,6 +135,11 @@ class PublishAllGradesFreshnessTests(FreshnessMatrixMixin, TransactionTestCase):
             Read(
                 "second student's submission list", self.second_student, self.list_url
             ),
+            Read(
+                "unrelated teacher's own submission list",
+                self.other_teacher,
+                self.list_url,
+            ),
         ]
 
     def publish_all(self):
@@ -136,16 +150,22 @@ class PublishAllGradesFreshnessTests(FreshnessMatrixMixin, TransactionTestCase):
         )
         self.assertEqual(response.status_code, 200, response.content)
 
-    def test_publish_all_currently_leaves_the_second_student_stale(self):
-        """`newly_published[0]` is whichever submission the snapshot orders
-        first -- not guaranteed to be `first_submission` by fixture creation
-        order, so this asserts on the *shape* of the bug (exactly one
-        FRESH, exactly one STALE) rather than which named student it is.
-        """
+    def test_publish_all_now_refreshes_every_student_in_the_batch(self):
         result = self.run_matrix(
-            "publish-all-grades (G3 gap, only newly_published[0] invalidated)",
+            "publish-all-grades (G3 fixed)",
             self.reads(),
             self.publish_all,
         )
-        verdicts = [o.verdict for o in result.outcomes]
-        self.assertEqual(sorted(verdicts), sorted([FRESH, STALE]), result.table())
+        self.assert_no_stale(
+            result,
+            expect_changed=[
+                "first student's submission list",
+                "second student's submission list",
+            ],
+        )
+        verdicts = {o.label: o.verdict for o in result.outcomes}
+        self.assertEqual(
+            verdicts["unrelated teacher's own submission list"],
+            UNAFFECTED,
+            result.table(),
+        )

@@ -1,11 +1,16 @@
 """H-1 Stage 3, gap G5: a course edit does not reach its enrolled students.
 
-`clear_course_cache` (classrooms/signals.py `_course_scopes`) bumps
+`clear_course_cache` (classrooms/signals.py `_course_scopes`) used to bump
 `SCOPE_COURSE`, the teacher's `SCOPE_USER` and `SCOPE_SCHOOL` -- but no
 enrolled student's `SCOPE_USER`. `UserCacheMixin` keys a course list/
 retrieve only by the REQUESTING user's own generation, so an enrolled
-student's cached copy of a renamed course never refreshes under the
+student's cached copy of a renamed course never refreshed under the
 generation-counter mechanism alone.
+
+FIXED (H-1 Stage 3): `_course_scopes` now also bumps `usr` for every
+student enrolled in the course. This suite proves the enrolled student's
+retrieve refreshes while a student outside the course - who has no access
+either way (404 before and after) - stays UNAFFECTED.
 
 Fixtures follow the Stage 3 rule (plan §0): rows are created directly, with
 exactly the fields production sets; the mutation under test runs through
@@ -21,7 +26,6 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from AutoGrader.tests_cache_matrix_support import (
-    STALE,
     UNAFFECTED,
     FreshnessMatrixMixin,
     Read,
@@ -94,20 +98,18 @@ class CourseEditFreshnessTests(FreshnessMatrixMixin, TransactionTestCase):
         response = client.patch(self.retrieve_url, {"name": "G5 course renamed"})
         self.assertEqual(response.status_code, 200, response.content)
 
-    def test_course_rename_currently_leaves_the_enrolled_student_stale(self):
+    def test_course_rename_now_refreshes_the_enrolled_student(self):
         result = self.run_matrix(
-            "rename course (G5 gap, no enrolled-student bump)",
+            "rename course (G5 fixed)",
             self.reads(),
             self.rename_course,
         )
+        self.assert_no_stale(
+            result, expect_changed=["enrolled student's course retrieve"]
+        )
         verdicts = {o.label: o.verdict for o in result.outcomes}
+        # The outside student has no access either way (404 both times);
+        # the read never moves, so it stays UNAFFECTED.
         self.assertEqual(
-            verdicts,
-            {
-                "enrolled student's course retrieve": STALE,
-                # The outside student has no access either way (404 both
-                # times); the read never moves, so it stays UNAFFECTED.
-                "outside student's course retrieve": UNAFFECTED,
-            },
-            result.table(),
+            verdicts["outside student's course retrieve"], UNAFFECTED, result.table()
         )

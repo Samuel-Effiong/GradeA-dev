@@ -17,7 +17,7 @@ from AutoGrader.cache_utils import delete_cache_patterns
 from billing.context import get_license_invitation_context
 from billing.models import BetaProfile, CreditWallet, PlanType, SubscriptionPlan
 from billing.services import SubscriptionService
-from users.models import CustomUser, Settings
+from users.models import CustomUser, Settings, UserTypes
 
 logger = logging.getLogger(__name__)
 
@@ -58,21 +58,52 @@ def _visible_update(update_fields):
     return update_fields is None or bool(set(update_fields) & _VISIBLE_UPDATE_NAMES)
 
 
+def superadmin_user_ids():
+    """Every active superadmin's id. Mirrors `IsSuperAdmin`/`get_queryset`'s
+    own check (`is_superuser` AND `user_type=SUPER_ADMIN`), so this never
+    fans out to more (or fewer) accounts than the permission itself would
+    let through."""
+    return CustomUser.objects.filter(
+        is_superuser=True, user_type=UserTypes.SUPER_ADMIN
+    ).values_list("id", flat=True)
+
+
+def school_admin_user_ids(school_ids):
+    """Every SCHOOL_ADMIN's id for the given schools. One query regardless
+    of how many schools."""
+    school_ids = [school_id for school_id in school_ids if school_id]
+    if not school_ids:
+        return []
+    return CustomUser.objects.filter(
+        user_type=UserTypes.SCHOOL_ADMIN, school_id__in=school_ids
+    ).values_list("id", flat=True)
+
+
 def viewer_scopes_for_users(user_ids, school_ids):
     """Generations of the OTHER users' views that display these users.
 
     * each school the users belong or belonged to - school-admin dashboards
       are keyed on the school;
+    * H-1 Stage 3 (gap G4): the SCHOOL_ADMIN users of those schools
+      themselves - `UserCacheMixin` keys a school admin's cached view of a
+      user only by the admin's OWN `usr`, so the `SCOPE_SCHOOL` bump above
+      never reaches it on its own. Without this, a school admin's cached
+      retrieve of a user who has since moved schools (or lost access) kept
+      serving 200 past the point the admin's queryset would 404 them;
     * the teacher of every course the users are enrolled in, and that
       teacher's school - a teacher's roster, course and submission lists are
       keyed on the teacher.
 
-    One query regardless of how many users or courses, so the cost of a
-    profile change does not grow with enrolments.
+    One query per school-admin lookup and one for the teacher fan-out,
+    regardless of how many users or courses, so the cost of a profile
+    change does not grow with enrolments.
     """
     from classrooms.models import Course
 
     scopes = [(SCOPE_SCHOOL, school_id) for school_id in school_ids if school_id]
+    scopes.extend(
+        (SCOPE_USER, admin_id) for admin_id in school_admin_user_ids(school_ids)
+    )
     teachers = (
         Course.objects.filter(enrollments__student_id__in=list(user_ids))
         .values_list("teacher_id", "teacher__school_id")
@@ -167,12 +198,25 @@ def clear_user_cache(sender, instance, **kwargs):
     # `anyusr` backs super-admin/dashboard/teachers, whose dependency is the
     # CustomUser table and nothing else; `global` backs the superadmin
     # dashboards that aggregate across everything.
+    #
+    # H-1 Stage 3 (gap G8): every superadmin's own `usr` is bumped too -
+    # `SchoolViewSet`/`CustomUserViewSet` are `UserCacheMixin` reads keyed
+    # on the REQUESTING superadmin's generation, so `anyusr`/`global` alone
+    # never reached a superadmin's own cached `GET users` list.
     scopes = [(SCOPE_USER, user_id), (SCOPE_ANY_USER, None), (SCOPE_GLOBAL, None)]
+    scopes.extend((SCOPE_USER, admin_id) for admin_id in superadmin_user_ids())
     if sender is CustomUser:
         # H-1 Stage 3 item 7: the user is also DISPLAYED to others - their
         # school's admins and their teachers - whose views are keyed on the
         # school or the teacher, not on this user.
         scopes.extend(_viewer_scopes_for_signal(instance, kwargs))
+    elif sender is Settings:
+        # H-1 Stage 3 (gap G8): Settings gets the same fan-out as
+        # CustomUser - a student's notification/theme change is nested
+        # nowhere today, but there is no reason for it to drift from the
+        # user fan-out if a future read site nests it.
+        school_id = getattr(getattr(instance, "user", None), "school_id", None)
+        scopes.extend(viewer_scopes_for_users([user_id], [school_id]))
     # One pipelined round trip; duplicates (a student whose two teachers
     # share a school) are dropped so a count stays one bump per entity.
     bump_many(list(dict.fromkeys(scopes)))

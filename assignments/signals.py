@@ -7,7 +7,12 @@ from django.dispatch import receiver
 from django.utils import timezone
 from django_celery_beat.models import ClockedSchedule, PeriodicTask
 
-from assignments.models import Assignment, AssignmentGenerationSession, AssignmentStatus
+from assignments.models import (
+    Assignment,
+    AssignmentGenerationMessage,
+    AssignmentGenerationSession,
+    AssignmentStatus,
+)
 from assignments.pdf_cache import invalidate_assignment_pdfs
 from assignments.rigor import score_assignment
 from assignments.services import _strip_html_from_title
@@ -99,24 +104,79 @@ def _bump_assignment_scopes(assignment):
 
     Resolved defensively: `post_delete` can fire with related rows already
     gone, and a bump that raises would fail the delete itself.
+
+    H-1 Stage 3 (gap G1): `Assignment.teacher` is never set by any
+    production write path, so bumping `usr(assignment.teacher_id)` was
+    always a no-op - the teacher whose list actually needs refreshing is
+    the COURSE's teacher. And a course's enrolled students see this
+    assignment in their own assignment/submission lists once it is
+    PUBLISHED, so a change has to reach their `usr` too, not just the
+    teacher's and the course's - one query for the student ids, folded
+    into the same pipelined bump.
     """
     course = getattr(assignment, "course", None)
-    teacher = getattr(assignment, "teacher", None)
-    school_id = getattr(teacher, "school_id", None) if teacher else None
-    if school_id is None and course is not None:
-        course_teacher = getattr(course, "teacher", None)
-        school_id = (
-            getattr(course_teacher, "school_id", None) if course_teacher else None
+    course_id = getattr(assignment, "course_id", None)
+    course_teacher = getattr(course, "teacher", None) if course is not None else None
+    teacher_id = getattr(course_teacher, "id", None)
+    school_id = getattr(course_teacher, "school_id", None)
+
+    scopes = [
+        (SCOPE_COURSE, course_id),
+        (SCOPE_USER, teacher_id),
+        (SCOPE_SCHOOL, school_id),
+        (SCOPE_GLOBAL, None),
+    ]
+    if course_id is not None:
+        from classrooms.models import StudentCourse
+
+        scopes.extend(
+            (SCOPE_USER, student_id)
+            for student_id in StudentCourse.objects.filter(
+                course_id=course_id
+            ).values_list("student_id", flat=True)
         )
 
-    bump_many(
-        [
-            (SCOPE_COURSE, getattr(assignment, "course_id", None)),
-            (SCOPE_USER, getattr(assignment, "teacher_id", None)),
-            (SCOPE_SCHOOL, school_id),
-            (SCOPE_GLOBAL, None),
-        ]
+    bump_many(scopes)
+
+
+def bump_assignment_course_scopes_bulk(course_ids):
+    """Same coverage as `_bump_assignment_scopes`, for many courses at
+    once - one round trip regardless of batch size.
+
+    H-1 Stage 3 (pre-existing staleness P4): the repair management
+    commands (`strip_html_from_assignment_titles`,
+    `repair_question_blooms_levels`, `strip_duplicate_option_letters`,
+    `backfill_assignment_rigor`) write with `bulk_update`, which fires no
+    signal at all. Each one calls this once per batch, after the write,
+    with the distinct course ids the batch touched.
+    """
+    from classrooms.models import Course, StudentCourse
+
+    course_ids = list(dict.fromkeys(cid for cid in course_ids if cid is not None))
+    if not course_ids:
+        return
+
+    scopes = [(SCOPE_GLOBAL, None)]
+    scopes.extend((SCOPE_COURSE, course_id) for course_id in course_ids)
+    scopes.extend(
+        (SCOPE_USER, teacher_id)
+        for teacher_id in Course.objects.filter(id__in=course_ids).values_list(
+            "teacher_id", flat=True
+        )
     )
+    scopes.extend(
+        (SCOPE_SCHOOL, school_id)
+        for school_id in Course.objects.filter(id__in=course_ids).values_list(
+            "teacher__school_id", flat=True
+        )
+    )
+    scopes.extend(
+        (SCOPE_USER, student_id)
+        for student_id in StudentCourse.objects.filter(
+            course_id__in=course_ids
+        ).values_list("student_id", flat=True)
+    )
+    bump_many(list(dict.fromkeys(scopes)))
 
 
 @receiver([post_save, post_delete], sender=Assignment)
@@ -152,9 +212,25 @@ def clear_assignment_cache(sender, instance, **kwargs):
 
 @receiver([post_save, post_delete], sender=AssignmentGenerationSession)
 def clear_assignment_generation_session_cache(sender, instance, **kwargs):
+    # H-1 Stage 3 (gap G9): this used to be wildcard-only, with no
+    # bump_many at all, so the owner's own cached session list/retrieve
+    # never refreshed under the generation-counter mechanism.
+    bump_many([(SCOPE_USER, instance.user_id)])
     delete_cache_patterns(
         "*assignmentgenerationsession*",
     )
+
+
+@receiver([post_save, post_delete], sender=AssignmentGenerationMessage)
+def clear_assignment_generation_message_cache(sender, instance, **kwargs):
+    # H-1 Stage 3 (pre-existing staleness P3): unlike the session above,
+    # a message had NO receiver at all - not even the legacy wildcard -
+    # so a new message never reached the owner's cached session retrieve,
+    # which nests the full message list.
+    session = getattr(instance, "session", None)
+    user_id = getattr(session, "user_id", None) if session is not None else None
+    if user_id is not None:
+        bump_many([(SCOPE_USER, user_id)])
 
 
 @receiver(post_save, sender=Assignment)

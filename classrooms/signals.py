@@ -116,15 +116,29 @@ def delete_cache_patterns(*patterns):
 
 
 def _course_scopes(course):
-    """Entities whose cached responses a course-shaped change can affect."""
+    """Entities whose cached responses a course-shaped change can affect.
+
+    H-1 Stage 3 (gap G5): a course, topic or roster change is also visible
+    to every OTHER student enrolled in the course - their own cached copy
+    of the course, its topics, and their classmates' roster - not only the
+    teacher who owns it. One query for the enrolled student ids, folded
+    into the caller's own pipelined `bump_many`.
+    """
     if course is None:
         return []
     teacher = getattr(course, "teacher", None)
-    return [
+    scopes = [
         (SCOPE_COURSE, course.pk),
         (SCOPE_USER, getattr(course, "teacher_id", None)),
         (SCOPE_SCHOOL, getattr(teacher, "school_id", None) if teacher else None),
     ]
+    scopes.extend(
+        (SCOPE_USER, student_id)
+        for student_id in StudentCourse.objects.filter(course=course).values_list(
+            "student_id", flat=True
+        )
+    )
+    return scopes
 
 
 @receiver([post_save, post_delete], sender=School)
@@ -149,13 +163,37 @@ def clear_school_cache(sender, instance, **kwargs):
 
 @receiver([post_save, post_delete], sender=Session)
 def clear_session_cache(sender, instance, **kwargs):
-    bump_many(
-        [
-            (SCOPE_USER, instance.teacher_id),
-            (SCOPE_SCHOOL, instance.school_id),
-            (SCOPE_GLOBAL, None),
-        ]
+    # H-1 Stage 3 (gap G6): a SCHOOL-owned session has `teacher=None` (only
+    # an INDIVIDUAL session sets it), so the `SCOPE_USER` bump above was a
+    # no-op for exactly the sessions this branch exists to cover - and
+    # `SessionViewSet` is a `UserCacheMixin` read keyed on the REQUESTING
+    # user's own generation, so the `SCOPE_SCHOOL` bump never reached
+    # anyone's cached list either, not even the acting school admin's own.
+    # Reach everyone who can see a school session: its school's admins and
+    # teachers, whoever created it, and every superadmin.
+    from users.signals import school_admin_user_ids, superadmin_user_ids
+
+    scopes = [
+        (SCOPE_USER, instance.teacher_id),
+        (SCOPE_USER, instance.created_by_id),
+        (SCOPE_SCHOOL, instance.school_id),
+        (SCOPE_GLOBAL, None),
+    ]
+    scopes.extend(
+        (SCOPE_USER, admin_id)
+        for admin_id in school_admin_user_ids([instance.school_id])
     )
+    if instance.school_id:
+        from users.models import CustomUser, UserTypes
+
+        scopes.extend(
+            (SCOPE_USER, teacher_id)
+            for teacher_id in CustomUser.objects.filter(
+                user_type=UserTypes.TEACHER, school_id=instance.school_id
+            ).values_list("id", flat=True)
+        )
+    scopes.extend((SCOPE_USER, admin_id) for admin_id in superadmin_user_ids())
+    bump_many(list(dict.fromkeys(scopes)))
     delete_cache_patterns(
         "*superadmin*",
         "*schooladmin*",

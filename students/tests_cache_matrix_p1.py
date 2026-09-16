@@ -3,14 +3,19 @@ invalidates nothing.
 
 `_claim_submission_for_grading` (students/services.py) is a bare
 `QuerySet.update(grading_state=RUNNING, ...)`, which bypasses `post_save`.
-Only the FAILED release path (`_mark_grading_claim_failed`) calls
-`invalidate_submission_caches` afterwards; the successful claim does not.
-A teacher's cached submission list therefore keeps showing the
-pre-grading state for the whole time a submission is RUNNING.
+Only the FAILED release path (`_mark_grading_claim_failed`) called
+`invalidate_submission_caches` afterwards; the successful claim did not.
+A teacher's cached submission list therefore kept showing the
+pre-grading state for the whole time a submission was RUNNING.
+
+FIXED (H-1 Stage 3): a successful claim now also calls
+`invalidate_submission_caches`, matching the FAILED path. This suite
+proves the teacher's list refreshes and an unrelated teacher's own
+(empty) list stays UNAFFECTED.
 
 This is pre-existing staleness the owner decided Stage 3 fixes too (plan
-§ "Old staleness"): it is live under BOTH mechanisms today, not only once
-the wildcards are removed, because the wildcard receiver is likewise only
+§ "Old staleness"): it was live under BOTH mechanisms, not only once the
+wildcards are removed, because the wildcard receiver is likewise only
 reached through `post_save`/`post_delete`, which `.update()` never fires.
 
 Fixtures follow the Stage 3 rule (plan §0): the submission is created
@@ -27,7 +32,7 @@ from django.urls import reverse
 
 from assignments.models import Assignment, AssignmentStatus
 from AutoGrader.tests_cache_matrix_support import (
-    STALE,
+    UNAFFECTED,
     FreshnessMatrixMixin,
     Read,
     legacy_wildcards_disabled,
@@ -74,6 +79,9 @@ class GradingClaimFreshnessTests(FreshnessMatrixMixin, TransactionTestCase):
         self.assertTrue(self.patched_modules, "no legacy module was patched")
 
         self.teacher = make_active_user("p1-teacher@x.test", UserTypes.TEACHER, "P1T")
+        self.other_teacher = make_active_user(
+            "p1-other-teacher@x.test", UserTypes.TEACHER, "P1Other"
+        )
         self.student = make_active_user("p1-student@x.test", UserTypes.STUDENT, "P1S")
 
         self.session = Session.objects.create(name="P1 term", teacher=self.teacher)
@@ -101,17 +109,29 @@ class GradingClaimFreshnessTests(FreshnessMatrixMixin, TransactionTestCase):
         self.list_url = reverse("student-submission-list")
 
     def reads(self):
-        return [Read("teacher's submission list", self.teacher, self.list_url)]
+        return [
+            Read("teacher's submission list", self.teacher, self.list_url),
+            Read(
+                "unrelated teacher's own submission list",
+                self.other_teacher,
+                self.list_url,
+            ),
+        ]
 
     def claim_for_grading(self):
         claimed = _claim_submission_for_grading(self.submission.id)
         self.assertTrue(claimed)
 
-    def test_claim_currently_leaves_the_teachers_list_stale(self):
+    def test_claim_now_refreshes_only_the_owning_teacher(self):
         result = self.run_matrix(
-            "claim submission for grading (P1 gap, .update() with no invalidation)",
+            "claim submission for grading (P1 fixed)",
             self.reads(),
             self.claim_for_grading,
         )
+        self.assert_no_stale(result, expect_changed=["teacher's submission list"])
         verdicts = {o.label: o.verdict for o in result.outcomes}
-        self.assertEqual(verdicts, {"teacher's submission list": STALE}, result.table())
+        self.assertEqual(
+            verdicts["unrelated teacher's own submission list"],
+            UNAFFECTED,
+            result.table(),
+        )

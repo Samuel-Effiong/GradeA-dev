@@ -3610,7 +3610,17 @@ class StudentAdminDashboardView(viewsets.ViewSet):
         url_path=r"dashboard/summary/(?P<course_id>[-\w]+)",
     )
     def summary(self, request, course_id, *args, **kwargs):
-        cache_key = f"studentadmins:user_id__{request.user.id}:instance_id__{course_id}:view__summary"
+        # H-1 Stage 3 (gap G2): this key used to be unversioned - plain
+        # cache.get/cache.set with no generation scope, and nothing ever
+        # invalidated it, so a withdrawn student's cached summary kept
+        # serving course data (200) past the point access-checks below
+        # would return 404. usr(student) is bumped by every change that
+        # could affect this student's own summary.
+        cache_key = versioned_key(
+            f"studentadmins:user_id__{request.user.id}:instance_id__{course_id}"
+            ":view__summary",
+            [(SCOPE_USER, request.user.id)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -3748,9 +3758,12 @@ class StudentAdminDashboardView(viewsets.ViewSet):
         paginator = StandardPageNumberPagination()
         page_number = request.query_params.get(paginator.page_query_param, "1")
         page_size = request.query_params.get(paginator.page_size_query_param, "")
-        cache_key = (
+        # H-1 Stage 3 (gap G2): see the summary action above - same
+        # unversioned-key gap, same fix.
+        cache_key = versioned_key(
             f"studentadmins:user_id__{request.user.id}:view__assignments"
-            f":{page_number}:{page_size}"
+            f":{page_number}:{page_size}",
+            [(SCOPE_USER, request.user.id)],
         )
         data = cache.get(cache_key)
 
@@ -3851,7 +3864,12 @@ class StudentAdminDashboardView(viewsets.ViewSet):
         url_path="dashboard/overview",
     )
     def overview(self, request, *args, **kwargs):
-        cache_key = f"studentadmins:user_id__{request.user.id}:view__overview"
+        # H-1 Stage 3 (gap G2): see the summary action above - same
+        # unversioned-key gap, same fix.
+        cache_key = versioned_key(
+            f"studentadmins:user_id__{request.user.id}:view__overview",
+            [(SCOPE_USER, request.user.id)],
+        )
         data = cache.get(cache_key)
 
         if data is None:

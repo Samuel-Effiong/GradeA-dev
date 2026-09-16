@@ -1,12 +1,19 @@
 """H-1 Stage 3, gap G1: assignment changes bump no viewer.
 
-`_bump_assignment_scopes` (assignments/signals.py) bumps `usr(teacher_id)`,
-but no production write path ever sets `Assignment.teacher` (see plan §0),
-so that bump is always a no-op, and no receiver bumps enrolled students
-either. Today nothing notices because the legacy wildcards still clear the
-per-user `assignments:*` keys; this suite proves that with the wildcards
-disabled the teacher's and the enrolled student's assignment lists go
-STALE after a publish, which is exactly the gap G1 exists to close.
+`_bump_assignment_scopes` (assignments/signals.py) used to bump
+`usr(teacher_id)`, but no production write path ever sets
+`Assignment.teacher` (see plan §0), so that bump was always a no-op, and
+no receiver bumped enrolled students either - the legacy wildcards were
+the only thing that ever refreshed the teacher's or an enrolled student's
+assignment list.
+
+FIXED (H-1 Stage 3): `_bump_assignment_scopes` now bumps `usr(course
+.teacher_id)` - the real owner - plus `usr` of every student enrolled in
+the course, in one pipelined `bump_many`. This suite proves that with the
+legacy wildcards disabled (so only the new targeted bumps are in play), a
+publish now reaches the teacher and the enrolled student and reaches
+nobody else - an unrelated teacher and a student outside the course stay
+UNAFFECTED, which is the tenant/role-isolation half of this fix.
 
 Fixtures follow the Stage 3 rule (plan §0): the assignment row is created
 directly, with exactly the fields production sets (no `teacher=`); the
@@ -24,7 +31,6 @@ from rest_framework.test import APIClient
 
 from assignments.models import Assignment, AssignmentStatus
 from AutoGrader.tests_cache_matrix_support import (
-    STALE,
     UNAFFECTED,
     FreshnessMatrixMixin,
     Read,
@@ -126,26 +132,23 @@ class AssignmentPublishFreshnessTests(FreshnessMatrixMixin, TransactionTestCase)
         )
         self.assertEqual(response.status_code, 200, response.content)
 
-    def test_publish_currently_leaves_teacher_and_student_lists_stale(self):
-        """Documents the gap: proves the matrix catches it before the fix.
-
-        Once G1 is implemented this test's expectation flips to FRESH; see
-        the companion test below, written now and expected to fail until
-        then, so the fix is proven by the same harness that proves the gap.
-        """
+    def test_publish_now_refreshes_teacher_and_enrolled_student_only(self):
         result = self.run_matrix(
-            "publish assignment (G1 gap, no targeted bump yet)",
+            "publish assignment (G1 fixed)",
             self.reads(),
             self.publish,
         )
+        self.assert_no_stale(
+            result,
+            expect_changed=[
+                "teacher's assignment list",
+                "enrolled student's assignment list",
+            ],
+        )
         verdicts = {o.label: o.verdict for o in result.outcomes}
         self.assertEqual(
-            verdicts,
-            {
-                "teacher's assignment list": STALE,
-                "enrolled student's assignment list": STALE,
-                "other teacher's assignment list": UNAFFECTED,
-                "outside student's assignment list": UNAFFECTED,
-            },
-            result.table(),
+            verdicts["other teacher's assignment list"], UNAFFECTED, result.table()
+        )
+        self.assertEqual(
+            verdicts["outside student's assignment list"], UNAFFECTED, result.table()
         )
