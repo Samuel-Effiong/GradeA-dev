@@ -3,7 +3,7 @@
 Status: **GAPS FOUND / BLOCKERS FIXED / REMEDIATION IN PROGRESS.**
 
 - **Dashboard work (items 1-8 and the dashboard part of item 9):** in `beta` since merge `2715c64`, which passed the strict gate (§10). Every later `beta` descends from that merge.
-- **Still open:** item 9 across the whole repository. By the owner's decision of 2026-09-14 it covers every file, and 0 files with 0 hits are tracked (live count, kept current by each item 9 cleanup commit; Section 5 deleted `ai_processor/views.py` and its stale exemption was removed) in `docs/HARDENING_BACKLOG.md` H-12.
+- **Item 9 (repository-wide, whole repository per the owner's 2026-09-14 decision): CLOSED (2026-09-16).** All 32 files are cleaned, `flake8 --select=E800 .` is 0 files / 0 hits, the H-12 register and `--per-file-ignores` are retired, and both the strict final gate and a post-merge repository check passed. Landed on `beta` at `a7c81a4`. See `docs/evidence/ITEM9_E800_BURNDOWN_EVIDENCE.md`.
 
 The sections below record what has been verified so far. The measurement scripts ran in throwaway copies; the numbers are recorded here because the scratchpad does not survive sessions.
 

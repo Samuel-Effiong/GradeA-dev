@@ -1,10 +1,12 @@
 # Item 9: repository-wide commented-out-code (E800) burn-down
 
-**Status: CLEANUP DONE. STRICT FINAL GATE PASSED on `7e5f0c6`. Not yet on `beta`.**
+**Status: CLOSED (2026-09-16). On `beta` at `a7c81a4`.**
 
-- **Done:** all 32 files are cleaned. `flake8 --select=E800 .` is 0 files / 0 hits repository-wide, on branch `task/item9-e800-burndown`. `--per-file-ignores` is empty and the H-12 register has no rows. The branch merges `beta` four times as H-9, Section 7 and Section 9 landed: `34a1d1c` (`29cc1c7`, the H-9 fix), `d5d95be` (`6a8e714`, Section 7), `96d0a6b` (`87acd13`, Section 9), `0eef001` (`53e31c3`, Section 9's later `create_file`-removal cleanup). The strict final gate (below) passed on the exact committed tip, `7e5f0c6`. None of it is on `beta` yet.
-- **Not yet done:** retiring the H-12 register/exemption mechanism (its own acceptance criteria are now met, but it is kept until the branch actually lands on `beta`, in case `beta` moves before this does and something else reintroduces a hit); coordinating the merge to `beta` with any other branch in flight.
-- **Section 8** stays **GAPS FOUND / BLOCKERS FIXED / REMEDIATION IN PROGRESS** until item 9 is finished and passes its final gate.
+- **Done:** all 32 files are cleaned. `flake8 --select=E800 .` is 0 files / 0 hits repository-wide. `--per-file-ignores` is removed from `.pre-commit-config.yaml` and the H-12 register (the file/hits table and its staged-plan rules) is deleted from `docs/HARDENING_BACKLOG.md`; H-12's history and this closure are kept as its permanent record. The branch `task/item9-e800-burndown` merged `beta` four times as H-9, Section 7 and Section 9 landed: `34a1d1c` (`29cc1c7`, the H-9 fix), `d5d95be` (`6a8e714`, Section 7), `96d0a6b` (`87acd13`, Section 9), `0eef001` (`53e31c3`, Section 9's later `create_file`-removal cleanup). The strict final gate passed on the branch's tip, `7e5f0c6` (superseded by `a7c81a4`, the doc-only commit recording that gate).
+- **Landed on `beta`:** fast-forward merge, `53e31c3` → `a7c81a4` (no merge commit; `beta` was already an ancestor). Verified in a temp worktree before the ref moved — see "Coordination and landing" below.
+- **Post-merge verification on `beta` at `a7c81a4`:** repository-wide E800 scan, `pre-commit --all-files`, `manage.py check`, `makemigrations --check`, and a regression run of every item-9-touched app all passed — see "Post-merge verification" below.
+- **Section 8** stays **GAPS FOUND / BLOCKERS FIXED / REMEDIATION IN PROGRESS**: item 9 closing does not itself close Section 8, since Section 8 (dashboard) had its own separate blockers, already fixed and gated, unrelated to item 9.
+- **Reopening:** this item is considered finished and should not be reopened except for a new, concrete E800 violation — not a re-litigation of scope or of decisions already made above.
 
 ## Scope (owner decision, 2026-09-14)
 
@@ -153,15 +155,30 @@ Run in a detached worktree (`Grade-Automator-Plus-item9-gate`, own test DB name 
 
 **Verdict: PASS.** Every check above held; nothing was accepted on a partial or re-run-until-green basis except the one documented, independently-confirmed network flake.
 
-## Still to do before item 9 can close
+## Coordination and landing
 
-1. **Per-app regression runs: done** for all 32 cleaned files; see Regression runs.
-2. **Repository-wide E800 check: done** — see the strict final gate above.
-3. **Full repository-wide regression suite: done** — see the strict final gate above.
-4. **Static and security checks repo-wide: done** — `pre-commit run --all-files` includes bandit, mypy and detect-secrets across the whole repository; see the strict final gate above.
-5. **Strict final gate on the exact committed tree: done** — PASSED on `7e5f0c6`; see above.
-6. **Retire the exemption mechanism** (delete the H-12 register section and its acceptance-criteria language, confirm `--per-file-ignores` stays empty) — kept in place for now, in case something lands on `beta` first that reintroduces a hit before this branch merges. Retire it in the same commit that merges this branch to `beta`, once `beta`'s own tip is re-checked clean.
-7. **Merge to `beta`,** coordinated with any other branch still in flight.
+Before merging, checked every branch in flight for two things: whether it touches the same shared docs/config files this work edits, and whether landing would let a new E800 violation slip past unnoticed now that the register is gone.
+
+- **Shared files:** none of the in-flight branches (`task/h1-h2-release-gate`, `task/h1-stage3-wildcard-removal`, `task/h1-stampede-evidence`, `task/h1-user-fanout`, `task/h10-integration`, `task/h16-submission-list-queries`, `task/h9-redis-db-isolation`, `task/section-7-students-review`, `task/section-9-cleanup`) had any diff against `beta` in `.pre-commit-config.yaml`, `docs/HARDENING_BACKLOG.md`, `docs/CODEBASE_AUDIT_SECTIONS.md` or `docs/evidence/SECTION_8_DASHBOARD_REMEDIATION_EVIDENCE.md`. No merge conflict was possible.
+- **Hidden violations:** `beta` itself (which item 9 is fast-forwarded onto) has 0 E800 hits, so nothing is hidden on the branch being merged. The in-flight branches above currently show 345–964 E800 hits each when scanned directly — this is expected and not a new violation: none of them have merged item 9's cleanup yet, so they still carry the pre-cleanup baseline (or, for the two at 964, additional comment-heavy test files of their own). Retiring the register does not hide these: it removes the only thing that could have hidden them (a per-file exemption). Each of these branches will have its own diff checked, unconditionally, by the same `flake8` E800 hook the moment it merges into `beta` — there is no longer an exemption list for a new violation to hide behind.
+- **Fast-forward, not a merge commit:** `task/item9-e800-burndown` had `beta` (`53e31c3`) as a strict ancestor, so landing was a fast-forward, not a three-way merge — nothing to overwrite or revert. Built and verified in a temporary detached worktree first (`git merge --ff-only a7c81a4` from `53e31c3`, confirmed the expected 40-file diff), then the `beta` ref itself was moved with a compare-and-swap `git update-ref` (old value `53e31c3`, new value `a7c81a4`), which fails closed if anyone had moved `beta` in between. The shared main checkout's index/working tree were stale after the ref move (expected: `update-ref` doesn't touch a worktree) and were synced with `git reset --hard HEAD` after confirming the pending diff exactly matched the fast-forward's own diff — no foreign uncommitted work was present or discarded. Two pre-existing untracked directories (`docs/backend/phase 2/`, `docs/phase2/`), unrelated to item 9 and present before this session started, were left untouched throughout.
+
+## Post-merge verification (on `beta` at `a7c81a4`)
+
+| Check | Result |
+|---|---|
+| Repository-wide `flake8 --select=E800 .` | 0 hits, exit 0 |
+| `pre-commit run --all-files` | All 24 hooks pass. Log: `/tmp/item9-logs/beta-postmerge-precommit.log` |
+| `manage.py check` | System check identified no issues |
+| `manage.py makemigrations --check --dry-run` | No changes detected |
+| Regression: `AutoGrader ai_processor assignments billing classrooms templates users` (`--keepdb`) | **3762 tests OK, skipped=19**, exit 0, in 1604.7s. Log: `/tmp/item9-logs/beta-postmerge-regression.log` |
+| Tree/worktree integrity | `git fsck` reports only dangling objects (expected in an actively-used multi-worktree repo), no errors; every other active worktree's `git status` was checked and none was disturbed by the `beta` ref move |
+
+**H-12 retirement:** done in the same pass as this verification, directly on `beta`. `--per-file-ignores` and its explanatory comment block are removed from `.pre-commit-config.yaml`; the H-12 register (file/hits table, staged-plan rules, per-cleanup evidence checklist) is deleted from `docs/HARDENING_BACKLOG.md`, with the section's history and this closure kept as its permanent record; the H-12 row in the backlog's summary table is marked CLOSED.
+
+## Closed
+
+Item 9 is finished: repository-wide cleanup done, strict final gate passed, landed on `beta` at `a7c81a4`, post-merge verification passed, exemption mechanism retired. It should not be reopened except for a new, concrete E800 violation.
 
 ## Tooling (permanent, outside the repo)
 
@@ -173,3 +190,4 @@ Run in a detached worktree (`Grade-Automator-Plus-item9-gate`, own test DB name 
 - `section-N.log`: verification output
 - `section-6-first-attempt/`: backup of the refused first billing attempt
 - `strict_final_gate/`: raw logs from the strict final gate on `7e5f0c6` — `gate-full-suite.log` (first attempt, 2 network-flake errors), `gate-full-suite-2.log` (clean re-run, the one the PASS verdict rests on), `precommit-all-files.log`, plus the earlier per-app regression logs (`full-suite-regression.log`, `ai_processor-regression.log`, `assignments-regression.log`)
+- `strict_final_gate/beta-postmerge-precommit.log`, `strict_final_gate/beta-postmerge-regression.log`: the post-merge verification on `beta` at `a7c81a4`

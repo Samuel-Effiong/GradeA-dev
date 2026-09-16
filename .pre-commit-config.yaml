@@ -65,12 +65,10 @@ repos:
           - --max-line-length=120                  # Matches Black's line length
           - --select=B,C,E,F,W,T4,B9                          # Enable common checks
           - --ignore=W503,E203      # Align with Black formatting
-          # E800 (flake8-eradicate, commented-out code) is ON for the whole repository.
-          # The files below are its only exceptions. Each one has a reason, an owner
-          # and a staged cleanup plan in docs/HARDENING_BACKLOG.md H-12. Never add to
-          # this list and never carve out a whole directory; remove a file's entry in
-          # the same commit that cleans it. students/ and dashboard/ are fully clean.
-          - --per-file-ignores=
+          # E800 (flake8-eradicate, commented-out code) is ON for the whole
+          # repository with no exceptions. Item 9's file-by-file burn-down
+          # (docs/HARDENING_BACKLOG.md H-12, now closed) removed the last
+          # per-file exemption; see docs/evidence/ITEM9_E800_BURNDOWN_EVIDENCE.md.
         exclude: (^|/)migrations/
     # Sort imports automatically with isort
 -   repo: https://github.com/pre-commit/mirrors-isort

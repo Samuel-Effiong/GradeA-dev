@@ -60,7 +60,7 @@ speed that decision up, not to pre-empt it.
 | H-9 | Test suite shares one Redis DB (isolation) | High | Whoever owns CI | **CLOSED (owner, 2026-09-15)** — verified on `29cc1c7`: two full suites ran concurrently on the same Redis, 4,153 tests OK each, exit 0, clean teardown, both per-process namespaces live; old code collided 5/8, the fix 0/8. Evidence: `docs/evidence/H9_REDIS_ISOLATION_EVIDENCE.md`. Overlapping runs are safe only between trees that contain `29cc1c7` |
 | H-10 | `super-admin/dashboard/students` 480-query N+1 | High | Section 8 (dashboard) | **CLOSED (2026-09-14)** — Section 8 remediation merged to beta `2715c64`; strict gate passed there (4,031 OK); query count flat |
 | H-11 | Synchronous billed AI calls inside `students` request handlers (`upload`, `grade`, `PATCH raw_input`) | **High - release-blocking** | Section 7 (students) + frontend | **OPEN.** 2026-09-14: async edit path built and gated, V-2..V-4/V-6 closed, duplicate-request guards added; **remaining: client migration confirmed, then retire the three synchronous routes** (see item). Not a blocker for the Section 9 promotion to beta (owner, 2026-09-15); remains release-blocking for production |
-| H-12 | Commented-out code (flake8 E800) burn-down - 0 files still carved out of the rule | Low | Each file's section owner (register in H-12) | Rule ON since 2026-09-13; `students` and `dashboard` clean; 0 files / 0 hits remain; whole repository in scope (owner decision 2026-09-14) |
+| H-12 | Commented-out code (flake8 E800) burn-down | Low | Each file's section owner (history in H-12) | **CLOSED (2026-09-16)** — repository-wide, 0 files / 0 hits, `--per-file-ignores` removed, register deleted; landed on beta at `a7c81a4`; see `docs/evidence/ITEM9_E800_BURNDOWN_EVIDENCE.md` |
 | H-13 | Uploads while grading is RUNNING | Medium | Product + Section 7 | **DECIDED 2026-09-14: refuse (409). Implemented and gated in the §7 branch.** |
 | H-14 | School-admin summary rebuild cost (cache family 23) | Medium | Section 8 (dashboard) | Open — 1.4 s cold rebuild at 240 courses/school, growing with rows processed; performance issue, not a stampede justification (owner, 2026-09-15) |
 | H-15 | `global`-scoped per-user cache families invalidate as a herd | Medium | Backend/infra lead (H-1 follow-up) | Open — one change anywhere expires every user's copy (my_courses, superadmin dashboards); 50-student herd p50 792 ms / p95 1,262 ms at realistic scale |
@@ -1250,74 +1250,29 @@ required** before retirement.
 - §4 assignments (tasks, views): `assignments/tasks.py`, `assignments/views.py` (47 hits) cleaned; AST-identical, E800 0
 - §5 ai_processor: `ai_processor/services.py` (47 hits) cleaned; AST-identical, E800 0
 
-**Owner decision (2026-09-14):**
+**Owner decision (2026-09-14):** the rule covers the **whole repository**.
+The carve-out list was a temporary register, not a policy, and is now
+retired — see closure below.
 
-- The rule covers the **whole repository**. The carve-out list is a
-  temporary register, not a policy.
-- Every remaining exemption must have a reason, an owner and a cleanup plan.
-  They are listed below.
-- Entries are removed progressively as each area is cleaned.
-- No whole directory may be exempted just to make the check pass.
-- The rule is not achieved while unexplained exemptions remain.
+**CLOSED (2026-09-16).** Item 9's repository-wide burn-down finished: all 32
+files that ever carried an E800 exemption are cleaned, the last being
+`ai_processor/services.py` (47 hits). Full detail, including the strict
+final gate and the post-merge verification on `beta`, is in
+`docs/evidence/ITEM9_E800_BURNDOWN_EVIDENCE.md`. Landed on `beta` at
+`a7c81a4` (fast-forward from `53e31c3`).
 
-**Rules for the list (enforced by review):**
-
-- Nothing may be added.
-- A file's entry is removed in the same commit that cleans it.
-- The list must always equal exactly the set of files that still have E800
-  hits. The §8 commit verified this. A stale entry for an already-clean file
-  counts as a defect.
-
-**Evidence each cleanup must include:**
-
-1. `flake8 --select=E800 <file>` is clean;
-2. an AST comparison of the file before and after showing identical code,
-   which proves only comments were removed. Import statements are normalised
-   if isort reflows them. For §8's version, see
-   `docs/evidence/SECTION_8_DASHBOARD_REMEDIATION_EVIDENCE.md` §8;
-3. a regression run of that app's tests.
-
-A block that records something intentional, such as an alternative
-configuration, is rewritten as prose, not deleted.
-
-**Why these files are exempt:** each still contains commented-out code from
-before E800 was enforced, and nobody has reviewed it yet. It is not known
-whether any block is intentional. That is the reason for every row below.
-The "What is commented out" column shows what each file holds.
-
-**Staged plan:**
-
-- **Stage 1:** ≤ 6 hits — 0 files, quick and low risk.
-- **Stage 2:** 7–21 hits — 0 files.
-- **Stage 3:** ≥ 27 hits — 0 files, which need careful review.
-
-Each stage is done by the owning section, in coordination with any session
-currently changing that app.
-
-Counts are kept live: every item 9 cleanup commit recounts with
-`flake8 --select=E800` and removes the files it cleaned:
-**0 files, 0 hits**.
-
-| File | Hits | What is commented out | Owner | Plan | Notes |
-|---|---|---|---|---|---|
-| _(none — register is empty)_ | | | | | |
-
-The register is empty, but is not yet deleted: the acceptance criteria below
-also require a repository-wide E800 check, a full regression run and a
-strict final gate on the exact committed tree, none of which have run since
-the last file was cleaned. Item 9 stays open until those pass.
-
-**The one directory-wide exclusion:** `exclude: (^|/)migrations/` on the
-whole flake8 hook, not only E800. It predates H-12. Migrations are generated
-by `makemigrations`, and hand-editing them to satisfy a linter risks changing
-schema history, so this exclusion is justified and is **not** part of the
-burn-down. It is recorded here so the register accounts for every exception.
-
-**Acceptance:**
+**Acceptance, all met:**
 
 - `--per-file-ignores` is empty and removed from `.pre-commit-config.yaml`;
 - `flake8 --select=E800 .` is clean, with only migrations excluded;
-- this register is deleted.
+- this register is deleted (the file/hits table and its staged-plan rules
+  above; the history above it is kept as the record of how H-12 got here).
+
+**The one directory-wide exclusion:** `exclude: (^|/)migrations/` on the
+whole flake8 hook, not only E800. It predates H-12 and is unaffected by its
+closure. Migrations are generated by `makemigrations`, and hand-editing them
+to satisfy a linter risks changing schema history, so this exclusion is
+justified and is **not** part of the burn-down.
 
 # H-13 — Uploads while grading is RUNNING — DECIDED
 
