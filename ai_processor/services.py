@@ -757,15 +757,6 @@ class AIProcessor:
     def get_ai_model_function(self):
         return self.__ai_model
 
-    def create_file(self, uploaded_file):
-        # file_bytes = uploaded_file.read()
-        # uploaded_file.seek(0)
-        encoded_file = encode_image(uploaded_file)
-        file_tuple = (uploaded_file.name, encoded_file, uploaded_file.content_type)
-
-        result = self.client.files.upload(file=file_tuple, purpose="user_data")
-        return result["id"]
-
     def extract_assignment(self, user, text):
         system_prompt = ASSIGNMENT_EXTRACTION_PROMPT
 

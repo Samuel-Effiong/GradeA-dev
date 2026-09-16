@@ -80,6 +80,28 @@ class ClassifyInfraErrorTest(SimpleTestCase):
         self.assertIn("storage issue", message)
         self.assertNotIn("disk full", message)
 
+    def test_poppler_not_installed_is_recognized_as_server_fault_not_file_fault(self):
+        # PopplerNotInstalledError means the server is missing the poppler
+        # binary - never something wrong with the uploaded file - so it must
+        # not collapse into the "couldn't read this file" message and must
+        # not blame the file.
+        from pdf2image.exceptions import PopplerNotInstalledError
+
+        message = classify_infra_error(PopplerNotInstalledError("poppler not found"))
+        self.assertNotIn("couldn't read this file", message)
+        self.assertNotIn("corrupted", message)
+        self.assertIn("our end", message)
+
+    def test_pdfinfo_not_installed_is_recognized_as_server_fault_not_file_fault(self):
+        # PDFInfoNotInstalledError subclasses PopplerNotInstalledError; both
+        # must land in the same non-file-blaming category.
+        from pdf2image.exceptions import PDFInfoNotInstalledError
+
+        message = classify_infra_error(PDFInfoNotInstalledError("pdfinfo not found"))
+        self.assertNotIn("couldn't read this file", message)
+        self.assertNotIn("corrupted", message)
+        self.assertIn("our end", message)
+
     def test_walks_cause_chain_through_generic_wrapper_exception(self):
         # Mirrors the ai_processor pattern of catching a typed exception and
         # re-raising `raise Exception(str(e)) from e` — the wrapper itself
