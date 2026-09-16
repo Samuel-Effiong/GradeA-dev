@@ -136,7 +136,10 @@ class CourseSerializer(serializers.ModelSerializer):
         allow_empty=True,
     )
     assignment_count = serializers.SerializerMethodField()
-    assignments = AssignmentListSerializer(many=True, read_only=True)
+    # A method field rather than a nested serializer so a student's payload
+    # can be filtered to published work - see get_assignments. The schema
+    # and every teacher's output are unchanged.
+    assignments = serializers.SerializerMethodField()
 
     class Meta:
         model = Course
@@ -225,7 +228,43 @@ class CourseSerializer(serializers.ModelSerializer):
             .count()
         )
 
+    def _requesting_student(self):
+        """The requester when they are a student, otherwise None.
+
+        Only a student's course payload is filtered. Teachers, school
+        admins and superadmins keep exactly what they have always received.
+        """
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if getattr(user, "user_type", None) == UserTypes.STUDENT:
+            return user
+        return None
+
+    def _visible_assignments(self, obj):
+        """Every assignment for staff; only PUBLISHED ones for a student.
+
+        Drafts and unpublished work are the teacher's, and the assignments
+        endpoints already hide them from students by the same rule. Filtered
+        in Python: calling .filter() would discard the view's prefetch and
+        issue a query per course.
+        """
+        assignments = obj.assignments.all()
+        if self._requesting_student() is None:
+            return assignments
+        return [a for a in assignments if a.status == AssignmentStatus.PUBLISHED]
+
+    @extend_schema_field(AssignmentListSerializer(many=True))
+    def get_assignments(self, obj):
+        return AssignmentListSerializer(
+            many=True, context=self.context
+        ).to_representation(self._visible_assignments(obj))
+
     def get_assignment_count(self, obj):
+        if self._requesting_student() is not None:
+            # Must agree with the filtered `assignments` list. An annotated
+            # count, if one is ever added, would include drafts.
+            return len(self._visible_assignments(obj))
+
         if hasattr(obj, "assignment_count"):
             return obj.assignment_count
 
@@ -276,7 +315,16 @@ class CourseSerializer(serializers.ModelSerializer):
             context={"course": obj, "enrollment_status_by_student": status_by_student},
         )
 
-        return serializer.data
+        data = serializer.data
+        viewer = self._requesting_student()
+        if viewer is not None:
+            # A student may see who their classmates are, never how to
+            # email them. Their own address stays: it is their own data.
+            for student, entry in zip(enrolled_students, data, strict=True):
+                if student.pk != viewer.pk:
+                    entry["email"] = None
+
+        return data
 
 
 class StudentCourseSerializer(serializers.ModelSerializer):
