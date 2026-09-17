@@ -39,7 +39,7 @@ from AutoGrader.tests_cache_matrix_support import (
 )
 from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
 from students.models import GradingState, StudentSubmission
-from students.services import _claim_submission_for_grading
+from students.services import _claim_submission_for_grading, _mark_grading_claim_failed
 from users.models import UserTypes
 
 User = get_user_model()
@@ -135,3 +135,24 @@ class GradingClaimFreshnessTests(FreshnessMatrixMixin, TransactionTestCase):
             UNAFFECTED,
             result.table(),
         )
+
+    def test_retry_after_a_failed_run_refreshes_the_teachers_list(self):
+        """The Celery retry path: claim, the run fails, the retry claims again.
+
+        The failure release already invalidated before Stage 3, so the
+        teacher's cached list shows FAILED. The retry's claim must move it
+        to RUNNING; without the P1 fix it stayed on FAILED for the run.
+        """
+        self.claim_for_grading()
+        _mark_grading_claim_failed(self.submission.id)
+        self.submission.refresh_from_db()
+        self.assertEqual(self.submission.grading_state, GradingState.FAILED)
+
+        result = self.run_matrix(
+            "retry claim after a failed run (P1 fixed)",
+            self.reads(),
+            self.claim_for_grading,
+        )
+        self.assert_no_stale(result, expect_changed=["teacher's submission list"])
+        self.submission.refresh_from_db()
+        self.assertEqual(self.submission.grading_state, GradingState.RUNNING)
