@@ -22,7 +22,7 @@ from drf_spectacular.utils import (
     extend_schema,
     extend_schema_view,
 )
-from rest_framework import filters, viewsets
+from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotAcceptable, ParseError
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -75,7 +75,6 @@ from .models import (
     StudentSubmission,
 )
 from .serializers import (
-    StudentListSerializer,
     StudentSubmissionDetailSerializer,
     StudentSubmissionDetailStudentVersionSerializer,
     StudentSubmissionFormattedGradeAsyncSerializer,
@@ -1360,24 +1359,3 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             submission, context=self.get_serializer_context()
         )
         return Response(serializer.data, status=HTTP_200_OK)
-
-
-class StudentViewSet(viewsets.ReadOnlyModelViewSet):
-    serializer_class = StudentListSerializer
-    filter_backends = [
-        DjangoFilterBackend,
-        filters.SearchFilter,
-        filters.OrderingFilter,
-    ]
-
-    filterset_fields = {
-        "enrollments__course": ["exact"],
-        "enrollments__course__session": ["exact"],
-    }
-
-    search_fields = ["first_name", "last_name", "middle_name", "email"]
-
-    def get_queryset(self):
-        user = self.request.user
-
-        return CustomUser.objects.filter(enrollments__course__teacher=user).distinct()
