@@ -45,7 +45,7 @@ class FakeView:
         self.kwargs = kwargs
 
 
-def make_user(email, user_type=UserTypes.TEACHER):
+def make_user(email, user_type=UserTypes.TEACHER, is_superuser=False):
     return User.objects.create_user(
         email=email,
         password="password123",  # pragma: allowlist secret
@@ -53,6 +53,7 @@ def make_user(email, user_type=UserTypes.TEACHER):
         last_name="User",
         user_type=user_type,
         is_active=True,
+        is_superuser=is_superuser,
     )
 
 
@@ -156,11 +157,36 @@ class HasCreditBalanceTests(TestCase):
     # --- super admin ----------------------------------------------------------
 
     def test_super_admin_is_allowed_with_no_wallet(self):
-        """Platform staff are unmetered - see AIProcessor.execute_graded_task."""
-        super_admin = make_user("credit.super@example.com", UserTypes.SUPER_ADMIN)
+        """Platform staff are unmetered - see AIProcessor.execute_graded_task.
+
+        Platform staff means BOTH flags (H-19). The single-flag cases are
+        directly below.
+        """
+        super_admin = make_user(
+            "credit.super@example.com", UserTypes.SUPER_ADMIN, is_superuser=True
+        )
         CreditWallet.objects.filter(user=super_admin).delete()
 
         self.assertTrue(self.check(super_admin))
+
+    def test_single_flag_super_admin_is_not_unmetered(self):
+        """H-19: user_type=SUPER_ADMIN alone used to skip the balance check,
+        so an account with is_superuser unticked ran billed AI for free. It is
+        now judged on its own wallet like anyone else."""
+        type_only = make_user("credit.typeonly@example.com", UserTypes.SUPER_ADMIN)
+        CreditWallet.objects.filter(user=type_only).delete()
+
+        with self.assertRaises(ParseError):
+            self.check(type_only)
+
+    def test_createsuperuser_account_is_not_unmetered(self):
+        """The other single-flag shape: is_superuser with user_type TEACHER,
+        exactly what `manage.py createsuperuser` produces."""
+        django_admin = make_user("credit.djadmin@example.com", is_superuser=True)
+        CreditWallet.objects.filter(user=django_admin).delete()
+
+        with self.assertRaises(ParseError):
+            self.check(django_admin)
 
     # --- a student spends their TEACHER's credits -----------------------------
 

@@ -138,6 +138,10 @@ class GradingFallbackModelRestrictionTest(TestCase):
     SUPER_ADMIN caller so no billing fixtures are needed — the model
     routing decision is made before, and independently of, the billing
     branch.
+
+    The caller must hold BOTH superadmin flags (H-19): since
+    `is_superuser` alone no longer buys the unmetered branch, a
+    user_type-only account is refused before any routing happens.
     """
 
     def setUp(self):
@@ -146,6 +150,7 @@ class GradingFallbackModelRestrictionTest(TestCase):
             email="fallback-admin@example.com",
             password="testpass123",  # pragma: allowlist secret
             user_type=UserTypes.SUPER_ADMIN,
+            is_superuser=True,
         )
 
     def _captured_sub_models(self, task_type):

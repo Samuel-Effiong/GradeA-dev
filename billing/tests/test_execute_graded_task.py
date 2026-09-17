@@ -65,12 +65,16 @@ class ExecuteGradedTaskTestBase(TestCase):
     def setUp(self):
         self.processor = AIProcessor()
 
-    def _make_user(self, user_type, email, is_active=True):
+    def _make_user(self, user_type, email, is_active=True, is_superuser=False):
+        # is_superuser defaults False: only a SUPER_ADMIN holding BOTH flags
+        # is platform staff (H-19), so callers that want the unmetered branch
+        # must ask for it explicitly.
         return CustomUser.objects.create_user(
             email=email,
             password="testpass123",
             user_type=user_type,
             is_active=is_active,
+            is_superuser=is_superuser,
         )
 
     def _make_plan(
@@ -446,7 +450,9 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
     @patch.object(AIProcessor, "_AIProcessor__ai_model")
     def test_super_admin_bypasses_everything_unmetered(self, mock_ai_model):
         mock_ai_model.return_value = make_ai_response(tokens=999999)
-        superadmin = self._make_user(UserTypes.SUPER_ADMIN, "super@example.com")
+        superadmin = self._make_user(
+            UserTypes.SUPER_ADMIN, "super@example.com", is_superuser=True
+        )
         # Deliberately no subscription, no wallet, no credits at all.
 
         response = self.processor.execute_graded_task(
@@ -466,7 +472,9 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
     @patch.object(AIProcessor, "_AIProcessor__ai_model")
     def test_response_schema_reaches_ai_model_for_super_admin_path(self, mock_ai_model):
         mock_ai_model.return_value = make_ai_response(tokens=999999)
-        superadmin = self._make_user(UserTypes.SUPER_ADMIN, "super2@example.com")
+        superadmin = self._make_user(
+            UserTypes.SUPER_ADMIN, "super2@example.com", is_superuser=True
+        )
         schema = {"name": "test_schema", "strict": True, "schema": {"type": "object"}}
 
         self.processor.execute_graded_task(
