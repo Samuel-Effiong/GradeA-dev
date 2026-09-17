@@ -18,7 +18,12 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # The suite takes ~45 min locally at --parallel 1, and CI runs it under
+    # `coverage` on top of that, so the old 30-minute cap cancelled a healthy
+    # run and reported it as failed. Raised with margin rather than made
+    # faster: running the suite in parallel is a separate change, measured on
+    # its own, because it alters test execution order.
+    timeout-minutes: 60
 
     services:
       postgres:
