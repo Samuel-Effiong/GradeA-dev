@@ -31,9 +31,9 @@ def visible_enrollments(user):
     """The enrollment rows `user` may filter accounts by.
 
     Mirrors `CustomUserViewSet.get_queryset()`: a superadmin (both flags) is
-    platform-wide; an anonymous request sees nothing; a school admin sees enrollments in their school's courses;
-    a teacher sees enrollments in their own courses; anyone else, only their
-    own enrollments.
+    platform-wide; an anonymous request sees nothing; a school admin sees
+    enrollments in their school's courses; a teacher sees enrollments in
+    their own courses; anyone else, only their own enrollments.
     """
     if not user or not user.is_authenticated:
         return Q(pk__in=[])

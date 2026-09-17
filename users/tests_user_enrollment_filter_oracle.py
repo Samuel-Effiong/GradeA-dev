@@ -252,6 +252,19 @@ class TeacherOwnFiltersStillWork(UserEnrollmentFilterOracleBase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
+    def test_isnull_true_means_no_visible_enrollment(self):
+        """A teacher's own account has no enrollments; the shared student has
+        one the teacher can see."""
+        for target, value, expected in (
+            (self.teacher_a, "true", status.HTTP_200_OK),
+            (self.teacher_a, "false", status.HTTP_404_NOT_FOUND),
+            (self.student, "true", status.HTTP_404_NOT_FOUND),
+        ):
+            response = self.call(
+                self.teacher_a, "get", target, {"enrollments__course__isnull": value}
+            )
+            self.assertEqual(response.status_code, expected, (target.email, value))
+
     def test_malformed_values_are_still_rejected(self):
         for param, value in (
             ("enrollments__course", "not-a-uuid"),
