@@ -39,6 +39,10 @@ from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.test import APIClient, APITestCase
 
+from billing.context import (
+    clear_license_invitation_context,
+    set_license_invitation_context,
+)
 from billing.models import (
     BillingInterval,
     CreditBucket,
@@ -55,7 +59,11 @@ from billing.models import (
     SubscriptionPlan,
     UserSubscription,
 )
-from billing.plan_policy import PlanAssignmentRefused, self_service_plans
+from billing.plan_policy import (
+    PlanAssignmentRefused,
+    admin_assignment_error,
+    self_service_plans,
+)
 from billing.serializers import (
     SelectIndividualPlanSerializer,
     UserSubscriptionSerializer,
@@ -164,6 +172,37 @@ class PlanCatalogMixin:
             self.license_plan,
             self.internal_priced,
         ]
+
+    def make_licensed_school(self, license_plan=None):
+        """A school license with an enrolled teacher and admin allocation,
+        shaped like the license-track fixtures in test_track_separation."""
+        school = School.objects.create(name=f"School {uuid.uuid4().hex[:6]}")
+        admin = self.make_user(UserTypes.SCHOOL_ADMIN, school=school)
+        # Invited the way LicenseSubscriptionService._get_or_invite_teacher
+        # does it, so signup skips the automatic individual TRIAL.
+        set_license_invitation_context(True)
+        try:
+            teacher = self.make_user(UserTypes.TEACHER, school=school)
+        finally:
+            clear_license_invitation_context()
+        license_sub = LicenseSubscription.objects.create(
+            school=school,
+            admin_user=admin,
+            plan=license_plan or self.license_plan,
+            billing_cycle_start=timezone.now(),
+            billing_cycle_end=timezone.now() + timedelta(days=30),
+            is_active=True,
+            max_seats=5,
+        )
+        for user, is_admin in ((teacher, False), (admin, True)):
+            SchoolCreditAllocation.objects.create(
+                license_subscription=license_sub,
+                user=user,
+                is_active=True,
+                is_admin_allocation=is_admin,
+                monthly_allocation=1000,
+            )
+        return teacher, admin
 
     def make_user(self, user_type, **extra):
         user = CustomUser.objects.create_user(
@@ -486,6 +525,60 @@ class OrdinaryUserActivationTests(PlanCatalogMixin, APITestCase):
                 self.assertFalse(serializer.is_valid())
                 self.assertIn("Only a superadmin", str(serializer.errors))
 
+    def free_custom_license_plan(self):
+        # create-custom-license with no price: price_cents defaults to 0.
+        return SubscriptionPlan.objects.create(
+            name=PlanType.CUSTOM_LICENSE_STARTER,
+            display_name="Custom license, no price",
+            category=PlanCategory.LICENSE,
+            tier=PlanTier.CUSTOM,
+            interval=BillingInterval.MONTHLY,
+            monthly_credits=40_000_000,
+            is_active=True,
+        )
+
+    def test_a_licensed_teacher_cannot_activate_the_license_plan_from_me(self):
+        free_license = self.free_custom_license_plan()
+        teacher, _ = self.make_licensed_school(license_plan=free_license)
+        self.client.force_authenticate(user=teacher)
+        me = self.client.get(reverse("subscription-get-my-subscription"))
+        self.assertEqual(me.status_code, status.HTTP_200_OK, me.data)
+        self.assertEqual(me.data["subscription_source"], "LICENSE_TEACHER")
+        license_plan_id = me.data["plan"]["id"]
+        self.assertEqual(str(license_plan_id), str(free_license.pk))
+
+        self.assert_refused_without_state_change(teacher, [license_plan_id], attempts=3)
+
+    def test_a_school_admin_cannot_activate_license_zero_price_or_inactive_plans(self):
+        free_license = self.free_custom_license_plan()
+        _, admin = self.make_licensed_school(license_plan=free_license)
+        for user in (admin, self.school_admin):
+            with self.subTest(licensed=user is admin):
+                self.assert_refused_without_state_change(
+                    user,
+                    [
+                        free_license.pk,
+                        self.license_plan.pk,
+                        self.beta.pk,
+                        self.trial.pk,
+                        self.benchmark.pk,
+                        self.inactive_free.pk,
+                        self.inactive_paid.pk,
+                    ],
+                )
+
+    def test_zero_price_custom_and_license_plans_are_refused_for_every_role(self):
+        free_license = self.free_custom_license_plan()
+        zero_custom_individual = self.inactive_free
+        SubscriptionPlan.objects.filter(pk=zero_custom_individual.pk).update(
+            is_active=True
+        )
+        for user in (self.teacher, self.school_admin, self.student):
+            with self.subTest(user_type=user.user_type):
+                self.assert_refused_without_state_change(
+                    user, [free_license.pk, zero_custom_individual.pk]
+                )
+
     def test_one_users_attempts_change_nothing_for_another_user(self):
         other = self.make_user(UserTypes.TEACHER)
         other_before = snapshot(other)
@@ -715,6 +808,33 @@ class AdminAssignmentTests(PlanCatalogMixin, APITestCase):
                     )
                 self.assertIn("Invalid plan id", str(ctx.exception.detail))
 
+    def test_the_service_refuses_non_assignable_plans_without_the_serializer(self):
+        """The no-payment service enforces the plan rules itself, so a
+        caller that skips the serializer's plan lookup cannot bypass them."""
+        for plan in (
+            self.trial,
+            self.benchmark,
+            self.license_plan,
+            self.internal_priced,
+            self.inactive_free,
+            self.inactive_paid,
+        ):
+            with self.subTest(plan=plan.name):
+                before = snapshot(self.teacher)
+                with self.assertRaises(PlanAssignmentRefused):
+                    SubscriptionService.activate_plan_without_payment(
+                        self.teacher, plan
+                    )
+                self.assertEqual(snapshot(self.teacher), before)
+
+    def test_a_license_category_plan_sharing_a_catalog_name_is_refused(self):
+        # test_track_separation creates exactly this shape: a LICENSE plan
+        # named PRO. Only the category check tells it apart.
+        license_named_pro = SubscriptionPlan(
+            name=PlanType.PRO, category=PlanCategory.LICENSE, is_active=True
+        )
+        self.assertIn("INDIVIDUAL", admin_assignment_error(license_named_pro) or "")
+
     def test_assigning_one_user_changes_nothing_for_another(self):
         other = self.make_user(UserTypes.TEACHER)
         SubscriptionService.activate_plan_without_payment(other, self.beta)
@@ -747,35 +867,33 @@ class AdminAssignmentTests(PlanCatalogMixin, APITestCase):
         )
 
     def test_licensed_teachers_and_license_admins_are_refused(self):
-        school = School.objects.create(name="Licensed School")
-        admin = self.make_user(UserTypes.SCHOOL_ADMIN, school=school)
-        teacher = self.make_user(UserTypes.TEACHER, school=school)
-        license_sub = LicenseSubscription.objects.create(
-            school=school,
-            admin_user=admin,
-            plan=self.license_plan,
-            billing_cycle_start=timezone.now(),
-            billing_cycle_end=timezone.now() + timedelta(days=30),
-            is_active=True,
-            max_seats=5,
-        )
-        for user, is_admin in ((teacher, False), (admin, True)):
-            SchoolCreditAllocation.objects.create(
-                license_subscription=license_sub,
-                user=user,
-                is_active=True,
-                is_admin_allocation=is_admin,
-                monthly_allocation=1000,
-            )
-
+        teacher, admin = self.make_licensed_school()
         for user, plan in (
             (teacher, self.beta),
             (teacher, self.pro),
             (admin, self.pro),
         ):
-            with self.subTest(user_type=user.user_type, plan=plan.name):
-                response = self.assert_refused(user, plan)
-                self.assertIn("license", str(response.data).lower())
+            for route in ROUTES:
+                with self.subTest(
+                    user_type=user.user_type, plan=plan.name, route=route
+                ):
+                    response = self.assert_refused(user, plan, route)
+                    self.assertIn("license", str(response.data).lower())
+
+    def test_superadmin_cannot_assign_any_license_plan_even_at_zero_price(self):
+        free_license = SubscriptionPlan.objects.create(
+            name=PlanType.CUSTOM_LICENSE_STARTER,
+            category=PlanCategory.LICENSE,
+            tier=PlanTier.CUSTOM,
+            interval=BillingInterval.MONTHLY,
+            monthly_credits=40_000_000,
+            is_active=True,
+        )
+        for plan in (free_license, self.license_plan):
+            for route in ROUTES:
+                with self.subTest(plan=plan.name, route=route):
+                    response = self.assert_refused(self.teacher, plan, route)
+                    self.assertIn("Invalid plan id", str(response.data))
 
 
 class HighCarryOverOrdinaryUserTests(OrdinaryUserActivationTests):

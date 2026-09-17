@@ -38,6 +38,7 @@ class SubscriptionPlanViewSetTests(APITestCase):
             # Only the Stripe-priced self-service catalog is listed to
             # non-superadmins (billing/plan_policy.py), as in production.
             stripe_price_id="price_test_standard",
+            price_cents=1499,
         )
         self.list_url = reverse("subscription-plan-list")
         self.detail_url = reverse(
