@@ -66,6 +66,8 @@ speed that decision up, not to pre-empt it.
 | H-15 | `global`-scoped per-user cache families invalidate as a herd | Medium | Backend/infra lead (H-1 follow-up) | Open — one change anywhere expires every user's copy (my_courses, superadmin dashboards); 50-student herd p50 792 ms / p95 1,262 ms at realistic scale |
 | H-16 | Teacher submission list issues 63 queries per page | Low | Section 7 (students) | **COMPLETE (2026-09-15)** — `select_related` on the list queryset; 63/304 → flat 4; see item |
 | H-17 | Course payload leaked draft assignments and classmates' real emails to student viewers | **High - security** | Section 3 (classrooms) | **CLOSED (2026-09-16)** — `CourseSerializer` served every assignment (draft/unpublished included) and every enrolled student's real email address to a student viewer, regardless of assignment status or whose row it was. Fixed: `get_assignments`/`get_assignment_count` filter to `PUBLISHED` for a student viewer; `get_students` nulls out `email` for every row but the viewer's own. 15 dedicated tests (`classrooms/tests_course_payload_student_exposure.py`), 2 mutation tests (both killed), 250-test `classrooms` regression clean, query counts flat across roster size (roster=2 and roster=6 both 7/8/7/7). Landed on beta `ee30f08` (merge of `task/course-detail-data-exposure` gated commit `1d920f8`). Teacher/other-viewer payloads unchanged. |
+| H-18 | Assignment writes accepted any course, any topic, and any field the AI emitted | **High - security** | Section 4 (assignments) | **FIXED, awaiting landing (2026-09-17)** — `AssignmentTextSerializer.course` was an unscoped writable PK, so a teacher could create an assignment in another teacher's course or move their own into it, through THREE doors: create/create-async, PATCH, and PATCH update-async (which built the serializer with no request in context). Separately, AI extraction and generation output was saved through `AssignmentSerializer` whole, so injected text could write `status`, `teacher`, `course`, `topic`, `due_date` and more, at four sinks plus stored pre-fix draft snapshots. Fixed: `validate_course` (fail-closed), `update_async` passes context, `ai_assignment_content_only()` at three entry points, `teacher` read-only, and `TopicSerializer`/`CourseSerializer` validators fail closed. Gated on `6811527`; see `docs/evidence/H18_H19_ACCESS_CONTROL_EVIDENCE.md` |
+| H-19 | Superadmin authority granted on a single flag in four places | **High - security** | Section 1 (users) + Section 3 (classrooms) + Section 5 (ai_processor) | **FIXED, awaiting landing (2026-09-17)** — `create_superuser()` leaves `user_type=TEACHER`, so `is_superuser` alone let a Django-admin account read and edit every user's Settings and any school's token usage; and `user_type=SUPER_ADMIN` alone let an account skip `HasCreditBalance` and take `execute_graded_task`'s unmetered branch - free, unlimited billed AI. All four now require both flags, as `IsSuperAdmin` does. The deny-side `or` in `license_service.py:319` and `users/serializers.py:175` is correct and unchanged. Gated on `6811527`; same evidence file |
 
 ---
 
@@ -1376,6 +1378,92 @@ touching this endpoint; scoped to `students/views.py` (14 insertions, 2
 deletions) plus a new test module, nothing else.
 
 ---
+
+---
+
+# H-18 — assignment writes accepted any course, any topic, and any AI-emitted field
+
+**Found 2026-09-17** by a cross-role data-leakage audit, then widened twice:
+once by reading the views (a third entry point the audit missed), once by a
+sweep of every writable relation (the AI-output sink).
+
+**What was wrong.** `AssignmentTextSerializer.course` was a plain writable PK
+field with no ownership check, while `get_queryset()` only scopes which
+EXISTING assignment a teacher can reach. Knowing a course UUID was enough to
+plant a PUBLISHED assignment in another teacher's course - visible at once to
+that teacher and their students - or to move one's own assignment into it.
+Three doors shared the serializer: create/create-async, PATCH, and
+update-async, which built it without a request in context. Separately, the AI's
+raw JSON was saved through `AssignmentSerializer`, whose writable fields
+include `status`, `teacher`, `course`, `topic` and `due_date`, so text inside a
+typed assignment or an uploaded document could set them.
+
+**Scope of the fix.** `validate_course` on the serializer (fail-closed without
+a request, so no view can forget it); `update_async` uses `get_serializer`;
+`ai_assignment_content_only()` reduces AI output to the 9 content fields at
+extraction, at generation, and again when a stored draft snapshot is saved;
+`AssignmentSerializer.teacher` is read-only. Two fail-open ownership
+validators in `classrooms/serializers.py` were hardened at the same time.
+
+**Acceptance criteria and evidence.** All met; see
+`docs/evidence/H18_H19_ACCESS_CONTROL_EVIDENCE.md`, which opens with the
+10-gate table and the 8 completion answers:
+- every entry point refuses a foreign course and a foreign topic, for a course
+  in another school AND a same-school colleague's course;
+- legitimate own-course and own-topic flows unchanged on every path;
+- AI output cannot write any protected field at any sink, including pre-fix
+  stored snapshots;
+- 30/31 mutants killed, both survivors explained (one two-layer defence, one
+  real test gap that was closed);
+- 20 threads x 10 rounds; provider-failure and Celery-redelivery recovery;
+  query counts flat to 6,000 students;
+- independent HTTP replay by the red team.
+
+**Open:** Gate 8 (deployed end-to-end) is PARTIAL - everything is LOCAL-REAL.
+
+---
+
+# H-19 — superadmin authority granted on a single flag in four places
+
+**Found 2026-09-17**: two places by the audit, two more by this item's own
+sweep of every superadmin check in the codebase.
+
+**What was wrong.** `IsSuperAdmin` requires `is_superuser` AND
+`user_type == SUPER_ADMIN`. Four checks did not:
+
+| Where | Single flag | Effect |
+|---|---|---|
+| `users/views.py` `SettingsViewSet.get_queryset` | either | read and edit every user's Settings |
+| `classrooms/views.py` `monthly_token_usage` | either | read any school's token usage |
+| `users/permissions.py` `HasCreditBalance` | `user_type` | skip the credit-balance check |
+| `ai_processor/services.py` `execute_graded_task` | `user_type` | unmetered, unbilled AI |
+
+`CustomUserManager.create_superuser()` sets `is_superuser` but leaves
+`user_type=TEACHER`, so an account made for Django admin reached the first
+two. The reverse shape - `user_type=SUPER_ADMIN` without `is_superuser`,
+produced by promoting a teacher through the users API or unticking the flag in
+Django admin - reached the last two and ran billed AI for free through
+background jobs that load `course.teacher`.
+
+**Scope of the fix.** All four require both flags. A single-flag account is not
+refused outright by the credit gate: it falls through to the ordinary wallet
+check. The unmetered branch refuses it with `AIFeatureNotAvailableError`, a
+user-facing refusal, rather than the `ValueError` that views report as a
+server fault.
+
+**Deliberately unchanged:** `billing/license_service.py:319` and
+`users/serializers.py:175` use `or` on the deny side, where either flag is
+stricter; `CustomUserViewSet.create`'s inner either-flag check is unreachable
+behind `IsSuperAdmin` and is recorded as a consistency clean-up candidate.
+
+**Acceptance criteria and evidence.** Same evidence file. All three attacker
+shapes refused; true superadmin and school-admin flows unchanged; one real
+billed provider call proves the unmetered path still works with zero billing
+rows; 14 mutants across the four checks, all killed.
+
+**Related, owned elsewhere:** making the newly-refused background paths record
+their refusal cleanly (weekly-summary swallow, `error=None`, retry-3x) belongs
+to the refusal-handling cluster, not to this item.
 
 Several of these were found during Section 3 but are **not** Section 3
 changes — H-1 spans four apps, H-2 lives in `users`/`assignments`/`students`,
