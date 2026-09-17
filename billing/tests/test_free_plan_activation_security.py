@@ -25,13 +25,15 @@ Run with:
         --settings=settings_worktree
 """
 
+import queue
 import threading
+import time
 import uuid
 from datetime import timedelta
 from decimal import Decimal
 from unittest import mock
 
-from django.db import connection, transaction
+from django.db import DatabaseError, connection, transaction
 from django.test import TestCase, TransactionTestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -1031,15 +1033,17 @@ class ConcurrentActivationTests(PlanCatalogMixin, TransactionTestCase):
         for thread in threads:
             thread.start()
         for thread in threads:
-            thread.join(timeout=60)
+            thread.join(timeout=120)
+        # A timed-out thread could still be writing; never assert on that.
+        self.assertFalse(any(thread.is_alive() for thread in threads))
         return results
 
-    def http_assign(self, index):
+    def http_assign(self, index, teacher=None, actor=None):
         client = APIClient()
-        client.force_authenticate(user=self.superadmin)
+        client.force_authenticate(user=actor or self.superadmin)
         return client.post(
             reverse(ROUTES[index % 2]),
-            {"user": str(self.teacher.id), "plan": str(self.beta.pk)},
+            {"user": str((teacher or self.teacher).id), "plan": str(self.beta.pk)},
             format="json",
         ).status_code
 
@@ -1059,12 +1063,82 @@ class ConcurrentActivationTests(PlanCatalogMixin, TransactionTestCase):
             1,
         )
 
-    def test_a_burst_of_simultaneous_requests_yields_one_grant(self):
-        codes = self.run_concurrently(8, self.http_assign)
+    def test_twenty_simultaneous_requests_for_ten_rounds_yield_one_grant_each(self):
+        for round_number in range(10):
+            with self.subTest(round=round_number):
+                teacher = self.make_user(UserTypes.TEACHER)
+                codes = self.run_concurrently(
+                    20, lambda i, t=teacher: self.http_assign(i, teacher=t)
+                )
+                self.assertEqual(codes.count(201), 1, codes)
+                self.assertEqual(codes.count(400), 19, codes)
+                self.assertEqual(beta_grants(teacher), (1, 1, 1))
+                self.assertEqual(live_balance(teacher), BETA_CREDITS)
+                self.assertEqual(
+                    UserSubscription.objects.filter(
+                        user=teacher, is_active=True
+                    ).count(),
+                    1,
+                )
 
-        self.assertEqual(codes.count(201), 1, codes)
-        self.assertEqual(codes.count(400), 7, codes)
+    def test_simultaneous_self_service_and_admin_requests_yield_one_grant(self):
+        """Half the threads are the teacher attacking the closed routes,
+        half are superadmin assignments, all at once."""
+
+        def mixed(index):
+            actor = self.teacher if index % 2 else self.superadmin
+            return self.http_assign(index, actor=actor)
+
+        codes = self.run_concurrently(20, mixed)
+
+        self.assertEqual(codes[1::2], [403] * 10, codes)
+        self.assertEqual(sorted(codes[0::2]), [201] + [400] * 9, codes)
         self.assertEqual(beta_grants(self.teacher), (1, 1, 1))
+
+    def test_signup_racing_an_admin_assignment_yields_one_grant(self):
+        """BETA-on-signup for a new teacher while a superadmin tries to assign
+        BETA to the same account: at most one grant, whatever the order."""
+        created = queue.Queue()
+        email = f"racer-{uuid.uuid4().hex[:8]}@example.com"
+
+        def signup(_):
+            with self.settings(USE_BETA_PLAN_ON_SIGNUP=True):
+                with transaction.atomic():
+                    user = CustomUser.objects.create_user(
+                        email=email,
+                        password=PASSWORD,
+                        user_type=UserTypes.TEACHER,
+                        is_active=True,
+                    )
+                    created.put(user.id)
+                    # Hold the signup transaction open while the admin
+                    # request arrives.
+                    time.sleep(1.0)
+            return "signed-up"
+
+        def admin(_):
+            user_id = created.get(timeout=10)
+            client = APIClient()
+            client.force_authenticate(user=self.superadmin)
+            codes = []
+            deadline = time.monotonic() + 3
+            while time.monotonic() < deadline:
+                codes.append(
+                    client.post(
+                        reverse("subscription-list"),
+                        {"user": str(user_id), "plan": str(self.beta.pk)},
+                        format="json",
+                    ).status_code
+                )
+            return codes
+
+        results = self.run_concurrently(2, lambda i: (signup, admin)[i](i))
+
+        self.assertEqual(results[0], "signed-up", results)
+        self.assertNotIn(201, results[1], results)
+        self.assertTrue(set(results[1]) <= {400}, results)
+        racer = CustomUser.objects.get(email=email)
+        self.assertEqual(beta_grants(racer), (1, 1, 1))
 
     def test_concurrent_service_calls_yield_one_grant(self):
         def call(_):
@@ -1081,3 +1155,215 @@ class ConcurrentActivationTests(PlanCatalogMixin, TransactionTestCase):
         self.assertEqual(results.count("granted"), 1, results)
         self.assertEqual(results.count("refused"), 5, results)
         self.assertEqual(beta_grants(self.teacher), (1, 1, 1))
+
+
+# ---------------------------------------------------------------------------
+# Failure and recovery: no half grants, no lost subscription, safe retry
+# ---------------------------------------------------------------------------
+
+
+class ActivationFailureRecoveryTests(PlanCatalogMixin, APITestCase):
+    def setUp(self):
+        self.create_plans()
+        self.superadmin = self.make_user(UserTypes.SUPER_ADMIN)
+        self.teacher = self.make_user(UserTypes.TEACHER)
+        self.client.force_authenticate(user=self.superadmin)
+        self.client.raise_request_exception = False
+
+    def assign(self):
+        return self.client.post(
+            reverse("subscription-list"),
+            {"user": str(self.teacher.id), "plan": str(self.beta.pk)},
+            format="json",
+        )
+
+    def assert_failure_rolls_back_then_retry_grants_once(self, target, attribute):
+        before = snapshot(self.teacher)
+        active_before = UserSubscription.objects.get(user=self.teacher, is_active=True)
+
+        with mock.patch.object(
+            target, attribute, side_effect=DatabaseError("injected failure")
+        ):
+            response = self.assign()
+
+        self.assertEqual(response.status_code, 500)
+        # The old subscription was deactivated inside the transaction before
+        # the failure; the rollback must restore it, not leave the user with
+        # no active subscription or a half grant.
+        self.assertEqual(snapshot(self.teacher), before)
+        self.assertEqual(
+            UserSubscription.objects.get(user=self.teacher, is_active=True).pk,
+            active_before.pk,
+        )
+        self.assertEqual(beta_grants(self.teacher), (0, 0, 0))
+
+        # The one-time rule must not have been consumed by the failed attempt.
+        self.assertEqual(self.assign().status_code, 201)
+        self.assertEqual(self.assign().status_code, 400)
+        self.assertEqual(beta_grants(self.teacher), (1, 1, 1))
+
+    def test_failure_creating_the_credit_bucket(self):
+        self.assert_failure_rolls_back_then_retry_grants_once(
+            CreditBucket.objects, "create"
+        )
+
+    def test_failure_writing_the_ledger_entry(self):
+        self.assert_failure_rolls_back_then_retry_grants_once(CreditLedger, "record")
+
+    def test_failure_creating_the_subscription_row(self):
+        self.assert_failure_rolls_back_then_retry_grants_once(
+            UserSubscription.objects, "create"
+        )
+
+    def test_refusals_never_reach_stripe_even_when_stripe_is_down(self):
+        paid = SubscriptionService.activate_subscription(self.teacher, self.pro)
+        paid.stripe_subscription_id = "sub_down"
+        paid.stripe_status = StripeSubscriptionStatus.ACTIVE
+        paid.save(
+            update_fields=["stripe_subscription_id", "stripe_status", "updated_at"]
+        )
+        before = snapshot(self.teacher)
+
+        with mock.patch("billing.stripe_service.stripe") as stripe_down:
+            stripe_down.side_effect = TimeoutError("stripe unavailable")
+            response = self.assign()
+            teacher_client = APIClient()
+            teacher_client.force_authenticate(user=self.teacher)
+            teacher_response = teacher_client.post(
+                reverse("subscription-select-plan"),
+                {
+                    "plan_id": str(self.beta.pk),
+                    "success_url": "https://example.test/ok",
+                    "cancel_url": "https://example.test/cancel",
+                },
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(teacher_response.status_code, 400)
+        self.assertFalse(stripe_down.method_calls)
+        self.assertEqual(snapshot(self.teacher), before)
+
+    def test_checkout_webhook_redelivery_grants_the_paid_plan_once(self):
+        from billing.stripe_service import StripeWebhookHandler
+
+        session = {
+            "id": "cs_redelivered",
+            "subscription": "sub_redelivered",
+            "invoice": None,
+            "payment_intent": None,
+            "amount_total": 1499,
+            "currency": "usd",
+        }
+        metadata = {"user_id": str(self.teacher.id), "plan_id": str(self.standard.pk)}
+        with mock.patch(
+            "billing.stripe_service.resolve_stripe_receipt_url", return_value=None
+        ):
+            for _ in range(3):
+                with transaction.atomic():
+                    StripeWebhookHandler._handle_individual_checkout(session, metadata)
+
+        self.assertEqual(
+            UserSubscription.objects.filter(
+                user=self.teacher, stripe_subscription_id="sub_redelivered"
+            ).count(),
+            1,
+        )
+        self.assertEqual(
+            CreditBucket.objects.filter(
+                wallet__user=self.teacher,
+                bucket_type=CreditBucketType.MONTHLY,
+                expires_at__gt=timezone.now(),
+            ).count(),
+            1,
+        )
+
+
+# ---------------------------------------------------------------------------
+# Isolation: whole-payload checks, same-school and cross-school probes
+# ---------------------------------------------------------------------------
+
+
+class PayloadIsolationTests(PlanCatalogMixin, APITestCase):
+    def setUp(self):
+        self.create_plans()
+        self.superadmin = self.make_user(UserTypes.SUPER_ADMIN)
+
+    def forbidden_tokens(self):
+        tokens = set()
+        for plan in self.forbidden_plans:
+            tokens.update({str(plan.pk), plan.name})
+        return tokens
+
+    def test_no_forbidden_plan_identifier_appears_anywhere_in_any_listing(self):
+        teacher = self.make_user(UserTypes.TEACHER)
+        school_admin = self.make_user(UserTypes.SCHOOL_ADMIN)
+        student = self.make_user(UserTypes.STUDENT)
+        licensed_teacher, license_admin = self.make_licensed_school()
+        urls = [
+            reverse("subscription-plan"),
+            reverse("subscription-plan-list"),
+            reverse("subscription-plan-list") + "?search=BETA",
+            reverse("subscription-plan-list") + "?ordering=-created_at&page=1",
+        ]
+        for user in (teacher, school_admin, student, licensed_teacher, license_admin):
+            self.client.force_authenticate(user=user)
+            for url in urls:
+                response = self.client.get(url)
+                if response.status_code == 403:
+                    continue
+                body = response.content.decode()
+                with self.subTest(user_type=user.user_type, url=url):
+                    self.assertEqual(response.status_code, 200)
+                    leaked = sorted(t for t in self.forbidden_tokens() if t in body)
+                    self.assertEqual(leaked, [])
+
+    def test_refusal_payloads_carry_no_other_users_data(self):
+        victim = self.make_user(UserTypes.TEACHER)
+        SubscriptionService.activate_plan_without_payment(victim, self.beta)
+        victim_tokens = {str(victim.id), victim.email} | {
+            str(pk)
+            for pk in UserSubscription.objects.filter(user=victim).values_list(
+                "pk", flat=True
+            )
+        }
+        attacker = self.make_user(UserTypes.TEACHER)
+        self.client.force_authenticate(user=attacker)
+        for route in ROUTES:
+            response = self.client.post(
+                reverse(route),
+                {"user": str(attacker.id), "plan": str(self.beta.pk)},
+                format="json",
+            )
+            body = response.content.decode()
+            with self.subTest(route=route):
+                self.assertEqual(response.status_code, 403)
+                self.assertEqual(sorted(t for t in victim_tokens if t in body), [])
+
+    def test_same_school_and_cross_school_assignments_stay_inside_their_account(self):
+        school_a = School.objects.create(name="School A")
+        school_b = School.objects.create(name="School B")
+        teacher_a1 = self.make_user(UserTypes.TEACHER, school=school_a)
+        teacher_a2 = self.make_user(UserTypes.TEACHER, school=school_a)
+        teacher_b = self.make_user(UserTypes.TEACHER, school=school_b)
+        bystanders = {t: snapshot(t) for t in (teacher_a2, teacher_b)}
+
+        self.client.force_authenticate(user=self.superadmin)
+        for plan in (self.beta, self.beta, self.pro):
+            self.client.post(
+                reverse("subscription-list"),
+                {"user": str(teacher_a1.id), "plan": str(plan.pk)},
+                format="json",
+            )
+        for peer in (teacher_a2, teacher_b):
+            self.client.force_authenticate(user=peer)
+            for route in ROUTES:
+                self.client.post(
+                    reverse(route),
+                    {"user": str(teacher_a1.id), "plan": str(self.beta.pk)},
+                    format="json",
+                )
+
+        for bystander, before in bystanders.items():
+            self.assertEqual(snapshot(bystander), before)
+        self.assertEqual(beta_grants(teacher_a1), (1, 1, 1))

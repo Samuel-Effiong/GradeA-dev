@@ -1,0 +1,38 @@
+[LIVE QA fe1c1b40f95b] INVARIANT sub.period_matches_stripe at step 2: local billing_cycle_end has drifted from Stripe's period end | observed: {'local': '2026-10-17T14:34:26+00:00', 'stripe': '2026-11-17T14:34:26+00:00', 'delta_seconds': 2678400}
+[LIVE QA fe1c1b40f95b] INVARIANT credit.paid_period_invoice_grants_credits at step 2: more paid period invoices than monthly credit grants — a customer has paid for a cycle without receiving credits | observed: {'paid_period_invoices': 2, 'monthly_buckets': 1}
+[LIVE QA fe1c1b40f95b] INVARIANT sub.period_matches_stripe at step 3: local billing_cycle_end has drifted from Stripe's period end | observed: {'local': '2026-10-17T14:34:26+00:00', 'stripe': '2026-12-17T14:34:26+00:00', 'delta_seconds': 5270400}
+[LIVE QA fe1c1b40f95b] INVARIANT credit.paid_period_invoice_grants_credits at step 3: more paid period invoices than monthly credit grants — a customer has paid for a cycle without receiving credits | observed: {'paid_period_invoices': 3, 'monthly_buckets': 1}
+[LIVE QA fe1c1b40f95b] INVARIANT sub.period_matches_stripe at step 4: local billing_cycle_end has drifted from Stripe's period end | observed: {'local': '2026-10-17T14:34:26+00:00', 'stripe': '2027-01-17T14:34:26+00:00', 'delta_seconds': 7948800}
+[LIVE QA fe1c1b40f95b] INVARIANT credit.paid_period_invoice_grants_credits at step 4: more paid period invoices than monthly credit grants — a customer has paid for a cycle without receiving credits | observed: {'paid_period_invoices': 4, 'monthly_buckets': 1}
+Ignoring Stripe billing period for activate_subscription(user=bruhoquasiwe-3689@yopmail.com, plan=PRO) (2026-09-15T22:59:52+00:00 -> 2026-10-15T22:59:52+00:00): period_end has already elapsed, which would leave the subscription instantly due for renewal again. Falling back to a wall-clock period. This should not happen — investigate the Stripe payload rather than dismissing it.
+Ignoring Stripe billing period for activate_subscription(user=tridduzofrallou-8024@yopmail.com, plan=PRO) (2026-09-16T03:55:24+00:00 -> 2026-10-16T03:55:24+00:00): period_end has already elapsed, which would leave the subscription instantly due for renewal again. Falling back to a wall-clock period. This should not happen — investigate the Stripe payload rather than dismissing it.
+Ignoring Stripe billing period for activate_subscription(user=vimmemmemocei-6010@yopmail.com, plan=POWER) (2026-09-17T10:22:49+00:00 -> 2026-10-17T10:22:49+00:00): period_end has already elapsed, which would leave the subscription instantly due for renewal again. Falling back to a wall-clock period. This should not happen — investigate the Stripe payload rather than dismissing it.
+CommandError: Stripe live QA FAILED (2 scenario(s), 0 cleanup error(s)). See the output above.
+FAIL renewals (91.4s)
+      FAIL cycle 1: local billing cycle moved forward: before=2026-10-17T14:34:26+00:00, after=2026-10-17T14:34:26+00:00
+      FAIL cycle 1: local cycle end is anchored to Stripe's period (C2): expected ~2026-11-17T14:34:26+00:00, got 2026-10-17T14:34:26+00:00 (delta 2678400s, tolerance 120s)
+      FAIL cycle 1: a fresh monthly credit bucket was granted: expected 2, got 1
+      FAIL cycle 2: local billing cycle moved forward: before=2026-10-17T14:34:26+00:00, after=2026-10-17T14:34:26+00:00
+      FAIL cycle 2: local cycle end is anchored to Stripe's period (C2): expected ~2026-12-17T14:34:26+00:00, got 2026-10-17T14:34:26+00:00 (delta 5270400s, tolerance 120s)
+      FAIL cycle 2: a fresh monthly credit bucket was granted: expected 3, got 1
+      FAIL cycle 3: local billing cycle moved forward: before=2026-10-17T14:34:26+00:00, after=2026-10-17T14:34:26+00:00
+      FAIL cycle 3: local cycle end is anchored to Stripe's period (C2): expected ~2027-01-17T14:34:26+00:00, got 2026-10-17T14:34:26+00:00 (delta 7948800s, tolerance 120s)
+      FAIL cycle 3: a fresh monthly credit bucket was granted: expected 4, got 1
+      FAIL sub.period_matches_stripe: [step 2] local billing_cycle_end has drifted from Stripe's period end | observed: {'local': '2026-10-17T14:34:26+00:00', 'stripe': '2026-11-17T14:34:26+00:00', 'delta_seconds': 2678400}
+      FAIL credit.paid_period_invoice_grants_credits: [step 2] more paid period invoices than monthly credit grants — a customer has paid for a cycle without receiving credits | observed: {'paid_period_invoices': 2, 'monthly_buckets': 1}
+      FAIL sub.period_matches_stripe: [step 3] local billing_cycle_end has drifted from Stripe's period end | observed: {'local': '2026-10-17T14:34:26+00:00', 'stripe': '2026-12-17T14:34:26+00:00', 'delta_seconds': 5270400}
+      FAIL credit.paid_period_invoice_grants_credits: [step 3] more paid period invoices than monthly credit grants — a customer has paid for a cycle without receiving credits | observed: {'paid_period_invoices': 3, 'monthly_buckets': 1}
+      FAIL sub.period_matches_stripe: [step 4] local billing_cycle_end has drifted from Stripe's period end | observed: {'local': '2026-10-17T14:34:26+00:00', 'stripe': '2027-01-17T14:34:26+00:00', 'delta_seconds': 7948800}
+      FAIL credit.paid_period_invoice_grants_credits: [step 4] more paid period invoices than monthly credit grants — a customer has paid for a cycle without receiving credits | observed: {'paid_period_invoices': 4, 'monthly_buckets': 1}
+FAIL trial_conversion (37.6s)
+      FAIL trial flag cleared after conversion: is_trial=True
+      FAIL converted cycle end is anchored to Stripe's period (C2): expected ~2026-11-01T14:34:26+00:00, got 2026-10-01T14:34:30.801713+00:00 (delta 2678395s, tolerance 120s)
+      FAIL a paid monthly credit bucket exists after conversion: monthly buckets=0
+PASS immediate_upgrade (33.2s)
+PASS deferred_downgrade (44.1s)
+PASS upgrade_proration_quote (20.0s)
+PASS reconcile_sweep_after_missed_webhook (158.2s)
+NOTE event bus: {'polls': 60, 'events_seen': 161, 'events_routed': 117, 'foreign_events_seen': 44, 'max_pages_used': 1, 'dispatched': {'payment_method.attached': 6, 'setup_intent.created': 1, 'setup_intent.succeeded': 1, 'invoice.payment_succeeded': 12, 'invoice.paid': 12, 'invoice.created': 12, 'invoice.finalized': 12, 'customer.subscription.created': 6, 'payment_intent.succeeded': 11, 'charge.succeeded': 11, 'invoice.upcoming': 6, 'customer.subscription.trial_will_end': 1, 'customer.subscription.updated': 8, 'invoice.updated': 6, 'payment_intent.created': 10, 'subscription_schedule.created': 1, 'subscription_schedule.updated': 1}}
+NOTE 44 event(s) belonged to customers outside this run — the Stripe test account is shared, so treat timing-sensitive results with care.
+Stripe live QA run fe1c1b40f95b: 4/6 scenarios passed, 2 failed, 0 cleanup error(s).
+exit=1
