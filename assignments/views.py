@@ -602,7 +602,9 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
     def update_async(self, request, pk=None, *args, **kwargs):
         """Async variant of partial_update. Saves metadata immediately, re-extracts AI content in background."""
         instance = self.get_object()
-        serializer = AssignmentTextSerializer(
+        # get_serializer, not a bare AssignmentTextSerializer(...): the
+        # course-ownership check needs the request in context (H-18).
+        serializer = self.get_serializer(
             instance=instance, data=request.data, partial=True
         )
         serializer.is_valid(raise_exception=True)

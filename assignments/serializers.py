@@ -675,6 +675,35 @@ class AssignmentTextSerializer(serializers.Serializer):
             raise serializers.ValidationError("Due date cannot be in the past.")
         return value
 
+    def validate_course(self, value):
+        """Reject a course the requesting teacher doesn't own (H-18).
+
+        `course` is a plain writable PK field, and the viewset's
+        get_queryset() only scopes which EXISTING assignment a teacher can
+        reach - never the course a new or edited one points at. Without
+        this, a teacher could create an assignment in another teacher's
+        course, or PATCH their own assignment into it, just by knowing the
+        course UUID. This serializer backs three doors (create/create-async,
+        PATCH, update-async), so the check lives here rather than in each.
+
+        Same rule as TopicSerializer.validate_course, with one deliberate
+        difference: with no authenticated request in context this refuses
+        instead of passing. update_async once built this serializer without
+        context, so a pass-through would have left that door open; failing
+        closed makes a caller that forgets the context break loudly.
+        """
+        request = self.context.get("request")
+        user = getattr(request, "user", None) if request else None
+        if user is None or not user.is_authenticated:
+            raise serializers.ValidationError("You do not have access to this course.")
+
+        if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:
+            return value
+
+        if value.teacher_id != user.id:
+            raise serializers.ValidationError("You do not have access to this course.")
+        return value
+
     def validate_raw_input(self, value):
         if not value.strip():
             raise ParseError("Assignment content cannot be empty")
