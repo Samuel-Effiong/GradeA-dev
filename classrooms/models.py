@@ -276,13 +276,6 @@ class StudentCourse(models.Model):
         help_text="Timestamp of the last AI summary generation.",
     )
 
-    # attendance_record = models.JSONField(default=dict)
-    # participation_score = models.DecimalField(
-    #     max_digits=5,
-    #     decimal_places=2,
-    #     default=0.00
-    # )
-
     objects = StudentCourseQuerySet.as_manager()
     all_objects = models.Manager()
 

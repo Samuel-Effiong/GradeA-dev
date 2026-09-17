@@ -136,7 +136,10 @@ class CourseSerializer(serializers.ModelSerializer):
         allow_empty=True,
     )
     assignment_count = serializers.SerializerMethodField()
-    assignments = AssignmentListSerializer(many=True, read_only=True)
+    # A method field rather than a nested serializer so a student's payload
+    # can be filtered to published work - see get_assignments. The schema
+    # and every teacher's output are unchanged.
+    assignments = serializers.SerializerMethodField()
 
     class Meta:
         model = Course
@@ -209,13 +212,6 @@ class CourseSerializer(serializers.ModelSerializer):
         return course
 
     def get_student_count(self, obj) -> int:
-        # return (
-        #     StudentCourse.objects.filter(course=obj)
-        #     .exclude(enrollment_status__iexact="withdrawn")
-        #     .distinct()
-        #     .count()
-        # )
-
         if hasattr(obj, "student_count"):
             return obj.student_count
 
@@ -225,7 +221,43 @@ class CourseSerializer(serializers.ModelSerializer):
             .count()
         )
 
+    def _requesting_student(self):
+        """The requester when they are a student, otherwise None.
+
+        Only a student's course payload is filtered. Teachers, school
+        admins and superadmins keep exactly what they have always received.
+        """
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if getattr(user, "user_type", None) == UserTypes.STUDENT:
+            return user
+        return None
+
+    def _visible_assignments(self, obj):
+        """Every assignment for staff; only PUBLISHED ones for a student.
+
+        Drafts and unpublished work are the teacher's, and the assignments
+        endpoints already hide them from students by the same rule. Filtered
+        in Python: calling .filter() would discard the view's prefetch and
+        issue a query per course.
+        """
+        assignments = obj.assignments.all()
+        if self._requesting_student() is None:
+            return assignments
+        return [a for a in assignments if a.status == AssignmentStatus.PUBLISHED]
+
+    @extend_schema_field(AssignmentListSerializer(many=True))
+    def get_assignments(self, obj):
+        return AssignmentListSerializer(
+            many=True, context=self.context
+        ).to_representation(self._visible_assignments(obj))
+
     def get_assignment_count(self, obj):
+        if self._requesting_student() is not None:
+            # Must agree with the filtered `assignments` list. An annotated
+            # count, if one is ever added, would include drafts.
+            return len(self._visible_assignments(obj))
+
         if hasattr(obj, "assignment_count"):
             return obj.assignment_count
 
@@ -237,16 +269,6 @@ class CourseSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(StudentSerializer(many=True))
     def get_students(self, obj):
-        # # TODO: Add users, to ensure that it is by the teacher
-        # enrolled_students = (
-        #     CustomUser.objects.filter(enrollments__course=obj)
-        #     .exclude(
-        #         enrollments__course=obj,
-        #         enrollments__enrollment_status__iexact="withdrawn",
-        #     )
-        #     .distinct()
-        # )
-
         if hasattr(obj, "active_enrollments"):
             enrolled_students = [
                 enrollment.student for enrollment in obj.active_enrollments
@@ -276,7 +298,16 @@ class CourseSerializer(serializers.ModelSerializer):
             context={"course": obj, "enrollment_status_by_student": status_by_student},
         )
 
-        return serializer.data
+        data = serializer.data
+        viewer = self._requesting_student()
+        if viewer is not None:
+            # A student may see who their classmates are, never how to
+            # email them. Their own address stays: it is their own data.
+            for student, entry in zip(enrolled_students, data, strict=True):
+                if student.pk != viewer.pk:
+                    entry["email"] = None
+
+        return data
 
 
 class StudentCourseSerializer(serializers.ModelSerializer):
@@ -344,7 +375,19 @@ class StudentCourseSerializer(serializers.ModelSerializer):
     # page of /student-course was ~400 avoidable queries.
 
     def _course_assignments(self, obj):
-        return obj.course.assignments.all()
+        # This viewset serves both the owning teacher and the enrolled
+        # student (see StudentCourseViewSet.get_queryset). A teacher sees
+        # every assignment they authored, drafts included - see
+        # test_the_counts_are_still_correct. A student must not learn a
+        # draft exists at all, so their counts have to agree with the
+        # PUBLISHED-only filter get_assignments applies below, or the
+        # stats and the assignment table disagree (the bug this fixes).
+        assignments = obj.course.assignments.all()
+        request = self.context.get("request")
+        user = getattr(request, "user", None) if request else None
+        if getattr(user, "user_type", None) != UserTypes.STUDENT:
+            return list(assignments)
+        return [a for a in assignments if a.status == AssignmentStatus.PUBLISHED]
 
     def _submitted_assignment_ids(self, obj):
         return {
@@ -381,11 +424,9 @@ class StudentCourseDetailSerializer(StudentCourseSerializer):
         # the prefetched .all() would discard the prefetch cache and issue
         # a fresh query per enrollment row — the exact N+1 the view's
         # prefetch_related("course__assignments") exists to prevent.
-        assignments = [
-            a
-            for a in obj.course.assignments.all()
-            if a.status == AssignmentStatus.PUBLISHED
-        ]
+        # Shares _course_assignments with the stats fields above so the
+        # table and the header counts can never disagree again.
+        assignments = self._course_assignments(obj)
 
         # Filter pre-fetched submissions for this specific student
 
@@ -400,7 +441,7 @@ class StudentCourseDetailSerializer(StudentCourseSerializer):
         for assignment in assignments:
             submission = submissions.get(assignment.id)
 
-            # Logic: status and score
+            # Status and score for this assignment
             if not submission:
                 now = timezone.now()
 

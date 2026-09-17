@@ -266,7 +266,7 @@ The async path serialises each file to **base64 in the Celery message** ([servic
 | `application/pdf` | `pdf_service.extract()` → one base64 image per page |
 | anything else | `ParseError` naming the allowed formats |
 
-**PDFs are converted to images, not text.** The AI reads page images, which is why `ocr_processor` is an empty stub — OCR is the model's job. `PDFService` in `assignments/services.py` ([services.py:265-311](../../assignments/services.py#L265-L311)) is a *different, PyMuPDF-based text extractor* that is **not used by this path** — `prepare_ai_content` calls the module-level `pdf_service` imported from `ai_processor`. The local `PDFService` class has no live caller.
+**PDFs are converted to images, not text.** The AI reads page images directly — OCR is the model's job, which is why the empty `ocr_processor` app was deleted (2026-09-15). `PDFService` in `assignments/services.py` ([services.py:265-311](../../assignments/services.py#L265-L311)) is a *different, PyMuPDF-based text extractor* that is **not used by this path** — `prepare_ai_content` calls the module-level `pdf_service` imported from `ai_processor`. The local `PDFService` class has no live caller.
 
 ### HTML sanitisation is the security boundary
 

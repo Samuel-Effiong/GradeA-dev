@@ -989,7 +989,6 @@ def process_license_monthly_credit_refreshes(self):
     ).select_related("license_subscription", "user", "license_subscription__plan")
 
     refreshed_count = 0
-    # skipped_no_bucket = 0
     failed_count = 0
 
     for allocation in due_allocations:

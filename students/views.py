@@ -344,16 +344,28 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         user = self.request.user
 
         if user.user_type == UserTypes.STUDENT:
-            return StudentSubmission.objects.filter(student=user).exclude(
+            queryset = StudentSubmission.objects.filter(student=user).exclude(
                 assignment__status__in=[
                     AssignmentStatus.DRAFT,
                     AssignmentStatus.UNPUBLISHED,
                 ]
             )
         elif user.user_type == UserTypes.TEACHER:
-            return StudentSubmission.objects.filter(assignment__course__teacher=user)
+            queryset = StudentSubmission.objects.filter(
+                assignment__course__teacher=user
+            )
         else:
             return StudentSubmission.objects.none()
+
+        if self.action == "list":
+            # StudentSubmissionListSerializer reads each row's student
+            # (student_name), assignment (assignment_title, max_points
+            # fallback) and assignment.course (course). Loaded lazily that
+            # was three queries per row - 64 at the default page size, 304
+            # at the maximum (H-16). All three FKs are non-null, so these
+            # are inner joins and cannot widen the tenant filter above.
+            queryset = queryset.select_related("student", "assignment__course")
+        return queryset
 
     def get_serializer_class(self):
         if self.action == "list":

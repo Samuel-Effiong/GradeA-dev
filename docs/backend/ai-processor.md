@@ -270,7 +270,7 @@ An unrecognised `ANSWER_COMPLETENESS_ENFORCEMENT` value logs a WARNING and falls
 
 `_verify_blank_answers` ([services.py:1604-1806](../../ai_processor/services.py#L1604-L1806)) re-reads the pages for questions extraction reported as empty.
 
-**Why only the blanks:** *"A lost answer can only ever hide inside a claimed blank — an answer that WAS transcribed is by definition not lost. And a full verification pass is not available to us: the submission is read from page images and `ocr_processor` is an empty stub, so there is no independent transcript to diff a transcription against."*
+**Why only the blanks:** *"A lost answer can only ever hide inside a claimed blank — an answer that WAS transcribed is by definition not lost. And a full verification pass is not available to us: the submission is read from page images by the vision model directly, so there is no independent OCR transcript to diff a transcription against."* (Reworded 2026-09-15 when the empty `ocr_processor` app it used to cite was deleted; the reasoning is unchanged.)
 
 **The one transition it can make:** `BLANK → NOT_FOUND_IN_DOCUMENT`, and deliberately nothing else.
 

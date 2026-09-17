@@ -45,8 +45,6 @@ import logging
 from django.utils import timezone
 
 from billing.models import StripeSubscriptionStatus, UserSubscription
-
-# from billing.services import SubscriptionService
 from billing.stripe_service import StripeSubscriptionScheduleService
 
 logger = logging.getLogger(__name__)

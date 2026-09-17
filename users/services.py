@@ -7,8 +7,6 @@ from django.conf import settings
 from django.core.cache import cache
 from django.db.models import Avg, Max
 from django.db.models.functions import ExtractHour
-
-# from django.template.loader import render_to_string
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 
@@ -59,7 +57,6 @@ def send_user_activation_email(user):
             "current_year": timezone.now().year,
         }
 
-        # html_content = render_to_string("email/token_activation.html", context=context)
         return send_email_task.delay(
             subject="Verify your email and get started with faster, smarter grading",
             message="",
@@ -81,7 +78,6 @@ def send_user_activation_email(user):
 class OTPManager:
     def __init__(self, length=6):
         self.otp_length = length
-        # self.max_attempts = max_attempts
 
     def generate_otp(self):
         otp = get_random_string(self.otp_length, allowed_chars=string.digits)
@@ -130,12 +126,6 @@ def cleanup_expired_users():
 
 
 def get_current_concurrent_users():
-
-    # keys = cache.keys("active_user*")
-    # all_active_data = cache.get_many(keys)
-
-    # return len(all_active_data)
-
     from users.middleware import ONLINE_SET_KEY
 
     members = cache.smembers(ONLINE_SET_KEY)

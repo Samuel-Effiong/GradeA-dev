@@ -854,11 +854,6 @@ class LicenseSubscriptionService:
         LicenseSubscriptionService.validate_license_plan(plan)
         admin_user = LicenseSubscriptionService.resolve_admin_user(school, admin_user)
 
-        # if contract_months not in (1, 9, 10, 12):
-        #     raise ValueError(
-        #         f"contract_months must be 9, 10, or 12. Got: {contract_months}"
-        #     )
-
         if max_seats <= 0:
             raise ValueError("max_seats must be a positive integer")
 
@@ -2655,7 +2650,6 @@ class LicenseSubscriptionService:
             status=LicenseOveragePurchaseStatus.PENDING,
         )
 
-        # block_display = plan.overage_block_size // CONVERSION_FACTOR
         try:
             session = stripe.checkout.Session.create(
                 customer=customer_id,
@@ -3249,7 +3243,6 @@ class LicenseSubscriptionService:
         teacher = allocation.user
         wallet = teacher.credit_wallet
         license_sub = allocation.license_subscription
-        # plan = license_sub.plan
         now = timezone.now()
         next_refresh = now + relativedelta(months=1)
 

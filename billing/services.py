@@ -654,7 +654,7 @@ class SubscriptionService:
             # the NEXT grant. It also means cleanup_expired_credit_buckets no
             # longer writes an EXPIRE row for this bucket's post-rollover
             # remainder — which is already how both renewal paths behave
-            # (process_rollover_and_renewal, _rollover_and_grant_monthly_bucket),
+            # (see process_rollover_and_renewal and _rollover_and_grant_monthly_bucket),
             # so this makes mid-cycle consistent with them rather than
             # introducing a new policy. Deliberately NOT expire_bucket(): that
             # logs the full total-minus-used, including the slice just
@@ -950,49 +950,6 @@ class SubscriptionService:
 
         return current_sub
 
-    # @staticmethod
-    # @transaction.atomic
-    # def cancel_scheduled_downgrade(user):
-    #     """
-    #     Clears a previously-scheduled downgrade (pending_plan) so the
-    #     subscription simply renews onto its current plan as normal.
-
-    #     Idempotent: if nothing is pending, this is a harmless no-op that still
-    #     returns the current subscription (does NOT raise) — callers that just
-    #     want to guarantee "no downgrade pending" after calling this don't need
-    #     to special-case "there wasn't one to begin with".
-
-    #     Args:
-    #         user (CustomUser): The user cancelling their scheduled downgrade.
-
-    #     Returns:
-    #         UserSubscription: The updated subscription, with pending_plan=None.
-
-    #     Raises:
-    #         ValueError: If the user has no active subscription at all.
-    #     """
-    #     current_sub = (
-    #         UserSubscription.objects.select_for_update()
-    #         .filter(user=user, is_active=True)
-    #         .select_related("plan", "pending_plan")
-    #         .first()
-    #     )
-
-    #     if not current_sub:
-    #         raise ValueError("No active subscription found.")
-
-    #     if current_sub.pending_plan_id:
-    #         previous_pending = current_sub.pending_plan
-    #         current_sub.pending_plan = None
-    #         current_sub.save(update_fields=["pending_plan", "updated_at"])
-    #         logger.info(
-    #             "Cancelled scheduled downgrade for user %s (was pending -> %s).",
-    #             user.email,
-    #             previous_pending.name if previous_pending else "unknown",
-    #         )
-
-    #     return current_sub
-
     @staticmethod
     @transaction.atomic
     def expire_bucket(bucket):
@@ -1048,8 +1005,6 @@ class SubscriptionService:
             ValueError: If the user has already used a trial, if the plan is not
                         INDIVIDUAL category, or if the user has an active subscription.
         """
-        # from .models import PlanCategory  # local import avoids circular import risk
-
         # Guard 1 — only INDIVIDUAL plans have a free trial
         if plan.category != PlanCategory.INDIVIDUAL:
             raise ValueError(

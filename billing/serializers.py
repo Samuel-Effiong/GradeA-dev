@@ -503,7 +503,6 @@ class MySubscriptionSerializer(UserSubscriptionSerializer):
     # Credit wallet summary
     current_balance_display = serializers.SerializerMethodField()
     credit_percentage_remaining = serializers.SerializerMethodField()
-    # monthly_credit_total_display = serializers.SerializerMethodField()
     monthly_credit_remaining_display = serializers.SerializerMethodField()
 
     class Meta(UserSubscriptionSerializer.Meta):
@@ -565,9 +564,6 @@ class MySubscriptionSerializer(UserSubscriptionSerializer):
             return round(min(percentage, 100.0), 2)
         except (CreditWallet.DoesNotExist, AttributeError):
             return 0.0
-
-    # def get_monthly_credit_total_display(self, obj):
-    #     return obj.plan.display_monthly_credits
 
     def get_monthly_credit_remaining_display(self, obj):
         try:
@@ -897,21 +893,6 @@ class CreditWalletSerializer(serializers.ModelSerializer):
           - >= 20%  → Amber  (warning)
           -  < 20%  → Red    (critical)
         """
-        # total = self.get_monthly_credit_total(obj)
-        # if not total:
-        #     return 0.0
-        # remaining = self.get_monthly_credit_remaining(obj)
-        # percentage = (remaining / total) * 100
-        # return round(min(percentage, 100.0), 2)
-
-        # total = self.get_monthly_credit_total(obj)
-        # if not total:
-        #     return 0.0
-
-        # remaining = getattr(obj, "display_balance", obj.display_balance)
-        # percentage = (remaining / total) * 100
-        # return round(min(percentage, 100.0), 2)
-
         now = timezone.now()
 
         active_buckets_query = obj.buckets.filter(
@@ -990,8 +971,6 @@ class CreditWalletSerializer(serializers.ModelSerializer):
         return breakdown
 
     def get_feature_usage_breakdown(self, obj) -> Optional[Dict[str, int]]:
-        # subscription = obj.user.subscriptions.filter(is_active=True).first()
-
         subscription = obj.active_subscription
 
         if not subscription:
@@ -1015,7 +994,6 @@ class CreditWalletSerializer(serializers.ModelSerializer):
 
         for item in by_feature:
             core_features[item["feature"]] = item["total"]
-        # feature_map = {item["feature"]: item["total"] for item in by_feature}
 
         return core_features
 
@@ -1156,21 +1134,6 @@ class CreditWalletSummarySerializer(serializers.ModelSerializer):
           - >= 20%  → Amber  (warning)
           -  < 20%  → Red    (critical)
         """
-        # total = self.get_monthly_credit_total(obj)
-        # if not total:
-        #     return 0.0
-        # remaining = self.get_monthly_credit_remaining(obj)
-        # percentage = (remaining / total) * 100
-        # return round(min(percentage, 100.0), 2)
-
-        # total = self.get_monthly_credit_total(obj)
-        # if not total:
-        #     return 0.0
-
-        # remaining = getattr(obj, "display_balance", obj.display_balance)
-        # percentage = (remaining / total) * 100
-        # return round(min(percentage, 100.0), 2)
-
         now = timezone.now()
 
         active_buckets_query = obj.buckets.filter(
@@ -1307,7 +1270,6 @@ class OverageCheckoutRequestSerializer(serializers.Serializer):
 
 
 class OverageStatusSerializer(serializers.ModelSerializer):
-    # max_blocks = serializers.SerializerMethodField()
     block_size = serializers.SerializerMethodField()
     block_remaining = serializers.SerializerMethodField()
     current_overage_balance = serializers.SerializerMethodField()
@@ -1702,8 +1664,6 @@ class BetaFeatureMixSerializer(serializers.Serializer):
     total_analytics_views = serializers.IntegerField()
     views_per_user = serializers.FloatField()
     primary_driver = serializers.CharField()
-    # engagement_quality = serializers.CharField()
-    # consumption_time_series = FeatureConsumptionTimeSeriesSerializer(many=True)
 
 
 class PeakUsageHourSerializer(serializers.Serializer):
@@ -1719,13 +1679,6 @@ class WeeklyGrowthSerializer(serializers.Serializer):
 class InfrastructureInsightSerializer(serializers.Serializer):
     peak_hour = serializers.IntegerField(allow_null=True)
     current_week_velocity = serializers.IntegerField()
-
-
-# class BetaUsageTrendSerializer(serializers.Serializer):
-# daily_time_series = DailyTimeSeriesSerializer(many=True)
-# peak_usage_hours = PeakUsageHourSerializer(many=True)
-# weekly_growth = WeeklyGrowthSerializer(many=True)
-# infrastructure_insight = InfrastructureInsightSerializer()
 
 
 class UsageQuintileBreakdownSerializer(serializers.Serializer):
@@ -1781,7 +1734,6 @@ class ConversionLeadFlagsSerializer(serializers.Serializer):
     at_80_percent = serializers.BooleanField()
     active_last_week = serializers.BooleanField()
     is_power_grader = serializers.BooleanField()
-    # grading_heavy = serializers.BooleanField()
     frequent_user = serializers.BooleanField()
 
 
@@ -2401,19 +2353,19 @@ class LicenseOveragePurchaseResultSerializer(serializers.Serializer):
     )
     message = serializers.CharField()
 
-    # action == "checkout"
+    # Present when action is "checkout"
     checkout_url = serializers.URLField(required=False, allow_null=True)
     checkout_session_id = serializers.CharField(required=False, allow_null=True)
     intent_id = serializers.UUIDField(required=False, allow_null=True)
     amount_cents = serializers.IntegerField(required=False, allow_null=True)
 
-    # action == "offline_request_pending"
+    # Present when action is "offline_request_pending"
     request_id = serializers.UUIDField(required=False, allow_null=True)
 
     # both actions
     total_blocks = serializers.IntegerField(required=False)
 
-    # action == "granted"
+    # Present when action is "granted"
     allocations = serializers.ListField(required=False)
 
 
@@ -2576,12 +2528,6 @@ class SelectIndividualPlanSerializer(serializers.Serializer):
                 f"The {plan.get_name_display()} plan cannot be selected directly."
             )
 
-        # if plan.is_contact_sales:
-        #     raise serializers.ValidationError(
-        #         "This plan requires contacting our sales team and can't be "
-        #         "selected directly."
-        #     )
-
         if not plan.is_active:
             raise serializers.ValidationError(
                 "This plan is no longer available for new selections."
@@ -2623,14 +2569,14 @@ class PlanChangeResultSerializer(serializers.Serializer):
         help_text="Human-readable summary of what happened, safe to show directly to the user."
     )
 
-    # action == "checkout"
+    # Present when action is "checkout"
     checkout_url = serializers.URLField(required=False, allow_null=True)
     checkout_session_id = serializers.CharField(required=False, allow_null=True)
 
-    # action == "upgraded" | "downgrade_cancelled"
+    # Present when action is "upgraded" or "downgrade_cancelled"
     subscription = UserSubscriptionSerializer(required=False, allow_null=True)
 
-    # action == "downgrade_scheduled"
+    # Present when action is "downgrade_scheduled"
     pending_plan = SubscriptionPlanSerializer(required=False, allow_null=True)
     effective_date = serializers.DateTimeField(required=False, allow_null=True)
     recommended_plan = SubscriptionPlanSerializer(required=False, allow_null=True)

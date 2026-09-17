@@ -13,8 +13,6 @@ from django.utils.translation import gettext_lazy as _
 from .errors import InsufficientCreditsError
 from .immutable import AppendOnlyModel, register_append_only_guards
 
-# from .services import SubscriptionService
-
 # Create your models here.
 
 CONVERSION_FACTOR = 1000
@@ -358,10 +356,6 @@ class SubscriptionPlan(models.Model):
         default=0,
         help_text="Raw credits per overage block (display value × 1000, e.g. 5_000_000 = 5K)",
     )
-    # overage_block_price = models.PositiveIntegerField(
-    #     default=0,
-    #     help_text="Price per overage block in USD cents (e.g. 400 = $4.00)",
-    # )
 
     overage_block_price = models.IntegerField(
         default=0,
@@ -409,10 +403,6 @@ class SubscriptionPlan(models.Model):
         if self.monthly_credits is None:
             return None
         return self.monthly_credits // CONVERSION_FACTOR
-
-    # @property
-    # def display_carry_over_max(self):
-    #     return self.carry_over_max // CONVERSION_FACTOR
 
     @property
     def display_max_bank(self) -> int | None:
@@ -691,9 +681,6 @@ class CreditWallet(models.Model):
         Returns sum of all valid bucket credits (monthly + rollover + overage)
         """
         now = timezone.now()
-        # valid_buckets = self.buckets.filter(models.Q(expires_at__isnull=True) | models.Q(expires_at__gt=now))
-        # total = sum(bucket.remaining_credits for bucket in valid_buckets if bucket.remaining_credits > 0)
-
         result = self.buckets.filter(
             models.Q(expires_at__isnull=True) | models.Q(expires_at__gt=now)
         ).aggregate(
@@ -2803,11 +2790,11 @@ class LiveQARun(models.Model):
     )
     celery_task_id = models.CharField(max_length=255, blank=True, default="")
 
-    # kind=SCENARIO
+    # Fields used when kind is SCENARIO
     scenario_names = models.JSONField(default=list, blank=True)
     tier = models.CharField(max_length=10, blank=True, default="")
 
-    # kind=CHAOS
+    # Fields used when kind is CHAOS
     seed = models.IntegerField(null=True, blank=True)
     steps = models.IntegerField(null=True, blank=True)
     shrink = models.BooleanField(default=False)

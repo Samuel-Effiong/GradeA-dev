@@ -147,9 +147,10 @@ ANSWER_EXTRACTION_RESPONSE_SCHEMA: Dict[str, Any] = {
 # A claimed blank is the ONLY shape a lost answer can hide in: an answer
 # that was transcribed is, by definition, not lost. So rather than trying
 # to verify every answer against a source text we do not have (submissions
-# are read from page images; ocr_processor is an empty stub, so there is no
-# independent transcript to diff against), this re-reads the pages asking
-# one narrow question about the specific questions that came back empty.
+# are read from page images by the vision model directly, so there is no
+# independent OCR transcript to diff against), this re-reads the pages
+# asking one narrow question about the specific questions that came back
+# empty.
 #
 # Cost is bounded and self-limiting: zero extra calls on a fully answered
 # submission, and the more blanks there are — i.e. the higher the risk that

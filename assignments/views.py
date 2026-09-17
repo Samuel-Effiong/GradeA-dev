@@ -13,10 +13,6 @@ from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django_celery_beat.models import ClockedSchedule, PeriodicTask
-
-# from django.utils.decorators import method_decorator
-# from django.views.decorators.cache import cache_page
-# from django.views.decorators.vary import vary_on_headers
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import (
@@ -45,16 +41,12 @@ from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.uploads import PayloadTooLarge, validate_upload_size
 from billing.access_control import AIFeatureNotAvailableError
 from billing.errors import InsufficientCreditsError
-
-# from ai_processor.tools import encode_image
 from classrooms.models import COURSE_ACCESS_ENROLLMENT_STATUSES, Course, Topic
 from classrooms.permissions import IsTeacher, IsTeacherOrReadOnly
 from classrooms.serializers import TopicSerializer
 from students.models import BackgroundTaskType, BatchUploadSession, BatchUploadType
 from students.task_tracking import create_processing_task, launch_processing_task
 from users.mixins import UserCacheMixin
-
-# from students.serializers import StudentSubmissionSerializer
 from users.models import UserTypes
 from users.permissions import HasCreditBalance
 
@@ -95,14 +87,6 @@ from .tasks import (  # grade_all_submissions,
 )
 
 logger = logging.getLogger(__name__)
-
-# from billing.access_control import require_ai_access
-
-
-# from students.models import StudentSubmission
-
-
-# from ai_processor.validators import AssignmentStructure
 
 
 @extend_schema_view(
@@ -820,8 +804,6 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if not files:
             raise ParseError("No files were uploaded.")
 
-        # results = []
-
         prompt_text = """
         Analyze the image of an educational assignment and return a JSON
 
@@ -896,12 +878,6 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     }
                 )
 
-        # with transaction.atomic():
-        #     serializer = AssignmentSerializer(data=results, many=True)
-        #     serializer.is_valid(raise_exception=True)
-        #     instance = serializer.save()
-        #
-        #     serializer = AssignmentListSerializer(instance, many=True)
         response_data = {
             "successful": successful,
             "failed": failed,
@@ -980,16 +956,6 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         # Validate course exists and user has access to it
         course = get_object_or_404(Course, id=course_id, teacher=request.user)
-        # try:
-        #     course = get_object_or_404(Course, id=course_id, teacher=request.user)
-        # except (ValueError, ValidationError):
-        #     raise ParseError(
-        #         "Invalid Course ID format. Must be with a valid UUID"
-        #     ) from Exception
-        # except Http404:
-        #     raise NotFound(
-        #         "Course not found or you don't have access to it."
-        #     ) from Http404
 
         topic_value = request.data.get("topic", "")
         topic_id = topic_value.strip() if isinstance(topic_value, str) else None
@@ -1063,8 +1029,6 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 file_name=uploaded_file.name,
             )
             tasks_data.append({"file_name": uploaded_file.name, "task_id": task.id})
-
-            # tasks_data.append({"file_name": uploaded_file.name, "task_id": task})
 
         data = {
             "session_id": session.id,
@@ -1259,7 +1223,6 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         as an AI draft in the generation session until the teacher explicitly saves it.
         """
 
-        # course = Course.objects.filter(id=course_id)
         course = get_object_or_404(Course, id=course_id, teacher=request.user)
         serializer = AssignmentGeneratorSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

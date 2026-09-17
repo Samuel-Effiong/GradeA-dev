@@ -18,7 +18,6 @@ source =
     billing
     classrooms
     dashboard
-    ocr_processor
     students
     users
 branch = True

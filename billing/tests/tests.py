@@ -438,17 +438,3 @@ class ConcurrentRegistrationTest(TransactionTestCase):
         can_access, reason = can_user_access_ai(user)
         assert not can_access
         assert reason is not None and "inactive" in reason.lower()
-
-    # def test_celery_beat_task_configured(self):
-    #     from io import StringIO
-
-    #     from django.core.management import call_command
-
-    #     out = StringIO()
-    #     call_command("shell", stdout=out)
-    #     # Or: check celery_app.conf.beat_schedule dict directly
-
-    #     # Verify expire_active_trials is in schedule
-    #     from billing.tasks import expire_active_trials
-
-    #     # (This is mostly an ops/deployment verification)

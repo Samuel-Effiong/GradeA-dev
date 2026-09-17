@@ -10,8 +10,6 @@ from AutoGrader.error_messages import describe_user_error
 from billing.serializers import CreditWalletSerializer
 from billing.services import AnalyticsService
 from classrooms.models import School
-
-# from students.task_context import get_session_context, get_task_context
 from users.models import (
     BetaWhitelist,
     CustomUser,

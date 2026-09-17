@@ -94,7 +94,6 @@ def _infra_error_categories():
         RateLimitError,
     )
     from pdf2image.exceptions import (
-        PDFInfoNotInstalledError,
         PDFPageCountError,
         PDFPopplerTimeoutError,
         PDFSyntaxError,
@@ -145,11 +144,19 @@ def _infra_error_categories():
                 UnidentifiedImageError,
                 PDFSyntaxError,
                 PDFPageCountError,
-                PopplerNotInstalledError,
-                PDFInfoNotInstalledError,
             ),
             "We couldn't read this file — it may be corrupted, "
             "password-protected, or in an unsupported format.",
+        ),
+        (
+            # PDFInfoNotInstalledError subclasses PopplerNotInstalledError, so
+            # this one tuple covers both. Unlike the file-reading category
+            # above, this means the server is missing the poppler binary —
+            # not a fault in the uploaded file — so it gets its own message
+            # that doesn't blame the file.
+            (PopplerNotInstalledError,),
+            "We couldn't process this file due to a temporary issue on our "
+            "end. Please try again, or contact support if this continues.",
         ),
         (
             (CloudinaryError, OSError),

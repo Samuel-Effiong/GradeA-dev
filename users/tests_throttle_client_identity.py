@@ -58,10 +58,10 @@ LOCMEM_CACHES = {
 # true client, putting it rightmost. That is wrong for this platform and
 # the assumption cost several deploy cycles. What Railway actually does:
 #
-#   x_forwarded_for: "129.222.206.195, 152.233.29.4"
-#                     ^ true client    ^ edge instance, ROTATES per request
-#   x_real_ip:       "129.222.206.195"
-#   remote_addr:     "100.64.0.3"      (internal mesh, not in the chain)
+#   X-Forwarded-For  ->  129.222.206.195, 152.233.29.4
+#                        ^ true client    ^ edge instance, ROTATES per request
+#   X-Real-IP        ->  129.222.206.195
+#   REMOTE_ADDR      ->  100.64.0.3        (internal mesh, not in the chain)
 #
 # Two consequences, both load-bearing:
 #

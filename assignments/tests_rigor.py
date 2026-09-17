@@ -178,9 +178,9 @@ class RigorScoringTest(SimpleTestCase):
     def test_compose_renormalizes_over_available_components(self):
         # Demand alone is the whole score, not 60% of it.
         self.assertAlmostEqual(compose_rigor(4.0), 4.0)
-        # (0.6*4 + 0.25*2) / 0.85
+        # Weighted: 0.6 x 4 plus 0.25 x 2, divided by 0.85.
         self.assertAlmostEqual(compose_rigor(4.0, 2.0), 2.9 / 0.85)
-        # (0.6*4 + 0.15*3) / 0.75
+        # Weighted: 0.6 x 4 plus 0.15 x 3, divided by 0.75.
         self.assertAlmostEqual(compose_rigor(4.0, None, 3.0), 2.85 / 0.75)
 
     def test_compose_requires_demand(self):

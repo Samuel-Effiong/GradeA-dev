@@ -16,7 +16,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from assignments.models import Assignment
+from assignments.models import Assignment, AssignmentStatus
 from classrooms.models import (
     Course,
     EnrollmentStatusType,
@@ -471,6 +471,60 @@ class StudentCourseListQueryBudgetTest(ClassroomTenancyBase):
         self.assertEqual(row["total_no_of_assignment"], 3)
         self.assertEqual(row["total_assignment_submitted"], 1)
         self.assertAlmostEqual(row["submitted_assignment_percentage"], 100 / 3)
+
+
+class StudentAssignmentCountsMatchVisibleAssignmentsTest(ClassroomTenancyBase):
+    """A student's header stats (total_no_of_assignment,
+    submitted_assignment_percentage) must count the same assignments as the
+    `assignments` list they are shown - both must exclude drafts.
+
+    Previously the header counted every assignment on the course, drafts
+    included, while the `assignments` list correctly filtered to PUBLISHED
+    only. A course with 12 assignments but only 3 published showed "3/12
+    submitted" to the student instead of "3/3".
+    """
+
+    def setUp(self):
+        super().setUp()
+        for index in range(2):
+            Assignment.objects.create(
+                title=f"Published {index}",
+                course=self.course_a,
+                teacher=self.teacher_a,
+                status=AssignmentStatus.PUBLISHED,
+            )
+        Assignment.objects.create(
+            title="Draft",
+            course=self.course_a,
+            teacher=self.teacher_a,
+            status=AssignmentStatus.DRAFT,
+        )
+        self.student = self.make_student("student@school-a.test")
+        self.enrollment = StudentCourse.objects.create(
+            student=self.student, course=self.course_a
+        )
+        submitted = Assignment.objects.get(title="Published 0")
+        StudentSubmission.objects.create(
+            student=self.student, assignment=submitted, answers={}
+        )
+
+    def test_student_header_counts_agree_with_the_assignment_list(self):
+        self.client.force_authenticate(self.student)
+        url = reverse("student-course-detail", kwargs={"pk": self.enrollment.id})
+        payload = self.client.get(url).data
+
+        self.assertEqual(len(payload["assignments"]), 2)
+        self.assertEqual(payload["total_no_of_assignment"], 2)
+        self.assertEqual(payload["total_assignment_submitted"], 1)
+        self.assertAlmostEqual(payload["submitted_assignment_percentage"], 50.0)
+
+    def test_teacher_header_counts_still_include_drafts(self):
+        self.client.force_authenticate(self.teacher_a)
+        url = reverse("student-course-detail", kwargs={"pk": self.enrollment.id})
+        payload = self.client.get(url).data
+
+        self.assertEqual(len(payload["assignments"]), 3)
+        self.assertEqual(payload["total_no_of_assignment"], 3)
 
 
 class CreateTopicsActionTest(ClassroomTenancyBase):

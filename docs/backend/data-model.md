@@ -234,7 +234,7 @@ Two models call `full_clean()` unconditionally in `save()` — `Session` and `St
 
 ## Migration history
 
-**179 migrations**: billing 58, assignments 38, users 35, students 25, classrooms 16, ai_processor 5, dashboard 2. `ocr_processor` has none — it is an empty stub app (the equally empty `grading` stub was deleted 2026-09-12).
+**179 migrations**: billing 58, assignments 38, users 35, students 25, classrooms 16, ai_processor 5, dashboard 2. Two equally empty stub apps that had no migrations were deleted after this count was taken: `grading` on 2026-09-12 and `ocr_processor` on 2026-09-15.
 
 The house rule (additive-only unless explicitly acknowledged as an expand-contract step) is enforced in CI — see [operations.md](operations.md#migrations).
 

@@ -398,3 +398,62 @@ counted on the app's Redis every 240 s while both suites ran: side A was
 `d260e1b` of the same `7dc6c70` plus docs. Its code is identical to what
 `7641ed7` already contains. The only code differing between beta and
 `7641ed7` is Section 9's own 13 files, and a trial merge is clean.
+
+## 10. Promotion to beta and post-promotion cleanup (owner-approved, 2026-09-15/16)
+
+The owner approved promoting the Section 9 integrated branch into beta,
+having confirmed the integrated gate above was sufficient. Before promotion,
+the resulting beta code was confirmed identical to the gated Section 9
+commit (`git diff` against the merge target showed no code differences,
+only unrelated changes from other sections that had landed on beta in the
+interim).
+
+**Promoted:** merge `bbfd20c` on beta, merging `514a932` ("Remove the empty
+`ocr_processor` app" — the first of the owner's requested cleanup items,
+built directly on the gated `7641ed7` via `87acd13`). `git diff bbfd20c
+514a932` shows only H-16 files (an independent, unrelated section's work
+that landed on beta separately, before the promotion) — zero Section 9
+code difference.
+
+The owner then requested three further cleanup items, done on
+`task/section-9-cleanup` after the promotion:
+
+1. **Empty app removal** — done as part of the promoted commit above
+   (`514a932`).
+2. **Cross-section leftovers** — the four items this section's row had
+   "carried forward" from earlier work (§0/§5/§12), all closed:
+   - `ebb6104`: all backend docs (8 markdown files, 2 rendered HTML
+     mirrors) updated for the app's removal; also corrects the
+     pre-existing misstatement that `OCRService` performs OCR (it only
+     measures decoded image dimensions for AI cost estimation).
+   - `950fec3`: `uploads.py`'s stale "25 MB" comment now reads 50 MB.
+   - `6091e10`: `error_messages.py` no longer blames the uploaded file
+     when Poppler is missing/misconfigured on the server —
+     `PopplerNotInstalledError` / `PDFInfoNotInstalledError` get a
+     distinct, non-file-blaming message. New regression tests
+     (`AutoGrader/tests_error_messages.py`) and mutation-verified:
+     reverting the split made both new tests fail as expected.
+   - `51272a4`: removed the dead `AIProcessor.create_file` method (no
+     callers anywhere in the repository, confirmed by `git grep`).
+3. **Evidence/backlog documentation review** — this section. The
+   Section 9 row in `docs/CODEBASE_AUDIT_SECTIONS.md` had a stale
+   "pending before merge: the 13-mutant re-run and the strict fresh-DB
+   final gate" note contradicting the "13/13 mutants killed" and
+   integrated-gate-PASSED text earlier in the same row (§9 above); that
+   contradiction is now removed and replaced with a landing record.
+   `docs/HARDENING_BACKLOG.md`'s H-11 row now notes it is not a blocker
+   for the Section 9 promotion specifically, while keeping the **High -
+   release-blocking** priority and OPEN status for production overall
+   (Section 7 still owns H-11; not closed by this work).
+
+**Two documented behavioral limits from §"Design as built" above remain
+true and unchanged by this cleanup:** a rejected AI attempt within a file
+that later succeeds still incurs its charge; cancellation after an
+assignment is saved still incurs its charge.
+
+Regression evidence for the cleanup commits: `AutoGrader/tests_error_messages.py`
+(22 tests, OK); `ai_processor` app suite (793 tests, OK) after the dead-code
+removal; `AutoGrader` + `ai_processor` + `assignments` combined suite (1682
+tests, OK) after the docs/comment/error-message changes. `manage.py check`
+and `makemigrations --check --dry-run` clean throughout; `pre-commit` clean
+on every touched file.
