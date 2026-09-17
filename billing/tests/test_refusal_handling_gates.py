@@ -12,6 +12,7 @@ Run with:
         --settings=settings_worktree
 """
 
+import logging
 import threading
 import uuid
 from unittest.mock import MagicMock, patch
@@ -495,6 +496,14 @@ class RefusalIsolationTest(APITestCase):
                     {"raw_input": PROMPT_TEXT},
                     format="json",
                 )
-        messages = " ".join(r.getMessage() for r in logs.records)
-        self.assertIn("No active subscription", messages)
-        self.assertIn(str(assignment.id), messages)
+        # At WARNING, not DEBUG: a refusal an operator may need to act on
+        # must be visible at the level production actually records.
+        denials = [
+            r
+            for r in logs.records
+            if "No active subscription" in r.getMessage()
+            and str(assignment.id) in r.getMessage()
+        ]
+        self.assertTrue(denials, [r.getMessage() for r in logs.records])
+        for record in denials:
+            self.assertGreaterEqual(record.levelno, logging.WARNING)
