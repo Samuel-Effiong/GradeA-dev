@@ -453,9 +453,31 @@ def flake_failed(suite):
 # ------------------------------------------------------------- host and git
 
 
-def heavy_slots_in_use():
-    """Slots used by running ``manage.py test`` runs (a run uses --parallel N)."""
-    procs = {}
+# ``manage.py test`` options that take a separate value, so the value is not
+# mistaken for a test label.
+TEST_OPTIONS_WITH_VALUE = frozenset(
+    {
+        "--settings",
+        "--pythonpath",
+        "-v",
+        "--verbosity",
+        "-k",
+        "--tag",
+        "--exclude-tag",
+        "--testrunner",
+        "-p",
+        "--pattern",
+        "-t",
+        "--top-level-directory",
+        "--durations",
+        "--shuffle",
+    }
+)
+
+
+def scan_test_processes():
+    """Every running ``python ... manage.py test`` process on the host."""
+    found = []
     for entry in Path("/proc").iterdir():
         if not entry.name.isdigit():
             continue
@@ -469,23 +491,87 @@ def heavy_slots_in_use():
             continue
         if "manage.py" not in argv or "test" not in argv:
             continue
-        ppid = int(stat.rsplit(")", 1)[1].split()[1])
-        procs[int(entry.name)] = (ppid, argv)
-    slots = 0
-    for _pid, (ppid, argv) in procs.items():
-        if ppid in procs:  # a --parallel worker of a run already counted
-            continue
-        parallel = 1
-        for i, arg in enumerate(argv):
-            value = None
-            if arg == "--parallel" and i + 1 < len(argv):
-                value = argv[i + 1]
-            elif arg.startswith("--parallel="):
-                value = arg.split("=", 1)[1]
-            if value is not None:
-                parallel = (os.cpu_count() or 1) if value == "auto" else int(value)
-        slots += parallel
-    return slots
+        try:
+            cwd = os.readlink(entry / "cwd")
+        except OSError:
+            cwd = None
+        found.append(
+            {
+                "pid": int(entry.name),
+                "ppid": int(stat.rsplit(")", 1)[1].split()[1]),
+                "cwd": cwd,
+                "argv": argv,
+            }
+        )
+    return found
+
+
+def parse_test_argv(argv):
+    """(labels, parallel, keepdb) for a ``manage.py test`` command line."""
+    tail = argv[argv.index("test") + 1 :]
+    labels, parallel, keepdb = [], 1, False
+    i = 0
+    while i < len(tail):
+        arg = tail[i]
+        name, _, inline = arg.partition("=")
+        if arg == "--keepdb":
+            keepdb = True
+        elif name == "--parallel":
+            value = inline
+            if not inline and i + 1 < len(tail) and not tail[i + 1].startswith("-"):
+                value = tail[i + 1]
+                i += 1
+            value = value or "auto"
+            parallel = (os.cpu_count() or 1) if value == "auto" else int(value)
+        elif arg in TEST_OPTIONS_WITH_VALUE:
+            i += 1
+        elif not arg.startswith("-"):
+            labels.append(arg)
+        i += 1
+    return labels, parallel, keepdb
+
+
+def classify_test_process(proc, is_ours, root_pids):
+    """Slots one process takes from OUR heavy cap, and why (board definition)."""
+    if proc["ppid"] in root_pids:
+        return 0, f"worker of pid {proc['ppid']}, counted with that run"
+    if not is_ours:
+        return 0, "other project: not on our cap (RAM/disk floors still apply)"
+    labels, parallel, keepdb = parse_test_argv(proc["argv"])
+    if not labels:
+        return parallel, f"full-suite run: --parallel {parallel} = {parallel} slot(s)"
+    if keepdb:
+        return 1, "mutation worker (labels + --keepdb): 1 slot"
+    return 0, "targeted module run (labels, no --keepdb): 0 slots"
+
+
+def slot_accounting(processes, common_dir_of, our_common_dir):
+    """Classify every process; returns (total slots, auditable per-process rows)."""
+    pids = {p["pid"] for p in processes}
+    rows = []
+    for proc in processes:
+        common = common_dir_of(proc["cwd"]) if proc["cwd"] else None
+        # An unreadable cwd is counted as ours: over-counting only delays a run.
+        is_ours = common is None or common == our_common_dir
+        slots, why = classify_test_process(proc, is_ours, pids)
+        rows.append(
+            {
+                "pid": proc["pid"],
+                "ppid": proc["ppid"],
+                "cwd": proc["cwd"],
+                "argv": " ".join(proc["argv"]),
+                "slots": slots,
+                "why": why,
+            }
+        )
+    return sum(r["slots"] for r in rows), rows
+
+
+def git_common_dir(cwd):
+    result = sh(
+        ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"], cwd=cwd
+    )
+    return result.stdout.strip() if result.returncode == 0 else ""
 
 
 def mem_available_gb():
@@ -495,11 +581,23 @@ def mem_available_gb():
     raise GateAbort("MemAvailable missing from /proc/meminfo")
 
 
-def prelaunch(args, where):
-    used = heavy_slots_in_use()
+def prelaunch_problems(used, requested, cap, disk, min_disk, ram, min_ram):
+    """Reasons to refuse. Disk and RAM floors apply whatever uses the resources."""
+    problems = []
+    if used + requested > cap:
+        problems.append(f"{used} heavy slots in use + {requested} > cap {cap}")
+    if disk < min_disk:
+        problems.append(f"disk free {disk:.1f} GB < {min_disk} GB")
+    if ram < min_ram:
+        problems.append(f"RAM available {ram:.1f} GB < {min_ram} GB")
+    return problems
+
+
+def prelaunch(args, where, our_common_dir):
+    used, rows = slot_accounting(scan_test_processes(), git_common_dir, our_common_dir)
     disk = shutil.disk_usage(where).free / 1024**3
     ram = mem_available_gb()
-    record = {
+    return {
         "heavy_slots_in_use": used,
         "slots_requested": args.parallel,
         "max_heavy_slots": args.max_heavy,
@@ -507,18 +605,17 @@ def prelaunch(args, where):
         "min_disk_gb": args.min_disk_gb,
         "ram_available_gb": round(ram, 2),
         "min_ram_gb": args.min_ram_gb,
+        "test_processes": rows,
+        "refused": prelaunch_problems(
+            used,
+            args.parallel,
+            args.max_heavy,
+            disk,
+            args.min_disk_gb,
+            ram,
+            args.min_ram_gb,
+        ),
     }
-    problems = []
-    if used + args.parallel > args.max_heavy:
-        problems.append(
-            f"{used} heavy slots in use + {args.parallel} > cap {args.max_heavy}"
-        )
-    if disk < args.min_disk_gb:
-        problems.append(f"disk free {disk:.1f} GB < {args.min_disk_gb} GB")
-    if ram < args.min_ram_gb:
-        problems.append(f"RAM available {ram:.1f} GB < {args.min_ram_gb} GB")
-    record["refused"] = problems
-    return record
 
 
 def fingerprint(worktree):
@@ -579,6 +676,7 @@ class Gate:
             git(Path.cwd(), "rev-parse", "--path-format=absolute", "--git-common-dir")
         )
         self.main_root = common.parent
+        self.common_dir = str(common)
         self.sha = git(
             self.invoking_root, "rev-parse", "--verify", f"{args.commit}^{{commit}}"
         )
@@ -682,7 +780,9 @@ class Gate:
         env_file = self.main_root / ".env"
         if not env_file.is_file():
             raise GateRefused(f"no .env at {env_file}")
-        self.summary["prelaunch"] = prelaunch(self.args, self.main_root.parent)
+        self.summary["prelaunch"] = prelaunch(
+            self.args, self.main_root.parent, self.common_dir
+        )
         if self.summary["prelaunch"]["refused"]:
             raise GateRefused(
                 "pre-launch guard: " + "; ".join(self.summary["prelaunch"]["refused"])
@@ -996,6 +1096,20 @@ def render_stub(summary):
     ]
     for reason in summary.get("verdict_reasons", []):
         out.append(f"| Reason | {reason} |")
+    prelaunch_record = summary.get("prelaunch") or {}
+    out += [
+        "",
+        "### Pre-launch slot accounting (every `manage.py test` process evaluated)",
+        "",
+        "| PID | Parent | Working directory | Slots | Why | Command |",
+        "|---|---|---|---|---|---|",
+    ]
+    for row in prelaunch_record.get("test_processes", []):
+        command = row["argv"].replace("|", "\\|")
+        out.append(
+            f"| {row['pid']} | {row['ppid']} | `{row['cwd']}` | {row['slots']} | "
+            f"{row['why']} | `{command}` |"
+        )
     for run in summary.get("runs", []):
         out += [
             "",

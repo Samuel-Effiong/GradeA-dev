@@ -366,6 +366,11 @@ class EndToEnd(unittest.TestCase):
             self.assertIn("--noinput", call["argv"])
             self.assertNotIn("--keepdb", call["argv"])
         self.assertTrue(s["sleep_inhibitor_confirmed"])
+        self.assertIsInstance(s["prelaunch"]["test_processes"], list)
+        self.assertIn(
+            "Pre-launch slot accounting",
+            (self.repo.evidence / "EVIDENCE.md").read_text(),
+        )
         self.assertFalse(self.repo.worktree.exists(), "clean gate worktree is removed")
         sums = (self.repo.evidence / "RAW_LOG_SHA256SUMS.txt").read_text()
         self.assertIn("r2-5-full-suite.log", sums)
@@ -736,6 +741,103 @@ class PureLogic(unittest.TestCase):
         )
 
 
+def proc(pid, argv, cwd="/repo", ppid=1):
+    return {
+        "pid": pid,
+        "ppid": ppid,
+        "cwd": cwd,
+        "argv": ["python", "manage.py", "test", *argv],
+    }
+
+
+OURS = "/repo/.git"
+
+
+def ours_or_other(cwd):
+    return OURS if cwd.startswith("/repo") else "/elsewhere/.git"
+
+
+class SlotAccounting(unittest.TestCase):
+    """The board's heavy-slot definition (Senior Manager ruling, option A)."""
+
+    def slots(self, processes):
+        return gate.slot_accounting(processes, ours_or_other, OURS)
+
+    def test_full_run_counts_its_parallel_n(self):
+        for argv, expected in (
+            (["--settings=settings_worktree", "--noinput"], 1),
+            (["--settings", "settings_worktree", "--noinput", "-v", "2"], 1),
+            (["--noinput", "--parallel", "4", "-v", "2"], 4),
+            (["--noinput", "--parallel=3"], 3),
+        ):
+            with self.subTest(argv=argv):
+                self.assertEqual(self.slots([proc(10, argv)])[0], expected)
+
+    def test_mutation_worker_counts_one(self):
+        total, rows = self.slots([proc(10, ["app.tests_x", "--keepdb", "--noinput"])])
+        self.assertEqual(total, 1)
+        self.assertIn("mutation worker", rows[0]["why"])
+
+    def test_targeted_run_without_keepdb_counts_zero(self):
+        total, rows = self.slots(
+            [proc(10, ["app.tests_x", "billing.tests", "--noinput"])]
+        )
+        self.assertEqual(total, 0)
+        self.assertIn("targeted", rows[0]["why"])
+
+    def test_other_project_counts_zero_toward_cap(self):
+        total, rows = self.slots(
+            [proc(10, ["--noinput", "--parallel", "8"], cwd="/crm")]
+        )
+        self.assertEqual(total, 0)
+        self.assertIn("other project", rows[0]["why"])
+
+    def test_other_project_still_blocked_by_ram_and_disk_floors(self):
+        total, _ = self.slots([proc(10, ["--noinput"], cwd="/crm")])
+        self.assertEqual(total, 0)
+        ram = gate.prelaunch_problems(
+            total, 1, 6, disk=50, min_disk=3, ram=1.5, min_ram=2
+        )
+        disk = gate.prelaunch_problems(
+            total, 1, 6, disk=2, min_disk=3, ram=9, min_ram=2
+        )
+        self.assertTrue(any("RAM" in p for p in ram), ram)
+        self.assertTrue(any("disk" in p for p in disk), disk)
+
+    def test_parallel_workers_are_not_double_counted(self):
+        root = proc(10, ["--noinput", "--parallel", "4"])
+        workers = [
+            proc(11 + i, ["--noinput", "--parallel", "4"], ppid=10) for i in range(4)
+        ]
+        total, rows = self.slots([root, *workers])
+        self.assertEqual(total, 4)
+        self.assertEqual([r["slots"] for r in rows], [4, 0, 0, 0, 0])
+
+    def test_unreadable_cwd_is_counted_as_ours(self):
+        total, _ = self.slots([proc(10, ["--noinput"], cwd=None)])
+        self.assertEqual(total, 1)
+
+    def test_cap_breach_refuses_and_boundary_is_allowed(self):
+        self.assertEqual(gate.prelaunch_problems(5, 1, 6, 50, 3, 9, 2), [])
+        self.assertTrue(gate.prelaunch_problems(6, 1, 6, 50, 3, 9, 2))
+        self.assertTrue(gate.prelaunch_problems(3, 4, 6, 50, 3, 9, 2))
+
+    def test_every_process_is_listed_with_slots_and_reason(self):
+        processes = [
+            proc(10, ["--noinput"]),
+            proc(20, ["a.tests", "--keepdb"]),
+            proc(30, ["a.tests"]),
+            proc(40, ["--noinput"], cwd="/crm"),
+        ]
+        total, rows = self.slots(processes)
+        self.assertEqual(total, 2)
+        self.assertEqual([r["pid"] for r in rows], [10, 20, 30, 40])
+        self.assertEqual([r["slots"] for r in rows], [1, 1, 0, 0])
+        for row in rows:
+            self.assertTrue(row["why"])
+            self.assertIn("manage.py test", row["argv"])
+
+
 # Mutants.
 
 MUTANTS = [
@@ -902,6 +1004,50 @@ MUTANTS = [
         '    if os.environ.get(INHIBIT_ENV) != "1":',
         "    if False:",
     ),
+    (
+        "S01 full run counts 1 not N",
+        'return parallel, f"full-suite run',
+        'return 1, f"full-suite run',
+    ),
+    (
+        "S02 targeted run counts 1",
+        'return 0, "targeted module run',
+        'return 1, "targeted module run',
+    ),
+    (
+        "S03 other project counted on our cap",
+        "    if not is_ours:\n",
+        "    if False:\n",
+    ),
+    (
+        "S04 mutation worker counts 0",
+        'return 1, "mutation worker',
+        'return 0, "mutation worker',
+    ),
+    ("S05 cap breach ignored", "    if used + requested > cap:", "    if False:"),
+    (
+        "S06 cap off by one",
+        "    if used + requested > cap:",
+        "    if used + requested >= cap:",
+    ),
+    ("S07 RAM floor skipped", "    if ram < min_ram:", "    if False:"),
+    ("S08 disk floor skipped", "    if disk < min_disk:", "    if False:"),
+    (
+        "S09 parallel workers double-counted",
+        '    if proc["ppid"] in root_pids:',
+        "    if False:",
+    ),
+    (
+        "S10 option value read as a test label",
+        "        elif arg in TEST_OPTIONS_WITH_VALUE:\n            i += 1\n",
+        "",
+    ),
+    (
+        "S11 unreadable cwd treated as another project",
+        "is_ours = common is None or common == our_common_dir",
+        "is_ours = common == our_common_dir",
+    ),
+    ("S12 process list not recorded", '        "test_processes": rows,\n', ""),
     (
         "M26 inhibitor lock not required",
         "        if not ok:\n            raise GateAbort",
