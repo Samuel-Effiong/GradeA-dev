@@ -87,9 +87,10 @@ def viewer_scopes_for_users(user_ids, school_ids):
     * H-1 Stage 3 (gap G4): the SCHOOL_ADMIN users of those schools
       themselves - `UserCacheMixin` keys a school admin's cached view of a
       user only by the admin's OWN `usr`, so the `SCOPE_SCHOOL` bump above
-      never reaches it on its own. Without this, a school admin's cached
-      retrieve of a user who has since moved schools (or lost access) kept
-      serving 200 past the point the admin's queryset would 404 them;
+      never reaches it on its own. Only the legacy `*user*` wildcard cleared
+      it; without that, a school admin's cached retrieve of a user who has
+      since moved schools (or lost access) would keep serving 200 after the
+      admin's queryset starts to 404 them;
     * the teacher of every course the users are enrolled in, and that
       teacher's school - a teacher's roster, course and submission lists are
       keyed on the teacher.

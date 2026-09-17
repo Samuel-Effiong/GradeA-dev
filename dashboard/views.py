@@ -3610,12 +3610,11 @@ class StudentAdminDashboardView(viewsets.ViewSet):
         url_path=r"dashboard/summary/(?P<course_id>[-\w]+)",
     )
     def summary(self, request, course_id, *args, **kwargs):
-        # H-1 Stage 3 (gap G2): this key used to be unversioned - plain
-        # cache.get/cache.set with no generation scope, and nothing ever
-        # invalidated it, so a withdrawn student's cached summary kept
-        # serving course data (200) past the point access-checks below
-        # would return 404. usr(student) is bumped by every change that
-        # could affect this student's own summary.
+        # H-1 Stage 3 (gap G2): versioned on the student. These keys were
+        # unversioned, so only the legacy `*studentadmin*` wildcard cleared
+        # them; without it a withdrawn student's cached summary would keep
+        # returning course data after the access check below starts to 404.
+        # usr(student) is bumped by every change this summary reads.
         cache_key = versioned_key(
             f"studentadmins:user_id__{request.user.id}:instance_id__{course_id}"
             ":view__summary",

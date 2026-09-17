@@ -2,12 +2,12 @@
 
 `StudentAdminDashboardView.summary`/`assignments`/`overview` used to build
 their own cache key (`studentadmins:user_id__<id>:...`) with plain
-`cache.get`/`cache.set` -- no `versioned_key`, no generation-counter scope,
-and no invalidation call anywhere cleared the `studentadmins:` prefix. This
-was stale under BOTH mechanisms, not only once the wildcards are removed: a
-withdrawn student's cached summary kept serving 200 with course data past
-the point production access-checks would return 404 -- a security-relevant
-staleness case (access outliving revocation), not just a freshness nit.
+`cache.get`/`cache.set` -- no `versioned_key`, no generation-counter scope.
+The only thing that cleared them was the legacy `*studentadmin*` wildcard,
+which the StudentCourse receiver runs. With the wildcards removed, a
+withdrawn student's cached summary would keep serving 200 with course data
+after the access check starts returning 404 -- access outliving
+revocation, which is why this is a security-relevant gap.
 
 FIXED (H-1 Stage 3): all three keys are now built with `versioned_key`,
 scoped to `usr(student)`. No new receiver was needed - `clear_student_course_
@@ -70,10 +70,8 @@ class StudentAdminSummaryFreshnessTests(FreshnessMatrixMixin, TransactionTestCas
 
     def setUp(self):
         cache.clear()
-        # Run this with BOTH mechanisms live and both disabled: nothing
-        # invalidates `studentadmins:` today either way, so the gap exists
-        # under the legacy mechanism too. Default here: legacy disabled,
-        # matching the rest of the Stage 3 "gaps disabled" sweep.
+        # Legacy wildcards disabled: `*studentadmin*` is what used to clear
+        # these keys, so this proves the versioned key is enough on its own.
         self.patched_modules = self.enterContext(legacy_wildcards_disabled())
         self.assertTrue(self.patched_modules, "no legacy module was patched")
 

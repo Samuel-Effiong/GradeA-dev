@@ -78,9 +78,10 @@ def invalidate_submission_caches_bulk(submissions):
 
     H-1 Stage 3 (gap G3): `publish_all_grades` (assignments/views.py) does
     one bulk `.update()` for a whole batch, which bypasses `post_save` for
-    every row in it - so invalidating only `submissions[0]` (the previous
-    shape of this fix) left every OTHER student in the batch reading their
-    pre-publish result. Every student's `usr` is bumped in a single
+    every row in it. Invalidating only `submissions[0]` bumped one
+    student's generation; every OTHER student's cached list was refreshed
+    only by the legacy `studentsubmissions:*` wildcard, and without it would
+    keep the pre-publish result. Every student's `usr` is bumped in a single
     pipelined `bump_many` call, so the round-trip cost stays O(1) rather
     than O(batch size); course/teacher/school/global are shared across the
     batch and so are bumped once each, not once per submission.

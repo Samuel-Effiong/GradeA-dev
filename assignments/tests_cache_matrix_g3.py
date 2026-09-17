@@ -5,8 +5,10 @@ published for the first time, bulk-`.update()`s them all to
 `is_published=True`, then USED TO invalidate caches for exactly one of them
 -- `newly_published[0]` -- because `.update()` bypasses `post_save` and the
 view fired the receiver by hand for a single instance instead of the whole
-batch. Every other student in the batch kept reading a pre-publish
-submission list past the point their grade actually went out.
+batch. Every other student's cached submission list was refreshed only by
+the legacy `studentsubmissions:*` wildcard that receiver also ran; with the
+wildcards removed they would keep a pre-publish list after their grade
+went out.
 
 FIXED (H-1 Stage 3): `invalidate_submission_caches_bulk` (students/signals.py)
 bumps every submission's student in one pipelined `bump_many`, plus the
