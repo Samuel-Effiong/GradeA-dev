@@ -321,13 +321,27 @@ class SuperAdminAndSelf(UserEnrollmentFilterOracleBase):
         )
 
     def test_single_flag_superuser_is_scoped_like_a_teacher(self):
-        rogue = make_user("rogue@x.test", UserTypes.TEACHER)
-        rogue.is_superuser = rogue.is_staff = True
-        rogue.save()
-        response = self.call(
-            rogue, "get", self.student, {"enrollments__course": self.course_b.id}
+        """create_superuser() leaves user_type=TEACHER. Teacher A with only
+        is_superuser set can see the shared student through their own
+        course, so the filter must still refuse to look past that course."""
+        self.teacher_a.is_superuser = self.teacher_a.is_staff = True
+        self.teacher_a.save()
+        response = self.assert_indistinguishable(
+            self.teacher_a,
+            "get",
+            self.student,
+            "enrollments__course",
+            self.course_b.id,
+            UNKNOWN,
         )
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        own = self.call(
+            self.teacher_a,
+            "get",
+            self.student,
+            {"enrollments__course": self.course_a.id},
+        )
+        self.assertEqual(own.status_code, status.HTTP_200_OK)
 
     def test_a_student_filtering_their_own_record_sees_their_own_enrollments(self):
         response = self.call(
