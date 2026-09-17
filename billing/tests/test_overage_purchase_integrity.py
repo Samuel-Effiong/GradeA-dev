@@ -732,6 +732,7 @@ class ConcurrentOverageDeliveryTests(TransactionTestCase, OverageFixture):
         # transaction) behind for the table flush to deadlock against.
         self.workers = threads
         self.addCleanup(self._reap, threads)
+        backends_before = self._other_backends()
         for t in threads:
             t.start()
 
@@ -746,7 +747,30 @@ class ConcurrentOverageDeliveryTests(TransactionTestCase, OverageFixture):
                 f"after {timeout}s: {still_running}. Their transactions may not "
                 f"have committed; refusing to assert on partial state."
             )
+
+        # A finished thread that skipped connection.close() still holds its
+        # Postgres session until garbage collection happens to reclaim it.
+        # Server-side exit is asynchronous even after a close, so wait for
+        # the count to settle rather than reading it once.
+        settle_by = time.monotonic() + 10
+        while (leaked := self._other_backends() - backends_before) > 0:
+            if time.monotonic() > settle_by:
+                self.fail(
+                    f"{leaked} database session(s) still open after all "
+                    f"{count} workers finished: a worker did not close its "
+                    f"own connection."
+                )
+            time.sleep(0.05)
         return errors
+
+    @staticmethod
+    def _other_backends():
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT count(*) FROM pg_stat_activity "
+                "WHERE datname = current_database() AND pid <> pg_backend_pid()"
+            )
+            return cursor.fetchone()[0]
 
     @staticmethod
     def _reap(threads, timeout=120):
