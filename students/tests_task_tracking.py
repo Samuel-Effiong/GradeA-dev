@@ -7,7 +7,7 @@ from redis.exceptions import ConnectionError as RedisConnectionError
 from assignments.models import Assignment
 from AutoGrader.dispatch import ProcessingTemporarilyUnavailable
 from billing.access_control import AIFeatureNotAvailableError
-from billing.errors import InsufficientCreditsError
+from billing.errors import INSUFFICIENT_CREDITS_MESSAGE, InsufficientCreditsError
 from classrooms.models import Course
 from students.exceptions import CannotAssociateStudentError, TaskCancelledError
 from students.models import (
@@ -326,11 +326,18 @@ class DescribeTaskErrorTest(TestCase):
         cases = [
             CannotAssociateStudentError("Student not among the enrolled students"),
             AIFeatureNotAvailableError("Upgrade your plan to unlock this feature"),
-            InsufficientCreditsError("Refill your wallet to continue"),
         ]
         for exc in cases:
             with self.subTest(exc_type=type(exc).__name__):
                 self.assertEqual(describe_task_error(exc), str(exc))
+        # InsufficientCreditsError text can carry internal billing state: every
+        # one surfaces as the generic message (REFUSAL_HANDLING_EVIDENCE.md D10).
+        self.assertEqual(
+            describe_task_error(
+                InsufficientCreditsError("Refill your wallet to continue")
+            ),
+            INSUFFICIENT_CREDITS_MESSAGE,
+        )
 
     def test_unknown_exception_never_leaks_raw_technical_detail(self):
         exc = KeyError("grading_summary")
@@ -411,7 +418,9 @@ class MarkProcessingTaskFailureMessageTest(TestCase):
         )
 
         self.processing_task.refresh_from_db()
-        self.assertEqual(self.processing_task.error, "Refill your wallet to continue")
+        # InsufficientCreditsError text can carry internal billing state: every
+        # one surfaces as the generic message (REFUSAL_HANDLING_EVIDENCE.md D10).
+        self.assertEqual(self.processing_task.error, INSUFFICIENT_CREDITS_MESSAGE)
 
     @patch("students.task_tracking.logger")
     def test_exception_instance_is_logged_server_side_with_traceback(self, mock_logger):

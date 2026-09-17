@@ -42,6 +42,7 @@ from assignments.tasks import (
     extract_answer_background_task,
 )
 from AutoGrader.celery import app as celery_app
+from billing.errors import INSUFFICIENT_CREDITS_MESSAGE
 from billing.models import CreditBucket, CreditBucketType, CreditWallet
 from billing.refunds import record_billing_task_id
 from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
@@ -288,8 +289,11 @@ class UpdateAsyncRouteTest(APITestCase):
             "Refill your wallet to continue"
         )
         response = self.client.patch(detail, {"raw_input": EDITED_TEXT}, format="json")
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["error"], "Refill your wallet to continue")
+        # 402 + code with the generic credit message (REFUSAL_HANDLING_EVIDENCE.md
+        # D9 and D10; was 400 with the exception's own text).
+        self.assertEqual(response.status_code, status.HTTP_402_PAYMENT_REQUIRED)
+        self.assertEqual(response.data["code"], "insufficient_credits")
+        self.assertEqual(response.data["error"], INSUFFICIENT_CREDITS_MESSAGE)
 
         mock_ai.extract_answer_with_retry.side_effect = RuntimeError("model exploded")
         response = self.client.patch(detail, {"raw_input": EDITED_TEXT}, format="json")

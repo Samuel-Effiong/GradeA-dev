@@ -764,6 +764,11 @@ Do not include any explanatory text before or after the JSON
 
             content = response.choices[0].message.content
 
+        except (AIFeatureNotAvailableError, InsufficientCreditsError):
+            # A refusal must keep its type: extract_assignment_with_retry
+            # fails fast on exactly these, and a bare Exception made it
+            # retry them (billing/refusals.py).
+            raise
         except Exception as e:
             raise Exception(f"Error during AI model: {str(e)}") from e
 
@@ -817,6 +822,9 @@ Do not include any explanatory text before or after the JSON
             )
 
             content = response.choices[0].message.content
+        except (AIFeatureNotAvailableError, InsufficientCreditsError):
+            # See extract_assignment: never rewrap a refusal.
+            raise
         except Exception as e:
             raise Exception(f"Error during AI model: {str(e)}") from e
 

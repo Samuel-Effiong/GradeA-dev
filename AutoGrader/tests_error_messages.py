@@ -8,7 +8,7 @@ from AutoGrader.error_messages import (
     describe_user_error,
 )
 from billing.access_control import AIFeatureNotAvailableError
-from billing.errors import InsufficientCreditsError
+from billing.errors import INSUFFICIENT_CREDITS_MESSAGE, InsufficientCreditsError
 from students.exceptions import CannotAssociateStudentError
 
 
@@ -17,11 +17,18 @@ class DescribeUserErrorTest(SimpleTestCase):
         cases = [
             CannotAssociateStudentError("Student not among the enrolled students"),
             AIFeatureNotAvailableError("Upgrade your plan to unlock this feature"),
-            InsufficientCreditsError("Refill your wallet to continue"),
         ]
         for exc in cases:
             with self.subTest(exc_type=type(exc).__name__):
                 self.assertEqual(describe_user_error(exc), str(exc))
+        # InsufficientCreditsError text can carry internal billing state: every
+        # one surfaces as the generic message (REFUSAL_HANDLING_EVIDENCE.md D10).
+        self.assertEqual(
+            describe_user_error(
+                InsufficientCreditsError("Refill your wallet to continue")
+            ),
+            INSUFFICIENT_CREDITS_MESSAGE,
+        )
 
     def test_unknown_exception_never_leaks_raw_technical_detail(self):
         exc = KeyError("grading_summary")
@@ -125,8 +132,12 @@ class ClassifyInfraErrorTest(SimpleTestCase):
 
 class DescribeBackgroundTaskErrorTest(SimpleTestCase):
     def test_known_user_facing_exception_still_passes_through_verbatim(self):
+        # InsufficientCreditsError text can carry internal billing state: every
+        # one surfaces as the generic message (REFUSAL_HANDLING_EVIDENCE.md D10).
         exc = InsufficientCreditsError("Refill your wallet to continue")
-        self.assertEqual(describe_background_task_error(exc), str(exc))
+        self.assertEqual(
+            describe_background_task_error(exc), INSUFFICIENT_CREDITS_MESSAGE
+        )
 
     def test_infra_failure_gets_distinct_message_over_generic_fallback(self):
         message = describe_background_task_error(
@@ -163,4 +174,6 @@ class DescribeStripeErrorTest(SimpleTestCase):
     def test_falls_back_to_generic_classifier_for_known_exceptions(self):
         exc = InsufficientCreditsError("Refill your wallet to continue")
 
-        self.assertEqual(describe_stripe_error(exc), "Refill your wallet to continue")
+        # InsufficientCreditsError text can carry internal billing state: every
+        # one surfaces as the generic message (REFUSAL_HANDLING_EVIDENCE.md D10).
+        self.assertEqual(describe_stripe_error(exc), INSUFFICIENT_CREDITS_MESSAGE)
