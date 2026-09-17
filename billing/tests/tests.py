@@ -35,6 +35,9 @@ class SubscriptionPlanViewSetTests(APITestCase):
             overage_block_price=5.00,
             max_overage_blocks=5,
             is_active=True,
+            # Only the Stripe-priced self-service catalog is listed to
+            # non-superadmins (billing/plan_policy.py), as in production.
+            stripe_price_id="price_test_standard",
         )
         self.list_url = reverse("subscription-plan-list")
         self.detail_url = reverse(
@@ -157,7 +160,9 @@ class UserSubscriptionViewSetTests(APITestCase):
         # Should see 2 subscriptions
         self.assertEqual(len(response.data["results"]), 2)
 
-    def test_create_subscription_allowed_for_teacher(self):
+    def test_create_subscription_forbidden_for_teacher(self):
+        # Direct creation grants plan credits with no payment step; it is
+        # superadmin-only (see test_free_plan_activation_security).
         self.client.force_authenticate(user=self.user_a)
         data = {
             "user": self.user_a.id,
@@ -166,7 +171,7 @@ class UserSubscriptionViewSetTests(APITestCase):
             "billing_cycle_end": timezone.now() + timezone.timedelta(days=30),
         }
         response = self.client.post(self.list_url, data)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_create_subscription_forbidden_for_student(self):
         self.client.force_authenticate(user=self.student)

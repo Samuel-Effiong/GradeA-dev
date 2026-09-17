@@ -29,7 +29,7 @@ from rest_framework.response import Response
 from ai_processor.models import AssistantType, ChatMessage, ChatSession, RoleType
 from ai_processor.services import ai_processor
 from AutoGrader.error_messages import describe_stripe_error, describe_user_error
-from classrooms.permissions import IsNotStudent, IsSuperAdmin, IsTeacher
+from classrooms.permissions import IsNotStudent, IsSuperAdmin
 from dashboard.serializers import (
     CustomAIPrompt,
     CustomAIReply,
@@ -52,6 +52,7 @@ from .models import (
     SubscriptionPlan,
     UserSubscription,
 )
+from .plan_policy import self_service_plans
 from .serializers import (
     BetaCohortStatsSerializer,
     BetaFeatureMixSerializer,
@@ -192,8 +193,18 @@ class SubscriptionPlanViewSet(viewsets.ModelViewSet):
         if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:
             return queryset
 
-        # Everyone else only sees INDIVIDUAL plans
-        return queryset.filter(category=PlanCategory.INDIVIDUAL)
+        # Everyone else sees only the self-service catalog: a plan is not
+        # listable just because it is active and INDIVIDUAL (BETA, TRIAL
+        # and internal plans are too). A retrieve may additionally read
+        # the plan the caller is currently on or has pending, which is
+        # already visible to them through /subscription/me.
+        visible = Q(pk__in=self_service_plans().values("pk"))
+        if self.action == "retrieve":
+            own = UserSubscription.objects.filter(user=user, is_active=True)
+            visible |= Q(pk__in=own.values("plan_id")) | Q(
+                pk__in=own.exclude(pending_plan__isnull=True).values("pending_plan_id")
+            )
+        return queryset.filter(visible)
 
     @extend_schema(
         tags=["Subscription Plans"],
@@ -304,10 +315,10 @@ class UserSubscriptionViewSet(viewsets.ModelViewSet):
         """
         if self.action in ["list", "retrieve"]:
             permission_classes = [IsAuthenticated]
-        elif self.action == "create":
-            # Allows users to subscribe as long as they are not students
-            permission_classes = [IsAuthenticated, IsTeacher]
         else:
+            # Includes create: it activates a plan and grants its credits
+            # with no payment step, so it is an administrative tool.
+            # Users subscribe through POST /subscription/select-plan.
             permission_classes = [IsAuthenticated, IsSuperAdmin]
         return [permission() for permission in permission_classes]
 
@@ -563,6 +574,14 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
     def get_queryset(self):
         return UserSubscription.objects.filter(user=self.request.user, is_active=True)
 
+    def get_permissions(self):
+        # create activates a plan and grants its credits with no payment
+        # step, so only a superadmin may call it. Every other action keeps
+        # its class-level or @action-level permissions untouched.
+        if self.action == "create":
+            return [IsAuthenticated(), IsSuperAdmin()]
+        return super().get_permissions()
+
     @extend_schema(
         tags=["Subscription"],
         summary="Get my subscription",
@@ -659,7 +678,11 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
     )
     @action(detail=False, methods=["get"], url_path="plan", url_name="plan")
     def plan(self, request, *args, **kwargs):
-        plans = SubscriptionPlan.objects.all()
+        user = request.user
+        if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:
+            plans = SubscriptionPlan.objects.all()
+        else:
+            plans = self_service_plans()
         serializer = SubscriptionPlanSerializer(plans, many=True)
         return Response(serializer.data)
 

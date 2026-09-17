@@ -366,6 +366,85 @@ class SubscriptionService:
 
     @staticmethod
     @transaction.atomic
+    def activate_plan_without_payment(user, plan):
+        """
+        The only sanctioned way to activate a plan WITHOUT a Stripe payment:
+        superadmin assignment (POST /subscription, POST /user-subscriptions)
+        and BETA-on-signup (users/signals.py). Stripe-driven renewals and
+        checkouts keep calling activate_subscription directly.
+
+        activate_subscription itself grants a full monthly bucket every
+        time it runs and replaces whatever subscription is active, which
+        is correct for a paid renewal but let a caller mint unlimited free
+        credits. The stateful rules are therefore enforced here, all under
+        a lock on the user's row so that concurrent or retried requests
+        for the same user are serialized. Without the lock, a second
+        request could check the grant history before the first commits,
+        then write after it: its UPDATE would deactivate the first grant
+        and its INSERT would succeed, leaving two grants. The
+        one-active-subscription constraint does not catch that
+        interleaving.
+
+        Raises:
+            PlanAssignmentRefused: when any rule refuses the activation.
+        """
+        from users.models import CustomUser
+
+        from .plan_policy import (
+            ONE_TIME_ENTITLEMENT_PLAN_NAMES,
+            PlanAssignmentRefused,
+            admin_assignment_error,
+            has_live_stripe_subscription,
+        )
+        from .stripe_service import IndividualPlanChangeService
+
+        CustomUser.objects.select_for_update().only("pk").get(pk=user.pk)
+
+        static_error = admin_assignment_error(plan)
+        if static_error:
+            raise PlanAssignmentRefused(static_error)
+
+        if plan.name == PlanType.BETA and not user.is_beta_eligible():
+            raise PlanAssignmentRefused(
+                "The Beta plan is restricted to teacher accounts."
+            )
+
+        try:
+            IndividualPlanChangeService._assert_not_on_the_license_track(user)
+        except ValueError as exc:
+            raise PlanAssignmentRefused(str(exc)) from exc
+
+        if (
+            plan.name in ONE_TIME_ENTITLEMENT_PLAN_NAMES
+            and UserSubscription.objects.filter(
+                user=user, plan__name=plan.name
+            ).exists()
+        ):
+            raise PlanAssignmentRefused(
+                f"This account has already received the {plan.name} plan. "
+                "It can only be granted once. Use a manual credit grant "
+                "for additional credits."
+            )
+
+        active = (
+            UserSubscription.objects.select_for_update()
+            .filter(user=user, is_active=True)
+            .first()
+        )
+        if has_live_stripe_subscription(active):
+            # Replacing it here would leave the app believing the user is
+            # on `plan` while Stripe keeps billing the old subscription,
+            # and renewal invoices would land on an inactive row.
+            raise PlanAssignmentRefused(
+                "This account has a Stripe-billed subscription. It must be "
+                "cancelled or changed through the Stripe subscription flow "
+                "before another plan can be activated."
+            )
+
+        return SubscriptionService.activate_subscription(user, plan)
+
+    @staticmethod
+    @transaction.atomic
     def apply_immediate_plan_change(user_sub, new_plan):
         """
         Swaps `user_sub` onto `new_plan` IN PLACE, for the specific case
@@ -1759,15 +1838,17 @@ class SubscriptionService:
 
         # GUARD 1: Check if user has EVER had a trial (even expired ones)
 
-        # This is the ONE critical guard for automatic trial
-        # Use select_for_update to lock the user row during this check
-        # preventing concurrent registration from creating two trials.
+        # This is the ONE critical guard for automatic trial.
+        # Lock the user row first: select_for_update on the trial query
+        # alone locks nothing when no trial row exists yet, which is
+        # exactly the case a concurrent duplicate would race through.
+        from users.models import CustomUser
 
-        existing_trial = (
-            UserSubscription.objects.select_for_update()
-            .filter(user=user, is_trial=True)
-            .exists()
-        )
+        CustomUser.objects.select_for_update().only("pk").get(pk=user.pk)
+
+        existing_trial = UserSubscription.objects.filter(
+            user=user, is_trial=True
+        ).exists()
 
         if existing_trial:
             raise ValueError(
