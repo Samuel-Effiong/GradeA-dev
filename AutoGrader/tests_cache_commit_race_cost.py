@@ -37,7 +37,6 @@ import redis
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
 from django.db import connection, transaction
-from django.test.utils import CaptureQueriesContext
 
 import AutoGrader.cache_generation as cache_generation
 from AutoGrader.cache_generation import SCOPE_COURSE, get_generation
@@ -206,9 +205,18 @@ class SingleTransactionRosterCostTests(RosterScaleCostBase):
         """Same write, uninstrumented for Redis, measuring DB queries and
         peak Python memory. Separate from the timed pass because tracemalloc
         slows everything it traces."""
+        queries = []
+
+        def count_query(execute, sql, params, many, context):
+            queries.append(1)
+            return execute(sql, params, many, context)
+
+        # Counted through the cursor, not connection.queries: that log is a
+        # deque capped at 9,000 entries, so at this scale it silently stops
+        # growing and the count reads as 0.
         tracemalloc.start()
         try:
-            with CaptureQueriesContext(connection) as queries:
+            with connection.execute_wrapper(count_query):
                 with transaction.atomic():
                     for student in students:
                         StudentCourse.objects.create(
