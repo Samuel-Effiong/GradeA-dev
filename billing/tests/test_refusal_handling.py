@@ -701,12 +701,21 @@ class D11EmptyWalletPermissionTest(RefusalAssertions, APITestCase):
                 self.assertEqual(gate.call_count, 0, "work ran past the permission")
                 self.assertEqual(BackgroundProcessingTask.objects.count(), tasks_before)
 
-    def test_browsable_api_still_renders_for_a_refused_user(self):
-        """DRF's browsable renderer re-runs permission checks to decide which
-        forms to draw and only catches APIException; the refusal must not
-        crash it into a 500."""
-        self.client.force_authenticate(user=self.teacher)
-        response = self.client.get(
-            reverse("student-submission-list"), HTTP_ACCEPT="text/html"
+    def test_browsable_api_renders_the_refusal_instead_of_crashing(self):
+        """An HTML request to a credit-guarded endpoint: the 402 page is
+        rendered by BrowsableAPIRenderer, which re-runs the SAME action's
+        permission check to decide which forms to draw and catches only
+        APIException (rest_framework.renderers.show_form_for_method). That is
+        why EmptyWalletError is an APIException: without it the refusal
+        escapes the renderer and the user gets a 500 instead of the 402."""
+        self.client.force_authenticate(user=self.student)
+        response = self.client.patch(
+            reverse("student-submission-detail", args=[str(self.submission.id)]),
+            {"raw_input": PROMPT_TEXT},
+            format="json",
+            HTTP_ACCEPT="text/html",
         )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.status_code, PAYMENT_REQUIRED, response.content)
+        self.assertIn("text/html", response["Content-Type"])
+        response.render()
+        self.assertNotIn("<b>Insufficient Credits", response.content.decode())
