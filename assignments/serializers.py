@@ -119,7 +119,10 @@ class AssignmentSerializer(serializers.ModelSerializer):
             "extraction_started_at",
             "extraction_completed_at",
         ]
-        read_only_fields = ["created_at", "id", "submission_count"]
+        # teacher: no production path writes it, and this serializer is fed
+        # AI output, so a writable user FK was a way to point an assignment
+        # at any account (H-18).
+        read_only_fields = ["created_at", "id", "submission_count", "teacher"]
 
         extra_kwargs = {
             "title": {"required": False},

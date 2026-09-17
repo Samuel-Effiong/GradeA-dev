@@ -108,7 +108,9 @@ class TopicSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         user = getattr(request, "user", None) if request else None
         if user is None or not user.is_authenticated:
-            return value
+            # Fail closed (H-18 hardening): a caller that builds this
+            # serializer without the request must not skip the check.
+            raise serializers.ValidationError("You do not have access to this course.")
 
         if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:
             return value
@@ -170,7 +172,9 @@ class CourseSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         user = getattr(request, "user", None) if request else None
         if user is None or not user.is_authenticated:
-            return value
+            # Fail closed (H-18 hardening): a caller that builds this
+            # serializer without the request must not skip the check.
+            raise serializers.ValidationError("You do not have access to this session.")
 
         if value.owner_type == SessionOwnerType.INDIVIDUAL:
             if user.is_under_license() or value.teacher_id != user.id:

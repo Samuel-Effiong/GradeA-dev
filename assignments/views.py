@@ -78,7 +78,7 @@ from .serializers import (  # RubricSerializer,; AssignmentGradeAllSubmissionsSe
     ScheduledGradingResponseSerializer,
     ScheduleGradingSerializer,
 )
-from .services import AssignmentProcessingService
+from .services import AssignmentProcessingService, ai_assignment_content_only
 from .tasks import (  # grade_all_submissions,
     extract_assignment_background_task,
     grade_engine_async,
@@ -1041,8 +1041,12 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
 
     def _build_generated_assignment_draft(self, generated_assignment, course):
+        # Content keys only: the strict response schema is not enforced by
+        # every provider, and this dict is later saved through
+        # AssignmentSerializer, whose writable fields include status and
+        # teacher (H-18).
         assignment_data = {
-            **generated_assignment,
+            **ai_assignment_content_only(generated_assignment),
             "course": str(course.id),
             "ai_generated": True,
         }
@@ -1489,7 +1493,14 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
             save_serializer.is_valid(raise_exception=True)
 
-            assignment_data = dict(draft_message.assignment_snapshot)
+            # Filter again on save (H-18): drafts generated before the
+            # allow-list existed keep the AI's raw keys in their stored
+            # snapshot, so the generate-time filter alone would not cover
+            # them. Server-set values are re-applied below.
+            assignment_data = {
+                **ai_assignment_content_only(draft_message.assignment_snapshot),
+                "ai_generated": True,
+            }
             assignment_data["course"] = str(course.id)
 
             for field, value in save_serializer.validated_data.items():

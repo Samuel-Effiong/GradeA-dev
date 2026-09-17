@@ -285,6 +285,43 @@ def _parse_due_date(due_date):
         return None
 
 
+# The only keys an AI extraction or generation response may contribute to an
+# Assignment - exactly the content contract in
+# ASSIGNMENT_EXTRACTION_PROMPT_4_PROSE.txt,
+# ASSIGNMENT_EXTRACTION_PROMPT_FROM_UPLOADS_HTML_2.txt and
+# ASSIGNMENT_GENERATION_RESPONSE_SCHEMA.
+#
+# The AI's JSON used to be passed whole into AssignmentSerializer, whose
+# writable fields include course, topic, teacher, status, due_date and
+# auto_grade_on_due_date. Extraction runs on free-form json_object output,
+# so text in an uploaded document could steer the model into emitting, say,
+# "status": "PUBLISHED" or "teacher": "<uuid>" and have it saved (H-18).
+# Everything the server sets (course, topic, raw_input, timestamps) is added
+# AFTER this filter, from trusted values.
+AI_ASSIGNMENT_CONTENT_FIELDS = frozenset(
+    {
+        "title",
+        "instructions",
+        "total_points",
+        "question_count",
+        "assignment_type",
+        "questions",
+        "potential_issues",
+        "self_assessment",
+        "extraction_confidence",
+    }
+)
+
+
+def ai_assignment_content_only(ai_output):
+    """`ai_output` reduced to AI_ASSIGNMENT_CONTENT_FIELDS."""
+    return {
+        key: value
+        for key, value in ai_output.items()
+        if key in AI_ASSIGNMENT_CONTENT_FIELDS
+    }
+
+
 class AssignmentProcessingService:
     IMAGE_FORMATS = ["image/jpeg", "image/png", "image/gif", "image/webp"]
     PDF_FORMAT = "application/pdf"
@@ -802,12 +839,14 @@ class AssignmentProcessingService:
 
         ensure_task_not_cancelled(processing_task_id)
         extraction_started_at = timezone.now()
-        assignment_questions = ai_processor.extract_assignment_with_retry(
-            user,
-            content,
-            max_retries=3,
-            upload=upload,
-            processing_task_id=processing_task_id,
+        assignment_questions = ai_assignment_content_only(
+            ai_processor.extract_assignment_with_retry(
+                user,
+                content,
+                max_retries=3,
+                upload=upload,
+                processing_task_id=processing_task_id,
+            )
         )
         extraction_completed_at = timezone.now()
 

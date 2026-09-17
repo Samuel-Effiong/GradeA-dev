@@ -14,8 +14,14 @@ class HasCreditBalance(permissions.BasePermission):
         if not request.user or not request.user.is_authenticated:
             return False
 
-        # Super admins have unlimited credits for now
-        if request.user.user_type == UserTypes.SUPER_ADMIN:
+        # Super admins have unlimited credits for now. Both flags, as
+        # IsSuperAdmin requires (H-19): user_type alone let an account with
+        # is_superuser unticked skip the balance check. Such an account
+        # falls through to the ordinary wallet check below.
+        if (
+            request.user.user_type == UserTypes.SUPER_ADMIN
+            and request.user.is_superuser
+        ):
             return True
 
         # Determine the user whose wallet we should check
