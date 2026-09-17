@@ -1,0 +1,59 @@
+...........................F.F................
+======================================================================
+FAIL: test_tracked_file_changed_during_run_fails (__main__.EndToEnd.test_tracked_file_changed_during_run_fails)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 471, in test_tracked_file_changed_during_run_fails
+    self.assertFailedWith("fingerprint changed", {"touch_tracked": True})
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 319, in assertFailedWith
+    self.assertEqual(code, 1, self.explain())
+AssertionError: 0 != 1 : exit 0
+stdout:
+[2026-09-17T18:33:45+01:00] pre-launch: {"heavy_slots_in_use": 0, "slots_requested": 1, "max_heavy_slots": 100000, "disk_free_gb": 14.78, "min_disk_gb": 0.0, "ram_available_gb": 10.39, "min_ram_gb": 0.0, "test_processes": [], "refused": []}
+[2026-09-17T18:33:45+01:00] run 1: pre-commit run --all-files: pre-commit run --all-files
+[2026-09-17T18:33:45+01:00] run 1: pre-commit run --all-files: exit 0
+[2026-09-17T18:33:45+01:00] run 1: check_migration_safety.py: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python scripts/check_migration_safety.py --base 4555602fcc2abb415f521152c42d0608a3183ffd
+[2026-09-17T18:33:45+01:00] run 1: check_migration_safety.py: exit 0
+[2026-09-17T18:33:45+01:00] run 1: manage.py check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py check --settings=settings_worktree
+[2026-09-17T18:33:45+01:00] run 1: manage.py check: exit 0
+[2026-09-17T18:33:45+01:00] run 1: makemigrations --check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py makemigrations --check --dry-run --settings=settings_worktree
+[2026-09-17T18:33:45+01:00] run 1: makemigrations --check: exit 0
+[2026-09-17T18:33:45+01:00] run 1: full suite: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py test --settings=settings_worktree --noinput --parallel 1 -v 2
+[2026-09-17T18:33:45+01:00] run 1: full suite: exit 0
+[2026-09-17T18:33:45+01:00] run 1: CLEAN []
+[2026-09-17T18:33:45+01:00] VERDICT: PASS []
+
+stderr:
+
+
+======================================================================
+FAIL: test_untracked_file_created_during_run_fails (__main__.EndToEnd.test_untracked_file_created_during_run_fails)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 475, in test_untracked_file_created_during_run_fails
+    self.assertFailedWith("porcelain_lines", {"create_untracked": True})
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 319, in assertFailedWith
+    self.assertEqual(code, 1, self.explain())
+AssertionError: 0 != 1 : exit 0
+stdout:
+[2026-09-17T18:33:47+01:00] pre-launch: {"heavy_slots_in_use": 0, "slots_requested": 1, "max_heavy_slots": 100000, "disk_free_gb": 14.78, "min_disk_gb": 0.0, "ram_available_gb": 10.46, "min_ram_gb": 0.0, "test_processes": [], "refused": []}
+[2026-09-17T18:33:47+01:00] run 1: pre-commit run --all-files: pre-commit run --all-files
+[2026-09-17T18:33:47+01:00] run 1: pre-commit run --all-files: exit 0
+[2026-09-17T18:33:47+01:00] run 1: check_migration_safety.py: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python scripts/check_migration_safety.py --base 83717ed5df4c6cac3739c9ea1c681e06c3922a03
+[2026-09-17T18:33:47+01:00] run 1: check_migration_safety.py: exit 0
+[2026-09-17T18:33:47+01:00] run 1: manage.py check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py check --settings=settings_worktree
+[2026-09-17T18:33:47+01:00] run 1: manage.py check: exit 0
+[2026-09-17T18:33:47+01:00] run 1: makemigrations --check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py makemigrations --check --dry-run --settings=settings_worktree
+[2026-09-17T18:33:47+01:00] run 1: makemigrations --check: exit 0
+[2026-09-17T18:33:47+01:00] run 1: full suite: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py test --settings=settings_worktree --noinput --parallel 1 -v 2
+[2026-09-17T18:33:47+01:00] run 1: full suite: exit 0
+[2026-09-17T18:33:47+01:00] run 1: CLEAN []
+[2026-09-17T18:33:47+01:00] VERDICT: PASS []
+
+stderr:
+
+
+----------------------------------------------------------------------
+Ran 46 tests in 23.888s
+
+FAILED (failures=2)

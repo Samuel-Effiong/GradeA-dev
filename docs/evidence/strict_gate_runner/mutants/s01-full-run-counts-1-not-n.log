@@ -1,0 +1,29 @@
+.......................................FF...F..
+======================================================================
+FAIL: test_full_run_counts_its_parallel_n (__main__.SlotAccounting.test_full_run_counts_its_parallel_n) (argv=['--noinput', '--parallel', '4', '-v', '2'])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 774, in test_full_run_counts_its_parallel_n
+    self.assertEqual(self.slots([proc(10, argv)])[0], expected)
+AssertionError: 1 != 4
+
+======================================================================
+FAIL: test_full_run_counts_its_parallel_n (__main__.SlotAccounting.test_full_run_counts_its_parallel_n) (argv=['--noinput', '--parallel=3'])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 774, in test_full_run_counts_its_parallel_n
+    self.assertEqual(self.slots([proc(10, argv)])[0], expected)
+AssertionError: 1 != 3
+
+======================================================================
+FAIL: test_parallel_workers_are_not_double_counted (__main__.SlotAccounting.test_parallel_workers_are_not_double_counted)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 813, in test_parallel_workers_are_not_double_counted
+    self.assertEqual(total, 4)
+AssertionError: 1 != 4
+
+----------------------------------------------------------------------
+Ran 46 tests in 21.158s
+
+FAILED (failures=3)

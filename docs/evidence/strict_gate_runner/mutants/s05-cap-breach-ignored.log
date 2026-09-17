@@ -1,0 +1,40 @@
+..............F......................F........
+======================================================================
+FAIL: test_prelaunch_guard_refuses_when_slots_are_full (__main__.EndToEnd.test_prelaunch_guard_refuses_when_slots_are_full)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 536, in test_prelaunch_guard_refuses_when_slots_are_full
+    self.assertRefusedCleanly()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 506, in assertRefusedCleanly
+    self.assertEqual(self.repo.result.returncode, 2, self.explain())
+AssertionError: 0 != 2 : exit 0
+stdout:
+[2026-09-17T18:37:03+01:00] pre-launch: {"heavy_slots_in_use": 0, "slots_requested": 1, "max_heavy_slots": 0, "disk_free_gb": 14.78, "min_disk_gb": 0.0, "ram_available_gb": 10.61, "min_ram_gb": 0.0, "test_processes": [], "refused": []}
+[2026-09-17T18:37:04+01:00] run 1: pre-commit run --all-files: pre-commit run --all-files
+[2026-09-17T18:37:04+01:00] run 1: pre-commit run --all-files: exit 0
+[2026-09-17T18:37:04+01:00] run 1: check_migration_safety.py: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python scripts/check_migration_safety.py --base c5e1f9aff1cb1a10a79489929e22e262a3d2a770
+[2026-09-17T18:37:04+01:00] run 1: check_migration_safety.py: exit 0
+[2026-09-17T18:37:04+01:00] run 1: manage.py check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py check --settings=settings_worktree
+[2026-09-17T18:37:04+01:00] run 1: manage.py check: exit 0
+[2026-09-17T18:37:04+01:00] run 1: makemigrations --check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py makemigrations --check --dry-run --settings=settings_worktree
+[2026-09-17T18:37:04+01:00] run 1: makemigrations --check: exit 0
+[2026-09-17T18:37:04+01:00] run 1: full suite: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py test --settings=settings_worktree --noinput --parallel 1 -v 2
+[2026-09-17T18:37:04+01:00] run 1: full suite: exit 0
+[2026-09-17T18:37:04+01:00] run 1: CLEAN []
+[2026-09-17T18:37:04+01:00] VERDICT: PASS []
+
+stderr:
+
+
+======================================================================
+FAIL: test_cap_breach_refuses_and_boundary_is_allowed (__main__.SlotAccounting.test_cap_breach_refuses_and_boundary_is_allowed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 822, in test_cap_breach_refuses_and_boundary_is_allowed
+    self.assertTrue(gate.prelaunch_problems(6, 1, 6, 50, 3, 9, 2))
+AssertionError: [] is not true
+
+----------------------------------------------------------------------
+Ran 46 tests in 23.094s
+
+FAILED (failures=2)

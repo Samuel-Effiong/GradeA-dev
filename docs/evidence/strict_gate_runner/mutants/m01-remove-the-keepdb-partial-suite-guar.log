@@ -1,0 +1,122 @@
+......FFFFF.............................FFFF.........
+======================================================================
+FAIL: test_keepdb_is_refused_before_anything_runs (__main__.EndToEnd.test_keepdb_is_refused_before_anything_runs) (bad=['--test-arg=--keepdb'])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 522, in test_keepdb_is_refused_before_anything_runs
+    self.assertEqual(self.repo.result.returncode, 2, self.explain())
+AssertionError: 0 != 2 : exit 0
+stdout:
+[2026-09-17T18:33:34+01:00] pre-launch: {"heavy_slots_in_use": 0, "slots_requested": 1, "max_heavy_slots": 100000, "disk_free_gb": 14.78, "min_disk_gb": 0.0, "ram_available_gb": 10.38, "min_ram_gb": 0.0, "test_processes": [], "refused": []}
+[2026-09-17T18:33:34+01:00] run 1: pre-commit run --all-files: pre-commit run --all-files
+[2026-09-17T18:33:34+01:00] run 1: pre-commit run --all-files: exit 0
+[2026-09-17T18:33:34+01:00] run 1: check_migration_safety.py: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python scripts/check_migration_safety.py --base 4373a517f7e80f06eddce382c0728e202001c0fa
+[2026-09-17T18:33:34+01:00] run 1: check_migration_safety.py: exit 0
+[2026-09-17T18:33:34+01:00] run 1: manage.py check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py check --settings=settings_worktree
+[2026-09-17T18:33:34+01:00] run 1: manage.py check: exit 0
+[2026-09-17T18:33:34+01:00] run 1: makemigrations --check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py makemigrations --check --dry-run --settings=settings_worktree
+[2026-09-17T18:33:34+01:00] run 1: makemigrations --check: exit 0
+[2026-09-17T18:33:34+01:00] run 1: full suite: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py test --settings=settings_worktree --noinput --parallel 1 -v 2 --keepdb
+[2026-09-17T18:33:34+01:00] run 1: full suite: exit 0
+[2026-09-17T18:33:34+01:00] run 1: CLEAN []
+[2026-09-17T18:33:34+01:00] VERDICT: PASS []
+
+stderr:
+
+
+======================================================================
+FAIL: test_keepdb_is_refused_before_anything_runs (__main__.EndToEnd.test_keepdb_is_refused_before_anything_runs) (bad=['--test-arg=--keepdb=1'])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 524, in test_keepdb_is_refused_before_anything_runs
+    self.assertEqual(self.repo.stub_calls(), [])
+AssertionError: Lists differ: [{'argv': ['shell', '--settings=settings_w[4904 chars]r1'}] != []
+
+First list contains 9 additional elements.
+First extra element 0:
+{'argv': ['shell', '--settings=settings_worktree', '-c', '# strict-gate-probe:targets\nimport json\nfrom urllib.parse import urlsplit\nfrom django.conf import settings\n\ndef url(value):\n    value = value[0] if isinstance(value, (list, tuple)) else value\n    parts = urlsplit(str(value))\n    return {"host": parts.hostname or "", "port": str(parts.port or "")}\n\ndb = settings.DATABASES["default"]\ntargets = {\n    "environment": str(getattr(settings, "ENVIRONMENT", "")),\n    "database": {"host": str(db.get("HOST") or ""), "port": str(db.get("PORT") or "")},\n    "cache": url(settings.CACHES["default"]["LOCATION"]),\n    "celery_broker": url(getattr(settings, "CELERY_BROKER_URL", "") or ""),\n    "celery_result_backend": url(getattr(settings, "CELERY_RESULT_BACKEND", "") or ""),\n}\nprint("strict_gate_targets=" + json.dumps(targets, sort_keys=True))\n'], 'db': 'test_g_selftest_4373a51_r0'}
+
+Diff is 7155 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_keepdb_is_refused_before_anything_runs (__main__.EndToEnd.test_keepdb_is_refused_before_anything_runs) (bad=['--test-arg=-k', '--test-arg=billing'])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 524, in test_keepdb_is_refused_before_anything_runs
+    self.assertEqual(self.repo.stub_calls(), [])
+AssertionError: Lists differ: [{'argv': ['shell', '--settings=settings_w[4904 chars]r1'}] != []
+
+First list contains 9 additional elements.
+First extra element 0:
+{'argv': ['shell', '--settings=settings_worktree', '-c', '# strict-gate-probe:targets\nimport json\nfrom urllib.parse import urlsplit\nfrom django.conf import settings\n\ndef url(value):\n    value = value[0] if isinstance(value, (list, tuple)) else value\n    parts = urlsplit(str(value))\n    return {"host": parts.hostname or "", "port": str(parts.port or "")}\n\ndb = settings.DATABASES["default"]\ntargets = {\n    "environment": str(getattr(settings, "ENVIRONMENT", "")),\n    "database": {"host": str(db.get("HOST") or ""), "port": str(db.get("PORT") or "")},\n    "cache": url(settings.CACHES["default"]["LOCATION"]),\n    "celery_broker": url(getattr(settings, "CELERY_BROKER_URL", "") or ""),\n    "celery_result_backend": url(getattr(settings, "CELERY_RESULT_BACKEND", "") or ""),\n}\nprint("strict_gate_targets=" + json.dumps(targets, sort_keys=True))\n'], 'db': 'test_g_selftest_4373a51_r0'}
+
+Diff is 7155 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_keepdb_is_refused_before_anything_runs (__main__.EndToEnd.test_keepdb_is_refused_before_anything_runs) (bad=['--test-arg=app.tests'])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 524, in test_keepdb_is_refused_before_anything_runs
+    self.assertEqual(self.repo.stub_calls(), [])
+AssertionError: Lists differ: [{'argv': ['shell', '--settings=settings_w[4904 chars]r1'}] != []
+
+First list contains 9 additional elements.
+First extra element 0:
+{'argv': ['shell', '--settings=settings_worktree', '-c', '# strict-gate-probe:targets\nimport json\nfrom urllib.parse import urlsplit\nfrom django.conf import settings\n\ndef url(value):\n    value = value[0] if isinstance(value, (list, tuple)) else value\n    parts = urlsplit(str(value))\n    return {"host": parts.hostname or "", "port": str(parts.port or "")}\n\ndb = settings.DATABASES["default"]\ntargets = {\n    "environment": str(getattr(settings, "ENVIRONMENT", "")),\n    "database": {"host": str(db.get("HOST") or ""), "port": str(db.get("PORT") or "")},\n    "cache": url(settings.CACHES["default"]["LOCATION"]),\n    "celery_broker": url(getattr(settings, "CELERY_BROKER_URL", "") or ""),\n    "celery_result_backend": url(getattr(settings, "CELERY_RESULT_BACKEND", "") or ""),\n}\nprint("strict_gate_targets=" + json.dumps(targets, sort_keys=True))\n'], 'db': 'test_g_selftest_4373a51_r0'}
+
+Diff is 7155 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_keepdb_is_refused_before_anything_runs (__main__.EndToEnd.test_keepdb_is_refused_before_anything_runs) (bad=['--test-arg=--tag=fast'])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 524, in test_keepdb_is_refused_before_anything_runs
+    self.assertEqual(self.repo.stub_calls(), [])
+AssertionError: Lists differ: [{'argv': ['shell', '--settings=settings_w[4904 chars]r1'}] != []
+
+First list contains 9 additional elements.
+First extra element 0:
+{'argv': ['shell', '--settings=settings_worktree', '-c', '# strict-gate-probe:targets\nimport json\nfrom urllib.parse import urlsplit\nfrom django.conf import settings\n\ndef url(value):\n    value = value[0] if isinstance(value, (list, tuple)) else value\n    parts = urlsplit(str(value))\n    return {"host": parts.hostname or "", "port": str(parts.port or "")}\n\ndb = settings.DATABASES["default"]\ntargets = {\n    "environment": str(getattr(settings, "ENVIRONMENT", "")),\n    "database": {"host": str(db.get("HOST") or ""), "port": str(db.get("PORT") or "")},\n    "cache": url(settings.CACHES["default"]["LOCATION"]),\n    "celery_broker": url(getattr(settings, "CELERY_BROKER_URL", "") or ""),\n    "celery_result_backend": url(getattr(settings, "CELERY_RESULT_BACKEND", "") or ""),\n}\nprint("strict_gate_targets=" + json.dumps(targets, sort_keys=True))\n'], 'db': 'test_g_selftest_4373a51_r0'}
+
+Diff is 7155 characters long. Set self.maxDiff to None to see it.
+
+======================================================================
+FAIL: test_validate_rejects_db_reuse_and_narrowing (__main__.PureLogic.test_validate_rejects_db_reuse_and_narrowing) (extra=['--keepdb'])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 667, in test_validate_rejects_db_reuse_and_narrowing
+    with self.assertRaises(gate.GateAbort):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: GateAbort not raised
+
+======================================================================
+FAIL: test_validate_rejects_db_reuse_and_narrowing (__main__.PureLogic.test_validate_rejects_db_reuse_and_narrowing) (extra=['--keepdb=true'])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 667, in test_validate_rejects_db_reuse_and_narrowing
+    with self.assertRaises(gate.GateAbort):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: GateAbort not raised
+
+======================================================================
+FAIL: test_validate_rejects_db_reuse_and_narrowing (__main__.PureLogic.test_validate_rejects_db_reuse_and_narrowing) (extra=['--exclude-tag=x'])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 667, in test_validate_rejects_db_reuse_and_narrowing
+    with self.assertRaises(gate.GateAbort):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: GateAbort not raised
+
+======================================================================
+FAIL: test_validate_rejects_db_reuse_and_narrowing (__main__.PureLogic.test_validate_rejects_db_reuse_and_narrowing) (extra=['--failfast'])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 667, in test_validate_rejects_db_reuse_and_narrowing
+    with self.assertRaises(gate.GateAbort):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: GateAbort not raised
+
+----------------------------------------------------------------------
+Ran 46 tests in 24.608s
+
+FAILED (failures=9)

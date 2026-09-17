@@ -1,0 +1,14 @@
+..............................F...............
+======================================================================
+FAIL: test_verify_landed_passes_only_when_beta_equals_gated_sha (__main__.EndToEnd.test_verify_landed_passes_only_when_beta_equals_gated_sha)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 401, in test_verify_landed_passes_only_when_beta_equals_gated_sha
+    self.assertEqual(moved.returncode, 1, moved.stdout)
+AssertionError: 0 != 1 : {"ref": "beta", "ref_sha": "6d5bc54295047ed115d2264fa7cc9b42acf7c229", "gated_sha": "4b925ef102da2cc992f826129916a457b2b9cd63", "match": true, "checked": "2026-09-17T18:34:57+01:00"}
+
+
+----------------------------------------------------------------------
+Ran 46 tests in 22.440s
+
+FAILED (failures=1)

@@ -1,0 +1,531 @@
+{
+  "script_sha256_before": "8e6b748978b1064a758530d320de37a01b3bbdd934c49cca9efccf01acc80958",
+  "script_sha256_after": "8e6b748978b1064a758530d320de37a01b3bbdd934c49cca9efccf01acc80958",
+  "script_sha256_at_HEAD": "8e6b748978b1064a758530d320de37a01b3bbdd934c49cca9efccf01acc80958",
+  "tracked_script_untouched": true,
+  "mutants": [
+    {
+      "mutant": "M01 remove the --keepdb/partial-suite guard",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_keepdb_is_refused_before_anything_runs",
+        "test_validate_rejects_db_reuse_and_narrowing"
+      ],
+      "log_sha256": "1c35f99f60c85c73fee60f5db1e54ade6297098683de73356a02cf194c61659a"
+    },
+    {
+      "mutant": "M02 skip the early guard call",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_keepdb_is_refused_before_anything_runs"
+      ],
+      "log_sha256": "0030c6b1b4db5761abb8908bf1625e435fa5d687c1148ea0df37bd2698bf377c"
+    },
+    {
+      "mutant": "M03 skip the fingerprint compare",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_tracked_file_changed_during_run_fails",
+        "test_untracked_file_created_during_run_fails"
+      ],
+      "log_sha256": "efb311b03824c9b8fe91065203492fa217b4d85e4bd5eec7b43dd4e88a098363"
+    },
+    {
+      "mutant": "M04 ignore a non-zero step exit",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_each_nonzero_exit_fails_the_gate",
+        "test_first_run_failure_stops_and_fails"
+      ],
+      "log_sha256": "e984af879f2774603becb705c0de7d162f63d151b85ea2a4bd0a2c3d860f0fc5"
+    },
+    {
+      "mutant": "M05 count a flake as a pass when its rerun passes",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_flake_failure_fails_gate_even_when_rerun_alone_passes",
+        "test_second_run_failure_fails_gate",
+        "test_suite_exit_ok_but_failed_summary_fails"
+      ],
+      "log_sha256": "95a4f21d96e26fed3176b6af1530a9307c879057c69b4709cdb77c47dc296de8"
+    },
+    {
+      "mutant": "M06 accept a non-OK suite summary",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_suite_exit_ok_but_failed_summary_fails"
+      ],
+      "log_sha256": "86af6bc1aa822262ea677886f2766f1f43049537fbb660c4aa5e054e0a9d8714"
+    },
+    {
+      "mutant": "M07 add --keepdb to the suite command",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_connections_left_behind_fail",
+        "test_db_left_behind_fails",
+        "test_default_suite_command_is_valid_and_complete",
+        "test_each_nonzero_exit_fails_the_gate",
+        "test_existing_test_db_before_run_aborts",
+        "test_first_run_failure_stops_and_fails",
+        "test_flake_failure_fails_gate_even_when_rerun_alone_passes",
+        "test_missing_destroy_line_fails",
+        "test_missing_sleep_inhibitor_aborts_before_any_run",
+        "test_other_sessions_line_fails",
+        "test_parallel_pilot_is_never_a_gate_pass",
+        "test_prelaunch_guard_refuses_low_disk",
+        "test_prelaunch_guard_refuses_low_ram",
+        "test_prelaunch_guard_refuses_when_slots_are_full",
+        "test_rechecks_targets_before_each_run",
+        "test_rechecks_targets_immediately_before_the_suite",
+        "test_refuses_any_non_local_target",
+        "test_refuses_deployed_database_uri",
+        "test_refuses_deployed_redis_host_even_on_another_port",
+        "test_refuses_non_local_environment",
+        "test_second_run_failure_fails_gate",
+        "test_silent_pg_probe_aborts_not_zero",
+        "test_single_run_pass_is_only_partial_for_gate_10",
+        "test_suite_exit_ok_but_failed_summary_fails",
+        "test_tracked_file_changed_during_run_fails",
+        "test_two_clean_runs_pass_on_fresh_unique_dbs",
+        "test_untracked_file_created_during_run_fails",
+        "test_verify_landed_passes_only_when_beta_equals_gated_sha"
+      ],
+      "log_sha256": "ee99522fea1259bc9c34861b5e328a44b79afaab8da8970c7f6e7544347530a6"
+    },
+    {
+      "mutant": "M08 ignore a DB row or connection left behind",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_connections_left_behind_fail",
+        "test_db_left_behind_fails"
+      ],
+      "log_sha256": "4c6fe44a7225a0689eb505a337be9cedd2fa47bfcbf1c7975e918ef55a8d854f"
+    },
+    {
+      "mutant": "M09 treat a silent Postgres probe as zero",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_pg_probe_without_result_raises",
+        "test_silent_pg_probe_aborts_not_zero"
+      ],
+      "log_sha256": "ae7135d853931120c65b0b8aa15e6ed1ba28ce725d63f72c8bbceae4aacecc7d"
+    },
+    {
+      "mutant": "M10 ignore 'other sessions' lines",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_other_sessions_line_fails"
+      ],
+      "log_sha256": "36a8935bae6b7ce8ab4731394ceaf4907b6e0d10d50d9f96dd70774d4db3bf99"
+    },
+    {
+      "mutant": "M11 ignore a missing teardown line",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_missing_destroy_line_fails"
+      ],
+      "log_sha256": "7c7f5ebec06bbba65f66eed9f731d84ab26798c09e90af24ccbe5087a5f4b147"
+    },
+    {
+      "mutant": "M12 run only one of --runs",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_rechecks_targets_before_each_run",
+        "test_second_run_failure_fails_gate",
+        "test_two_clean_runs_pass_on_fresh_unique_dbs",
+        "test_verify_landed_passes_only_when_beta_equals_gated_sha"
+      ],
+      "log_sha256": "caaf7a1640fc45f04532bf55ff427a4e14226eb52ce6b67f9610f2197bf7b267"
+    },
+    {
+      "mutant": "M13 ignore the pre-launch refusal",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_prelaunch_guard_refuses_low_disk",
+        "test_prelaunch_guard_refuses_low_ram",
+        "test_prelaunch_guard_refuses_when_slots_are_full"
+      ],
+      "log_sha256": "57b316e8b448f9ce55c5f0c9b1466a0883d7d283f46c01d763f3baa13c034155"
+    },
+    {
+      "mutant": "M14 ignore an existing test DB before the run",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_existing_test_db_before_run_aborts"
+      ],
+      "log_sha256": "3b22e1c860279634cb681af21b3008de9dc5790faa7b7bc93d33ad65fb6a4b5b"
+    },
+    {
+      "mutant": "M15 report a pilot as a gate PASS",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_parallel_pilot_is_never_a_gate_pass"
+      ],
+      "log_sha256": "05f5223dc6e115899706ec9bce1dc96dab7d86c915acecebf7b54fc445e7de47"
+    },
+    {
+      "mutant": "M16 verify-landed always matches",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_verify_landed_passes_only_when_beta_equals_gated_sha"
+      ],
+      "log_sha256": "165e41abdd5be825cca5d4d8b2a1eb791526acc28fe3ebba3b30d039fdec0ef0"
+    },
+    {
+      "mutant": "M17 deployed guard: drop the deny-list match",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_deployed_targets_detected_from_env_values",
+        "test_refuses_deployed_database_uri",
+        "test_sandbox_env_keys_are_denied_by_host_and_port"
+      ],
+      "log_sha256": "14376f3b41490544f0296256e39698cf23a1fdb2c6391b6588a3a0ffb9f9b177"
+    },
+    {
+      "mutant": "M18 deployed guard: drop the local-only allow-list",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_refuses_any_non_local_target"
+      ],
+      "log_sha256": "3df72fcc7174e4e5379909629bf645d798a9f6683037a298d169ef7b0f2c5ab6"
+    },
+    {
+      "mutant": "M19 deployed guard: drop the named deployed Redis host",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_named_hosts_cover_beta_and_sandbox",
+        "test_refuses_deployed_redis_host_even_on_another_port",
+        "test_refuses_every_named_deployed_host_by_name"
+      ],
+      "log_sha256": "209771ea4db1221e0a38a5a6d389b381b28bef858e2ff05d2faad935dc439bdc"
+    },
+    {
+      "mutant": "M19a deployed guard: beta Redis host not named",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_named_hosts_cover_beta_and_sandbox",
+        "test_refuses_deployed_redis_host_even_on_another_port"
+      ],
+      "log_sha256": "4d4da83499dda36a8763d4558d220931618ce303df6b539a61aa5331f593f2d6"
+    },
+    {
+      "mutant": "M19b deployed guard: sandbox app host not named",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_named_hosts_cover_beta_and_sandbox"
+      ],
+      "log_sha256": "05f3a282ca6931f916c77f9c0505555b5b1fbac3a6471486bbc4bc9d2df94e71"
+    },
+    {
+      "mutant": "M19c deployed guard: sandbox Postgres host not named",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_named_hosts_cover_beta_and_sandbox"
+      ],
+      "log_sha256": "8a6b2bcb79fc5a9fda12590c58c19c1b5da2f8f555272aac40ec5da22add5d9c"
+    },
+    {
+      "mutant": "M19d deployed guard: sandbox Redis host not named",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_named_hosts_cover_beta_and_sandbox"
+      ],
+      "log_sha256": "559473748e77caffc7c32d92b17d5dbcdea2559a4b85d5ffb4b2fd575d1eb216"
+    },
+    {
+      "mutant": "M19e deployed guard: SANDBOX_DATABASE_URI key not denied",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_sandbox_env_keys_are_denied_by_host_and_port"
+      ],
+      "log_sha256": "d1b88f6f1f865a785c1325bc70c3e60515a67eb7c5ab54b5276fadfac8ab8d80"
+    },
+    {
+      "mutant": "M19f deployed guard: SANDBOX_REDIS_URL key not denied",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_sandbox_env_keys_are_denied_by_host_and_port"
+      ],
+      "log_sha256": "a0a19529e3b5f91d86ee1686566d41bd4e66fe64e7d1c3d889875528b2303985"
+    },
+    {
+      "mutant": "M19g deployed guard: SANDBOX_SERVER key not denied",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_sandbox_env_keys_are_denied_by_host_and_port"
+      ],
+      "log_sha256": "0c9cccbff0a5588f6e8ff62f28c7ff7280a93801d31084d21056ba0a2ff0a161"
+    },
+    {
+      "mutant": "M19h deployed guard: DATABASE_URI key not denied",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_deployed_targets_detected_from_env_values",
+        "test_refuses_deployed_database_uri"
+      ],
+      "log_sha256": "ee604c152317f8e35e3d3e53fe93fc1947e0c61c74c9936e01bf2ca61e72bab0"
+    },
+    {
+      "mutant": "M19i deployed guard: DEPLOYED_TEST_REDIS_URL key not denied",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_deployed_targets_detected_from_env_values"
+      ],
+      "log_sha256": "1757a1267c90c73e584b4a9ee220bbe1ef290807a87eacf61ee6ee0e0e43182e"
+    },
+    {
+      "mutant": "M20 deployed guard: no refusal on problems",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_rechecks_targets_before_each_run",
+        "test_rechecks_targets_immediately_before_the_suite",
+        "test_refuses_any_non_local_target",
+        "test_refuses_deployed_database_uri",
+        "test_refuses_deployed_redis_host_even_on_another_port",
+        "test_refuses_non_local_environment"
+      ],
+      "log_sha256": "27bf739850524d5e0455ad69b362f77902fc5620dbf66b133d30c8a211c0bacc"
+    },
+    {
+      "mutant": "M21 deployed guard: no recheck immediately before the suite",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_rechecks_targets_before_each_run",
+        "test_rechecks_targets_immediately_before_the_suite"
+      ],
+      "log_sha256": "17e83bddf95f887b8679cef264b6866b70e95b4217225a018f8688d26edcdc96"
+    },
+    {
+      "mutant": "M22 deployed guard: no recheck before each run",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_rechecks_targets_before_each_run",
+        "test_rechecks_targets_immediately_before_the_suite"
+      ],
+      "log_sha256": "640d658d2a128ae45557b0b9c15d13906a2a73946a3f297abddb66473511f6e3"
+    },
+    {
+      "mutant": "M23 deployed guard: environment not checked",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_refuses_non_local_environment"
+      ],
+      "log_sha256": "fd9522052ade5b87090c11edaa7d179d484135779b0beb4c1cc17eca85cdc392"
+    },
+    {
+      "mutant": "M24 FAIL exits 0",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_connections_left_behind_fail",
+        "test_db_left_behind_fails",
+        "test_each_nonzero_exit_fails_the_gate",
+        "test_first_run_failure_stops_and_fails",
+        "test_flake_failure_fails_gate_even_when_rerun_alone_passes",
+        "test_missing_destroy_line_fails",
+        "test_other_sessions_line_fails",
+        "test_second_run_failure_fails_gate",
+        "test_suite_exit_ok_but_failed_summary_fails",
+        "test_tracked_file_changed_during_run_fails",
+        "test_untracked_file_created_during_run_fails"
+      ],
+      "log_sha256": "c2bb9876920b47b593876d36c8fdc4d98293957766b3ced466b18ec8d779ebe2"
+    },
+    {
+      "mutant": "M25 single run reported as full Gate 10 PASS",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_single_run_pass_is_only_partial_for_gate_10"
+      ],
+      "log_sha256": "c78f82b79e4363609891e46642636da637bd073d7b498eac583bc4df1c81da48"
+    },
+    {
+      "mutant": "M27 never re-exec under systemd-inhibit",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_connections_left_behind_fail",
+        "test_db_left_behind_fails",
+        "test_each_nonzero_exit_fails_the_gate",
+        "test_existing_test_db_before_run_aborts",
+        "test_first_run_failure_stops_and_fails",
+        "test_flake_failure_fails_gate_even_when_rerun_alone_passes",
+        "test_missing_destroy_line_fails",
+        "test_other_sessions_line_fails",
+        "test_parallel_pilot_is_never_a_gate_pass",
+        "test_rechecks_targets_before_each_run",
+        "test_rechecks_targets_immediately_before_the_suite",
+        "test_refuses_any_non_local_target",
+        "test_refuses_deployed_database_uri",
+        "test_refuses_deployed_redis_host_even_on_another_port",
+        "test_refuses_non_local_environment",
+        "test_second_run_failure_fails_gate",
+        "test_single_run_pass_is_only_partial_for_gate_10",
+        "test_suite_exit_ok_but_failed_summary_fails",
+        "test_tracked_file_changed_during_run_fails",
+        "test_two_clean_runs_pass_on_fresh_unique_dbs",
+        "test_untracked_file_created_during_run_fails",
+        "test_verify_landed_passes_only_when_beta_equals_gated_sha"
+      ],
+      "log_sha256": "0c34afee23ca88827dd2721027ab7ef746e5fc4c9838d69a8886519d552a6a80"
+    },
+    {
+      "mutant": "S01 full run counts 1 not N",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_full_run_counts_its_parallel_n",
+        "test_parallel_workers_are_not_double_counted"
+      ],
+      "log_sha256": "40f9da827bcd4488091987260faf0a631d3f824c347fa285c140dbb1e0cf788b"
+    },
+    {
+      "mutant": "S02 targeted run counts 1",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_every_process_is_listed_with_slots_and_reason",
+        "test_targeted_run_without_keepdb_counts_zero"
+      ],
+      "log_sha256": "76badb85840d917dff2afce909d1d5bf50dfc8d784b5b537aa3da0be8768407a"
+    },
+    {
+      "mutant": "S03 other project counted on our cap",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_every_process_is_listed_with_slots_and_reason",
+        "test_other_project_counts_zero_toward_cap",
+        "test_other_project_still_blocked_by_ram_and_disk_floors"
+      ],
+      "log_sha256": "40b2769e44ec6c23ccbbd451f86f9cc099b82a1779e2d8959da65780066866c5"
+    },
+    {
+      "mutant": "S04 mutation worker counts 0",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_every_process_is_listed_with_slots_and_reason",
+        "test_mutation_worker_counts_one"
+      ],
+      "log_sha256": "9b5f89bf68a327b2717b7225fa22f18e1a4154396d16d839a840cd36c28624f4"
+    },
+    {
+      "mutant": "S05 cap breach ignored",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_cap_breach_refuses_and_boundary_is_allowed",
+        "test_prelaunch_guard_refuses_when_slots_are_full"
+      ],
+      "log_sha256": "3c45b3d2f092b2238e0ca19feed59683a535f23edbd95e240f21f31511174b18"
+    },
+    {
+      "mutant": "S06 cap off by one",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_cap_breach_refuses_and_boundary_is_allowed"
+      ],
+      "log_sha256": "23763a7973aa118c4e7882b0853912892e5befca68a8bd89052bf193338a1ad8"
+    },
+    {
+      "mutant": "S07 RAM floor skipped",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_other_project_still_blocked_by_ram_and_disk_floors",
+        "test_prelaunch_guard_refuses_low_ram"
+      ],
+      "log_sha256": "26b18665ceeb98ec7b03ef065630503bd79248de35f283b59506a400650f445f"
+    },
+    {
+      "mutant": "S08 disk floor skipped",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_other_project_still_blocked_by_ram_and_disk_floors",
+        "test_prelaunch_guard_refuses_low_disk"
+      ],
+      "log_sha256": "2bbd8acb1b8f8e3760f3407a3552a27784b4a02b2fa19cec161af354d34c0af4"
+    },
+    {
+      "mutant": "S09 parallel workers double-counted",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_parallel_workers_are_not_double_counted"
+      ],
+      "log_sha256": "8a7276ebceb1c0c7931834da45551a561b9328cde490d68ba9efc5200b26622f"
+    },
+    {
+      "mutant": "S10 option value read as a test label",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_full_run_counts_its_parallel_n"
+      ],
+      "log_sha256": "3cfaa2a13888d674199a358012797788dcdc33a0115ee4657e2385f238cd7ae0"
+    },
+    {
+      "mutant": "S11 unreadable cwd treated as another project",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_unreadable_cwd_is_counted_as_ours"
+      ],
+      "log_sha256": "f9358890378c7b923ac976c5f8f1c8b97bf24ee20eb489aa0fdf00e780fa0983"
+    },
+    {
+      "mutant": "S12 process list not recorded",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_two_clean_runs_pass_on_fresh_unique_dbs"
+      ],
+      "log_sha256": "66e37f8b56c45a5f019de4c66b9f5330113bb311efc8a4e63684b7ecbe455ca9"
+    },
+    {
+      "mutant": "M26 inhibitor lock not required",
+      "status": "KILLED",
+      "exit": 1,
+      "failing_tests": [
+        "test_missing_sleep_inhibitor_aborts_before_any_run"
+      ],
+      "log_sha256": "4e03040bfc595d5e40092750c354084dd4e119833a2eb467df8b6021845779c5"
+    }
+  ]
+}
