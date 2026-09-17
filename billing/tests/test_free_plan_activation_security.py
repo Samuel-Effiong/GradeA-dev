@@ -37,6 +37,7 @@ from django.db import DatabaseError, connection, transaction
 from django.test import TestCase, TransactionTestCase
 from django.urls import reverse
 from django.utils import timezone
+from redis.exceptions import ConnectionError as RedisConnectionError
 from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.test import APIClient, APITestCase
@@ -1243,6 +1244,75 @@ class ActivationFailureRecoveryTests(PlanCatalogMixin, APITestCase):
         self.assertEqual(teacher_response.status_code, 400)
         self.assertFalse(stripe_down.method_calls)
         self.assertEqual(snapshot(self.teacher), before)
+
+    def test_redis_outage_on_the_plan_change_lock_fails_closed(self):
+        """select-plan takes a Redis lock. With Redis unreachable the
+        request must fail without touching Stripe or the subscription, and
+        a refusal that happens before the lock must still be a clean 400."""
+        teacher = self.make_user(UserTypes.TEACHER)
+        before = snapshot(teacher)
+        client = APIClient()
+        client.force_authenticate(user=teacher)
+        client.raise_request_exception = False
+
+        def select(plan):
+            return client.post(
+                reverse("subscription-select-plan"),
+                {
+                    "plan_id": str(plan.pk),
+                    "success_url": "https://example.test/ok",
+                    "cancel_url": "https://example.test/cancel",
+                },
+                format="json",
+            )
+
+        with mock.patch("billing.stripe_service.stripe") as stripe_calls:
+            with mock.patch(
+                "billing.stripe_service.cache.add",
+                side_effect=RedisConnectionError("redis down"),
+            ):
+                refused = select(self.beta)
+                allowed = select(self.standard)
+
+        # Validation runs before the lock, so a forbidden plan is still a
+        # clean 400 during the outage.
+        self.assertEqual(refused.status_code, 400)
+        # The allowed plan cannot proceed without the lock: it fails closed
+        # (no plan change, no Stripe call), rather than running unserialised.
+        self.assertEqual(allowed.status_code, 500)
+        self.assertFalse(stripe_calls.method_calls)
+        self.assertEqual(snapshot(teacher), before)
+
+    def test_broker_outage_does_not_roll_back_or_duplicate_a_grant(self):
+        """activate_subscription ends with queue_sync -> safe_delay. A
+        broker outage there is swallowed by design; the grant must still
+        commit exactly once and stay one-time."""
+        with mock.patch(
+            "users.tasks.sync_user_to_mailerlite.delay",
+            side_effect=RedisConnectionError("broker down"),
+        ):
+            first = self.assign()
+            second = self.assign()
+
+        self.assertEqual(first.status_code, 201)
+        self.assertEqual(second.status_code, 400)
+        self.assertEqual(beta_grants(self.teacher), (1, 1, 1))
+        self.assertEqual(live_balance(self.teacher), BETA_CREDITS)
+
+    def test_plan_listings_do_not_depend_on_the_cache_being_up(self):
+        teacher = self.make_user(UserTypes.TEACHER)
+        client = APIClient()
+        client.force_authenticate(user=teacher)
+        with mock.patch(
+            "django.core.cache.cache.get",
+            side_effect=RedisConnectionError("redis down"),
+        ):
+            listing = client.get(reverse("subscription-plan"))
+            catalog = client.get(reverse("subscription-plan-list"))
+
+        self.assertEqual(listing.status_code, 200)
+        self.assertEqual(catalog.status_code, 200)
+        self.assertEqual({row["name"] for row in listing.data}, self.catalog_names)
 
     def test_checkout_webhook_redelivery_grants_the_paid_plan_once(self):
         from billing.stripe_service import StripeWebhookHandler
