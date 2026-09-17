@@ -1079,6 +1079,9 @@ endpoints:
   same stale-instance clobber class fixed in the service layer (F-4).
 * **V-5** `StudentViewSet` is defined but not routed (`students/urls.py`
   registers only submissions); dead or missing, decide which.
+  **DECIDED 2026-09-17 (owner): delete.** Deleted in
+  `task/my-students-prefetch-leak` commit `e0b1640`; it also carried the
+  unscoped cross-teacher `enrollments__course` pattern fixed there.
 * **V-6** `teacher_feedback` declares `IsTeacherOrReadOnly` on the action
   but `get_permissions` overrides it to teacher+credits (already commented
   in code; the dead kwarg should go once V-3 is decided).
@@ -1148,7 +1151,8 @@ Remaining (H-11 stays OPEN and release-blocking):
    and `partial_update` once (1) is confirmed — delete, or keep as thin
    dispatchers returning 202 if a compatibility window is needed.
 3. **V-5** `StudentViewSet` unrouted: delete or route (file deletion needs
-   sign-off).
+   sign-off). **Owner signed off on deletion 2026-09-17; deleted in
+   `e0b1640`.**
 4. The same tracked-row idempotency claim for `upload_answers_engine_async`
    (the upload task still marks started unconditionally; Section 9 is
    changing that task, so this is coordinated with it).
@@ -1187,7 +1191,8 @@ the frontend/client dependency is confirmed.
   V-3 decided: `PATCH`/`update-async` follow the docstring — the
   submission's own student and the course teacher, both queryset-scoped.
   V-4 closed by the shared service. V-6 closed (dead kwarg removed).
-  V-5 (`StudentViewSet` unrouted) is a deletion and stays for sign-off.
+  V-5 (`StudentViewSet` unrouted) is a deletion and stays for sign-off
+  (owner signed off 2026-09-17; deleted in `e0b1640`).
 * Evidence: `students/tests_async_edit_path.py` — route, tenancy,
   duplicate guards, task success/refusal/retry/refund, redelivery on a
   real Celery worker, 12 concurrent live-HTTP clients → exactly one task,
