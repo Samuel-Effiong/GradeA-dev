@@ -215,6 +215,23 @@ class CreditGateBothFlagsTest(SuperadminShapesFixture):
                 # Past the credit gate; the queryset then hides the row.
                 self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
+    def test_createsuperuser_account_does_not_bypass_the_credit_gate(self):
+        # The other single-flag shape: is_superuser True, user_type left at
+        # TEACHER (exactly what `manage.py createsuperuser` makes). It must be
+        # judged on its wallet like anyone else.
+        django_admin = CustomUser.objects.create_superuser(
+            email="h19-credit-djadmin@example.com", password=PASSWORD
+        )
+        self.assertEqual(
+            (django_admin.user_type, django_admin.is_superuser),
+            (UserTypes.TEACHER, True),
+        )
+        self.client.force_authenticate(user=django_admin)
+        response = self.client.patch(self.url(), {"raw_input": "x"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Insufficient Credits", response.content.decode())
+        self.assertEqual(self.billing_rows(django_admin), (0, 0))
+
     def test_real_superadmin_still_bypasses_the_credit_gate(self):
         self.client.force_authenticate(user=self.superadmin)
         response = self.client.patch(self.url(), {"raw_input": "x"}, format="json")
