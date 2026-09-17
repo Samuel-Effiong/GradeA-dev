@@ -64,7 +64,17 @@ def network_available(host="oauth2.googleapis.com", port=443, timeout=5):
         return False
 
 
-NETWORK_OK = network_available()
+# Calling Google for real is OPT-IN, not "whenever the machine happens to have
+# a route to it". Reachability is not consent: a CI runner has outbound
+# internet, so a probe-only gate made every CI run depend on Google being up
+# and not rate-limiting us - a red build caused by someone else's service.
+#
+# With CI_REQUIRE_NETWORK=1 the calls run and LiveContractSkipGuardTests turns
+# an unreachable provider into a FAILURE, so an opted-in run cannot quietly
+# skip the contract it was asked to check. Without it, the probe is not even
+# attempted: the connect attempt itself cost every run a wait at import time.
+LIVE_GOOGLE_OPT_IN = os.environ.get("CI_REQUIRE_NETWORK") == "1"
+NETWORK_OK = network_available() if LIVE_GOOGLE_OPT_IN else False
 
 
 @override_settings(CACHES=LOCMEM_CACHE)
@@ -774,6 +784,10 @@ class LiveGoogleEndpointContractTests(TestCase):
     """
 
     def setUp(self):
+        if not LIVE_GOOGLE_OPT_IN:
+            self.skipTest(
+                "live Google contract tests are opt-in: set CI_REQUIRE_NETWORK=1"
+            )
         if not NETWORK_OK:
             self.skipTest("No network access to oauth2.googleapis.com")
 
