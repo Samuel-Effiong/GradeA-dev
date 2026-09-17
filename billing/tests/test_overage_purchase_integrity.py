@@ -45,13 +45,14 @@ import threading
 import time
 import uuid
 from datetime import timedelta
+from typing import Any, Callable
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.db import connection
 from django.test import TestCase, TransactionTestCase
 from django.utils import timezone
 
+from AutoGrader.testing.concurrency import run_concurrently
 from billing.models import (
     BillingInterval,
     BillingTransaction,
@@ -99,6 +100,24 @@ class OverageFixture:
 
     #: Set by each TestCase's setUp; declared so the type checker can see it.
     plan: SubscriptionPlan
+
+    #: Supplied by the TestCase this mixin is combined with.
+    addCleanup: Callable[..., Any]
+
+    def stub_receipt_lookup(self):
+        """
+        Every grant path resolves a receipt link through a LIVE Stripe call
+        (resolve_stripe_receipt_url -> stripe.PaymentIntent.retrieve), inside
+        the grant's own transaction. None of the tests here check that link,
+        and the call is a real round trip whose latency they then inherit:
+        it is what made the concurrency tests flaky. Its own behaviour
+        belongs in a test that stubs stripe itself.
+        """
+        patcher = patch(
+            "billing.stripe_service.resolve_stripe_receipt_url", return_value=None
+        )
+        self.receipt_lookup = patcher.start()
+        self.addCleanup(patcher.stop)
 
     def build(self, email="overage@billing.test", plan=None, school=None):
         plan = plan or self.plan
@@ -189,6 +208,7 @@ class IndividualCheckoutOverageTests(TestCase, OverageFixture):
     """Flow 1 — the one that had the defects."""
 
     def setUp(self):
+        self.stub_receipt_lookup()
         self.plan = make_plan()
         self.user, self.wallet = self.build()
 
@@ -448,6 +468,7 @@ class DirectPaymentIntentOverageTests(TestCase, OverageFixture):
     """Flow 2 — the off-session PaymentIntent path."""
 
     def setUp(self):
+        self.stub_receipt_lookup()
         self.plan = make_plan()
         self.user, self.wallet = self.build(email="pi.overage@billing.test")
 
@@ -532,6 +553,7 @@ class OverageConsumptionOrderingTests(TestCase, OverageFixture):
     """Purchased overage must be spent LAST, after every free bucket."""
 
     def setUp(self):
+        self.stub_receipt_lookup()
         self.plan = make_plan()
         self.user, self.wallet = self.build(email="ordering@billing.test")
         now = timezone.now()
@@ -595,6 +617,7 @@ class SchoolLicenseOverageIsolationTests(TestCase, OverageFixture):
     """
 
     def setUp(self):
+        self.stub_receipt_lookup()
         self.plan = make_plan()
         self.school = School.objects.create(name="Overage School")
         self.other_school = School.objects.create(name="Other School")
@@ -685,98 +708,25 @@ class ConcurrentOverageDeliveryTests(TransactionTestCase, OverageFixture):
     LOAD_ROUNDS = 10
 
     def setUp(self):
-        # The grant path resolves a receipt link with a LIVE Stripe call
-        # (resolve_stripe_receipt_url), inside the grant's own transaction.
-        # Its latency is not what these tests check, and it made them flaky:
-        # a call that outlived the join left the assertions reading a grant
-        # that was written but not yet committed ("0 != 500").
-        patcher = patch(
-            "billing.stripe_service.resolve_stripe_receipt_url", return_value=None
-        )
-        self.receipt_lookup = patcher.start()
-        self.addCleanup(patcher.stop)
-
+        # Unstubbed, this call's latency is what made these tests flaky: one
+        # that outlived the join left the assertions reading a grant that was
+        # written but not yet committed ("0 != 500").
+        self.stub_receipt_lookup()
         self.plan = make_plan()
         self.user, self.wallet = self.build(email="concurrent.ov@billing.test")
 
     def _run(self, fn, count, join_timeout=None):
-        """
-        Start `count` threads, release them together, wait for every one,
-        and return the exceptions they raised.
-
-        A thread still running after the timeout FAILS the test. Its
-        transaction may not have committed, so asserting on the ledger then
-        would be asserting on partial state, which is exactly how this class
-        used to fail intermittently.
-        """
-        timeout = self.JOIN_TIMEOUT_SECONDS if join_timeout is None else join_timeout
-        barrier = threading.Barrier(count)
-        errors = []
-
-        def worker(i):
-            try:
-                barrier.wait(timeout=30)
-                fn(i)
-            except Exception as exc:  # noqa: BLE001 - asserted on below
-                errors.append(exc)
-            finally:
-                # The thread opened its own connection; nobody else can close
-                # it, and an open one fails test-database teardown.
-                connection.close()
-
-        threads = [
-            threading.Thread(target=worker, args=(i,), name=f"overage-worker-{i}")
-            for i in range(count)
-        ]
-        # Whatever happens below, don't leave a live thread (and its open
-        # transaction) behind for the table flush to deadlock against.
-        self.workers = threads
-        self.addCleanup(self._reap, threads)
-        backends_before = self._other_backends()
-        for t in threads:
-            t.start()
-
-        deadline = time.monotonic() + timeout
-        for t in threads:
-            t.join(timeout=max(0.0, deadline - time.monotonic()))
-
-        still_running = [t.name for t in threads if t.is_alive()]
-        if still_running:
-            self.fail(
-                f"{len(still_running)} of {count} worker thread(s) still running "
-                f"after {timeout}s: {still_running}. Their transactions may not "
-                f"have committed; refusing to assert on partial state."
-            )
-
-        # A finished thread that skipped connection.close() still holds its
-        # Postgres session until garbage collection happens to reclaim it.
-        # Server-side exit is asynchronous even after a close, so wait for
-        # the count to settle rather than reading it once.
-        settle_by = time.monotonic() + 10
-        while (leaked := self._other_backends() - backends_before) > 0:
-            if time.monotonic() > settle_by:
-                self.fail(
-                    f"{leaked} database session(s) still open after all "
-                    f"{count} workers finished: a worker did not close its "
-                    f"own connection."
-                )
-            time.sleep(0.05)
+        """Thin wrapper: the rules live in AutoGrader.testing.concurrency."""
+        _, errors = run_concurrently(
+            fn,
+            count,
+            test=self,
+            join_timeout=(
+                self.JOIN_TIMEOUT_SECONDS if join_timeout is None else join_timeout
+            ),
+            name="overage-worker",
+        )
         return errors
-
-    @staticmethod
-    def _other_backends():
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT count(*) FROM pg_stat_activity "
-                "WHERE datname = current_database() AND pid <> pg_backend_pid()"
-            )
-            return cursor.fetchone()[0]
-
-    @staticmethod
-    def _reap(threads, timeout=120):
-        deadline = time.monotonic() + timeout
-        for t in threads:
-            t.join(timeout=max(0.0, deadline - time.monotonic()))
 
     def _buy_as(self, wallet, tag):
         StripeWebhookHandler.handle_checkout_completed(
@@ -931,10 +881,15 @@ class ConcurrentOverageDeliveryTests(TransactionTestCase, OverageFixture):
             release.set()
 
         # Once it is allowed to finish, the grant commits normally.
-        self._reap(self.workers)
-        self.assertEqual([t.name for t in self.workers if t.is_alive()], [])
+        settle_by = time.monotonic() + 30
+        while (
+            self.granted_credits(wallets[3]) != BLOCK and time.monotonic() < settle_by
+        ):
+            time.sleep(0.05)
         self.assertEqual(
-            [self.granted_credits(w) for w in wallets], [BLOCK] * len(wallets)
+            [self.granted_credits(w) for w in wallets],
+            [BLOCK] * len(wallets),
+            "the released worker's grant never committed",
         )
 
     # --- Gate 3 load: 20 simultaneous deliveries, 10 rounds ----------------
