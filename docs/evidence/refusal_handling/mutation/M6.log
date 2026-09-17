@@ -1,0 +1,262 @@
+# M6: student submission views answer refusal 402/403
+# worktree /home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3 @ f7cd15e4aa1765ed6be9424fe93a4d1f0959f6f7
+# labels: billing.tests.test_refusal_handling.D9StudentSubmissionRefusalStatusTest students.tests_async_edit_path
+# exit 1
+
+Found 18 test(s).
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user d9-feature-eeca3052@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.views ERROR 2026-09-17 17:53:11,674 views 1915228 124413698702272 [request_id=bb89e19d489a4b598a557525bd3b4007] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/students/views.py", line 660, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/ai_processor/services.py", line 2129, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/ai_processor/services.py", line 1827, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/ai_processor/services.py", line 4404, in execute_graded_task
+    raise AIFeatureNotAvailableError(
+billing.access_control.AIFeatureNotAvailableError: AI access denied for this assignment's teacher: No active subscription
+FCannot activate automatic trial for user d9-credits-d3a70c0f@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.views ERROR 2026-09-17 17:53:15,845 views 1915228 124413698702272 [request_id=8cba71a9de824b868c3fc13ce9ea56c1] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/students/views.py", line 660, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/ai_processor/services.py", line 2129, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/ai_processor/services.py", line 1827, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/ai_processor/services.py", line 4506, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26467 credits, but you only have 1000 credits. Please refill your wallet to continue
+FCannot activate automatic trial for user task-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user task-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking ERROR 2026-09-17 17:53:22,509 task_tracking 1915228 124413698702272 [request_id=-] Background task 20292b18-58ba-42c7-937a-bee9b0ae4f75 failed
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/assignments/tasks.py", line 390, in extract_answer_background_task
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/students/services.py", line 1159, in update_submission_from_raw_text
+    _check_submission_open(locked, student_upload=False)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/students/services.py", line 1010, in _check_submission_open
+    raise SubmissionAlreadyGradedError(
+students.exceptions.SubmissionAlreadyGradedError: This assignment has already been graded, so it can no longer be submitted again.
+.Cannot activate automatic trial for user task-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user task-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user task-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user task-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.sCannot activate automatic trial for user route-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user route-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user route-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/students/views.py", line 695, in update_async
+    raise ParseError("raw_input is required.")
+rest_framework.exceptions.ParseError: raw_input is required.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+students.models.StudentSubmission.DoesNotExist: StudentSubmission matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/students/views.py", line 697, in update_async
+    submission = self.get_object()
+                 ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No StudentSubmission matches the given query.
+.Cannot activate automatic trial for user route-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user route-other-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+students.models.StudentSubmission.DoesNotExist: StudentSubmission matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/students/views.py", line 697, in update_async
+    submission = self.get_object()
+                 ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No StudentSubmission matches the given query.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 90, in get_object_or_404
+    return queryset.get(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 633, in get
+    raise self.model.DoesNotExist(
+students.models.StudentSubmission.DoesNotExist: StudentSubmission matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/students/views.py", line 697, in update_async
+    submission = self.get_object()
+                 ^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 100, in get_object
+    obj = get_object_or_404(queryset, **filter_kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/generics.py", line 19, in get_object_or_404
+    return _get_object_or_404(queryset, *filter_args, **filter_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/shortcuts.py", line 92, in get_object_or_404
+    raise Http404(
+django.http.response.Http404: No StudentSubmission matches the given query.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 339, in check_permissions
+    self.permission_denied(
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 180, in permission_denied
+    raise exceptions.NotAuthenticated()
+rest_framework.exceptions.NotAuthenticated: Authentication credentials were not provided.
+.Cannot activate automatic trial for user route-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user route-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user route-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.views ERROR 2026-09-17 17:54:04,344 views 1915228 124413698702272 [request_id=4c221f6972d843d6b5b94d04030ce5f2] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/students/views.py", line 660, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
+    raise effect
+billing.errors.InsufficientCreditsError: Refill your wallet to continue
+FCannot activate automatic trial for user route-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user worker-d25960-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.[2026-09-17 17:54:13,812: WARNING/MainProcess] Cannot activate automatic trial for user live-teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.
+======================================================================
+FAIL: test_sync_submission_edit_refusal_is_402_or_403 (billing.tests.test_refusal_handling.D9StudentSubmissionRefusalStatusTest.test_sync_submission_edit_refusal_is_402_or_403) [feature]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/billing/tests/test_refusal_handling.py", line 569, in test_sync_submission_edit_refusal_is_402_or_403
+    self.assertCleanRefusalResponse(response, *expected)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 400 != 403 : b'{"success":false,"message":"AI access denied for this assignment\'s teacher: No active subscription","error":{"field_errors":{"error":"AI access denied for this assignment\'s teacher: No active subscription"}}}'
+
+======================================================================
+FAIL: test_sync_submission_edit_refusal_is_402_or_403 (billing.tests.test_refusal_handling.D9StudentSubmissionRefusalStatusTest.test_sync_submission_edit_refusal_is_402_or_403) [credits]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/billing/tests/test_refusal_handling.py", line 569, in test_sync_submission_edit_refusal_is_402_or_403
+    self.assertCleanRefusalResponse(response, *expected)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 400 != 402 : b'{"success":false,"message":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run.","error":{"field_errors":{"error":"There aren\'t enough AI credits available for this. The credit wallet needs to be topped up before it can run."}}}'
+
+======================================================================
+FAIL: test_sync_patch_uses_the_same_service_and_answers_4xx_for_user_errors (students.tests_async_edit_path.UpdateAsyncRouteTest.test_sync_patch_uses_the_same_service_and_answers_4xx_for_user_errors)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1396, in patched
+    return func(*newargs, **newkeywargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w3/students/tests_async_edit_path.py", line 294, in test_sync_patch_uses_the_same_service_and_answers_4xx_for_user_errors
+    self.assertEqual(response.status_code, status.HTTP_402_PAYMENT_REQUIRED)
+AssertionError: 400 != 402
+
+----------------------------------------------------------------------
+Ran 18 tests in 69.581s
+
+FAILED (failures=3, skipped=1)
+Preserving test database for alias 'default'...
