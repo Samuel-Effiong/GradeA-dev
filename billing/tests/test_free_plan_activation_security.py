@@ -1299,6 +1299,36 @@ class ActivationFailureRecoveryTests(PlanCatalogMixin, APITestCase):
         self.assertEqual(beta_grants(self.teacher), (1, 1, 1))
         self.assertEqual(live_balance(self.teacher), BETA_CREDITS)
 
+    def test_stripe_timeout_on_the_allowed_checkout_leaves_no_local_change(self):
+        """The only Stripe-calling path this change touches is select-plan,
+        and the new validation runs BEFORE any Stripe call. Injected here at
+        the call itself: a timeout must leave the caller's subscription and
+        credits exactly as they were."""
+        teacher = self.make_user(UserTypes.TEACHER)
+        before = snapshot(teacher)
+        client = APIClient()
+        client.force_authenticate(user=teacher)
+        client.raise_request_exception = False
+
+        with mock.patch(
+            "billing.stripe_service.stripe.checkout.Session.create",
+            side_effect=TimeoutError("stripe timeout"),
+        ) as session_create:
+            response = client.post(
+                reverse("subscription-select-plan"),
+                {
+                    "plan_id": str(self.standard.pk),
+                    "success_url": "https://example.test/ok",
+                    "cancel_url": "https://example.test/cancel",
+                },
+                format="json",
+            )
+
+        self.assertTrue(session_create.called)
+        self.assertEqual(response.status_code, 500)
+        self.assertEqual(snapshot(teacher), before)
+        self.assertEqual(beta_grants(teacher), (0, 0, 0))
+
     def test_plan_listings_do_not_depend_on_the_cache_being_up(self):
         teacher = self.make_user(UserTypes.TEACHER)
         client = APIClient()
