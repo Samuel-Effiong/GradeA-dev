@@ -17,6 +17,7 @@ import threading
 import time
 from unittest.mock import patch
 
+import redis
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.db import connections, transaction
@@ -27,6 +28,8 @@ from rest_framework.test import APIClient
 
 import classrooms.signals
 from AutoGrader.cache_generation import (
+    SCOPE_COURSE,
+    SCOPE_SCHOOL,
     SCOPE_USER,
     bump_many,
     get_generation,
@@ -320,6 +323,170 @@ class RedisDownAtCommitTests(CommitRaceBase):
         cache.expire(key, 1)
         time.sleep(1.5)
         self.assert_cached_read_is_fresh()
+
+
+class WriterRedisFailureTests(CommitRaceBase):
+    """Redis fails for the WRITER only, at each step of its bumps.
+
+    Only the writer's thread sees the failure, so the reader still caches
+    what it reads in the window, which is the case that matters. Both a
+    refused connection and a timeout are injected, at the class level for
+    the reason given in RedisDownAtCommitTests.
+    """
+
+    FAILURES = (
+        ConnectionError("redis unavailable"),
+        redis.exceptions.TimeoutError("redis timed out"),
+    )
+
+    def setUp(self):
+        super().setUp()
+        self.student = make_user("race-wf@x.test", UserTypes.STUDENT, "RaceWF")
+
+    def race_with_writer_failure(self, failure, *, recovers_before_commit):
+        failing = threading.Event()
+        writer_thread = []
+        injected = []
+        real_get_client = DefaultClient.get_client
+
+        def get_client(client, *args, **kwargs):
+            if failing.is_set() and threading.get_ident() in writer_thread:
+                injected.append(type(failure).__name__)
+                raise failure
+            return real_get_client(client, *args, **kwargs)
+
+        def write():
+            writer_thread.append(threading.get_ident())
+            failing.set()
+            with transaction.atomic():
+                enroll_student_by_email(course=self.course, email=self.student.email)
+                if recovers_before_commit:
+                    failing.clear()
+
+        errors = []
+        with patch.object(DefaultClient, "get_client", get_client):
+            self.race(write, errors)
+        failing.clear()
+
+        self.assertEqual(errors, [], "a Redis failure failed the write")
+        self.assertTrue(injected, "no failure was injected")
+        self.assertTrue(
+            StudentCourse.objects.filter(
+                student=self.student, course=self.course
+            ).exists()
+        )
+
+    def test_a_failed_in_transaction_bump_is_recovered_by_the_post_commit_bump(self):
+        for failure in self.FAILURES:
+            with self.subTest(failure=type(failure).__name__):
+                StudentCourse.objects.filter(student=self.student).delete()
+                self.read()  # warm
+                self.race_with_writer_failure(failure, recovers_before_commit=True)
+                self.assert_cached_read_is_fresh()
+
+    def test_both_bumps_failing_leaves_staleness_bounded_by_the_ttl(self):
+        for failure in self.FAILURES:
+            with self.subTest(failure=type(failure).__name__):
+                StudentCourse.objects.filter(student=self.student).delete()
+                cache.clear()
+                self.read()  # warm
+                self.race_with_writer_failure(failure, recovers_before_commit=False)
+
+                key = versioned_key(
+                    f"courses:user_id__{self.teacher.pk}"
+                    f":instance_id__{self.course.pk}",
+                    [(SCOPE_USER, self.teacher.pk)],
+                )
+                ttl = cache.ttl(key)
+                self.assertIsNotNone(ttl, "the stale entry has no expiry")
+                self.assertGreater(ttl, 0)
+                self.assertLessEqual(ttl, 300)
+                cache.expire(key, 1)
+                time.sleep(1.5)
+                self.assert_cached_read_is_fresh()
+
+
+class PostCommitBumpIsolationTests(CommitRaceBase):
+    """The post-commit bump repeats the writer's own scopes and nothing else:
+    no other teacher, course or school, in the same school or another."""
+
+    def setUp(self):
+        super().setUp()
+        self.school = School.objects.create(name="Race home school")
+        self.other_school = School.objects.create(name="Race other school")
+        self.teacher.school = self.school
+        self.teacher.save()
+        self.student = make_user("race-iso@x.test", UserTypes.STUDENT, "RaceIso")
+
+        self.same_school_teacher = make_user(
+            "race-t2@x.test", UserTypes.TEACHER, "RaceT2"
+        )
+        self.same_school_teacher.school = self.school
+        self.same_school_teacher.save()
+        self.other_school_teacher = make_user(
+            "race-t3@x.test", UserTypes.TEACHER, "RaceT3"
+        )
+        self.other_school_teacher.school = self.other_school
+        self.other_school_teacher.save()
+        self.other_student = make_user(
+            "race-iso2@x.test", UserTypes.STUDENT, "RaceIso2"
+        )
+
+        self.same_school_course = Course.objects.create(
+            name="Neighbour course",
+            teacher=self.same_school_teacher,
+            session=Session.objects.create(
+                name="Neighbour term", teacher=self.same_school_teacher
+            ),
+        )
+        self.other_school_course = Course.objects.create(
+            name="Foreign course",
+            teacher=self.other_school_teacher,
+            session=Session.objects.create(
+                name="Foreign term", teacher=self.other_school_teacher
+            ),
+        )
+
+    def generations(self, pairs):
+        return {pair: get_generation(*pair) for pair in pairs}
+
+    def test_only_the_writers_scopes_move_and_the_commit_exactly_repeats_them(self):
+        own = [
+            (SCOPE_USER, self.student.pk),
+            (SCOPE_USER, self.teacher.pk),
+            (SCOPE_COURSE, self.course.pk),
+            (SCOPE_SCHOOL, self.school.pk),
+        ]
+        foreign = [
+            (SCOPE_USER, self.same_school_teacher.pk),
+            (SCOPE_USER, self.other_school_teacher.pk),
+            (SCOPE_USER, self.other_student.pk),
+            (SCOPE_COURSE, self.same_school_course.pk),
+            (SCOPE_COURSE, self.other_school_course.pk),
+            (SCOPE_SCHOOL, self.other_school.pk),
+        ]
+        own_before = self.generations(own)
+        foreign_before = self.generations(foreign)
+
+        with transaction.atomic():
+            enroll_student_by_email(course=self.course, email=self.student.email)
+            in_transaction = {
+                pair: gen - own_before[pair]
+                for pair, gen in self.generations(own).items()
+            }
+            self.assertEqual(self.generations(foreign), foreign_before)
+
+        self.assertTrue(
+            all(delta >= 1 for delta in in_transaction.values()), in_transaction
+        )
+        after_commit = {
+            pair: gen - own_before[pair] for pair, gen in self.generations(own).items()
+        }
+        self.assertEqual(
+            after_commit,
+            {pair: 2 * delta for pair, delta in in_transaction.items()},
+        )
+        self.assertEqual(self.generations(foreign), foreign_before)
 
 
 class ConcurrentEnrollmentRaceLoadTests(CommitRaceBase):
