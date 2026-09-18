@@ -26,10 +26,11 @@ import json
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.db.models import Q
 from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
-from rest_framework.test import APITestCase
+from rest_framework.test import APIRequestFactory, APITestCase
 
 from classrooms.models import (
     Course,
@@ -39,7 +40,9 @@ from classrooms.models import (
     StudentCourse,
 )
 from classrooms.services import enroll_student_by_email
+from users.filters import visible_enrollments
 from users.models import UserTypes
+from users.views import CustomUserViewSet
 
 User = get_user_model()
 
@@ -348,3 +351,42 @@ class SuperAdminAndSelf(UserEnrollmentFilterOracleBase):
             self.student, "get", self.student, {"enrollments__course": self.course_b.id}
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+class PremiseTheEquivalenceArgumentRestsOn(UserEnrollmentFilterOracleBase):
+    """Pin for the mutant that cannot be killed (M14 in the battery).
+
+    M14 replaces `visible_enrollments`'s last branch, `Q(student=user)`, with
+    `Q()`. It is equivalent ONLY because every account that reaches that
+    branch - a student, a school admin with no school, a SUPER_ADMIN-typed
+    account without `is_superuser` - is given a queryset of its own row
+    alone, and the `Exists` subquery is correlated on
+    `student=OuterRef("pk")`. Widen that queryset and the unscoped predicate
+    would start matching other people's enrollments, with no mutant to catch
+    it. This test fails if that premise dies; the argument itself is in
+    `docs/evidence/MY_STUDENTS_TENANCY_EVIDENCE.md`.
+    """
+
+    def queryset_for(self, actor):
+        request = APIRequestFactory().get("/api/v1/users/")
+        request.user = actor
+        view = CustomUserViewSet(action="retrieve", request=request, kwargs={})
+        return list(view.get_queryset())
+
+    def test_accounts_hitting_the_fallback_branch_see_only_themselves(self):
+        no_school_admin = make_user("lonely-admin@x.test", UserTypes.SCHOOL_ADMIN)
+        typed_not_flagged = make_user("half-root@x.test", UserTypes.SUPER_ADMIN)
+
+        for actor in (self.student, no_school_admin, typed_not_flagged):
+            with self.subTest(actor=actor.email):
+                self.assertEqual(
+                    visible_enrollments(actor),
+                    Q(student=actor),
+                    "this account no longer takes the own-rows branch",
+                )
+                self.assertEqual(
+                    self.queryset_for(actor),
+                    [actor],
+                    "the own-rows branch is only safe while such an account's "
+                    "queryset is its own row alone",
+                )

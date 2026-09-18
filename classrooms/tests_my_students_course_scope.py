@@ -38,6 +38,7 @@ from classrooms.models import Course, School, Session
 from classrooms.services import enroll_student_by_email
 from classrooms.views import StudentCourseViewSet
 from students.models import StudentSubmission
+from students.serializers import StudentListSerializer
 from users.models import UserTypes
 
 User = get_user_model()
@@ -385,3 +386,61 @@ class OtherRolesAndTheCache(MyStudentsCourseScopeBase):
         row = self.row_for(response, self.student)
         self.assertEqual(row["enrolled_courses"], ["Algebra A"])
         self.assert_nothing_about(response, "Private Tutoring B", "B confidential")
+
+
+class PremisesTheEquivalenceArgumentsRestOn(MyStudentsCourseScopeBase):
+    """Pins for the two mutants that cannot be killed (M7 in the battery).
+
+    M7 removes `_resolve_relevant_course`'s "prefer a course I teach"
+    fallback. That mutant is equivalent ONLY because every enrollment the
+    serializer can see already belongs to the requester, which rests on two
+    facts that a future change could quietly break:
+
+      1. `StudentListSerializer` is reachable from the `my_students` action
+         and nowhere else, so it never sees an unscoped cache;
+      2. the cache that action builds holds the requester's enrollments only.
+
+    If either stops holding, the equivalence argument in
+    `docs/evidence/MY_STUDENTS_TENANCY_EVIDENCE.md` is void and the leak can
+    come back without any mutant noticing. These tests fail loudly in that
+    case. Fact 2 is also asserted from the response side by
+    `test_prefetch_caches_hold_only_the_teachers_own_rows`.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.teacher_a = make_user("pa@indiv.test", UserTypes.TEACHER, None, "Ada", "A")
+        self.teacher_b = make_user("pb@indiv.test", UserTypes.TEACHER, None, "Bea", "B")
+        self.course_a = self.make_course(self.teacher_a, "Algebra A", "A notes")
+        self.course_b = self.make_course(self.teacher_b, "Tutoring B", "B notes")
+        self.student = make_user("ps@indiv.test", UserTypes.STUDENT, None, "Sam", "S")
+        for course in (self.course_b, self.course_a):
+            enroll_student_by_email(course=course, email=self.student.email)
+
+    def test_student_list_serializer_is_used_by_my_students_only(self):
+        request = APIRequestFactory().get(URL)
+        request.user = self.teacher_a
+        for action in ("list", "retrieve", "partial_update", "destroy", "my_students"):
+            view = StudentCourseViewSet(action=action, request=request)
+            used = view.get_serializer_class()
+            if action == "my_students":
+                self.assertIs(used, StudentListSerializer)
+            else:
+                self.assertIsNot(
+                    used,
+                    StudentListSerializer,
+                    f"{action} now serves StudentListSerializer; it must then "
+                    "build the same teacher-scoped enrollment cache",
+                )
+
+    def test_every_cached_enrollment_belongs_to_the_requesting_teacher(self):
+        request = APIRequestFactory().get(URL)
+        request.user = self.teacher_a
+        view = StudentCourseViewSet(action="my_students", request=request)
+        rows = list(view.get_queryset())
+        self.assertTrue(rows, "the premise test would be vacuous with no rows")
+        for row in rows:
+            cached = list(row.enrollments.all())
+            self.assertTrue(cached)
+            for enrollment in cached:
+                self.assertEqual(enrollment.course.teacher_id, self.teacher_a.id)
