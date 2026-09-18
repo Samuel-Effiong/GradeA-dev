@@ -15,7 +15,7 @@ Every figure below is copied from a log committed under
 | 1 Baseline / Regression | **PASS for this branch; full-repo run DEFERRED TO THE INTEGRATION GATE by design** | `billing` + `users` suites on the final commit: see §8 for counts. No new skips. The full-repository strict gate runs once on the integration commit (session 3e), per the Senior Manager's batching rule. |
 | 2 Mutation | **PASS** | 26 mutants, one per guard, **26 killed, 0 survivors**, on `d883187`. All 3 worker baselines green; every restore sha256-verified against the commit blob. `mutation/battery_results_d883187.json` |
 | 3 Concurrency | **PASS** | 20 simultaneous requests x 10 rounds = exactly 1 grant per round; 20 mixed self-service/admin threads; signup racing an admin assignment; an orchestrated interleaving that defeats check-then-act. Real threads, real PostgreSQL, each closing its own connection, `is_alive()` asserted after join. |
-| 4 Adversarial / Attack | **PARTIAL** | 10-scenario replay: **10/10 EXPLOITED on `b744c9f`, 10/10 REFUSED on the fix** (`replay_prefix_b744c9f.log`, `replay_fixed_d883187.log`), plus 80+ adversarial assertions in the suite. **Not independent:** session 7a's independent Gate-4 replay had not reported when this was written. |
+| 4 Adversarial / Attack | **PASS for the core vectors (independently verified); a bypass battery is still running** | Independent replay by session 7a (red-team-billing), which did not write the fix, committed at `dcc031b` on `task/redteam-billing`: `docs/evidence/security_replay/billing/FREE_PLAN_GATE4.md`. HTTP-only exploits with real JWT against two isolated running apps, accounts and plans created through the real production write paths. **7 vectors, each proven to SUCCEED on `b744c9f` first (H5.2), all refused on the fix** — teacher self-grants BETA on both routes; school admin grants a non-BETA free plan; inactive free plan; 12x repeat (pre-fix: 12/12 accepted, 13 subscriptions and 13 buckets; post-fix: 12x403); plan enumeration (pre-fix: every plan visible to a plain teacher; post-fix: PRO/STANDARD/STANDARD_ANNUAL only). It also probed superadmin admin-assign idempotency 5x per route: first 201 then 400x4, one active subscription, no duplicates — recorded as NOT a finding. I verified its four log checksums against the committed files myself, and its verdict on `d883187` carries to `a520422` because no production file differs between them (`git diff --name-only d883187 a520422` is tests and docs only). **Outstanding:** its bypass battery (field aliases `plan_id`/`user_id`, PATCH/PUT, browsable-API form, trailing slash, select-plan with price 0 or no `stripe_price_id`), run pre-fix first, then against `a520422` exactly. |
 | 5 Failure / Recovery | **PASS** | DB failure injected at each write step (subscription row, bucket, ledger): full rollback, prior subscription still active, entitlement not consumed, retry grants exactly once. Stripe down: refusals still 400/403 with no Stripe call. Redis down: select-plan **fails closed** (lock cannot be taken, so no plan change and no Stripe call; a forbidden plan is still a clean 400 because validation precedes the lock); a broker outage in the post-activation `queue_sync` is swallowed by `safe_delay` as designed and the grant still commits exactly once; plan listings do not depend on the cache. Checkout webhook redelivered 3x grants once. |
 | 6 Stress / Scale | **PASS, and a performance improvement** | The fix also removes an N+1: plan listings: 9 queries at 8 plans and at 808 plans (flat), 2.7 KB, p50 33 ms. Pre-fix `/subscription/plan` at 808 plans: **809 queries, 343 KB, p50 1,212 ms**. 500-signup burst with BETA-on-signup: flat 30 queries/signup, p50 708 ms, p95 963 ms, 500/500 users with exactly one BETA grant. `scale_fixed.log`, `scale_prefix_b744c9f.log` |
 | 7 Real Infrastructure | **PASS (LOCAL-REAL)** | Real PostgreSQL + Redis for every suite. Real Stripe **test mode**: a real customer/price/subscription attacked with 19 requests — app rows and Stripe objects unchanged, **0 Stripe write calls**; the allowed catalog plan still opens a real Checkout Session with the right price and metadata; teardown clean. `stripe_refusal_real.log` |
@@ -24,9 +24,8 @@ Every figure below is copied from a log committed under
 | 10 Final Production Gate | **DEFERRED TO THE INTEGRATION GATE by design** | Assigned to session 3e: one strict gate on the integration commit, two consecutive clean full runs. The SHA gated there must equal the SHA landed. |
 
 **Landing rule.** Gates 1 and 10 are satisfied at the batched integration gate,
-not here. Gate 4 closes when session 7a's independent replay reports; until it
-does, the only adversarial evidence is the author's own, which doctrine H5.1
-does not accept as independent. Gate 8 is completed on QA after landing, per
+not here. Gate 4's core vectors are independently verified (see the row above);
+it closes fully when 7a's bypass battery reports. Gate 8 is completed on QA after landing, per
 the ruling recorded above. Landing itself needs the Senior Manager's review
 and, in this session, the user's approval.
 
@@ -48,7 +47,8 @@ and, in this session, the user's approval.
    attack replay on both trees; scale at two sizes and a 500-signup burst;
    real Stripe test mode.
 4. **Which gates passed.** 2, 3, 5, 6, 7, 9, and 1 for this branch's scope.
-5. **Which gates remain incomplete.** 4 (independent replay outstanding),
+5. **Which gates remain incomplete.** 4 (core vectors independently verified;
+   a bypass battery is still running),
    8 (no deployed run anywhere), and the full-repository runs for 1 and 10,
    which are deliberately deferred to the batched integration gate.
 6. **What risks remain.** §7.
