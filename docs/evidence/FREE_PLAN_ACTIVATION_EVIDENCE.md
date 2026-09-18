@@ -196,6 +196,15 @@ subscription.
 
 ## 7. Remaining risks and decisions for the user
 
+0. **NAMED FOLLOW-UP THAT OUTLIVES THE LANDING: Gate 8 DEPLOYED-REAL on QA is
+   required before any promotion to production.** This is a billing change, so
+   the environment-sensitive tier applies: LOCAL-REAL evidence plus the QA smoke
+   is enough to land on `beta`, and it is NOT enough for production. The
+   deployed run must replay the free-credit attacks over HTTPS against the QA
+   deployment and confirm they are refused there. Until that exists, this fix is
+   verified locally and on QA only. Owner: whoever promotes `beta` to
+   production; tracked as part of H-21 in `docs/HARDENING_BACKLOG.md`.
+
 1. **Gate 8 (deployed E2E) has not run**, and gates 1, 4 and 5 are PARTIAL.
    Doctrine H1.3 requires the user's written sign-off to land in that state.
 2. **BETA can no longer be granted twice, by anyone.** A teacher who signed up
