@@ -12,10 +12,10 @@ All figures below are copied from those logs.
 
 | Gate | Status | Evidence |
 |---|---|---|
-| 1 — Baseline / regression | **PASS** | Pre-fix reproduction on `b744c9f`: 22 of 42 fail (`1-prefix-repro-b744c9f.log.gz`). Post-fix on `948d710`: `classrooms students dashboard users assignments` = **1,759 tests, OK, 17 skipped, exit 0** (`3-targeted-948d710.log.gz`). Skips unchanged from beta. No existing test was modified or weakened. |
+| 1 — Baseline / regression | **PASS, with one environmental failure recorded** | Pre-fix reproduction on `b744c9f`: 22 of 42 fail (`1-prefix-repro-b744c9f.log.gz`). Post-fix on `948d710`: `classrooms students dashboard users assignments` = **1,759 tests, OK, 17 skipped, exit 0** (`3-targeted-948d710.log.gz`). On `c44a6b5` (adds the pins; product code byte-identical): **1,762 tests, FAILED (failures=3), 17 skipped, exit 1** (`9-targeted-c44a6b5.log.gz`) — all three in `users.tests_login_lockout`'s concurrency cases, during a window with 96 `FATAL: sorry, too many clients already` lines while another session's full gate held the connection pool. That module and the login code are unchanged by this branch (identical to `b744c9f`), and it passed in the `948d710` run. Re-run alone on `a57c7a4` (same product code) at 38/100 connections: **12 tests, OK, 0 connection errors** (`10-lockout-rerun-alone.log.gz`). Per doctrine the failed run is **not** counted as a pass; it is recorded as an environmental failure, and the integration gate's full run is the one that must be clean. Skips unchanged from beta. No existing test was modified or weakened. |
 | 2 — Mutation | **PASS** | 16 mutants, one per changed guard, in disposable worktrees at the commit. On `948d710`: **15 KILLED, 1 SURVIVED (M7, equivalent)**; M14 re-run alone also SURVIVED (equivalent) after its first run was invalidated by Postgres connection exhaustion. Every restore sha256-verified, every worker removed (`5-mutation-logs-948d710.tar.gz`, `7-mutation-m14-rerun.tar.gz`, harness `battery.py`). |
 | 3 — Concurrency | **PASS** | `classrooms/tests_my_students_concurrency.py`: **20 threads x 10 rounds** on real Postgres, teacher B's roster enrolled/removed through the production services while teacher A reads. 500 reader rows checked, **0 violations**, both write directions exercised, every thread `is_alive()`-asserted after join. |
-| 4 — Adversarial | **IN PROGRESS — not PASS** | The attacks are reproduced as tests from the attacker's side, and each one fails on `b744c9f` (Gate 1 log). The independent replay is what this gate needs, and it is **running, with nothing on disk yet**: `grade-automator-plus-04` (core families) and `grade-automator-plus-25` (breadth: search, ordering, isnull, the retrieve cache, pagination, DELETE) both started on 2026-09-18 — 04's was WIP and 25's unstarted overnight, contrary to what the board implied. Both replay the app built from `948d710`; see the SHA note below. This gate is PASS only once their files exist and have been read. |
+| 4 — Adversarial | **PARTIAL — core PASS, breadth outstanding** | The attacks are reproduced as tests from the attacker's side, and each one fails on `b744c9f` (Gate 1 log). Independent HTTP-only replay with real JWT, by a session that did not write the fix: **core PASS** (`grade-automator-plus-04`, read from `task/security-exploit-replay`, `docs/evidence/security_replay/my_students/`), with one caveat recorded below. **Breadth is still running** (`grade-automator-plus-25`: withdrawal-status oracle, school-admin cross-school, search, ordering, isnull, the retrieve cache, pagination, DELETE), so this gate is not yet PASS as a whole. Both replays built their app from `948d710`; see the SHA note below. |
 | 5 — Failure / recovery | **PASS** | `my-students` is not cached: `UserCacheMixin` caches `list`/`retrieve` only, and `my_students` is a separate action. A test patches both cache modules and asserts **no cache call happens**. With Redis unreachable (`redis://127.0.0.1:1/0`) the endpoint still answers 200 with only the requester's own data; alternating teachers on real Redis each get their own payload. The endpoint performs no writes and calls no external service. |
 | 6 — Stress / scale | **PASS** | `classrooms/scale_my_students.py`, local DB: 600 students / 2,400 enrollments / 9,600 submissions / 50 courses, then **6,000 / 24,000 / 96,000 / 500**. Measured teacher's roster 60 → 600 (exactly 10x). **Queries constant at 5** for every request shape at both sizes. Numbers below (`6-scale-6000-students.log.gz`). |
 | 7 — Real infrastructure | **PASS (LOCAL-REAL)** | Every run above used the real local PostgreSQL (127.0.0.1:5432) and, where cache behaviour was under test, the real local Redis (127.0.0.1:6379). No mocked DB or cache. The deployed beta's database and Redis were never contacted. |
@@ -24,6 +24,33 @@ All figures below are copied from those logs.
 | 10 — Final production gate | **NOT RUN** | By design: this branch joins one integration commit with `task/free-plan-activation`, gated once by the integrator (`3e`). No per-branch full gate was run, and `948d710` has had no full-suite run. |
 
 **Doctrine note (Part II H1.3):** this is a security/isolation change, so Gates 4, 8 and 10 being short of PASS blocks landing until they are completed (4 and 10) or the user signs off in writing on the Gate 8 tiering. Nothing here should be read as "ready to land".
+
+**Independent replay, core (`04`, 2026-09-18).** Two individual teachers with
+a shared student, fixtures made through the real `direct-add-student`,
+`/sessions` and `/course` endpoints, B's course carrying a unique secret
+marker. On `b744c9f` 4 leaking vectors; on `948d710` 0.
+
+| Attack | `b744c9f` | `948d710` |
+|---|---|---|
+| `my-students`, no params | LEAK: B's course name in `enrolled_courses` | clean |
+| `my-students?enrollments__course=<B's course>` | LEAK: `SECRET-B-DESC-…` and "Bob Bear" | clean |
+| `my-students?enrollments__course__session=<B's session>` | LEAK: B's course name | clean |
+| `my-students?enrollments__course=<unknown>` | 400 | 200, 0 rows (the declared behaviour change) |
+| `GET /users/<S>?enrollments__course=<B's course>` | 200 | 404 |
+| `PATCH /users/<S>?enrollments__course=<B's course>` | 403 | 404 |
+
+**Caveat on that run, recorded rather than smoothed over.** In its Phase A the
+two `GET /users/<S>` controls also returned 200 (a course the student is NOT
+in, expected 404; an unknown uuid, expected 400). With every variant
+answering 200, that run does **not** by itself demonstrate a distinguishable
+oracle on GET: `UserCacheMixin`'s retrieve key ignores query parameters, so
+after one uncached fetch every filtered GET is served from the cached 200.
+The pre-fix GET oracle is demonstrated instead by this branch's own tests,
+which clear the cache before each probe, and by the uncached `PATCH` result
+(403 vs 404) in the same log. The **post-fix** half is unaffected: F2a, both
+controls and PATCH all answer 404, which is exactly the indistinguishability
+the fix is for. `04` has been asked to re-run F2 cold or to add the PATCH
+controls; if that lands, this caveat should be replaced by the result.
 
 **Replayed SHA vs landing SHA.** The red-team apps were built from
 `948d710`; the landing commit is `c44a6b5`. Their product code is
@@ -56,12 +83,12 @@ classrooms/tests_my_students_course_scope.py       |  59 +++++
 
 1. **What changed.** Three code changes. (a) `StudentCourseViewSet.my_students` now filters both prefetches by `course__teacher=user`, and a new `classrooms/filters.py::MyStudentsFilter` replaces `filterset_fields` so `?enrollments__course=` / `?enrollments__course__session=` match only through the requester's own enrollments. (b) `CustomUserViewSet` now uses `users/filters.py::UserEnrollmentFilter` instead of `filterset_fields`, so every `enrollments__*` lookup passes through `visible_enrollments(user)`. (c) The unrouted `StudentViewSet` in `students/views.py` is deleted (backlog V-5, owner sign-off 2026-09-17).
 2. **Why it was necessary.** A student is routinely enrolled with several unrelated teachers (student accounts have `school_id` NULL, and a school-less account may join any individual teacher's course). Both endpoints joined *every* enrollment such a student had. `my-students` therefore printed other teachers' course names, and with `?enrollments__course=<their course>` served that course's description, its teacher's full name and the student's grade in it. `/users/<id>` became a yes/no oracle about other teachers' enrollments and withdrawals, on GET and on PATCH.
-3. **What was tested.** 42 dedicated tests across three new modules, plus the existing query-budget and penetration suites, the concurrency module, the scale harness and the affected-app suites (1,759 tests).
+3. **What was tested.** 45 dedicated tests across three new modules (42 for the leaks, 3 premise pins), plus the existing query-budget and penetration suites, the concurrency module, the scale harness, and the affected-app suites: 1,759 OK on `948d710`; 1,762 on `c44a6b5` with 3 environmental failures in an unchanged module, which passed when re-run alone (Gate 1).
 4. **Which gates passed.** 1, 2, 3, 5, 6, 7, 9.
-5. **Which gates are incomplete.** 4 (independent replay running elsewhere), 8 (LOCAL-REAL only, no deployed replay), 10 (deferred to the integration commit).
+5. **Which gates are incomplete.** 4 (core replayed and PASS with the caveat above; breadth replay still running), 8 (LOCAL-REAL only, no deployed replay), 10 (deferred to the integration commit).
 6. **What risks remain.** (i) The behaviour change in 7 below. (ii) `/users/<id>`'s retrieve cache key ignores query parameters, so a warm cache can answer 200 for a filter that would 404 cold — pre-existing, unchanged, and not cross-tenant (the cached body is one the requester may already see), but red-team-tenancy has been asked to attack that reasoning. (iii) Gate 8 is not deployed-real. (iv) The sweep found no other live instance of this pattern, but it was a read of the code, not an exhaustive proof.
-7. **Which exact commit contains the verified implementation.** `948d710` on `task/my-students-prefetch-leak`.
-8. **Is the verified commit the one intended for release?** No. `948d710` is intended to be **merged into an integration commit** with `task/free-plan-activation` and gated there. That integration commit is a new commit and must be gated itself.
+7. **Which exact commit contains the verified implementation.** The product code verified is `948d710`; the branch tip carrying it plus the pins and this evidence is the commit that adds this line, on `task/my-students-prefetch-leak`. Everything after `948d710` is tests and docs only (see the SHA note under Gate 4).
+8. **Is the verified commit the one intended for release?** No. This branch's tip is intended to be **merged into an integration commit** with `task/free-plan-activation` and gated there. That integration commit is a new commit and must be gated itself — two clean full runs, per doctrine, before landing.
 
 ## Behaviour changes (Gate 1 requirement)
 
