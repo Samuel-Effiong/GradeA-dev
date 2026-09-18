@@ -249,6 +249,103 @@ fingerprints, a fresh uniquely named database with no `--keepdb`, unfiltered
 log with line count and sha256, `systemd-inhibit`, and the Postgres checks
 afterwards. Evidence is committed docs-only.
 
+## 4a. Design question: could the post-commit bump be non-blocking?
+
+Asked by the Senior Manager after Gate 6 showed the second bump's cost rising
+with machine load. The fix adds one **blocking** Redis round trip per writing
+transaction, run by the committing request after `COMMIT` and before its
+response is sent. Would handing it to a background thread or queue keep the
+fix correct?
+
+**What each bump is for.** The two bumps are not redundant; they guard
+different failures.
+
+- The **in-transaction** bump is crash safety. If the process dies between
+  `COMMIT` and the `on_commit` callback, the generation has still moved, so
+  every entry cached before the write is orphaned. Only an entry poisoned by a
+  reader racing the window survives, and only until its TTL. Without it (the
+  Senior Manager's option B, mutant c), a crash in that gap would leave every
+  pre-write entry live for the full TTL. **This is argued, not yet tested:**
+  mutant c is killed today only by the generation-arithmetic tests, not by a
+  behavioural one. A test that drops the `on_commit` callbacks (standing in
+  for a crash after `COMMIT`) and asserts that pre-write entries are still
+  orphaned is owed before the final battery.
+- The **post-commit** bump is race safety. It orphans whatever a reader cached
+  in the pre-commit window.
+
+**What "blocking" buys.** The residual stale window after the fix is
+`[COMMIT, post-commit bump lands]`. Blocking makes that window one Redis round
+trip long, and it closes **before the writer's response is sent**. That gives
+read-your-writes: a client that removes a student and immediately refetches
+cannot be served the poisoned pre-removal entry.
+
+**What non-blocking would change.**
+
+1. The stale window stretches from one round trip to the queue latency. With a
+   thread that is normally sub-millisecond, but it grows on a loaded host —
+   the same condition that motivated the question. With Celery it is at least
+   a broker round trip and unbounded under backlog.
+2. Read-your-writes is lost. The writer's response can return before the bump
+   lands, so an immediate refetch can be served the poisoned entry. For a
+   revocation, that is the exact symptom this fix exists to remove: "removed"
+   is confirmed, and the removed student's view still shows the course.
+3. Loss becomes possible. A worker crash, a dropped task or a broker outage
+   means the bump never runs, and staleness falls back to the TTL. The
+   blocking bump can also fail (Redis down, Gate 5), but then the failure is
+   logged in the request that caused it, not lost in a queue.
+
+**Conclusion.** Non-blocking is **not** correctness-equivalent. It keeps crash
+safety and turns race safety from "closed before the response" into "bounded
+by queue latency", which on a loaded host is the weaker guarantee exactly
+where it matters. The probe below tests this directly rather than resting on
+the argument.
+
+**Cheaper designs that keep the guarantee** (not implemented; for the ship
+decision):
+
+- **Coalesce per transaction.** Register one `on_commit` per transaction that
+  bumps the union of all its scopes in one pipeline. A 6,000-write
+  transaction then pays 1 post-commit round trip instead of 6,000. A per-row
+  import, one write per transaction, is unchanged: that cost is inherent to
+  closing the race.
+- **Skip the post-commit bump when no read could have raced.** Not safe
+  without tracking reads, so not proposed.
+
+**Probe** (`scripts/async_variant_probe.sh`, log `06_async_variant_probe.log`):
+the race tests run against two variants of `cache_generation.py` in a
+disposable worktree, with the post-commit bump handed to a background thread,
+first with no delay and then with a 50 ms delay standing in for queue latency.
+Run at load average 10.6-12.2 (the host was busy; this is a pass/fail probe,
+not a timing figure). Every restore matched the commit's blob by sha256 and
+the disposable worktree was removed.
+
+| Variant | Failures (of 13) | What failed |
+| --- | --- | --- |
+| background thread, 50 ms delay | **8** | the **same 8 tests that fail on the unfixed base** (`01_reproduce_on_unfixed_beta.log`): both forced interleavings, the isolation test, three generation-arithmetic tests, and the failure-recovery test for both failure types |
+| background thread, no delay | 3 | one arithmetic test, plus the both-bumps-failing test for both failure types |
+
+Reading it honestly:
+
+- **At 50 ms the fix is indistinguishable from no fix at all**, as observed at
+  the moment the writer's request returns. A stale entry poisoned in the
+  pre-commit window is still served to the next read. That is the
+  read-your-writes loss described above, measured rather than argued.
+- **With no delay, the forced-interleaving tests pass, but by timing, not by
+  guarantee.** The thread usually lands before the test's next read, and
+  nothing ensures it does on a loaded host. The arithmetic failure is that
+  ordering showing through.
+- The both-bumps-failing failures are **partly an artefact of the probe**. That
+  test injects the Redis failure only on the writer's thread, and the
+  background thread escaped the injection, so its bump succeeded. It is not
+  evidence against the non-blocking design, and it is not counted as such.
+
+**Conclusion, now with evidence: a non-blocking post-commit bump is not
+correctness-safe.** Its stale window scales with background latency, and at a
+latency a queue would routinely add, it reproduces the original bug's test
+signature exactly. The blocking bump stays. Its cost is the price of closing
+the race; the per-transaction coalescing above is the safe way to reduce it
+for multi-write transactions.
+
 ## 5. The eight completion answers
 
 1. **What changed.** `bump_many` queues a second bump of the same counters via
@@ -292,3 +389,5 @@ afterwards. Evidence is committed docs-only.
 | `scripts/` | the scripts that produced the logs (mutation battery, reproduce, strict gate) |
 | `04_mutation_battery.log` | mutants a/b/c plus control, disposable worktree |
 | `05_double_bump_cost.log` | Gate 6 cost measurement |
+| `05a_quiet_run_shared_course_confound.log` | the quiet run whose wall-clock comparison was confounded by the shared course; kept as the record of that artefact |
+| `06_async_variant_probe.log` | §4a: the race tests against a non-blocking post-commit bump |
