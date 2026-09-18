@@ -19,11 +19,33 @@ All figures below are copied from those logs.
 | 5 — Failure / recovery | **PASS** | `my-students` is not cached: `UserCacheMixin` caches `list`/`retrieve` only, and `my_students` is a separate action. A test patches both cache modules and asserts **no cache call happens**. With Redis unreachable (`redis://127.0.0.1:1/0`) the endpoint still answers 200 with only the requester's own data; alternating teachers on real Redis each get their own payload. The endpoint performs no writes and calls no external service. |
 | 6 — Stress / scale | **PASS** | `classrooms/scale_my_students.py`, local DB: 600 students / 2,400 enrollments / 9,600 submissions / 50 courses, then **6,000 / 24,000 / 96,000 / 500**. Measured teacher's roster 60 → 600 (exactly 10x). **Queries constant at 5** for every request shape at both sizes. Numbers below (`6-scale-6000-students.log.gz`). |
 | 7 — Real infrastructure | **PASS (LOCAL-REAL)** | Every run above used the real local PostgreSQL (127.0.0.1:5432) and, where cache behaviour was under test, the real local Redis (127.0.0.1:6379). No mocked DB or cache. The deployed beta's database and Redis were never contacted. |
-| 8 — Live / end-to-end | **PARTIAL (LOCAL-REAL)** | Full request path exercised (client → auth → permissions → filter backends → queryset → serializer → response) against real local services. Per the coordinator's tiering for this logic-only change, Gate 8 is LOCAL-REAL plus the post-landing QA-beta smoke; **no DEPLOYED-REAL replay has been run**. |
+| 8 — Live / end-to-end | **PARTIAL (LOCAL-REAL) — landable for this class** | Full request path exercised (client → auth → permissions → filter backends → queryset → serializer → response) against real local services, and by both independent replays over HTTP with real JWTs. **Class: logic-only, as classified by the Senior Manager (DOCTRINE H8.1)** — see the classification note below. For that class Gate 8 is satisfied by LOCAL-REAL plus the **post-landing QA-beta smoke**, which has not happened yet; no deployed replay and no separate user sign-off are required (H1.3). |
 | 9 — Security / isolation | **PASS** | Both directions probed for teacher↔teacher (school-less pair and same-school pair), school-admin↔outside-school, student, both-flag superadmin, single-flag superuser and unauthenticated. Whole-payload assertions. Permanent regression tests for both vulnerabilities. Details below. |
 | 10 — Final production gate | **NOT RUN** | By design: this branch joins one integration commit with `task/free-plan-activation`, gated once by the integrator (`3e`). No per-branch full gate was run, and `948d710` has had no full-suite run. |
 
-**Doctrine note (Part II H1.3):** this is a security/isolation change, so Gates 8 and 10 being short of PASS blocks landing until Gate 10 passes on the integration commit (two clean full runs) and the user signs off in writing on the Gate 8 tiering, or Gate 8 is closed by a deployed run. Nothing here should be read as "ready to land".
+**Doctrine note (Part II H1.3 / H8.1):** Gate 10 short of PASS blocks landing until it passes on the integration commit (two clean full runs, per H10.2); landing then needs the Senior Manager's approval, followed by the QA-beta smoke that closes Gate 8. Gates 1-7 and 9 must stay PASS. Nothing here should be read as "ready to land".
+
+**Gate 8 classification, and a correction to this document.** DOCTRINE H1.3
+and H8.1 record Gate 8 as risk-tiered (user directive, 2026-09-17); H8.1
+makes the classification the Senior Manager's call. The Senior Manager's
+board (`team/BOARD.md`, "Gate-8 tiering") records it:
+
+> **Logic-only -> Gate 8 = LOCAL-REAL + QA-beta smoke (no separate deployed
+> replay; PARTIAL landable under SM approval, no user sign-off):** fix-idor
+> (H-18/19), fix-tenant-leak (H-22), fix-refusal-handling (H-24).
+
+An earlier version of this document (up to `3180ec3`) said landing needed
+"the user's written sign-off on the Gate 8 tiering, or a deployed run". That
+is the environment-sensitive rule applied to the wrong class: the tiering
+clause was added to DOCTRINE.md on 2026-09-17, after this document's author
+had read an earlier copy, and was not re-read before writing. Anyone who read
+DOCTRINE.md before that date is carrying the old rule. The Senior Manager
+also ruled on this directly, as relayed by the fixes-coordinator on
+2026-09-18: *"57 is LOGIC-ONLY … per H1.3 its Gate 8 = LOCAL-REAL + the
+post-landing QA-beta smoke under MY approval — NO separate user sign-off."*
+The batch partner `task/free-plan-activation` (H-21) is environment-sensitive;
+its stricter Gate 8 is a prod-promotion gate for its own billing paths, not a
+condition of this change.
 
 **Independent replay, core (`04`, 2026-09-18).** Two individual teachers with
 a shared student, fixtures made through the real `direct-add-student`,
@@ -127,7 +149,7 @@ classrooms/tests_my_students_course_scope.py       |  59 +++++
 2. **Why it was necessary.** A student is routinely enrolled with several unrelated teachers (student accounts have `school_id` NULL, and a school-less account may join any individual teacher's course). Both endpoints joined *every* enrollment such a student had. `my-students` therefore printed other teachers' course names, and with `?enrollments__course=<their course>` served that course's description, its teacher's full name and the student's grade in it. `/users/<id>` became a yes/no oracle about other teachers' enrollments and withdrawals, on GET and on PATCH.
 3. **What was tested.** 45 dedicated tests across three new modules (42 for the leaks, 3 premise pins), plus the existing query-budget and penetration suites, the concurrency module, the scale harness, and the affected-app suites: 1,759 OK on `948d710`; 1,762 on `c44a6b5` with 3 environmental failures in an unchanged module, which passed when re-run alone (Gate 1).
 4. **Which gates passed.** 1 (with one environmental failure recorded), 2, 3, 4, 5, 6, 7, 9.
-5. **Which gates are incomplete.** 8 (LOCAL-REAL only; per the coordinator's tiering, closed by the post-landing QA-beta smoke, which has not happened) and 10 (belongs to the integration commit; not run).
+5. **Which gates are incomplete.** 8 (LOCAL-REAL; for this logic-only class it closes with the post-landing QA-beta smoke under the Senior Manager's approval, no user sign-off — see the classification note) and 10 (belongs to the integration commit; not run).
 6. **What risks remain.** (i) The behaviour change in 7 below. (ii) `/users/<id>`'s retrieve cache key ignores query parameters, so a warm cache can answer 200 for a filter that would 404 cold — pre-existing, unchanged, and not cross-tenant (the cached body is one the requester may already see), but red-team-tenancy has been asked to attack that reasoning. (iii) Gate 8 is not deployed-real. (iv) The sweep found no other live instance of this pattern, but it was a read of the code, not an exhaustive proof.
 7. **Which exact commit contains the verified implementation.** The product code verified is `948d710`; the branch tip carrying it plus the pins and this evidence is the commit that adds this line, on `task/my-students-prefetch-leak`. Everything after `948d710` is tests and docs only (see the SHA note under Gate 4).
 8. **Is the verified commit the one intended for release?** No. This branch's tip is intended to be **merged into an integration commit** with `task/free-plan-activation` and gated there. That integration commit is a new commit and must be gated itself — two clean full runs, per doctrine, before landing.
