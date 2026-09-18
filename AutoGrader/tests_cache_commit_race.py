@@ -15,6 +15,7 @@ Real Redis + real Postgres, a separate DB connection per thread.
 
 import threading
 import time
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import redis
@@ -26,6 +27,7 @@ from django.urls import reverse
 from django_redis.client import DefaultClient
 from rest_framework.test import APIClient
 
+import AutoGrader.cache_generation as cache_generation
 import classrooms.signals
 from AutoGrader.cache_generation import (
     SCOPE_COURSE,
@@ -116,11 +118,12 @@ class CommitRaceBase(TransactionTestCase):
         ):
             return self.read()
 
-    def assert_cached_read_is_fresh(self):
+    def assert_cached_read_is_fresh(self, why=None):
         self.assertEqual(
             self.read(),
             self.truth(),
-            "the cached course is stale: a read in the pre-commit window was "
+            why
+            or "the cached course is stale: a read in the pre-commit window was "
             "cached under the new generation",
         )
 
@@ -487,6 +490,37 @@ class PostCommitBumpIsolationTests(CommitRaceBase):
             {pair: 2 * delta for pair, delta in in_transaction.items()},
         )
         self.assertEqual(self.generations(foreign), foreign_before)
+
+
+class CrashAfterCommitTests(CommitRaceBase):
+    """The in-transaction bump is what still protects readers when the
+    post-commit bump never runs: the process dies between COMMIT and the
+    on_commit callbacks, or they are otherwise lost."""
+
+    def setUp(self):
+        super().setUp()
+        self.student = make_user("race-crash@x.test", UserTypes.STUDENT, "RaceCr")
+
+    def test_pre_write_entries_are_orphaned_even_if_on_commit_never_runs(self):
+        self.read()  # warm, before the write
+        callbacks_lost = SimpleNamespace(
+            get_connection=transaction.get_connection,
+            on_commit=lambda *a, **k: None,
+        )
+        with patch.object(cache_generation, "transaction", callbacks_lost):
+            enroll_student_by_email(course=self.course, email=self.student.email)
+
+        self.assertTrue(
+            StudentCourse.objects.filter(
+                student=self.student, course=self.course
+            ).exists()
+        )
+        # No reader raced the write, so only the in-transaction bump stands
+        # between this read and the entry cached before the enrollment.
+        self.assert_cached_read_is_fresh(
+            "the entry cached before the write is still served: with the "
+            "post-commit bump lost, nothing moved the generation"
+        )
 
 
 class ConcurrentEnrollmentRaceLoadTests(CommitRaceBase):
