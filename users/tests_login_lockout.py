@@ -26,9 +26,11 @@ Two mechanics worth knowing when editing this file:
 """
 
 import json
+import time
 import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
@@ -49,6 +51,61 @@ LOCMEM_CACHE = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMem
 
 PASSWORD = "correct-horse-battery-staple-1"  # pragma: allowlist secret
 WRONG_PASSWORD = "definitely-the-wrong-password"  # pragma: allowlist secret
+
+# WHY THE CONCURRENCY CLASSES BELOW OVERRIDE THE HASHER
+# -----------------------------------------------------
+# Every login attempt, right or wrong, runs a full password verification:
+# PBKDF2-SHA256 at 1,000,000 iterations, deliberately expensive. That is
+# correct in production and ruinous here, because these tests fire 25-30
+# of them AT ONCE into a single process.
+#
+# It broke CI on 2026-09-17 (run 35271899755, beta 301d915): 30 concurrent
+# verifies saturated the LiveServer on a 4-vCPU runner under coverage, and
+# a worker's urlopen hit its 15 s socket timeout waiting for a response
+# line that the server had not got round to sending. The same test passes
+# on an 8-core box in ~15 s — the test was measuring the runner's CPU, not
+# the behaviour it claims to test.
+#
+# A fast hasher removes that coupling. It weakens nothing here: these
+# tests assert that failed attempts are counted exactly once, that the
+# account locks, and that a correct password is refused while locked.
+# None of that depends on how the hash is computed. Password hashing
+# strength is a production setting, not a property of the lockout counter.
+FAST_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+
+# A HANG DETECTOR, NOT A RACE BOUNDARY. With the hashing cost gone, these
+# requests finish in a fraction of this; a wait anywhere near it means the
+# server has genuinely stopped answering. Deliberately not tuned to "how
+# long the test usually takes on the slowest runner we know of" — that is
+# the kind of number that quietly becomes a flake again when the suite
+# grows or the runner shrinks.
+NO_RESPONSE_TIMEOUT_SECONDS = 120
+
+# WHY THE COUNTING TESTS RAISE THE THRESHOLD
+# ------------------------------------------
+# A locked account is refused BEFORE its password is checked
+# (users/serializers.py:414), so once the lock lands, further attempts are
+# rejected without ever reaching register_failed_login - by design.
+#
+# That makes "N concurrent wrong passwords produce exactly N failures" true
+# only while every request gets past the lock gate before the lock is
+# written, which is to say: only while password hashing is slow enough to
+# hold them all in flight. It is a property of the hasher, not of the
+# counter, and it was the assertion that broke when the hashing cost was
+# removed.
+#
+# So the two claims are proved separately, and neither depends on timing:
+# a burst run with the budget raised ABOVE the worker count proves no
+# increment is lost, and a burst run at the real budget proves the attack
+# is stopped.
+UNREACHABLE_LOGIN_BUDGET = 10_000
+
+# The two rejections the login path actually produces, read from the code
+# rather than retyped, so a wording change cannot make this test lie.
+LOCKED_MESSAGE = CustomTokenObtainPairSerializer.LOCKED_MESSAGE
+WRONG_PASSWORD_MESSAGE = str(
+    CustomTokenObtainPairSerializer.default_error_messages["no_active_account"]
+)
 
 
 def make_user(**overrides):
@@ -216,6 +273,7 @@ class LoginLockoutTests(APITestCase):
 
 
 @override_settings(CACHES=LOCMEM_CACHE)
+@override_settings(PASSWORD_HASHERS=FAST_HASHERS)
 class LoginLockoutConcurrencyTests(TransactionTestCase):
     """
     Stress-tests register_failed_login against real concurrent traffic
@@ -251,25 +309,71 @@ class LoginLockoutConcurrencyTests(TransactionTestCase):
             connection.close()
 
     def test_concurrent_wrong_passwords_do_not_lose_increments(self):
+        """
+        The F()-based UPDATE must not lose a single increment under
+        contention (a naive read-modify-write would).
+
+        The budget is raised beyond reach for this one test, so no attempt
+        can be short-circuited by the lock and every one MUST be counted.
+        Exact equality then proves the counter, not the hasher's speed.
+        """
         attempts = self.WORKERS
 
-        with tightened_rate("login", "100000/min"):
-            with ThreadPoolExecutor(max_workers=self.WORKERS) as pool:
-                futures = [
-                    pool.submit(self._post_login, WRONG_PASSWORD)
-                    for _ in range(attempts)
-                ]
-                statuses = [f.result() for f in as_completed(futures)]
+        with patch.object(User, "MAX_LOGIN_ATTEMPTS", UNREACHABLE_LOGIN_BUDGET):
+            with tightened_rate("login", "100000/min"):
+                with ThreadPoolExecutor(max_workers=self.WORKERS) as pool:
+                    futures = [
+                        pool.submit(self._post_login, WRONG_PASSWORD)
+                        for _ in range(attempts)
+                    ]
+                    statuses = [f.result() for f in as_completed(futures)]
 
         self.assertEqual(len(statuses), attempts)
         self.assertTrue(all(code == status.HTTP_401_UNAUTHORIZED for code in statuses))
 
         self.user.refresh_from_db()
-        # Every one of the concurrent wrong-password submissions must be
-        # accounted for exactly once - no lost updates, and no accidental
-        # over-counting either.
-        self.assertEqual(self.user.failed_login_attempts, attempts)
+        self.assertEqual(
+            self.user.failed_login_attempts,
+            attempts,
+            "an increment was lost (or double-counted) under concurrency",
+        )
+        # Also the proof that the patched threshold really reached the
+        # worker threads: at the real budget of 5, this account would be
+        # locked long before the 25th attempt.
+        self.assertFalse(
+            self.user.is_account_locked(),
+            "the raised budget was not in force inside the worker threads, so "
+            "the exact count above proves nothing about lost increments",
+        )
+
+    def test_a_concurrent_burst_locks_the_account_at_the_real_budget(self):
+        """
+        The security property, asserted the way it survives any speed:
+        the burst is refused and the account ends up locked. HOW MANY
+        guesses land before the lock is timing-dependent by design (a
+        locked account is refused before its password is checked), so it
+        is bounded, not pinned.
+        """
+        with tightened_rate("login", "100000/min"):
+            with ThreadPoolExecutor(max_workers=self.WORKERS) as pool:
+                futures = [
+                    pool.submit(self._post_login, WRONG_PASSWORD)
+                    for _ in range(self.WORKERS)
+                ]
+                statuses = [f.result() for f in as_completed(futures)]
+
+        self.assertTrue(all(code == status.HTTP_401_UNAUTHORIZED for code in statuses))
+
+        self.user.refresh_from_db()
         self.assertTrue(self.user.is_account_locked())
+        self.assertGreaterEqual(
+            self.user.failed_login_attempts, User.MAX_LOGIN_ATTEMPTS
+        )
+        self.assertLessEqual(
+            self.user.failed_login_attempts,
+            self.WORKERS,
+            "more failures were counted than attempts were made",
+        )
 
     def test_concurrent_correct_password_attempts_never_succeed_once_locked(self):
         self.user.failed_login_attempts = self.user.MAX_LOGIN_ATTEMPTS
@@ -290,8 +394,9 @@ class LoginLockoutConcurrencyTests(TransactionTestCase):
         Simulates the realistic 'most strenuous' shape: many concurrent
         wrong-password guesses against a victim account interleaved with
         legitimate traffic on an unrelated account, run from many threads
-        at once. The victim must end up locked with an exact count; the
-        bystander account must be entirely unaffected.
+        at once. The victim must end up locked; the bystander account must
+        be entirely unaffected. The victim's count is bounded rather than
+        pinned, for the reason given at UNREACHABLE_LOGIN_BUDGET.
         """
         bystander = make_user(email="bystander.lockout@example.com")
         victim_attempts = self.WORKERS
@@ -324,13 +429,20 @@ class LoginLockoutConcurrencyTests(TransactionTestCase):
         self.user.refresh_from_db()
         bystander.refresh_from_db()
 
-        self.assertEqual(self.user.failed_login_attempts, victim_attempts)
         self.assertTrue(self.user.is_account_locked())
+        self.assertGreaterEqual(
+            self.user.failed_login_attempts, User.MAX_LOGIN_ATTEMPTS
+        )
+        self.assertLessEqual(
+            self.user.failed_login_attempts,
+            victim_attempts,
+            "more failures were counted than the victim received",
+        )
         self.assertEqual(bystander.failed_login_attempts, 0)
         self.assertIsNone(bystander.locked_until)
 
 
-@override_settings(CACHES=LOCMEM_CACHE)
+@override_settings(CACHES=LOCMEM_CACHE, PASSWORD_HASHERS=FAST_HASHERS)
 class LoginLockoutLiveServerTests(LiveServerTestCase):
     """
     The genuine article: real HTTP requests (via urllib, no Django test
@@ -358,11 +470,26 @@ class LoginLockoutLiveServerTests(LiveServerTestCase):
             headers={"Content-Type": "application/json"},
             method="POST",
         )
+        started = time.monotonic()
         try:
-            with urllib.request.urlopen(req, timeout=15) as resp:
+            with urllib.request.urlopen(
+                req, timeout=NO_RESPONSE_TIMEOUT_SECONDS
+            ) as resp:
                 return resp.status, json.loads(resp.read())
         except urllib.error.HTTPError as e:
             return e.code, json.loads(e.read())
+        except TimeoutError as exc:
+            # Re-raised with context rather than swallowed: a timeout here
+            # is a real failure (the server stopped answering), and the
+            # bare "TimeoutError: timed out" that CI reported said nothing
+            # about which request, how long, or under what load.
+            raise AssertionError(
+                f"no response to a login POST after "
+                f"{time.monotonic() - started:.1f}s "
+                f"(limit {NO_RESPONSE_TIMEOUT_SECONDS}s) with "
+                f"{self.WORKERS} concurrent requests in flight: the live "
+                f"server stopped responding."
+            ) from exc
 
     def test_concurrent_brute_force_against_live_http_server_is_held(self):
         with tightened_rate("login", "100000/min"):
@@ -379,9 +506,33 @@ class LoginLockoutLiveServerTests(LiveServerTestCase):
             statuses = [code for code, _ in results]
             self.assertTrue(all(code == 401 for code in statuses), statuses)
 
+            # Every rejection must be one of the two the system actually
+            # gives: a wrong-password refusal, or the lockout refusal once
+            # the budget is spent. Which mix arrives depends on how many
+            # requests clear the lock gate first, so the mix is reported,
+            # not pinned.
+            # The API wraps errors as {"success": false, "message": ...}
+            # (users/renderers.py APIJSONRenderer), so the reason is in
+            # "message", not DRF's raw "detail".
+            details = [str(body.get("message", "")) for _, body in results]
+            locked = [d for d in details if LOCKED_MESSAGE in d]
+            refused = [d for d in details if WRONG_PASSWORD_MESSAGE in d]
+            self.assertEqual(
+                len(locked) + len(refused),
+                self.WORKERS,
+                f"unexpected rejection reason(s): {set(details)}",
+            )
+
             self.user.refresh_from_db()
-            self.assertEqual(self.user.failed_login_attempts, self.WORKERS)
             self.assertTrue(self.user.is_account_locked())
+            self.assertGreaterEqual(
+                self.user.failed_login_attempts, User.MAX_LOGIN_ATTEMPTS
+            )
+            self.assertLessEqual(
+                self.user.failed_login_attempts,
+                self.WORKERS,
+                "more failures were counted than requests were sent",
+            )
 
             # The correct password, over real HTTP, against the now-locked
             # account: must be rejected and must not hand out a token.
