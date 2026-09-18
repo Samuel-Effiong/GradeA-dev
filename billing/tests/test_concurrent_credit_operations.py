@@ -28,15 +28,15 @@ Threads each close their own DB connection: Django connections are not
 thread-safe and leaking them wedges the test DB for later tests.
 """
 
-import threading
 import uuid
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
-from django.db import connections, transaction
+from django.db import transaction
 from django.test import TransactionTestCase
 from django.utils import timezone
 
+from AutoGrader.testing.concurrency import run_concurrently
 from billing.models import (
     BillingInterval,
     CreditBucket,
@@ -55,33 +55,23 @@ from users.models import UserTypes
 CustomUser = get_user_model()
 
 
-def run_in_threads(fn, count):
+def run_in_threads(fn, count, *, test):
     """
     Fires `count` threads that all wait on one barrier, so they hit the
     contended row at the same moment rather than in sequence.
+
+    Returns (results, errors): `results` holds the return value of every
+    worker that SUCCEEDED, so len(results) is the success count. The
+    waiting, the liveness check and the connection hygiene live in
+    AutoGrader.testing.concurrency; a worker still running at the deadline
+    fails the test instead of being counted as a lost update.
     """
-    barrier = threading.Barrier(count)
-    results, errors = [], []
-    lock = threading.Lock()
-
-    def worker(i):
-        try:
-            barrier.wait(timeout=30)
-            out = fn(i)
-            with lock:
-                results.append(out)
-        except Exception as exc:  # noqa: BLE001 - recorded, asserted on below
-            with lock:
-                errors.append(exc)
-        finally:
-            connections.close_all()
-
-    threads = [threading.Thread(target=worker, args=(i,)) for i in range(count)]
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join(timeout=60)
-    return results, errors
+    outcomes, errors = run_concurrently(
+        lambda i: (fn(i),), count, test=test, name="credit-worker"
+    )
+    # A failed worker leaves None; a successful one a 1-tuple, so a worker
+    # that legitimately returns None still counts as a success.
+    return [outcome[0] for outcome in outcomes if outcome is not None], errors
 
 
 class ConcurrentConsumptionTests(TransactionTestCase):
@@ -150,7 +140,7 @@ class ConcurrentConsumptionTests(TransactionTestCase):
         bucket = self._bucket(10_000)
         threads, amount = 10, 100
 
-        results, errors = run_in_threads(self._consume(amount), threads)
+        results, errors = run_in_threads(self._consume(amount), threads, test=self)
 
         self.assertEqual(errors, [], f"threads raised: {errors!r}")
         self.assertEqual(len(results), threads)
@@ -170,7 +160,7 @@ class ConcurrentConsumptionTests(TransactionTestCase):
         bucket = self._bucket(10_000)
         threads, amount = 10, 100
 
-        run_in_threads(self._consume(amount), threads)
+        run_in_threads(self._consume(amount), threads, test=self)
 
         bucket.refresh_from_db()
         rows = CreditLedger.objects.filter(bucket=bucket)
@@ -193,7 +183,7 @@ class ConcurrentConsumptionTests(TransactionTestCase):
         bucket = self._bucket(500)
         threads, amount = 10, 100
 
-        results, errors = run_in_threads(self._consume(amount), threads)
+        results, errors = run_in_threads(self._consume(amount), threads, test=self)
 
         bucket.refresh_from_db()
         self.assertLessEqual(
@@ -218,7 +208,7 @@ class ConcurrentConsumptionTests(TransactionTestCase):
         b2 = self._bucket(700)
         threads, amount = 10, 100
 
-        results, _ = run_in_threads(self._consume(amount), threads)
+        results, _ = run_in_threads(self._consume(amount), threads, test=self)
 
         b1.refresh_from_db()
         b2.refresh_from_db()
@@ -292,7 +282,7 @@ class ConcurrentRefundTests(TransactionTestCase):
             with transaction.atomic():
                 return SubscriptionService.refund_credits(task_id=self.task_id)
 
-        results, errors = run_in_threads(fn, 4)
+        results, errors = run_in_threads(fn, 4, test=self)
 
         self.bucket.refresh_from_db()
         self.assertGreaterEqual(
@@ -350,7 +340,7 @@ class ConcurrentImmutabilityTests(TransactionTestCase):
                 CreditLedger.objects.filter(pk=self.row.pk).update(amount=i)
             return "MUTATED"
 
-        results, errors = run_in_threads(fn, 8)
+        results, errors = run_in_threads(fn, 8, test=self)
 
         self.assertEqual(
             results, [], "the append-only guard let a concurrent write through"
@@ -374,7 +364,7 @@ class ConcurrentImmutabilityTests(TransactionTestCase):
             )
             return True
 
-        results, errors = run_in_threads(fn, 8)
+        results, errors = run_in_threads(fn, 8, test=self)
 
         self.assertEqual(errors, [], f"inserts were blocked: {errors!r}")
         self.assertEqual(len(results), 8)
