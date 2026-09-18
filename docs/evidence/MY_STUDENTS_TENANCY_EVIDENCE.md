@@ -1,7 +1,10 @@
 # Cross-teacher tenancy leaks in `my-students` and `/users/<id>` — evidence
 
 Branch `task/my-students-prefetch-leak`, based on beta `b744c9f`.
-**Gated tip: `948d710`** (code identical to `5ed650a`; `948d710` adds docs only).
+**Gated tip: `c44a6b5`.** Product code is unchanged since `948d710`
+(`git diff 948d710 c44a6b5` touches only tests and docs), so the fix that
+every gate above exercised is byte-identical; `c44a6b5` adds the premise
+pins described under Gate 2 and this document.
 Logs: `docs/evidence/my_students_tenancy/`, checksums in `SHA256SUMS.txt`.
 All figures below are copied from those logs.
 
@@ -12,7 +15,7 @@ All figures below are copied from those logs.
 | 1 — Baseline / regression | **PASS** | Pre-fix reproduction on `b744c9f`: 22 of 42 fail (`1-prefix-repro-b744c9f.log.gz`). Post-fix on `948d710`: `classrooms students dashboard users assignments` = **1,759 tests, OK, 17 skipped, exit 0** (`3-targeted-948d710.log.gz`). Skips unchanged from beta. No existing test was modified or weakened. |
 | 2 — Mutation | **PASS** | 16 mutants, one per changed guard, in disposable worktrees at the commit. On `948d710`: **15 KILLED, 1 SURVIVED (M7, equivalent)**; M14 re-run alone also SURVIVED (equivalent) after its first run was invalidated by Postgres connection exhaustion. Every restore sha256-verified, every worker removed (`5-mutation-logs-948d710.tar.gz`, `7-mutation-m14-rerun.tar.gz`, harness `battery.py`). |
 | 3 — Concurrency | **PASS** | `classrooms/tests_my_students_concurrency.py`: **20 threads x 10 rounds** on real Postgres, teacher B's roster enrolled/removed through the production services while teacher A reads. 500 reader rows checked, **0 violations**, both write directions exercised, every thread `is_alive()`-asserted after join. |
-| 4 — Adversarial | **PARTIAL (this session)** | The attacks are reproduced as tests from the attacker's side, and each one fails on `b744c9f` (Gate 1 log). Independent replay by `grade-automator-plus-04` (Red Team Lead) and `grade-automator-plus-25` (red-team-tenancy) is **in progress**; their result is not in this document. |
+| 4 — Adversarial | **IN PROGRESS — not PASS** | The attacks are reproduced as tests from the attacker's side, and each one fails on `b744c9f` (Gate 1 log). The independent replay is what this gate needs, and it is **running, with nothing on disk yet**: `grade-automator-plus-04` (core families) and `grade-automator-plus-25` (breadth: search, ordering, isnull, the retrieve cache, pagination, DELETE) both started on 2026-09-18 — 04's was WIP and 25's unstarted overnight, contrary to what the board implied. Both replay the app built from `948d710`; see the SHA note below. This gate is PASS only once their files exist and have been read. |
 | 5 — Failure / recovery | **PASS** | `my-students` is not cached: `UserCacheMixin` caches `list`/`retrieve` only, and `my_students` is a separate action. A test patches both cache modules and asserts **no cache call happens**. With Redis unreachable (`redis://127.0.0.1:1/0`) the endpoint still answers 200 with only the requester's own data; alternating teachers on real Redis each get their own payload. The endpoint performs no writes and calls no external service. |
 | 6 — Stress / scale | **PASS** | `classrooms/scale_my_students.py`, local DB: 600 students / 2,400 enrollments / 9,600 submissions / 50 courses, then **6,000 / 24,000 / 96,000 / 500**. Measured teacher's roster 60 → 600 (exactly 10x). **Queries constant at 5** for every request shape at both sizes. Numbers below (`6-scale-6000-students.log.gz`). |
 | 7 — Real infrastructure | **PASS (LOCAL-REAL)** | Every run above used the real local PostgreSQL (127.0.0.1:5432) and, where cache behaviour was under test, the real local Redis (127.0.0.1:6379). No mocked DB or cache. The deployed beta's database and Redis were never contacted. |
@@ -21,6 +24,33 @@ All figures below are copied from those logs.
 | 10 — Final production gate | **NOT RUN** | By design: this branch joins one integration commit with `task/free-plan-activation`, gated once by the integrator (`3e`). No per-branch full gate was run, and `948d710` has had no full-suite run. |
 
 **Doctrine note (Part II H1.3):** this is a security/isolation change, so Gates 4, 8 and 10 being short of PASS blocks landing until they are completed (4 and 10) or the user signs off in writing on the Gate 8 tiering. Nothing here should be read as "ready to land".
+
+**Replayed SHA vs landing SHA.** The red-team apps were built from
+`948d710`; the landing commit is `c44a6b5`. Their product code is
+byte-identical, so a replay result naming `948d710` applies unchanged to
+`c44a6b5`. Verified independently by the Senior Manager, and reproducible
+here:
+
+```
+$ git diff --quiet 948d710 c44a6b5 -- . ':!docs' ':!*tests_*'; echo "exit=$?"
+exit=0
+
+$ git diff --stat 948d710 c44a6b5
+classrooms/tests_my_students_course_scope.py       |  59 +++++
+ docs/HARDENING_BACKLOG.md                          |   1 +
+ docs/evidence/MY_STUDENTS_TENANCY_EVIDENCE.md      | 145 +++++++++++
+ .../1-prefix-repro-b744c9f.log.gz                  | Bin 0 -> 5729 bytes
+ .../my_students_tenancy/2-l1-repro-prefix.log.gz   | Bin 0 -> 2999 bytes
+ .../my_students_tenancy/3-targeted-948d710.log.gz  | Bin 0 -> 61874 bytes
+ .../4-mutation-logs-2ea122b.tar.gz                 | Bin 0 -> 102051 bytes
+ .../5-mutation-logs-948d710.tar.gz                 | Bin 0 -> 115053 bytes
+ .../6-scale-6000-students.log.gz                   | Bin 0 -> 1601 bytes
+ .../7-mutation-m14-rerun.tar.gz                    | Bin 0 -> 6619 bytes
+ docs/evidence/my_students_tenancy/SHA256SUMS.txt   |   8 +
+ docs/evidence/my_students_tenancy/battery.py       | 267 +++++++++++++++++++++
+ users/tests_user_enrollment_filter_oracle.py       |  44 +++-
+ 13 files changed, 523 insertions(+), 1 deletion(-)
+```
 
 ## The 8 completion answers
 
@@ -65,7 +95,42 @@ Run on `948d710`, `K=4` disposable worktrees, each restored from `git show <comm
 | M15 | superadmin branch `and` → `or` | KILLED | `test_single_flag_superuser_is_scoped_like_a_teacher` |
 | M16 | superadmin loses platform-wide scope | KILLED | `test_superadmin_filters_remain_platform_wide` |
 
-**Equivalence arguments.**
+**Equivalence arguments, and the tests that keep them true.**
+
+An equivalence argument is a statement about the code as it stands. Both of
+these depend on surrounding code that a later change could widen, with no
+mutant left to notice. Each premise is therefore pinned by a test, and each
+pin was itself checked by breaking the premise on purpose:
+
+| Premise | Pinned by | Broken on purpose | Result |
+|---|---|---|---|
+| `StudentListSerializer` is reachable from `my_students` only | `PremisesTheEquivalenceArgumentsRestOn.test_student_list_serializer_is_used_by_my_students_only` | P2: `list` also serves it | **pin failed as intended**, and only that test |
+| the `my_students` cache holds the requester's enrollments only | `...test_every_cached_enrollment_belongs_to_the_requesting_teacher`, plus `test_prefetch_caches_hold_only_the_teachers_own_rows` from the response side | M1 (battery) | **KILLED** |
+| accounts reaching `visible_enrollments`' own-rows branch have a queryset of their own row alone | `PremiseTheEquivalenceArgumentRestsOn.test_accounts_hitting_the_fallback_branch_see_only_themselves` | P1: `CustomUserViewSet.get_queryset` returns every user for those accounts | **pin failed as intended**, and only that test |
+
+P1 and P2 ran in disposable worktrees at `c44a6b5`, each restored from the
+commit's blob with a sha256 match and the worker removed. Both runs executed
+45 tests; in each, exactly one test failed and it was the pin for that
+premise:
+
+```
+P1 users/views.py    "return queryset.filter(pk=user.pk)" -> "return queryset"
+   -> FAIL: users.tests_user_enrollment_filter_oracle
+            .PremiseTheEquivalenceArgumentRestsOn
+            .test_accounts_hitting_the_fallback_branch_see_only_themselves
+   (1 of 45; every other test passed)
+
+P2 classrooms/views.py  my_students-only serializer mapping widened to
+                        ("my_students", "list")
+   -> FAIL: classrooms.tests_my_students_course_scope
+            .PremisesTheEquivalenceArgumentsRestOn
+            .test_student_list_serializer_is_used_by_my_students_only
+   (1 of 45; every other test passed)
+```
+
+Logs, mutant diffs and the harness: `8-premise-pin-checks.tar.gz`,
+`premise_check.py`. On unmutated `c44a6b5` all 45 pass.
+
 *M7:* with M1's guard in place (and M1 is killed), every enrollment in the prefetch cache satisfies `course.teacher_id == request.user.id`. The fallback loop therefore returns the first cached enrollment's course, which is exactly what the mutant returns via `enrollments[0]`. The `?enrollments__course=` branch above it is untouched. No input can distinguish them.
 *M14:* `Q(student=user)` is reached only by accounts whose `get_queryset()` is `filter(pk=user.pk)` — students, school admins without a school, and `SUPER_ADMIN`-typed accounts without `is_superuser`. The `Exists` subquery is correlated on `student=OuterRef("pk")`, and the only candidate row is the requester's own, so `Q(student=user)` and `Q()` select identically.
 
@@ -139,7 +204,7 @@ Ran 1759 tests — OK (skipped=17), exit 0
 | `users/views.py` | `filterset_class` |
 | `users/filters.py` | new — `UserEnrollmentFilter`, `visible_enrollments` |
 | `students/views.py` | `StudentViewSet` deleted |
-| `classrooms/tests_my_students_course_scope.py` | 15 tests — leak, filters, roles, cache |
+| `classrooms/tests_my_students_course_scope.py` | 17 tests — leak, filters, roles, cache, M7 premise pins |
 | `classrooms/tests_my_students_concurrency.py` | 1 test — 20 threads x 10 rounds |
-| `users/tests_user_enrollment_filter_oracle.py` | 19 tests — the `/users/<id>` oracles |
+| `users/tests_user_enrollment_filter_oracle.py` | 20 tests — the `/users/<id>` oracles, M14 premise pin |
 | `classrooms/scale_my_students.py` | Gate 6 harness, not discovered by the suite |
