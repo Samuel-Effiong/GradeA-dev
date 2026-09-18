@@ -37,11 +37,18 @@ import redis
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
 from django.db import connection, transaction
+from django.urls import reverse
 
 import AutoGrader.cache_generation as cache_generation
 from AutoGrader.cache_generation import SCOPE_COURSE, get_generation
 from AutoGrader.tests_cache_commit_race import CommitRaceBase
-from classrooms.models import EnrollmentStatusType, School, StudentCourse
+from classrooms.models import (
+    Course,
+    EnrollmentStatusType,
+    School,
+    Session,
+    StudentCourse,
+)
 from classrooms.services.roster_import import RosterRow, import_roster
 from users.models import UserTypes
 
@@ -118,6 +125,14 @@ class Meter:
                 with patch.object(cache_generation, "_bump_now", timed_bump_now):
                     yield self
 
+    def merge(self, other):
+        """Fold another chunk's meter into this one."""
+        self.round_trips.update(other.round_trips)
+        self.commands.update(other.commands)
+        for phase in ("open", "commit"):
+            self.bump_ms[phase] += other.bump_ms[phase]
+        return self
+
     def enter_commit_phase(self):
         self.phase = "commit"
 
@@ -145,6 +160,24 @@ class RosterScaleCostBase(CommitRaceBase):
         school = School.objects.create(name="Race cost school")
         self.teacher.school = school
         self.teacher.save()
+
+    def fresh_course(self, label):
+        """Each measured pass gets its own empty course.
+
+        Enrolling runs `full_clean`, whose duplicate-name check scans the
+        students already in the course, so a pass into a course the previous
+        pass filled is slower for reasons that have nothing to do with the
+        change being measured.
+        """
+        self.course = Course.objects.create(
+            name=f"Race cost course {label}",
+            teacher=self.teacher,
+            session=Session.objects.create(
+                name=f"Race cost term {label}", teacher=self.teacher
+            ),
+        )
+        self.detail = reverse("course-detail", args=[self.course.pk])
+        return self.course
 
     def make_students(self, count, tag):
         password = make_password("password123")  # nosec  # pragma: allowlist secret
@@ -231,25 +264,42 @@ class SingleTransactionRosterCostTests(RosterScaleCostBase):
         return len(queries), peak
 
     def measure_size(self, size):
-        students = self.make_students(4 * size, tag=f"s{size}")
-        batches = [students[i * size : (i + 1) * size] for i in range(4)]
-        enrolled_before = StudentCourse.objects.filter(course=self.course).count()
+        students = self.make_students(6 * size, tag=f"s{size}")
+        batches = [students[i * size : (i + 1) * size] for i in range(6)]
 
-        start = get_generation(SCOPE_COURSE, self.course.pk)
+        # Both orders, because whichever pass runs second inherits any drift
+        # in machine load, and the fix's pass must not be the one that always
+        # runs second.
+        passes = {"off": [], "on": []}
+        timings = {"off": [], "on": []}
+        for index, mode in enumerate(("off", "on", "on", "off")):
+            course = self.fresh_course(f"{mode}-{size}-{index}")
+            before = get_generation(SCOPE_COURSE, course.pk)
+            if mode == "off":
+                with fix_switched_off():
+                    meter, timing = self.enroll_all_in_one_transaction(batches[index])
+            else:
+                meter, timing = self.enroll_all_in_one_transaction(batches[index])
+            timing["generations"] = get_generation(SCOPE_COURSE, course.pk) - before
+            passes[mode].append(meter)
+            timings[mode].append(timing)
+
+        unfixed, fixed = passes["off"][0], passes["on"][0]
+        unfixed_s = min(timings["off"], key=lambda t: t["total"])
+        fixed_s = min(timings["on"], key=lambda t: t["total"])
+        before_fixed, after_fixed = 0, 2 * size  # asserted per pass below
+        for timing in timings["off"]:
+            self.assertEqual(timing["generations"], size)
+        for timing in timings["on"]:
+            self.assertEqual(timing["generations"], 2 * size)
+
+        self.fresh_course(f"qoff-{size}")
         with fix_switched_off():
-            unfixed, unfixed_s = self.enroll_all_in_one_transaction(batches[0])
-        after_unfixed = get_generation(SCOPE_COURSE, self.course.pk)
-        fixed, fixed_s = self.enroll_all_in_one_transaction(batches[1])
-        after_fixed = get_generation(SCOPE_COURSE, self.course.pk)
+            unfixed_queries, unfixed_peak = self.instrumented(batches[4])
+        self.fresh_course(f"qon-{size}")
+        fixed_queries, fixed_peak = self.instrumented(batches[5])
 
-        with fix_switched_off():
-            unfixed_queries, unfixed_peak = self.instrumented(batches[2])
-        fixed_queries, fixed_peak = self.instrumented(batches[3])
-
-        self.assertEqual(
-            StudentCourse.objects.filter(course=self.course).count(),
-            enrolled_before + 4 * size,
-        )
+        self.assertEqual(StudentCourse.objects.filter(course=self.course).count(), size)
         # Before the fix nothing is sent at commit; after it, the commit
         # replays exactly the in-transaction bumps, one round trip each.
         self.assertEqual(unfixed.round_trips["commit"], 0)
@@ -257,8 +307,7 @@ class SingleTransactionRosterCostTests(RosterScaleCostBase):
         self.assertEqual(len(fixed.bump_ms["commit"]), size)
         self.assertEqual(fixed.round_trips["commit"], fixed.round_trips["open"])
         self.assertEqual(fixed.commands["commit"], fixed.commands["open"])
-        self.assertEqual(after_unfixed - start, size)
-        self.assertEqual(after_fixed - after_unfixed, 2 * size)
+        self.assertEqual(after_fixed - before_fixed, 2 * size)
         # The fix sends nothing to the database.
         self.assertEqual(fixed_queries, unfixed_queries)
 
@@ -269,6 +318,9 @@ class SingleTransactionRosterCostTests(RosterScaleCostBase):
             fixed_s,
             unfixed_s,
             extra=(
+                "\nboth orders (off,on,on,off), best wall per mode is reported; "
+                f"off={[round(t['total'], 2) for t in timings['off']]}s "
+                f"on={[round(t['total'], 2) for t in timings['on']]}s"
                 f"\nDB queries: before={unfixed_queries} after={fixed_queries} "
                 f"({fixed_queries / size:.2f}/row)"
                 f"\npeak traced memory: before={unfixed_peak / 1024:.0f}KiB "
@@ -336,9 +388,33 @@ class PerRowRosterImportCostTests(RosterScaleCostBase):
         students = self.make_students(2 * size, tag=f"r{size}")
         first, second = students[:size], students[size:]
 
-        with fix_switched_off():
-            unfixed, unfixed_s, unfixed_rows = self.import_rows(first)
-        fixed, fixed_s, fixed_rows = self.import_rows(second)
+        # Alternating chunks, not one pass each: the two modes then face the
+        # same machine conditions minute by minute, so drift in background
+        # load cannot land entirely on whichever pass runs second.
+        chunks = min(10, size)
+        step = size // chunks
+        unfixed_rows, fixed_rows = [], []
+        unfixed_walls, fixed_walls = [], []
+        unfixed, fixed = Meter(), Meter()
+        for index in range(chunks):
+            off_chunk = first[index * step : (index + 1) * step]
+            on_chunk = second[index * step : (index + 1) * step]
+
+            self.fresh_course(f"roff-{size}-{index}")
+            with fix_switched_off():
+                meter, timing, rows_ms = self.import_rows(off_chunk)
+            unfixed.merge(meter)
+            unfixed_rows += rows_ms
+            unfixed_walls.append(timing["total"])
+
+            self.fresh_course(f"ron-{size}-{index}")
+            meter, timing, rows_ms = self.import_rows(on_chunk)
+            fixed.merge(meter)
+            fixed_rows += rows_ms
+            fixed_walls.append(timing["total"])
+
+        unfixed_s = {"total": sum(unfixed_walls), "commit": 0.0}
+        fixed_s = {"total": sum(fixed_walls), "commit": 0.0}
 
         self.assertEqual(unfixed.round_trips["commit"], 0)
         self.assertEqual(len(fixed.bump_ms["commit"]), size)
