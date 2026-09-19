@@ -14,7 +14,7 @@ Assigned by the Senior Manager 2026-09-17.
 | `1848a93` | Assert the withheld D12 reason is logged at WARNING (killed survivor M25) |
 
 Every figure below is copied from a log in `docs/evidence/refusal_handling/`,
-checksummed in `docs/evidence/refusal_handling/SHA256SUMS` (38 files).
+checksummed in `docs/evidence/refusal_handling/SHA256SUMS` (36 files).
 
 ## 10-gate table
 
