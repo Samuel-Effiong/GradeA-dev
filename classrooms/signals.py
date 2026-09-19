@@ -258,15 +258,67 @@ def _course_id_for_assignment(assignment_id):
     )
 
 
-def _recalculate_final_grade(student_id, course_id):
-    """
-    Recomputes a student's final grade for a course as a points-weighted
-    average across all graded submissions: sum(score) / sum(max_points) * 100.
+def compute_final_grade(student_id, course_id):
+    """The final grade the student's graded work implies, or None.
 
+    A points-weighted average across all graded submissions:
+    sum(score) / sum(points) * 100, clamped to 0-100 and rounded to 2dp.
     Weighted (not a plain mean of percentages) so a 100-point exam counts
-    more than a 5-point quiz. Runs after every submission save *and*
-    delete so `final_grade` can't drift from submissions that were
-    resubmitted, ungraded, or removed after an earlier grade was recorded.
+    more than a 5-point quiz.
+
+    Pure read: `_recalculate_final_grade` writes the result, and the
+    `recalculate_final_grades` command previews it for existing rows. Both
+    must agree, so this is the only place the formula lives.
+    """
+    # Submissions graded before `max_points` was stored have it NULL.
+    # Weight them by the assignment's total_points - the same fallback the
+    # submission serializers display - rather than dropping them: filtering
+    # on `max_points > 0` alone silently left a graded 4/5 out of a
+    # student's final grade (H-33). A stored max_points always wins; a row
+    # with no maximum anywhere still can't be weighted.
+    totals = (
+        StudentSubmission.objects.filter(
+            student_id=student_id,
+            assignment__course_id=course_id,
+            graded_at__isnull=False,
+            score__isnull=False,
+        )
+        .annotate(points=Coalesce("max_points", "assignment__total_points"))
+        .filter(points__gt=0)
+        .aggregate(total_score=Sum("score"), total_max_points=Sum("points"))
+    )
+
+    total_score = totals["total_score"]
+    total_max_points = totals["total_max_points"]
+
+    if not total_max_points:
+        return None
+    raw_grade = (total_score / total_max_points) * 100
+    # Clamp to the documented 0-100 scale so bad upstream data (extra
+    # credit pushing a score over 100%, a negative adjustment) can't
+    # silently fall outside every grade band in grade-distribution
+    # reporting.
+    clamped = max(Decimal("0"), min(Decimal("100"), raw_grade))
+    return clamped.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def _recalculate_final_grade(student_id, course_id, *, allow_clear=True):
+    """
+    Recomputes a student's final grade for a course (see
+    `compute_final_grade`) and stores it if it changed. Returns
+    (old, new, written) when the value differs, None when it doesn't.
+
+    `allow_clear=False` refuses to turn an existing grade into no grade:
+    the row is left as it is and reported with written=False. The
+    receivers keep the default (a deleted or un-graded submission really
+    does remove the grade); the repair command passes False so a grade a
+    student and teacher have already seen never silently disappears.
+
+    Runs after every submission save *and* delete so `final_grade` can't
+    drift from submissions that were resubmitted, ungraded, or removed
+    after an earlier grade was recorded. Rows last written before the
+    current formula existed are NOT revisited by these receivers; the
+    `recalculate_final_grades` management command exists for them.
 
     Locks the enrollment row for the duration of the aggregate + write.
     Batch grading (grade-all) finishes several submissions for the same
@@ -285,43 +337,18 @@ def _recalculate_final_grade(student_id, course_id):
             .first()
         )
         if enrollment is None:
-            return
+            return None
 
-        # Submissions graded before `max_points` was stored have it NULL.
-        # Weight them by the assignment's total_points - the same fallback
-        # the submission serializers display - rather than dropping them:
-        # filtering on `max_points > 0` alone silently left a graded 4/5
-        # out of a student's final grade (H-33). A stored max_points always
-        # wins; a row with no maximum anywhere still can't be weighted.
-        totals = (
-            StudentSubmission.objects.filter(
-                student_id=student_id,
-                assignment__course_id=course_id,
-                graded_at__isnull=False,
-                score__isnull=False,
-            )
-            .annotate(points=Coalesce("max_points", "assignment__total_points"))
-            .filter(points__gt=0)
-            .aggregate(total_score=Sum("score"), total_max_points=Sum("points"))
-        )
+        new_final_grade = compute_final_grade(student_id, course_id)
+        old = enrollment.final_grade
 
-        total_score = totals["total_score"]
-        total_max_points = totals["total_max_points"]
-
-        if not total_max_points:
-            new_final_grade = None
-        else:
-            raw_grade = (total_score / total_max_points) * 100
-            # Clamp to the documented 0-100 scale so bad upstream data (extra
-            # credit pushing a score over 100%, a negative adjustment) can't
-            # silently fall outside every grade band in grade-distribution
-            # reporting.
-            clamped = max(Decimal("0"), min(Decimal("100"), raw_grade))
-            new_final_grade = clamped.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-
-        if enrollment.final_grade != new_final_grade:
-            enrollment.final_grade = new_final_grade
-            enrollment.save(update_fields=["final_grade"])
+        if old == new_final_grade:
+            return None
+        if new_final_grade is None and old is not None and not allow_clear:
+            return old, new_final_grade, False
+        enrollment.final_grade = new_final_grade
+        enrollment.save(update_fields=["final_grade"])
+        return old, new_final_grade, True
 
 
 @receiver(post_save, sender=StudentSubmission)
