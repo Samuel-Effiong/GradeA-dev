@@ -341,16 +341,20 @@ class UserRowPrecisionTests(UserFanoutBase):
     """The half a freshness test cannot see: what must NOT move."""
 
     def test_student_rename_moves_only_their_teachers_and_those_schools(self):
+        """Gap #3: school A's admin renders the student in `users/<pk>` -
+        seen through the teacher's school, as the student has none - so
+        their generation moves too. School B's admin does not."""
         before = self.generations()
         self.student.first_name = "Precise"
         self.student.save(update_fields=["first_name"])
 
-        self.assert_moved(before, "usr_student", "usr_teacher_a", "sch_a")
+        self.assert_moved(
+            before, "usr_student", "usr_teacher_a", "usr_admin_a", "sch_a"
+        )
         self.assert_still(
             before,
             "usr_teacher_a2",
             "usr_teacher_b",
-            "usr_admin_a",
             "usr_admin_b",
             "usr_bystander",
             "sch_b",
@@ -364,15 +368,25 @@ class UserRowPrecisionTests(UserFanoutBase):
         self.bystander.first_name = "Twoschools"
         self.bystander.save(update_fields=["first_name"])
 
-        self.assert_moved(before, "usr_teacher_a2", "usr_teacher_b", "sch_a", "sch_b")
+        self.assert_moved(
+            before,
+            "usr_teacher_a2",
+            "usr_teacher_b",
+            "usr_admin_a",
+            "usr_admin_b",
+            "sch_a",
+            "sch_b",
+        )
         self.assert_still(before, "usr_teacher_a", "usr_student", "sch_c", "anysch")
 
-    def test_teacher_rename_moves_their_school_only(self):
+    def test_teacher_rename_moves_their_school_and_its_admin_only(self):
+        """Gap G4: school A's admin renders the teacher in `users/<pk>`,
+        keyed on the admin's own generation."""
         before = self.generations()
         self.teacher_a.first_name = "Precise"
         self.teacher_a.save(update_fields=["first_name"])
 
-        self.assert_moved(before, "usr_teacher_a", "sch_a")
+        self.assert_moved(before, "usr_teacher_a", "usr_admin_a", "sch_a")
         self.assert_still(
             before,
             "sch_b",
@@ -381,7 +395,7 @@ class UserRowPrecisionTests(UserFanoutBase):
             "usr_teacher_a2",
             "usr_teacher_b",
             "usr_student",
-            "usr_admin_a",
+            "usr_admin_b",
         )
 
     def test_a_school_move_moves_the_old_and_new_school_only(self):
@@ -442,7 +456,6 @@ class UserRowPrecisionTests(UserFanoutBase):
         """Nobody else displays these. Each still moves the user's own
         generation, as before - only the fan-out is withheld."""
         for update_fields, change in (
-            (["bio"], lambda u: setattr(u, "bio", "private")),
             (
                 ["failed_login_attempts", "locked_until"],
                 lambda u: setattr(u, "failed_login_attempts", 2),
@@ -456,23 +469,39 @@ class UserRowPrecisionTests(UserFanoutBase):
                 student.save(update_fields=update_fields)
 
                 self.assert_moved(before, "usr_student")
-                self.assert_still(before, "usr_teacher_a", "sch_a", "sch_b")
+                self.assert_still(
+                    before, "usr_teacher_a", "usr_admin_a", "sch_a", "sch_b"
+                )
+
+    def test_a_bio_change_reaches_payload_viewers_but_no_school(self):
+        """Gap #5: `CustomUserSerializer` renders `bio` to every viewer of
+        `users/<pk>`, but no dashboard shows it."""
+        before = self.generations()
+        student = User.objects.get(pk=self.student.pk)
+        student.bio = "now visible to viewers"
+        student.save(update_fields=["bio"])
+
+        self.assert_moved(before, "usr_student", "usr_teacher_a", "usr_admin_a")
+        self.assert_still(before, "sch_a", "sch_b", "usr_teacher_b", "usr_admin_b")
 
     def test_a_full_save_with_no_visible_change_does_not_fan_out(self):
         student = User.objects.get(pk=self.student.pk)
         before = self.generations()
-        student.bio = "changed but invisible"
+        student.failed_login_attempts = 3
         student.save()
 
-        self.assert_still(before, "usr_teacher_a", "sch_a")
+        self.assert_still(before, "usr_teacher_a", "usr_admin_a", "sch_a")
 
-    def test_a_settings_save_does_not_fan_out(self):
+    def test_a_settings_save_reaches_payload_viewers_but_no_school(self):
+        """Gaps G8/#3: `CustomUserSerializer` nests `settings`, so the
+        teacher's and school admin's `users/<student>` render it. No
+        dashboard shows settings, so no school moves."""
         before = self.generations()
         settings_obj, _ = Settings.objects.get_or_create(user=self.student)
         settings_obj.save()
 
-        self.assert_moved(before, "usr_student")
-        self.assert_still(before, "usr_teacher_a", "sch_a")
+        self.assert_moved(before, "usr_student", "usr_teacher_a", "usr_admin_a")
+        self.assert_still(before, "sch_a", "sch_b", "usr_teacher_b", "usr_admin_b")
 
     def test_the_other_tenant_dashboards_are_byte_identical(self):
         """Response-level isolation: school B's admin dashboards, warmed
@@ -529,12 +558,16 @@ class UserRowCostTests(UserFanoutBase):
         visible = self.queries_for(
             ["first_name"], lambda u: setattr(u, "first_name", "Vis")
         )
-        invisible = self.queries_for(["bio"], lambda u: setattr(u, "bio", "x"))
+        invisible = self.queries_for(
+            ["failed_login_attempts"],
+            lambda u: setattr(u, "failed_login_attempts", 1),
+        )
         self.assertEqual(
             visible - invisible,
-            2,
-            "a visible change should cost exactly the pre-save read plus the "
-            "teacher lookup; an invisible one neither",
+            3,
+            "a visible change should cost exactly the pre-save read, the "
+            "teacher lookup and the school-admin lookup; an invisible one "
+            "none of them",
         )
 
     def test_one_redis_round_trip_per_save(self):
@@ -588,9 +621,16 @@ class AdminBulkActionTests(UserFanoutBase):
         ]
         self.assertEqual(len(course_lookups), 1)
         self.assert_moved(
-            before, "usr_teacher_a", "usr_teacher_a2", "usr_teacher_b", "sch_a", "sch_b"
+            before,
+            "usr_teacher_a",
+            "usr_teacher_a2",
+            "usr_teacher_b",
+            "usr_admin_a",
+            "usr_admin_b",
+            "sch_a",
+            "sch_b",
         )
-        self.assert_still(before, "sch_c", "usr_admin_a", "anysch")
+        self.assert_still(before, "sch_c", "anysch")
 
 
 class UserRowFailureTests(UserFanoutBase):

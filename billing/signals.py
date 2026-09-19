@@ -27,7 +27,18 @@ def clear_credit_bucket_cache(sender, instance, **kwargs):
     # at all, so a grant, a licence-enrolment bucket, or ordinary
     # consumption never reached the owning user's cached `users/me`
     # payload, which nests `credit_wallet.total_remaining_credits`.
+    #
+    # H-1 Stage 3 (gap #4): the wallet is also rendered to every OTHER
+    # viewer of the owner's `users/<pk>` - their teachers, school admins
+    # and the superadmins - each keyed on the viewer's own generation.
+    from users.signals import superadmin_user_ids, user_payload_viewer_scopes
+
     wallet = getattr(instance, "wallet", None)
     user_id = getattr(wallet, "user_id", None) if wallet is not None else None
-    if user_id is not None:
-        bump_many([(SCOPE_USER, user_id)])
+    if user_id is None:
+        return
+    school_id = getattr(getattr(wallet, "user", None), "school_id", None)
+    scopes = [(SCOPE_USER, user_id)]
+    scopes.extend(user_payload_viewer_scopes([user_id], [school_id]))
+    scopes.extend((SCOPE_USER, admin_id) for admin_id in superadmin_user_ids())
+    bump_many(list(dict.fromkeys(scopes)))
