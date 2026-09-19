@@ -4,6 +4,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from django.core.cache import cache
 from django.db import transaction
 from django.db.models import Sum
+from django.db.models.functions import Coalesce
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 from redis.exceptions import ConnectionError as RedisConnectionError
@@ -286,13 +287,23 @@ def _recalculate_final_grade(student_id, course_id):
         if enrollment is None:
             return
 
-        totals = StudentSubmission.objects.filter(
-            student_id=student_id,
-            assignment__course_id=course_id,
-            graded_at__isnull=False,
-            score__isnull=False,
-            max_points__gt=0,
-        ).aggregate(total_score=Sum("score"), total_max_points=Sum("max_points"))
+        # Submissions graded before `max_points` was stored have it NULL.
+        # Weight them by the assignment's total_points - the same fallback
+        # the submission serializers display - rather than dropping them:
+        # filtering on `max_points > 0` alone silently left a graded 4/5
+        # out of a student's final grade (H-33). A stored max_points always
+        # wins; a row with no maximum anywhere still can't be weighted.
+        totals = (
+            StudentSubmission.objects.filter(
+                student_id=student_id,
+                assignment__course_id=course_id,
+                graded_at__isnull=False,
+                score__isnull=False,
+            )
+            .annotate(points=Coalesce("max_points", "assignment__total_points"))
+            .filter(points__gt=0)
+            .aggregate(total_score=Sum("score"), total_max_points=Sum("points"))
+        )
 
         total_score = totals["total_score"]
         total_max_points = totals["total_max_points"]
