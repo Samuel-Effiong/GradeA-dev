@@ -238,7 +238,15 @@ class StubRepo:
             ["git", *args], cwd=self.root, capture_output=True, text=True, check=True
         ).stdout.strip()
 
-    def gate(self, scenario=None, extra=(), runs=1, name="selftest", env_extra=None):
+    def gate(
+        self,
+        scenario=None,
+        extra=(),
+        runs=1,
+        name="selftest",
+        env_extra=None,
+        wrapper=(),
+    ):
         env = dict(os.environ)
         env.pop("STRICT_GATE_INHIBITED", None)
         env.update(env_extra or {})
@@ -246,6 +254,7 @@ class StubRepo:
         env["STUB_SCENARIO"] = json.dumps(scenario or {})
         env["STUB_STATE"] = str(self.state)
         args = [
+            *wrapper,
             sys.executable,
             str(SCRIPT),
             "run",
@@ -544,6 +553,22 @@ class EndToEnd(unittest.TestCase):
     def test_missing_sleep_inhibitor_aborts_before_any_run(self):
         # Pretend the re-exec already happened; no inhibitor is actually held.
         code = self.repo.gate(env_extra={"STRICT_GATE_INHIBITED": "1"})
+        self.assertEqual(code, 2, self.explain())
+        self.assertIn(
+            "systemd-inhibit", " ".join(self.repo.summary()["verdict_reasons"])
+        )
+        self.assertEqual(self.repo.stub_calls(), [])
+
+    def test_a_sleep_only_lock_is_not_accepted_as_protection(self):
+        # Held under a lock with our WHO and our PID but WITHOUT
+        # handle-lid-switch: a closed lid would still suspend, so refuse.
+        wrapper = [
+            "systemd-inhibit",
+            "--what=sleep:idle",
+            f"--who={gate.INHIBIT_WHO}",
+            "--why=self-test: sleep-only lock",
+        ]
+        code = self.repo.gate(env_extra={"STRICT_GATE_INHIBITED": "1"}, wrapper=wrapper)
         self.assertEqual(code, 2, self.explain())
         self.assertIn(
             "systemd-inhibit", " ".join(self.repo.summary()["verdict_reasons"])
