@@ -14,7 +14,7 @@ Assigned by the Senior Manager 2026-09-17.
 | `1848a93` | Assert the withheld D12 reason is logged at WARNING (killed survivor M25) |
 
 Every figure below is copied from a log in `docs/evidence/refusal_handling/`,
-checksummed in `docs/evidence/refusal_handling/SHA256SUMS` (30 files).
+checksummed in `docs/evidence/refusal_handling/SHA256SUMS` (38 files).
 
 ## 10-gate table
 
@@ -23,24 +23,72 @@ checksummed in `docs/evidence/refusal_handling/SHA256SUMS` (30 files).
 | 1. Baseline / Regression | PASS | All of D1-D11 reproduced on `b744c9f` in a disposable worktree detached at that commit, fresh DB, no `--keepdb`: `Ran 18 tests`, `FAILED (failures=53)`, 0 errors, each failure with its intended cause (`g1_repro_b744c9f.log`). Affected-module regression on the fix: `Ran 558 tests`; 24 non-passing, every one an approved behaviour change, each carrying the 4-point record; after updating those assertions, `Ran 169 tests`, `OK (skipped=1)`. No new skips, xfails or deleted assertions. |
 | 2. Mutation | PASS | 25 mutants, at least one per guard added or changed by the diff, **25/25 KILLED, 0 survivors** (`mutation/SUMMARY.md`, `mutation_m19/`, `mutation_d12/`). Disposable worktrees detached at the commit; every restore verified by sha256 against `git show <commit>:<path>`; all worker trees confirmed clean before removal. Two mutants survived their first run and were killed by NEW tests, not excused - see "Mutation survivors" below. |
 | 3. Concurrency | PASS | 20 simultaneous refusals x 10 rounds, real threads against real PostgreSQL: every caller 402 + `insufficient_credits`, 0 `CreditUsageLog`, no new `CreditLedger`, 0 `ChatMessage`. Plus a credit top-up landing mid-flight: every caller either refused with no charge or served with exactly one charge, and chat turns equal 2 per served caller. Each thread closes its own connection in `finally`; every `join` is followed by an `is_alive` assertion (`ConcurrentRefusalTest`). |
-| 4. Adversarial | PARTIAL | D11 independently verified by the Red Team Lead over HTTP with real JWT against a running app at `f7cd15e` vs `b744c9f`: 6/6 credit-gated endpoints leaked `<b>` HTML on the pre-fix commit and are clean on the fix (its log: `docs/evidence/security_replay/logs/d11_fix_f7cd15e.log` on its branch). **Outstanding: the D10 and D12 replays, and a replay against the current head `1848a93`.** D12 was itself found by the Red Team Lead, not by me. |
+| 4. Adversarial | PASS (LOCAL-REAL) | Independent HTTP replays by the Red Team Lead (it did not write the fix), each proven to SUCCEED on `b744c9f` before counting against the fix: **D11** at `f7cd15e` - 6/6 credit-gated endpoints leaked `<b>` HTML pre-fix, clean after (`docs/evidence/security_replay/logs/d11_fix_f7cd15e.log`); **D10** at `f0001aa` - pre-fix `500` carrying "Task requires ~22174 credits, but you only have 1000", fix `402` + `insufficient_credits` with no detail strings (commit `9a6b1b6`, `d10_phaseA_b744c9f.log` / `d10_phaseB_f0001aa.log`); **D12** at `f0001aa` over the async polled-task surface (student -> `POST submissions/{id}/update-async` -> `GET tasks/status/{id}`) - pre-fix the student was told "...Trial period has expired...", fix returns only the generic student message (commit `25d3c28`, `d12_phaseA_b744c9f.log` / `d12_phaseB_f0001aa.log`). All on `task/security-exploit-replay`. **Declared gap:** the dispute-deficit wording ("Credit consumption is blocked ... chargebacks ... refunds") is covered by unit-level proof only (`D10CreditDetailNeverSurfacesTest`) - not replayed, because staging a lost Stripe dispute against partly-spent credits was out of reach today. The H-19 x D11 composition is replayed on the integration commit (see Gate 10). |
 | 5. Failure / Recovery | PASS | A refusal never charges and never persists (asserted inside the real `billing_refund_scope`); the DB write that records the refusal failing does not turn it into a success (task ends FAILURE, row stays non-terminal, submission unchanged); redelivery of a refused task recharges nothing; a transient failure still retries 4x and still logs ERROR with a stack (`RefusalFailureRecoveryTest`). |
-| 6. Stress / Scale | NOT APPLICABLE (needs the Senior Manager's acceptance, H1.2) | A refusal short-circuits BEFORE any provider call or per-row work, so there is no dimension that grows with users, courses or submissions. The change adds no query, no loop and no cache entry on any path; it only changes which exception type survives, which HTTP status is returned, and whether a retry happens - and it strictly REMOVES work, since a permanent refusal is no longer retried 3-4 times. |
+| 6. Stress / Scale | PASS | Measured at the doctrine's sizes, 600 vs 6,000 students (10x), with the identical module run on BOTH commits so the before/after is a real diff, not two different tests (`refusal_handling/gate6/`). Queries counted with `connection.execute_wrapper`; the Postgres connection count recorded beside every figure (19/100 throughout, not starved); a 5xx or 2xx is rejected as "not a refusal" rather than measured. Per-request refusal cost is flat in school size on both commits (permission layer 1-3 queries, service gate 14-16, at 600 AND 6,000). The change is subtractive, as claimed: a refused task makes **4 -> 1** credit-gate calls, **89 -> 26** queries, **309 -> 73 ms** per item; the weekly summary writes **220 -> 0** stack traces for 220 refused courses at a flat 9.0 queries/course. See the Gate 6 section. |
 | 7. Real Infrastructure | PASS (LOCAL-REAL) | Every test above runs against real PostgreSQL and real Redis. The model provider is stubbed deliberately and asserted never called - a refusal that reached the provider would be the defect. No result here is presented as DEPLOYED-REAL. |
 | 8. Live / E2E | PARTIAL (LOCAL-REAL) | The Red Team Lead's D11 replay ran HTTP + JWT against a running local app (LOCAL-REAL), which per H8.1 is at most PARTIAL for this gate. This task is tiered LOGIC-ONLY by the Fixes Coordinator: Gate 8 = LOCAL-REAL plus the post-landing QA-beta smoke. **No DEPLOYED-REAL evidence exists yet.** |
 | 9. Security / Isolation | PASS | Both directions probed - the actor's own data and every foreign boundary (teacher/teacher, student/teacher, school/school, role). Whole-payload assertions: no foreign id, email, name, course or school appears anywhere in the body, and none of the 7 internal credit fragments does either. D12 (a student being told their teacher's billing state) found by the Red Team Lead, fixed, and pinned by three tests plus mutants M24/M25 (`RefusalIsolationTest`). |
-| 10. Final Production Gate | NOT RUN | Needs a full-suite slot. Two consecutive clean runs on the exact release commit are required (this touches billing, isolation and refusal paths). Queued behind fix-idor by the Fixes Coordinator. **Nothing here may land until this passes on the landed SHA.** |
+| 10. Final Production Gate | NOT RUN | This branch lands in the integration batch (93, 57, 7e, then this branch last, each its own merge commit); the integration commit gets two consecutive strict runs, which certify the landing. The integrator also commits `refusal_handling/composition/tests_credit_balance_composition.py` there and proves it against two mutants (H-19 reverted, D11 reverted) - it can only pass on the merged tree. **Nothing here is landed until that gate passes on the landed SHA.** |
 
 ## The 8 completion answers
 
 1. **What changed.** One classification of AI refusals (`billing/refusals.py`): `AIFeatureNotAvailableError` -> 403 `ai_feature_not_available`, `InsufficientCreditsError` -> 402 `insufficient_credits`, never retried, logged at WARNING. 12 defects fixed across HTTP and Celery (D1-D12, table in section 2). Every `InsufficientCreditsError` shows one generic, role-neutral message; its real text (balance, estimate, chargeback/refund deficit) stays in server logs. A student is no longer told their teacher's billing state. Transient failures keep exactly the retry behaviour they had.
 2. **Why it was necessary.** Users who were simply out of credits or not entitled were shown 500s (server fault), 400s (malformed request) or HTML markup in an API error body; permanent refusals were retried 3-4 times, re-running the entitlement and balance checks for nothing; background tasks recorded blank errors or logged expected refusals as crashes; and internal billing state - including another tenant's - reached clients.
 3. **What was tested.** 32 new tests (18 defect tests + 14 gate tests), plus 24 updated existing assertions. Reproduction on the pre-fix commit, a 25-mutant battery, 20-way concurrency over 10 rounds on real PostgreSQL, failure injection at each step of the changed paths, isolation probes in both directions, and an independent Red Team replay of D11.
-4. **Which gates passed.** 1, 2, 3, 5, 7 (LOCAL-REAL), 9. Gate 6 is claimed NOT APPLICABLE with the justification above, pending the Senior Manager's acceptance.
-5. **Which gates remain incomplete.** **Gate 4 PARTIAL** (D10 and D12 replays outstanding; nothing replayed against the current head). **Gate 8 PARTIAL** (LOCAL-REAL only; no DEPLOYED-REAL evidence). **Gate 10 NOT RUN** (no slot yet; needs two consecutive clean runs on the exact commit).
-6. **What risks remain.** (a) Two frontend-visible changes: student submission endpoints answer 402/403 instead of 400, and 18 endpoints answer 402 + plain text instead of 400 + HTML. A frontend that renders that HTML or branches on the 400 will break. Escalated to the user through the Senior Manager; **not yet accepted by the user.** (b) The generic credit message is a deliberate loss of detail for clients; operators keep it in logs. (c) `AIFeatureNotAvailableError` text still passes through verbatim on self-facing surfaces, which is intended, but only the student-facing variant has been audited for disclosure. (d) Gate 10 has not run, so nothing here is proven against the full suite.
+4. **Which gates passed.** 1, 2, 3, 4 (LOCAL-REAL), 5, 6 (measured, both commits), 7 (LOCAL-REAL), 9.
+5. **Which gates remain incomplete.** **Gate 8 PARTIAL** (LOCAL-REAL only; no DEPLOYED-REAL evidence; this task is tiered LOGIC-ONLY, with the post-landing QA-beta smoke as its Gate 8). **Gate 10 NOT RUN** (the integration batch's two strict runs will certify it). Gate 4 has one declared gap: the dispute-deficit message variant has unit-level proof only.
+6. **What risks remain.** (a) Two frontend-visible changes: student submission endpoints answer 402/403 instead of 400, and 18 endpoints answer 402 + plain text instead of 400 + HTML. **Accepted by the user on 2026-09-18** ("land it on QA now"), accepting that the QA frontend may look off until it is updated; the frontend lives in a separate repository. Handoff for its developer: `refusal_handling/FRONTEND_CONTRACT_HANDOFF.md`. Known gap noted there: `POST assignments/generate/{course_id}` answers 402/403 without a `code`. (b) The generic credit message is a deliberate loss of detail for clients; operators keep it in logs. (c) `AIFeatureNotAvailableError` text still passes through verbatim on self-facing surfaces, which is intended, but only the student-facing variant has been audited for disclosure. (d) Gate 10 has not run, so nothing here is proven against the full suite.
 7. **What exact commit contains the verified implementation.** `1848a935379e9c5f0757aee29d8dbc0048c9c5d6`.
-8. **Is the verified commit the same commit intended for release.** Yes as of this writing, but **it has not been gated**: Gates 4, 8 and 10 are incomplete, so this commit is NOT release-approved. If the branch moves, every gate above must be re-checked against the new SHA.
+8. **Is the verified commit the same commit intended for release.** The code is `1848a93` and has not changed since; the branch head carries only docs commits on top (verified `git diff --quiet 1848a93 HEAD -- . ':!docs'`). What gets released is the **integration merge commit**, which is a new commit and is gated itself (H10.3). **Not release-approved until that gate passes.**
+
+## Gate 6: measured, at doctrine scale, on both commits
+
+Module: `refusal_handling/gate6/test_refusal_handling_scale.py`, kept under
+`docs/` on purpose so every future full gate doesn't build a 6,000-student school.
+To rerun it, copy it into `billing/tests/`. It imports nothing this branch added and
+asserts counts and timings, never messages, which is why the identical file runs on
+the pre-fix commit. Logs: `gate6/scale_f0001aa.log`, `gate6/scale_b744c9f.log`
+(the latter from a disposable worktree detached at `b744c9f`, fresh DB, no `--keepdb`).
+
+| Measurement | `b744c9f` (pre-fix) | `f0001aa` (fix) |
+|---|---|---|
+| Permission-layer refusal, queries at 600 / 6,000 students | 1-3 / 1-3 | 1-3 / 1-3 |
+| Service-gate refusal, queries at 600 / 6,000 students | 14-16 / 14-16 | 14-16 / 14-16 |
+| Service-gate refusal, p95 at 600 / 6,000 students | 41.6 / 55.0 ms | 40.4 / 38.4 ms |
+| Refused task: credit-gate calls per item | **4** | **1** |
+| Refused task: queries per item | 89 | 26 |
+| Refused task: ms per item | 308.9 | 73.1 |
+| Weekly summary: queries per course, 20 / 220 courses | 9.05 / 9.0 | 9.05 / 9.0 |
+| Weekly summary: stack-trace log records, 20 / 220 courses | **20 / 220** | **0 / 0** |
+| Postgres connections during the run | 19 / 100 | 19 / 100 |
+
+Reading it: per-request cost was already flat in school size on the old code, and
+it stays flat. The fix neither adds nor removes per-row work there. What the fix
+changes is that it stops repeating a refusal (4 -> 1 gate calls per task) and stops
+logging an expected refusal as a crash (220 -> 0 stack traces). **The measurement
+could have falsified both claims, and on `b744c9f` it produces exactly the
+failures the claims predict** (`AssertionError: 4 != 1` and `220 != 0` in
+`gate6/scale_b744c9f.log`).
+
+Provenance: the logs were produced by the module at sha256 prefix `baf395651fcd6eb4`, the same bytes copied into both worktrees. The committed copy differs from that ONLY by the repository's pre-commit fixes: black formatting, loop variables bound into two lambdas (flake8 B023), a single return value instead of a 1-tuple, and an `assert` on two regex matches (mypy). None of these changes what is measured. The committed file's own sha256 is in `SHA256SUMS`.
+
+Declared deviations: (1) `PASSWORD_HASHERS` is set to MD5 for the fixture build;
+rows still go through `CustomUser.objects.create_user`. (2) While fixtures are
+**built** (never while they are measured), Redis wildcard `delete_pattern` scans
+are skipped. Profiling a 20-student build found 80 of its 84.8 s in those SCANs,
+fired by cache-invalidation signals on every user and enrollment save, at roughly
+4 s per student against the shared local Redis. That cost is the H-1 wildcard
+invalidation debt, owned by H-1 Stage 3, not a refusal cost, and it was reported to
+that owner. Every measured request ran with invalidation live.
+
+Two bugs in the measurement itself were caught by its own guards before any
+figure was recorded: the permission measurement at first used a teacher holding
+1,000 credits, which `HasCreditBalance` lets through, so it was timing a grade-all
+dispatch rather than a refusal. The "a 2xx is never a refusal" guard failed on it,
+and the wallet is now spent to zero through the production consume path first. The
+weekly measurement at first divided by the courses it built rather than the courses
+the task processed.
 
 ## Mutation survivors (H3.2: killed, never excused)
 

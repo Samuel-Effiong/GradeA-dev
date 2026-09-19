@@ -1,0 +1,15 @@
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22321 credits, but you only have 1000 credits. Please refill your wallet to continue
+billing.errors.InsufficientCreditsError: Task requires ~26467 credits, but you only have 1000 credits. Please refill your wallet to continue
+Custom AI prompt refused: AIFeatureNotAvailableError: AI access denied: No active subscription
+billing.access_control.AIFeatureNotAvailableError: AI features aren't available for this assignment right now. Please ask your teacher to check their account.
+Custom AI prompt refused: AIFeatureNotAvailableError: The AI analytics assistant is temporarily unavailable. Please try again later.
+OK
+BODY|empty_wallet_teacher|402|{"success":false,"message":"There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.","error":{"field_errors":{"error":"There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.","code":"insufficient_credits"}}}
+BODY|empty_wallet_student|402|{"success":false,"message":"There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.","error":{"field_errors":{"error":"There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.","code":"insufficient_credits"}}}
+BODY|insufficient_credits_teacher_chat|402|{"success":false,"message":"There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.","error":{"field_errors":{"error":"There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.","code":"insufficient_credits"}}}
+BODY|insufficient_credits_student_edit|402|{"success":false,"message":"There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.","error":{"field_errors":{"error":"There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.","code":"insufficient_credits"}}}
+BODY|not_on_plan_teacher_chat|403|{"success":false,"message":"AI access denied: No active subscription","error":{"field_errors":{"error":"AI access denied: No active subscription","code":"ai_feature_not_available"}}}
+BODY|not_on_plan_student_edit|403|{"success":false,"message":"AI features aren't available for this assignment right now. Please ask your teacher to check their account.","error":{"field_errors":{"error":"AI features aren't available for this assignment right now. Please ask your teacher to check their account.","code":"ai_feature_not_available"}}}
+BODY|kill_switch_superadmin_chat|403|{"success":false,"message":"The AI analytics assistant is temporarily unavailable. Please try again later.","error":{"field_errors":{"error":"The AI analytics assistant is temporarily unavailable. Please try again later.","code":"ai_feature_not_available"}}}
