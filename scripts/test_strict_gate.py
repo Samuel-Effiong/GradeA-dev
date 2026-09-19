@@ -23,6 +23,7 @@ a package), so it does not change the application suite's test count.
 
 import argparse
 import concurrent.futures
+import gzip
 import hashlib
 import importlib.util
 import json
@@ -366,6 +367,11 @@ class EndToEnd(unittest.TestCase):
             self.assertIn("--noinput", call["argv"])
             self.assertNotIn("--keepdb", call["argv"])
         self.assertTrue(s["sleep_inhibitor_confirmed"])
+        self.assertIn("handle-lid-switch", gate.INHIBIT_WHAT)
+        listing = gzip.decompress(
+            (self.repo.evidence / "inhibitor.txt.gz").read_bytes()
+        ).decode()
+        self.assertIn(gate.INHIBIT_WHAT, listing)
         self.assertIsInstance(s["prelaunch"]["test_processes"], list)
         self.assertIn(
             "Pre-launch slot accounting",
@@ -1048,6 +1054,16 @@ MUTANTS = [
         "is_ours = common == our_common_dir",
     ),
     ("S12 process list not recorded", '        "test_processes": rows,\n', ""),
+    (
+        "M28 lid-close not inhibited (sleep lock only)",
+        'INHIBIT_WHAT = "sleep:idle:handle-lid-switch"',
+        'INHIBIT_WHAT = "sleep:idle"',
+    ),
+    (
+        "M29 confirmation ignores which lock is held",
+        "            and INHIBIT_WHAT in line.split()\n",
+        "",
+    ),
     (
         "M26 inhibitor lock not required",
         "        if not ok:\n            raise GateAbort",

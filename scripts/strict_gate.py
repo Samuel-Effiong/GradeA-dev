@@ -9,8 +9,8 @@ Strict final gate (Verification Doctrine Gate 10, hardening H10) for one commit.
 
  1. Pre-launch guard: heavy-run slots, free disk and free RAM. Refuses to start
     when any is short.
- 2. Re-executes itself under ``systemd-inhibit --what=sleep:idle`` and confirms
-    the inhibitor is registered.
+ 2. Re-executes itself under ``systemd-inhibit --what=sleep:idle:handle-lid-switch``
+    and confirms that exact lock is registered.
  3. A detached, locked worktree at the commit, with a ``settings_worktree.py``
     that takes its test database name from the environment, so every run gets
     a fresh, uniquely named database.
@@ -104,6 +104,11 @@ LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1", ""})
 INHIBIT_ENV = "STRICT_GATE_INHIBITED"
 TEST_DB_ENV = "STRICT_GATE_TEST_DB"
 INHIBIT_WHO = "strict-gate"
+# A sleep lock alone does NOT stop a lid-close suspend: logind's
+# LidSwitchIgnoreInhibited defaults to yes, so the lid switch ignores every
+# inhibitor except handle-lid-switch. This machine sets HandleLidSwitch=suspend,
+# so without it a closed lid freezes a gate that believes it is protected.
+INHIBIT_WHAT = "sleep:idle:handle-lid-switch"
 
 SETTINGS_WORKTREE = '''"""
 Strict gate settings, written by scripts/strict_gate.py. Gitignored.
@@ -648,7 +653,9 @@ def inhibitor_confirmed():
     listing = sh(["systemd-inhibit", "--list", "--no-pager"]).stdout
     return (
         any(
-            line.split()[:1] == [INHIBIT_WHO] and str(os.getppid()) in line.split()
+            line.split()[:1] == [INHIBIT_WHO]
+            and str(os.getppid()) in line.split()
+            and INHIBIT_WHAT in line.split()
             for line in listing.splitlines()
         ),
         listing,
@@ -1158,7 +1165,7 @@ def run_gate(args):
         env = dict(os.environ, **{INHIBIT_ENV: "1"})
         argv = [
             "systemd-inhibit",
-            "--what=sleep:idle",
+            f"--what={INHIBIT_WHAT}",
             f"--who={INHIBIT_WHO}",
             f"--why=strict gate {args.run_name} on {args.commit}",
             sys.executable,
