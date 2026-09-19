@@ -13,7 +13,7 @@ inside TestCase's wrapping transaction.
 
 import threading
 
-from django.db import connections
+from django.db import connection, connections
 from django.test import TransactionTestCase
 
 from AutoGrader.testing.concurrency import other_backends, run_concurrently
@@ -100,10 +100,24 @@ class RunConcurrentlyTests(TransactionTestCase):
                 raw.close()
 
     def test_a_clean_run_leaves_no_extra_backends(self):
+        """
+        Every worker really opens its own connection here, so this is the
+        test that proves the harness closes them. (It used to run workers
+        that never touched the database, and a mutant deleting the
+        harness's connection.close() survived it.)
+        """
+
+        def query(i):
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT %s", [i])
+                return cursor.fetchone()[0]
+
         before = other_backends()
 
-        run_concurrently(lambda i: None, 6, test=self)
+        results, errors = run_concurrently(query, 6, test=self)
 
+        self.assertEqual(errors, [])
+        self.assertEqual(results, [0, 1, 2, 3, 4, 5])
         self.assertEqual(other_backends(), before)
 
     def test_workers_that_never_touch_the_database_need_no_connection(self):
