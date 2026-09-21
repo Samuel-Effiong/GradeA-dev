@@ -76,6 +76,7 @@ from students.task_tracking import (
     get_processing_task,
     normalize_processing_task_status,
 )
+from users.filters import UserEnrollmentFilter
 from users.mixins import UserCacheMixin
 from users.models import (
     BetaWhitelist,
@@ -228,13 +229,10 @@ class CustomUserViewSet(UserCacheMixin, viewsets.ModelViewSet):
     pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
-    filterset_fields = {
-        "user_type": ["exact"],
-        "school__name": ["exact"],
-        "enrollments__course": ["exact", "isnull"],
-        "enrollments__course__session": ["exact"],
-        "enrollments__enrollment_status": ["exact", "in"],
-    }
+    # Not filterset_fields: the enrollments__* lookups joined every
+    # enrollment an account had, other teachers' included, and get_object()
+    # applies filters too - a yes/no oracle on other tenants' enrollments.
+    filterset_class = UserEnrollmentFilter
     search_fields = ["first_name", "last_name", "email"]
     ordering_fields = ["first_name", "last_name", "email", "username"]
 

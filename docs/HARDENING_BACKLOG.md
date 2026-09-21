@@ -68,6 +68,7 @@ speed that decision up, not to pre-empt it.
 | H-17 | Course payload leaked draft assignments and classmates' real emails to student viewers | **High - security** | Section 3 (classrooms) | **CLOSED (2026-09-16)** — `CourseSerializer` served every assignment (draft/unpublished included) and every enrolled student's real email address to a student viewer, regardless of assignment status or whose row it was. Fixed: `get_assignments`/`get_assignment_count` filter to `PUBLISHED` for a student viewer; `get_students` nulls out `email` for every row but the viewer's own. 15 dedicated tests (`classrooms/tests_course_payload_student_exposure.py`), 2 mutation tests (both killed), 250-test `classrooms` regression clean, query counts flat across roster size (roster=2 and roster=6 both 7/8/7/7). Landed on beta `ee30f08` (merge of `task/course-detail-data-exposure` gated commit `1d920f8`). Teacher/other-viewer payloads unchanged. |
 | H-18 | Assignment writes accepted any course, any topic, and any field the AI emitted | **High - security** | Section 4 (assignments) | **FIXED, awaiting landing (2026-09-17)** — `AssignmentTextSerializer.course` was an unscoped writable PK, so a teacher could create an assignment in another teacher's course or move their own into it, through THREE doors: create/create-async, PATCH, and PATCH update-async (which built the serializer with no request in context). Separately, AI extraction and generation output was saved through `AssignmentSerializer` whole, so injected text could write `status`, `teacher`, `course`, `topic`, `due_date` and more, at four sinks plus stored pre-fix draft snapshots. Fixed: `validate_course` (fail-closed), `update_async` passes context, `ai_assignment_content_only()` at three entry points, `teacher` read-only, and `TopicSerializer`/`CourseSerializer` validators fail closed. Gated on `6811527`; see `docs/evidence/H18_H19_ACCESS_CONTROL_EVIDENCE.md` |
 | H-19 | Superadmin authority granted on a single flag in four places | **High - security** | Section 1 (users) + Section 3 (classrooms) + Section 5 (ai_processor) | **FIXED, awaiting landing (2026-09-17)** — `create_superuser()` leaves `user_type=TEACHER`, so `is_superuser` alone let a Django-admin account read and edit every user's Settings and any school's token usage; and `user_type=SUPER_ADMIN` alone let an account skip `HasCreditBalance` and take `execute_graded_task`'s unmetered branch - free, unlimited billed AI. All four now require both flags, as `IsSuperAdmin` does. The deny-side `or` in `license_service.py:319` and `users/serializers.py:175` is correct and unchanged. Gated on `6811527`; same evidence file |
+| H-22 | Cross-teacher tenancy leaks: `my-students` served other teachers' course names, description, teacher name and grade; `/users/<id>` enrollment filters were a yes/no oracle on other tenants' enrollments | **Medium - security** | fix-tenant-leak (session 57) | **FIX READY, NOT LANDED (2026-09-17)** — both endpoints joined every enrollment a shared student had. Fixed by scoping the `my_students` prefetches to `course__teacher=user` plus a new `MyStudentsFilter`, and by replacing `CustomUserViewSet.filterset_fields` with a scoped `UserEnrollmentFilter`; the unrouted `StudentViewSet` copy was deleted (V-5, owner sign-off). 42 dedicated tests (22 fail on `b744c9f`), 16 mutants (15 killed, 2 equivalent), 20 threads x 10 rounds, 6,000-student scale with query counts flat at 5. Branch `task/my-students-prefetch-leak` tip `948d710`; Gates 4, 8 and 10 still open — see `docs/evidence/MY_STUDENTS_TENANCY_EVIDENCE.md`. |
 
 ---
 
@@ -1081,6 +1082,9 @@ endpoints:
   same stale-instance clobber class fixed in the service layer (F-4).
 * **V-5** `StudentViewSet` is defined but not routed (`students/urls.py`
   registers only submissions); dead or missing, decide which.
+  **DECIDED 2026-09-17 (owner): delete.** Deleted in
+  `task/my-students-prefetch-leak` commit `e0b1640`; it also carried the
+  unscoped cross-teacher `enrollments__course` pattern fixed there.
 * **V-6** `teacher_feedback` declares `IsTeacherOrReadOnly` on the action
   but `get_permissions` overrides it to teacher+credits (already commented
   in code; the dead kwarg should go once V-3 is decided).
@@ -1150,7 +1154,8 @@ Remaining (H-11 stays OPEN and release-blocking):
    and `partial_update` once (1) is confirmed — delete, or keep as thin
    dispatchers returning 202 if a compatibility window is needed.
 3. **V-5** `StudentViewSet` unrouted: delete or route (file deletion needs
-   sign-off).
+   sign-off). **Owner signed off on deletion 2026-09-17; deleted in
+   `e0b1640`.**
 4. The same tracked-row idempotency claim for `upload_answers_engine_async`
    (the upload task still marks started unconditionally; Section 9 is
    changing that task, so this is coordinated with it).
@@ -1189,7 +1194,8 @@ the frontend/client dependency is confirmed.
   V-3 decided: `PATCH`/`update-async` follow the docstring — the
   submission's own student and the course teacher, both queryset-scoped.
   V-4 closed by the shared service. V-6 closed (dead kwarg removed).
-  V-5 (`StudentViewSet` unrouted) is a deletion and stays for sign-off.
+  V-5 (`StudentViewSet` unrouted) is a deletion and stays for sign-off
+  (owner signed off 2026-09-17; deleted in `e0b1640`).
 * Evidence: `students/tests_async_edit_path.py` — route, tenancy,
   duplicate guards, task success/refusal/retry/refund, redelivery on a
   real Celery worker, 12 concurrent live-HTTP clients → exactly one task,

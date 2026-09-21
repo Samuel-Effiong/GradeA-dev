@@ -31,7 +31,7 @@ All paths relative to `/api/v1/`. `SimpleRouter(trailing_slash=False)` ([student
 | POST | `submissions/<pk>/publish` | `IsTeacher` | [students/views.py:1178](../../students/views.py#L1178) |
 | POST | `submissions/<pk>/mark-reviewed` | **`IsAuthenticated` only** | [students/views.py:1235](../../students/views.py#L1235) |
 
-`StudentViewSet` ([students/views.py:1367](../../students/views.py#L1367)) is defined but **not routed** — `students/urls.py` registers only `StudentSubmissionViewSet`.
+`students/urls.py` registers only `StudentSubmissionViewSet`. The unrouted `StudentViewSet` was deleted on 2026-09-17 (owner sign-off, backlog V-5); the teacher's student list is `StudentCourseViewSet.my_students` in `classrooms/views.py`.
 
 `students/tasks.py` is **entirely commented out** ([students/tasks.py](../../students/tasks.py)) — every Celery task that operates on submissions lives in `assignments/tasks.py`. See [assignments.md](assignments.md#entry-points).
 
