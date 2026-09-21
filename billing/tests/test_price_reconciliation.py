@@ -38,9 +38,9 @@ from decimal import Decimal
 from unittest.mock import patch
 
 from django.core.cache import cache
-from django.db import connections
 from django.test import TestCase, TransactionTestCase
 
+from AutoGrader.testing.concurrency import run_concurrently
 from billing.models import (
     BillingInterval,
     CreditBucket,
@@ -869,36 +869,47 @@ class ConcurrentRunTests(TransactionTestCase):
     def test_only_one_of_two_simultaneous_tasks_performs_the_sweep(self):
         from billing.tasks import reconcile_stripe_prices
 
-        summaries = []
-        lock = threading.Lock()
-        barrier = threading.Barrier(2, timeout=30)
+        # The lock is held only for the length of a sweep (released in a
+        # `finally`), so "exactly one is skipped" is only true if the two
+        # sweeps OVERLAP. With fast stubs the first can finish before the
+        # second even asks, and then both legitimately run. So the overlap
+        # is made certain rather than hoped for: whichever sweeper holds the
+        # lock waits inside its first Stripe call until the other one has
+        # tried and returned. If the lock were broken, both would wait here
+        # for each other, time out, and both sweep, and the test fails.
+        finished = []
+        other_finished = threading.Event()
+        prices = {
+            BASE_PRICE_ID: price_obj(),
+            OVERAGE_PRICE_ID: price_obj(
+                price_id=OVERAGE_PRICE_ID, unit_amount=500, recurring=None
+            ),
+        }
 
-        def worker():
+        def held_retrieve(price_id, *args, **kwargs):
+            other_finished.wait(timeout=10)
+            return prices[price_id]
+
+        def sweep(i):
             try:
-                barrier.wait(timeout=30)
-                with account_returns():
-                    with stripe_returns(
-                        {
-                            BASE_PRICE_ID: price_obj(),
-                            OVERAGE_PRICE_ID: price_obj(
-                                price_id=OVERAGE_PRICE_ID,
-                                unit_amount=500,
-                                recurring=None,
-                            ),
-                        }
-                    ):
-                        result = reconcile_stripe_prices()
-                with lock:
-                    summaries.append(result)
+                return reconcile_stripe_prices()
             finally:
-                connections.close_all()
+                finished.append(i)
+                other_finished.set()
 
-        threads = [threading.Thread(target=worker) for _ in range(2)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join(timeout=60)
+        # Entered ONCE, on the main thread, around the whole race. They
+        # used to be entered inside each worker: patch() rebinds a module
+        # attribute and is not thread-safe, so the first worker to exit
+        # restored the REAL Stripe call while the other was still sweeping.
+        with account_returns():
+            with patch(
+                "billing.price_reconciliation.stripe.Price.retrieve", held_retrieve
+            ):
+                summaries, errors = run_concurrently(
+                    sweep, 2, test=self, name="sweeper"
+                )
 
+        self.assertEqual(errors, [], f"a sweeper raised: {errors!r}")
         skipped = [s for s in summaries if "already holds the lock" in s]
         self.assertEqual(
             len(skipped),

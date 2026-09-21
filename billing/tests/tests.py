@@ -1,12 +1,13 @@
-import threading
 from datetime import timedelta
 
+from django.db import IntegrityError
 from django.test import TransactionTestCase
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from AutoGrader.testing.concurrency import run_concurrently
 from billing.context import clear_license_invitation_context
 from billing.models import PlanType, SubscriptionPlan, UserSubscription
 from users.models import CustomUser, UserTypes
@@ -217,12 +218,21 @@ class ConcurrentRegistrationTest(TransactionTestCase):
                 user_type="TEACHER",
             )
 
-        t1 = threading.Thread(target=create_user)
-        t2 = threading.Thread(target=create_user)
-        t1.start()
-        t2.start()
-        t1.join()
-        t2.join()
+        # Previously two bare threads with join() and NO timeout (a wedged
+        # worker hung the whole suite), no connection.close() (an
+        # undroppable test database), and the loser's exception died
+        # silently in its thread. The loser is now asserted on: the email is
+        # unique, so the second insert must fail on that constraint and on
+        # nothing else.
+        _, errors = run_concurrently(
+            lambda i: create_user(), 2, test=self, name="registrar"
+        )
+
+        self.assertLessEqual(len(errors), 1, f"both registrations failed: {errors!r}")
+        self.assertTrue(
+            all(isinstance(e, IntegrityError) for e in errors),
+            f"the losing registration failed for the wrong reason: {errors!r}",
+        )
 
         user = CustomUser.objects.get(email="concurrent@test.com")
         trials = user.subscriptions.filter(is_trial=True)

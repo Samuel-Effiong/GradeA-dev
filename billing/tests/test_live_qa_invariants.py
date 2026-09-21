@@ -761,6 +761,10 @@ class CheckpointTests(InvariantTestBase):
         thread = threading.Thread(target=other_thread)
         thread.start()
         thread.join(timeout=10)
+        # Without this, a thread that never finished would leave "collected"
+        # unset and fail below as None != [], blaming attribution for what
+        # was really a stuck thread.
+        self.assertFalse(thread.is_alive(), "the other scenario thread never finished")
 
         self.assertTrue(runner.collect(), "this thread should own its violation")
         self.assertEqual(
