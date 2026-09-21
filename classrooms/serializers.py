@@ -414,7 +414,11 @@ class StudentCourseSerializer(serializers.ModelSerializer):
         return (self.get_total_assignment_submitted(obj) / total) * 100
 
     def get_grade_letter(self, obj):
-        return get_grade_details(obj.final_grade) if obj.final_grade else None
+        # `is not None`, not truthiness: a genuine 0.00 is a grade (an F),
+        # not the absence of one.
+        if obj.final_grade is None:
+            return None
+        return get_grade_details(obj.final_grade)
 
 
 class StudentCourseDetailSerializer(StudentCourseSerializer):
