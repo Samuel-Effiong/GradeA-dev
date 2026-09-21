@@ -1,0 +1,14 @@
+............................E.................
+======================================================================
+ERROR: test_two_clean_runs_pass_on_fresh_unique_dbs (__main__.EndToEnd.test_two_clean_runs_pass_on_fresh_unique_dbs)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 369, in test_two_clean_runs_pass_on_fresh_unique_dbs
+    self.assertIsInstance(s["prelaunch"]["test_processes"], list)
+                          ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+KeyError: 'test_processes'
+
+----------------------------------------------------------------------
+Ran 46 tests in 18.060s
+
+FAILED (errors=1)
