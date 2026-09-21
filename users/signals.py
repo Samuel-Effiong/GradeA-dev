@@ -298,7 +298,7 @@ def create_default_settings_and_wallet(sender, instance, created, **kwargs):
                 user=user, defaults={"initial_beta_credits": initial_credits}
             )
             try:
-                SubscriptionService.activate_subscription(user, beta_plan)
+                SubscriptionService.activate_plan_without_payment(user, beta_plan)
                 logger.info(
                     "✓ Beta plan successfully activated for user %s.", user.email
                 )

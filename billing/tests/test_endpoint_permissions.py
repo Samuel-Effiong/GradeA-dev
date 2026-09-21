@@ -14,8 +14,10 @@ free. These tests pin the enforcement that closed that.
 Deliberately preserved behaviors, also locked here:
   - reads of one's own wallet/buckets/ledger still work,
   - superadmin write tooling still works,
-  - self-service activation of a FREE plan (the BETA onboarding flow)
-    still works.
+  - superadmin plan assignment still works. Self-service activation of
+    a free plan through these routes was removed: BETA is granted at
+    signup, and repeat calls minted unlimited credits. The full rules are
+    pinned in test_free_plan_activation_security.
 
 Run with:
     python manage.py test billing.tests.test_endpoint_permissions
@@ -81,9 +83,9 @@ class EndpointLockdownTestBase(APITestCase):
             user.save(update_fields=["is_superuser"])
         return user
 
-    def _make_plan(self, price_cents):
+    def _make_plan(self, price_cents, name=None):
         return SubscriptionPlan.objects.create(
-            name=f"plan-{uuid4().hex[:8]}",
+            name=name or f"plan-{uuid4().hex[:8]}",
             category=PlanCategory.INDIVIDUAL,
             tier=PlanTier.PRO,
             interval=BillingInterval.MONTHLY,
@@ -279,13 +281,13 @@ class CreditLedgerEndpointLockdownTests(EndpointLockdownTestBase):
 class SubscriptionCreateLockdownTests(EndpointLockdownTestBase):
     """
     POST /subscription and POST /user-subscriptions both feed
-    UserSubscriptionSerializer.create -> activate_subscription (plan +
-    full monthly credit grant, no payment). The serializer-level guard is
-    what's pinned here, so it covers both routes at once.
+    UserSubscriptionSerializer.create, which activates a plan and grants
+    its credits with no payment. Both routes are superadmin-only; the
+    detailed free-plan rules live in test_free_plan_activation_security.
     """
 
     def test_teacher_cannot_activate_a_paid_plan_for_free(self):
-        paid_plan = self._make_plan(price_cents="2499.00")
+        paid_plan = self._make_plan(price_cents="2499.00", name="PRO")
         self.client.force_authenticate(user=self.teacher)
 
         response = self.client.post(
@@ -293,7 +295,7 @@ class SubscriptionCreateLockdownTests(EndpointLockdownTestBase):
             {"user": str(self.teacher.id), "plan": str(paid_plan.id)},
         )
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertFalse(
             UserSubscription.objects.filter(user=self.teacher).exists(),
             "no subscription may be activated without payment",
@@ -306,7 +308,7 @@ class SubscriptionCreateLockdownTests(EndpointLockdownTestBase):
         )
 
     def test_teacher_cannot_activate_paid_plan_via_user_subscriptions_route(self):
-        paid_plan = self._make_plan(price_cents="2499.00")
+        paid_plan = self._make_plan(price_cents="2499.00", name="PRO")
         self.client.force_authenticate(user=self.teacher)
 
         response = self.client.post(
@@ -314,11 +316,11 @@ class SubscriptionCreateLockdownTests(EndpointLockdownTestBase):
             {"user": str(self.teacher.id), "plan": str(paid_plan.id)},
         )
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertFalse(UserSubscription.objects.filter(user=self.teacher).exists())
 
     def test_teacher_cannot_activate_a_plan_for_another_user(self):
-        free_plan = self._make_plan(price_cents="0.00")
+        free_plan = self._make_plan(price_cents="0.00", name="BETA")
         self.client.force_authenticate(user=self.teacher)
 
         response = self.client.post(
@@ -326,14 +328,13 @@ class SubscriptionCreateLockdownTests(EndpointLockdownTestBase):
             {"user": str(self.other_teacher.id), "plan": str(free_plan.id)},
         )
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertFalse(
             UserSubscription.objects.filter(user=self.other_teacher).exists()
         )
 
-    def test_teacher_can_still_self_activate_a_free_plan(self):
-        # The preserved legitimate flow: free-plan (e.g. BETA) onboarding.
-        free_plan = self._make_plan(price_cents="0.00")
+    def test_teacher_can_no_longer_self_activate_a_free_plan(self):
+        free_plan = self._make_plan(price_cents="0.00", name="BETA")
         self.client.force_authenticate(user=self.teacher)
 
         response = self.client.post(
@@ -341,15 +342,13 @@ class SubscriptionCreateLockdownTests(EndpointLockdownTestBase):
             {"user": str(self.teacher.id), "plan": str(free_plan.id)},
         )
 
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertTrue(
-            UserSubscription.objects.filter(
-                user=self.teacher, plan=free_plan, is_active=True
-            ).exists()
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertFalse(
+            UserSubscription.objects.filter(user=self.teacher, plan=free_plan).exists()
         )
 
     def test_superadmin_can_activate_a_paid_plan_on_a_users_behalf(self):
-        paid_plan = self._make_plan(price_cents="2499.00")
+        paid_plan = self._make_plan(price_cents="2499.00", name="PRO")
         self.client.force_authenticate(user=self.superadmin)
 
         response = self.client.post(

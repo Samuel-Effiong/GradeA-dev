@@ -153,7 +153,7 @@ class BetaPlanSignupSignalTests(TestCase):
         plan = self._beta_plan()
 
         with patch(
-            "users.signals.SubscriptionService.activate_subscription"
+            "users.signals.SubscriptionService.activate_plan_without_payment"
         ) as mock_activate:
             user = make_teacher("beta.teacher@gmail.com")
 
@@ -164,7 +164,9 @@ class BetaPlanSignupSignalTests(TestCase):
     def test_the_automatic_trial_is_not_also_activated(self):
         self._beta_plan()
 
-        with patch("users.signals.SubscriptionService.activate_subscription"), patch(
+        with patch(
+            "users.signals.SubscriptionService.activate_plan_without_payment"
+        ), patch(
             "users.signals.SubscriptionService.activate_automatic_free_trial"
         ) as mock_trial:
             make_teacher("beta.notrial@gmail.com")
@@ -181,7 +183,7 @@ class BetaPlanSignupSignalTests(TestCase):
         self._beta_plan()
 
         with patch(
-            "users.signals.SubscriptionService.activate_subscription",
+            "users.signals.SubscriptionService.activate_plan_without_payment",
             side_effect=RuntimeError("stripe exploded"),
         ):
             with self.assertLogs("users.signals", level="ERROR"):
