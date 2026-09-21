@@ -4421,6 +4421,17 @@ Now, respond to the following teacher's instruction using the rules above
 
             wallet = user.credit_wallet
 
+        elif user.user_type == UserTypes.SUPER_ADMIN and not user.is_superuser:
+            # Both flags, as IsSuperAdmin requires (H-19). user_type alone
+            # used to buy the unmetered branch below, so an account with
+            # is_superuser unticked ran free, unlimited billed AI. It has
+            # no wallet of its own to bill, so refuse - with the
+            # user-facing refusal type, not the ValueError further down,
+            # which views would report as a server fault.
+            raise AIFeatureNotAvailableError(
+                "AI access denied: this super admin account is not fully " "privileged."
+            )
+
         elif user.user_type == UserTypes.SUPER_ADMIN:
             # Unmetered, unrestricted internal tooling - no tier gating,
             # no credit consumption. Resolved before any prompt-flattening

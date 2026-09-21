@@ -544,7 +544,10 @@ class SettingsViewSet(UserCacheMixin, viewsets.ModelViewSet):
         """
         user = self.request.user
 
-        if user.is_superuser or user.user_type == UserTypes.SUPER_ADMIN:
+        # Both flags, as IsSuperAdmin requires (H-19). `or` let a
+        # createsuperuser account - is_superuser but user_type TEACHER -
+        # read and edit every user's settings.
+        if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:
             return Settings.objects.all()
 
         return Settings.objects.filter(user=user)

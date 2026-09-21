@@ -1028,9 +1028,12 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         school_id = request.query_params.get("school_id")
         if school_id:
             _validate_uuid_query_param(school_id, "school_id")
-            # Superadmin can specify any school
+            # Superadmin can specify any school. Both flags, as IsSuperAdmin
+            # requires (H-19): `or` let a createsuperuser account (user_type
+            # TEACHER) read any school's usage.
             if not (
-                request.user.is_superuser or request.user.user_type == "SUPER_ADMIN"
+                request.user.is_superuser
+                and request.user.user_type == UserTypes.SUPER_ADMIN
             ):
                 return Response(
                     {"detail": "You do not have permission to view this school."},
