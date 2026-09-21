@@ -23,7 +23,6 @@ from datetime import timedelta
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
-from rest_framework.exceptions import ParseError
 from rest_framework.test import APIRequestFactory
 
 from assignments.models import Assignment
@@ -180,7 +179,7 @@ class HasCreditBalanceTests(TestCase):
         type_only = make_user("credit.typeonly@example.com", UserTypes.SUPER_ADMIN)
         CreditWallet.objects.filter(user=type_only).delete()
 
-        with self.assertRaises(ParseError):
+        with self.assertRaises(EmptyWalletError):
             self.check(type_only)
 
     def test_createsuperuser_account_is_not_unmetered(self):
@@ -189,7 +188,7 @@ class HasCreditBalanceTests(TestCase):
         django_admin = make_user("credit.djadmin@example.com", is_superuser=True)
         CreditWallet.objects.filter(user=django_admin).delete()
 
-        with self.assertRaises(ParseError):
+        with self.assertRaises(EmptyWalletError):
             self.check(django_admin)
 
     # --- a student spends their TEACHER's credits -----------------------------
