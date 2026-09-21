@@ -1,0 +1,245 @@
+# M2: extract_assignment_image keeps refusal type
+# worktree /home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1 @ f7cd15e4aa1765ed6be9424fe93a4d1f0959f6f7
+# labels: billing.tests.test_refusal_handling.D1ExtractionRewrapTest billing.tests.test_refusal_handling.D4UncaughtRefusalTest
+# exit 1
+
+Found 3 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user d1-text-feature-d3869d6b@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user d1-text-credits-1e438549@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user d1-feature-14287052@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+ai_processor.services WARNING 2026-09-17 17:52:56,527 services 1914632 137761166109632 [request_id=-] Attempt 1 failed: Error during AI model: AI access denied: No active subscription
+
+
+
+
+ai_processor.services INFO 2026-09-17 17:52:56,527 services 1914632 137761166109632 [request_id=-] Retrying...
+
+
+
+
+ai_processor.services WARNING 2026-09-17 17:52:56,557 services 1914632 137761166109632 [request_id=-] Attempt 2 failed: Error during AI model: AI access denied: No active subscription
+
+
+
+
+ai_processor.services INFO 2026-09-17 17:52:56,557 services 1914632 137761166109632 [request_id=-] Retrying...
+
+
+
+
+ai_processor.services WARNING 2026-09-17 17:52:56,569 services 1914632 137761166109632 [request_id=-] Attempt 3 failed: Error during AI model: AI access denied: No active subscription
+
+
+FCannot activate automatic trial for user d1-credits-c27b3a73@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+ai_processor.services WARNING 2026-09-17 17:52:57,667 services 1914632 137761166109632 [request_id=-] Attempt 1 failed: Error during AI model: Task requires ~32179 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+
+
+ai_processor.services INFO 2026-09-17 17:52:57,667 services 1914632 137761166109632 [request_id=-] Retrying...
+
+
+
+
+ai_processor.services WARNING 2026-09-17 17:52:57,695 services 1914632 137761166109632 [request_id=-] Attempt 2 failed: Error during AI model: Task requires ~32179 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+
+
+ai_processor.services INFO 2026-09-17 17:52:57,695 services 1914632 137761166109632 [request_id=-] Retrying...
+
+
+
+
+ai_processor.services WARNING 2026-09-17 17:52:57,722 services 1914632 137761166109632 [request_id=-] Attempt 3 failed: Error during AI model: Task requires ~32179 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+FCannot activate automatic trial for user d4-create-feature-4d11e7a9@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+ai_processor.services ERROR 2026-09-17 17:53:02,097 services 1914632 137761166109632 [request_id=a0bc1e5d29b34f4ea02fe8113a89bb11] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-09-17 17:53:02,106 services 1914632 137761166109632 [request_id=a0bc1e5d29b34f4ea02fe8113a89bb11] Attempt 1 failed: Error during AI model: AI access denied: No active subscription
+
+
+
+
+ai_processor.services INFO 2026-09-17 17:53:02,107 services 1914632 137761166109632 [request_id=a0bc1e5d29b34f4ea02fe8113a89bb11] Retrying...
+
+
+
+
+ai_processor.services ERROR 2026-09-17 17:53:02,107 services 1914632 137761166109632 [request_id=a0bc1e5d29b34f4ea02fe8113a89bb11] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-09-17 17:53:02,112 services 1914632 137761166109632 [request_id=a0bc1e5d29b34f4ea02fe8113a89bb11] Attempt 2 failed: Error during AI model: AI access denied: No active subscription
+
+
+
+
+ai_processor.services INFO 2026-09-17 17:53:02,112 services 1914632 137761166109632 [request_id=a0bc1e5d29b34f4ea02fe8113a89bb11] Retrying...
+
+
+
+
+ai_processor.services ERROR 2026-09-17 17:53:02,113 services 1914632 137761166109632 [request_id=a0bc1e5d29b34f4ea02fe8113a89bb11] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-09-17 17:53:02,118 services 1914632 137761166109632 [request_id=a0bc1e5d29b34f4ea02fe8113a89bb11] Attempt 3 failed: Error during AI model: AI access denied: No active subscription
+
+
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/assignments/views.py", line 401, in create
+    assignment = AssignmentProcessingService.update_assignment_from_extraction(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/assignments/services.py", line 870, in update_assignment_from_extraction
+    assignment_data = cls.extract_assignment_data(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/assignments/services.py", line 805, in extract_assignment_data
+    assignment_questions = ai_processor.extract_assignment_with_retry(
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/ai_processor/services.py", line 1303, in extract_assignment_with_retry
+    raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
+Exception: All 3 attempts failed. Last error: Error during AI model: AI access denied: No active subscription
+
+
+django.request ERROR 2026-09-17 17:53:02,167 log 1914632 137761166109632 [request_id=-] Internal Server Error: /api/v1/assignments
+
+
+FCannot activate automatic trial for user d4-create-credits-f16177ba@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+ai_processor.services ERROR 2026-09-17 17:53:05,103 services 1914632 137761166109632 [request_id=c1e34ee6c4cc47eda34c2bdb810e281b] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-09-17 17:53:05,133 services 1914632 137761166109632 [request_id=c1e34ee6c4cc47eda34c2bdb810e281b] Attempt 1 failed: Error during AI model: Task requires ~32234 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+
+
+ai_processor.services INFO 2026-09-17 17:53:05,133 services 1914632 137761166109632 [request_id=c1e34ee6c4cc47eda34c2bdb810e281b] Retrying...
+
+
+
+
+ai_processor.services ERROR 2026-09-17 17:53:05,133 services 1914632 137761166109632 [request_id=c1e34ee6c4cc47eda34c2bdb810e281b] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-09-17 17:53:05,163 services 1914632 137761166109632 [request_id=c1e34ee6c4cc47eda34c2bdb810e281b] Attempt 2 failed: Error during AI model: Task requires ~32234 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+
+
+ai_processor.services INFO 2026-09-17 17:53:05,163 services 1914632 137761166109632 [request_id=c1e34ee6c4cc47eda34c2bdb810e281b] Retrying...
+
+
+
+
+ai_processor.services ERROR 2026-09-17 17:53:05,163 services 1914632 137761166109632 [request_id=c1e34ee6c4cc47eda34c2bdb810e281b] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-09-17 17:53:05,191 services 1914632 137761166109632 [request_id=c1e34ee6c4cc47eda34c2bdb810e281b] Attempt 3 failed: Error during AI model: Task requires ~32234 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/assignments/views.py", line 401, in create
+    assignment = AssignmentProcessingService.update_assignment_from_extraction(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/assignments/services.py", line 870, in update_assignment_from_extraction
+    assignment_data = cls.extract_assignment_data(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/assignments/services.py", line 805, in extract_assignment_data
+    assignment_questions = ai_processor.extract_assignment_with_retry(
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/ai_processor/services.py", line 1303, in extract_assignment_with_retry
+    raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
+Exception: All 3 attempts failed. Last error: Error during AI model: Task requires ~32234 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+django.request ERROR 2026-09-17 17:53:05,230 log 1914632 137761166109632 [request_id=-] Internal Server Error: /api/v1/assignments
+
+
+F
+======================================================================
+FAIL: test_small_document_refusal_keeps_its_type_and_is_checked_once (billing.tests.test_refusal_handling.D1ExtractionRewrapTest.test_small_document_refusal_keeps_its_type_and_is_checked_once) [feature]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/billing/tests/test_refusal_handling.py", line 242, in test_small_document_refusal_keeps_its_type_and_is_checked_once
+    self.assertEqual(gate.call_count, 1, "a permanent refusal was retried")
+AssertionError: 3 != 1 : a permanent refusal was retried
+
+======================================================================
+FAIL: test_small_document_refusal_keeps_its_type_and_is_checked_once (billing.tests.test_refusal_handling.D1ExtractionRewrapTest.test_small_document_refusal_keeps_its_type_and_is_checked_once) [credits]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/billing/tests/test_refusal_handling.py", line 242, in test_small_document_refusal_keeps_its_type_and_is_checked_once
+    self.assertEqual(gate.call_count, 1, "a permanent refusal was retried")
+AssertionError: 3 != 1 : a permanent refusal was retried
+
+======================================================================
+FAIL: test_sync_assignment_create_refusal_is_402_or_403 (billing.tests.test_refusal_handling.D4UncaughtRefusalTest.test_sync_assignment_create_refusal_is_402_or_403) [feature]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/billing/tests/test_refusal_handling.py", line 339, in test_sync_assignment_create_refusal_is_402_or_403
+    self.assertCleanRefusalResponse(response, *expected)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 500 != 403 : b'{"success":false,"message":"An unexpected error occurred. Please try again.","error":{}}'
+
+======================================================================
+FAIL: test_sync_assignment_create_refusal_is_402_or_403 (billing.tests.test_refusal_handling.D4UncaughtRefusalTest.test_sync_assignment_create_refusal_is_402_or_403) [credits]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/billing/tests/test_refusal_handling.py", line 339, in test_sync_assignment_create_refusal_is_402_or_403
+    self.assertCleanRefusalResponse(response, *expected)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 500 != 402 : b'{"success":false,"message":"An unexpected error occurred. Please try again.","error":{}}'
+
+----------------------------------------------------------------------
+Ran 3 tests in 11.974s
+
+FAILED (failures=4)
+Preserving test database for alias 'default'...

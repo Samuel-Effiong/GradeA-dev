@@ -1,0 +1,35 @@
+# M11: task failure recorder logs refusal at WARNING
+# worktree /home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2 @ f7cd15e4aa1765ed6be9424fe93a4d1f0959f6f7
+# labels: billing.tests.test_refusal_handling.D8TaskFailureLoggingTest
+# exit 1
+
+Found 2 test(s).
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+FF.
+======================================================================
+FAIL: test_refusal_is_logged_at_warning_without_a_stack (billing.tests.test_refusal_handling.D8TaskFailureLoggingTest.test_refusal_is_logged_at_warning_without_a_stack) [AIFeatureNotAvailableError]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 527, in test_refusal_is_logged_at_warning_without_a_stack
+    self.assertEqual(record.levelno, logging.WARNING)
+AssertionError: 40 != 30
+
+======================================================================
+FAIL: test_refusal_is_logged_at_warning_without_a_stack (billing.tests.test_refusal_handling.D8TaskFailureLoggingTest.test_refusal_is_logged_at_warning_without_a_stack) [InsufficientCreditsError]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 527, in test_refusal_is_logged_at_warning_without_a_stack
+    self.assertEqual(record.levelno, logging.WARNING)
+AssertionError: 40 != 30
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.032s
+
+FAILED (failures=2)
+Preserving test database for alias 'default'...

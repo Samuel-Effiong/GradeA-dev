@@ -1,7 +1,7 @@
 from django.apps import apps
 from rest_framework import permissions
-from rest_framework.exceptions import ParseError
 
+from billing.errors import EmptyWalletError
 from users.models import UserTypes
 
 
@@ -38,22 +38,15 @@ class HasCreditBalance(permissions.BasePermission):
                 # or we could allow it. But the requirement is to check "your teacher".
                 pass
 
-        # Check credits
+        # Check credits. An empty wallet is a refusal like any other credit
+        # refusal: users.exceptions answers it 402 "insufficient_credits"
+        # with the generic message (billing/refusals.py) - never a 400, and
+        # never markup in an API error body.
         if (
             not hasattr(target_user, "credit_wallet")
             or target_user.credit_wallet.total_remaining_credits() <= 0
         ):
-            if is_student:
-                message = (
-                    "<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. "
-                    "Please contact your teacher to top up credits to continue with AI Task."
-                )
-            else:
-                message = (
-                    "<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. "
-                    "Please top up your credits to continue with grading or AI tasks."
-                )
-            raise ParseError(message)
+            raise EmptyWalletError("Credit wallet is empty")
 
         return True
 

@@ -65,7 +65,7 @@ from ai_processor.services import (
 )
 from AutoGrader.error_messages import classify_infra_error, describe_user_error
 from billing.access_control import AIFeatureNotAvailableError
-from billing.errors import InsufficientCreditsError
+from billing.errors import INSUFFICIENT_CREDITS_MESSAGE, InsufficientCreditsError
 from students.exceptions import TaskCancelledError
 
 
@@ -379,7 +379,14 @@ class ErrorsKeepTheirTypeTest(SimpleTestCase):
                     exc, calls = self._run(pages, failure)
                     self.assertIs(type(exc), type(failure))
                     self.assertEqual(calls, 1)
-                    self.assertEqual(describe_user_error(exc), str(failure))
+                    # A credit refusal's own text never surfaces
+                    # (REFUSAL_HANDLING_EVIDENCE.md D10).
+                    expected = (
+                        INSUFFICIENT_CREDITS_MESSAGE
+                        if isinstance(failure, InsufficientCreditsError)
+                        else str(failure)
+                    )
+                    self.assertEqual(describe_user_error(exc), expected)
 
     def test_a_cancellation_is_never_retried(self):
         for label, pages in self.PATHS:

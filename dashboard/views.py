@@ -51,6 +51,7 @@ from AutoGrader.cache_generation import (
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from billing.models import CreditUsageLog
+from billing.refusals import PERMANENT_AI_REFUSALS, log_refusal, refusal_response
 from billing.services import FEATURE_TO_ANALYTICS_FIELD
 from classrooms.models import (
     Course,
@@ -195,6 +196,9 @@ def run_dashboard_ai_chat(
             feature=feature,
             task_type=task_type,
         )
+    except PERMANENT_AI_REFUSALS as e:
+        log_refusal(logger, "Custom AI prompt", e, user_id=str(user.id))
+        return refusal_response(e)
     except Exception as e:
         logger.error(
             "Custom AI prompt failed",

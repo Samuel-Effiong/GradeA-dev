@@ -27,6 +27,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.test import APIRequestFactory
 
 from assignments.models import Assignment
+from billing.errors import EmptyWalletError, InsufficientCreditsError
 from billing.models import CreditBucket, CreditBucketType, CreditWallet
 from classrooms.models import Course
 from students.models import StudentSubmission
@@ -116,16 +117,19 @@ class HasCreditBalanceTests(TestCase):
     def test_teacher_with_an_empty_wallet_is_refused(self):
         CreditWallet.objects.get_or_create(user=self.teacher)
 
-        with self.assertRaises(ParseError) as ctx:
+        with self.assertRaises(EmptyWalletError) as ctx:
             self.check(self.teacher)
 
-        # The teacher-facing wording tells them to top up themselves.
-        self.assertIn("top up your credits", str(ctx.exception.detail).lower())
+        # A credit refusal like any other: 402 "insufficient_credits" via
+        # users.exceptions, with no markup and no role-specific wording
+        # (REFUSAL_HANDLING_EVIDENCE.md D11; was a 400 ParseError with HTML).
+        self.assertIsInstance(ctx.exception, InsufficientCreditsError)
+        self.assertEqual(ctx.exception.status_code, 402)
 
     def test_teacher_with_no_wallet_row_at_all_is_refused(self):
         CreditWallet.objects.filter(user=self.teacher).delete()
 
-        with self.assertRaises(ParseError):
+        with self.assertRaises(EmptyWalletError):
             self.check(self.teacher)
 
     def test_expired_credits_do_not_count(self):
@@ -138,7 +142,7 @@ class HasCreditBalanceTests(TestCase):
             expires_at=timezone.now() - timedelta(days=1),
         )
 
-        with self.assertRaises(ParseError):
+        with self.assertRaises(EmptyWalletError):
             self.check(self.teacher)
 
     def test_fully_spent_credits_do_not_count(self):
@@ -151,7 +155,7 @@ class HasCreditBalanceTests(TestCase):
             expires_at=timezone.now() + timedelta(days=30),
         )
 
-        with self.assertRaises(ParseError):
+        with self.assertRaises(EmptyWalletError):
             self.check(self.teacher)
 
     # --- super admin ----------------------------------------------------------
@@ -199,11 +203,13 @@ class HasCreditBalanceTests(TestCase):
     def test_student_is_refused_when_their_teacher_has_none(self):
         CreditWallet.objects.get_or_create(user=self.teacher)
 
-        with self.assertRaises(ParseError) as ctx:
+        with self.assertRaises(EmptyWalletError) as ctx:
             self.check(self.student, assignment_id=self.assignment.id)
 
-        # Student-facing wording: they cannot top up, so it points at the teacher.
-        self.assertIn("contact your teacher", str(ctx.exception.detail).lower())
+        # Same refusal for a student (D11); the client-facing message is the
+        # role-neutral generic one (billing.errors.INSUFFICIENT_CREDITS_MESSAGE).
+        self.assertIsInstance(ctx.exception, InsufficientCreditsError)
+        self.assertEqual(ctx.exception.status_code, 402)
 
     def test_students_own_wallet_does_not_authorise_the_call(self):
         """
@@ -213,7 +219,7 @@ class HasCreditBalanceTests(TestCase):
         give_credits(self.student)
         CreditWallet.objects.get_or_create(user=self.teacher)
 
-        with self.assertRaises(ParseError):
+        with self.assertRaises(EmptyWalletError):
             self.check(self.student, assignment_id=self.assignment.id)
 
     def test_resolution_via_course_id(self):
@@ -240,7 +246,7 @@ class HasCreditBalanceTests(TestCase):
         give_credits(self.other_teacher)
         CreditWallet.objects.get_or_create(user=self.teacher)
 
-        with self.assertRaises(ParseError):
+        with self.assertRaises(EmptyWalletError):
             self.check(self.student, assignment_id=self.assignment.id)
 
     # --- resolution failures fall back to the student's own (empty) wallet ----
@@ -248,7 +254,7 @@ class HasCreditBalanceTests(TestCase):
     def test_student_with_no_resolvable_resource_is_refused(self):
         give_credits(self.teacher)
 
-        with self.assertRaises(ParseError):
+        with self.assertRaises(EmptyWalletError):
             self.check(self.student)
 
     def test_unknown_assignment_id_does_not_crash(self):
@@ -256,7 +262,7 @@ class HasCreditBalanceTests(TestCase):
 
         give_credits(self.teacher)
 
-        with self.assertRaises(ParseError):
+        with self.assertRaises(EmptyWalletError):
             self.check(self.student, assignment_id=uuid.uuid4())
 
     def test_unknown_course_id_does_not_crash(self):
@@ -264,7 +270,7 @@ class HasCreditBalanceTests(TestCase):
 
         give_credits(self.teacher)
 
-        with self.assertRaises(ParseError):
+        with self.assertRaises(EmptyWalletError):
             self.check(self.student, course_id=uuid.uuid4())
 
     def test_unknown_submission_id_does_not_crash(self):
@@ -272,5 +278,5 @@ class HasCreditBalanceTests(TestCase):
 
         give_credits(self.teacher)
 
-        with self.assertRaises(ParseError):
+        with self.assertRaises(EmptyWalletError):
             self.check(self.student, submission_id=uuid.uuid4())

@@ -17,6 +17,7 @@ from AutoGrader.error_messages import (
     DEFAULT_ERROR_MESSAGE,
     describe_background_task_error,
 )
+from billing.refusals import is_permanent_refusal, log_refusal
 
 from .exceptions import TaskCancelledError
 from .models import BackgroundProcessingTask, BackgroundTaskStatus, BackgroundTaskType
@@ -224,7 +225,9 @@ def mark_processing_task_success(processing_task_id, meta=None):
 def mark_processing_task_failure(
     processing_task_id, error, meta=None, *, fallback_message=None
 ):
-    if isinstance(error, BaseException):
+    if is_permanent_refusal(error):
+        log_refusal(logger, f"Background task {processing_task_id}", error)
+    elif isinstance(error, BaseException):
         logger.error(
             "Background task %s failed",
             processing_task_id,

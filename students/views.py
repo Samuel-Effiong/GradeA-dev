@@ -55,6 +55,7 @@ from AutoGrader.cache_generation import SCOPE_USER, versioned_key
 from AutoGrader.error_messages import describe_user_error, is_user_facing_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.uploads import validate_upload_size
+from billing.refusals import refusal_response
 from classrooms.models import EnrollmentStatusType
 from classrooms.permissions import IsStudent, IsTeacher
 from users.mixins import UserCacheMixin
@@ -118,9 +119,12 @@ def _submission_closed_response(exc):
 
 
 def _failure_response(exc, fallback_message):
-    """A refusal the user can act on is a 400 with its own text; anything
-    else is a 500 with the operation's fallback text (never the raw
-    exception)."""
+    """An AI refusal (plan or credits) is a 403/402 with a code; any other
+    refusal the user can act on is a 400 with its own text; anything else is
+    a 500 with the operation's fallback text (never the raw exception)."""
+    refused = refusal_response(exc)
+    if refused is not None:
+        return refused
     return Response(
         {"error": describe_user_error(exc, fallback_message=fallback_message)},
         status=(

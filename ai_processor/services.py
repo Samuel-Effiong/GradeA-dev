@@ -124,6 +124,14 @@ WEEKLY_SCHOOL_ADMIN_SUMMARY_PROMPT = _load_prompt(
 
 logger = logging.getLogger(__name__)
 
+# Shown to a STUDENT when their teacher's plan or wallet blocks the AI call.
+# Deliberately says nothing about the teacher's subscription, balance or any
+# internal failure - see the student branch of execute_graded_task.
+STUDENT_AI_UNAVAILABLE_MESSAGE = (
+    "AI features aren't available for this assignment right now. "
+    "Please ask your teacher to check their account."
+)
+
 
 class GradingEvidenceError(ValueError):
     """
@@ -764,6 +772,11 @@ Do not include any explanatory text before or after the JSON
 
             content = response.choices[0].message.content
 
+        except (AIFeatureNotAvailableError, InsufficientCreditsError):
+            # A refusal must keep its type: extract_assignment_with_retry
+            # fails fast on exactly these, and a bare Exception made it
+            # retry them (billing/refusals.py).
+            raise
         except Exception as e:
             raise Exception(f"Error during AI model: {str(e)}") from e
 
@@ -817,6 +830,9 @@ Do not include any explanatory text before or after the JSON
             )
 
             content = response.choices[0].message.content
+        except (AIFeatureNotAvailableError, InsufficientCreditsError):
+            # See extract_assignment: never rewrap a refusal.
+            raise
         except Exception as e:
             raise Exception(f"Error during AI model: {str(e)}") from e
 
@@ -4393,9 +4409,20 @@ Now, respond to the following teacher's instruction using the rules above
                 assignment, feature=feature
             )
             if not can_access:
-                raise AIFeatureNotAvailableError(
-                    f"AI access denied for this assignment's teacher: {reason}"
+                # The caller here is the STUDENT, but the access decision is
+                # about their TEACHER. `reason` states that teacher's billing
+                # posture verbatim ("No active subscription", "Trial period
+                # has expired", "No credits remaining...") or, for the
+                # Internal Error variants, our own failure detail - none of
+                # which is the student's to learn. The reason stays in the
+                # log; the student gets a message they can act on.
+                logger.warning(
+                    "AI access denied for assignment %s (teacher %s): %s",
+                    getattr(assignment, "id", None),
+                    getattr(target_teacher, "id", None),
+                    reason,
                 )
+                raise AIFeatureNotAvailableError(STUDENT_AI_UNAVAILABLE_MESSAGE)
 
             wallet = target_teacher.credit_wallet
 

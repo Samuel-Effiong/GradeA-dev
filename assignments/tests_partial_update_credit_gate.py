@@ -50,7 +50,9 @@ class PartialUpdateCreditGateTest(RigorFixtureMixin, APITestCase):
             self.url, {"raw_input": "Some edited assignment text"}, format="json"
         )
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        # 402 "insufficient_credits" (REFUSAL_HANDLING_EVIDENCE.md D11; was 400).
+        self.assertEqual(response.status_code, status.HTTP_402_PAYMENT_REQUIRED)
+        self.assertEqual(response.data["code"], "insufficient_credits")
         mock_extract.assert_not_called()
 
     @patch(

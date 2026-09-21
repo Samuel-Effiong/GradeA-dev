@@ -53,6 +53,7 @@ from .models import (
     UserSubscription,
 )
 from .plan_policy import self_service_plans
+from .refusals import PERMANENT_AI_REFUSALS, log_refusal, refusal_response
 from .serializers import (
     BetaCohortStatsSerializer,
     BetaFeatureMixSerializer,
@@ -2495,6 +2496,11 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                 serializer = CustomAIReply(data)
                 return Response(serializer.data)
 
+        except PERMANENT_AI_REFUSALS as e:
+            # Leaving the atomic block by exception already rolled back the
+            # user's chat message, same as any other failure.
+            log_refusal(logger, "Superadmin custom AI prompt", e)
+            return refusal_response(e)
         except Exception as e:
             logger.error("Custom AI prompt failed", exc_info=e)
             return Response(

@@ -1,0 +1,1365 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+FFFFFFFFFFFF.Cannot activate automatic trial for user d11-teacher-0f963ace@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user d11-teacher-5574e47d@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/assignments/views.py", line 528, in partial_update
+    if not HasCreditBalance().has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/users/permissions.py", line 50, in has_permission
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: <b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks.
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/users/permissions.py", line 50, in has_permission
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: <b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks.
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/users/permissions.py", line 50, in has_permission
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: <b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks.
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/users/permissions.py", line 50, in has_permission
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: <b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks.
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/users/permissions.py", line 50, in has_permission
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: <b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks.
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/users/permissions.py", line 50, in has_permission
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: <b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks.
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/users/permissions.py", line 50, in has_permission
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: <b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks.
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/users/permissions.py", line 50, in has_permission
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: <b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks.
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/users/permissions.py", line 50, in has_permission
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: <b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks.
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/users/permissions.py", line 50, in has_permission
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: <b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks.
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/users/permissions.py", line 50, in has_permission
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: <b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks.
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/users/permissions.py", line 50, in has_permission
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: <b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks.
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/users/permissions.py", line 50, in has_permission
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: <b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please contact your teacher to top up credits to continue with AI Task.
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/users/permissions.py", line 50, in has_permission
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: <b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please contact your teacher to top up credits to continue with AI Task.
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/users/permissions.py", line 50, in has_permission
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: <b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please contact your teacher to top up credits to continue with AI Task.
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/users/permissions.py", line 50, in has_permission
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: <b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please contact your teacher to top up credits to continue with AI Task.
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/users/permissions.py", line 50, in has_permission
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: <b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please contact your teacher to top up credits to continue with AI Task.
+FAPI Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 421, in initial
+    self.check_permissions(request)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 338, in check_permissions
+    if not permission.has_permission(request, self):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/users/permissions.py", line 50, in has_permission
+    raise ParseError(message)
+rest_framework.exceptions.ParseError: <b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please contact your teacher to top up credits to continue with AI Task.
+FCannot activate automatic trial for user d1-text-feature-8b335fc6@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user d1-text-credits-691369b7@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user d1-feature-83f0e86a@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+ai_processor.services WARNING 2026-09-17 16:59:40,900 services 1779704 138357438389184 [request_id=-] Attempt 1 failed: Error during AI model: AI access denied: No active subscription
+
+
+
+
+ai_processor.services INFO 2026-09-17 16:59:40,901 services 1779704 138357438389184 [request_id=-] Retrying...
+
+
+
+
+ai_processor.services WARNING 2026-09-17 16:59:40,909 services 1779704 138357438389184 [request_id=-] Attempt 2 failed: Error during AI model: AI access denied: No active subscription
+
+
+
+
+ai_processor.services INFO 2026-09-17 16:59:40,909 services 1779704 138357438389184 [request_id=-] Retrying...
+
+
+
+
+ai_processor.services WARNING 2026-09-17 16:59:40,931 services 1779704 138357438389184 [request_id=-] Attempt 3 failed: Error during AI model: AI access denied: No active subscription
+
+
+FCannot activate automatic trial for user d1-credits-7bf8a279@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+ai_processor.services WARNING 2026-09-17 16:59:41,733 services 1779704 138357438389184 [request_id=-] Attempt 1 failed: Error during AI model: Task requires ~32179 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+
+
+ai_processor.services INFO 2026-09-17 16:59:41,734 services 1779704 138357438389184 [request_id=-] Retrying...
+
+
+
+
+ai_processor.services WARNING 2026-09-17 16:59:41,771 services 1779704 138357438389184 [request_id=-] Attempt 2 failed: Error during AI model: Task requires ~32179 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+
+
+ai_processor.services INFO 2026-09-17 16:59:41,772 services 1779704 138357438389184 [request_id=-] Retrying...
+
+
+
+
+ai_processor.services WARNING 2026-09-17 16:59:41,812 services 1779704 138357438389184 [request_id=-] Attempt 3 failed: Error during AI model: Task requires ~32179 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+FDashboard AI context section failed to load
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/dashboard/views.py", line 165, in dashboard_context_section
+    body = dashboard_context_json(build())
+                                  ^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/dashboard/views.py", line 2744, in <lambda>
+    lambda: self.students(request, *args, **kwargs).data,
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/dashboard/views.py", line 2411, in students
+    cache_key = versioned_key(
+                ^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/AutoGrader/cache_generation.py", line 299, in versioned_key
+    f"{scope}={get_generation(scope, entity_id)}" for scope, entity_id in scopes
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/AutoGrader/cache_generation.py", line 125, in get_generation
+    key = generation_key(scope, entity_id)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/AutoGrader/cache_generation.py", line 112, in generation_key
+    raise ValueError(f"scope {scope!r} requires an entity id")
+ValueError: scope 'sch' requires an entity id
+Custom AI prompt failed
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/dashboard/views.py", line 190, in run_dashboard_ai_chat
+    ai_feedback = ai_processor.custom_ai_prompt_retry(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 4674, in custom_ai_prompt_retry
+    return self.custom_ai_prompt(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 4636, in custom_ai_prompt
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 4420, in execute_graded_task
+    raise AIFeatureNotAvailableError(f"AI access denied: {reason}")
+billing.access_control.AIFeatureNotAvailableError: AI access denied: No active subscription
+
+
+django.request ERROR 2026-09-17 16:59:42,570 log 1779704 138357438389184 [request_id=-] Internal Server Error: /api/v1/school-admin/dashboard/custom-ai-prompt
+
+
+FCustom AI prompt failed
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/dashboard/views.py", line 190, in run_dashboard_ai_chat
+    ai_feedback = ai_processor.custom_ai_prompt_retry(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 4674, in custom_ai_prompt_retry
+    return self.custom_ai_prompt(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 4609, in custom_ai_prompt
+    raise AIFeatureNotAvailableError(
+billing.access_control.AIFeatureNotAvailableError: The AI analytics assistant is temporarily unavailable. Please try again later.
+
+
+django.request ERROR 2026-09-17 16:59:43,603 log 1779704 138357438389184 [request_id=-] Internal Server Error: /api/v1/super-admin/dashboard/custom-ai-prompt
+
+
+FCustom AI prompt failed
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/views.py", line 2453, in custom_ai_prompt
+    ai_feedback = ai_processor.custom_ai_prompt_retry(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 4674, in custom_ai_prompt_retry
+    return self.custom_ai_prompt(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 4609, in custom_ai_prompt
+    raise AIFeatureNotAvailableError(
+billing.access_control.AIFeatureNotAvailableError: The AI analytics assistant is temporarily unavailable. Please try again later.
+
+
+django.request ERROR 2026-09-17 16:59:43,673 log 1779704 138357438389184 [request_id=-] Internal Server Error: /api/v1/analytics/beta/custom-ai-prompt
+
+
+FCannot activate automatic trial for user d2-feature-357dbe51@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Custom AI prompt failed
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/dashboard/views.py", line 190, in run_dashboard_ai_chat
+    ai_feedback = ai_processor.custom_ai_prompt_retry(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 4674, in custom_ai_prompt_retry
+    return self.custom_ai_prompt(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 4636, in custom_ai_prompt
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 4420, in execute_graded_task
+    raise AIFeatureNotAvailableError(f"AI access denied: {reason}")
+billing.access_control.AIFeatureNotAvailableError: AI access denied: No active subscription
+
+
+django.request ERROR 2026-09-17 16:59:44,442 log 1779704 138357438389184 [request_id=-] Internal Server Error: /api/v1/teacher-admin/dashboard/custom-ai-prompt
+
+
+FCannot activate automatic trial for user d2-credits-667ae4a9@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Custom AI prompt failed
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/dashboard/views.py", line 190, in run_dashboard_ai_chat
+    ai_feedback = ai_processor.custom_ai_prompt_retry(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 4674, in custom_ai_prompt_retry
+    return self.custom_ai_prompt(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 4636, in custom_ai_prompt
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 4498, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+django.request ERROR 2026-09-17 16:59:45,185 log 1779704 138357438389184 [request_id=-] Internal Server Error: /api/v1/teacher-admin/dashboard/custom-ai-prompt
+
+
+FCannot activate automatic trial for user d4-create-feature-5799e34d@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+ai_processor.services ERROR 2026-09-17 16:59:47,054 services 1779704 138357438389184 [request_id=58440910befe49b38ae1b1dc96485025] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-09-17 16:59:47,061 services 1779704 138357438389184 [request_id=58440910befe49b38ae1b1dc96485025] Attempt 1 failed: Error during AI model: AI access denied: No active subscription
+
+
+
+
+ai_processor.services INFO 2026-09-17 16:59:47,061 services 1779704 138357438389184 [request_id=58440910befe49b38ae1b1dc96485025] Retrying...
+
+
+
+
+ai_processor.services ERROR 2026-09-17 16:59:47,061 services 1779704 138357438389184 [request_id=58440910befe49b38ae1b1dc96485025] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-09-17 16:59:47,068 services 1779704 138357438389184 [request_id=58440910befe49b38ae1b1dc96485025] Attempt 2 failed: Error during AI model: AI access denied: No active subscription
+
+
+
+
+ai_processor.services INFO 2026-09-17 16:59:47,068 services 1779704 138357438389184 [request_id=58440910befe49b38ae1b1dc96485025] Retrying...
+
+
+
+
+ai_processor.services ERROR 2026-09-17 16:59:47,068 services 1779704 138357438389184 [request_id=58440910befe49b38ae1b1dc96485025] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-09-17 16:59:47,075 services 1779704 138357438389184 [request_id=58440910befe49b38ae1b1dc96485025] Attempt 3 failed: Error during AI model: AI access denied: No active subscription
+
+
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/assignments/views.py", line 401, in create
+    assignment = AssignmentProcessingService.update_assignment_from_extraction(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/assignments/services.py", line 870, in update_assignment_from_extraction
+    assignment_data = cls.extract_assignment_data(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/assignments/services.py", line 805, in extract_assignment_data
+    assignment_questions = ai_processor.extract_assignment_with_retry(
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 1295, in extract_assignment_with_retry
+    raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
+Exception: All 3 attempts failed. Last error: Error during AI model: AI access denied: No active subscription
+
+
+django.request ERROR 2026-09-17 16:59:47,099 log 1779704 138357438389184 [request_id=-] Internal Server Error: /api/v1/assignments
+
+
+FCannot activate automatic trial for user d4-create-credits-8b48acfc@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+ai_processor.services ERROR 2026-09-17 16:59:49,354 services 1779704 138357438389184 [request_id=791306b711c6499a90921a11c3f17b9d] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-09-17 16:59:49,384 services 1779704 138357438389184 [request_id=791306b711c6499a90921a11c3f17b9d] Attempt 1 failed: Error during AI model: Task requires ~32234 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+
+
+ai_processor.services INFO 2026-09-17 16:59:49,384 services 1779704 138357438389184 [request_id=791306b711c6499a90921a11c3f17b9d] Retrying...
+
+
+
+
+ai_processor.services ERROR 2026-09-17 16:59:49,385 services 1779704 138357438389184 [request_id=791306b711c6499a90921a11c3f17b9d] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-09-17 16:59:49,439 services 1779704 138357438389184 [request_id=791306b711c6499a90921a11c3f17b9d] Attempt 2 failed: Error during AI model: Task requires ~32234 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+
+
+ai_processor.services INFO 2026-09-17 16:59:49,441 services 1779704 138357438389184 [request_id=791306b711c6499a90921a11c3f17b9d] Retrying...
+
+
+
+
+ai_processor.services ERROR 2026-09-17 16:59:49,441 services 1779704 138357438389184 [request_id=791306b711c6499a90921a11c3f17b9d] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+
+
+ai_processor.services WARNING 2026-09-17 16:59:49,513 services 1779704 138357438389184 [request_id=791306b711c6499a90921a11c3f17b9d] Attempt 3 failed: Error during AI model: Task requires ~32234 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/assignments/views.py", line 401, in create
+    assignment = AssignmentProcessingService.update_assignment_from_extraction(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/assignments/services.py", line 870, in update_assignment_from_extraction
+    assignment_data = cls.extract_assignment_data(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/assignments/services.py", line 805, in extract_assignment_data
+    assignment_questions = ai_processor.extract_assignment_with_retry(
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 1295, in extract_assignment_with_retry
+    raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
+Exception: All 3 attempts failed. Last error: Error during AI model: Task requires ~32234 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+django.request ERROR 2026-09-17 16:59:49,537 log 1779704 138357438389184 [request_id=-] Internal Server Error: /api/v1/assignments
+
+
+FCannot activate automatic trial for user d5-edit-feature-240d428d@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking ERROR 2026-09-17 16:59:51,704 task_tracking 1779704 138357438389184 [request_id=-] Background task 15387dfd-cc60-4c16-86d1-9b1c263dc323 failed
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/assignments/tasks.py", line 386, in extract_answer_background_task
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 2121, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 1819, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 4396, in execute_graded_task
+    raise AIFeatureNotAvailableError(
+billing.access_control.AIFeatureNotAvailableError: AI access denied for this assignment's teacher: No active subscription
+FCannot activate automatic trial for user d5-edit-credits-7101a22d@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking ERROR 2026-09-17 16:59:53,587 task_tracking 1779704 138357438389184 [request_id=-] Background task f853a03a-1567-4f3a-8e8f-bea678f888e1 failed
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/assignments/tasks.py", line 386, in extract_answer_background_task
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 2121, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 1819, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 4498, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26467 credits, but you only have 1000 credits. Please refill your wallet to continue
+FCannot activate automatic trial for user d5-upload-feature-a45b44a7@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking ERROR 2026-09-17 16:59:55,828 task_tracking 1779704 138357438389184 [request_id=-] Background task 5850233a-e851-44a6-b4cd-8de34060287e failed
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/assignments/tasks.py", line 762, in upload_answers_engine_async
+    submission = upload_answers_engine(
+                 ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/students/services.py", line 844, in upload_answers_engine
+    student_submission = ai_processor.extract_answer_with_retry(
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 2121, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 1819, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 4396, in execute_graded_task
+    raise AIFeatureNotAvailableError(
+billing.access_control.AIFeatureNotAvailableError: AI access denied for this assignment's teacher: No active subscription
+FCannot activate automatic trial for user d5-upload-credits-6369dd2d@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking ERROR 2026-09-17 16:59:58,199 task_tracking 1779704 138357438389184 [request_id=-] Background task a11a97dc-3390-4de9-b8ea-4a68c430f940 failed
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/assignments/tasks.py", line 762, in upload_answers_engine_async
+    submission = upload_answers_engine(
+                 ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/students/services.py", line 844, in upload_answers_engine
+    student_submission = ai_processor.extract_answer_with_retry(
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 2121, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 1819, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 4498, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~27514 credits, but you only have 1000 credits. Please refill your wallet to continue
+FCannot activate automatic trial for user d6-feature-747b5779@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+ai_processor.services INFO 2026-09-17 17:00:00,095 services 1779704 138357438389184 [request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-17 17:00:00,106 services 1779704 138357438389184 [request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+students.task_tracking ERROR 2026-09-17 17:00:00,218 task_tracking 1779704 138357438389184 [request_id=-] Background task None failed
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/assignments/tasks.py", line 477, in grade_engine_async
+    submission = grade_engine(
+                 ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/students/services.py", line 286, in grade_engine
+    return _run_grading_pipeline(user, submission, processing_task_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/students/services.py", line 466, in _run_grading_pipeline
+    grading = ai_processor.extract_grade_with_retry(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 4061, in extract_grade_with_retry
+    return self.grade_student_submission(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 3526, in grade_student_submission
+    result = self._grade_student_submission_impl(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 3804, in _grade_student_submission_impl
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 4420, in execute_graded_task
+    raise AIFeatureNotAvailableError(f"AI access denied: {reason}")
+billing.access_control.AIFeatureNotAvailableError: AI access denied: No active subscription
+FCannot activate automatic trial for user d6-credits-dc337a96@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+ai_processor.services INFO 2026-09-17 17:00:02,076 services 1779704 138357438389184 [request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-17 17:00:02,082 services 1779704 138357438389184 [request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+students.task_tracking ERROR 2026-09-17 17:00:02,167 task_tracking 1779704 138357438389184 [request_id=-] Background task None failed
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/assignments/tasks.py", line 477, in grade_engine_async
+    submission = grade_engine(
+                 ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/students/services.py", line 286, in grade_engine
+    return _run_grading_pipeline(user, submission, processing_task_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/students/services.py", line 466, in _run_grading_pipeline
+    grading = ai_processor.extract_grade_with_retry(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 4061, in extract_grade_with_retry
+    return self.grade_student_submission(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 3526, in grade_student_submission
+    result = self._grade_student_submission_impl(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 3804, in _grade_student_submission_impl
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 4498, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~25521 credits, but you only have 1000 credits. Please refill your wallet to continue
+FCannot activate automatic trial for user d7-course-0c0f0333@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FFFF.Cannot activate automatic trial for user d9-feature-63c0391b@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.views ERROR 2026-09-17 17:00:07,027 views 1779704 138357438389184 [request_id=771b8850db3c4e7f994aca86e2634f47] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/students/views.py", line 659, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 2121, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 1819, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 4396, in execute_graded_task
+    raise AIFeatureNotAvailableError(
+billing.access_control.AIFeatureNotAvailableError: AI access denied for this assignment's teacher: No active subscription
+FCannot activate automatic trial for user d9-credits-1615f22a@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.views ERROR 2026-09-17 17:00:08,952 views 1779704 138357438389184 [request_id=816b5c9d60334f96834311fa52c78c7c] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/students/views.py", line 659, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 2121, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 1819, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/ai_processor/services.py", line 4498, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26467 credits, but you only have 1000 credits. Please refill your wallet to continue
+F
+======================================================================
+FAIL: test_every_describer_returns_the_generic_message (billing.tests.test_refusal_handling.D10CreditDetailNeverSurfacesTest.test_every_describer_returns_the_generic_message) (describe='describe_user_error', text='Credit consumption is blocked ')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 596, in test_every_describer_returns_the_generic_message
+    self.assertEqual(describe(exc), GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Credit consumption is blocked on this ac[104 chars]ds).' != "There aren't enough AI credits available[65 chars]run."
+- Credit consumption is blocked on this account: a reversed payment left an unsettled deficit of 700 credits (500 from chargebacks, 200 from refunds).
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_describer_returns_the_generic_message (billing.tests.test_refusal_handling.D10CreditDetailNeverSurfacesTest.test_every_describer_returns_the_generic_message) (describe='describe_background_task_error', text='Credit consumption is blocked ')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 596, in test_every_describer_returns_the_generic_message
+    self.assertEqual(describe(exc), GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Credit consumption is blocked on this ac[104 chars]ds).' != "There aren't enough AI credits available[65 chars]run."
+- Credit consumption is blocked on this account: a reversed payment left an unsettled deficit of 700 credits (500 from chargebacks, 200 from refunds).
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_describer_returns_the_generic_message (billing.tests.test_refusal_handling.D10CreditDetailNeverSurfacesTest.test_every_describer_returns_the_generic_message) (describe='describe_stripe_error', text='Credit consumption is blocked ')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 596, in test_every_describer_returns_the_generic_message
+    self.assertEqual(describe(exc), GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Credit consumption is blocked on this ac[104 chars]ds).' != "There aren't enough AI credits available[65 chars]run."
+- Credit consumption is blocked on this account: a reversed payment left an unsettled deficit of 700 credits (500 from chargebacks, 200 from refunds).
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_describer_returns_the_generic_message (billing.tests.test_refusal_handling.D10CreditDetailNeverSurfacesTest.test_every_describer_returns_the_generic_message) (describe='describe_user_error', text='Insufficient credits. Requeste')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 596, in test_every_describer_returns_the_generic_message
+    self.assertEqual(describe(exc), GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Insufficient credits. Requested: 25000, Available: 1000' != "There aren't enough AI credits available[65 chars]run."
+- Insufficient credits. Requested: 25000, Available: 1000
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_describer_returns_the_generic_message (billing.tests.test_refusal_handling.D10CreditDetailNeverSurfacesTest.test_every_describer_returns_the_generic_message) (describe='describe_background_task_error', text='Insufficient credits. Requeste')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 596, in test_every_describer_returns_the_generic_message
+    self.assertEqual(describe(exc), GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Insufficient credits. Requested: 25000, Available: 1000' != "There aren't enough AI credits available[65 chars]run."
+- Insufficient credits. Requested: 25000, Available: 1000
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_describer_returns_the_generic_message (billing.tests.test_refusal_handling.D10CreditDetailNeverSurfacesTest.test_every_describer_returns_the_generic_message) (describe='describe_stripe_error', text='Insufficient credits. Requeste')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 596, in test_every_describer_returns_the_generic_message
+    self.assertEqual(describe(exc), GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Insufficient credits. Requested: 25000, Available: 1000' != "There aren't enough AI credits available[65 chars]run."
+- Insufficient credits. Requested: 25000, Available: 1000
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_describer_returns_the_generic_message (billing.tests.test_refusal_handling.D10CreditDetailNeverSurfacesTest.test_every_describer_returns_the_generic_message) (describe='describe_user_error', text='Task requires ~21000 credits, ')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 596, in test_every_describer_returns_the_generic_message
+    self.assertEqual(describe(exc), GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Task requires ~21000 credits, but you on[55 chars]inue' != "There aren't enough AI credits available[65 chars]run."
+- Task requires ~21000 credits, but you only have 1000 credits. Please refill your wallet to continue
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_describer_returns_the_generic_message (billing.tests.test_refusal_handling.D10CreditDetailNeverSurfacesTest.test_every_describer_returns_the_generic_message) (describe='describe_background_task_error', text='Task requires ~21000 credits, ')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 596, in test_every_describer_returns_the_generic_message
+    self.assertEqual(describe(exc), GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Task requires ~21000 credits, but you on[55 chars]inue' != "There aren't enough AI credits available[65 chars]run."
+- Task requires ~21000 credits, but you only have 1000 credits. Please refill your wallet to continue
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_describer_returns_the_generic_message (billing.tests.test_refusal_handling.D10CreditDetailNeverSurfacesTest.test_every_describer_returns_the_generic_message) (describe='describe_stripe_error', text='Task requires ~21000 credits, ')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 596, in test_every_describer_returns_the_generic_message
+    self.assertEqual(describe(exc), GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Task requires ~21000 credits, but you on[55 chars]inue' != "There aren't enough AI credits available[65 chars]run."
+- Task requires ~21000 credits, but you only have 1000 credits. Please refill your wallet to continue
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_describer_returns_the_generic_message (billing.tests.test_refusal_handling.D10CreditDetailNeverSurfacesTest.test_every_describer_returns_the_generic_message) (describe='describe_user_error', text='Refill your wallet to continue')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 596, in test_every_describer_returns_the_generic_message
+    self.assertEqual(describe(exc), GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Refill your wallet to continue' != "There aren't enough AI credits available[65 chars]run."
+- Refill your wallet to continue
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_describer_returns_the_generic_message (billing.tests.test_refusal_handling.D10CreditDetailNeverSurfacesTest.test_every_describer_returns_the_generic_message) (describe='describe_background_task_error', text='Refill your wallet to continue')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 596, in test_every_describer_returns_the_generic_message
+    self.assertEqual(describe(exc), GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Refill your wallet to continue' != "There aren't enough AI credits available[65 chars]run."
+- Refill your wallet to continue
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_describer_returns_the_generic_message (billing.tests.test_refusal_handling.D10CreditDetailNeverSurfacesTest.test_every_describer_returns_the_generic_message) (describe='describe_stripe_error', text='Refill your wallet to continue')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 596, in test_every_describer_returns_the_generic_message
+    self.assertEqual(describe(exc), GENERIC_CREDITS_MESSAGE)
+AssertionError: 'Refill your wallet to continue' != "There aren't enough AI credits available[65 chars]run."
+- Refill your wallet to continue
++ There aren't enough AI credits available for this. The credit wallet needs to be topped up before it can run.
+
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER PATCH /api/v1/assignments/29ecb087-45f0-4ea8-88b5-5b964c257d1f]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 694, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(response, PAYMENT_REQUIRED, CREDITS_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 194, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 400 != 402 : b'{"success":false,"message":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks.","error":{"field_errors":{"detail":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks."}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER PATCH /api/v1/assignments/29ecb087-45f0-4ea8-88b5-5b964c257d1f/update-async]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 694, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(response, PAYMENT_REQUIRED, CREDITS_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 194, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 400 != 402 : b'{"success":false,"message":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks.","error":{"field_errors":{"detail":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks."}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/assignments/upload-async]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 694, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(response, PAYMENT_REQUIRED, CREDITS_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 194, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 400 != 402 : b'{"success":false,"message":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks.","error":{"field_errors":{"detail":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks."}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/assignments/29ecb087-45f0-4ea8-88b5-5b964c257d1f/grade-all]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 694, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(response, PAYMENT_REQUIRED, CREDITS_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 194, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 400 != 402 : b'{"success":false,"message":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks.","error":{"field_errors":{"detail":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks."}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/assignments/29ecb087-45f0-4ea8-88b5-5b964c257d1f/schedule_grade_all_submission]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 694, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(response, PAYMENT_REQUIRED, CREDITS_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 194, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 400 != 402 : b'{"success":false,"message":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks.","error":{"field_errors":{"detail":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks."}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER GET /api/v1/course/70321efb-5852-4441-b2bd-1e4416219b9a/student-summary]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 694, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(response, PAYMENT_REQUIRED, CREDITS_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 194, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 400 != 402 : b'{"success":false,"message":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks.","error":{"field_errors":{"detail":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks."}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/submissions/29ecb087-45f0-4ea8-88b5-5b964c257d1f/batch-upload]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 694, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(response, PAYMENT_REQUIRED, CREDITS_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 194, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 400 != 402 : b'{"success":false,"message":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks.","error":{"field_errors":{"detail":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks."}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/submissions/8b1f397d-80c1-45f0-b13e-8cd6a8a0594a/grade]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 694, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(response, PAYMENT_REQUIRED, CREDITS_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 194, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 400 != 402 : b'{"success":false,"message":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks.","error":{"field_errors":{"detail":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks."}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/submissions/8b1f397d-80c1-45f0-b13e-8cd6a8a0594a/grade-async]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 694, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(response, PAYMENT_REQUIRED, CREDITS_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 194, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 400 != 402 : b'{"success":false,"message":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks.","error":{"field_errors":{"detail":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks."}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER POST /api/v1/submissions/8b1f397d-80c1-45f0-b13e-8cd6a8a0594a/schedule-grade-async]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 694, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(response, PAYMENT_REQUIRED, CREDITS_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 194, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 400 != 402 : b'{"success":false,"message":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks.","error":{"field_errors":{"detail":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks."}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER GET /api/v1/submissions/8b1f397d-80c1-45f0-b13e-8cd6a8a0594a/teacher_feedback]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 694, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(response, PAYMENT_REQUIRED, CREDITS_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 194, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 400 != 402 : b'{"success":false,"message":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks.","error":{"field_errors":{"detail":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks."}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [TEACHER PATCH /api/v1/submissions/8b1f397d-80c1-45f0-b13e-8cd6a8a0594a/update-grade]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 694, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(response, PAYMENT_REQUIRED, CREDITS_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 194, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 400 != 402 : b'{"success":false,"message":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks.","error":{"field_errors":{"detail":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please top up your credits to continue with grading or AI tasks."}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [STUDENT POST /api/v1/submissions]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 694, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(response, PAYMENT_REQUIRED, CREDITS_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 194, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 400 != 402 : b'{"success":false,"message":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please contact your teacher to top up credits to continue with AI Task.","error":{"field_errors":{"detail":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please contact your teacher to top up credits to continue with AI Task."}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [STUDENT POST /api/v1/submissions/29ecb087-45f0-4ea8-88b5-5b964c257d1f/upload]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 694, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(response, PAYMENT_REQUIRED, CREDITS_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 194, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 400 != 402 : b'{"success":false,"message":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please contact your teacher to top up credits to continue with AI Task.","error":{"field_errors":{"detail":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please contact your teacher to top up credits to continue with AI Task."}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [STUDENT POST /api/v1/submissions/29ecb087-45f0-4ea8-88b5-5b964c257d1f/upload-async]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 694, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(response, PAYMENT_REQUIRED, CREDITS_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 194, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 400 != 402 : b'{"success":false,"message":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please contact your teacher to top up credits to continue with AI Task.","error":{"field_errors":{"detail":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please contact your teacher to top up credits to continue with AI Task."}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [STUDENT PUT /api/v1/submissions/8b1f397d-80c1-45f0-b13e-8cd6a8a0594a]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 694, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(response, PAYMENT_REQUIRED, CREDITS_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 194, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 400 != 402 : b'{"success":false,"message":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please contact your teacher to top up credits to continue with AI Task.","error":{"field_errors":{"detail":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please contact your teacher to top up credits to continue with AI Task."}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [STUDENT PATCH /api/v1/submissions/8b1f397d-80c1-45f0-b13e-8cd6a8a0594a]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 694, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(response, PAYMENT_REQUIRED, CREDITS_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 194, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 400 != 402 : b'{"success":false,"message":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please contact your teacher to top up credits to continue with AI Task.","error":{"field_errors":{"detail":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please contact your teacher to top up credits to continue with AI Task."}}}'
+
+======================================================================
+FAIL: test_every_credit_guarded_endpoint_answers_402_with_a_code (billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest.test_every_credit_guarded_endpoint_answers_402_with_a_code) [STUDENT POST /api/v1/submissions/8b1f397d-80c1-45f0-b13e-8cd6a8a0594a/update-async]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 694, in test_every_credit_guarded_endpoint_answers_402_with_a_code
+    self.assertCleanRefusalResponse(response, PAYMENT_REQUIRED, CREDITS_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 194, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 400 != 402 : b'{"success":false,"message":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please contact your teacher to top up credits to continue with AI Task.","error":{"field_errors":{"detail":"<b>Insufficient Credits:</b> Your Credit Wallet is currently empty. Please contact your teacher to top up credits to continue with AI Task."}}}'
+
+======================================================================
+FAIL: test_extract_assignment_text_path_keeps_the_refusal_type (billing.tests.test_refusal_handling.D1ExtractionRewrapTest.test_extract_assignment_text_path_keeps_the_refusal_type) [feature]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 250, in test_extract_assignment_text_path_keeps_the_refusal_type
+    self.assertIs(type(raised), refusal)
+AssertionError: <class 'Exception'> is not <class 'billing.access_control.AIFeatureNotAvailableError'>
+
+======================================================================
+FAIL: test_extract_assignment_text_path_keeps_the_refusal_type (billing.tests.test_refusal_handling.D1ExtractionRewrapTest.test_extract_assignment_text_path_keeps_the_refusal_type) [credits]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 250, in test_extract_assignment_text_path_keeps_the_refusal_type
+    self.assertIs(type(raised), refusal)
+AssertionError: <class 'Exception'> is not <class 'billing.errors.InsufficientCreditsError'>
+
+======================================================================
+FAIL: test_small_document_refusal_keeps_its_type_and_is_checked_once (billing.tests.test_refusal_handling.D1ExtractionRewrapTest.test_small_document_refusal_keeps_its_type_and_is_checked_once) [feature]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 238, in test_small_document_refusal_keeps_its_type_and_is_checked_once
+    self.assertEqual(gate.call_count, 1, "a permanent refusal was retried")
+AssertionError: 3 != 1 : a permanent refusal was retried
+
+======================================================================
+FAIL: test_small_document_refusal_keeps_its_type_and_is_checked_once (billing.tests.test_refusal_handling.D1ExtractionRewrapTest.test_small_document_refusal_keeps_its_type_and_is_checked_once) [credits]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 238, in test_small_document_refusal_keeps_its_type_and_is_checked_once
+    self.assertEqual(gate.call_count, 1, "a permanent refusal was retried")
+AssertionError: 3 != 1 : a permanent refusal was retried
+
+======================================================================
+FAIL: test_school_admin_chat_refusal_is_403 (billing.tests.test_refusal_handling.D2D3AssistantChatRefusalTest.test_school_admin_chat_refusal_is_403)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 286, in test_school_admin_chat_refusal_is_403
+    self.assertCleanRefusalResponse(response, FORBIDDEN, FEATURE_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 194, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 500 != 403 : b'{"success":false,"message":"AI access denied: No active subscription","error":{"field_errors":{"error":"AI access denied: No active subscription"}}}'
+
+======================================================================
+FAIL: test_superadmin_assistants_refused_by_kill_switch_are_403 (billing.tests.test_refusal_handling.D2D3AssistantChatRefusalTest.test_superadmin_assistants_refused_by_kill_switch_are_403) [dashboard-custom-ai-prompt]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 301, in test_superadmin_assistants_refused_by_kill_switch_are_403
+    self.assertCleanRefusalResponse(response, FORBIDDEN, FEATURE_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 194, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 500 != 403 : b'{"success":false,"message":"The AI analytics assistant is temporarily unavailable. Please try again later.","error":{"field_errors":{"error":"The AI analytics assistant is temporarily unavailable. Please try again later."}}}'
+
+======================================================================
+FAIL: test_superadmin_assistants_refused_by_kill_switch_are_403 (billing.tests.test_refusal_handling.D2D3AssistantChatRefusalTest.test_superadmin_assistants_refused_by_kill_switch_are_403) [analytics-custom-ai-prompt]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 301, in test_superadmin_assistants_refused_by_kill_switch_are_403
+    self.assertCleanRefusalResponse(response, FORBIDDEN, FEATURE_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 194, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 500 != 403 : b'{"success":false,"message":"The AI analytics assistant is temporarily unavailable. Please try again later.","error":{"field_errors":{"error":"The AI analytics assistant is temporarily unavailable. Please try again later."}}}'
+
+======================================================================
+FAIL: test_teacher_chat_refusals_are_402_or_403_never_500 (billing.tests.test_refusal_handling.D2D3AssistantChatRefusalTest.test_teacher_chat_refusals_are_402_or_403_never_500) [feature]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 277, in test_teacher_chat_refusals_are_402_or_403_never_500
+    self.assertCleanRefusalResponse(response, *expected)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 194, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 500 != 403 : b'{"success":false,"message":"AI access denied: No active subscription","error":{"field_errors":{"error":"AI access denied: No active subscription"}}}'
+
+======================================================================
+FAIL: test_teacher_chat_refusals_are_402_or_403_never_500 (billing.tests.test_refusal_handling.D2D3AssistantChatRefusalTest.test_teacher_chat_refusals_are_402_or_403_never_500) [credits]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 277, in test_teacher_chat_refusals_are_402_or_403_never_500
+    self.assertCleanRefusalResponse(response, *expected)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 194, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 500 != 402 : b'{"success":false,"message":"Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue","error":{"field_errors":{"error":"Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue"}}}'
+
+======================================================================
+FAIL: test_sync_assignment_create_refusal_is_402_or_403 (billing.tests.test_refusal_handling.D4UncaughtRefusalTest.test_sync_assignment_create_refusal_is_402_or_403) [feature]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 333, in test_sync_assignment_create_refusal_is_402_or_403
+    self.assertCleanRefusalResponse(response, *expected)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 194, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 500 != 403 : b'{"success":false,"message":"An unexpected error occurred. Please try again.","error":{}}'
+
+======================================================================
+FAIL: test_sync_assignment_create_refusal_is_402_or_403 (billing.tests.test_refusal_handling.D4UncaughtRefusalTest.test_sync_assignment_create_refusal_is_402_or_403) [credits]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 333, in test_sync_assignment_create_refusal_is_402_or_403
+    self.assertCleanRefusalResponse(response, *expected)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 194, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 500 != 402 : b'{"success":false,"message":"An unexpected error occurred. Please try again.","error":{}}'
+
+======================================================================
+FAIL: test_extract_answer_background_task_does_not_retry_a_refusal (billing.tests.test_refusal_handling.D5TaskRetryTest.test_extract_answer_background_task_does_not_retry_a_refusal) [feature]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 393, in test_extract_answer_background_task_does_not_retry_a_refusal
+    self.assertTerminalRefusal(tracked, outcome, gate, refusal)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 357, in assertTerminalRefusal
+    self.assertEqual(gate.call_count, 1, "a permanent refusal was retried")
+AssertionError: 4 != 1 : a permanent refusal was retried
+
+======================================================================
+FAIL: test_extract_answer_background_task_does_not_retry_a_refusal (billing.tests.test_refusal_handling.D5TaskRetryTest.test_extract_answer_background_task_does_not_retry_a_refusal) [credits]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 393, in test_extract_answer_background_task_does_not_retry_a_refusal
+    self.assertTerminalRefusal(tracked, outcome, gate, refusal)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 357, in assertTerminalRefusal
+    self.assertEqual(gate.call_count, 1, "a permanent refusal was retried")
+AssertionError: 4 != 1 : a permanent refusal was retried
+
+======================================================================
+FAIL: test_upload_answers_engine_async_does_not_retry_a_refusal (billing.tests.test_refusal_handling.D5TaskRetryTest.test_upload_answers_engine_async_does_not_retry_a_refusal) [feature]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 413, in test_upload_answers_engine_async_does_not_retry_a_refusal
+    self.assertTerminalRefusal(tracked, outcome, gate, refusal)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 357, in assertTerminalRefusal
+    self.assertEqual(gate.call_count, 1, "a permanent refusal was retried")
+AssertionError: 4 != 1 : a permanent refusal was retried
+
+======================================================================
+FAIL: test_upload_answers_engine_async_does_not_retry_a_refusal (billing.tests.test_refusal_handling.D5TaskRetryTest.test_upload_answers_engine_async_does_not_retry_a_refusal) [credits]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 413, in test_upload_answers_engine_async_does_not_retry_a_refusal
+    self.assertTerminalRefusal(tracked, outcome, gate, refusal)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 357, in assertTerminalRefusal
+    self.assertEqual(gate.call_count, 1, "a permanent refusal was retried")
+AssertionError: 4 != 1 : a permanent refusal was retried
+
+======================================================================
+FAIL: test_refused_batch_grade_records_the_refusal_message (billing.tests.test_refusal_handling.D6BatchResultErrorTest.test_refused_batch_grade_records_the_refusal_message) [feature]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 450, in test_refused_batch_grade_records_the_refusal_message
+    self.assertTrue(entry["error"], "batch failure recorded error=None")
+AssertionError: None is not true : batch failure recorded error=None
+
+======================================================================
+FAIL: test_refused_batch_grade_records_the_refusal_message (billing.tests.test_refusal_handling.D6BatchResultErrorTest.test_refused_batch_grade_records_the_refusal_message) [credits]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 450, in test_refused_batch_grade_records_the_refusal_message
+    self.assertTrue(entry["error"], "batch failure recorded error=None")
+AssertionError: None is not true : batch failure recorded error=None
+
+======================================================================
+FAIL: test_course_summary_refusal_sends_email_counts_and_warns (billing.tests.test_refusal_handling.D7WeeklySummaryRefusalTest.test_course_summary_refusal_sends_email_counts_and_warns)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 489, in test_course_summary_refusal_sends_email_counts_and_warns
+    self.assertIn("AI narration refused for 1", result)
+AssertionError: 'AI narration refused for 1' not found in 'Queued 1 weekly course summary email(s). Processed 1 course(s), skipped 0.'
+
+======================================================================
+FAIL: test_school_admin_summary_refusal_sends_email_counts_and_warns (billing.tests.test_refusal_handling.D7WeeklySummaryRefusalTest.test_school_admin_summary_refusal_sends_email_counts_and_warns)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 504, in test_school_admin_summary_refusal_sends_email_counts_and_warns
+    self.assertIn("AI narration refused for 1", result)
+AssertionError: 'AI narration refused for 1' not found in 'Queued 1 weekly school admin summary email(s). Processed 1 admin(s), skipped 0.'
+
+======================================================================
+FAIL: test_refusal_is_logged_at_warning_without_a_stack (billing.tests.test_refusal_handling.D8TaskFailureLoggingTest.test_refusal_is_logged_at_warning_without_a_stack) [AIFeatureNotAvailableError]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 521, in test_refusal_is_logged_at_warning_without_a_stack
+    self.assertEqual(record.levelno, logging.WARNING)
+AssertionError: 40 != 30
+
+======================================================================
+FAIL: test_refusal_is_logged_at_warning_without_a_stack (billing.tests.test_refusal_handling.D8TaskFailureLoggingTest.test_refusal_is_logged_at_warning_without_a_stack) [InsufficientCreditsError]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 521, in test_refusal_is_logged_at_warning_without_a_stack
+    self.assertEqual(record.levelno, logging.WARNING)
+AssertionError: 40 != 30
+
+======================================================================
+FAIL: test_sync_submission_edit_refusal_is_402_or_403 (billing.tests.test_refusal_handling.D9StudentSubmissionRefusalStatusTest.test_sync_submission_edit_refusal_is_402_or_403) [feature]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 563, in test_sync_submission_edit_refusal_is_402_or_403
+    self.assertCleanRefusalResponse(response, *expected)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 194, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 400 != 403 : b'{"success":false,"message":"AI access denied for this assignment\'s teacher: No active subscription","error":{"field_errors":{"error":"AI access denied for this assignment\'s teacher: No active subscription"}}}'
+
+======================================================================
+FAIL: test_sync_submission_edit_refusal_is_402_or_403 (billing.tests.test_refusal_handling.D9StudentSubmissionRefusalStatusTest.test_sync_submission_edit_refusal_is_402_or_403) [credits]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 563, in test_sync_submission_edit_refusal_is_402_or_403
+    self.assertCleanRefusalResponse(response, *expected)
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-refusal-repro-b744c9f/billing/tests/test_refusal_handling.py", line 194, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 400 != 402 : b'{"success":false,"message":"Task requires ~26467 credits, but you only have 1000 credits. Please refill your wallet to continue","error":{"field_errors":{"error":"Task requires ~26467 credits, but you only have 1000 credits. Please refill your wallet to continue"}}}'
+
+----------------------------------------------------------------------
+Ran 18 tests in 35.973s
+
+FAILED (failures=53)
+Destroying test database for alias 'default'...
+Found 18 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

@@ -1,0 +1,75 @@
+# M19: EmptyWalletError is an APIException
+# worktree /home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w1 @ f7cd15e4aa1765ed6be9424fe93a4d1f0959f6f7
+# labels: billing.tests.test_refusal_handling.D11EmptyWalletPermissionTest users.tests_credit_balance_permission
+# exit 0
+
+Found 20 test(s).
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user d11-teacher-8c0de597@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user d11-teacher-894ce9e3@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user credit.teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user credit.other-teacher@gmail.com (validation): Free trial plan not found. Please create one in the admin panel.
+.
+----------------------------------------------------------------------
+Ran 20 tests in 60.204s
+
+OK
+Preserving test database for alias 'default'...
