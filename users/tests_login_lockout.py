@@ -418,13 +418,30 @@ class LoginLockoutConcurrencyTests(TransactionTestCase):
 
         with tightened_rate("login", "100000/min"):
             with ThreadPoolExecutor(max_workers=self.WORKERS) as pool:
-                futures = [pool.submit(fn, arg) for fn, arg in jobs]
-                futures += [
+                victim_futures = [pool.submit(fn, arg) for fn, arg in jobs]
+                bystander_futures = [
                     pool.submit(bystander_login) for _ in range(bystander_logins)
                 ]
-                results = [f.result() for f in as_completed(futures)]
+                victim_statuses = [f.result() for f in victim_futures]
+                bystander_statuses = [f.result() for f in bystander_futures]
 
-        self.assertEqual(len(results), victim_attempts + bystander_logins)
+        # Assert what every request actually got back, not only the account
+        # state afterwards. The state alone cannot tell success from failure:
+        # a bystander login that errors (a 500 when Postgres is out of
+        # connections, say) also leaves 0 failures and no lock, and victim
+        # requests that error simply go uncounted, which the bounded victim
+        # count below would accept. Both went green under a starved run
+        # (H-31, docs/evidence/h31_users_false_pass/).
+        self.assertEqual(
+            victim_statuses,
+            [status.HTTP_401_UNAUTHORIZED] * victim_attempts,
+            "every wrong-password attempt must be rejected with 401",
+        )
+        self.assertEqual(
+            bystander_statuses,
+            [status.HTTP_200_OK] * bystander_logins,
+            "every bystander login must succeed",
+        )
 
         self.user.refresh_from_db()
         bystander.refresh_from_db()
