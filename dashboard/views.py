@@ -2012,8 +2012,9 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
     Draft/unpublished assignments (never shown to students) are excluded.
     - **avg_grade** — Points-weighted average final grade
     (`sum(score) / sum(max_points) * 100`) across `enrolled`/`completed`
-    students, on a 0-100 scale. `null` if none of them has a graded
-    submission yet. Pending/withdrawn students never contribute.
+    students, on a 0-100 scale. `0` if none of them has a graded
+    submission yet (never `null` — see "students" to tell "no data" from
+    "graded at 0%"). Pending/withdrawn students never contribute.
     - **distribution** — Grade-letter breakdown (`A`/`B`/`C`/`D`/`F`) of
     `enrolled`/`completed` students' final grades.
 
@@ -2182,9 +2183,15 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 filter=Q(assignments__status=AssignmentStatus.PUBLISHED),
                 distinct=True,
             ),
-            avg_grade=Avg(
-                "enrollments__final_grade",
-                filter=Q(enrollments__enrollment_status__in=active_enrollment_statuses),
+            avg_grade=Coalesce(
+                Avg(
+                    "enrollments__final_grade",
+                    filter=Q(
+                        enrollments__enrollment_status__in=active_enrollment_statuses
+                    ),
+                ),
+                Value(0.0),
+                output_field=FloatField(),
             ),
         )
 
@@ -2678,9 +2685,13 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 .values("name")
                 .annotate(
                     teacher_count=Count("teacher", distinct=True),
-                    avg_grade=Avg(
-                        "enrollments__final_grade",
-                        filter=~Q(enrollments__enrollment_status="WITHDRAWN"),
+                    avg_grade=Coalesce(
+                        Avg(
+                            "enrollments__final_grade",
+                            filter=~Q(enrollments__enrollment_status="WITHDRAWN"),
+                        ),
+                        Value(0.0),
+                        output_field=FloatField(),
                     ),
                 )
                 .order_by("name")
@@ -2691,11 +2702,10 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                     {
                         "name": item["name"],
                         "teachers": item["teacher_count"],
-                        "avg_grade": (
-                            round(item["avg_grade"], 1)
-                            if item["avg_grade"] is not None
-                            else None
-                        ),
+                        # 0, never null, when no non-withdrawn enrollment has
+                        # a graded final_grade yet - see course-performance's
+                        # avg_grade for why (dashboard/views.py course_peformance).
+                        "avg_grade": round(item["avg_grade"], 1),
                     }
                     for item in courses
                 ]
