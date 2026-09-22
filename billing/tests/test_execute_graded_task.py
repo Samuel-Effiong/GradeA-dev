@@ -410,7 +410,9 @@ class UserTypeDispatchTests(ExecuteGradedTaskTestBase):
                 user_prompt="prompt",
                 assignment=assignment,
             )
-        self.assertIn("assignment's teacher", str(ctx.exception))
+        # ai_processor/services.py::STUDENT_AI_UNAVAILABLE_MESSAGE deliberately
+        # says nothing about the teacher's subscription/balance to a student.
+        self.assertIn("ask your teacher", str(ctx.exception))
         mock_ai_model.assert_not_called()
 
     @patch.object(AIProcessor, "_AIProcessor__ai_model")

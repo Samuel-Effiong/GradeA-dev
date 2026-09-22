@@ -213,7 +213,9 @@ class DepartmentOverviewFreshnessTests(DashboardFreshnessBase):
         student = make_user("fresh-s@x.test", UserTypes.STUDENT)
         enrollment = StudentCourse.objects.create(student=student, course=self.course)
         before = self.get(self.URL)
-        self.assertIsNone(before["courses"][0]["avg_grade"])
+        # avg_grade is Coalesced to 0 for a gradeless enrolment, never null
+        # (course-performance / course-overview-chart never return null here).
+        self.assertEqual(before["courses"][0]["avg_grade"], 0)
 
         enrollment.final_grade = 88.5
         enrollment.save()
