@@ -220,7 +220,7 @@ def _round(value, places=1):
     return round(value, places) if value is not None else None
 
 
-def _assignment_rollup(teacher_ids):
+def _assignment_rollup(teacher_ids, *, session=None):
     """One query: per-teacher means of the denormalized assignment columns.
 
     Avg() ignores NULLs, so `demand` is the mean over assignments that could
@@ -228,11 +228,14 @@ def _assignment_rollup(teacher_ids):
     the coverage figure -- it tells an admin "this score is based on 3 of your
     20 assignments" instead of hiding that behind a confident-looking mean.
     """
+    filters = {
+        "course__teacher_id__in": teacher_ids,
+        "status__in": SCOREABLE_STATUSES,
+    }
+    if session is not None:
+        filters["course__session"] = session
     rows = (
-        Assignment.objects.filter(
-            course__teacher_id__in=teacher_ids,
-            status__in=SCOREABLE_STATUSES,
-        )
+        Assignment.objects.filter(**filters)
         .values("course__teacher_id")
         .annotate(
             demand=Avg("rigor_demand"),
@@ -244,7 +247,7 @@ def _assignment_rollup(teacher_ids):
     return {row["course__teacher_id"]: row for row in rows}
 
 
-def _submission_rollup(teacher_ids):
+def _submission_rollup(teacher_ids, *, session=None):
     """One query: per-teacher mean achieved percentage over graded work.
 
     Restricted to submissions that were actually graded and carry a
@@ -252,13 +255,16 @@ def _submission_rollup(teacher_ids):
     so filtering on graded_at alone would drag ungraded zeros into the average
     and turn this into an engagement metric instead of a difficulty one.
     """
+    filters = {
+        "assignment__course__teacher_id__in": teacher_ids,
+        "assignment__status__in": SCOREABLE_STATUSES,
+        "graded_at__isnull": False,
+        "score_percentage__isnull": False,
+    }
+    if session is not None:
+        filters["assignment__course__session"] = session
     rows = (
-        StudentSubmission.objects.filter(
-            assignment__course__teacher_id__in=teacher_ids,
-            assignment__status__in=SCOREABLE_STATUSES,
-            graded_at__isnull=False,
-            score_percentage__isnull=False,
-        )
+        StudentSubmission.objects.filter(**filters)
         .values("assignment__course__teacher_id")
         .annotate(
             avg_percentage=Avg("score_percentage"),
@@ -268,19 +274,25 @@ def _submission_rollup(teacher_ids):
     return {row["assignment__course__teacher_id"]: row for row in rows}
 
 
-def build_rigor_by_teacher(teacher_ids):
+def build_rigor_by_teacher(teacher_ids, *, session=None):
     """Rigor payloads for many teachers in two queries.
 
     Every requested id is present in the result, so callers never need to
     guard on a missing key -- teachers with no assignments get the empty
     payload rather than being absent.
+
+    `session` optionally restricts both rollups to one `classrooms.Session`
+    (via each assignment's course), for a school admin viewing one term
+    instead of a teacher's whole history. Omitted, this is unchanged
+    all-time behaviour for every existing caller (weekly digest, AI chat
+    context).
     """
     teacher_ids = list(teacher_ids)
     if not teacher_ids:
         return {}
 
-    assignments = _assignment_rollup(teacher_ids)
-    submissions = _submission_rollup(teacher_ids)
+    assignments = _assignment_rollup(teacher_ids, session=session)
+    submissions = _submission_rollup(teacher_ids, session=session)
 
     results = {}
     for teacher_id in teacher_ids:

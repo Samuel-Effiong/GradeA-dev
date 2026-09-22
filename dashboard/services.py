@@ -908,8 +908,15 @@ class TeacherPerformanceStatsService:
     #: with students in courses created before that.
     GROWTH_WINDOW_DAYS = 180
 
-    def build(self, teachers, *, now=None):
-        """Return {teacher_id: payload} with an entry for every teacher."""
+    def build(self, teachers, *, now=None, session=None):
+        """Return {teacher_id: payload} with an entry for every teacher.
+
+        `session` optionally restricts every figure to one
+        `classrooms.Session` instead of the teacher's whole history, for a
+        school admin viewing one term. Omitted (the default), behaviour is
+        unchanged for every existing caller (teacher list/detail, weekly
+        digest, AI chat context).
+        """
         teachers = list(teachers)
         if not teachers:
             return {}
@@ -918,17 +925,23 @@ class TeacherPerformanceStatsService:
         growth_cutoff = now - timedelta(days=self.GROWTH_WINDOW_DAYS)
         teacher_ids = [teacher.id for teacher in teachers]
 
+        course_filters = {"teacher_id__in": teacher_ids}
+        if session is not None:
+            course_filters["session"] = session
         course_counts = {
             row["teacher_id"]: row["n"]
-            for row in Course.objects.filter(teacher_id__in=teacher_ids)
+            for row in Course.objects.filter(**course_filters)
             .values("teacher_id")
             .annotate(n=Count("id"))
             .order_by()
         }
 
-        active_enrolments = StudentCourse.objects.filter(
-            course__teacher_id__in=teacher_ids
-        ).exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
+        enrolment_filters = {"course__teacher_id__in": teacher_ids}
+        if session is not None:
+            enrolment_filters["course__session"] = session
+        active_enrolments = StudentCourse.objects.filter(**enrolment_filters).exclude(
+            enrollment_status=EnrollmentStatusType.WITHDRAWN
+        )
         enrolment_rows = {
             row["course__teacher_id"]: row
             for row in active_enrolments.values("course__teacher_id")
@@ -948,20 +961,26 @@ class TeacherPerformanceStatsService:
             .order_by()
         }
 
+        assignment_filters = {"course__teacher_id__in": teacher_ids}
+        if session is not None:
+            assignment_filters["course__session"] = session
         assignment_rows = {
             row["course__teacher_id"]: row
-            for row in Assignment.objects.filter(course__teacher_id__in=teacher_ids)
+            for row in Assignment.objects.filter(**assignment_filters)
             .values("course__teacher_id")
             .annotate(n=Count("id"), first_created_at=Min("created_at"))
             .order_by()
         }
 
+        graded_filters = {
+            "assignment__course__teacher_id__in": teacher_ids,
+            "graded_at__isnull": False,
+        }
+        if session is not None:
+            graded_filters["assignment__course__session"] = session
         graded_rows = {
             row["assignment__course__teacher_id"]: row
-            for row in StudentSubmission.objects.filter(
-                assignment__course__teacher_id__in=teacher_ids,
-                graded_at__isnull=False,
-            )
+            for row in StudentSubmission.objects.filter(**graded_filters)
             .values("assignment__course__teacher_id")
             .annotate(
                 n=Count("id"),
@@ -976,7 +995,7 @@ class TeacherPerformanceStatsService:
             .order_by()
         }
 
-        rigor_by_teacher = build_rigor_by_teacher(teacher_ids)
+        rigor_by_teacher = build_rigor_by_teacher(teacher_ids, session=session)
 
         return {
             teacher.id: self._payload(

@@ -2,7 +2,7 @@ import logging
 from datetime import date, timedelta
 
 from django.core.cache import cache
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
 from django.db.models import (
     Avg,
@@ -50,7 +50,7 @@ from AutoGrader.cache_generation import (
 )
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
-from billing.models import CreditUsageLog
+from billing.models import CreditBucketType, CreditUsageLog
 from billing.refusals import PERMANENT_AI_REFUSALS, log_refusal, refusal_response
 from billing.services import FEATURE_TO_ANALYTICS_FIELD
 from classrooms.models import (
@@ -58,6 +58,7 @@ from classrooms.models import (
     EnrollmentStatusType,
     School,
     Session,
+    SessionOwnerType,
     StudentCourse,
 )
 from classrooms.permissions import IsSchoolAdmin, IsStudent, IsSuperAdmin, IsTeacher
@@ -1318,6 +1319,48 @@ def _expected_submission_total(courses):
     )
 
 
+#: Shared OpenAPI doc for the optional `session_id` param every session-aware
+#: school-admin dashboard endpoint below accepts.
+SESSION_ID_PARAMETER = OpenApiParameter(
+    name="session_id",
+    type=OpenApiTypes.STR,
+    location=OpenApiParameter.QUERY,
+    required=False,
+    description=(
+        "Restrict the results to one of the school's sessions (terms). "
+        "Omit to see the school's whole history across every session, "
+        "same as before this parameter existed."
+    ),
+)
+
+
+def _resolve_school_session(request, school):
+    """Validate an optional `?session_id=` against the requesting school.
+
+    Returns `(session_or_none, error_response_or_none)`. `session` is
+    `None` when the parameter was omitted, meaning "no scoping - report
+    across the school's whole history", which is the behaviour every one
+    of these endpoints had before this parameter existed. A `session_id`
+    that isn't a real session, isn't a SCHOOL-owned session, or belongs to
+    a different school is rejected rather than silently ignored or
+    silently returning another school's data.
+    """
+    session_id = request.query_params.get("session_id")
+    if not session_id:
+        return None, None
+
+    try:
+        session = Session.objects.get(
+            id=session_id, owner_type=SessionOwnerType.SCHOOL, school=school
+        )
+    except (Session.DoesNotExist, ValueError, ValidationError):
+        return None, Response(
+            {"detail": "No session with that ID exists for this school."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    return session, None
+
+
 class SchoolAdminDashboardView(viewsets.ViewSet):
     permission_classes = [IsSchoolAdmin]
 
@@ -1334,7 +1377,14 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         - School identification (Name).
         - User Depth: Counts of active teachers and students in the school.
         - Institutional Activity: Total active courses, assignments, and submissions.
+
+        Pass `session_id` to scope everything except `teachers` and
+        `at_risk_students` to one of the school's sessions instead of its
+        whole history. `teachers` (active teacher count) and
+        `at_risk_students` (a live risk state, not a per-term figure) are
+        always school-wide.
         """,
+        parameters=[SESSION_ID_PARAMETER],
         responses={200: SchoolAdminSummarySerializer},
     )
     @action(detail=False, methods=["get"], url_path="dashboard/summary")
@@ -1348,8 +1398,13 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        session, error = _resolve_school_session(request, school)
+        if error:
+            return error
+
         cache_key = versioned_key(
-            f"schooladmins:user_id__{user.id}:view__summary",
+            f"schooladmins:user_id__{user.id}:view__summary"
+            f":session__{session.id if session else 'all'}",
             [(SCOPE_USER, user.id), (SCOPE_SCHOOL, user.school_id)],
         )
         data = cache.get(cache_key)
@@ -1363,26 +1418,35 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                     {"detail": "User is not associated with any school"},
                 )
 
-            active_teachers = CustomUser.objects.filter(
+            active_teachers_qs = CustomUser.objects.filter(
                 school=school,
                 user_type=UserTypes.TEACHER,
                 is_active=True,
-            ).count()
-
-            active_students = (
-                CustomUser.objects.filter(
-                    enrollments__course__teacher__school=school,
-                    is_active=True,
-                    user_type=UserTypes.STUDENT,
-                )
-                .distinct()
-                .count()
             )
+            active_students_qs = CustomUser.objects.filter(
+                enrollments__course__teacher__school=school,
+                is_active=True,
+                user_type=UserTypes.STUDENT,
+            )
+            if session is not None:
+                # Scoping active_teachers to a session would mean "teachers
+                # who taught in this session" - not what "active teachers"
+                # means anywhere else in this endpoint, so it stays
+                # school-wide; only the session's own activity is scoped.
+                active_students_qs = active_students_qs.filter(
+                    enrollments__course__session=session
+                )
+            active_teachers = active_teachers_qs.count()
+            active_students = active_students_qs.distinct().count()
 
             courses = Course.objects.filter(teacher__school=school, is_active=True)
+            if session is not None:
+                courses = courses.filter(session=session)
             courses_count = courses.count()
 
             assignments = Assignment.objects.filter(course__teacher__school=school)
+            if session is not None:
+                assignments = assignments.filter(course__session=session)
             assignments_created = assignments.count()
 
             # Assignments graded: att least one submission with graded_at not null
@@ -1413,6 +1477,8 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
             submissions = StudentSubmission.objects.filter(
                 assignment__course__teacher__school=school
             )
+            if session is not None:
+                submissions = submissions.filter(assignment__course__session=session)
             graded_submissions = submissions.filter(graded_at__isnull=False)
             total_graded_submissions = graded_submissions.count()
 
@@ -1472,7 +1538,9 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
             # (dashboard/services.py) so this endpoint, the weekly digest, and
             # the daily at-risk alert task all agree on one definition
             # (dashboard/risk.py) instead of maintaining separate, drifting
-            # copies of the same query.
+            # copies of the same query. It's a live risk state, not a
+            # per-term figure, so it stays school-wide regardless of
+            # `session_id` - same call as before this parameter existed.
             at_risk_students = (
                 SchoolAdminWeeklySummaryService()._build_at_risk_students(school)[1]
             )
@@ -1489,14 +1557,20 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 course__teacher__school=school,
                 course__created_at__gte=six_months_ago,
             ).exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
-            current_growth_students = (
-                current_student_enrollments.values("student").distinct().count()
-            )
-
             past_student_enrollments = StudentCourse.objects.filter(
                 course__teacher__school=school,
                 course__created_at__lt=six_months_ago,
             ).exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
+            if session is not None:
+                current_student_enrollments = current_student_enrollments.filter(
+                    course__session=session
+                )
+                past_student_enrollments = past_student_enrollments.filter(
+                    course__session=session
+                )
+            current_growth_students = (
+                current_student_enrollments.values("student").distinct().count()
+            )
             past_growth_students = (
                 past_student_enrollments.values("student").distinct().count()
             )
@@ -1762,6 +1836,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 location=OpenApiParameter.QUERY,
                 description="Number of results per page (max 100).",
             ),
+            SESSION_ID_PARAMETER,
         ],
         responses={
             200: OpenApiResponse(
@@ -1796,12 +1871,17 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        session, error = _resolve_school_session(request, school)
+        if error:
+            return error
+
         paginator = StandardPageNumberPagination()
         page_number = request.query_params.get(paginator.page_query_param, "1")
         page_size = request.query_params.get(paginator.page_size_query_param, "")
         cache_key = versioned_key(
             f"dashboards:school_id__{school.id}"
-            f":view__teacher_performance:{page_number}:{page_size}",
+            f":view__teacher_performance:{page_number}:{page_size}"
+            f":session__{session.id if session else 'all'}",
             [(SCOPE_SCHOOL, school.id)],
         )
         data = cache.get(cache_key)
@@ -1820,7 +1900,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
 
         # A fixed number of queries for the whole page - see
         # TeacherPerformanceStatsService. Previously ~8 per teacher.
-        stats = TeacherPerformanceStatsService().build(teachers)
+        stats = TeacherPerformanceStatsService().build(teachers, session=session)
         result = [stats[teacher.id] for teacher in teachers]
 
         serializer = TeacherPerformanceDashboardSerializer(result, many=True)
@@ -1855,7 +1935,20 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
     `credits_used`, each with a raw `amount` and a `percent` of the total.
     "other" covers any AI feature not mapped to one of the first three
     (e.g. custom AI chat, weekly summaries).
+    - **credits_remaining** — Live (unexpired) credits left, by source:
+    `monthly` (current plan allocation), `carry_over` (rolled over from a
+    prior cycle), `overage` (purchased overage blocks plus any manual
+    grants), and `total` (the three summed). Excludes TRIAL, which a
+    school-license teacher never has.
+
+    Pass `session_id` to scope the performance/rigor figures (courses,
+    students, assignments, turnaround, rigor) to one of the school's
+    sessions instead of the teacher's whole history. Credit figures
+    (`credits_used`, `credits_used_percentage`, `daily_usage`,
+    `credits_remaining`, feature mix) are wallet-based, not tied to any
+    one session, and are unaffected by this parameter.
         """,
+        parameters=[SESSION_ID_PARAMETER],
         responses={
             200: OpenApiResponse(
                 response=TeacherDetailSerializer,
@@ -1896,6 +1989,10 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        session, error = _resolve_school_session(request, school)
+        if error:
+            return error
+
         # Scoped by school on the lookup itself, so a school admin can't
         # pull another school's teacher by guessing a UUID.
         teacher = get_object_or_404(
@@ -1903,7 +2000,9 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         )
 
         cache_key = versioned_key(
-            f"dashboards:school_id__{school.id}" f":view__teacher_detail:{teacher.id}",
+            f"dashboards:school_id__{school.id}"
+            f":view__teacher_detail:{teacher.id}"
+            f":session__{session.id if session else 'all'}",
             [(SCOPE_SCHOOL, school.id), (SCOPE_USER, teacher.id)],
         )
         data = cache.get(cache_key)
@@ -1911,7 +2010,9 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
             return Response(data)
 
         now = timezone.now()
-        result = TeacherPerformanceStatsService().build([teacher], now=now)[teacher.id]
+        result = TeacherPerformanceStatsService().build(
+            [teacher], now=now, session=session
+        )[teacher.id]
 
         # --- Feature mix, live from CreditUsageLog, net of refunds ---
         category_by_field = {
@@ -1960,6 +2061,42 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         result["credits_used_percentage"] = (
             round((current_used / denominator) * 100, 1) if denominator else 0.0
         )
+
+        # --- Remaining credits by source ---
+        # TRIAL is deliberately excluded, not just zeroed: a teacher added
+        # via a school license never gets one (see the license-invitation
+        # guard in users/signals.py), so there is nothing to fold in for
+        # the audience this view is for. MANUAL_GRANT is folded into
+        # "overage" — both are credits outside the fixed plan allocation,
+        # the same distinction plan_remaining_credits() already draws.
+        if wallet:
+            live_bucket_totals = {
+                row["bucket_type"]: row["remaining"] or 0
+                for row in wallet.buckets.filter(
+                    Q(expires_at__isnull=True) | Q(expires_at__gt=now)
+                )
+                .values("bucket_type")
+                .annotate(remaining=Sum(F("total_credits") - F("used_credits")))
+            }
+        else:
+            live_bucket_totals = {}
+        credits_remaining_monthly = live_bucket_totals.get(CreditBucketType.MONTHLY, 0)
+        credits_remaining_carry_over = live_bucket_totals.get(
+            CreditBucketType.CARRY_OVER, 0
+        )
+        credits_remaining_overage = live_bucket_totals.get(
+            CreditBucketType.OVERAGE, 0
+        ) + live_bucket_totals.get(CreditBucketType.MANUAL_GRANT, 0)
+        result["credits_remaining"] = {
+            "monthly": credits_remaining_monthly,
+            "carry_over": credits_remaining_carry_over,
+            "overage": credits_remaining_overage,
+            "total": (
+                credits_remaining_monthly
+                + credits_remaining_carry_over
+                + credits_remaining_overage
+            ),
+        }
 
         # --- Days active + daily usage (last 60 days) ---
         window_start = now.date() - timedelta(days=60)
@@ -2062,6 +2199,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 description="Number of results per page. Defaults to 10, max 100.",
                 required=False,
             ),
+            SESSION_ID_PARAMETER,
         ],
         responses={
             200: OpenApiResponse(
@@ -2128,6 +2266,10 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        session, error = _resolve_school_session(request, school)
+        if error:
+            return error
+
         # Set up pagination
         paginator = pagination.PageNumberPagination()
         # A fixed integer default. This used to be the raw query-string value,
@@ -2141,6 +2283,8 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
 
         # Base queryset: courses taught by teachers in this school
         qs = Course.objects.filter(teacher__school=school).select_related("teacher")
+        if session is not None:
+            qs = qs.filter(session=session)
 
         # A course's grade average/distribution should reflect students who
         # actually engaged with the course - not enrollments still pending
@@ -2315,6 +2459,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 description="Mastery threshold below which reteach is recommended (default: 75.0)",
                 required=False,
             ),
+            SESSION_ID_PARAMETER,
         ],
         responses={200: UnitPerformanceSerializer},
     )
@@ -2326,6 +2471,10 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 {"detail": "School admin must be associated with a school."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        session, error = _resolve_school_session(request, school)
+        if error:
+            return error
 
         # Parse query parameters. Validated rather than cast blindly: a bare
         # int()/float() turned `?hardest_limit=abc` into a 500, a negative
@@ -2342,6 +2491,8 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
 
         # Base queryset: assignments belonging to courses in this school
         assignments = Assignment.objects.filter(course__teacher__school=school)
+        if session is not None:
+            assignments = assignments.filter(course__session=session)
 
         # Annotate performance metrics
         assignments = assignments.annotate(
@@ -2413,32 +2564,39 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         - Grade Distribution: School-wide count of students in each grade tier (A, B, C, D, F).
         - Active Enrollments: Total count of active student-course pairings in the school.
         """,
+        parameters=[SESSION_ID_PARAMETER],
         responses={200: SchoolAdminStudentPerformanceSerializer},
     )
     @action(detail=False, methods=["get"], url_path="dashboard/students")
     def students(self, request, *args, **kwargs):
         user = request.user
+        school = user.school
+
+        if not school:
+            return Response(
+                {"detail": "User is not associated with any school"},
+                status=400,
+            )
+
+        session, error = _resolve_school_session(request, school)
+        if error:
+            return error
 
         cache_key = versioned_key(
-            f"schooladmins:user_id__{user.id}:view__students",
+            f"schooladmins:user_id__{user.id}:view__students"
+            f":session__{session.id if session else 'all'}",
             [(SCOPE_USER, user.id), (SCOPE_SCHOOL, user.school_id)],
         )
         data = cache.get(cache_key)
 
         if data is None:
-            school = user.school
-
-            if not school:
-                return Response(
-                    {
-                        "detail": "User is not associated with any school",
-                    },
-                    status=400,
-                )
-
             school_student_courses = StudentCourse.objects.filter(
                 course__teacher__school=school
             )
+            if session is not None:
+                school_student_courses = school_student_courses.filter(
+                    course__session=session
+                )
 
             stats = school_student_courses.aggregate(
                 avg_grade=Avg("final_grade"),
@@ -2470,11 +2628,22 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                     ),
                 }
 
-            actual_submissions = StudentSubmission.objects.filter(
+            actual_submissions_qs = StudentSubmission.objects.filter(
                 assignment__course__teacher__school=school
-            ).count()
+            )
+            expected_submissions_courses = Course.objects.filter(
+                teacher__school=school, is_active=True
+            )
+            if session is not None:
+                actual_submissions_qs = actual_submissions_qs.filter(
+                    assignment__course__session=session
+                )
+                expected_submissions_courses = expected_submissions_courses.filter(
+                    session=session
+                )
+            actual_submissions = actual_submissions_qs.count()
             expected_submissions = _expected_submission_total(
-                Course.objects.filter(teacher__school=school, is_active=True)
+                expected_submissions_courses
             )
 
             completion_rate = (
@@ -2529,6 +2698,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                     "(e.g. 2026). If omitted, activity from all years is aggregated."
                 ),
             ),
+            SESSION_ID_PARAMETER,
         ],
         responses={
             200: OpenApiResponse(
@@ -2560,12 +2730,17 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        session, error = _resolve_school_session(request, school)
+        if error:
+            return error
+
         year = request.query_params.get("year")
 
-        # Cache per school and optional year
+        # Cache per school, optional year, and optional session
         cache_key = versioned_key(
             f"dashboards:school_id__{school.id}"
-            f":view__assignment_activity:{year or 'all'}",
+            f":view__assignment_activity:{year or 'all'}"
+            f":session__{session.id if session else 'all'}",
             [(SCOPE_SCHOOL, school.id)],
         )
         data = cache.get(cache_key)
@@ -2573,6 +2748,8 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         if data is None:
             # Base queryset for assignments belonging to the school
             base_qs = Assignment.objects.filter(course__teacher__school=school)
+            if session is not None:
+                base_qs = base_qs.filter(course__session=session)
 
             # CREATED ASSIGNMENTS PER MONTH
 
@@ -2662,6 +2839,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 description="You do not have permission to access this resource."
             ),
         },
+        parameters=[SESSION_ID_PARAMETER],
     )
     @action(detail=False, methods=["GET"], url_path="dashboard/course-overview-chart")
     def course_overview_chart(self, request, *args, **kwargs):
@@ -2673,16 +2851,23 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        session, error = _resolve_school_session(request, school)
+        if error:
+            return error
+
         cache_key = versioned_key(
-            f"dashboards:school_id__{school.id}:view__department_overview",
+            f"dashboards:school_id__{school.id}:view__department_overview"
+            f":session__{session.id if session else 'all'}",
             [(SCOPE_SCHOOL, school.id)],
         )
         data = cache.get(cache_key)
 
         if data is None:
+            courses_qs = Course.objects.filter(teacher__school=school)
+            if session is not None:
+                courses_qs = courses_qs.filter(session=session)
             courses = (
-                Course.objects.filter(teacher__school=school)
-                .values("name")
+                courses_qs.values("name")
                 .annotate(
                     teacher_count=Count("teacher", distinct=True),
                     avg_grade=Coalesce(

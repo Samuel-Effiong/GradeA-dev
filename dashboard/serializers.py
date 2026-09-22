@@ -658,7 +658,9 @@ class TeacherPerformanceDashboardSerializer(serializers.Serializer):
         ),
     )
     rigor_breakdown = RigorBreakdownSerializer()
-    status = serializers.CharField()
+    status = serializers.BooleanField(
+        help_text="True if the teacher's account is active."
+    )
 
 
 class FeatureMixCategorySerializer(serializers.Serializer):
@@ -669,6 +671,26 @@ class FeatureMixCategorySerializer(serializers.Serializer):
 class TeacherDailyUsageSerializer(serializers.Serializer):
     date = serializers.DateField()
     credits = serializers.IntegerField()
+
+
+class TeacherCreditsRemainingSerializer(serializers.Serializer):
+    """Live (unexpired) credits left, by source. Excludes TRIAL: a teacher
+    added via a school license never has one (see the license-invitation
+    guard in users/signals.py)."""
+
+    monthly = serializers.IntegerField(
+        help_text="Remaining credits in the current plan (MONTHLY) allocation."
+    )
+    carry_over = serializers.IntegerField(
+        help_text="Remaining credits rolled over from a prior billing cycle."
+    )
+    overage = serializers.IntegerField(
+        help_text=(
+            "Remaining credits outside the fixed plan allocation: purchased "
+            "overage blocks plus any manually granted credits."
+        )
+    )
+    total = serializers.IntegerField(help_text="monthly + carry_over + overage.")
 
 
 class TeacherDetailSerializer(TeacherPerformanceDashboardSerializer):
@@ -682,8 +704,11 @@ class TeacherDetailSerializer(TeacherPerformanceDashboardSerializer):
     )
     credits_used_percentage = serializers.FloatField(
         help_text=(
-            "credits_used as a percentage of (credits_used + remaining plan "
-            "credits). Excludes OVERAGE buckets, which are purchased "
+            "Percentage of the CURRENT plan allocation consumed (current "
+            "plan-cycle used credits over used + remaining) - NOT a "
+            "percentage of the all-time credits_used figure above, since "
+            "that would creep toward 100% forever regardless of the "
+            "current cycle. Excludes OVERAGE buckets, which are purchased "
             "reactively and aren't part of the fixed plan allocation."
         )
     )
@@ -693,6 +718,7 @@ class TeacherDetailSerializer(TeacherPerformanceDashboardSerializer):
     daily_usage = TeacherDailyUsageSerializer(
         many=True, help_text="Daily credit usage for the last 60 days, zero-filled."
     )
+    credits_remaining = TeacherCreditsRemainingSerializer()
     grading = FeatureMixCategorySerializer()
     creation = FeatureMixCategorySerializer()
     feedback = FeatureMixCategorySerializer()
