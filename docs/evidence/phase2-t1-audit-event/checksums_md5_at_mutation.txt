@@ -1,13 +1,13 @@
+# md5 of each mutated file's pre-mutation original, recorded by mutate.py at
+# battery start and re-checked after every single mutant's restore. Proves
+# the mutation testing process left the tree exactly as it found it; this is
+# NOT the final committed state (metadata.py/migrations/0001_initial.py were
+# touched again afterward by mypy/isort fixups before commit b9aea98) - see
+# EVIDENCE.md's post-commit sha256 block for what actually landed.
 0178c3e5f2bbf8348a5aa98233d2cf7a  audit/apps.py
-fc73712d642934b17663a3cc0eca25cd  audit/context.py
-278ba9a9839d24fb6af672faf1eaa1b3  audit/emitter.py
+e8048022768a48e897ba7518a702f1e2  audit/context.py
+6637e9c92db558f18ff9ca879567bb52  audit/emitter.py
 b07250e46f57440c52c712e6855ebf25  audit/enums.py
-d41d8cd98f00b204e9800998ecf8427e  audit/__init__.py
-f89172f82a3de0daf52d6f1218ba715a  audit/metadata.py
-40bae388e8b70770d11bc690acea6a47  audit/models.py
-b5b5401b4947039d474222f529f987d2  audit/tests_emitter.py
-5aa626d346eeaf79c74b0737e5dc705b  audit/tests_enums.py
-305f922675ae0fb5e7c3d9f8d940f5cb  audit/tests_metadata.py
-4e8e9fb9da8389eb8407549592059ba7  audit/tests_schema.py
-520e562fd94a6006baad4d4ab25fdb35  audit/migrations/0001_initial.py
-d41d8cd98f00b204e9800998ecf8427e  audit/migrations/__init__.py
+4a7b5660ac3aea2464614811fbe610b7  audit/metadata.py
+21f9817522832ee9c9b2c9b1141127a6  audit/migrations/0001_initial.py
+73dac027c051c36044dfc3bb5662f4fb  audit/models.py

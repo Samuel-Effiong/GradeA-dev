@@ -1,8 +1,11 @@
-"""Mutation battery for T1 (audit event schema + emitter), worker-0a.
-Each mutant weakens ONE protection; a test named for that protection must fail.
-Restores from collision-safe copies and verifies by md5 (never git checkout)."""
+"""Mutation battery for T1 (audit event schema + emitter), re-run by audit-lead
+after: license_id -> school_id, per-action metadata allow-list, and the new
+AutoGrader.request_context trace_id fallback. Each mutant weakens ONE
+protection; a test named for that protection must fail. Restores from
+collision-safe copies and verifies by md5 (never git checkout).
+"""
 import hashlib, json, os, re, shutil, subprocess, sys, time
-ROOT = "<worktree>"
+ROOT = "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-t1-audit-event"
 SCR = os.path.dirname(os.path.abspath(__file__))
 E, C, MD, MO, A, EN = ("audit/emitter.py","audit/context.py","audit/metadata.py","audit/models.py","audit/apps.py","audit/enums.py")
 MG = "audit/migrations/0001_initial.py"
@@ -12,8 +15,10 @@ MUTANTS = [
  # emitter
  ("E1","student's email stored",[(E,"    if role != ActorRole.STUDENT:  # data minimisation, X-4","    if True:")],"student_event_carries_no_email"),
  ("E2","student's address and browser stored",[(E,"    if is_student:\n        return fields\n","    if False:\n        return fields\n")],"student_event_carries_no_email"),
- ("E3","trace id taken from the client's X-Request-ID",[(E,"        trace_id=current_trace_id() or uuid.uuid4(),",'        trace_id=(uuid.UUID(request_fields["client_correlation_id"]) if (request_fields["client_correlation_id"] and len(request_fields["client_correlation_id"]) == 32) else (current_trace_id() or uuid.uuid4())),')],"client_cannot_choose_the_trace_id"),
- ("E4","trace context ignored (every event a fresh trace)",[(E,"        trace_id=current_trace_id() or uuid.uuid4(),","        trace_id=uuid.uuid4(),")],"share_its_id"),
+ ("E3","client's X-Request-ID used as the trace id",[(E,"        trace_id=_resolve_trace_id(),",'        trace_id=(uuid.UUID(request_fields["client_correlation_id"]) if (request_fields["client_correlation_id"] and len(request_fields["client_correlation_id"]) == 32) else _resolve_trace_id()),')],"client_cannot_choose_the_trace_id"),
+ ("E4","trace context ignored (every event a fresh trace)",[(E,"    explicit = current_trace_id()\n    if explicit is not None:\n        return explicit\n","    pass\n")],"share_its_id"),
+ ("E4b","the request's own propagated id ignored",[(E,"    inbound = get_request_id()\n    if inbound:\n        try:\n            return uuid.UUID(inbound)\n        except ValueError:\n            pass\n","")],"the_requests_own_id_is_used"),
+ ("E4c","a non-UUID-shaped request id accepted as-is",[(E,"        try:\n            return uuid.UUID(inbound)\n        except ValueError:\n            pass\n","        return inbound\n")],"non_uuid_shaped_request_id"),
  ("E5","a storage failure raises into the caller",[(E,'    except Exception as exc:  # noqa: BLE001 - FR-A-11: never fail the user action\n        _alert("store_failed", label, type(exc).__name__)\n        return None','    except ZeroDivisionError:\n        return None')],"broken_audit_table"),
  ("E6","no savepoint around the insert",[(E,"        with transaction.atomic():\n            return AuditEvent.objects.create(**fields)","        if True:\n            return AuditEvent.objects.create(**fields)")],"still_usable_after_the_store_fails"),
  ("E7","store-failure log carries the exception text",[(E,'_alert("store_failed", label, type(exc).__name__)','_alert("store_failed", label, str(exc))')],"never_carries_values"),
@@ -23,9 +28,9 @@ MUTANTS = [
  ("E11","a success may carry an error class",[(E,"    if outcome == AuditOutcome.SUCCESS and error_class is not None:","    if False:")],"success_with_an_error_class"),
  ("E12","a failure needs no error class",[(E,"    if outcome != AuditOutcome.SUCCESS and error_class is None:","    if False:")],"failure_without_an_error_class"),
  ("E13","an unknown action is accepted",[(E,'        raise AuditValidationError("action: not a known action") from None','        action = type("A", (), {"value": str(action)})()')],"unknown_action_is_rejected"),
- ("E14","metadata not put through the allow-list",[(E,"    clean_metadata, dropped = sanitise(metadata)","    clean_metadata, dropped = (metadata or {}), []")],"unknown_metadata_key_is_dropped"),
+ ("E14","metadata not put through the per-action allow-list",[(E,"    clean_metadata, dropped = sanitise_metadata_for_action(action, metadata)","    clean_metadata, dropped = sanitise(metadata)")],"valid_globally_but_wrong_for_this_action"),
  ("E15","before/after not put through the allow-list",[(E,"    clean_before, dropped_before = sanitise(before)","    clean_before, dropped_before = before, []")],"before_and_after_follow_the_same_allow_list"),
- ("E16","licence not taken from the actor",[(E,'    return role, actor_id, email, _uuid_or_none(licence, "license_id")','    return role, actor_id, email, None')],"one_call_writes_exactly_one_complete_row"),
+ ("E16","school not taken from the actor",[(E,'    return role, actor_id, email, _uuid_or_none(school, "school_id")','    return role, actor_id, email, None')],"one_call_writes_exactly_one_complete_row"),
  ("E17","anonymous visitor not treated as no identity",[(E,'    if actor is None or not getattr(actor, "is_authenticated", True):',"    if actor is None:")],"anonymous_visitor"),
  ("E18","source address read from REMOTE_ADDR, ignoring the proxy rule",[(E,"        return str(ipaddress.ip_address(BaseThrottle().get_ident(request)))",'        return str(ipaddress.ip_address(request.META.get("REMOTE_ADDR")))')],"edge_proxy_saw"),
  ("E19","NUL byte left in the browser string",[(E,'agent.replace("\\x00", "").strip()',"agent.strip()")],"nul_byte_in_the_browser"),
@@ -54,14 +59,16 @@ MUTANTS = [
  ("D10","non-finite numbers allowed",[(MD,'        return None if math.isfinite(value) else "not a finite number"',"        return None")],"non_finite"),
  ("D11","raw key echoed into the problem list",[(MD,'    return "<invalid-key>"',"    return str(key)")],"looks_like_personal_data"),
  ("D12","a non-object value not rejected",[(MD,"    if not isinstance(value, Mapping):","    if False:")],"not_an_object"),
+ ("D13","per-action gate not applied at all",[(MD,"    permitted = metadata_allowlist_for(action)\n    narrowed = {}\n    for key, item in clean.items():\n        if key in permitted:\n            narrowed[key] = item\n        else:\n            problems.append((key, \"not allowed for this action\"))\n    return narrowed, problems","    return clean, problems")],"valid_globally_but_wrong_for_this_action"),
+ ("D14","an action with no call site yet silently accepts any pool key",[(MD,"    AuditAction.LESSON_CREATE: frozenset(),","    AuditAction.LESSON_CREATE: frozenset({\"course_id\"}),")],"an_action_with_no_call_site_yet_accepts_no_metadata"),
  # model, app, enums, migration
  ("M1","append-only guard not registered",[(A,"        register_append_only_guards(AuditEvent)","        pass")],"saved_event_cannot_be_edited"),
  ("M2","another column made writable after creation",[(MO,'frozenset({"source_ip", "user_agent"})','frozenset({"source_ip", "user_agent", "action"})')],"only_those_two_columns"),
  ("M3","database check on student data made vacuous",[(MG,'models.Q(("actor_role", "STUDENT"), _negated=True),','models.Q(("actor_role", "NOBODY"), _negated=True),')],"student_event_with_an_email_is_refused"),
  ("M4","reason-code index no longer partial",[(MG,'condition=models.Q(("reason_code__isnull", False)),',"")],"skip_null_rows"),
- ("M5","actor_email made non-null",[(MG,"models.CharField(blank=True, max_length=254, null=True)","models.CharField(blank=True, max_length=254, default='')")],"documented_columns"),
+ ("M5","actor_email made non-null",[(MG,'models.CharField(blank=True, max_length=254, null=True),\n                ),\n                ("school_id"','models.CharField(blank=True, max_length=254, default=""),\n                ),\n                ("school_id"')],"documented_columns"),
  ("M6","trace_id made nullable",[(MG,'("trace_id", models.UUIDField()),','("trace_id", models.UUIDField(null=True)),')],"documented_columns"),
- ("M7","licence_id turned into a foreign key",[(MG,"dependencies = []",'dependencies = [("classrooms", "__latest__")]'),(MG,'("license_id", models.UUIDField(blank=True, null=True)),','("license_id", models.ForeignKey(blank=True, null=True, on_delete=models.CASCADE, to="classrooms.school", db_column="license_id")),')],"no_foreign_key"),
+ ("M7","school_id turned into a foreign key",[(MG,"dependencies = []",'dependencies = [("classrooms", "__latest__")]'),(MG,'("school_id", models.UUIDField(blank=True, null=True)),','("school_id", models.ForeignKey(blank=True, null=True, on_delete=models.CASCADE, to="classrooms.school", db_column="school_id")),')],"no_foreign_key"),
  ("M8","retention index on the wrong columns",[(MG,'fields=["retention_class", "occurred_at"],','fields=["retention_class"],')],"documented_index"),
  ("N1","GRADING_COMPLETED dropped from student-record actions",[(EN,"        AuditAction.GRADING_COMPLETED,\n","")],"exactly_the_documented_ones"),
  ("N2","ROSTER_CHANGE dropped from student-record actions",[(EN,"        AuditAction.ROSTER_CHANGE,\n","")],"exactly_the_documented_ones"),
@@ -70,7 +77,9 @@ MUTANTS = [
 
 def md5(p): return hashlib.md5(open(p,"rb").read()).hexdigest()
 def run(timeout=900):
-    r = subprocess.run(["python","manage.py","test",LABEL,"--settings=settings_worktree","--noinput"],cwd=ROOT,capture_output=True,text=True,timeout=timeout)
+    env = dict(os.environ)
+    env["DJANGO_SETTINGS_MODULE"] = "settings_worktree"
+    r = subprocess.run([sys.executable,"manage.py","test",LABEL,"--settings=settings_worktree","--keepdb","--noinput"],cwd=ROOT,capture_output=True,text=True,timeout=timeout,env=env)
     out = r.stdout + r.stderr
     fails = re.findall(r"^(?:FAIL|ERROR): (\S+) \(([^)]*)\)", out, re.M)
     m = re.search(r"^(OK.*|FAILED.*)$", out, re.M)
