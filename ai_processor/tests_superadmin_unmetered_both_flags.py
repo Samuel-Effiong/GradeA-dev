@@ -194,8 +194,16 @@ class CreditGateBothFlagsTest(SuperadminShapesFixture):
                 response = self.client.patch(
                     self.url(), {"raw_input": "x"}, format="json"
                 )
-                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-                self.assertIn("Insufficient Credits", response.content.decode())
+                # HasCreditBalance now raises EmptyWalletError (H-24,
+                # billing/refusals.py) instead of the old ParseError, so an
+                # empty wallet is a clean 402 refusal, not a 400 - see
+                # users/tests_credit_balance_permission.py for the same
+                # reconciliation.
+                self.assertEqual(response.status_code, status.HTTP_402_PAYMENT_REQUIRED)
+                self.assertEqual(
+                    response.json()["error"]["field_errors"]["code"],
+                    "insufficient_credits",
+                )
                 self.assertEqual(self.billing_rows(user), (0, 0))
 
     def test_type_only_account_with_real_credit_passes_the_credit_gate(self):
@@ -228,8 +236,12 @@ class CreditGateBothFlagsTest(SuperadminShapesFixture):
         )
         self.client.force_authenticate(user=django_admin)
         response = self.client.patch(self.url(), {"raw_input": "x"}, format="json")
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("Insufficient Credits", response.content.decode())
+        # See test_type_only_account_with_empty_wallet_is_refused_by_the_credit_gate:
+        # EmptyWalletError (H-24) -> 402, not the old ParseError -> 400.
+        self.assertEqual(response.status_code, status.HTTP_402_PAYMENT_REQUIRED)
+        self.assertEqual(
+            response.json()["error"]["field_errors"]["code"], "insufficient_credits"
+        )
         self.assertEqual(self.billing_rows(django_admin), (0, 0))
 
     def test_real_superadmin_still_bypasses_the_credit_gate(self):
