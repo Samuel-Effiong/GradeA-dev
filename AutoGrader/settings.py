@@ -335,6 +335,7 @@ INSTALLED_APPS = [
     "ai_processor",
     "dashboard",
     "billing",
+    "audit",
     "django_celery_results",
     "django_celery_beat",
     # Third-party packages
