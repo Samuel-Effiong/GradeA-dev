@@ -14,8 +14,11 @@ What `emit` guarantees:
   nothing is written and an operational error is logged.
 * FR-A-04 / X-4 - a student's email, address and browser are never stored, and
   `metadata`, `before` and `after` go through the allow-list in `metadata.py`.
-* X-5 - the trace id is the server's (`audit.context`). The client's
-  `X-Request-ID` is kept as untrusted `client_correlation_id`.
+* X-5 - the trace id is the server's, never the client's: an explicit
+  `audit.context.trace_context()` if one is open, else the id
+  `AutoGrader.request_context` already propagates across the request and every
+  Celery hop it dispatches, else a fresh one. The client's own `X-Request-ID`
+  is kept separately as untrusted `client_correlation_id`, never as `trace_id`.
 * A6 - the retention class is derived, never chosen: student-record actions are
   kept three years, and a caller can raise (never lower) an event to that class.
 * FR-A-11 - it never raises into the user's action. A rejected write, a broken
@@ -39,6 +42,8 @@ from typing import Optional
 
 from django.db import transaction
 
+from AutoGrader.request_context import get_request_id
+
 from .context import current_trace_id
 from .enums import (
     STUDENT_RECORD_ACTIONS,
@@ -48,7 +53,7 @@ from .enums import (
     ErrorClass,
     RetentionClass,
 )
-from .metadata import sanitise
+from .metadata import sanitise, sanitise_metadata_for_action
 from .models import AuditEvent
 
 logger = logging.getLogger(__name__)
@@ -67,6 +72,34 @@ class AuditValidationError(ValueError):
     never contains a caller-supplied value, so it is safe to log."""
 
 
+def _resolve_trace_id() -> uuid.UUID:
+    """X-5 / FR-A-03: the id that ties one action's audit events, logs and
+    Celery tasks together - server-authoritative, never a client's own value.
+
+    Order: an explicit `audit.context.trace_context()` (a caller that is
+    deliberately joining a trace - tests, and any future explicit grouping)
+    wins first. Otherwise, the id `AutoGrader.request_context` already
+    propagates across the web request and every Celery hop it dispatches
+    (`RequestIDMiddleware`, `celery_signals.py` - confirmed wired end to end).
+    That value is a `uuid4().hex` when server-generated, but an INBOUND
+    `X-Request-ID` is accepted on a much broader charset for logging purposes
+    (`is_valid_request_id`), so it is not assumed to be a well-formed UUID
+    just because it passed that check - a value that does not parse is
+    dropped, never used as-is. With neither available, a fresh id is minted
+    so every event still gets one.
+    """
+    explicit = current_trace_id()
+    if explicit is not None:
+        return explicit
+    inbound = get_request_id()
+    if inbound:
+        try:
+            return uuid.UUID(inbound)
+        except ValueError:
+            pass
+    return uuid.uuid4()
+
+
 def emit(
     action,
     *,
@@ -77,7 +110,7 @@ def emit(
     error_class=None,
     reason_code=None,
     request=None,
-    license_id=None,
+    school_id=None,
     department_id=None,
     before=None,
     after=None,
@@ -102,7 +135,7 @@ def emit(
             error_class=error_class,
             reason_code=reason_code,
             request=request,
-            license_id=license_id,
+            school_id=school_id,
             department_id=department_id,
             before=before,
             after=after,
@@ -168,7 +201,7 @@ def _build(
     error_class,
     reason_code,
     request,
-    license_id,
+    school_id,
     department_id,
     before,
     after,
@@ -202,11 +235,11 @@ def _build(
     ):
         raise AuditValidationError("reason_code: not a valid code")
 
-    role, actor_id, actor_email, actor_license = _actor_fields(actor)
+    role, actor_id, actor_email, actor_school = _actor_fields(actor)
     is_student = role == ActorRole.STUDENT
     request_fields = _request_fields(request, is_student)
 
-    clean_metadata, dropped = sanitise(metadata)
+    clean_metadata, dropped = sanitise_metadata_for_action(action, metadata)
     clean_before, dropped_before = sanitise(before)
     clean_after, dropped_after = sanitise(after)
     dropped = dropped + dropped_before + dropped_after
@@ -216,10 +249,10 @@ def _build(
         actor_id=actor_id,
         actor_role=role,
         actor_email=actor_email,
-        license_id=(
-            _uuid_or_none(license_id, "license_id")
-            if license_id is not None
-            else actor_license
+        school_id=(
+            _uuid_or_none(school_id, "school_id")
+            if school_id is not None
+            else actor_school
         ),
         department_id=_uuid_or_none(department_id, "department_id"),
         action=action.value,
@@ -228,7 +261,7 @@ def _build(
         outcome=outcome.value,
         error_class=error_class.value if error_class else None,
         reason_code=reason_code,
-        trace_id=current_trace_id() or uuid.uuid4(),
+        trace_id=_resolve_trace_id(),
         retention_class=str(
             RetentionClass.STUDENT_RECORD if student_record else RetentionClass.GENERAL
         ),
@@ -254,7 +287,7 @@ def _uuid_or_none(value, field):
 
 
 def _actor_fields(actor):
-    """(role, actor_id, actor_email, license_id), captured as values."""
+    """(role, actor_id, actor_email, school_id), captured as values."""
     if actor is None or not getattr(actor, "is_authenticated", True):
         return ActorRole.SYSTEM, None, None, None
     try:
@@ -265,8 +298,8 @@ def _actor_fields(actor):
     email = None
     if role != ActorRole.STUDENT:  # data minimisation, X-4
         email = (getattr(actor, "email", None) or "")[:MAX_EMAIL] or None
-    licence = getattr(actor, "school_id", None)
-    return role, actor_id, email, _uuid_or_none(licence, "license_id")
+    school = getattr(actor, "school_id", None)
+    return role, actor_id, email, _uuid_or_none(school, "school_id")
 
 
 def _request_fields(request, is_student):

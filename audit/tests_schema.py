@@ -28,7 +28,7 @@ EXPECTED_COLUMNS = {
     "actor_id": True,
     "actor_role": False,
     "actor_email": True,
-    "license_id": True,
+    "school_id": True,
     "department_id": True,
     "action": False,
     "target_type": False,
@@ -53,7 +53,7 @@ def event_fields(**over):
         "actor_id": uuid.uuid4(),
         "actor_role": ActorRole.TEACHER,
         "actor_email": "teacher@example.edu",
-        "license_id": uuid.uuid4(),
+        "school_id": uuid.uuid4(),
         "action": "ASSIGNMENT_COPY",
         "target_type": "Assignment",
         "target_id": uuid.uuid4(),
@@ -127,11 +127,11 @@ class NoForeignKeysTest(TestCase):
     def test_deleting_the_licence_leaves_the_event(self):
         school = School.objects.create(name="Closing School")
         school_id = school.id  # Django clears the pk of a deleted instance
-        event = make_event(license_id=school_id)
+        event = make_event(school_id=school_id)
         school.delete()
         self.assertFalse(School.objects.filter(pk=school_id).exists())
         self.assertTrue(
-            AuditEvent.objects.filter(pk=event.pk, license_id=school_id).exists()
+            AuditEvent.objects.filter(pk=event.pk, school_id=school_id).exists()
         )
 
 
@@ -147,7 +147,7 @@ class IndexesTest(TestCase):
     def test_each_documented_index_exists_on_the_documented_columns(self):
         defs = self.indexes()
         expected = {
-            "audit_lic_time_ix": "(license_id, occurred_at DESC)",
+            "audit_school_time_ix": "(school_id, occurred_at DESC)",
             "audit_actor_time_ix": "(actor_id, occurred_at DESC)",
             "audit_action_time_ix": "(action, occurred_at DESC)",
             "audit_reason_time_ix": "(reason_code, occurred_at DESC)",

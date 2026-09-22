@@ -16,6 +16,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db import DatabaseError, IntegrityError, connection, transaction
 from django.test import RequestFactory, TestCase, TransactionTestCase, override_settings
 
+from AutoGrader.request_context import get_request_id, reset_request_id, set_request_id
 from classrooms.models import School
 from users.models import CustomUser, UserTypes
 
@@ -29,7 +30,7 @@ from .enums import (
     ErrorClass,
     RetentionClass,
 )
-from .metadata import ALLOWED_KEYS
+from .metadata import ALLOWED_KEYS, metadata_allowlist_for
 from .models import AuditEvent
 
 PASSWORD = "pw-12345678"  # nosec  # pragma: allowlist secret
@@ -81,7 +82,7 @@ class WhatOneEventRecordsTest(TestCase):
         self.assertEqual(row.actor_id, self.teacher.id)
         self.assertEqual(row.actor_role, ActorRole.TEACHER)
         self.assertEqual(row.actor_email, "emit.teacher@emit.edu")
-        self.assertEqual(row.license_id, self.school.id)
+        self.assertEqual(row.school_id, self.school.id)
         self.assertEqual(row.target_type, "Assignment")
         self.assertEqual(row.target_id, target)
         self.assertEqual(row.outcome, AuditOutcome.SUCCESS)
@@ -127,14 +128,14 @@ class WhatOneEventRecordsTest(TestCase):
 
     def test_an_individual_teacher_has_no_licence(self):
         individual = make_user("solo@example.com")
-        self.assertIsNone(call(actor=individual).license_id)
+        self.assertIsNone(call(actor=individual).school_id)
 
     def test_an_explicit_licence_and_department_are_recorded(self):
         """A super admin acting on behalf of a licence names it."""
         admin = make_user("root@emit.edu", UserTypes.SUPER_ADMIN)
         licence, department = uuid.uuid4(), uuid.uuid4()
-        event = call(actor=admin, license_id=licence, department_id=department)
-        self.assertEqual(event.license_id, licence)
+        event = call(actor=admin, school_id=licence, department_id=department)
+        self.assertEqual(event.school_id, licence)
         self.assertEqual(event.department_id, department)
 
     def test_the_outcome_and_error_class_are_recorded_for_a_failure(self):
@@ -326,6 +327,44 @@ class TraceIdTest(TestCase):
                 self.assertEqual(call().trace_id, inner)
             self.assertEqual(call().trace_id, outer)
 
+    def test_outside_any_trace_context_the_requests_own_id_is_used(self):
+        """FR-A-03 / NFR-OBS-01: with no explicit trace_context() open, the
+        emitter must still land on the SAME id AutoGrader.request_context
+        already carries across this request and its Celery tasks - not a
+        disconnected random id - so one id reconstructs the whole action."""
+        known = uuid.uuid4()
+        token = set_request_id(known.hex)
+        try:
+            self.assertIsNone(current_trace_id())  # no explicit context open
+            self.assertEqual(call().trace_id, known)
+        finally:
+            reset_request_id(token)
+
+    def test_an_explicit_trace_context_still_wins_over_the_requests_own_id(self):
+        token = set_request_id(uuid.uuid4().hex)
+        try:
+            with trace_context() as joined:
+                self.assertEqual(call().trace_id, joined)
+        finally:
+            reset_request_id(token)
+
+    def test_a_non_uuid_shaped_request_id_is_replaced_not_used(self):
+        """An inbound X-Request-ID is accepted on a broader charset than a
+        UUID for logging (is_valid_request_id) - it must never be assumed to
+        be one here just because request_context accepted it."""
+        token = set_request_id("not-a-uuid-but-valid-for-logging")
+        try:
+            event = call()
+            self.assertIsInstance(event.trace_id, uuid.UUID)
+            self.assertNotEqual(str(event.trace_id), "not-a-uuid-but-valid-for-logging")
+        finally:
+            reset_request_id(token)
+
+    def test_with_no_request_context_and_no_explicit_trace_a_fresh_id_is_minted(self):
+        self.assertIsNone(get_request_id())
+        self.assertIsNone(current_trace_id())
+        self.assertIsInstance(call().trace_id, uuid.UUID)
+
 
 class RetentionClassTest(TestCase):
     def test_an_ordinary_action_is_general(self):
@@ -402,7 +441,7 @@ class RejectedWritesTest(TestCase):
                 self.rejected(reason_code=bad)
 
     def test_a_licence_or_department_that_is_not_a_uuid_is_rejected(self):
-        self.rejected(license_id="nope")
+        self.rejected(school_id="nope")
         self.rejected(department_id="nope")
 
     def test_a_user_of_an_unknown_type_is_rejected(self):
@@ -434,15 +473,30 @@ class RejectedWritesTest(TestCase):
             {"request": object()},
             {"actor": object()},
             {"target_type": object()},
-            {"license_id": object()},
+            {"school_id": object()},
         ):
             with self.subTest(over=over):
                 call(**over)  # must not raise
 
 
 class MetadataAtTheEmitterTest(TestCase):
+    def test_a_key_valid_globally_but_wrong_for_this_action_is_dropped_at_emit(self):
+        """03a_data_model.md 2.1: the allow-list is PER ACTION. `credits` is a
+        real key in the shared pool (CREDIT_TRANSACTION carries it) but is not
+        on ASSIGNMENT_COPY's (call()'s default action) own list - `emit()`
+        itself must apply that narrowing, not just the pure function in
+        isolation."""
+        self.assertIn("credits", ALLOWED_KEYS)
+        self.assertNotIn("credits", metadata_allowlist_for(AuditAction.ASSIGNMENT_COPY))
+        event = call(metadata={"credits": 5})
+        self.assertEqual(event.metadata, {})
+
     def test_an_unknown_metadata_key_is_dropped_but_the_event_is_still_written(self):
-        key = sorted(ALLOWED_KEYS)[0]
+        # A key from ASSIGNMENT_COPY's own allow-list (call()'s default
+        # action) - it must survive, unlike a key that is not even in the
+        # shared pool at all (see the per-action tests in tests_metadata.py
+        # for a key that is in ALLOWED_KEYS but not this action's own list).
+        key = sorted(metadata_allowlist_for(AuditAction.ASSIGNMENT_COPY))[0]
         with self.assertLogs("audit.emitter", level="ERROR") as logs:
             event = call(metadata={key: 1, "student_name": "Ada Lovelace"})
         self.assertEqual(event.metadata, {key: 1})

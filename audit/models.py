@@ -12,7 +12,7 @@ from .enums import ActorRole, AuditOutcome, ErrorClass, RetentionClass
 class AuditEvent(AppendOnlyModel):
     """One row per meaningful user or system action (FR-A-01, BE-A-02).
 
-    NO foreign keys, on purpose. Who acted, under which licence and on what is
+    NO foreign keys, on purpose. Who acted, under which school and on what is
     captured as a VALUE at write time, so deleting a user, school or object can
     never erase or cascade into the record of what happened - an audit log a
     deletion can erase is not an audit log. `CreditLedger` set the precedent.
@@ -37,7 +37,7 @@ class AuditEvent(AppendOnlyModel):
     actor_role = models.CharField(max_length=20, choices=ActorRole.choices)
     actor_email = models.CharField(max_length=254, null=True, blank=True)
 
-    license_id = models.UUIDField(null=True, blank=True)
+    school_id = models.UUIDField(null=True, blank=True)
     department_id = models.UUIDField(null=True, blank=True)
 
     action = models.CharField(max_length=64)
@@ -67,7 +67,7 @@ class AuditEvent(AppendOnlyModel):
     class Meta:
         indexes = [
             models.Index(
-                fields=["license_id", "-occurred_at"], name="audit_lic_time_ix"
+                fields=["school_id", "-occurred_at"], name="audit_school_time_ix"
             ),
             models.Index(
                 fields=["department_id", "-occurred_at"],

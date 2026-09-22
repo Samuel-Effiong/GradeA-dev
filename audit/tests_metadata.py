@@ -8,6 +8,7 @@ send and check that none of them survive.
 
 from django.test import SimpleTestCase
 
+from .enums import AuditAction
 from .metadata import (
     ALLOWED_KEYS,
     MAX_BYTES,
@@ -15,7 +16,10 @@ from .metadata import (
     MAX_KEYS,
     MAX_LIST_ITEMS,
     MAX_STRING,
+    METADATA_ALLOWLIST,
+    metadata_allowlist_for,
     sanitise,
+    sanitise_metadata_for_action,
 )
 
 # Words that mean "this key carries a person's data or their work". No key
@@ -169,3 +173,75 @@ class SanitiseTest(SimpleTestCase):
         copy = dict(given)
         sanitise(given)
         self.assertEqual(given, copy)
+
+
+class PerActionAllowListTest(SimpleTestCase):
+    """03a_data_model.md 2.1: metadata is "enforced by the emitter's
+    allow-list" PER ACTION, not just by the shared key pool above."""
+
+    def test_every_action_has_an_entry(self):
+        """No action silently falls through to an unbounded default - an
+        action with no call site yet gets an explicit empty set, not a
+        missing dict key that `metadata_allowlist_for` happens to paper over."""
+        for action in AuditAction.values:
+            with self.subTest(action=action):
+                self.assertIn(action, METADATA_ALLOWLIST)
+
+    def test_every_per_action_key_is_also_in_the_shared_pool(self):
+        """The per-action list can only narrow ALLOWED_KEYS, never widen it -
+        a key cannot be opened up for one action while skipping the generic
+        shape/PII rules `sanitise` enforces on every key."""
+        for action, keys in METADATA_ALLOWLIST.items():
+            for key in keys:
+                with self.subTest(action=action, key=key):
+                    self.assertIn(key, ALLOWED_KEYS)
+
+    def test_metadata_allowlist_for_an_unmapped_action_is_empty(self):
+        self.assertEqual(metadata_allowlist_for("NOT_A_REAL_ACTION"), frozenset())
+
+    def test_a_key_valid_globally_but_not_for_this_action_is_dropped(self):
+        """`credits` is a real, PII-safe key (CREDIT_TRANSACTION carries it) -
+        but it says nothing meaningful about a login, so AUTH_LOGIN must not
+        accept it even though `sanitise` alone would let it through."""
+        self.assertIn("credits", ALLOWED_KEYS)
+        self.assertNotIn("credits", METADATA_ALLOWLIST[AuditAction.AUTH_LOGIN])
+        clean, problems = sanitise_metadata_for_action(
+            AuditAction.AUTH_LOGIN, {"credits": 5}
+        )
+        self.assertEqual(clean, {})
+        self.assertEqual(problems, [("credits", "not allowed for this action")])
+
+    def test_a_key_valid_for_this_action_passes_through(self):
+        clean, problems = sanitise_metadata_for_action(
+            AuditAction.CREDIT_TRANSACTION, {"credits": 5, "ledger_type": "DEBIT"}
+        )
+        self.assertEqual(clean, {"credits": 5, "ledger_type": "DEBIT"})
+        self.assertEqual(problems, [])
+
+    def test_an_action_with_no_call_site_yet_accepts_no_metadata(self):
+        self.assertEqual(METADATA_ALLOWLIST[AuditAction.LESSON_CREATE], frozenset())
+        clean, problems = sanitise_metadata_for_action(
+            AuditAction.LESSON_CREATE, {"course_id": "x"}
+        )
+        self.assertEqual(clean, {})
+        self.assertEqual(problems, [("course_id", "not allowed for this action")])
+
+    def test_a_key_that_fails_the_generic_rules_is_dropped_before_the_per_action_check(
+        self,
+    ):
+        """A malformed value never gets a free pass just because its key is on
+        an action's allow-list."""
+        self.assertIn("credits", METADATA_ALLOWLIST[AuditAction.CREDIT_TRANSACTION])
+        clean, problems = sanitise_metadata_for_action(
+            AuditAction.CREDIT_TRANSACTION, {"credits": "x" * (MAX_STRING + 1)}
+        )
+        self.assertEqual(clean, {})
+        self.assertEqual(problems, [("credits", "string too long")])
+
+    def test_none_and_empty_mean_no_metadata_and_no_problem(self):
+        self.assertEqual(
+            sanitise_metadata_for_action(AuditAction.AUTH_LOGIN, None), ({}, [])
+        )
+        self.assertEqual(
+            sanitise_metadata_for_action(AuditAction.AUTH_LOGIN, {}), ({}, [])
+        )

@@ -6,10 +6,15 @@ retrying frontend shares one id), so any user could send another action's id
 and land in its trail. The audit trace id is therefore a separate value, minted
 here by the server. The client's id is stored beside it as untrusted context.
 
-Outside any `trace_context()` each event gets a trace id of its own, so events
-are never grouped by accident. Joining one trace across a web request, its
-Celery tasks and the model calls is wired in a later task; the value passed to
-`trace_context()` must always come from the server, never from a request header.
+Outside any `trace_context()`, `audit.emitter._resolve_trace_id()` falls back
+to the id `AutoGrader.request_context` already propagates across a web request
+and every Celery hop it dispatches (confirmed wired end to end - see that
+module), and only mints a fresh id if neither is available. So `trace_context()`
+itself is for an explicit, deliberate grouping (tests, and any future caller
+that wants to join a trace it doesn't otherwise have) - most real call sites
+need it for neither; the request-scoped id already applies automatically. The
+value passed to `trace_context()` must always come from the server, never from
+a request header.
 """
 
 import uuid
