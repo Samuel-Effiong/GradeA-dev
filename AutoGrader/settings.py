@@ -1388,3 +1388,34 @@ BENCHMARK_ARCHIVE_ENABLED = env.bool(
 STRIPE_LIVE_QA_EMAIL_DOMAIN = env.str(
     "STRIPE_LIVE_QA_EMAIL_DOMAIN", default="stripe-live-qa.invalid"
 )
+
+# ── tiktoken cache (ai_processor token counting: services.py, the
+# extraction benchmark's chunk-threshold guard) ───────────────────────────
+#
+# tiktoken has no bundled BPE file; tiktoken.get_encoding("cl100k_base")
+# fetches it over HTTPS on first use and caches it by
+# sha1(blob_url).hexdigest() under TIKTOKEN_CACHE_DIR (default: a
+# tempdir shared by whatever else runs on the box, and gone the next
+# time /tmp is cleared). Two problems follow from the default: a
+# sandbox/CI runner with no outbound HTTPS to
+# openaipublic.blob.core.windows.net fails every token-counting test, and
+# even where the fetch works, every fresh /tmp repeats it.
+#
+# This points TIKTOKEN_CACHE_DIR at a directory inside the repo
+# (ai_processor/tiktoken_cache/) that carries a COMMITTED copy of the
+# cache file, named by tiktoken's own cache_key convention
+# (sha1(blob_url).hexdigest() -- see tiktoken.load.read_file_cached),
+# so token counting works with no outbound network at all, on any
+# machine that has the repo. It does not disable the live fetch: if a
+# future encoding's cache file isn't vendored yet, tiktoken downloads
+# and writes it into this same directory, same as it would anywhere
+# else -- it is just no longer required to. See
+# ai_processor/tiktoken_cache/README.md for what is vendored, why, and
+# how to verify or add to it.
+# TIKTOKEN_CACHE_DIR only gets a value if nothing else already set one,
+# so a session that deliberately sets its own (e.g. TIKTOKEN_CACHE_DIR
+# or DATA_GYM_CACHE_DIR in its own env) is left alone.
+TIKTOKEN_CACHE_DIR = os.environ.get("TIKTOKEN_CACHE_DIR") or str(
+    BASE_DIR / "ai_processor" / "tiktoken_cache"
+)
+os.environ.setdefault("TIKTOKEN_CACHE_DIR", TIKTOKEN_CACHE_DIR)
