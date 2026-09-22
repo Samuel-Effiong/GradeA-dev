@@ -1,0 +1,50 @@
+"""Smoke-run settings shim (worker-0a). NOT part of the repo.
+
+Everything real except the three things that would leave the machine or cost
+money: the AI provider (routed to a local fake), file storage (local disk, not
+Cloudinary) and tiktoken's encoding download (blocked by the sandbox network).
+Refuses to start unless it is pointed at the smoke database and Redis DB 5.
+"""
+import os
+
+from AutoGrader.settings import *  # noqa: F401,F403
+
+_db = DATABASES["default"]["NAME"]  # noqa: F405
+assert _db == "gap_smoke_0a_a7d667c", f"refusing to run against DB {_db!r}"
+assert CACHES["default"]["LOCATION"].rstrip("/").endswith("/5"), CACHES["default"]["LOCATION"]  # noqa: F405
+assert CELERY_BROKER_URL.rstrip("/").endswith("/5"), "broker must be Redis DB 5"  # noqa: F405
+
+STORAGES = {  # noqa: F405
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
+MEDIA_ROOT = os.environ["SMOKE_MEDIA_ROOT"]
+BENCHMARK_ARCHIVE_ENABLED = False
+
+# Route every OpenAI-SDK client (ai_processor builds one in AIProcessor.__init__)
+# to the local fake provider, whatever base_url the code asks for.
+import openai  # noqa: E402
+
+_RealOpenAI = openai.OpenAI
+
+
+class _FakeRoutedOpenAI(_RealOpenAI):
+    def __init__(self, *args, **kwargs):
+        kwargs["base_url"] = os.environ["SMOKE_FAKE_PROVIDER_URL"]
+        kwargs["api_key"] = "sk-smoke-dummy"
+        super().__init__(*args, **kwargs)
+
+
+openai.OpenAI = _FakeRoutedOpenAI
+
+# tiktoken cannot download cl100k_base here (SSL EOF). Only .encode() is used
+# by the app; an approximate stand-in keeps the estimate path running.
+import tiktoken  # noqa: E402
+
+
+class _ApproxEncoding:
+    def encode(self, text, **kwargs):
+        return list(range(max(1, len(text) // 4)))
+
+
+tiktoken.get_encoding = lambda name: _ApproxEncoding()

@@ -1,0 +1,10 @@
+smoke-ta@smoke.test | remaining raw credits: 4998500
+   ledger ('GRANT', 5000000, 'Free trial activation for Standard Grader')
+   ledger ('CONSUME', -1500, 'Consumption of 1500 credits for Assignment Extraction (extract_assignment: 9ec0f8cd-948d-4cc7-b7a0-2fce8898bab6)')
+   ledger ('REFUND', 1500, 'Refund for assignment upload failed (9ec0f8cd-948d-4cc7-b7a0-2fce8898bab6)')
+   ledger ('CONSUME', -1500, 'Consumption of 1500 credits for Assignment Extraction (extract_assignment: a540838b-7e7b-42e1-999e-a667914774f1)')
+   ledger ('REFUND', 1500, 'Refund for assignment upload failed (a540838b-7e7b-42e1-999e-a667914774f1)')
+   ledger ('CONSUME', -1500, 'Consumption of 1500 credits for Assignment Extraction (extract_assignment: 6a883212-0ed6-4354-a41a-c767ac38563e)')
+   usage logs: [('Assignment Extraction', 1500), ('Assignment Extraction', 1500), ('Assignment Extraction', 1500)]
+smoke-tc@smoke.test | remaining raw credits: 0
+   usage logs: []

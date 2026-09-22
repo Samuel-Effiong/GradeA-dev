@@ -1,0 +1,37 @@
+"""Fake OpenRouter for the smoke run: answers /chat/completions with canned JSON
+and logs every request, so the log doubles as proof of what would have been sent."""
+import json, sys, time
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+LOG = sys.argv[2]
+ASSIGNMENT = {
+    "needs_clarification": False, "title": "Smoke Quiz: Fractions",
+    "instructions": "Answer all questions.", "total_points": 10, "question_count": 2,
+    "assignment_type": "SHORT-ANSWER", "extraction_confidence": 95, "potential_issues": [],
+    "questions": [
+        {"question_number": 1, "question_text": "What is 1/2 + 1/4?", "question_type": "SHORT-ANSWER",
+         "points": 5, "model_answer": "3/4", "rubric": [{"level": "Full", "points": 5, "description": "Correct sum"}], "options": []},
+        {"question_number": 2, "question_text": "Simplify 4/8.", "question_type": "SHORT-ANSWER",
+         "points": 5, "model_answer": "1/2", "rubric": [{"level": "Full", "points": 5, "description": "Correct simplification"}], "options": []},
+    ],
+}
+
+class H(BaseHTTPRequestHandler):
+    def log_message(self, *a): pass
+    def do_POST(self):
+        n = int(self.headers.get("content-length", 0)); body = self.rfile.read(n)
+        try: req = json.loads(body)
+        except Exception: req = {}
+        with open(LOG, "a") as f:
+            f.write(json.dumps({"t": time.time(), "path": self.path, "model": req.get("model"),
+                                "n_messages": len(req.get("messages", []))}) + "\n")
+        out = {"id": "smoke-1", "object": "chat.completion", "created": int(time.time()),
+               "model": req.get("model", "fake"),
+               "choices": [{"index": 0, "finish_reason": "stop",
+                            "message": {"role": "assistant", "content": json.dumps(ASSIGNMENT)}}],
+               "usage": {"prompt_tokens": 1200, "completion_tokens": 300, "total_tokens": 1500}}
+        b = json.dumps(out).encode()
+        self.send_response(200); self.send_header("content-type", "application/json")
+        self.send_header("content-length", str(len(b))); self.end_headers(); self.wfile.write(b)
+
+ThreadingHTTPServer(("127.0.0.1", int(sys.argv[1])), H).serve_forever()
