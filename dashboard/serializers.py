@@ -519,8 +519,9 @@ class CourseOverviewItemSerializer(serializers.Serializer):
     name = serializers.CharField(read_only=True)
     teachers = serializers.IntegerField(read_only=True)
     avg_grade = serializers.FloatField(
-        allow_null=True,
         read_only=True,
+        help_text="0 when no non-withdrawn enrollment has a graded "
+        "final_grade yet (never null).",
     )
 
 
@@ -714,7 +715,11 @@ class CoursePerformanceDashboardSerializer(serializers.ModelSerializer):
     teacher = serializers.CharField(source="teacher.get_full_name")
     students = serializers.SerializerMethodField()
     assignments = serializers.IntegerField(source="assignment_count")
-    avg_grade = serializers.FloatField(allow_null=True)
+    avg_grade = serializers.FloatField(
+        help_text="0 when the course has no graded active enrollment yet "
+        "(never null - check `students.total` to tell 'no data' from "
+        "'graded at 0%')."
+    )
     distribution = serializers.SerializerMethodField()
 
     class Meta:
