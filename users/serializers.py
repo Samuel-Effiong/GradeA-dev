@@ -6,6 +6,8 @@ from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
+from audit.emitter import emit
+from audit.enums import AuditAction, AuditOutcome, ErrorClass
 from AutoGrader.error_messages import describe_user_error
 from billing.serializers import CreditWalletSerializer
 from billing.services import AnalyticsService
@@ -410,15 +412,40 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         # distinction so an unverified account trying its correct password
         # doesn't get penalized as a brute-force guess.
         user = CustomUser.objects.filter(email=email).first() if email else None
+        request = self.context.get("request")
 
         if user and user.is_account_locked():
+            emit(
+                AuditAction.AUTH_LOGIN,
+                actor=user,
+                request=request,
+                target_type="CustomUser",
+                target_id=user.id,
+                outcome=AuditOutcome.DENIED,
+                error_class=ErrorClass.USER,
+                reason_code="ACCOUNT_LOCKED",
+            )
             raise AuthenticationFailed(self.LOCKED_MESSAGE, "account_locked")
 
         try:
             data = super().validate(attrs)
         except AuthenticationFailed:
-            if user and password and not user.check_password(password):
+            wrong_password = False
+            if user is not None and password and not user.check_password(password):
+                wrong_password = True
                 user.register_failed_login()
+            emit(
+                AuditAction.AUTH_LOGIN,
+                actor=user,
+                request=request,
+                target_type="CustomUser",
+                target_id=user.id if user else None,
+                outcome=AuditOutcome.FAILURE,
+                error_class=ErrorClass.USER,
+                reason_code=(
+                    "WRONG_PASSWORD" if wrong_password else "INVALID_CREDENTIALS"
+                ),
+            )
             raise
 
         if user:
@@ -430,6 +457,15 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         # Track user activity (distinct login days)
         AnalyticsService.track_activity(self.user)
+
+        emit(
+            AuditAction.AUTH_LOGIN,
+            actor=self.user,
+            request=request,
+            target_type="CustomUser",
+            target_id=self.user.id,
+            outcome=AuditOutcome.SUCCESS,
+        )
 
         return data
 

@@ -56,6 +56,8 @@ from rest_framework_simplejwt.views import (
 )
 from rest_framework_simplejwt.views import TokenRefreshView as BaseTokenRefreshView
 
+from audit.emitter import emit
+from audit.enums import AuditAction, AuditOutcome, ErrorClass
 from AutoGrader.cache_generation import SCOPE_USER, versioned_key
 from AutoGrader.dispatch import safe_delay
 from AutoGrader.error_messages import describe_user_error
@@ -1073,9 +1075,38 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             token = RefreshToken(refresh_token)
             token.blacklist()
         except KeyError:
+            emit(
+                AuditAction.AUTH_LOGOUT,
+                actor=request.user,
+                request=request,
+                target_type="CustomUser",
+                target_id=request.user.id,
+                outcome=AuditOutcome.FAILURE,
+                error_class=ErrorClass.VALIDATION,
+                reason_code="REFRESH_TOKEN_MISSING",
+            )
             raise ParseError("Refresh token is required.") from KeyError
         except TokenError:
+            emit(
+                AuditAction.AUTH_LOGOUT,
+                actor=request.user,
+                request=request,
+                target_type="CustomUser",
+                target_id=request.user.id,
+                outcome=AuditOutcome.FAILURE,
+                error_class=ErrorClass.USER,
+                reason_code="REFRESH_TOKEN_INVALID",
+            )
             raise ParseError("Invalid or expired token") from TokenError
+
+        emit(
+            AuditAction.AUTH_LOGOUT,
+            actor=request.user,
+            request=request,
+            target_type="CustomUser",
+            target_id=request.user.id,
+            outcome=AuditOutcome.SUCCESS,
+        )
 
         return Response(status=status.HTTP_205_RESET_CONTENT)
 
