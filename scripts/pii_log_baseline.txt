@@ -1,0 +1,29 @@
+# Pre-existing scripts/check_no_pii_in_logs.py violations, grandfathered
+# in on the PR that introduced the check (task/epic-a-pii-cleanup,
+# 2026-09-22). NOT a permanent exemption — a burn-down list, matching this
+# repo's existing flake8-eradicate (E800) per-file convention. See
+# docs/HARDENING_BACKLOG.md for the follow-up item and
+# docs/phase2/architecture/04_epic_a_implementation_plan.md §0.5a for the
+# 11 sites that were confirmed leaks and fixed instead of baselined.
+#
+# All ~95 instances below log a school-side actor's email (teacher, admin,
+# or subscription owner — billing/license_service.py, billing/services.py,
+# billing/stripe_service.py, billing/tasks.py, billing/access_control.py,
+# billing/views.py, billing/qa_time_travel.py, billing/management/commands/
+# backfill.py) or a newly-created account's email at signal time
+# (users/signals.py), mostly at INFO. None are students. Independently
+# verified as true positives (not a scanner false match), not fixed in this
+# PR because the change would touch billing's active hot paths and is a
+# separate-scope hardening item, not a scoped fix of the 11 confirmed leaks
+# this PR was assigned.
+#
+# Remove a file from this list once every violation inside it is fixed.
+billing/access_control.py
+billing/license_service.py
+billing/management/commands/backfill.py
+billing/qa_time_travel.py
+billing/services.py
+billing/stripe_service.py
+billing/tasks.py
+billing/views.py
+users/signals.py

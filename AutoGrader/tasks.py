@@ -45,24 +45,28 @@ def _send_email_impl(
 
         try:
             mail.send(fail_silently=False)
-            logger.info("Email sent successfully to %s", recipient_list)
-            return f"Email sent successfully to {recipient_list}"
+            logger.info(
+                "Email sent successfully to %d recipient(s)", len(recipient_list)
+            )
+            return f"Email sent successfully to {len(recipient_list)} recipient(s)"
         except Exception as exc:
             if not message and not html_message:
                 # Nothing to fall back to: this send relied entirely on
                 # template_id/merge_data, so a plain send_mail() would have
                 # no body and fail with its own (confusing) error.
                 logger.error(
-                    "Templated email send failed for %s and no plain-text "
-                    "body was provided, so no fallback is possible. Error: %s",
-                    recipient_list,
+                    "Templated email send failed for %d recipient(s) and no "
+                    "plain-text body was provided, so no fallback is "
+                    "possible. Error: %s",
+                    len(recipient_list),
                     exc,
                 )
                 raise
 
             logger.warning(
-                "Templated email send failed for %s, falling back to plain send_mail. Error: %s",
-                recipient_list,
+                "Templated email send failed for %d recipient(s), falling "
+                "back to plain send_mail. Error: %s",
+                len(recipient_list),
                 exc,
             )
             send_mail(
@@ -73,7 +77,10 @@ def _send_email_impl(
                 html_message=html_message,
                 fail_silently=False,
             )
-            return f"Fallback plain email sent successfully to {recipient_list}"
+            return (
+                f"Fallback plain email sent successfully to "
+                f"{len(recipient_list)} recipient(s)"
+            )
     except Exception as exc:
         logger.error("Error sending email: %s", exc)
         raise

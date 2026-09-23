@@ -741,12 +741,13 @@ def _send_school_admin_invitation_email(user, school):
     }
 
     user_email = user.email
-    school_name = school.name
+    user_id = user.id
+    school_id = school.id
 
     def _dispatch():
         try:
             send_email_task.delay(
-                subject=f"You've been added as the admin for {school_name}",
+                subject=f"You've been added as the admin for {school.name}",
                 message="",
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[user_email],
@@ -756,9 +757,9 @@ def _send_school_admin_invitation_email(user, school):
             )
         except Exception:
             logger.exception(
-                "Failed to queue school admin invitation email to %s for school %s.",
-                user_email,
-                school_name,
+                "Failed to queue school admin invitation email to user %s for school %s.",
+                user_id,
+                school_id,
             )
 
     transaction.on_commit(_dispatch)

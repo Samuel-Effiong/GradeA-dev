@@ -239,11 +239,11 @@ def create_default_settings_and_wallet(sender, instance, created, **kwargs):
 
     try:
         Settings.objects.get_or_create(user=user)
-        logger.debug("Created Settings for user %s", user.email)
+        logger.debug("Created Settings for user %s", user.id)
     except Exception as exc:
         logger.error(
             "Failed to create Settings for user %s: %s",
-            user.email,
+            user.id,
             str(exc),
             exc_info=True,
         )
@@ -252,11 +252,11 @@ def create_default_settings_and_wallet(sender, instance, created, **kwargs):
 
     try:
         CreditWallet.objects.get_or_create(user=user)
-        logger.debug("Created CreditWallet for user %s", user.email)
+        logger.debug("Created CreditWallet for user %s", user.id)
     except Exception as exc:
         logger.error(
             "Failed to create CreditWallet for user %s: %s",
-            user.email,
+            user.id,
             str(exc),
             exc_info=True,
         )
@@ -264,7 +264,7 @@ def create_default_settings_and_wallet(sender, instance, created, **kwargs):
 
     # AUTO-ACTIVATE FREE TRIAL (teacher-only, non-license users)
 
-    logger.debug("Checking if user %s needs trial activation", user.email)
+    logger.debug("Checking if user %s needs trial activation", user.id)
 
     # Check if user is a teacher (beta-eligible)
     if not user.is_beta_eligible():

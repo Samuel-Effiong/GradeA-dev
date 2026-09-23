@@ -337,7 +337,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
                     except Exception:
                         logger.exception(
                             "Registration email dispatch failed for user %s",
-                            getattr(user, "email", None),
+                            user.id,
                         )
 
                 return user

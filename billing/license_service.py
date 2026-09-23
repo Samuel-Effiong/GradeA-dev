@@ -1336,7 +1336,7 @@ class LicenseSubscriptionService:
         # 3. Ensure teacher's CreditWallet exists
         wallet, wallet_created = CreditWallet.objects.get_or_create(user=teacher)
         if wallet_created:
-            logger.info("Created CreditWallet for teacher %s", teacher.email)
+            logger.info("Created CreditWallet for teacher %s", teacher.id)
 
         max_seats = license_sub.max_seats
 

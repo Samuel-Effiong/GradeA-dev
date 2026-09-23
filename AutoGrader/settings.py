@@ -149,6 +149,8 @@ if SENTRY_DSN and ENVIRONMENT in ("prod", "dev"):
         from sentry_sdk.integrations.django import DjangoIntegration
         from sentry_sdk.integrations.logging import LoggingIntegration
 
+        from AutoGrader.sentry_scrubbing import scrub_pii_before_send
+
         sentry_sdk.init(
             dsn=SENTRY_DSN,
             environment=ENVIRONMENT,
@@ -168,6 +170,14 @@ if SENTRY_DSN and ENVIRONMENT in ("prod", "dev"):
             # These carry student work, grades, and billing identifiers.
             # Keep them out of the error reports.
             send_default_pii=False,
+            # send_default_pii=False only suppresses Sentry's *automatic*
+            # user/request context - it does not touch the string content
+            # of a log message, and LoggingIntegration above turns every
+            # logger.error/.exception call into an event. This is the
+            # actual PII gate on message/exception text (FR-A-04, plan
+            # §0.5a item 3) - defense-in-depth alongside the call-site
+            # fixes and the lint rule, not a replacement for either.
+            before_send=scrub_pii_before_send,
             # Set profile_session_sample_rate to 1.0 to profile 100%
             # of profile sessions.
             profile_session_sample_rate=1.0,
