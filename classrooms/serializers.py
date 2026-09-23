@@ -721,7 +721,7 @@ def _send_school_admin_invitation_email(user, school):
     The admin has no usable password yet; the email links to a registration
     page where they set their own password using the activation token.
     """
-    frontend_domain = settings.FRONTEND_DOMAIN
+    frontend_domain = settings.SCHOOL_ADMIN_FRONTEND_DOMAIN
     activation_url = (
         f"https://{frontend_domain}/register/school-admin"
         f"?email={user.email}&token={user.activation_token}"
