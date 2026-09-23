@@ -1251,6 +1251,16 @@ if "test" in sys.argv:
         "global_keyprefix": f"{_TEST_REDIS_PREFIX}:",
     }
 
+    # The real hasher (PBKDF2, ~100ms/hash) is deliberately slow so a
+    # stolen password database resists cracking - a property no test
+    # needs. create_user() runs 480+ times across the suite's fixture
+    # setup; at production cost that alone is minutes of wall time spent
+    # proving nothing about the code under test. A couple of test files
+    # already override this locally (users/tests_login_lockout.py,
+    # docs/evidence/refusal_handling/gate6/test_refusal_handling_scale.py)
+    # - this makes it the default everywhere instead of opt-in per file.
+    PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+
 
 # django-redis defaults to SCAN COUNT=10, i.e. one network round trip per
 # ~10 keys when delete_pattern walks the keyspace. Signal handlers call
