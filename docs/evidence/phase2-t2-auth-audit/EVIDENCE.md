@@ -107,10 +107,12 @@ branch, matching plan §6 and the outcome/error_class/reason_code vocabulary
 from `04_epic_a_implementation_plan.md`. No regressions anywhere in the
 codebase from this change.
 
-Post-commit sha256 (from `git show dbc2f50:<path>`, not the working copy):
+Post-commit sha256 (from `git show 22a6016:<path>`, not the working copy —
+pre-commit hooks can rewrite a file after it's written, so a pre-commit
+hash is not evidence of what actually landed):
 
 ```text
-$SHA_SERIALIZERS  users/serializers.py
-$SHA_VIEWS  users/views.py
-$SHA_TESTS  users/tests_auth_audit_events.py
+98a7e1f26825ea71d0ff4fff8a6037c9394368964914290fdcd82cc5d916f023  users/serializers.py
+9bf0cf251baae9b1606fad70b1f18e1bf1994186f54df0838e72ee0322080b04  users/views.py
+6d7f11344cbf0e205176a1bdfaa3c745cde7e262abefe70c0e6ba2d1b518c512  users/tests_auth_audit_events.py
 ```
