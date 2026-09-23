@@ -194,5 +194,11 @@ Post-commit sha256 (from `git show 52b1f2b:<path>`, not the working copy —
 pre-commit hooks can rewrite a file after it's written):
 
 ```text
-PLACEHOLDER
+0c679127899eda34c9d271deb6d742d6aa0c5d5a33c30040395606a3c8a95bd7  billing/license_service.py
+4d5c93526d88f80f631afabceb8c9b0212bf6cf4e3bf47a01095b7de405e2d8c  users/authentication.py
+cfb9c2e6c6bd7974d5f07e28d40cd152a0b43b1ee2377a623ff04998bb06e45d  AutoGrader/settings.py
+868bce09e62827301e60127665564620965704df6470b618c10ed6b3cf0ba117  users/views.py
+fa44132fb7139efd1d6bd317154a8dcb8d5a572c4f8bdb8bd481627837019cad  users/models.py
+91013ce5da990abf24cfe8b5becb7ada656ebe99942a5a85f7b83fa5cf8c3ec6  billing/tests/test_license_service.py
+ca344be1714a8eed500f8291a86116072e30d84fd53b7d2c6c16cc26233a8234  users/tests_forced_password_change.py
 ```
