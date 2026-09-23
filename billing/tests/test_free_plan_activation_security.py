@@ -1303,7 +1303,14 @@ class ActivationFailureRecoveryTests(PlanCatalogMixin, APITestCase):
         """The only Stripe-calling path this change touches is select-plan,
         and the new validation runs BEFORE any Stripe call. Injected here at
         the call itself: a timeout must leave the caller's subscription and
-        credits exactly as they were."""
+        credits exactly as they were.
+
+        get_or_create_customer is mocked too (not just Session.create):
+        a fresh teacher's wallet has no stripe_customer_id yet, so without
+        this the "customer" step makes a REAL, unmocked stripe.Customer.create
+        call — which is exactly what a placeholder CI Stripe key can never
+        satisfy, and is not what this test is about anyway (it targets the
+        checkout-session timeout specifically, not customer creation)."""
         teacher = self.make_user(UserTypes.TEACHER)
         before = snapshot(teacher)
         client = APIClient()
@@ -1311,6 +1318,9 @@ class ActivationFailureRecoveryTests(PlanCatalogMixin, APITestCase):
         client.raise_request_exception = False
 
         with mock.patch(
+            "billing.stripe_service.StripeCustomerService.get_or_create_customer",
+            return_value="cus_test",
+        ), mock.patch(
             "billing.stripe_service.stripe.checkout.Session.create",
             side_effect=TimeoutError("stripe timeout"),
         ) as session_create:
