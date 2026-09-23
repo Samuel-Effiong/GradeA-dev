@@ -1143,8 +1143,18 @@ class LicenseSubscriptionService:
                     user.activation_expires = timezone.now() + ACTIVATION_TOKEN_VALIDITY
                     user.save(update_fields=["activation_token", "activation_expires"])
 
+                # A fresh password every resend: the previous one's plaintext
+                # can't be recovered from the stored hash to put in this
+                # email, so there's nothing to reuse.
+                generated_password = (
+                    LicenseSubscriptionService._generate_teacher_password(user)
+                )
+                user.set_password(generated_password)
+                user.must_change_password = True
+                user.save(update_fields=["password", "must_change_password"])
+
                 LicenseSubscriptionService._send_teacher_invitation(
-                    user, school, admin_user
+                    user, school, admin_user, generated_password
                 )
 
             return user
@@ -1163,25 +1173,55 @@ class LicenseSubscriptionService:
                 activation_expires=timezone.now() + ACTIVATION_TOKEN_VALIDITY,
             )
 
-            # Set a dummy unusable password (they will set it via activation)
-            user.set_unusable_password()
+            # Generate a real password so the teacher can log in (and so the
+            # forced-change flow below has something to force them off of),
+            # instead of set_unusable_password() leaving them with no way to
+            # ever authenticate.
+            generated_password = LicenseSubscriptionService._generate_teacher_password(
+                user
+            )
+            user.set_password(generated_password)
+            user.must_change_password = True
             user.save()
         finally:
             clear_license_invitation_context()
 
         # Send invitation email
-        LicenseSubscriptionService._send_teacher_invitation(user, school, admin_user)
+        LicenseSubscriptionService._send_teacher_invitation(
+            user, school, admin_user, generated_password
+        )
         return user
 
     @staticmethod
+    def _generate_teacher_password(user: CustomUser) -> str:
+        """A random password meeting AUTH_PASSWORD_VALIDATORS, never logged."""
+        from django.contrib.auth.password_validation import validate_password
+        from django.utils.crypto import get_random_string
+
+        alphabet = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%^&*"
+        for _ in range(10):
+            candidate = get_random_string(20, allowed_chars=alphabet)
+            try:
+                validate_password(candidate, user=user)
+            except Exception:
+                continue
+            return candidate
+        # Astronomically unlikely with a 20-char/66-symbol alphabet, but
+        # never fall through to a weaker password.
+        raise RuntimeError("Failed to generate a password passing validation.")
+
+    @staticmethod
     def _send_teacher_invitation(
-        teacher: CustomUser, school: School, admin_user: CustomUser
+        teacher: CustomUser,
+        school: School,
+        admin_user: CustomUser,
+        generated_password: str,
     ) -> None:
 
         frontend_domain = settings.FRONTEND_DOMAIN
         activation_link = (
-            f"https://{frontend_domain}/register/teacher?"
-            f"token={teacher.activation_token}&email={teacher.email}"
+            f"https://{frontend_domain}/verify-email?"
+            f"email={teacher.email}&token={teacher.activation_token}"
         )
 
         merge_data = {
@@ -1189,7 +1229,10 @@ class LicenseSubscriptionService:
             "name": teacher.get_full_name() or "Teacher",
             "top_content": (
                 f"{admin_user.get_full_name()} has invited you to teach at {school.name}.\n\n"
-                "Complete your registration to set up your password and start using Grade A+."
+                "Complete your registration below, then log in with the "
+                f"temporary password: {generated_password}\n\n"
+                "You'll be asked to choose your own password the first time "
+                "you log in."
             ),
             "bottom_content": "This invitation link expires in 24 hours.",
             "activation_url": activation_link,
