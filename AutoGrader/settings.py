@@ -1250,6 +1250,18 @@ if "test" in sys.argv:
     CELERY_RESULT_BACKEND_TRANSPORT_OPTIONS = {
         "global_keyprefix": f"{_TEST_REDIS_PREFIX}:",
     }
+    # The two `global_keyprefix` values above are baked in right here, in
+    # THIS process - fine for a normal test run, but under
+    # `manage.py test --parallel`, every forked worker inherits this exact
+    # string via copy-on-write, so all of them would use the same prefix
+    # (AutoGrader/test_broker.py has the full account, including how this
+    # was actually reproduced and fixed). These two settings swap in a
+    # broker Transport and a result Backend that resolve the prefix live,
+    # per-process, instead of trusting the value baked in above.
+    CELERY_BROKER_TRANSPORT = "AutoGrader.test_broker:PrefixScopedRedisTransport"
+    CELERY_RESULT_BACKEND = (
+        f"AutoGrader.test_broker.PrefixScopedRedisBackend+{CELERY_RESULT_BACKEND}"
+    )
 
     # The real hasher (PBKDF2, ~100ms/hash) is deliberately slow so a
     # stolen password database resists cracking - a property no test
