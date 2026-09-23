@@ -11,6 +11,14 @@
 # no guarantee at all.
 
 [run]
+# `manage.py test --parallel` runs actual tests in forked worker
+# processes, not the process `coverage run` started - without this,
+# coverage only sees whatever the parent dispatcher itself executes (a
+# small fraction of the suite), reporting real code as uncovered. This
+# tells coverage to also start measurement in each forked child; the
+# workflow then runs `coverage combine` to merge every worker's data file
+# into one before `coverage report` reads it.
+concurrency = multiprocessing
 source =
     ai_processor
     assignments
