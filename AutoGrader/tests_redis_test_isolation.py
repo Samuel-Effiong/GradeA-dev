@@ -397,16 +397,19 @@ class CeleryBrokerIsolationTests(SimpleTestCase):
         from AutoGrader.celery import app as celery_app
 
         expected = f"{test_key_prefix()}:"
-        self.assertEqual(
-            settings.CELERY_BROKER_TRANSPORT_OPTIONS["global_keyprefix"], expected
-        )
-        self.assertEqual(
-            celery_app.conf.broker_transport_options["global_keyprefix"], expected
-        )
-        self.assertEqual(
-            celery_app.conf.result_backend_transport_options["global_keyprefix"],
-            expected,
-        )
+
+        # NOT settings.CELERY_BROKER_TRANSPORT_OPTIONS or
+        # celery_app.conf.*_transport_options["global_keyprefix"] - those
+        # dicts are computed exactly once, when settings.py is imported, so
+        # under `manage.py test --parallel` every forked worker inherits
+        # the PARENT's value there, unchanged (see AutoGrader/test_broker.py
+        # for why, and how the fix below avoids depending on it). What
+        # actually forms every Redis key is the live channel/backend
+        # checked below, which recomputes the prefix fresh on every access
+        # - correct for whichever process is really running this test,
+        # forked or not.
+        with celery_app.connection_for_write() as conn:
+            self.assertEqual(conn.default_channel.global_keyprefix, expected)
         self.assertTrue(
             celery_app.backend.task_keyprefix.startswith(expected.encode()),
             "the result backend did not apply the per-process prefix to its keys",
@@ -534,6 +537,22 @@ class ParallelForkIsolationTests(SimpleTestCase):
     access, rather than baking it in once, so it is correct for whichever
     process ends up using it however that process came to exist.
     """
+
+    def setUp(self):
+        # Django's OWN --parallel workers are themselves
+        # multiprocessing.Pool workers, which Python marks daemonic - and
+        # a daemonic process is forbidden from starting its own child
+        # processes ("daemonic processes are not allowed to have
+        # children"). These two tests fork children to PROVE --parallel's
+        # worker-startup sequence is safe; they cannot also run nested
+        # inside one of those already-forked workers. Skipped there, not
+        # weakened: a non-parallel run (plain `manage.py test`, or CI
+        # without --parallel) always exercises them for real.
+        if multiprocessing.current_process().daemon:
+            self.skipTest(
+                "cannot fork from inside a --parallel worker (itself "
+                "daemonic); run without --parallel to exercise this test"
+            )
 
     def test_a_forked_workers_cache_clear_cannot_reach_a_sibling(self):
         ctx = multiprocessing.get_context("fork")
