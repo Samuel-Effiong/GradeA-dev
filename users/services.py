@@ -16,15 +16,34 @@ logger = logging.getLogger(__name__)
 
 
 def send_user_activation_email(user):
+    # Local import to dodge a circular import: users.models imports
+    # OTPManager from this module at module load time.
+    from users.models import UserTypes
+
+    if user.user_type == UserTypes.SCHOOL_ADMIN:
+        # A school admin account is invitation-only and is_active=False
+        # only ever means "still pending that invite" for this user_type
+        # (the only completion path, /auth/register/school-admin, sets
+        # is_active=True and email_verified_at together - see H-42). The
+        # generic flow below has no password step and would overwrite this
+        # user's still-valid invite token with one leading to a dead end -
+        # resend the actual invitation instead.
+        from classrooms.serializers import resend_school_admin_invitation
+
+        try:
+            return resend_school_admin_invitation(user)
+        except Exception:
+            logger.exception(
+                "Failed to resend school admin invitation to %s",
+                getattr(user, "email", None),
+            )
+            return None
+
     try:
         token = otp_manager.generate_otp()
         user.activation_token = token
         user.activation_expires = timezone.now() + timedelta(minutes=15)
         user.save()
-
-        # Local import to dodge a circular import: users.models imports
-        # OTPManager from this module at module load time.
-        from users.models import UserTypes
 
         protocol = "https://"
         frontend_domain = (

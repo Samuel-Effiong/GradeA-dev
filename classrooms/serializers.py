@@ -764,6 +764,30 @@ def _send_school_admin_invitation_email(user, school):
     transaction.on_commit(_dispatch)
 
 
+def resend_school_admin_invitation(user):
+    """Issue a fresh 7-day invitation token and re-send the school-admin
+    invite email for a still-pending admin.
+
+    Exists so a pending school admin (`is_active=False`, no usable
+    password - see `SchoolWithAdminSerializer.create()`) can always be
+    reached with a working invite, rather than being routed through the
+    generic self-registration activation flow, which has no password step
+    and would silently overwrite this same `activation_token` field with
+    one that leads nowhere useful (H-42).
+    """
+    if not user.school:
+        logger.error(
+            "Cannot resend school admin invitation for %s: no school attached.",
+            user.email,
+        )
+        return
+
+    user.activation_token = secrets.token_urlsafe(32)
+    user.activation_expires = timezone.now() + timezone.timedelta(days=7)
+    user.save(update_fields=["activation_token", "activation_expires"])
+    _send_school_admin_invitation_email(user, user.school)
+
+
 class SchoolWithAdminSerializer(serializers.Serializer):
     # School Fields
     school_name = serializers.CharField(max_length=255)
