@@ -42,6 +42,7 @@ prefix instead of flushing the database. A prefix rather than one of Redis's
 """
 
 import ast
+import multiprocessing
 import os
 import subprocess
 import sys
@@ -462,3 +463,143 @@ class CeleryBrokerIsolationTests(SimpleTestCase):
             finally:
                 probe.clear()
                 probe.close()
+
+
+def _fork_cache_worker(role, result_queue):
+    """Runs in a forked child - see ParallelForkIsolationTests.
+
+    Deliberately does NOT import anything at module load time: it must
+    only touch Django/the cache AFTER the fork, exactly like a real
+    --parallel worker running a test method.
+    """
+    import time
+
+    from django.core.cache import cache
+
+    pid = os.getpid()
+    n = 50
+    keys = [f"h9-fork-{pid}-{i}" for i in range(n)]
+    for k in keys:
+        cache.set(k, pid, timeout=60)
+    time.sleep(1.5)  # let every sibling finish writing first
+    if role == "clearer":
+        cache.clear()
+    time.sleep(1.0)
+    survived = sum(1 for k in keys if cache.get(k) is not None)
+    result_queue.put((role, pid, survived, n))
+
+
+def _fork_broker_worker(role, queue_name, result_queue):
+    """Runs in a forked child - see ParallelForkIsolationTests."""
+    import time
+
+    from AutoGrader.celery import app as celery_app
+
+    pid = os.getpid()
+    with celery_app.connection_for_write() as conn:
+        probe = conn.SimpleQueue(queue_name)
+        channel = conn.default_channel
+        try:
+            probe.put({"probe": pid})
+            time.sleep(1.5)
+            if role == "purger":
+                size = channel._size(queue_name)
+                probe.clear()
+            else:
+                time.sleep(1.0)
+                size = channel._size(queue_name)
+            result_queue.put((role, pid, size))
+        finally:
+            probe.close()
+
+
+class ParallelForkIsolationTests(SimpleTestCase):
+    """`manage.py test --parallel` forks workers with `multiprocessing`'s
+    'fork' context AFTER Django has already imported settings.py and built
+    the Celery app - so a prefix computed once at import time (the
+    ordinary, correct way to isolate SEPARATE `manage.py test` invocations)
+    is inherited unchanged by every forked worker; none of them compute
+    their OWN prefix. Every other test in this module launches a
+    genuinely separate `subprocess`, which re-imports settings.py fresh -
+    that always gets a correctly distinct prefix, even from code with this
+    exact bug, because it is a fresh interpreter, not a fork of one that
+    already computed its prefix. It follows that none of those tests can
+    catch this class of bug; only a real `multiprocessing.get_context
+    ("fork")` probe, matching `django.test.runner`'s own worker startup,
+    can - which is what these two tests are.
+
+    Pins the fix in AutoGrader/test_cache.py (PrefixScopedRedisCache.
+    key_prefix) and AutoGrader/test_broker.py (the Celery
+    Transport/Backend prefixes): both resolve their prefix live, per
+    access, rather than baking it in once, so it is correct for whichever
+    process ends up using it however that process came to exist.
+    """
+
+    def test_a_forked_workers_cache_clear_cannot_reach_a_sibling(self):
+        ctx = multiprocessing.get_context("fork")
+        q = ctx.Queue()
+        procs = [
+            ctx.Process(target=_fork_cache_worker, args=("clearer", q)),
+            ctx.Process(target=_fork_cache_worker, args=("watcher", q)),
+            ctx.Process(target=_fork_cache_worker, args=("watcher", q)),
+        ]
+        for p in procs:
+            p.start()
+        for p in procs:
+            p.join(timeout=30)
+
+        by_role = {}
+        while not q.empty():
+            role, pid, survived, n = q.get()
+            by_role.setdefault(role, []).append((pid, survived, n))
+
+        self.assertEqual(len(by_role.get("clearer", [])), 1, by_role)
+        self.assertEqual(len(by_role.get("watcher", [])), 2, by_role)
+
+        _, clearer_survived, _ = by_role["clearer"][0]
+        self.assertEqual(clearer_survived, 0, "a clearer must wipe its own keys")
+
+        for _, survived, n in by_role["watcher"]:
+            self.assertEqual(
+                survived,
+                n,
+                "a forked sibling's cache.clear() reached this worker's own "
+                "keys - the per-process prefix was not actually per-process",
+            )
+
+    def test_a_forked_workers_queue_purge_cannot_reach_a_sibling(self):
+        queue_name = f"h9-fork-probe-{uuid.uuid4().hex[:8]}"
+        ctx = multiprocessing.get_context("fork")
+        q = ctx.Queue()
+        procs = [
+            ctx.Process(target=_fork_broker_worker, args=("purger", queue_name, q)),
+            ctx.Process(target=_fork_broker_worker, args=("watcher", queue_name, q)),
+            ctx.Process(target=_fork_broker_worker, args=("watcher", queue_name, q)),
+        ]
+        for p in procs:
+            p.start()
+        for p in procs:
+            p.join(timeout=30)
+
+        by_role = {}
+        while not q.empty():
+            role, pid, size = q.get()
+            by_role.setdefault(role, []).append((pid, size))
+
+        self.assertEqual(len(by_role.get("purger", [])), 1, by_role)
+        self.assertEqual(len(by_role.get("watcher", [])), 2, by_role)
+
+        _, size_before_purge = by_role["purger"][0]
+        self.assertEqual(
+            size_before_purge,
+            1,
+            "a forked sibling's message landed in this worker's own queue "
+            "key - the broker prefix was not actually per-process",
+        )
+        for _, size_after in by_role["watcher"]:
+            self.assertEqual(
+                size_after,
+                1,
+                "a forked sibling's queue purge reached this worker's own "
+                "message - the broker prefix was not actually per-process",
+            )
