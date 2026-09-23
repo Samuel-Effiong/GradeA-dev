@@ -103,6 +103,14 @@ FRONTEND_DOMAIN = env.str("FRONTEND_DOMAIN")
 # back to FRONTEND_DOMAIN (the teacher app) when unset so existing
 # deployments keep working until the student app's domain is provisioned.
 STUDENT_FRONTEND_DOMAIN = env.str("STUDENT_FRONTEND_DOMAIN", default=FRONTEND_DOMAIN)
+# Separate frontend app for school admins (a genuinely different app from
+# the teacher one, and it refuses other roles). Falls back to
+# FRONTEND_DOMAIN (the teacher app) when unset so existing deployments keep
+# working until the school-admin app's domain is provisioned - same
+# reasoning as STUDENT_FRONTEND_DOMAIN above.
+SCHOOL_ADMIN_FRONTEND_DOMAIN = env.str(
+    "SCHOOL_ADMIN_FRONTEND_DOMAIN", default=FRONTEND_DOMAIN
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 ENVIRONMENT = env.str("ENVIRONMENT")
