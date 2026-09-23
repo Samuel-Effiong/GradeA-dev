@@ -135,7 +135,9 @@ class AppendOnlyQuerySet(models.QuerySet):
                 "update_conflicts=True) would rewrite existing rows. "
                 "Insert new rows instead."
             )
-        return super().bulk_create(objs, *args, **kwargs)
+        created = super().bulk_create(objs, *args, **kwargs)
+        self.model.after_bulk_create(created)
+        return created
 
 
 class AppendOnlyModel(models.Model):
@@ -151,6 +153,19 @@ class AppendOnlyModel(models.Model):
 
     class Meta:
         abstract = True
+
+    @classmethod
+    def after_bulk_create(cls, objs):
+        """
+        Hook called with the rows a successful `bulk_create()` just wrote.
+
+        No-op by default. `bulk_create` never emits `post_save` (see the
+        override above), so nothing else runs after this kind of write —
+        a subclass whose call sites bypass `record()`/`.save()` in favour
+        of a bulk insert (`CreditLedger`'s consume/batch-refund paths, for
+        instance) overrides this rather than trusting every future
+        `bulk_create` call site to remember an extra step by hand.
+        """
 
     def delete(self, *args, **kwargs):
         if not mutations_allowed():
