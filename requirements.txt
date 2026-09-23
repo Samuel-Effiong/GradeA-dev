@@ -193,6 +193,14 @@ soupsieve==2.8
 sqlparse==0.5.3
 stevedore==5.5.0
 stripe==14.4.1
+# django's --parallel test runner needs this to pickle a worker's traceback
+# back to the main process; without it, ANY single test failure under
+# --parallel is replaced by "TypeError: cannot pickle 'traceback' object",
+# hiding the real error and (worse) surfacing as an unhandled exception in
+# the main process's result-collection loop instead of a normal reported
+# test failure - see docs/HARDENING_BACKLOG.md for the incident this was
+# found from.
+tblib==3.2.2
 tenacity==9.1.2
 tiktoken==0.12.0
 tinycss2==1.5.1
