@@ -971,6 +971,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             otp_obj.delete()
 
         user.set_password(new_password)
+        user.must_change_password = False
         user.save()
 
         tokens = OutstandingToken.objects.filter(user=user)
