@@ -356,6 +356,13 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Last: finishes the automatic ADMIN_ACTION audit coverage that
+    # classrooms.permissions.IsSuperAdmin starts - see audit/admin_action.py.
+    # Position doesn't matter for correctness (RequestIDMiddleware, first in
+    # this list, keeps its correlation id live in context for the whole
+    # request/response cycle regardless), but this only ever has work to do
+    # after a view has actually run, so it reads clearest last.
+    "audit.middleware.AdminActionAuditMiddleware",
 ]
 
 ROOT_URLCONF = "AutoGrader.urls"

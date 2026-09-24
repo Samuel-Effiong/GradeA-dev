@@ -1,5 +1,6 @@
 from rest_framework import permissions
 
+from audit.admin_action import REQUEST_ATTR, emit_denied, raw_request
 from users.models import UserTypes
 
 from .models import School, SessionOwnerType
@@ -68,16 +69,29 @@ class IsNotStudent(permissions.BasePermission):
 class IsSuperAdmin(permissions.BasePermission):
     message = "You must be a superadmin to access this endpoint."
     """
-    Allows access only to superadmins
+    Allows access only to superadmins.
+
+    Also the automatic ADMIN_ACTION audit hook for every endpoint that
+    declares it (§6 of the Epic A plan) - see audit/admin_action.py's
+    module docstring for why this lives here rather than in a per-view
+    mixin. A denial is emitted immediately (it's a complete outcome
+    already); a grant tags the request for audit.middleware.
+    AdminActionAuditMiddleware to finish once the view's own outcome is
+    known.
     """
 
     def has_permission(self, request, view):
-        return bool(
+        granted = bool(
             request.user
             and request.user.is_authenticated
             and request.user.user_type == UserTypes.SUPER_ADMIN
             and request.user.is_superuser
         )
+        if granted:
+            setattr(raw_request(request), REQUEST_ATTR, view)
+        else:
+            emit_denied(request, view)
+        return granted
 
 
 class IsSchoolAdmin(permissions.BasePermission):
