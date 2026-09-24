@@ -1483,6 +1483,55 @@ class StudentDashboardOverviewAPITest(APITestCase):
         self.assertEqual(response.data["assignments_not_submitted"], 3)
         self.assertEqual(response.data["assignments_due_no_submission"], 1)
 
+    def test_status_summary_without_course_matches_overview(self):
+        # No ?course= - combined across every active course, same numbers
+        # as the overview endpoint (StudentAdminDashboardView.overview).
+        url = reverse("student-status-summary")
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["assignments_submitted"], 2)
+        self.assertEqual(response.data["assignments_not_submitted"], 3)
+        self.assertEqual(response.data["assignments_due_no_submission"], 1)
+        self.assertEqual(response.data["assignments_graded"], 0)
+        # Only the four status counts - no grade/GPA fields on this endpoint.
+        self.assertNotIn("overall_percentage", response.data)
+        self.assertNotIn("courses_grades", response.data)
+
+    def test_status_summary_scoped_to_one_course(self):
+        # Active Course 1 alone: a1 submitted, a2 not-submitted (future),
+        # a3 not-submitted+overdue, a4 (draft) excluded. Active Course 2's
+        # a5/a6 must not be counted here.
+        url = reverse("student-status-summary")
+        response = self.client.get(url, {"course": str(self.course_active_1.id)})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["assignments_submitted"], 1)
+        self.assertEqual(response.data["assignments_not_submitted"], 2)
+        self.assertEqual(response.data["assignments_due_no_submission"], 1)
+        self.assertEqual(response.data["assignments_graded"], 0)
+
+    def test_status_summary_for_a_course_the_student_is_not_enrolled_in_404s(self):
+        other_teacher = CustomUser.objects.create_user(
+            email="other-teacher@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            first_name="Other",
+            last_name="Teacher",
+        )
+        other_session = Session.objects.create(name="Other Term", teacher=other_teacher)
+        foreign_course = Course.objects.create(
+            name="Foreign Course",
+            teacher=other_teacher,
+            session=other_session,
+            is_active=True,
+        )
+
+        url = reverse("student-status-summary")
+        response = self.client.get(url, {"course": str(foreign_course.id)})
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
 
 class StudentCourseSummaryAPITest(APITestCase):
     """Covers StudentAdminDashboardView.summary - the per-course page a

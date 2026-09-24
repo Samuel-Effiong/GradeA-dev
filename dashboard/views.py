@@ -84,6 +84,7 @@ from dashboard.serializers import (
     SchoolAnalyticsSerializer,
     SchoolAtRiskTrendSerializer,
     StudentAssignmentListSerializer,
+    StudentAssignmentStatusSummarySerializer,
     StudentDashboardOverviewSerializer,
     SuperAdminStudentPerformanceSerializer,
     TeacherAssignmentAnalyticsSerializer,
@@ -3775,6 +3776,39 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         return Response(serializer.data)
 
 
+def _assignment_status_counts(student, assignments, now):
+    """The four assignment-status counts (Submitted / Not Submitted /
+    Graded / Overdue) for `student` over `assignments` - an already
+    course-scoped queryset, either every active course combined or a
+    single one. Shared by StudentAdminDashboardView.overview (all courses)
+    and .status_summary (all courses or one, via ?course=) so the two
+    never compute this differently from each other."""
+    submissions = StudentSubmission.objects.filter(
+        student=student, assignment__in=assignments
+    )
+    assignments_submitted = submissions.count()
+
+    submitted_assignment_ids = submissions.values_list("assignment_id", flat=True)
+    pending_assignments = assignments.exclude(id__in=submitted_assignment_ids)
+
+    assignments_not_submitted = pending_assignments.count()
+    assignments_due_no_submission = pending_assignments.filter(due_date__lt=now).count()
+
+    # Graded = released to the student, not merely scored - matches the
+    # "released" pattern used for grade figures elsewhere in this view
+    # (see StudentAdminDashboardView.summary).
+    assignments_graded = submissions.filter(
+        is_published=True, score_percentage__isnull=False
+    ).count()
+
+    return {
+        "assignments_submitted": assignments_submitted,
+        "assignments_not_submitted": assignments_not_submitted,
+        "assignments_graded": assignments_graded,
+        "assignments_due_no_submission": assignments_due_no_submission,
+    }
+
+
 class StudentAdminDashboardView(viewsets.ViewSet):
     permission_classes = [IsStudent]
 
@@ -4083,26 +4117,13 @@ class StudentAdminDashboardView(viewsets.ViewSet):
                 assignment__in=assignments,
             ).select_related("assignment__course")
 
-            assignments_submitted = submissions.count()
-
-            # 4. Pending assignment buckets
-            submitted_assignment_ids = submissions.values_list(
-                "assignment_id", flat=True
-            )
-            pending_assignments = assignments.exclude(id__in=submitted_assignment_ids)
-
-            assignments_not_submitted = pending_assignments.count()
-
-            assignments_due_no_submission = pending_assignments.filter(
-                due_date__lt=now
-            ).count()
-
-            # Graded = released to the student, not merely scored - matches
-            # the "released" pattern used for grade figures elsewhere in
-            # this view (see StudentAdminDashboardView.summary).
-            assignments_graded = submissions.filter(
-                is_published=True, score_percentage__isnull=False
-            ).count()
+            status_counts = _assignment_status_counts(student, assignments, now)
+            assignments_submitted = status_counts["assignments_submitted"]
+            assignments_not_submitted = status_counts["assignments_not_submitted"]
+            assignments_due_no_submission = status_counts[
+                "assignments_due_no_submission"
+            ]
+            assignments_graded = status_counts["assignments_graded"]
 
             # 5. Per-course grade breakdown
             # Group graded submissions by course for efficient computation
@@ -4191,6 +4212,81 @@ class StudentAdminDashboardView(viewsets.ViewSet):
             }
 
             serializer = StudentDashboardOverviewSerializer(overview_data)
+            data = serializer.data
+            cache.set(cache_key, data, 60 * 15)
+
+        return Response(data)
+
+    @extend_schema(
+        tags=["Student Admin"],
+        summary="Student Assignment Status Summary",
+        description="""
+        The four assignment-status counts alone - Submitted, Not
+        Submitted, Graded, Overdue - the same values and the same
+        computation as the dashboard overview, without the grade/GPA
+        figures.
+
+        Omit the `course` query param for the combined count across every
+        active course (what the "All Assignments" page shows). Pass
+        `?course=<course_id>` to scope the same four counts to just that
+        one course (what a course's own page shows) - the student must be
+        actively enrolled in it, or this returns 404.
+        """,
+        parameters=[
+            OpenApiParameter(
+                name="course",
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=(
+                    "Optional course id to scope the counts to a single "
+                    "course. Omit for all active courses combined."
+                ),
+            ),
+        ],
+        responses={200: StudentAssignmentStatusSummarySerializer},
+    )
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="dashboard/status-summary",
+    )
+    def status_summary(self, request, *args, **kwargs):
+        student = request.user
+        now = timezone.now()
+        course_id = request.query_params.get("course")
+
+        if course_id:
+            course = get_object_or_404(
+                Course.objects.filter(
+                    enrollments__student=student,
+                    enrollments__in=StudentCourse.objects.active(),
+                    is_active=True,
+                ),
+                id=course_id,
+            )
+            cache_key = (
+                f"studentadmins:user_id__{student.id}"
+                f":view__status_summary:course__{course.id}"
+            )
+            assignments = Assignment.objects.filter(
+                course=course, status=AssignmentStatus.PUBLISHED
+            )
+        else:
+            cache_key = f"studentadmins:user_id__{student.id}:view__status_summary:all"
+            active_courses = Course.objects.filter(
+                enrollments__student=student,
+                enrollments__in=StudentCourse.objects.active(),
+                is_active=True,
+            ).distinct()
+            assignments = Assignment.objects.filter(
+                course__in=active_courses, status=AssignmentStatus.PUBLISHED
+            )
+
+        data = cache.get(cache_key)
+        if data is None:
+            status_counts = _assignment_status_counts(student, assignments, now)
+            serializer = StudentAssignmentStatusSummarySerializer(status_counts)
             data = serializer.data
             cache.set(cache_key, data, 60 * 15)
 

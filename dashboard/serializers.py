@@ -74,6 +74,17 @@ class StudentDashboardOverviewSerializer(serializers.Serializer):
     courses_grades = StudentCourseGradeSerializer(many=True, read_only=True)
 
 
+class StudentAssignmentStatusSummarySerializer(serializers.Serializer):
+    """The four assignment-status counts alone (Submitted / Not Submitted
+    / Graded / Overdue), either across all active courses or scoped to
+    one via ?course=<id> - see StudentAdminDashboardView.status_summary."""
+
+    assignments_submitted = serializers.IntegerField(read_only=True)
+    assignments_not_submitted = serializers.IntegerField(read_only=True)
+    assignments_graded = serializers.IntegerField(read_only=True)
+    assignments_due_no_submission = serializers.IntegerField(read_only=True)
+
+
 class CourseAnalyticsSerializer(serializers.Serializer):
     """Main serializer for the student course analytics dashboard"""
 
