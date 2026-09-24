@@ -18,12 +18,30 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    # The suite takes ~45 min locally at --parallel 1, and CI runs it under
-    # `coverage` on top of that, so the old 30-minute cap cancelled a healthy
-    # run and reported it as failed. Raised with margin rather than made
-    # faster: running the suite in parallel is a separate change, measured on
-    # its own, because it alters test execution order.
-    timeout-minutes: 60
+    # This is that "separate change, measured on its own" the note above
+    # used to promise. Measured in an isolated, CI-matching environment
+    # (own Postgres 16 + Redis, same fake credentials this workflow uses):
+    # the untouched suite took 2428.6s (~40.5min) at --parallel 1; a fast
+    # test-password-hasher plus two unrelated test-only bugs (a cleanup-
+    # ordering mistake that made one test wait out a 60s timeout it didn't
+    # need to, and two fixture-heavy query-count proofs sized far past what
+    # their exact-equality assertions actually need) brought that to 849.6s
+    # serial; --parallel 4 on top of that measured 309.25s (~5min9s) - a
+    # 7.85x reduction overall, verified safe under real concurrency (not
+    # just "tests still pass"): a per-process Redis key-prefix bug that
+    # only --parallel's fork semantics could expose was found and fixed for
+    # both the Django cache and the Celery broker/result backend, pinned by
+    # two dedicated regression tests, and Postgres connections were watched
+    # live during full runs (peaked at 33 of 100, comfortable margin).
+    #
+    # 309s is the number this box produced; a GitHub-hosted runner's CPU
+    # count, and therefore how well 4 workers actually overlap, has not
+    # been measured directly. 20 minutes below is a deliberately generous
+    # multiple of the measured number, not a tightened new floor - lower it
+    # once a real run here confirms the actual CI time, the same way the
+    # old 60-minute cap should have been revisited once --parallel landed
+    # instead of left at "the suite plus margin" indefinitely.
+    timeout-minutes: 20
 
     services:
       postgres:
@@ -114,7 +132,25 @@ jobs:
         run: python manage.py makemigrations --check --dry-run
 
       - name: Run tests
-        run: coverage run manage.py test --noinput
+        # --parallel 4, not "auto": auto picks this runner's CPU count,
+        # which this suite has not been measured against and may not match
+        # the box these numbers came from. 4 is deliberately conservative -
+        # measured locally at 33 peak Postgres connections (of 100), wide
+        # margin even with the suite's several "twenty simultaneous
+        # connections" stress tests, and a 7.85x wall-clock speedup on its
+        # own (see the timeout comment below for the actual numbers this
+        # is based on).
+        run: coverage run manage.py test --noinput --parallel 4
+
+      - name: Combine coverage from parallel workers
+        # `--parallel` runs tests in forked worker processes, each writing
+        # its OWN `.coverage.*` data file (`.coveragerc`'s
+        # `concurrency = multiprocessing` is what makes that happen at
+        # all) - `coverage report` below reads ONE combined file, not many
+        # partial ones. Skipping this step would make the coverage
+        # percentage silently collapse to whatever the tiny dispatcher
+        # process itself executed, not what the suite actually covers.
+        run: coverage combine
 
       - name: Coverage report
         # Reported for visibility only - deliberately NOT failing the build

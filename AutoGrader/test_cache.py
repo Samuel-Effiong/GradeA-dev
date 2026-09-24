@@ -88,7 +88,34 @@ def real_redis_caches(location):
 
 
 class PrefixScopedRedisCache(RedisCache):
-    """A `RedisCache` whose `clear()` cannot reach another process's keys."""
+    """A `RedisCache` whose `clear()` cannot reach another process's keys.
+
+    `key_prefix` is a PROPERTY, not the plain attribute `BaseCache.__init__`
+    assigns, because Django loads settings (and so calls `test_key_prefix()`)
+    exactly once, in the parent process, before `manage.py test --parallel`
+    forks its worker processes. Every forked child inherits that already-
+    computed string via copy-on-write, so a plain attribute would give every
+    worker the PARENT's pid, not its own - the exact bug this class exists
+    to prevent, just moved from "no prefix" to "one shared prefix". A
+    property re-runs `os.getpid()` on every access instead, and
+    django_redis's client reads `self._backend.key_prefix` fresh on every
+    `make_key()` call (see `django_redis/client/default.py`), so each
+    worker's keys resolve to its own real, live pid regardless of which
+    process originally constructed this cache instance.
+
+    The setter exists only so `BaseCache.__init__`'s
+    `self.key_prefix = params.get("KEY_PREFIX", "")` doesn't raise
+    AttributeError; the assigned value is intentionally discarded, since a
+    prefix computed once at construction is exactly what must NOT happen.
+    """
+
+    @property
+    def key_prefix(self):
+        return test_key_prefix()
+
+    @key_prefix.setter
+    def key_prefix(self, value):
+        pass
 
     def clear(self):
         """Delete only the keys carrying this cache's prefix.

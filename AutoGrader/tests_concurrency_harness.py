@@ -51,7 +51,6 @@ class RunConcurrentlyTests(TransactionTestCase):
 
     def test_a_worker_outliving_the_join_fails_and_names_the_thread(self):
         release = threading.Event()
-        self.addCleanup(release.set)
 
         def block(i):
             if i == 1:
@@ -62,6 +61,14 @@ class RunConcurrentlyTests(TransactionTestCase):
             AssertionError, r"1 of 3 worker thread\(s\) still running after 2s"
         ) as caught:
             run_concurrently(block, 3, test=self, join_timeout=2, name="probe")
+
+        # Registered AFTER run_concurrently's own addCleanup(reap, threads):
+        # cleanups run LIFO, so this must fire before reap joins the still-
+        # blocked worker, or reap waits out the worker's own 60s internal
+        # timeout instead of the ~0s it takes once released. Registering it
+        # up front (as this test used to) made a ~2s test take 60s for no
+        # extra proof value - the worker still outlives the 2s join either way.
+        self.addCleanup(release.set)
 
         self.assertIn("probe-1", str(caught.exception))
         self.assertIn("refusing to assert on partial state", str(caught.exception))

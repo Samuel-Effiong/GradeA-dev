@@ -942,11 +942,19 @@ class TeacherAIContextTest(Builder, TestCase):
         return teacher
 
     def test_query_count_is_fixed_across_realistic_sizes(self):
-        """Measured before the fix: +37 queries per 10 assignments."""
+        """Measured before the fix: +37 queries per 10 assignments.
+
+        The proof is exact equality (assertEqual on the set of counts), not
+        a threshold - any per-item query the service issues shows up as a
+        different count at a different size, whatever that size is. These
+        sizes only need to differ meaningfully from each other, not resemble
+        a real teacher's course load; shrunk from (3,10,15)/(6,25,30) to cut
+        this test's fixture-creation cost without weakening what it catches.
+        """
         service = TeacherAIContextService()
         small = self._teacher_of_size(1, 1, 2)
-        medium = self._teacher_of_size(3, 10, 15)
-        large = self._teacher_of_size(6, 25, 30)
+        medium = self._teacher_of_size(2, 4, 5)
+        large = self._teacher_of_size(3, 8, 8)
 
         counts = [
             count_queries(lambda t=t: service.build(t)) for t in (small, medium, large)
@@ -1008,6 +1016,12 @@ class TeacherAIContextTest(Builder, TestCase):
         self.assertTrue(all(row["at_risk"] for row in data["students"]))
 
     def test_context_size_is_bounded_as_data_grows(self):
+        """ "modest" and "big" both already exceed MAX_STUDENT_ROWS/
+        MAX_RECENT_ASSIGNMENTS below, so the listed rows are clamped to the
+        same cap in both cases regardless of how far past it "big" goes -
+        the proof only needs "big" to stay meaningfully over the caps, not
+        to be enormous. Shrunk from (2,30,40) to cut fixture-creation cost.
+        """
         from dashboard.services import dashboard_context_json
 
         service = TeacherAIContextService()
@@ -1018,7 +1032,7 @@ class TeacherAIContextTest(Builder, TestCase):
                 dashboard_context_json(service.build(self._teacher_of_size(2, 6, 12)))
             )
             big = len(
-                dashboard_context_json(service.build(self._teacher_of_size(2, 30, 40)))
+                dashboard_context_json(service.build(self._teacher_of_size(2, 10, 15)))
             )
 
         # Totals and aggregates grow a little; the listed rows do not.
