@@ -963,6 +963,20 @@ CELERY_BEAT_SCHEDULE = {
         "task": "AutoGrader.beat_health.check_beat_health",
         "schedule": crontab(minute="*/15"),
     },
+    # A6 retention sweep (audit/tasks.py): deletes AuditEvent rows past
+    # their retention_class cutoff (12mo general / 3yr student-record).
+    # 06:00 keeps it after the 05:00 credit-bucket sweep.
+    "sweep-audit-retention-daily": {
+        "task": "audit.tasks.sweep_audit_retention",
+        "schedule": crontab(minute=0, hour=6),
+    },
+    # X-4: nulls source_ip/user_agent after PII_SHORT_RETENTION_DAYS,
+    # independent of the row's own retention_class. 06:30 keeps it clear
+    # of the row-delete sweep above.
+    "sweep-audit-pii-short-retention-daily": {
+        "task": "audit.tasks.sweep_audit_pii_short_retention",
+        "schedule": crontab(minute=30, hour=6),
+    },
 }
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
@@ -1001,6 +1015,8 @@ BEAT_HEALTH_EXPECTATIONS = {
     "send-weekly-course-summaries": (timedelta(weeks=1), timedelta(days=10)),
     "send-weekly-student-summaries": (timedelta(weeks=1), timedelta(days=10)),
     "send-weekly-school-admin-summaries": (timedelta(weeks=1), timedelta(days=10)),
+    "sweep-audit-retention-daily": (timedelta(days=1), timedelta(days=2)),
+    "sweep-audit-pii-short-retention-daily": (timedelta(days=1), timedelta(days=2)),
 }
 
 # Static files (CSS, JavaScript, Images)
