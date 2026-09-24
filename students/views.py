@@ -51,6 +51,8 @@ from assignments.tasks import (
     grade_engine_async,
     upload_answers_engine_async,
 )
+from audit.emitter import emit
+from audit.enums import AuditAction, AuditOutcome
 from AutoGrader.cache_generation import SCOPE_USER, versioned_key
 from AutoGrader.error_messages import describe_user_error, is_user_facing_error
 from AutoGrader.pagination import StandardPageNumberPagination
@@ -816,6 +818,21 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             str(submission.id),
         )
         task_id = task.id
+
+        emit(
+            AuditAction.GRADING_REQUESTED,
+            actor=request.user,
+            request=request,
+            target_type="StudentSubmission",
+            target_id=submission.id,
+            outcome=AuditOutcome.SUCCESS,
+            metadata={
+                "assignment_id": str(submission.assignment_id),
+                "submission_id": str(submission.id),
+                "task_id": str(processing_task.id),
+                "task_type": BackgroundTaskType.SUBMISSION_GRADING,
+            },
+        )
 
         data = {
             "submission_id": submission.id,

@@ -36,6 +36,8 @@ from rest_framework.response import Response
 
 from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor  # pdf_service
+from audit.emitter import emit
+from audit.enums import AuditAction, AuditOutcome
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.uploads import PayloadTooLarge, validate_upload_size
@@ -1591,6 +1593,20 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 str(request.user.id),
                 str(submission.id),
                 batch_id=session.id,
+            )
+            emit(
+                AuditAction.GRADING_REQUESTED,
+                actor=request.user,
+                request=request,
+                target_type="StudentSubmission",
+                target_id=submission.id,
+                outcome=AuditOutcome.SUCCESS,
+                metadata={
+                    "assignment_id": str(assignment.id),
+                    "submission_id": str(submission.id),
+                    "task_id": str(processing_task.id),
+                    "task_type": BackgroundTaskType.BATCH_SUBMISSION_GRADING,
+                },
             )
             tasks_data.append(
                 {
