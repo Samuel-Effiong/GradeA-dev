@@ -36,6 +36,8 @@ from rest_framework.response import Response
 
 from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor  # pdf_service
+from audit.emitter import emit
+from audit.enums import AuditAction, AuditOutcome
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.uploads import PayloadTooLarge, validate_upload_size
@@ -384,6 +386,16 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             auto_grade_on_due_date=auto_grade_on_due_date,
         )
 
+        emit(
+            AuditAction.ASSIGNMENT_CREATE,
+            actor=request.user,
+            request=request,
+            target_type="Assignment",
+            target_id=assignment.id,
+            outcome=AuditOutcome.SUCCESS,
+            metadata={"course_id": str(course.id)},
+        )
+
         text = f"""
         Analyze the text of an educational assignment and return a valid JSON
 
@@ -454,6 +466,16 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             auto_grade_on_due_date=auto_grade_on_due_date,
         )
 
+        emit(
+            AuditAction.ASSIGNMENT_CREATE,
+            actor=request.user,
+            request=request,
+            target_type="Assignment",
+            target_id=assignment.id,
+            outcome=AuditOutcome.SUCCESS,
+            metadata={"course_id": str(course.id)},
+        )
+
         text = f"""
         Analyze the text of an educational assignment and return a valid JSON
 
@@ -493,6 +515,22 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         serializer = AssignmentCreateResponseSerializer(data)
 
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
+
+    def perform_destroy(self, instance):
+        """DRF's default destroy() calls this - no override existed before,
+        so ASSIGNMENT_DELETE was never audited (Epic A §6)."""
+        assignment_id = instance.id
+        course_id = instance.course_id
+        instance.delete()
+        emit(
+            AuditAction.ASSIGNMENT_DELETE,
+            actor=self.request.user,
+            request=self.request,
+            target_type="Assignment",
+            target_id=assignment_id,
+            outcome=AuditOutcome.SUCCESS,
+            metadata={"course_id": str(course_id)} if course_id else {},
+        )
 
     def normalize(self, data):
         return json.loads(json.dumps(data, sort_keys=True))
@@ -565,6 +603,19 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
             instance.save()
 
+        emit(
+            AuditAction.ASSIGNMENT_UPDATE,
+            actor=request.user,
+            request=request,
+            target_type="Assignment",
+            target_id=instance.id,
+            outcome=AuditOutcome.SUCCESS,
+            metadata={
+                "course_id": str(instance.course_id),
+                "changed_fields": sorted(serializer.validated_data.keys()),
+            },
+        )
+
         serializer = AssignmentListSerializer(instance)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -623,6 +674,19 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             "auto_grade_on_due_date", instance.auto_grade_on_due_date
         )
         instance.save()
+
+        emit(
+            AuditAction.ASSIGNMENT_UPDATE,
+            actor=request.user,
+            request=request,
+            target_type="Assignment",
+            target_id=instance.id,
+            outcome=AuditOutcome.SUCCESS,
+            metadata={
+                "course_id": str(instance.course_id),
+                "changed_fields": sorted(serializer.validated_data.keys()),
+            },
+        )
 
         if raw_input:
             text = f"""
