@@ -512,6 +512,18 @@ def grade_engine_async(
                 "batch_id": str(batch_id) if batch_id else None,
             },
         )
+        # BE-A-09 #2: the model that actually served THIS grading run - not
+        # necessarily MAIN_MODEL, since OpenRouter may have routed to one of
+        # GRADING_FALLBACK_MODELS - is already captured on the graded
+        # result as `grading_model` (ai_processor/services.py) and threaded
+        # onto the submission via `submission.feedback = grading`. Reading
+        # it back here is the only way this emit call, which only sees the
+        # already-persisted submission, learns it too.
+        grading_model = (
+            submission.feedback.get("grading_model")
+            if isinstance(submission.feedback, dict)
+            else None
+        )
         emit(
             AuditAction.GRADING_COMPLETED,
             actor=completed_task.requested_by if completed_task else None,
@@ -523,6 +535,7 @@ def grade_engine_async(
                 "assignment_id": str(submission.assignment_id),
                 "submission_id": str(submission.id),
                 "task_id": str(processing_task_id) if processing_task_id else None,
+                "model": grading_model,
             },
         )
 

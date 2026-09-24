@@ -170,6 +170,10 @@ class GradeEngineAsyncOutcomeAuditEventTest(TestCase):
 
     @patch("assignments.tasks.grade_engine")
     def test_a_successful_grade_emits_exactly_one_completed_event(self, mock_grade):
+        # BE-A-09 #2 needs the model that actually served this run on the
+        # returned submission, exactly as ai_processor/services.py leaves
+        # it (json_data["grading_model"] -> submission.feedback).
+        self.submission.feedback = {"grading_model": "x-ai/grok-4.3"}
         mock_grade.return_value = self.submission
 
         outcome = self.run_task()
@@ -184,6 +188,22 @@ class GradeEngineAsyncOutcomeAuditEventTest(TestCase):
         self.assertEqual(event.target_type, "StudentSubmission")
         self.assertEqual(event.target_id, self.submission.id)
         self.assertEqual(event.metadata["assignment_id"], str(self.assignment.id))
+        self.assertEqual(event.metadata["model"], "x-ai/grok-4.3")
+
+    @patch("assignments.tasks.grade_engine")
+    def test_a_successful_grade_with_no_captured_model_has_no_model_metadata(
+        self, mock_grade
+    ):
+        # feedback absent (e.g. a mock return with no .feedback set at all)
+        # must not raise AttributeError trying to read a model off it.
+        self.submission.feedback = None
+        mock_grade.return_value = self.submission
+
+        outcome = self.run_task()
+
+        self.assertTrue(outcome.successful())
+        event = AuditEvent.objects.get(action=AuditAction.GRADING_COMPLETED)
+        self.assertIsNone(event.metadata.get("model"))
 
     @patch("assignments.tasks.grade_engine")
     def test_a_system_error_emits_exactly_one_failed_event_classed_system(

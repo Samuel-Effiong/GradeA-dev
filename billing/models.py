@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
+from audit import metrics as audit_metrics
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome
 
@@ -1264,6 +1265,36 @@ def _emit_credit_transaction(row, actor):
         outcome=AuditOutcome.SUCCESS,
         metadata={"ledger_type": row.ledger_type, "credits": row.amount},
     )
+    _check_ledger_anomaly(row, actor)
+
+
+def _check_ledger_anomaly(row, actor):
+    """BE-A-09 #3: alert on a wallet left with a negative running balance
+    by this row. Reuses CreditWallet.total_remaining_credits() - the same
+    aggregate the rest of the app already reads the balance through -
+    rather than deriving a second, independent balance calculation.
+
+    Best-effort, not a strict invariant check: this reads the wallet AFTER
+    the ledger row (and, for CONSUME, the bucket update that normally goes
+    with it) have been written, and only when `actor` is the wallet's own
+    user - `after_bulk_create`'s batch resolution can leave `actor` None for
+    a row whose user no longer exists. A negative balance that briefly
+    exists mid-transaction and self-corrects before the next check is
+    outside what this can see; that trade-off is acceptable for an ALERT
+    (false negatives on a transient dip), not for enforcement.
+    """
+    wallet = getattr(actor, "credit_wallet", None)
+    if wallet is None:
+        return
+    try:
+        balance = wallet.total_remaining_credits()
+    except Exception:  # noqa: BLE001 - metrics must never break a ledger write
+        return
+    if balance < 0:
+        audit_metrics.count(
+            "credit_ledger_anomaly",
+            tags={"kind": "negative_balance", "ledger_type": row.ledger_type},
+        )
 
 
 class CreditLedgerType(models.TextChoices):

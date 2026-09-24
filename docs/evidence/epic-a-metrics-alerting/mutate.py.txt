@@ -1,0 +1,171 @@
+"""Mutation battery for BE-A-09 (Epic A §9 alertable metrics): audit/metrics.py
+itself, the audit/emitter.py chokepoint hooks, the assignments/tasks.py model
+signal wiring, and the three billing credit_ledger_anomaly call sites. Each
+mutant weakens ONE protection; a test named for that protection must fail.
+Restores from collision-safe copies and verifies by md5 (never git checkout).
+"""
+import hashlib, json, os, re, shutil, subprocess, sys, time
+
+ROOT = "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-metrics-alerting"
+SCR = os.path.dirname(os.path.abspath(__file__))
+EMITTER = "audit/emitter.py"
+METRICS = "audit/metrics.py"
+TASKS = "assignments/tasks.py"
+B_MODELS = "billing/models.py"
+B_SERVICES = "billing/services.py"
+B_TASKS = "billing/tasks.py"
+LABELS = (
+    "audit.tests_metrics assignments.tests_grading_audit_events "
+    "billing.tests.test_credit_refund"
+)
+
+MUTANTS = [
+    ("M1", "grading_failure_rate value swapped (success/failure inverted)",
+     [(EMITTER,
+       '0.0 if outcome == AuditOutcome.SUCCESS else 1.0,',
+       '1.0 if outcome == AuditOutcome.SUCCESS else 0.0,')],
+     "test_a_failed_grading_emits_rate_one_and_never_a_fallback_signal"),
+    ("M2", "model_fallback_rate scoping removed (also fires on GRADING_FAILED)",
+     [(EMITTER,
+       'if action == AuditAction.GRADING_COMPLETED:',
+       'if True:  # BUG: scoping removed')],
+     "test_a_failed_grading_emits_rate_one_and_never_a_fallback_signal"),
+    ("M3", "model_fallback_rate condition inverted",
+     [(EMITTER,
+       '1.0 if model in GRADING_FALLBACK_MODELS else 0.0,',
+       '0.0 if model in GRADING_FALLBACK_MODELS else 1.0,')],
+     "test_a_completed_grading_on_the_fallback_model_emits_fallback_rate_one"),
+    ("M4", "reason_code_rate never emitted",
+     [(EMITTER,
+       'reason_code = fields.get("reason_code")\n    if reason_code:',
+       'reason_code = fields.get("reason_code")\n    if False:')],
+     "test_an_event_with_a_reason_code_emits_the_rate_metric_exactly_once"),
+    ("M5", "audit_emit_failures_total not emitted on store failure",
+     [(EMITTER,
+       '        audit_metrics.count("audit_emit_failures_total", tags={"action": label})\n        return None',
+       '        return None')],
+     "test_a_store_failure_emits_the_failure_metric_exactly_once"),
+    ("M6", "metrics.count() skips the not-live guard",
+     [(METRICS,
+       'def count(name, value=1, *, tags=None):\n    """Emit a counter metric. No-op when Sentry isn\'t live."""\n    if not _live():\n        return',
+       'def count(name, value=1, *, tags=None):\n    """Emit a counter metric. No-op when Sentry isn\'t live."""\n    if False:\n        return')],
+     "test_count_is_a_noop_when_sentry_is_not_live"),
+    ("M7", "metrics.distribution() skips the not-live guard",
+     [(METRICS,
+       'def distribution(name, value, *, tags=None):\n    """Emit a distribution metric (e.g. a 0.0/1.0 sample of a rate). No-op\n    when Sentry isn\'t live."""\n    if not _live():\n        return',
+       'def distribution(name, value, *, tags=None):\n    """Emit a distribution metric (e.g. a 0.0/1.0 sample of a rate). No-op\n    when Sentry isn\'t live."""\n    if False:\n        return')],
+     "test_distribution_is_a_noop_when_sentry_is_not_live"),
+    ("M8", "metrics.count() no longer swallows a Sentry call failure",
+     [(METRICS,
+       '    try:\n        sentry_sdk.metrics.count(name, value, attributes=tags or {})\n    except Exception:  # noqa: BLE001 - metrics must never break the caller\n        logger.debug("metrics count failed: name=%s", name, exc_info=True)',
+       '    sentry_sdk.metrics.count(name, value, attributes=tags or {})')],
+     "test_a_sentry_call_failure_never_raises"),
+    ("M9", "grading-completed model signal never threaded from submission.feedback",
+     [(TASKS,
+       'grading_model = (\n            submission.feedback.get("grading_model")\n            if isinstance(submission.feedback, dict)\n            else None\n        )',
+       'grading_model = None')],
+     "test_a_successful_grade_emits_exactly_one_completed_event"),
+    ("M10", "negative-balance anomaly condition inverted",
+     [(B_MODELS, "if balance < 0:", "if balance >= 0:")],
+     "test_a_ledger_write_that_leaves_a_negative_balance_emits_the_anomaly"),
+    ("M11", "negative-balance anomaly check never called from _emit_credit_transaction",
+     [(B_MODELS,
+       '        metadata={"ledger_type": row.ledger_type, "credits": row.amount},\n    )\n    _check_ledger_anomaly(row, actor)',
+       '        metadata={"ledger_type": row.ledger_type, "credits": row.amount},\n    )')],
+     "test_a_ledger_write_that_leaves_a_negative_balance_emits_the_anomaly"),
+    ("M12", "refund_mismatch anomaly condition removed",
+     [(B_SERVICES, "if amount != log.amount:", "if False:")],
+     "test_a_refund_that_cannot_fully_reconcile_emits_the_mismatch_anomaly"),
+    ("M13", "expire_failed anomaly metric removed from the existing except block",
+     [(B_TASKS,
+       '            audit_metrics.count(\n                "credit_ledger_anomaly", tags={"kind": "expire_failed"}\n            )\n            continue',
+       '            continue')],
+     "test_a_failed_bucket_expiration_emits_the_anomaly_exactly_once"),
+]
+
+
+def md5(p):
+    return hashlib.md5(open(p, "rb").read()).hexdigest()
+
+
+def run(timeout=300):
+    env = dict(os.environ)
+    env["DJANGO_SETTINGS_MODULE"] = "settings_worktree"
+    r = subprocess.run(
+        [sys.executable, "manage.py", "test", *LABELS.split(),
+         "--settings=settings_worktree", "--keepdb", "--noinput"],
+        cwd=ROOT, capture_output=True, text=True, timeout=timeout, env=env,
+    )
+    out = r.stdout + r.stderr
+    fails = re.findall(r"^(?:FAIL|ERROR): (\S+) \(([^)]*)\)", out, re.M)
+    m = re.search(r"^(OK.*|FAILED.*)$", out, re.M)
+    return r.returncode, out, fails, (m.group(1) if m else "?")
+
+
+def precheck():
+    bad = []
+    for mid, desc, edits, expect in MUTANTS:
+        for f, old, new in edits:
+            n = open(os.path.join(ROOT, f)).read().count(old)
+            if n != 1:
+                bad.append((mid, f, n, old[:60]))
+    return bad
+
+
+def main(only=None):
+    bad = precheck()
+    if bad:
+        for b in bad:
+            print("PATTERN PROBLEM", b)
+        raise SystemExit(1)
+    log = open(os.path.join(SCR, "mutation_log_metrics.jsonl"), "a")
+    results = []
+    files = sorted({f for _, _, ms, _ in MUTANTS for f, _, _ in ms})
+    orig = {f: md5(os.path.join(ROOT, f)) for f in files}
+    backups = {}
+    for f in files:
+        b = os.path.join(SCR, "backup_metrics_" + f.replace("/", "__"))
+        shutil.copy2(os.path.join(ROOT, f), b)
+        backups[f] = b
+    rc, out, fails, summary = run()
+    base = {"id": "BASE", "rc": rc, "summary": summary, "fails": fails}
+    print("BASELINE", rc, summary, flush=True)
+    log.write(json.dumps(base) + "\n")
+    if rc != 0:
+        print(out[-4000:])
+        raise SystemExit("baseline not green")
+    for mid, desc, edits, expect in MUTANTS:
+        if only and mid not in only:
+            continue
+        try:
+            for f, old, new in edits:
+                p = os.path.join(ROOT, f)
+                s = open(p).read()
+                open(p, "w").write(s.replace(old, new))
+            t = time.time()
+            rc, out, fails, summary = run()
+            names = sorted({n for n, _ in fails})
+            killed = rc != 0 and any(expect in n for n, _ in fails)
+            res = {"id": mid, "desc": desc, "rc": rc, "summary": summary, "expected_test": expect,
+                   "failing": names, "killed_for_named_reason": killed, "secs": round(time.time() - t)}
+        except Exception as e:
+            res = {"id": mid, "desc": desc, "error": str(e), "killed_for_named_reason": False}
+        finally:
+            for f in files:
+                shutil.copy2(backups[f], os.path.join(ROOT, f))
+            bad = [f for f in files if md5(os.path.join(ROOT, f)) != orig[f]]
+            if bad:
+                raise SystemExit(f"RESTORE MISMATCH after {mid}: {bad}")
+        res["restored_md5_ok"] = True
+        print(mid, "KILLED" if res["killed_for_named_reason"] else "SURVIVED/ERR",
+              (res.get("failing") or res.get("error"))[:6] if res.get("failing") else res.get("error"), flush=True)
+        log.write(json.dumps(res) + "\n")
+        log.flush()
+        results.append(res)
+    json.dump({"baseline": base, "mutants": results, "md5": orig},
+               open(os.path.join(SCR, "mutation_results_metrics.json"), "w"), indent=1)
+    print("KILLED", sum(r["killed_for_named_reason"] for r in results), "/", len(results))
+
+
+if __name__ == "__main__":
+    main(set(sys.argv[1:]) or None)

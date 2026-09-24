@@ -44,6 +44,7 @@ from django.db import transaction
 
 from AutoGrader.request_context import get_request_id
 
+from . import metrics as audit_metrics
 from .context import current_trace_id
 from .enums import (
     STUDENT_RECORD_ACTIONS,
@@ -55,6 +56,16 @@ from .enums import (
 )
 from .metadata import sanitise, sanitise_metadata_for_action
 from .models import AuditEvent
+
+# BE-A-09 #2: grading never falls back to a nano-tier model (see
+# ai_processor/services.py's execute_graded_task), only to this short list -
+# so "did grading use the fallback model" is "is the model actually used one
+# of these". Imported here, not at ai_processor.services import time, to
+# keep this chokepoint's own import surface small (mirrors _client_ip's
+# local import below).
+_GRADING_ACTIONS = frozenset(
+    {AuditAction.GRADING_COMPLETED, AuditAction.GRADING_FAILED}
+)
 
 logger = logging.getLogger(__name__)
 
@@ -164,10 +175,17 @@ def emit(
 
     try:
         with transaction.atomic():
-            return AuditEvent.objects.create(**fields)
+            event = AuditEvent.objects.create(**fields)
     except Exception as exc:  # noqa: BLE001 - FR-A-11: never fail the user action
         _alert("store_failed", label, type(exc).__name__)
+        # BE-A-09 #5: this is specifically the write failure FR-A-11 exists
+        # to swallow - the signal an alert needs is that it happened at
+        # all, not what it was, so the tag stays limited to the action.
+        audit_metrics.count("audit_emit_failures_total", tags={"action": label})
         return None
+
+    _emit_alertable_metrics(action, outcome, fields)
+    return event
 
 
 # ---------------------------------------------------------------------------
@@ -271,6 +289,39 @@ def _build(
         **request_fields,
     )
     return fields, dropped
+
+
+def _emit_alertable_metrics(action, outcome, fields):
+    """BE-A-09 #1 / #2 / #4: fired once per successfully STORED event, from
+    the validated (not caller-supplied) `action`/`outcome`/`metadata` - so a
+    rejected or malformed write can't feed a false metric. #3 (credit ledger
+    anomalies) and #5 (this function's own store-failure sibling) are not
+    here: #5 lives in the except block above it, and #3 is detected at the
+    billing call sites that already compute the reconciliation math this
+    module must not duplicate (see billing/models.py, billing/services.py,
+    billing/tasks.py).
+    """
+    if action in _GRADING_ACTIONS:
+        audit_metrics.distribution(
+            "grading_failure_rate",
+            0.0 if outcome == AuditOutcome.SUCCESS else 1.0,
+        )
+        if action == AuditAction.GRADING_COMPLETED:
+            model = (fields.get("metadata") or {}).get("model")
+            if model:
+                # Local import: ai_processor.services pulls in the OpenAI
+                # client and a large module surface this chokepoint has no
+                # other reason to import at module load time.
+                from ai_processor.services import GRADING_FALLBACK_MODELS
+
+                audit_metrics.distribution(
+                    "model_fallback_rate",
+                    1.0 if model in GRADING_FALLBACK_MODELS else 0.0,
+                )
+
+    reason_code = fields.get("reason_code")
+    if reason_code:
+        audit_metrics.count("reason_code_rate", tags={"code": reason_code})
 
 
 def _uuid_or_none(value, field):
