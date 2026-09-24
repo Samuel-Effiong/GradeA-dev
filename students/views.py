@@ -528,6 +528,21 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         try:
 
             submission = upload_answers_engine(assignment, content, request.user)
+
+            emit(
+                AuditAction.SUBMISSION_UPLOAD,
+                actor=request.user,
+                request=request,
+                target_type="StudentSubmission",
+                target_id=submission.id,
+                outcome=AuditOutcome.SUCCESS,
+                metadata={
+                    "assignment_id": str(assignment.id),
+                    "file_type": uploaded_file.content_type or "",
+                    "file_size_bytes": uploaded_file.size,
+                },
+            )
+
             serializer = StudentSubmissionDetailSerializer(submission)
 
             return Response(serializer.data, status=HTTP_201_CREATED)
@@ -637,6 +652,20 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             str(request.user.id),
         )
         task_id = task.id
+
+        emit(
+            AuditAction.SUBMISSION_UPLOAD,
+            actor=request.user,
+            request=request,
+            target_type="Assignment",
+            target_id=assignment.id,
+            outcome=AuditOutcome.SUCCESS,
+            metadata={
+                "assignment_id": str(assignment.id),
+                "file_type": uploaded_file.content_type or "",
+                "file_size_bytes": uploaded_file.size,
+            },
+        )
 
         data = {"task_id": task_id, "message": "Answer Extraction Started"}
 
@@ -1264,6 +1293,16 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
             tasks_data.append({"file_name": uploaded_file.name, "task_id": task.id})
             task_ids.append(task.id)
+
+        emit(
+            AuditAction.SUBMISSION_UPLOAD,
+            actor=request.user,
+            request=request,
+            target_type="Assignment",
+            target_id=assignment.id,
+            outcome=AuditOutcome.SUCCESS,
+            metadata={"assignment_id": str(assignment.id), "file_count": len(files)},
+        )
 
         data = {
             "session_id": session.id,

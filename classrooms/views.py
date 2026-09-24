@@ -42,6 +42,8 @@ from rest_framework.response import Response
 
 from assignments.models import Assignment
 from assignments.serializers import TaskInfoSerializer
+from audit.emitter import emit
+from audit.enums import AuditAction, AuditOutcome
 from AutoGrader.cache_generation import SCOPE_GLOBAL, SCOPE_USER, versioned_key
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
@@ -1400,12 +1402,26 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 raise ParseError(exc.message) from exc
             raise ValidationError({exc.field: [exc.message]}) from exc
 
-        return Response(
-            services.import_roster(
-                course=course, rows=rows, total_processed=total_processed
-            ),
-            status=status.HTTP_200_OK,
+        result = services.import_roster(
+            course=course, rows=rows, total_processed=total_processed
         )
+
+        emit(
+            AuditAction.ROSTER_CHANGE,
+            actor=request.user,
+            request=request,
+            target_type="Course",
+            target_id=course.id,
+            outcome=AuditOutcome.SUCCESS,
+            metadata={
+                "course_id": str(course.id),
+                "item_count": result["total_processed"],
+                "succeeded_count": result["success_count"],
+                "failed_count": result["failure_count"],
+            },
+        )
+
+        return Response(result, status=status.HTTP_200_OK)
 
     @extend_schema(
         tags=["02 Course"],
@@ -1472,6 +1488,16 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+        emit(
+            AuditAction.ROSTER_CHANGE,
+            actor=request.user,
+            request=request,
+            target_type="Course",
+            target_id=course.id,
+            outcome=AuditOutcome.SUCCESS,
+            metadata={"course_id": str(course.id), "student_id": str(student_id)},
+        )
 
         return Response(
             {"detail": "Student removed from course successfully."},
