@@ -1581,7 +1581,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         return Response(data)
 
     @extend_schema(
-        tags=["Courses"],
+        tags=["Course"],
         summary="Generate an AI summary for a student in this course",
         description="""Generates a short, personalised AI narrative about a specific student's
         performance across all assignments in this course.
