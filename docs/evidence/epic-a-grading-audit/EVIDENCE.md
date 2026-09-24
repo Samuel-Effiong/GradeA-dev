@@ -173,5 +173,14 @@ vs. ~40min pre-speedup, on a suite that also grew by 7 tests
 Post-commit sha256 of the merge commit (from `git show a630134:<path>`):
 
 ```text
-<filled in after commit — see below>
+c4deaee2761b53b3316f728fbf5a42584683c33badf00fb0bc156ad96d2df2a7  students/views.py
+82ef05bf71a1a2e66ddc4f6acc0196fcbc6280cc4b5747115490b24ca604690f  assignments/views.py
+0acbc9e3b5975b6b24e6a914350fefe91231ade47ec53d82db32b38198985685  assignments/tasks.py
+776d390389029ad1f1e489cb0ab9a548da49beafdffe00c717e970056652dd14  assignments/tests_grading_audit_events.py
 ```
+
+Identical to §4's hashes — confirms the merge didn't further modify any of
+these four files (the incoming `integration/epic-a` changes landed in
+`billing/immutable.py`, `billing/models.py`, and test-infra files outside
+this evidence's tracked set), consistent with the mutation-result carry-
+forward reasoning above.
