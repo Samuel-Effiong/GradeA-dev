@@ -129,3 +129,49 @@ c4deaee2761b53b3316f728fbf5a42584683c33badf00fb0bc156ad96d2df2a7  students/views
 0acbc9e3b5975b6b24e6a914350fefe91231ade47ec53d82db32b38198985685  assignments/tasks.py
 776d390389029ad1f1e489cb0ab9a548da49beafdffe00c717e970056652dd14  assignments/tests_grading_audit_events.py
 ```
+
+## 5. Re-verification after merging onto integration/epic-a's current tip
+
+The above (§1-4) was verified against `integration/epic-a` `d4a98da`, which
+predates gate-runner's test-suite speedup and privacy-guard's
+`task/epic-a-credit-audit` work (`CREDIT_TRANSACTION` audit events, landed
+at `626cf08`). Per the Senior Manager, that made the original evidence
+untrustworthy as-is once `integration/epic-a` moved. Merged
+`integration/epic-a` (`626cf08`) into this branch (`a630134`, no
+conflicts — `assignments/tasks.py` diverged from both sides but merged
+clean; confirmed post-merge that both `GRADING_COMPLETED`/`GRADING_FAILED`
+emit() calls and the incoming credit-transaction instrumentation are
+present in the same file) and re-ran both this branch's own suite and the
+full regression against the merged tree.
+
+`python manage.py test assignments.tests_grading_audit_events --settings=settings_worktree --noinput`
+
+- Found 7 test(s)
+- **OK**
+
+Mutation testing was not re-run: the merge touched `assignments/tasks.py`
+only by adding privacy-guard's unrelated credit-transaction code alongside
+the existing grading instrumentation (confirmed via `git diff
+023304b..626cf08 -- assignments/tasks.py`, which shows only the two
+branches' independent divergence, not a conflicting edit to the
+instrumented call sites), so the 11/11 mutation result from §2 still
+applies unchanged to this code.
+
+Full regression, via `scripts/isolated-test-env.sh` (private Postgres 16 +
+Redis, CI's fake credentials), on the merged tree:
+
+`python manage.py test --settings=settings_worktree -v 1 --noinput`
+(every app, no labels, no `--keepdb`)
+
+- Ran 4696 tests in 813.050s
+- **OK (skipped=26)**
+
+Confirms gate-runner's test-speedup note from §3 above: ~13.5min this run
+vs. ~40min pre-speedup, on a suite that also grew by 7 tests
+(4689 → 4696) from privacy-guard's credit-audit work.
+
+Post-commit sha256 of the merge commit (from `git show a630134:<path>`):
+
+```text
+<filled in after commit — see below>
+```
