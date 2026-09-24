@@ -324,9 +324,16 @@ class ActivationTokenValidityWindowTest(APITestCase):
     memorable, not clicked from a link), so the mitigation is a shorter
     window (see users.models.ACTIVATION_TOKEN_VALIDITY) plus a dedicated
     throttle on verify (see users.tests_throttling).
+
+    The single-add invite (`course/<pk>/students`) no longer creates an
+    activation_token at all - new students there are active immediately
+    with a temporary password (see classrooms/services/enrollment.py). The
+    bulk/CSV roster import's with-email branch is untouched and is now the
+    only surviving path that creates this state, so the regression is
+    exercised through it instead.
     """
 
-    def test_teacher_invited_student_gets_the_shortened_window(self):
+    def test_bulk_imported_student_gets_the_shortened_window(self):
         teacher = User.objects.create_user(
             email="activation-window-teacher@example.com",
             password="password123",  # pragma: allowlist secret
@@ -337,12 +344,14 @@ class ActivationTokenValidityWindowTest(APITestCase):
         )
         session = Session.objects.create(name="S", teacher=teacher)
         course = Course.objects.create(name="C", teacher=teacher, session=session)
-        url = reverse("course-students", kwargs={"pk": course.pk})
+        url = reverse("course-bulk-add-students", kwargs={"pk": course.pk})
         self.client.force_authenticate(user=teacher)
 
         before = timezone.now()
         response = self.client.post(
-            url, {"email": "new-student@example.com"}, format="json"
+            url,
+            {"raw_data": "New,Student,new-student@example.com"},
+            format="json",
         )
         after = timezone.now()
 

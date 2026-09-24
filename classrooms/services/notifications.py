@@ -80,6 +80,50 @@ def send_added_to_course_email(student, course):
     )
 
 
+def send_student_login_invitation_email(student, course, generated_password):
+    """Invite a newly (re-)invited student who can log in immediately with
+    a temporary password, rather than clicking an activation link first.
+
+    Mirrors billing/license_service.py's teacher invitation email: same
+    template and merge keys as send_course_invitation_email (below) - the
+    "activation_url" key is the CTA button's merge tag on that shared
+    template, so it stays even though it now points at login instead of
+    an activation link.
+    """
+    login_url = f"https://{settings.STUDENT_FRONTEND_DOMAIN}/login"
+
+    top_content = (
+        f"{course.teacher.get_full_name()} has invited you to join "
+        f"{course.name} on Grade A+.\n\n"
+        "Your account is ready - log in below with your email and the "
+        f"temporary password: {generated_password}\n\n"
+        "You'll be asked to choose your own password the first time you "
+        "log in."
+    )
+
+    merge_data = _base_merge_data(
+        f"You've been added to {course.name}", student.get_full_name()
+    )
+    merge_data.update(
+        {
+            "top_content": top_content,
+            "bottom_content": "",
+            "activation_url": login_url,
+        }
+    )
+
+    safe_delay(
+        send_email_task,
+        subject="Your account is ready. Log in and join your class",
+        message="",
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[student.email],
+        html_message=None,
+        template_id=TEMPLATE_ACTIVATION_INVITE,
+        merge_data=merge_data,
+    )
+
+
 def send_course_invitation_email(student, course, activation_token):
     """Invite a not-yet-activated student to finish registration."""
     registration_link = student_registration_link(activation_token, student.email)

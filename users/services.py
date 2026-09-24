@@ -15,6 +15,30 @@ from AutoGrader.tasks import send_email_task
 logger = logging.getLogger(__name__)
 
 
+def generate_temporary_password(user):
+    """A random password meeting AUTH_PASSWORD_VALIDATORS, never logged.
+
+    Shared by every invite flow that hands a real, usable password to an
+    account it creates or resets rather than leaving it with
+    set_unusable_password() - the license-teacher invite
+    (billing/license_service.py) and the single-add student course invite
+    (classrooms/services/enrollment.py).
+    """
+    from django.contrib.auth.password_validation import validate_password
+
+    alphabet = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%^&*"
+    for _ in range(10):
+        candidate = get_random_string(20, allowed_chars=alphabet)
+        try:
+            validate_password(candidate, user=user)
+        except Exception:
+            continue
+        return candidate
+    # Astronomically unlikely with a 20-char/66-symbol alphabet, but never
+    # fall through to a weaker password.
+    raise RuntimeError("Failed to generate a password passing validation.")
+
+
 def send_user_activation_email(user):
     # Local import to dodge a circular import: users.models imports
     # OTPManager from this module at module load time.

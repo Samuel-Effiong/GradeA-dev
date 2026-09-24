@@ -424,6 +424,16 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         if user:
             user.reset_login_lockout()
 
+        if self.user.user_type == UserTypes.STUDENT:
+            # Local import: classrooms.services (via roster_import ->
+            # classrooms.serializers) imports users.serializers, so a
+            # module-level import here would be circular.
+            from classrooms.services.enrollment import (
+                activate_pending_enrollments_on_login,
+            )
+
+            activate_pending_enrollments_on_login(self.user)
+
         user_data = CustomUserSerializer(self.user).data
 
         data.update({"user": user_data})
