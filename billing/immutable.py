@@ -75,11 +75,15 @@ def allow_unsafe_mutation():
     """
     Temporarily lift append-only enforcement on the current thread.
 
-    Intended for exactly two callers: test setup that needs to fabricate
-    historical rows (e.g. back-dating `created_at`), and a supervised
-    data-repair session. It is thread-local and does not leak across
-    threads, but it DOES lift the guard for every append-only model for
-    its duration, so keep the block as small as possible.
+    Intended for exactly three callers: test setup that needs to fabricate
+    historical rows (e.g. back-dating `created_at`), a supervised
+    data-repair session, and `audit.tasks.sweep_audit_retention` (the one
+    part of the audit retention sweep that deletes rows outright - the
+    sibling PII-short-retention sweep needs no such thing, since it only
+    ever touches the two fields a model's own `mutable_fields` already
+    exempts). It is thread-local and does not leak across threads, but it
+    DOES lift the guard for every append-only model for its duration, so
+    keep the block as small as possible.
 
     Using this in ordinary application code defeats the point of the
     module and should be caught in review.
