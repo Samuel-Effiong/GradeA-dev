@@ -104,7 +104,7 @@ from dashboard.services import (
 )
 from dashboard.throttling import CustomAIPromptThrottle
 from students.models import StudentSubmission
-from students.services import get_grade_details
+from students.services import get_grade_details, get_letter_grade_from_gpa
 from users.models import CustomUser, UserTypes
 from users.services import (
     get_peak_concurrent_users,
@@ -4150,9 +4150,15 @@ class StudentAdminDashboardView(viewsets.ViewSet):
                 if course_subs:
                     graded_course_gpas.append(grade_details["gpa"])
 
-            # 6. Overall grade standing (averaged per graded course, not per
-            # submission, and GPA averaged in quality-point space rather than
-            # re-derived from a flattened average percentage)
+            # 6. Overall grade standing. overall_percentage is a separate,
+            # independent stat (the student's average percentage
+            # performance, per graded course not per submission) - it does
+            # NOT feed overall_grade/overall_remark. Those instead follow
+            # the course percentage -> course letter grade -> course GPA ->
+            # overall GPA -> overall letter grade -> overall remark chain,
+            # so the letter grade and GPA shown together always agree with
+            # each other and with the school's own GPA scale (see
+            # get_letter_grade_from_gpa).
             if all_percentages:
                 overall_percentage = round(
                     sum(all_percentages) / len(all_percentages), 2
@@ -4160,13 +4166,13 @@ class StudentAdminDashboardView(viewsets.ViewSet):
             else:
                 overall_percentage = 0.0
 
-            overall_grade_details = get_grade_details(overall_percentage)
-            overall_grade = overall_grade_details["letter_grade"]
             overall_gpa = (
                 round(sum(graded_course_gpas) / len(graded_course_gpas), 2)
                 if graded_course_gpas
                 else 0.0
             )
+            overall_grade_details = get_letter_grade_from_gpa(overall_gpa)
+            overall_grade = overall_grade_details["letter_grade"]
             overall_remark = overall_grade_details["remark"]
 
             overview_data = {

@@ -1272,3 +1272,41 @@ def get_grade_details(percentage):
         return {"letter_grade": "D", "gpa": 1.0, "remark": "Poor"}
     else:
         return {"letter_grade": "F", "gpa": 0.0, "remark": "Fail"}
+
+
+# Reverse of the quality-point column above: a cumulative/overall GPA
+# (averaged across courses in quality-point space, see
+# dashboard.views.StudentAdminDashboardView.overview) mapped back to a
+# letter grade and remark. A+ and A share 4.0 quality points in the table
+# above - that distinction is percentage-only (97-100 vs 93-96) and isn't
+# recoverable from a GPA value alone, so a GPA of 4.0 here reports as "A".
+# Ordered highest to lowest; GPA_SCALE[i][0] is the inclusive lower bound.
+GPA_SCALE = (
+    (4.0, "A", "Excellent"),
+    (3.7, "A-", "Very Good"),
+    (3.3, "B+", "Good"),
+    (3.0, "B", "Good"),
+    (2.7, "B-", "Satisfactory"),
+    (2.3, "C+", "Satisfactory"),
+    (2.0, "C", "Pass"),
+    (1.7, "C-", "Pass"),
+    (1.3, "D+", "Poor"),
+    (1.0, "D", "Poor"),
+    (0.0, "F", "Fail"),
+)
+
+
+def get_letter_grade_from_gpa(gpa):
+    """
+    Returns {letter_grade, remark} for a cumulative GPA value, using the
+    same quality-point scale get_grade_details() assigns per percentage
+    bracket (see GPA_SCALE above). Use this - not get_grade_details() - to
+    label an *overall* GPA that was itself computed by averaging several
+    courses' quality points, so the letter grade shown always agrees with
+    the GPA number next to it.
+    """
+    value = float(gpa)
+    for threshold, letter, remark in GPA_SCALE:
+        if value >= threshold:
+            return {"letter_grade": letter, "remark": remark}
+    return {"letter_grade": "F", "remark": "Fail"}

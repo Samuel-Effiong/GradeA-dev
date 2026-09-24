@@ -1689,6 +1689,91 @@ class StudentDashboardOverviewGPAAPITest(APITestCase):
         # percentage incorrectly produced before the fix).
         self.assertNotEqual(response.data["overall_gpa"], 0.0)
         self.assertEqual(response.data["overall_gpa"], 0.33)
+        # overall_grade must be derived from overall_gpa (0.33 -> F), not
+        # from a separately re-classified flat average percentage.
+        self.assertEqual(response.data["overall_grade"], "F")
+        self.assertEqual(response.data["overall_remark"], "Fail")
+
+
+class OverallGradeFollowsGPANotFlatPercentageAPITest(APITestCase):
+    """Regression test: overall_grade/overall_remark must be derived from
+    overall_gpa (course percentage -> course letter -> course GPA ->
+    overall GPA -> overall letter -> overall remark), never re-classified
+    from the separate overall_percentage stat - the two methods can
+    disagree. Concrete case that exposed the bug: a course at 96% (A, 4.0)
+    and a course at 64% (F, 0.0) average to a flat 80% ("B-" if
+    re-classified), but the GPA-correct overall GPA is 2.0, which this
+    school's own scale calls "C" - not "B-" (worth 2.7)."""
+
+    def setUp(self):
+        self.now = timezone.now()
+
+        self.teacher = CustomUser.objects.create_user(
+            email="overall-grade-teacher@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            first_name="Overall",
+            last_name="Teacher",
+        )
+        self.student = CustomUser.objects.create_user(
+            email="overall-grade-student@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.STUDENT,
+            first_name="Overall",
+            last_name="Student",
+        )
+        self.session = Session.objects.create(
+            name="Overall Grade Term", teacher=self.teacher
+        )
+        self.courses = [
+            Course.objects.create(
+                name=f"Overall Grade Course {i}",
+                teacher=self.teacher,
+                session=self.session,
+                is_active=True,
+            )
+            for i in range(2)
+        ]
+        for course in self.courses:
+            StudentCourse.objects.create(
+                student=self.student,
+                course=course,
+                enrollment_status=EnrollmentStatusType.ENROLLED,
+            )
+
+        percentages = [96, 64]  # A (4.0) and F (0.0)
+        for i, (course, pct) in enumerate(zip(self.courses, percentages, strict=True)):
+            assignment = Assignment.objects.create(
+                title=f"Overall Grade Assignment {i}",
+                course=course,
+                status=AssignmentStatus.PUBLISHED,
+                due_date=self.now - timedelta(days=1),
+            )
+            StudentSubmission.objects.create(
+                assignment=assignment,
+                student=self.student,
+                answers={"q1": "a"},
+                score=pct,
+                score_percentage=pct,
+                graded_at=self.now,
+                is_published=True,
+            )
+
+        self.client.force_authenticate(user=self.student)
+
+    def test_overall_grade_matches_the_gpa_scale_not_the_flat_percentage(self):
+        url = reverse("student-overview")
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # overall_percentage remains its own independent stat: (96+64)/2.
+        self.assertEqual(response.data["overall_percentage"], 80.0)
+        # overall_gpa: average of quality points (4.0, 0.0) = 2.0.
+        self.assertEqual(response.data["overall_gpa"], 2.0)
+        # overall_grade must be "C" (2.0 on the school's own GPA scale),
+        # NOT "B-" (what re-classifying the flat 80% would have shown).
+        self.assertEqual(response.data["overall_grade"], "C")
+        self.assertEqual(response.data["overall_remark"], "Pass")
 
 
 class SchoolAtRiskTrendAPITest(APITestCase):
