@@ -3,7 +3,7 @@
 Worktree: `Grade-Automator-Plus-epic-a-metrics-alerting`, branch
 `task/epic-a-metrics-alerting`, off `integration/epic-a` `97813ca`
 (includes the grading-audit and CRUD-audit branches already landed there).
-This evidence at commit (filled in after commit, see §6).
+This evidence at commit `71433b2`.
 
 ## 1. Background
 
@@ -257,9 +257,16 @@ build new reconciliation math" guidance. The module degrades to a safe
 no-op wherever Sentry isn't live and never raises into a caller. No
 regressions anywhere in the codebase from this change.
 
-Post-commit sha256 (from `git show <sha>:<path>`, not the working copy —
+Post-commit sha256 (from `git show 71433b2:<path>`, not the working copy —
 pre-commit hooks can rewrite a file after it's written):
 
 ```text
-<filled in after commit — see next commit>
+6dce157e2130f88b446192813765715053a233dba3a20c7337aa1b09f9d55deb  audit/metrics.py
+9e3c912288dd185f605bcac539c71caa4201ec36c54937324254eb428bbd2290  audit/emitter.py
+7d344d26c7457caa653e3cefc5cbf3243799f9709be9fd58204235e64d0616a1  assignments/tasks.py
+9150d29ace44e1bffd589a0a351da5ae5b435c014700ee4dc0371681243fda2f  billing/models.py
+74a6e611158a830211d4c3bd91dbd495cd6f1d213c50bfdadcdeac3234df46c8  billing/services.py
+fe19d90ddaaa1525ea0554d22d6306a032eb51fab1d434531e9e295aad226486  billing/tasks.py
+4c350a35717059bc2362037d8ad69a3a7c7b0e9f03a325d7add0a9531a6c73c4  audit/tests_metrics.py
+da1901ab4ebcfd5daeba7148d9b4956fe009494c4cc42eb907e347ca3e043ec6  assignments/tests_grading_audit_events.py
 ```
