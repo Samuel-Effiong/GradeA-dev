@@ -3858,6 +3858,8 @@ class StudentAdminDashboardView(viewsets.ViewSet):
             )
             missing_assignments = assignments.exclude(id__in=submitted_assignment_ids)
 
+            not_submitted_count = missing_assignments.count()
+
             overdue_count = missing_assignments.filter(
                 due_date__lt=timezone.now()
             ).count()
@@ -3894,6 +3896,8 @@ class StudentAdminDashboardView(viewsets.ViewSet):
             data = {
                 "course": course.id,
                 "assignment_submitted": submitted_count,
+                "assignment_not_submitted": not_submitted_count,
+                "assignment_graded": released.count(),
                 "assignment_assigned": total_assigned,
                 "completion_rate": completion_rate,
                 "missing_or_overdue": overdue_count,
@@ -4087,12 +4091,17 @@ class StudentAdminDashboardView(viewsets.ViewSet):
             )
             pending_assignments = assignments.exclude(id__in=submitted_assignment_ids)
 
-            assignments_pending_not_due = pending_assignments.filter(
-                Q(due_date__gte=now) | Q(due_date__isnull=True)
-            ).count()
+            assignments_not_submitted = pending_assignments.count()
 
             assignments_due_no_submission = pending_assignments.filter(
                 due_date__lt=now
+            ).count()
+
+            # Graded = released to the student, not merely scored - matches
+            # the "released" pattern used for grade figures elsewhere in
+            # this view (see StudentAdminDashboardView.summary).
+            assignments_graded = submissions.filter(
+                is_published=True, score_percentage__isnull=False
             ).count()
 
             # 5. Per-course grade breakdown
@@ -4163,7 +4172,8 @@ class StudentAdminDashboardView(viewsets.ViewSet):
             overview_data = {
                 "total_courses": total_courses,
                 "assignments_submitted": assignments_submitted,
-                "assignments_pending_not_due": assignments_pending_not_due,
+                "assignments_not_submitted": assignments_not_submitted,
+                "assignments_graded": assignments_graded,
                 "assignments_due_no_submission": assignments_due_no_submission,
                 # Grade standing
                 "overall_percentage": overall_percentage,

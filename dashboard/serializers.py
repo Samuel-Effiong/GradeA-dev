@@ -60,7 +60,8 @@ class StudentDashboardOverviewSerializer(serializers.Serializer):
 
     total_courses = serializers.IntegerField(read_only=True)
     assignments_submitted = serializers.IntegerField(read_only=True)
-    assignments_pending_not_due = serializers.IntegerField(read_only=True)
+    assignments_not_submitted = serializers.IntegerField(read_only=True)
+    assignments_graded = serializers.IntegerField(read_only=True)
     assignments_due_no_submission = serializers.IntegerField(read_only=True)
 
     # Grade Standing Metrics
@@ -78,6 +79,8 @@ class CourseAnalyticsSerializer(serializers.Serializer):
 
     course = serializers.UUIDField(read_only=True)
     assignment_submitted = serializers.IntegerField(read_only=True)
+    assignment_not_submitted = serializers.IntegerField(read_only=True)
+    assignment_graded = serializers.IntegerField(read_only=True)
     assignment_assigned = serializers.IntegerField(read_only=True)
     completion_rate = serializers.FloatField(read_only=True)
     missing_or_overdue = serializers.IntegerField(read_only=True)

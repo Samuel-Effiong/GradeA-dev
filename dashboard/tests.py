@@ -2,6 +2,7 @@ from datetime import date, timedelta
 from unittest.mock import patch
 
 from django.conf import settings
+from django.core.cache import cache
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -1452,12 +1453,160 @@ class StudentDashboardOverviewAPITest(APITestCase):
         # Expected:
         # 1. total_courses = 2 (Active Course 1, Active Course 2)
         # 2. assignments_submitted = 2 (a1, a6)
-        # 3. assignments_pending_not_due = 2 (a2 [future], a5 [no due date])
-        # 4. assignments_due_no_submission = 1 (a3 [passed due date])
+        # 3. assignments_not_submitted = 3 (a2 [future], a5 [no due date], a3 [overdue])
+        # 4. assignments_due_no_submission = 1 (a3 [passed due date]) - also counted in
+        #    assignments_not_submitted above, the two are not mutually exclusive
+        # 5. assignments_graded = 0 (a1/a6 have scores but neither is released
+        #    (is_published=True) to the student)
         self.assertEqual(response.data["total_courses"], 2)
         self.assertEqual(response.data["assignments_submitted"], 2)
-        self.assertEqual(response.data["assignments_pending_not_due"], 2)
+        self.assertEqual(response.data["assignments_not_submitted"], 3)
         self.assertEqual(response.data["assignments_due_no_submission"], 1)
+        self.assertEqual(response.data["assignments_graded"], 0)
+
+    def test_assignments_graded_only_counts_released_scored_submissions(self):
+        # a1's submission has a score but is_published defaults to False
+        # (not yet released) - graded should stay 0 until it's released.
+        url = reverse("student-overview")
+        self.assertEqual(self.client.get(url).data["assignments_graded"], 0)
+
+        StudentSubmission.objects.filter(assignment=self.a1).update(is_published=True)
+        # The overview endpoint caches its response for 15 minutes; without
+        # clearing it here, this second request would read the stale
+        # pre-release result back out of cache instead of recomputing.
+        cache.clear()
+
+        response = self.client.get(url)
+        self.assertEqual(response.data["assignments_graded"], 1)
+        # Submitted/not-submitted/overdue counts are unaffected by release.
+        self.assertEqual(response.data["assignments_submitted"], 2)
+        self.assertEqual(response.data["assignments_not_submitted"], 3)
+        self.assertEqual(response.data["assignments_due_no_submission"], 1)
+
+
+class StudentCourseSummaryAPITest(APITestCase):
+    """Covers StudentAdminDashboardView.summary - the per-course page a
+    student sees after clicking into one class, as distinct from the
+    all-courses dashboard covered by StudentDashboardOverviewAPITest."""
+
+    def setUp(self):
+        self.now = timezone.now()
+
+        self.teacher = CustomUser.objects.create_user(
+            email="course-summary-teacher@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            first_name="Summary",
+            last_name="Teacher",
+        )
+        self.student = CustomUser.objects.create_user(
+            email="course-summary-student@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.STUDENT,
+            first_name="Summary",
+            last_name="Student",
+        )
+
+        self.session = Session.objects.create(name="Summary Term", teacher=self.teacher)
+        self.course = Course.objects.create(
+            name="Summary Course",
+            teacher=self.teacher,
+            session=self.session,
+            is_active=True,
+        )
+        StudentCourse.objects.create(
+            student=self.student,
+            course=self.course,
+            enrollment_status=EnrollmentStatusType.ENROLLED,
+        )
+
+        # 1. Submitted, graded and released
+        self.a1 = Assignment.objects.create(
+            title="A1 Submitted Released",
+            course=self.course,
+            status=AssignmentStatus.PUBLISHED,
+            due_date=self.now - timedelta(days=5),
+        )
+        StudentSubmission.objects.create(
+            assignment=self.a1,
+            student=self.student,
+            answers={"q1": "a"},
+            score=100,
+            score_percentage=100,
+            graded_at=self.now - timedelta(days=4),
+            is_published=True,
+        )
+
+        # 2. Submitted, graded but NOT released
+        self.a2 = Assignment.objects.create(
+            title="A2 Submitted Unreleased",
+            course=self.course,
+            status=AssignmentStatus.PUBLISHED,
+            due_date=self.now - timedelta(days=3),
+        )
+        StudentSubmission.objects.create(
+            assignment=self.a2,
+            student=self.student,
+            answers={"q1": "a"},
+            score=80,
+            score_percentage=80,
+            graded_at=self.now - timedelta(days=2),
+            is_published=False,
+        )
+
+        # 3. Not submitted, not yet due
+        self.a3 = Assignment.objects.create(
+            title="A3 Future Pending",
+            course=self.course,
+            status=AssignmentStatus.PUBLISHED,
+            due_date=self.now + timedelta(days=5),
+        )
+
+        # 4. Not submitted, overdue
+        self.a4 = Assignment.objects.create(
+            title="A4 Overdue",
+            course=self.course,
+            status=AssignmentStatus.PUBLISHED,
+            due_date=self.now - timedelta(days=1),
+        )
+
+        # 5. Draft (should be ignored - students never see drafts)
+        Assignment.objects.create(
+            title="A5 Draft",
+            course=self.course,
+            status=AssignmentStatus.DRAFT,
+            due_date=self.now - timedelta(days=1),
+        )
+
+        self.client.force_authenticate(user=self.student)
+
+    def test_course_summary_breaks_out_submitted_not_submitted_graded_overdue(self):
+        url = reverse("student-summary", kwargs={"course_id": self.course.id})
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # 4 published assignments total (a1-a4; the draft a5 is excluded).
+        # Submitted: a1, a2 = 2. Not submitted: a3, a4 = 2 (overdue and
+        # not-yet-due are not mutually exclusive with "not submitted").
+        # Overdue: a4 = 1. Graded (released only): a1 = 1 - a2 has a score
+        # but is_published=False, so it does not count yet.
+        self.assertEqual(response.data["assignment_assigned"], 4)
+        self.assertEqual(response.data["assignment_submitted"], 2)
+        self.assertEqual(response.data["assignment_not_submitted"], 2)
+        self.assertEqual(response.data["missing_or_overdue"], 1)
+        self.assertEqual(response.data["assignment_graded"], 1)
+
+    def test_course_summary_graded_updates_once_grade_is_released(self):
+        url = reverse("student-summary", kwargs={"course_id": self.course.id})
+        self.assertEqual(self.client.get(url).data["assignment_graded"], 1)
+
+        StudentSubmission.objects.filter(assignment=self.a2).update(is_published=True)
+        cache.clear()
+
+        response = self.client.get(url)
+        self.assertEqual(response.data["assignment_graded"], 2)
+        self.assertEqual(response.data["assignment_submitted"], 2)
 
 
 class StudentDashboardOverviewGPAAPITest(APITestCase):
