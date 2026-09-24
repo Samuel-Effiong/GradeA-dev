@@ -981,22 +981,33 @@ class TestTeacherInvitePasswordGeneration(TransactionTestCase):
         teacher.refresh_from_db()
         assert teacher.check_password(password)
 
-    def test_activation_link_uses_the_shared_verify_email_page(self):
-        """Same path/param names as the self-registered flow
-        (users.services.send_user_activation_email), so there is one
-        frontend page and one backend endpoint (auth/verify) for both
-        onboarding tracks - not a dead /register/teacher link."""
-        with patch("billing.license_service.send_email_task") as mock_send_email:
+    def test_new_teacher_is_active_immediately_with_no_activation_token(self):
+        """A license-invited teacher logs straight in with the temporary
+        password, so there's no activation link/token for this path -
+        unlike self-registration/student/school-admin invites."""
+        with patch("billing.license_service.send_email_task"):
             teacher = LicenseSubscriptionService._get_or_invite_teacher(
+                "active_teacher@school.edu", self.school, self.admin
+            )
+
+        assert teacher.is_active is True
+        assert not teacher.activation_token
+        assert teacher.activation_expires is None
+
+    def test_invitation_email_links_to_the_login_page(self):
+        """The teacher already has an active account, so the invitation
+        email points them at login (not a verify-email/activation link)."""
+        with patch("billing.license_service.send_email_task") as mock_send_email:
+            LicenseSubscriptionService._get_or_invite_teacher(
                 "linked_teacher@school.edu", self.school, self.admin
             )
 
         merge_data = mock_send_email.delay.call_args.kwargs["merge_data"]
         activation_url = merge_data["activation_url"]
-        assert "/verify-email?" in activation_url
-        assert f"email={teacher.email}" in activation_url
-        assert f"token={teacher.activation_token}" in activation_url
-        assert "/register/teacher" not in activation_url
+        assert activation_url.endswith("/login")
+        assert "token=" not in activation_url
+        assert "verify-email" not in activation_url
+        assert "log in" in merge_data["top_content"].lower()
 
     def test_generated_password_is_never_logged(self):
         with self.assertLogs("billing.license_service", level="INFO") as captured:
@@ -1009,24 +1020,23 @@ class TestTeacherInvitePasswordGeneration(TransactionTestCase):
         for record in captured.records:
             assert password not in record.getMessage()
 
-    def test_resending_an_invitation_to_a_still_inactive_teacher_issues_a_fresh_password(
+    def test_resending_an_invitation_to_a_still_pending_teacher_issues_a_fresh_password(
         self,
     ):
         """A resend can't reuse the first email's password (only its hash is
         stored), so it must generate - and actually set - a new one each
-        time, not silently keep the account on the old hash."""
+        time, not silently keep the account on the old hash. The resend
+        gate is must_change_password, not is_active - the teacher is
+        already active from creation."""
         with patch("billing.license_service.send_email_task") as mock_send_email:
             LicenseSubscriptionService._get_or_invite_teacher(
                 "resend_teacher@school.edu", self.school, self.admin
             )
         first_password = self._password_from_merge_data(mock_send_email)
 
-        # Flip the flag off between invites, so the second call proves the
-        # RESEND branch itself sets must_change_password - not just that it
-        # was already True from account creation and happened to survive.
         teacher = CustomUser.objects.get(email="resend_teacher@school.edu")
-        teacher.must_change_password = False
-        teacher.save(update_fields=["must_change_password"])
+        assert teacher.is_active is True
+        assert teacher.must_change_password is True
 
         with patch("billing.license_service.send_email_task") as mock_send_email:
             teacher = LicenseSubscriptionService._get_or_invite_teacher(
@@ -1039,6 +1049,56 @@ class TestTeacherInvitePasswordGeneration(TransactionTestCase):
         assert not teacher.check_password(first_password)
         assert teacher.check_password(second_password)
         assert teacher.must_change_password is True
+
+    def test_re_adding_an_already_onboarded_teacher_does_not_reset_password_or_resend(
+        self,
+    ):
+        """Once a teacher has set their own password (must_change_password
+        is False), re-adding them under the same or another school must
+        not reset their password or send another invitation - only the
+        school-attach-if-needed behavior applies."""
+        with patch("billing.license_service.send_email_task"):
+            LicenseSubscriptionService._get_or_invite_teacher(
+                "onboarded_teacher@school.edu", self.school, self.admin
+            )
+        teacher = CustomUser.objects.get(email="onboarded_teacher@school.edu")
+        teacher.must_change_password = False
+        teacher.set_password("chosen-by-teacher")  # pragma: allowlist secret
+        teacher.save(update_fields=["must_change_password", "password"])
+
+        with patch("billing.license_service.send_email_task") as mock_send_email:
+            result = LicenseSubscriptionService._get_or_invite_teacher(
+                "onboarded_teacher@school.edu", self.school, self.admin
+            )
+
+        mock_send_email.delay.assert_not_called()
+        assert result == teacher
+        teacher.refresh_from_db()
+        assert teacher.must_change_password is False
+        assert teacher.check_password("chosen-by-teacher")
+
+    def test_re_adding_an_already_onboarded_teacher_still_attaches_missing_school(
+        self,
+    ):
+        """The school-attach-if-needed behavior is unconditional, even when
+        the must_change_password gate skips the password reset/resend."""
+        with patch("billing.license_service.send_email_task"):
+            LicenseSubscriptionService._get_or_invite_teacher(
+                "schoolless_teacher@school.edu", self.school, self.admin
+            )
+        teacher = CustomUser.objects.get(email="schoolless_teacher@school.edu")
+        teacher.must_change_password = False
+        teacher.school = None
+        teacher.save(update_fields=["must_change_password", "school"])
+
+        with patch("billing.license_service.send_email_task") as mock_send_email:
+            LicenseSubscriptionService._get_or_invite_teacher(
+                "schoolless_teacher@school.edu", self.school, self.admin
+            )
+
+        mock_send_email.delay.assert_not_called()
+        teacher.refresh_from_db()
+        assert teacher.school == self.school
 
     def test_an_already_active_normal_signup_is_unaffected(self):
         """The must_change_password path is exclusive to this invite flow -
