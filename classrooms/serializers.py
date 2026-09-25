@@ -715,30 +715,79 @@ class SchoolSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
-def _send_school_admin_invitation_email(user, school):
+def _generate_school_admin_password(user):
+    """A random password meeting AUTH_PASSWORD_VALIDATORS, never logged.
+
+    Same approach as billing/license_service.py's
+    _generate_teacher_password - kept as a separate copy rather than a
+    shared import since the two invite flows (license teacher, school
+    admin) live in different apps with no existing dependency between
+    them.
+    """
+    from django.utils.crypto import get_random_string
+
+    alphabet = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%^&*"
+    for _ in range(10):
+        candidate = get_random_string(20, allowed_chars=alphabet)
+        try:
+            validate_password(candidate, user=user)
+        except Exception:
+            continue
+        return candidate
+    # Astronomically unlikely with a 20-char/66-symbol alphabet, but never
+    # fall through to a weaker password.
+    raise RuntimeError("Failed to generate a password passing validation.")
+
+
+def _send_school_admin_invitation_email(user, school, generated_password=None):
     """Queue the invitation email for a newly created school admin.
 
-    The admin has no usable password yet; the email links to a registration
-    page where they set their own password using the activation token.
+    generated_password is set for the current creation path
+    (SchoolWithAdminSerializer.create()): the admin is active immediately
+    with a temporary password and the email links straight to /login.
+
+    generated_password is left None for resend_school_admin_invitation(),
+    which still serves admin rows created before this change under the old
+    is_active=False/activation_token lifecycle - those still complete via
+    /auth/register/school-admin, so that email keeps linking there with the
+    (freshly reissued) activation token instead of a password.
     """
     frontend_domain = settings.SCHOOL_ADMIN_FRONTEND_DOMAIN
-    activation_url = (
-        f"https://{frontend_domain}/register/school-admin"
-        f"?email={user.email}&token={user.activation_token}"
-    )
 
-    merge_data = {
-        "title": f"You've been added as the admin for {school.name}",
-        "name": user.get_full_name() or user.first_name,
-        "top_content": (
-            f"You have been set up as the school administrator for {school.name} on Grade A+.<br><br>"
-            "Complete your registration to set up your password and start managing your school."
-        ),
-        "bottom_content": "This invitation link expires in 7 days.",
-        "activation_url": activation_url,
-        "current_year": timezone.now().year,
-        "support_email": settings.SUPPORT_EMAIL,
-    }
+    if generated_password is not None:
+        activation_url = f"https://{frontend_domain}/login"
+        merge_data = {
+            "title": f"You've been added as the admin for {school.name}",
+            "name": user.get_full_name() or user.first_name,
+            "top_content": (
+                f"You have been set up as the school administrator for {school.name} on Grade A+.<br><br>"
+                "Your account is ready - log in below with your email and the "
+                f"temporary password: {generated_password}\n\n"
+                "You'll be asked to choose your own password the first time "
+                "you log in."
+            ),
+            "bottom_content": "",
+            "activation_url": activation_url,
+            "current_year": timezone.now().year,
+            "support_email": settings.SUPPORT_EMAIL,
+        }
+    else:
+        activation_url = (
+            f"https://{frontend_domain}/register/school-admin"
+            f"?email={user.email}&token={user.activation_token}"
+        )
+        merge_data = {
+            "title": f"You've been added as the admin for {school.name}",
+            "name": user.get_full_name() or user.first_name,
+            "top_content": (
+                f"You have been set up as the school administrator for {school.name} on Grade A+.<br><br>"
+                "Complete your registration to set up your password and start managing your school."
+            ),
+            "bottom_content": "This invitation link expires in 7 days.",
+            "activation_url": activation_url,
+            "current_year": timezone.now().year,
+            "support_email": settings.SUPPORT_EMAIL,
+        }
 
     user_email = user.email
     school_name = school.name
@@ -768,12 +817,14 @@ def resend_school_admin_invitation(user):
     """Issue a fresh 7-day invitation token and re-send the school-admin
     invite email for a still-pending admin.
 
-    Exists so a pending school admin (`is_active=False`, no usable
-    password - see `SchoolWithAdminSerializer.create()`) can always be
-    reached with a working invite, rather than being routed through the
-    generic self-registration activation flow, which has no password step
-    and would silently overwrite this same `activation_token` field with
-    one that leads nowhere useful (H-42).
+    `SchoolWithAdminSerializer.create()` no longer produces is_active=False
+    admins - new admins are active immediately with a temporary password
+    (see its own comment). This function now only serves admin rows still
+    pending from before that change, so they can still be reached with a
+    working invite, rather than being routed through the generic
+    self-registration activation flow, which has no password step and
+    would silently overwrite this same `activation_token` field with one
+    that leads nowhere useful (H-42).
     """
     if not user.school:
         logger.error(
@@ -850,10 +901,10 @@ class SchoolWithAdminSerializer(serializers.Serializer):
                     website=validated_data.get("school_website", ""),
                 )
 
-                # 2. Create Admin User with an invitation token and no usable
-                # password. The admin sets their own password when they
-                # complete registration via the emailed invite link — no
-                # secret ever has to travel through an email template.
+                # 2. Create Admin User, active immediately with a temporary
+                # password - they log straight in instead of clicking an
+                # activation link first (same pattern as a license-invited
+                # teacher; see billing/license_service.py).
                 admin_data = {
                     "email": validated_data["admin_email"],
                     "first_name": validated_data["admin_first_name"],
@@ -862,29 +913,42 @@ class SchoolWithAdminSerializer(serializers.Serializer):
                     "profile_image": validated_data.get("admin_profile_image"),
                     "user_type": UserTypes.SCHOOL_ADMIN,
                     "school": school,
-                    "is_active": False,
-                    # A high-entropy token, not the 6-digit OTP used for the
-                    # short-lived (15 min) email-verification flow — this link
-                    # stays valid for 7 days and needs a much bigger keyspace
-                    # to resist brute-forcing over that window.
-                    "activation_token": secrets.token_urlsafe(32),
-                    "activation_expires": timezone.now() + timezone.timedelta(days=7),
+                    "is_active": True,
+                    # Unlike the license-teacher path (which leaves this
+                    # unset - its generic /auth/verify completion doesn't
+                    # gate on is_active), leaving this None here would let
+                    # POST /auth/otp (VERIFY_EMAIL) reach this now-active
+                    # admin and resend a dead activation-token link via
+                    # resend_school_admin_invitation() - that link's own
+                    # completion endpoint (/auth/register/school-admin)
+                    # filters on is_active=False, which this admin no
+                    # longer satisfies. Marking the email verified here
+                    # (a superadmin just handed them working credentials
+                    # directly, the same trust level as a self-verified
+                    # link) makes /auth/otp short-circuit to "already
+                    # verified, please login" instead.
+                    "email_verified_at": timezone.now(),
                 }
 
                 try:
                     # Set license context so the post_save signal skips trial activation
                     set_license_invitation_context(True)
-                    # No password kwarg is passed, so CustomUser.objects.create_user()
-                    # calls set_password(None), which Django resolves to an unusable
-                    # password — equivalent to calling set_unusable_password().
                     user = CustomUser.objects.create_user(**admin_data)
+                    # Generate a real password so the admin can log in (and
+                    # so the forced-change flow below has something to
+                    # force them off of), instead of set_unusable_password()
+                    # leaving them with no way to ever authenticate.
+                    generated_password = _generate_school_admin_password(user)
+                    user.set_password(generated_password)
+                    user.must_change_password = True
+                    user.save(update_fields=["password", "must_change_password"])
                 finally:
                     clear_license_invitation_context()
 
                 # 3. Send the invitation email only after the transaction commits,
                 # so a rollback can never leave a queued email referencing a
                 # school/admin that doesn't exist.
-                _send_school_admin_invitation_email(user, school)
+                _send_school_admin_invitation_email(user, school, generated_password)
 
                 return {
                     "school": school,
