@@ -87,8 +87,29 @@ def real_redis_caches(location):
     }
 
 
+#: A test key that asked for "never expires" lives at most this long. It must
+#: exceed the longest gate (the full suite has taken ~2.8 h) so a key never
+#: expires under a running test; it exists so keys a killed run left behind
+#: (nothing in-process runs on SIGKILL) still disappear on their own.
+TEST_KEY_TTL_SECONDS = 12 * 60 * 60
+
+
+def _is_generation_counter(key):
+    # Imported lazily: cache_generation imports the cache at module load.
+    from AutoGrader.cache_generation import GENERATION_KEY_PREFIX
+
+    return str(key).startswith(f"{GENERATION_KEY_PREFIX}:")
+
+
 class PrefixScopedRedisCache(RedisCache):
     """A `RedisCache` whose `clear()` cannot reach another process's keys.
+
+    It also gives every "never expires" key a TTL (`TEST_KEY_TTL_SECONDS`),
+    EXCEPT H-1 generation counters. A counter that expired would read back as
+    DEFAULT_GENERATION and make every superseded entry reachable again, the
+    stale-revival failure the counters exist to prevent, so counters keep the
+    production behaviour (`timeout=None`) and are removed by the runner's
+    teardown and dead-pid sweep instead (`AutoGrader/redis_test_hygiene.py`).
 
     `key_prefix` is a PROPERTY, not the plain attribute `BaseCache.__init__`
     assigns, because Django loads settings (and so calls `test_key_prefix()`)
@@ -116,6 +137,33 @@ class PrefixScopedRedisCache(RedisCache):
     @key_prefix.setter
     def key_prefix(self, value):
         pass
+
+    @staticmethod
+    def _clamp(keys, args, kwargs, timeout_at):
+        if any(_is_generation_counter(key) for key in keys):
+            return args, kwargs
+        if len(args) > timeout_at:
+            if args[timeout_at] is None:
+                args = (
+                    *args[:timeout_at],
+                    TEST_KEY_TTL_SECONDS,
+                    *args[timeout_at + 1 :],
+                )
+        elif "timeout" in kwargs and kwargs["timeout"] is None:
+            kwargs = {**kwargs, "timeout": TEST_KEY_TTL_SECONDS}
+        return args, kwargs
+
+    def set(self, key, *args, **kwargs):
+        args, kwargs = self._clamp([key], args, kwargs, 1)
+        return super().set(key, *args, **kwargs)
+
+    def add(self, key, *args, **kwargs):
+        args, kwargs = self._clamp([key], args, kwargs, 1)
+        return super().add(key, *args, **kwargs)
+
+    def set_many(self, data, *args, **kwargs):
+        args, kwargs = self._clamp(list(data), args, kwargs, 0)
+        return super().set_many(data, *args, **kwargs)
 
     def clear(self):
         """Delete only the keys carrying this cache's prefix.

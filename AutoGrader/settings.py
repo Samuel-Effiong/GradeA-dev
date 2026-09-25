@@ -1282,6 +1282,10 @@ if "test" in sys.argv:
     PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 
 
+# Removes this run's Redis keys when it ends and sweeps dead runs' keys when it
+# starts, so the shared test Redis cannot fill up and slow every invalidation.
+TEST_RUNNER = "AutoGrader.redis_test_runner.RedisHygieneRunner"
+
 # django-redis defaults to SCAN COUNT=10, i.e. one network round trip per
 # ~10 keys when delete_pattern walks the keyspace. Signal handlers call
 # delete_pattern on every user/course/enrollment save, so on a remote Redis
