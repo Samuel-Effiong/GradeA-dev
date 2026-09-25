@@ -255,7 +255,9 @@ class VerifyEmailOtpDoesNotDeadEndANewlyCreatedAdminTests(APITestCase):
         original_token = admin.activation_token
         self.client.force_authenticate(None)
 
-        with patch("users.services.resend_school_admin_invitation") as mock_resend:
+        with patch(
+            "classrooms.serializers.resend_school_admin_invitation"
+        ) as mock_resend:
             response = self.client.post(
                 reverse("auth-otp"),
                 {"email": admin.email, "otp_type": "VERIFY_EMAIL"},
