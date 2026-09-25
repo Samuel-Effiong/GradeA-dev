@@ -1,0 +1,270 @@
+"""Mutation battery for the student-invite active-on-creation work
+(classrooms/services/enrollment.py::enroll_student_by_email,
+_create_new_student, activate_pending_enrollments_on_login, and
+classrooms/management/commands/backfill_pending_student_invites.py).
+Each mutant weakens ONE protection; a test named for that protection must
+fail. Restores from a collision-safe backup copy and verifies by md5
+(never git checkout).
+"""
+
+import hashlib
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+
+ROOT = "/home/bond-servant-in-training/Documents/Projects/GAP-student-invite-active"
+SCR = os.path.dirname(os.path.abspath(__file__))
+ENR = "classrooms/services/enrollment.py"
+CMD = "classrooms/management/commands/backfill_pending_student_invites.py"
+LABELS = (
+    "classrooms.tests "
+    "classrooms.tests_backfill_pending_student_invites "
+    "classrooms.tests_cross_school_enrollment"
+)
+
+MUTANTS = [
+    (
+        "ACT",
+        "new student created inactive again",
+        [
+            (
+                ENR,
+                "is_active=True,\n        school=course.teacher.school,",
+                "is_active=False,\n        school=course.teacher.school,",
+            )
+        ],
+        "test_new_student_is_created_active_with_no_activation_token",
+    ),
+    (
+        "GATE",
+        "re-invite fast-path gate drops the is_active check, so a legacy "
+        "is_active=False row with must_change_password=False is wrongly "
+        "treated as already onboarded",
+        [
+            (
+                ENR,
+                "if student.is_active and not student.must_change_password:",
+                "if not student.must_change_password:",
+            )
+        ],
+        "test_legacy_pending_row_self_heals_instead_of_fast_pathing",
+    ),
+    (
+        "PENDING",
+        "new student's enrollment created ENROLLED instead of PENDING",
+        [
+            (
+                ENR,
+                (
+                    "        if student is None:\n"
+                    "            student, generated_password = _create_new_student(\n"
+                    "                course=course, email=email\n"
+                    "            )\n"
+                    "            _create_enrollment(\n"
+                    "                student=student,\n"
+                    "                course=course,\n"
+                    "                enrollment_status=EnrollmentStatusType.PENDING,\n"
+                    "            )"
+                ),
+                (
+                    "        if student is None:\n"
+                    "            student, generated_password = _create_new_student(\n"
+                    "                course=course, email=email\n"
+                    "            )\n"
+                    "            _create_enrollment(\n"
+                    "                student=student,\n"
+                    "                course=course,\n"
+                    "                enrollment_status=EnrollmentStatusType.ENROLLED,\n"
+                    "            )"
+                ),
+            )
+        ],
+        "test_new_student_is_created_active_with_no_activation_token",
+    ),
+    (
+        "LOGIN",
+        "login-flips-to-ENROLLED query filters on ENROLLED instead of "
+        "PENDING, so nothing ever flips on login",
+        [
+            (
+                ENR,
+                (
+                    "    StudentCourse.objects.filter(\n"
+                    "        student=student, enrollment_status=EnrollmentStatusType.PENDING\n"
+                    "    ).update(enrollment_status=EnrollmentStatusType.ENROLLED)"
+                ),
+                (
+                    "    StudentCourse.objects.filter(\n"
+                    "        student=student, enrollment_status=EnrollmentStatusType.ENROLLED\n"
+                    "    ).update(enrollment_status=EnrollmentStatusType.ENROLLED)"
+                ),
+            )
+        ],
+        "test_two_pending_enrollments_both_flip_on_one_login",
+    ),
+    (
+        "DRYRUN",
+        "backfill command's --dry-run flag stops gating the conversion, "
+        "so a dry run mutates real state and sends real mail",
+        [
+            (
+                CMD,
+                "            if dry_run:\n                self.stdout.write(\n"
+                '                    f"[dry-run] would convert {student.email} (pending: {course.name})"\n'
+                "                )\n                count += 1\n                continue",
+                "            if False:\n                self.stdout.write(\n"
+                '                    f"[dry-run] would convert {student.email} (pending: {course.name})"\n'
+                "                )\n                count += 1\n                continue",
+            )
+        ],
+        "test_dry_run_touches_nothing_and_sends_no_mail",
+    ),
+    (
+        "IDEMP",
+        "backfill selection query drops the is_active=False filter, so a "
+        "second run (or a student who has since logged in) is reprocessed",
+        [
+            (
+                CMD,
+                "        students = CustomUser.objects.filter(\n"
+                "            user_type=UserTypes.STUDENT,\n"
+                "            is_active=False,\n"
+                "            activation_token__isnull=False,\n"
+                "        ).exclude(activation_token=\"\")",
+                "        students = CustomUser.objects.filter(\n"
+                "            user_type=UserTypes.STUDENT,\n"
+                "            activation_token__isnull=False,\n"
+                "        ).exclude(activation_token=\"\")",
+            )
+        ],
+        "test_student_who_has_since_logged_in_is_never_revisited",
+    ),
+]
+
+
+def md5(p):
+    return hashlib.md5(open(p, "rb").read()).hexdigest()
+
+
+def run(timeout=300):
+    env = dict(os.environ)
+    env["DJANGO_SETTINGS_MODULE"] = "settings_worktree"
+    r = subprocess.run(
+        [
+            sys.executable,
+            "manage.py",
+            "test",
+            *LABELS.split(),
+            "--settings=settings_worktree",
+            "--keepdb",
+            "--noinput",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        env=env,
+    )
+    out = r.stdout + r.stderr
+    fails = re.findall(r"^(?:FAIL|ERROR): (\S+) \(([^)]*)\)", out, re.M)
+    m = re.search(r"^(OK.*|FAILED.*)$", out, re.M)
+    return r.returncode, out, fails, (m.group(1) if m else "?")
+
+
+def precheck():
+    bad = []
+    for mid, desc, edits, expect in MUTANTS:
+        for f, old, new in edits:
+            n = open(os.path.join(ROOT, f)).read().count(old)
+            if n != 1:
+                bad.append((mid, f, n, old[:60]))
+    return bad
+
+
+def main(only=None):
+    bad = precheck()
+    if bad:
+        for b in bad:
+            print("PATTERN PROBLEM", b)
+        raise SystemExit(1)
+    log = open(os.path.join(SCR, "mutation_log.jsonl"), "a")
+    results = []
+    files = sorted({f for _, _, ms, _ in MUTANTS for f, _, _ in ms})
+    orig = {f: md5(os.path.join(ROOT, f)) for f in files}
+    backups = {}
+    for f in files:
+        b = os.path.join(SCR, "backup_" + f.replace("/", "__"))
+        shutil.copy2(os.path.join(ROOT, f), b)
+        backups[f] = b
+    rc, out, fails, summary = run()
+    base = {"id": "BASE", "rc": rc, "summary": summary, "fails": fails}
+    print("BASELINE", rc, summary, flush=True)
+    log.write(json.dumps(base) + "\n")
+    if rc != 0:
+        print(out[-3000:])
+        raise SystemExit("baseline not green")
+    for mid, desc, edits, expect in MUTANTS:
+        if only and mid not in only:
+            continue
+        try:
+            for f, old, new in edits:
+                p = os.path.join(ROOT, f)
+                s = open(p).read()
+                open(p, "w").write(s.replace(old, new))
+            t = time.time()
+            rc, out, fails, summary = run()
+            names = sorted({n for n, _ in fails})
+            killed = rc != 0 and any(expect in n for n, _ in fails)
+            res = {
+                "id": mid,
+                "desc": desc,
+                "rc": rc,
+                "summary": summary,
+                "expected_test": expect,
+                "failing": names,
+                "killed_for_named_reason": killed,
+                "secs": round(time.time() - t),
+            }
+        except Exception as e:
+            res = {
+                "id": mid,
+                "desc": desc,
+                "error": str(e),
+                "killed_for_named_reason": False,
+            }
+        finally:
+            for f in files:
+                shutil.copy2(backups[f], os.path.join(ROOT, f))
+            bad = [f for f in files if md5(os.path.join(ROOT, f)) != orig[f]]
+            if bad:
+                raise SystemExit(f"RESTORE MISMATCH after {mid}: {bad}")
+        res["restored_md5_ok"] = True
+        print(
+            mid,
+            "KILLED" if res["killed_for_named_reason"] else "SURVIVED/ERR",
+            (
+                (res.get("failing") or res.get("error"))[:6]
+                if res.get("failing")
+                else res.get("error")
+            ),
+            flush=True,
+        )
+        log.write(json.dumps(res) + "\n")
+        log.flush()
+        results.append(res)
+    json.dump(
+        {"baseline": base, "mutants": results, "md5": orig},
+        open(os.path.join(SCR, "mutation_results.json"), "w"),
+        indent=1,
+    )
+    print(
+        "KILLED", sum(r["killed_for_named_reason"] for r in results), "/", len(results)
+    )
+
+
+if __name__ == "__main__":
+    main(set(sys.argv[1:]) or None)
