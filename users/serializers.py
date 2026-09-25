@@ -104,6 +104,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             "user_type",
             "password",
             "is_active",
+            "must_change_password",
             "date_joined",
             "settings",
             "credit_wallet",
@@ -115,6 +116,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             "email": {"required": True},
             "password": {"write_only": True},
             "is_active": {"read_only": True},
+            "must_change_password": {"read_only": True},
             "date_joined": {"read_only": True},
             "profile_image_url": {"read_only": True},
         }

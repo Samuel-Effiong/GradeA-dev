@@ -1,13 +1,15 @@
 """
-Tests for server-side must_change_password enforcement
-(users/authentication.py MustChangePasswordJWTAuthentication).
+Tests for users/authentication.py's MustChangePasswordJWTAuthentication
+after the hard block was removed (product decision: a license teacher,
+student or school admin with a system-generated password may use the API
+immediately; must_change_password is now a frontend nudge, not a server-
+side gate).
 
-A license-invited teacher logs in with a system-generated password and must
-be blocked from doing anything else until they change it - not as a
-frontend convention, but enforced on every authenticated request regardless
-of which viewset handles it. These tests exercise real JWT authentication
-(never `force_authenticate`, which bypasses the authentication_classes
-chain entirely and so would never touch the code under test).
+These tests exercise real JWT authentication (never `force_authenticate`,
+which bypasses the authentication_classes chain entirely and so would
+never touch the code under test) to prove the flag no longer blocks
+anything, while the flag itself and its lifecycle (set on creation,
+cleared on change-password) are unchanged.
 """
 
 from django.urls import reverse
@@ -40,13 +42,12 @@ class ForcedPasswordChangeEnforcementTests(APITestCase):
         access = RefreshToken.for_user(user).access_token
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
 
-    def test_flagged_user_is_blocked_from_an_arbitrary_protected_endpoint(self):
+    def test_flagged_user_is_not_blocked_from_an_arbitrary_protected_endpoint(self):
         response = self.client.get(
             reverse("user-detail", kwargs={"pk": self.teacher.pk})
         )
 
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(response.data.get("detail").code, "password_change_required")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_flagged_user_can_still_reach_change_password(self):
         response = self.client.post(
@@ -138,3 +139,80 @@ class ForcedPasswordChangeEnforcementTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+class MustChangePasswordIsExposedOnLoginTests(APITestCase):
+    """
+    must_change_password is no longer enforced server-side, so the
+    frontend needs to read it itself to show a nudge. CustomUserSerializer
+    backs the login response (CustomTokenObtainPairSerializer.validate),
+    so this one field addition surfaces it there.
+    """
+
+    def test_login_response_reports_true_for_a_flagged_user(self):
+        teacher = CustomUser.objects.create_user(
+            email="flagged-login@school.edu",
+            password=GENERATED_PASSWORD,
+            first_name="Flagged",
+            last_name="Teacher",
+            user_type=UserTypes.TEACHER,
+            is_active=True,
+            email_verified_at=timezone.now(),
+            must_change_password=True,
+        )
+
+        response = self.client.post(
+            reverse("login"),
+            {"email": teacher.email, "password": GENERATED_PASSWORD},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["user"]["must_change_password"])
+
+    def test_login_response_reports_false_for_a_normal_user(self):
+        password = "OrdinaryPassw0rd!"  # pragma: allowlist secret
+        teacher = CustomUser.objects.create_user(
+            email="unflagged-login@school.edu",
+            password=password,
+            first_name="Unflagged",
+            last_name="Teacher",
+            user_type=UserTypes.TEACHER,
+            is_active=True,
+            email_verified_at=timezone.now(),
+        )
+
+        response = self.client.post(
+            reverse("login"),
+            {"email": teacher.email, "password": password},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["user"]["must_change_password"])
+
+    def test_field_is_read_only_and_cannot_be_client_set(self):
+        """Mirrors the is_active read-only guard - a client must never be
+        able to clear their own must_change_password flag by PATCHing it."""
+        teacher = CustomUser.objects.create_user(
+            email="readonly-check@school.edu",
+            password=GENERATED_PASSWORD,
+            first_name="Readonly",
+            last_name="Teacher",
+            user_type=UserTypes.TEACHER,
+            is_active=True,
+            email_verified_at=timezone.now(),
+            must_change_password=True,
+        )
+        access = RefreshToken.for_user(teacher).access_token
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
+
+        response = self.client.patch(
+            reverse("user-detail", kwargs={"pk": teacher.pk}),
+            {"must_change_password": False},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        teacher.refresh_from_db()
+        self.assertTrue(teacher.must_change_password)
