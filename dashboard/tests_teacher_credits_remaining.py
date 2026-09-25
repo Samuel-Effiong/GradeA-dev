@@ -12,7 +12,12 @@ from django.utils import timezone
 from rest_framework import status as http_status
 from rest_framework.test import APIClient
 
-from billing.models import CreditBucket, CreditBucketType, CreditWallet
+from billing.models import (
+    CONVERSION_FACTOR,
+    CreditBucket,
+    CreditBucketType,
+    CreditWallet,
+)
 from classrooms.models import School
 from users.models import CustomUser, UserTypes
 
@@ -69,10 +74,32 @@ class TeacherCreditsRemainingTest(TestCase):
     def test_each_source_is_isolated_and_manual_grant_folds_into_overage(self):
         teacher = make_teacher("credits-remaining-t1@example.com", self.school)
         wallet, _ = CreditWallet.objects.get_or_create(user=teacher)
-        make_bucket(wallet, CreditBucketType.MONTHLY, total=1000, used=200)
-        make_bucket(wallet, CreditBucketType.CARRY_OVER, total=300, used=50)
-        make_bucket(wallet, CreditBucketType.OVERAGE, total=500, used=100)
-        make_bucket(wallet, CreditBucketType.MANUAL_GRANT, total=200, used=0)
+        # Raw storage units; expected assertions below are the user-facing
+        # figures after dividing by CONVERSION_FACTOR.
+        make_bucket(
+            wallet,
+            CreditBucketType.MONTHLY,
+            total=1000 * CONVERSION_FACTOR,
+            used=200 * CONVERSION_FACTOR,
+        )
+        make_bucket(
+            wallet,
+            CreditBucketType.CARRY_OVER,
+            total=300 * CONVERSION_FACTOR,
+            used=50 * CONVERSION_FACTOR,
+        )
+        make_bucket(
+            wallet,
+            CreditBucketType.OVERAGE,
+            total=500 * CONVERSION_FACTOR,
+            used=100 * CONVERSION_FACTOR,
+        )
+        make_bucket(
+            wallet,
+            CreditBucketType.MANUAL_GRANT,
+            total=200 * CONVERSION_FACTOR,
+            used=0,
+        )
 
         credits_remaining = self.get(teacher.id)
 
@@ -106,11 +133,13 @@ class TeacherCreditsRemainingTest(TestCase):
     def test_trial_bucket_never_leaks_into_any_category(self):
         teacher = make_teacher("credits-remaining-t3@example.com", self.school)
         wallet, _ = CreditWallet.objects.get_or_create(user=teacher)
-        make_bucket(wallet, CreditBucketType.MONTHLY, total=1000, used=0)
+        make_bucket(
+            wallet, CreditBucketType.MONTHLY, total=1000 * CONVERSION_FACTOR, used=0
+        )
         make_bucket(
             wallet,
             CreditBucketType.TRIAL,
-            total=5000,
+            total=5000 * CONVERSION_FACTOR,
             used=0,
             expires_at=self.now + timedelta(days=14),
         )

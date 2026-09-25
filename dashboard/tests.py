@@ -11,7 +11,12 @@ from rest_framework.test import APITestCase
 
 from assignments.models import Assignment, AssignmentStatus
 from billing.immutable import allow_unsafe_mutation
-from billing.models import CreditBucket, CreditBucketType, CreditUsageLog
+from billing.models import (
+    CONVERSION_FACTOR,
+    CreditBucket,
+    CreditBucketType,
+    CreditUsageLog,
+)
 from classrooms.models import (
     Course,
     EnrollmentStatusType,
@@ -2104,10 +2109,14 @@ class TeacherDetailAPITest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_feature_mix_percentages_and_unmapped_feature_falls_to_other(self):
-        self._log_usage(1000, "Grading Assignment")
-        self._log_usage(500, "Assignment Extraction")  # -> creation
-        self._log_usage(300, "Formatted Grade")  # -> feedback
-        self._log_usage(200, "Custom AI Prompt")  # unmapped -> other
+        # Logged in raw internal units; displayed amounts below are the
+        # user-facing figures after dividing by CONVERSION_FACTOR.
+        self._log_usage(1000 * CONVERSION_FACTOR, "Grading Assignment")
+        self._log_usage(500 * CONVERSION_FACTOR, "Assignment Extraction")  # -> creation
+        self._log_usage(300 * CONVERSION_FACTOR, "Formatted Grade")  # -> feedback
+        self._log_usage(
+            200 * CONVERSION_FACTOR, "Custom AI Prompt"
+        )  # unmapped -> other
 
         self.client.force_authenticate(user=self.admin)
         response = self.client.get(self.url)
@@ -2125,8 +2134,8 @@ class TeacherDetailAPITest(APITestCase):
         self.assertAlmostEqual(total_percent, 100.0, delta=0.1)
 
     def test_refunded_usage_excluded(self):
-        self._log_usage(1000, "Grading Assignment")
-        self._log_usage(400, "Grading Assignment", is_refunded=True)
+        self._log_usage(1000 * CONVERSION_FACTOR, "Grading Assignment")
+        self._log_usage(400 * CONVERSION_FACTOR, "Grading Assignment", is_refunded=True)
 
         self.client.force_authenticate(user=self.admin)
         response = self.client.get(self.url)
@@ -2155,14 +2164,93 @@ class TeacherDetailAPITest(APITestCase):
 
     def test_days_active_and_daily_usage_window(self):
         now = timezone.now()
-        self._log_usage(100, "Grading Assignment", created_at=now)
-        self._log_usage(200, "Grading Assignment", created_at=now - timedelta(days=5))
+        self._log_usage(100 * CONVERSION_FACTOR, "Grading Assignment", created_at=now)
+        self._log_usage(
+            200 * CONVERSION_FACTOR,
+            "Grading Assignment",
+            created_at=now - timedelta(days=5),
+        )
         # Outside the 60-day window - counted in credits_used (all-time)
         # but not in days_active/daily_usage (windowed).
-        self._log_usage(9999, "Grading Assignment", created_at=now - timedelta(days=90))
+        self._log_usage(
+            9999 * CONVERSION_FACTOR,
+            "Grading Assignment",
+            created_at=now - timedelta(days=90),
+        )
 
         self.client.force_authenticate(user=self.admin)
         response = self.client.get(self.url)
         self.assertEqual(response.data["days_active"], 2)
         self.assertEqual(len(response.data["daily_usage"]), 61)
         self.assertEqual(response.data["credits_used"], 100 + 200 + 9999)
+
+    def test_credits_used_is_the_raw_total_divided_by_conversion_factor(self):
+        # 12345 is not a multiple of CONVERSION_FACTOR (1000) - the display
+        # value must floor, matching every other billing figure's // convention.
+        self._log_usage(12345, "Grading Assignment")
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(self.url)
+        self.assertEqual(response.data["credits_used"], 12345 // CONVERSION_FACTOR)
+        self.assertEqual(response.data["credits_used"], 12)
+
+    def test_category_amount_is_the_raw_total_divided_by_conversion_factor(self):
+        # 7999 is not a multiple of CONVERSION_FACTOR - only `amount` should
+        # be converted; `percent` is a ratio and must stay untouched.
+        self._log_usage(7999, "Assignment Extraction")  # -> creation
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(self.url)
+        self.assertEqual(response.data["creation"]["amount"], 7999 // CONVERSION_FACTOR)
+        self.assertEqual(response.data["creation"]["amount"], 7)
+        self.assertAlmostEqual(response.data["creation"]["percent"], 100.0, delta=0.1)
+
+    def test_credits_remaining_is_the_raw_total_divided_by_conversion_factor(self):
+        # None of these are multiples of CONVERSION_FACTOR. `total` floors
+        # the summed raw credits (not the sum of the already-floored parts)
+        # - 4300 + 2999 + 1000 = 8299 -> 8, not 4 + 2 + 1 = 7.
+        CreditBucket.objects.create(
+            wallet=self.teacher.credit_wallet,
+            bucket_type=CreditBucketType.MONTHLY,
+            total_credits=5500,
+            used_credits=1200,
+        )
+        CreditBucket.objects.create(
+            wallet=self.teacher.credit_wallet,
+            bucket_type=CreditBucketType.CARRY_OVER,
+            total_credits=2999,
+            used_credits=0,
+        )
+        CreditBucket.objects.create(
+            wallet=self.teacher.credit_wallet,
+            bucket_type=CreditBucketType.OVERAGE,
+            total_credits=1500,
+            used_credits=500,
+        )
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(self.url)
+        remaining = response.data["credits_remaining"]
+        self.assertEqual(remaining["monthly"], 4300 // CONVERSION_FACTOR)
+        self.assertEqual(remaining["monthly"], 4)
+        self.assertEqual(remaining["carry_over"], 2999 // CONVERSION_FACTOR)
+        self.assertEqual(remaining["carry_over"], 2)
+        self.assertEqual(remaining["overage"], 1000 // CONVERSION_FACTOR)
+        self.assertEqual(remaining["overage"], 1)
+        self.assertEqual(remaining["total"], (4300 + 2999 + 1000) // CONVERSION_FACTOR)
+        self.assertEqual(remaining["total"], 8)
+
+    def test_daily_usage_credits_is_the_raw_total_divided_by_conversion_factor(self):
+        now = timezone.now()
+        # 6789 is not a multiple of CONVERSION_FACTOR.
+        self._log_usage(6789, "Grading Assignment", created_at=now)
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(self.url)
+        today_entry = next(
+            row
+            for row in response.data["daily_usage"]
+            if row["date"] == now.date().isoformat()
+        )
+        self.assertEqual(today_entry["credits"], 6789 // CONVERSION_FACTOR)
+        self.assertEqual(today_entry["credits"], 6)

@@ -51,7 +51,7 @@ from AutoGrader.cache_generation import (
 )
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
-from billing.models import CreditBucketType, CreditUsageLog
+from billing.models import CONVERSION_FACTOR, CreditBucketType, CreditUsageLog
 from billing.refusals import PERMANENT_AI_REFUSALS, log_refusal, refusal_response
 from billing.services import FEATURE_TO_ANALYTICS_FIELD
 from classrooms.models import (
@@ -2037,7 +2037,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         divisor = credits_used or 1
         for category, amount in category_totals.items():
             result[category] = {
-                "amount": amount,
+                "amount": amount // CONVERSION_FACTOR,
                 "percent": round((amount / divisor) * 100, 1),
             }
 
@@ -2059,7 +2059,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         remaining = wallet.plan_remaining_credits() if wallet else 0
         current_used = wallet.plan_used_credits() if wallet else 0
         denominator = current_used + remaining
-        result["credits_used"] = credits_used
+        result["credits_used"] = credits_used // CONVERSION_FACTOR
         result["credits_used_percentage"] = (
             round((current_used / denominator) * 100, 1) if denominator else 0.0
         )
@@ -2090,14 +2090,15 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
             CreditBucketType.OVERAGE, 0
         ) + live_bucket_totals.get(CreditBucketType.MANUAL_GRANT, 0)
         result["credits_remaining"] = {
-            "monthly": credits_remaining_monthly,
-            "carry_over": credits_remaining_carry_over,
-            "overage": credits_remaining_overage,
+            "monthly": credits_remaining_monthly // CONVERSION_FACTOR,
+            "carry_over": credits_remaining_carry_over // CONVERSION_FACTOR,
+            "overage": credits_remaining_overage // CONVERSION_FACTOR,
             "total": (
                 credits_remaining_monthly
                 + credits_remaining_carry_over
                 + credits_remaining_overage
-            ),
+            )
+            // CONVERSION_FACTOR,
         }
 
         # --- Days active + daily usage (last 60 days) ---
@@ -2117,7 +2118,8 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         daily_usage = [
             {
                 "date": window_start + timedelta(days=i),
-                "credits": usage_dict.get(window_start + timedelta(days=i), 0),
+                "credits": usage_dict.get(window_start + timedelta(days=i), 0)
+                // CONVERSION_FACTOR,
             }
             for i in range(61)
         ]
