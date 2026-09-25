@@ -344,15 +344,10 @@ class AssignmentListStudentSerializer(serializers.ModelSerializer):
 
     def get_status(self, obj):
         "To check if student submitted for this assignment"
-        submission = self._get_submission(obj)
-        if submission and not submission.graded_at:
-            return "SUBMITTED"
-        elif submission and submission.graded_at and submission.is_published:
-            return "GRADED"
-        if obj.due_date and obj.due_date < timezone.now():
-            return "OVERDUE"
+        from .services import get_student_assignment_status
 
-        return "PENDING"
+        submission = self._get_submission(obj)
+        return get_student_assignment_status(obj, submission)
 
     def get_score(self, obj):
         submission = self._get_submission(obj)

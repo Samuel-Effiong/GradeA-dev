@@ -313,6 +313,27 @@ AI_ASSIGNMENT_CONTENT_FIELDS = frozenset(
 )
 
 
+def get_student_assignment_status(assignment, submission):
+    """One of "SUBMITTED", "GRADED", "OVERDUE", "NOT SUBMITTED" for a
+    student's view of one assignment.
+
+    Whether a submission EXISTS is checked first, independent of publish
+    state - `assignments/serializers.py`'s `get_status` used to check
+    `submission and not submission.graded_at` for the SUBMITTED case, so a
+    submission graded but not yet released (`is_published=False`) fell
+    through to OVERDUE/NOT SUBMITTED instead. A submission's existence, not
+    its publish state, is what makes a student "done"; publish state only
+    decides whether they get to see a grade for it yet.
+    """
+    if submission is not None:
+        if submission.graded_at and submission.is_published:
+            return "GRADED"
+        return "SUBMITTED"
+    if assignment.due_date and assignment.due_date < timezone.now():
+        return "OVERDUE"
+    return "NOT SUBMITTED"
+
+
 def ai_assignment_content_only(ai_output):
     """`ai_output` reduced to AI_ASSIGNMENT_CONTENT_FIELDS."""
     return {

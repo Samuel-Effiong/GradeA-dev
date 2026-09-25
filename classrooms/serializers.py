@@ -12,6 +12,7 @@ from rest_framework.validators import UniqueTogetherValidator
 
 from assignments.models import AssignmentStatus
 from assignments.serializers import AssignmentListSerializer  # , AssignmentSerializer
+from assignments.services import get_student_assignment_status
 from AutoGrader.tasks import send_email_task
 from billing.context import (
     clear_license_invitation_context,
@@ -450,19 +451,10 @@ class StudentCourseDetailSerializer(StudentCourseSerializer):
             submission = submissions.get(assignment.id)
 
             # Status and score for this assignment
-            if not submission:
-                now = timezone.now()
-
-                if assignment.due_date and assignment.due_date < now:
-                    status = "OVERDUE"
-                else:
-                    status = "PENDING"
-                score = None
-            elif submission.graded_at and submission.is_published:
-                status = "GRADED"
+            status = get_student_assignment_status(assignment, submission)
+            if submission and submission.graded_at and submission.is_published:
                 score = submission.score
             else:
-                status = "SUBMITTED"
                 score = None
 
             result.append(

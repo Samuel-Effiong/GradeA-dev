@@ -40,6 +40,7 @@ from rest_framework.response import Response
 from ai_processor.models import AssistantType, ChatMessage, ChatSession, RoleType
 from ai_processor.services import AI_CONFIDENCE_THRESHOLD, ai_processor
 from assignments.models import Assignment, AssignmentStatus
+from assignments.services import get_student_assignment_status
 from AutoGrader.cache_generation import (
     SCOPE_ANY_SCHOOL,
     SCOPE_ANY_USER,
@@ -4032,15 +4033,7 @@ class StudentAdminDashboardView(viewsets.ViewSet):
                 # so every grade read below is gated on the same object.
                 released = s if s is not None and s.is_published else None
 
-                if not s:
-                    if a.due_date and a.due_date < timezone.now():
-                        submission_status = "OVERDUE"
-                    else:
-                        submission_status = "NOT SUBMITTED"
-                elif released and released.graded_at:
-                    submission_status = "GRADED"
-                else:
-                    submission_status = "SUBMITTED"
+                submission_status = get_student_assignment_status(a, s)
 
                 stats = {
                     "course": a.course.name,
