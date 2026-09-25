@@ -252,8 +252,9 @@ class ResolveAdminUserTest(TestCase):
         )
 
     def test_derives_an_invited_admin_who_has_not_activated_yet(self):
-        """Schools are onboarded before they buy, so the admin created by
-        create_with_admin is still is_active=False at license time."""
+        """resolve_admin_user must still find an inactive admin - e.g. one
+        manually deactivated, or a pre-existing row from before
+        create_with_admin started creating admins active immediately."""
         invited = self._make_admin("invited@resolve.edu", is_active=False)
 
         self.assertEqual(
