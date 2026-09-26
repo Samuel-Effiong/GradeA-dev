@@ -17,7 +17,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from users.models import ACTIVATION_TOKEN_VALIDITY, CustomUser, UserTypes
-from users.services import otp_manager
+from users.services import generate_temporary_password
 
 from ..models import Course, EnrollmentStatusType, StudentCourse
 from . import notifications
@@ -160,11 +160,20 @@ def check_existing_account_may_join(student, course):
 def enroll_student_by_email(*, course, email):
     """Add a student to `course` by email address, inviting them if needed.
 
+    Mirrors the license-teacher invite (billing/license_service.py): a
+    newly invited student is active immediately with a system-generated
+    temporary password, and logs straight in instead of clicking an
+    activation link first.
+
     Three cases, in the order they are checked:
       * already enrolled -> EnrollmentError, nothing changes;
-      * existing active account -> enrolled immediately, told they're in;
-      * existing inactive account, or no account at all -> a PENDING
-        enrollment plus an activation link to finish registration.
+      * existing account that has already onboarded (is_active and not
+        must_change_password) -> enrolled immediately, told they're in;
+      * no account at all, or an existing account still mid-onboarding
+        (must_change_password, or a legacy is_active=False row left over
+        from before this change / not yet run through the backfill
+        migration) -> PENDING enrollment plus a fresh temporary password
+        and a login-credentials email.
 
     Returns (student, is_new_student).
     """
@@ -178,14 +187,16 @@ def enroll_student_by_email(*, course, email):
         student = find_account_by_email(email)
 
         if student is None:
-            student = _create_pending_student(course=course, email=email)
+            student, generated_password = _create_new_student(
+                course=course, email=email
+            )
             _create_enrollment(
                 student=student,
                 course=course,
                 enrollment_status=EnrollmentStatusType.PENDING,
             )
-            notifications.send_course_invitation_email(
-                student, course, student.activation_token
+            notifications.send_student_login_invitation_email(
+                student, course, generated_password
             )
             return student, True
 
@@ -196,7 +207,7 @@ def enroll_student_by_email(*, course, email):
         # check_existing_account_may_join.
         check_existing_account_may_join(student, course)
 
-        if student.is_active:
+        if student.is_active and not student.must_change_password:
             _create_enrollment(
                 student=student,
                 course=course,
@@ -205,38 +216,47 @@ def enroll_student_by_email(*, course, email):
             notifications.send_added_to_course_email(student, course)
             return student, False
 
-        activation_token = ensure_fresh_activation_token(student)
+        # Still mid-onboarding - e.g. invited to a different course and
+        # never logged in - or a legacy pending row from before this
+        # change. A fresh password every resend: the previous one's
+        # plaintext can't be recovered from the stored hash to put in this
+        # email, so there's nothing to reuse. is_active is force-set True
+        # here too, healing any legacy row this encounters.
+        generated_password = generate_temporary_password(student)
+        student.set_password(generated_password)
+        student.is_active = True
+        student.must_change_password = True
+        student.save(update_fields=["password", "is_active", "must_change_password"])
+
         _create_enrollment(
             student=student,
             course=course,
             enrollment_status=EnrollmentStatusType.PENDING,
         )
-        notifications.send_course_invitation_email(student, course, activation_token)
+        notifications.send_student_login_invitation_email(
+            student, course, generated_password
+        )
         return student, True
 
 
-def ensure_fresh_activation_token(student):
-    """Return a usable activation token, reissuing only if the current one
-    is missing or expired - so re-inviting a student doesn't needlessly
-    invalidate a link they may already have open."""
-    if (
-        not student.activation_token
-        or not student.activation_expires
-        or student.activation_expires < timezone.now()
-    ):
-        return student.renew_activation_token()
-    return student.activation_token
+def _create_new_student(*, course, email):
+    """Create a brand-new student account, active immediately with a
+    system-generated temporary password.
 
-
-def _create_pending_student(*, course, email):
-    return CustomUser.objects.create(
+    Returns (student, generated_password) - the plaintext password only
+    ever exists here and in the email it's handed to; it is never stored.
+    """
+    student = CustomUser.objects.create(
         email=email,
         user_type=UserTypes.STUDENT,
-        is_active=False,
+        is_active=True,
         school=course.teacher.school,
-        activation_token=otp_manager.generate_otp(),
-        activation_expires=timezone.now() + ACTIVATION_TOKEN_VALIDITY,
     )
+    generated_password = generate_temporary_password(student)
+    student.set_password(generated_password)
+    student.must_change_password = True
+    student.save()
+    return student, generated_password
 
 
 def _create_enrollment(*, student, course, enrollment_status, auto_added=False):
@@ -246,6 +266,21 @@ def _create_enrollment(*, student, course, enrollment_status, auto_added=False):
         enrollment_status=enrollment_status,
         auto_added=auto_added,
     )
+
+
+def activate_pending_enrollments_on_login(student):
+    """Flip every PENDING enrollment for `student` to ENROLLED.
+
+    Called from every successful student login (users/serializers.py's
+    CustomTokenObtainPairSerializer.validate) - a cheap no-op query when
+    nothing is pending, so there's no separate "is this their first
+    login" tracking to maintain. One bulk .update() so a student invited
+    to several courses before ever logging in has all of them activate
+    together.
+    """
+    StudentCourse.objects.filter(
+        student=student, enrollment_status=EnrollmentStatusType.PENDING
+    ).update(enrollment_status=EnrollmentStatusType.ENROLLED)
 
 
 def remove_student_from_course(*, course, student_id):

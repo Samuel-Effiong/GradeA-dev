@@ -32,6 +32,7 @@ from AutoGrader.tasks import send_email_task
 from classrooms.models import School
 from users.mailerlite_service import queue_sync
 from users.models import CustomUser, RegistrationMethod, UserTypes
+from users.services import generate_temporary_password
 from users.utils import is_business_email, is_exempt_email_domain
 
 from .billing_transaction_service import BillingTransactionService
@@ -1135,9 +1136,7 @@ class LicenseSubscriptionService:
                 # A fresh password every resend: the previous one's plaintext
                 # can't be recovered from the stored hash to put in this
                 # email, so there's nothing to reuse.
-                generated_password = (
-                    LicenseSubscriptionService._generate_teacher_password(user)
-                )
+                generated_password = generate_temporary_password(user)
                 user.set_password(generated_password)
                 user.must_change_password = True
                 user.save(update_fields=["password", "must_change_password"])
@@ -1167,9 +1166,7 @@ class LicenseSubscriptionService:
             # forced-change flow below has something to force them off of),
             # instead of set_unusable_password() leaving them with no way to
             # ever authenticate.
-            generated_password = LicenseSubscriptionService._generate_teacher_password(
-                user
-            )
+            generated_password = generate_temporary_password(user)
             user.set_password(generated_password)
             user.must_change_password = True
             user.save()
@@ -1181,24 +1178,6 @@ class LicenseSubscriptionService:
             user, school, admin_user, generated_password
         )
         return user
-
-    @staticmethod
-    def _generate_teacher_password(user: CustomUser) -> str:
-        """A random password meeting AUTH_PASSWORD_VALIDATORS, never logged."""
-        from django.contrib.auth.password_validation import validate_password
-        from django.utils.crypto import get_random_string
-
-        alphabet = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%^&*"
-        for _ in range(10):
-            candidate = get_random_string(20, allowed_chars=alphabet)
-            try:
-                validate_password(candidate, user=user)
-            except Exception:
-                continue
-            return candidate
-        # Astronomically unlikely with a 20-char/66-symbol alphabet, but
-        # never fall through to a weaker password.
-        raise RuntimeError("Failed to generate a password passing validation.")
 
     @staticmethod
     def _send_teacher_invitation(
