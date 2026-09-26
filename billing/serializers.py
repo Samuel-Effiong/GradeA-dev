@@ -489,10 +489,13 @@ class MySubscriptionSerializer(UserSubscriptionSerializer):
     Adds renewal info, plan display details, and credit wallet summary.
     """
 
+    # /subscription/me's discriminator across all three response shapes.
+    # ACTIVE by default; the view passes context={"status": "EXPIRED"} for
+    # the caller's most recent lapsed individual subscription.
+    status = serializers.SerializerMethodField()
+
     # Renewal fields (some already in base, we override to ensure they appear)
-    next_renewal_date = serializers.DateTimeField(
-        source="billing_cycle_end", read_only=True
-    )
+    next_renewal_date = serializers.SerializerMethodField()
     days_until_renewal = serializers.SerializerMethodField()
     stripe_status = serializers.CharField(read_only=True)  # added from model
 
@@ -509,6 +512,7 @@ class MySubscriptionSerializer(UserSubscriptionSerializer):
 
     class Meta(UserSubscriptionSerializer.Meta):
         fields = UserSubscriptionSerializer.Meta.fields + [
+            "status",
             "next_renewal_date",
             "days_until_renewal",
             "stripe_status",
@@ -520,6 +524,7 @@ class MySubscriptionSerializer(UserSubscriptionSerializer):
             "monthly_credit_remaining_display",
         ]
         read_only_fields = UserSubscriptionSerializer.Meta.read_only_fields + [
+            "status",
             "next_renewal_date",
             "days_until_renewal",
             "stripe_status",
@@ -531,7 +536,22 @@ class MySubscriptionSerializer(UserSubscriptionSerializer):
             "monthly_credit_remaining_display",
         ]
 
+    def get_status(self, obj):
+        return self.context.get("status", "ACTIVE")
+
+    def get_next_renewal_date(self, obj):
+        # EXPIRED: this cycle already ended and nothing is renewing it —
+        # a renewal date would be misleading, not just stale.
+        if self.context.get("status") == "EXPIRED":
+            return None
+        return obj.billing_cycle_end
+
     def get_days_until_renewal(self, obj):
+        # Same guard as get_next_renewal_date: for an EXPIRED sub,
+        # billing_cycle_end - now is already negative and "days until
+        # renewal" has no meaning, so return None instead of clamping.
+        if self.context.get("status") == "EXPIRED":
+            return None
         now = timezone.now()
         delta = obj.billing_cycle_end - now
         return max(0, delta.days)
@@ -594,6 +614,10 @@ class MyLicenseTeacherSubscriptionSerializer(serializers.Serializer):
     """
 
     subscription_source = serializers.CharField(default="LICENSE_TEACHER")
+    # This pass only resolves EXPIRED/NONE for the INDIVIDUAL track (see
+    # resolve_user_billing_context) — a license teacher only reaches this
+    # serializer via an active allocation, so status is always ACTIVE.
+    status = serializers.CharField(default="ACTIVE")
 
     # License-level (shared, read-only — the teacher does not manage this)
     license_id = serializers.UUIDField(source="license_subscription.id")
@@ -657,6 +681,9 @@ class MyLicenseAdminSubscriptionSerializer(serializers.Serializer):
     """
 
     subscription_source = serializers.CharField(default="LICENSE_ADMIN")
+    # Same reasoning as MyLicenseTeacherSubscriptionSerializer.status —
+    # only reached via an active LicenseSubscription, so always ACTIVE.
+    status = serializers.CharField(default="ACTIVE")
 
     license_id = serializers.UUIDField(source="id")
     school_name = serializers.CharField(source="school.name")
