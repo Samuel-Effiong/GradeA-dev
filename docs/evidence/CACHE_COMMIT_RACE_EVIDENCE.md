@@ -5,7 +5,10 @@ against the 10-gate doctrine
 (`~/.claude/senior-manager/grade-automator-plus/DOCTRINE.md`).
 
 - Gated commit: **PENDING** (filled in after the two strict gate runs)
-- Base commit: `b744c9f` (beta at the time of branching)
+- Base commit: `b744c9f` (beta at the time of branching). Rebased 2026-09-26 onto
+  beta `4b902fc` with no conflicts; code diff vs beta is still 3 files, +1,037
+  (`cache_generation.py` +15, two test files). Pre-rebase SHAs quoted below
+  (`a183fb3`…`9d62048`) no longer exist; the logs were produced on them.
 - Logs: `docs/evidence/cache_commit_race/`
 - Role: h1-stage3-cache. This change is **separate from H-1 Stage 3** at the
   Senior Manager's direction, and lands first.
@@ -75,7 +78,7 @@ Reproduced before the fix: `01_reproduce_on_unfixed_beta.log` (see §4, Gate 1).
 
 | Gate | Status | Evidence |
 | --- | --- | --- |
-| 1 Baseline / Regression | PARTIAL | reproduce-first done: 8/13 fail on `b744c9f`, 13/13 pass on the fix; the full strict suite (twice) is still pending |
+| 1 Baseline / Regression | PARTIAL | reproduce-first done: 8/13 fail on `b744c9f`, 13/13 pass on the fix; after the rebase onto `4b902fc` the module passes 14/14 (13 + the crash-safety test), 2026-09-26; the full strict suite (twice) is still pending |
 | 2 Mutation | PASS | `04_mutation_battery.log`: 3/3 mutants killed, sha256-verified restores, control 10/10 |
 | 3 Concurrency | PASS | 20 writers + 20 readers, 10 rounds, real threads/Postgres/Redis; `02_after_fix.log` |
 | 4 Adversarial | PENDING | independent Attacker session replay of the revocation path |
@@ -88,6 +91,15 @@ Reproduced before the fix: `01_reproduce_on_unfixed_beta.log` (see §4, Gate 1).
 
 Statuses marked PENDING are not claims. They are filled from committed logs
 before this document is offered for review.
+
+## 3a. Status log
+
+- 2026-09-26: rebased onto `4b902fc`; `AutoGrader.tests_cache_commit_race` 14/14 OK
+  (`--parallel 1`, fresh DB, 4m57s). Strict gate launch
+  (`scripts/strict_gate.py run <HEAD> cache-commit-race-gate10 --runs 2`) was
+  REFUSED by the pre-launch guard: 13 heavy slots in use against a cap of 6,
+  load average 27. The guard was not bypassed; the gate is waiting for slots.
+  Gate 6 timings need the same quiet machine.
 
 ## 4. Gate by gate
 
