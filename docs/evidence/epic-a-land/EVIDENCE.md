@@ -83,3 +83,16 @@ each already-landed Epic A branch's own evidence
 `epic-a-metrics-alerting/`), not re-run here. Gate 1 (baseline/regression)
 is this doc's §3. Independent verification is Integration & Release Lead's
 final gate before merge, per team rules.
+
+## 5. Independent verification status: PARTIAL
+
+**Verification PARTIAL: independent full suite pending.** Verification
+Engineer, on tip `b83350f`, independently confirmed: no evil merge
+(re-merge tree identical), cherry-picks byte-identical and docs-only, no
+revert commits, `makemigrations --check` clean, targeted suite 204/204, T1
+retirement claim. `test_nothing_is_exempt_by_default` fails identically on
+plain beta (environmental; passes with `EXEMPT_EMAIL_DOMAINS=''`); the pdf
+slow-render test flakes on plain beta under load. Their own full-suite run
+is still outstanding and REQUIRED; if it finds a real failure it is fixed on
+`phase2/epic-a` and dependent branches rebase (accepted risk, SM ruling).
+`phase2/epic-a` may be created at `b83350f` on that basis; it is not beta.
