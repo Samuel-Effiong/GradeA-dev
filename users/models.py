@@ -4,7 +4,7 @@ import uuid
 
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractUser
-from django.db import models
+from django.db import models, transaction
 from django.db.models import F, UniqueConstraint
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -402,23 +402,56 @@ class PasswordResetOTP(models.Model):
         return bool(self.locked_until and timezone.now() < self.locked_until)
 
     def register_failure(self):
-        """Record a wrong-code guess, freezing the OTP once the budget runs out."""
-        self.attempts += 1
-        if self.attempts >= self.MAX_ATTEMPTS:
+        """Record a wrong-code guess, freezing the OTP once the budget runs out.
+
+        Single UPDATE with F(), like CustomUser.register_failed_login: a
+        read-modify-write here lets parallel wrong guesses all read the same
+        count and write count+1, so a burst gets far more than MAX_ATTEMPTS
+        evaluations.
+        """
+        type(self).objects.filter(pk=self.pk).update(attempts=F("attempts") + 1)
+        self.refresh_from_db(fields=["attempts", "locked_until"])
+        if self.attempts >= self.MAX_ATTEMPTS and not self.is_locked():
             self.locked_until = timezone.now() + self.LOCKOUT_DURATION
-        self.save(update_fields=["attempts", "locked_until"])
+            type(self).objects.filter(pk=self.pk).update(locked_until=self.locked_until)
 
     def generate_code(self):
-        # Issuing a fresh code clears the lockout, so this is the intended
-        # recovery route for a legitimate user who mistyped too often. It
-        # is also why users.throttling.OTPRequestThrottle has to stay on
-        # the endpoint that calls this - otherwise an attacker just
-        # re-requests a code to wipe the counter and keeps guessing.
-        self.code = otp_manager.generate_otp()
-        self.attempts = 0
-        self.locked_until = None
-        self.save()
+        """Issue a fresh code, or return None if the account is locked.
 
+        The guess budget belongs to the ACCOUNT, not to a code, so asking for
+        a new code must not refill it (AUTHZ-L2: it used to, which turned the
+        per-IP OTPRequestThrottle into the only thing between an attacker and
+        a 6-digit code). Rules:
+
+        - locked: no new code, lock untouched. The caller answers exactly as
+          it does when it sends, so this is not an enumeration signal.
+        - lock expired: budget refilled. This is the recovery route for a
+          legitimate user who mistyped too often.
+        - otherwise attempts are carried forward, except when the previous
+          code has already expired (a stale partial count should not haunt a
+          reset started much later).
+        The row is locked for the read so a concurrent register_failure
+        cannot interleave with the decision.
+        """
+        with transaction.atomic():
+            row = type(self).objects.select_for_update().get(pk=self.pk)
+            if row.is_locked():
+                self.attempts = row.attempts
+                self.locked_until = row.locked_until
+                return None
+            if row.locked_until is not None or not row.is_valid():
+                row.attempts = 0
+                row.locked_until = None
+            row.code = otp_manager.generate_otp()
+            # created_at is the code's issue time (is_valid measures 15 min
+            # from it); auto_now_add only stamped the first issue, so a code
+            # re-sent later arrived already expired.
+            row.created_at = timezone.now()
+            row.save()
+        self.code = row.code
+        self.attempts = row.attempts
+        self.locked_until = row.locked_until
+        self.created_at = row.created_at
         return self.code
 
     def __str__(self):

@@ -213,19 +213,35 @@ class PasswordResetOTPLockoutTests(APITestCase):
         self.assertTrue(self.user.check_password(self.NEW_PASSWORD))
         self.assertFalse(PasswordResetOTP.objects.filter(user=self.user).exists())
 
-    def test_generate_code_clears_the_lockout(self):
+    def test_generate_code_does_not_clear_an_active_lockout(self):
         """
-        Requesting a fresh code is the intended way out of a lockout - and
-        the reason OTPRequestThrottle has to stay on the issuing endpoint,
-        or this doubles as the attacker's reset button.
+        AUTHZ-L2: this used to assert the opposite (a fresh code cleared the
+        lockout), which made re-requesting the attacker's reset button and
+        left the per-IP OTPRequestThrottle as the only defence. An active
+        lock now survives a re-request; the recovery route is the lock
+        expiring (see users.tests_reset_otp_budget).
         """
+        locked_until = timezone.now() + timezone.timedelta(minutes=30)
         self.otp.attempts = PasswordResetOTP.MAX_ATTEMPTS
-        self.otp.locked_until = timezone.now() + timezone.timedelta(minutes=30)
+        self.otp.locked_until = locked_until
+        self.otp.save(update_fields=["attempts", "locked_until"])
+        code_before = PasswordResetOTP.objects.get(pk=self.otp.pk).code
+
+        self.assertIsNone(self.otp.generate_code())
+
+        self.otp.refresh_from_db()
+        self.assertEqual(self.otp.attempts, PasswordResetOTP.MAX_ATTEMPTS)
+        self.assertEqual(self.otp.locked_until, locked_until)
+        self.assertEqual(self.otp.code, code_before)
+        self.assertTrue(self.otp.is_locked())
+
+    def test_generate_code_after_the_lock_expires_refills_the_budget(self):
+        self.otp.attempts = PasswordResetOTP.MAX_ATTEMPTS
+        self.otp.locked_until = timezone.now() - timezone.timedelta(seconds=1)
         self.otp.save(update_fields=["attempts", "locked_until"])
 
-        self.otp.generate_code()
+        self.assertIsNotNone(self.otp.generate_code())
 
         self.otp.refresh_from_db()
         self.assertEqual(self.otp.attempts, 0)
         self.assertIsNone(self.otp.locked_until)
-        self.assertFalse(self.otp.is_locked())

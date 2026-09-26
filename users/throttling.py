@@ -37,11 +37,10 @@ class OTPRequestThrottle(AnonRateThrottle):
     """
     Guards the OTP *issuing* endpoint.
 
-    This is load-bearing for the reset-password lockout, not just spam
-    control: `PasswordResetOTP.generate_code()` resets the failed-attempt
-    counter, so an attacker who can request unlimited fresh codes can clear
-    the lockout and keep guessing. Removing this throttle re-opens the
-    brute-force path even though the counter itself stays in place.
+    Spam / email-bombing control. It is no longer what protects the
+    reset-code guess budget: `PasswordResetOTP.generate_code()` does not
+    refill the attempts counter while the account is locked (AUTHZ-L2), so
+    the budget holds per account regardless of how many IPs re-request.
     """
 
     scope = "otp_request"

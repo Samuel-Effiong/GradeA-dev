@@ -741,6 +741,15 @@ class AuthViewSet(viewsets.ViewSet):
 
             otp_obj, created = PasswordResetOTP.objects.get_or_create(user=user)
             otp_code = otp_obj.generate_code()
+            if otp_code is None:
+                # Locked out (AUTHZ-L2): no new code and no email, but the
+                # same reply as a send, so this is not an enumeration signal.
+                return Response(
+                    {
+                        "detail": "An OTP has been sent if an account with that email exists."
+                    },
+                    status=status.HTTP_202_ACCEPTED,
+                )
 
             message = f"""
 Hello {user.first_name},
@@ -812,7 +821,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
         if otp_obj.is_locked():
             raise ParseError(
-                "Too many incorrect codes. Request a new code and try again later."
+                "Too many incorrect codes. Please try again in about 30 minutes."
             )
 
         if not otp_obj.is_valid():
