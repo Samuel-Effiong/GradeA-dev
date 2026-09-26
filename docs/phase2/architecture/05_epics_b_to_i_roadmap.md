@@ -53,7 +53,7 @@ Part V and are adjusted where §2 below found extra work.
 | F | Departments: School Admin | **L** (3 wk) | FR-F-01…13 | `Department`, `DepartmentMembership`, `SharedLibraryEntry` | A; F2 needs E copy | Fourth tenancy dimension; P0 gate |
 | G | Departments: Licensed Teacher | **S** (1.5 wk) | FR-G-01…08 | none | F | Read surface over F |
 | H | School Admin AI insights | **L** (4 wk) | FR-H-01…09 | `Insight`, `Intervention` | B, C, D, E, F | **Recommended for Part 2** |
-| I | Grading strictness | **L** as a whole (BE-I-04 ~1 wk + ~2 wk remainder) | FR-I-01…09 | `SubmissionGrading` | BE-I-04 first; E1 | Largest schema change |
+| I | Grading strictness | **L** as a whole (I-1 ~2 wk + I-2 ~2 wk; see [07](07_epic_i1_implementation_plan.md)) | FR-I-01…09 | `SubmissionGrading` | BE-I-04 first; E1 | Largest schema change |
 
 Recommended scope (01a D-09): **defer H**, and defer BE-D-09 DOCX, BE-D-07
 version history and BE-C-05 merge to fast-follows. That leaves about 19–20
@@ -555,14 +555,15 @@ slice is not done until they pass, and R-1/R-7 still apply.
 
 | Weeks | Eng 1 | Eng 2 |
 |---|---|---|
-| 0–0.5 | B0 | I-1 (BE-I-04 + expand) |
-| 0.5–3.5 | B1 | I-1 (to wk 1) → E1 (1 wk) → E2 (~1.5 wk) |
+| 0–0.5 | B0 | I-1 (BE-I-04 + expand; ~2 wk) |
+| 0.5–3.5 | B1 | I-1 (to wk 2) → E1 (1 wk) → E2 (~1.5 wk, runs to wk ~4.5) |
 | 3.5–6 | C1 (~1.5 wk) + C2 | F1 (~2 wk) |
 | 6–9 | D (~2.5 wk) | F2 (~1 wk) → G (~1.5 wk) |
 | 9–11 | C3 + E4 (~1 wk) | E3 (~1 wk) → I-2 (~2 wk) |
 
-That is about **11–12 weeks** of the ~14 available, leaving about 2 weeks of
-slack, and assumes no rework and the Q-items below answered within two weeks.
+That is about **12–13 weeks** of the ~14 available, leaving about 1 week of
+slack (I-1 is ~2 wk, not ~1: 07 §0; the rows after it shift by about a week; E3 is
+gated on I-1b, the dual-write deploy), and assumes no rework and the Q-items below answered within two weeks.
 A slip in B1 delays D (FR-D-03), C3 and E4, not the rest, which is the reason
 for the B0/B1 split.
 
@@ -578,9 +579,9 @@ for the B0/B1 split.
 | F | 3 | 3 (F1 2 + F2 1) | 0 |
 | D | 3 (2.5 after cuts) | 2.5 | 0 |
 | G | 1.5 | 1.5 | 0 |
-| I | 2 (+1 BE-I-04) | 1 + 2 | 0 |
+| I | 2 (+1 BE-I-04) | 2 + 2 (I-1 re-sized in 07) | +1 |
 | H | 4 | deferred | −4 |
-| **Total** | | **~19–20 eng-weeks** | |
+| **Total** | | **~20–21 eng-weeks** | |
 
 E is 3.5 wk in 03_architecture and still is, but I moved ~0.5 wk of E to
 after D (E4) and pulled the `SubmissionGrading` expand step (~0.5–1 wk) into
