@@ -115,3 +115,16 @@ repos:
         language: system
         files: ^(Dockerfile|billing/webhooks\.py)$
         pass_filenames: false
+
+  # FR-A-04 / NFR-CMP-02: no student PII in logs. See
+  # scripts/check_no_pii_in_logs.py's docstring and
+  # docs/phase2/architecture/04_epic_a_implementation_plan.md §0.5a.
+-   repo: local
+    hooks:
+      - id: check-no-pii-in-logs
+        name: Check no logger/print call passes .email/.first_name/.last_name/.get_full_name() directly
+        entry: python scripts/check_no_pii_in_logs.py
+        language: system
+        files: \.py$
+        exclude: (^|/)migrations/
+        pass_filenames: false

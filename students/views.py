@@ -51,6 +51,8 @@ from assignments.tasks import (
     grade_engine_async,
     upload_answers_engine_async,
 )
+from audit.emitter import emit
+from audit.enums import AuditAction, AuditOutcome
 from AutoGrader.cache_generation import SCOPE_USER, versioned_key
 from AutoGrader.error_messages import describe_user_error, is_user_facing_error
 from AutoGrader.pagination import StandardPageNumberPagination
@@ -526,6 +528,21 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         try:
 
             submission = upload_answers_engine(assignment, content, request.user)
+
+            emit(
+                AuditAction.SUBMISSION_UPLOAD,
+                actor=request.user,
+                request=request,
+                target_type="StudentSubmission",
+                target_id=submission.id,
+                outcome=AuditOutcome.SUCCESS,
+                metadata={
+                    "assignment_id": str(assignment.id),
+                    "file_type": uploaded_file.content_type or "",
+                    "file_size_bytes": uploaded_file.size,
+                },
+            )
+
             serializer = StudentSubmissionDetailSerializer(submission)
 
             return Response(serializer.data, status=HTTP_201_CREATED)
@@ -635,6 +652,20 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             str(request.user.id),
         )
         task_id = task.id
+
+        emit(
+            AuditAction.SUBMISSION_UPLOAD,
+            actor=request.user,
+            request=request,
+            target_type="Assignment",
+            target_id=assignment.id,
+            outcome=AuditOutcome.SUCCESS,
+            metadata={
+                "assignment_id": str(assignment.id),
+                "file_type": uploaded_file.content_type or "",
+                "file_size_bytes": uploaded_file.size,
+            },
+        )
 
         data = {"task_id": task_id, "message": "Answer Extraction Started"}
 
@@ -816,6 +847,21 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             str(submission.id),
         )
         task_id = task.id
+
+        emit(
+            AuditAction.GRADING_REQUESTED,
+            actor=request.user,
+            request=request,
+            target_type="StudentSubmission",
+            target_id=submission.id,
+            outcome=AuditOutcome.SUCCESS,
+            metadata={
+                "assignment_id": str(submission.assignment_id),
+                "submission_id": str(submission.id),
+                "task_id": str(processing_task.id),
+                "task_type": BackgroundTaskType.SUBMISSION_GRADING,
+            },
+        )
 
         data = {
             "submission_id": submission.id,
@@ -1247,6 +1293,16 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
             tasks_data.append({"file_name": uploaded_file.name, "task_id": task.id})
             task_ids.append(task.id)
+
+        emit(
+            AuditAction.SUBMISSION_UPLOAD,
+            actor=request.user,
+            request=request,
+            target_type="Assignment",
+            target_id=assignment.id,
+            outcome=AuditOutcome.SUCCESS,
+            metadata={"assignment_id": str(assignment.id), "file_count": len(files)},
+        )
 
         data = {
             "session_id": session.id,

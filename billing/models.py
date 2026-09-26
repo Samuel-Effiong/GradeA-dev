@@ -4,11 +4,16 @@ import uuid
 from decimal import Decimal
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models, transaction
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
+
+from audit import metrics as audit_metrics
+from audit.emitter import emit
+from audit.enums import AuditAction, AuditOutcome
 
 from .errors import InsufficientCreditsError
 from .immutable import AppendOnlyModel, register_append_only_guards
@@ -1231,6 +1236,67 @@ class CreditBucket(models.Model):
         return deduct
 
 
+def _credit_transaction_action(ledger_type):
+    """`ledger_type` -> `AuditAction`, per §6 of the epic A plan: a chokepoint
+    resolves its own action rather than asking each caller to pass one in.
+
+    Every `CreditLedgerType` maps to the same `AuditAction.CREDIT_TRANSACTION`
+    today - there is only one action for a credit transaction, unlike
+    grading's REQUESTED/COMPLETED/FAILED split - but the mapping still lives
+    here, once, so a future ledger type that needs its own action changes
+    this one function rather than every one of `CreditLedger`'s ~20 callers.
+    """
+    return AuditAction.CREDIT_TRANSACTION
+
+
+def _emit_credit_transaction(row, actor):
+    """One `CREDIT_TRANSACTION` audit event for one written `CreditLedger`
+    row. Called from both `record()` (the ~18 `billing/services.py` sites)
+    and `after_bulk_create()` (the consume/batch-refund paths that bypass
+    `record()` - see docs/decisions and §0.6 of the epic A plan). Never
+    called for the paired `CreditUsageLog` row: that row is the same
+    economic event as its `CreditLedger` row, not a second transaction.
+    """
+    emit(
+        _credit_transaction_action(row.ledger_type),
+        actor=actor,
+        target_type="CreditLedger",
+        target_id=row.id,
+        outcome=AuditOutcome.SUCCESS,
+        metadata={"ledger_type": row.ledger_type, "credits": row.amount},
+    )
+    _check_ledger_anomaly(row, actor)
+
+
+def _check_ledger_anomaly(row, actor):
+    """BE-A-09 #3: alert on a wallet left with a negative running balance
+    by this row. Reuses CreditWallet.total_remaining_credits() - the same
+    aggregate the rest of the app already reads the balance through -
+    rather than deriving a second, independent balance calculation.
+
+    Best-effort, not a strict invariant check: this reads the wallet AFTER
+    the ledger row (and, for CONSUME, the bucket update that normally goes
+    with it) have been written, and only when `actor` is the wallet's own
+    user - `after_bulk_create`'s batch resolution can leave `actor` None for
+    a row whose user no longer exists. A negative balance that briefly
+    exists mid-transaction and self-corrects before the next check is
+    outside what this can see; that trade-off is acceptable for an ALERT
+    (false negatives on a transient dip), not for enforcement.
+    """
+    wallet = getattr(actor, "credit_wallet", None)
+    if wallet is None:
+        return
+    try:
+        balance = wallet.total_remaining_credits()
+    except Exception:  # noqa: BLE001 - metrics must never break a ledger write
+        return
+    if balance < 0:
+        audit_metrics.count(
+            "credit_ledger_anomaly",
+            tags={"kind": "negative_balance", "ledger_type": row.ledger_type},
+        )
+
+
 class CreditLedgerType(models.TextChoices):
     CONSUME = "CONSUME", _("Consume")
     REFUND = "REFUND", _("Refund")
@@ -1419,7 +1485,25 @@ class CreditLedger(AppendOnlyModel):
         `CreditLedger.objects.create(user=...)`."""
         row = cls.build(user=user, **kwargs)
         row.save()
+        _emit_credit_transaction(row, user)
         return row
+
+    @classmethod
+    def after_bulk_create(cls, objs):
+        """The `bulk_create()`-only paths (`CreditWallet.consume_credits()`
+        and the batch-refund path in `billing/services.py`) bypass
+        `record()`, so they get their `CREDIT_TRANSACTION` events here
+        instead - one per row, same as `record()`'s single-row path.
+
+        `objs` only carries `user_id`/`user_email` as plain values (the
+        append-only identity-as-value convention, §2.2/§0.3 of the epic A
+        plan), not a live user - a distinct-id batch fetch resolves the
+        actual actor for each row without one query per row.
+        """
+        user_ids = {obj.user_id for obj in objs if obj.user_id is not None}
+        users_by_id = get_user_model().objects.in_bulk(user_ids) if user_ids else {}
+        for row in objs:
+            _emit_credit_transaction(row, users_by_id.get(row.user_id))
 
 
 class CreditUsageLog(AppendOnlyModel):

@@ -1,0 +1,208 @@
+"""Mutation battery for Epic A grading instrumentation (GRADING_REQUESTED/
+COMPLETED/FAILED): students/views.py grade_async, assignments/views.py
+grade_all_submission, assignments/tasks.py grade_engine_async. Each mutant
+weakens ONE audit-emission protection; a test named for that protection
+must fail. Restores from collision-safe copies and verifies by md5 (never
+git checkout) - same discipline as T1/T2.
+"""
+import hashlib, json, os, re, shutil, subprocess, sys, time
+
+ROOT = "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-epic-a-grading-audit"
+SCR = os.path.dirname(os.path.abspath(__file__))
+SV, AV, AT = "students/views.py", "assignments/views.py", "assignments/tasks.py"
+LABEL = "assignments.tests_grading_audit_events"
+
+MUTANTS = [
+    ("R1", "grade_async: requested event not emitted at all",
+     [(SV,
+       '        emit(\n'
+       '            AuditAction.GRADING_REQUESTED,\n'
+       '            actor=request.user,\n'
+       '            request=request,\n'
+       '            target_type="StudentSubmission",\n'
+       '            target_id=submission.id,\n'
+       '            outcome=AuditOutcome.SUCCESS,\n'
+       '            metadata={\n'
+       '                "assignment_id": str(submission.assignment_id),\n'
+       '                "submission_id": str(submission.id),\n'
+       '                "task_id": str(processing_task.id),\n'
+       '                "task_type": BackgroundTaskType.SUBMISSION_GRADING,\n'
+       '            },\n'
+       '        )\n'
+       '\n'
+       '        data = {',
+       '        data = {')],
+     "successful_dispatch_emits_exactly_one_requested_event"),
+    ("R2", "grade_async: wrong target (assignment id instead of submission id)",
+     [(SV, 'target_id=submission.id,\n            outcome=AuditOutcome.SUCCESS,\n            metadata={\n                "assignment_id": str(submission.assignment_id),',
+           'target_id=submission.assignment_id,\n            outcome=AuditOutcome.SUCCESS,\n            metadata={\n                "assignment_id": str(submission.assignment_id),')],
+     "successful_dispatch_emits_exactly_one_requested_event"),
+    ("B1", "grade_all_submission: requested event not emitted at all",
+     [(AV,
+       '            emit(\n'
+       '                AuditAction.GRADING_REQUESTED,\n'
+       '                actor=request.user,\n'
+       '                request=request,\n'
+       '                target_type="StudentSubmission",\n'
+       '                target_id=submission.id,\n'
+       '                outcome=AuditOutcome.SUCCESS,\n'
+       '                metadata={\n'
+       '                    "assignment_id": str(assignment.id),\n'
+       '                    "submission_id": str(submission.id),\n'
+       '                    "task_id": str(processing_task.id),\n'
+       '                    "task_type": BackgroundTaskType.BATCH_SUBMISSION_GRADING,\n'
+       '                },\n'
+       '            )\n'
+       '            tasks_data.append(',
+       '            tasks_data.append(')],
+     "batch_grading_emits_exactly_one_requested_event_per_submission"),
+    ("C1", "grade_engine_async: completed event not emitted at all",
+     [(AT,
+       '        emit(\n'
+       '            AuditAction.GRADING_COMPLETED,\n'
+       '            actor=completed_task.requested_by if completed_task else None,\n'
+       '            request=None,\n'
+       '            target_type="StudentSubmission",\n'
+       '            target_id=submission.id,\n'
+       '            outcome=AuditOutcome.SUCCESS,\n'
+       '            metadata={\n'
+       '                "assignment_id": str(submission.assignment_id),\n'
+       '                "submission_id": str(submission.id),\n'
+       '                "task_id": str(processing_task_id) if processing_task_id else None,\n'
+       '            },\n'
+       '        )\n'
+       '\n'
+       '        if batch_id:',
+       '        if batch_id:')],
+     "successful_grade_emits_exactly_one_completed_event"),
+    ("C2", "grade_engine_async: completed event's actor always None (task.requested_by ignored)",
+     [(AT, 'actor=completed_task.requested_by if completed_task else None,',
+           'actor=None,')],
+     "successful_grade_emits_exactly_one_completed_event"),
+    ("C3", "grade_engine_async: completed event outcome not SUCCESS",
+     [(AT, 'target_id=submission.id,\n            outcome=AuditOutcome.SUCCESS,\n            metadata={\n                "assignment_id": str(submission.assignment_id),',
+           'target_id=submission.id,\n            outcome=AuditOutcome.FAILURE,\n            metadata={\n                "assignment_id": str(submission.assignment_id),')],
+     "successful_grade_emits_exactly_one_completed_event"),
+    ("F1", "grade_engine_async: failed event not emitted at all",
+     [(AT,
+       '        emit(\n'
+       '            AuditAction.GRADING_FAILED,\n'
+       '            actor=task.requested_by if task else None,\n'
+       '            request=None,\n'
+       '            target_type="StudentSubmission",\n'
+       '            target_id=submission_id,\n'
+       '            outcome=AuditOutcome.FAILURE,\n'
+       '            error_class=_grading_failure_error_class(exc),\n'
+       '            metadata={\n'
+       '                "assignment_id": (\n'
+       '                    str(task.assignment_id) if task and task.assignment_id else None\n'
+       '                ),\n'
+       '                "submission_id": str(submission_id),\n'
+       '                "task_id": str(processing_task_id) if processing_task_id else None,\n'
+       '            },\n'
+       '        )\n'
+       '        if batch_id:',
+       '        if batch_id:')],
+     "failed_event"),
+    ("F2", "_grading_failure_error_class: AI refusal not classed as MODEL",
+     [(AT, '    if isinstance(exc, PERMANENT_AI_REFUSALS):\n        return ErrorClass.MODEL\n',
+           '')],
+     "model_refusal_emits_exactly_one_failed_event_classed_model"),
+    ("F3", "_grading_failure_error_class: infra failure not classed as PROVIDER",
+     [(AT, '    if classify_infra_error(exc) is not None:\n        return ErrorClass.PROVIDER\n',
+           '')],
+     "provider_error_emits_exactly_one_failed_event_classed_provider"),
+    ("F4", "_grading_failure_error_class: everything classed as PROVIDER, never falls through to SYSTEM",
+     [(AT, '    return ErrorClass.SYSTEM',
+           '    return ErrorClass.PROVIDER')],
+     "system_error_emits_exactly_one_failed_event_classed_system"),
+    ("F5", "grade_engine_async: failed event's actor always None (task.requested_by ignored)",
+     [(AT, 'actor=task.requested_by if task else None,',
+           'actor=None,')],
+     "failed_event_classed"),
+]
+
+
+def md5(p):
+    return hashlib.md5(open(p, "rb").read()).hexdigest()
+
+
+def run(timeout=300):
+    env = dict(os.environ)
+    env["DJANGO_SETTINGS_MODULE"] = "settings_worktree"
+    r = subprocess.run(
+        [sys.executable, "manage.py", "test", LABEL, "--settings=settings_worktree", "--keepdb", "--noinput"],
+        cwd=ROOT, capture_output=True, text=True, timeout=timeout, env=env,
+    )
+    out = r.stdout + r.stderr
+    fails = re.findall(r"^(?:FAIL|ERROR): (\S+) \(([^)]*)\)", out, re.M)
+    m = re.search(r"^(OK.*|FAILED.*)$", out, re.M)
+    return r.returncode, out, fails, (m.group(1) if m else "?")
+
+
+def precheck():
+    bad = []
+    for mid, desc, edits, expect in MUTANTS:
+        for f, old, new in edits:
+            n = open(os.path.join(ROOT, f)).read().count(old)
+            if n != 1:
+                bad.append((mid, f, n, old[:60]))
+    return bad
+
+
+def main(only=None):
+    bad = precheck()
+    if bad:
+        for b in bad:
+            print("PATTERN PROBLEM", b)
+        raise SystemExit(1)
+    log = open(os.path.join(SCR, "mutation_log_grading.jsonl"), "a")
+    results = []
+    files = sorted({f for _, _, ms, _ in MUTANTS for f, _, _ in ms})
+    orig = {f: md5(os.path.join(ROOT, f)) for f in files}
+    backups = {}
+    for f in files:
+        b = os.path.join(SCR, "backup_grading_" + f.replace("/", "__"))
+        shutil.copy2(os.path.join(ROOT, f), b)
+        backups[f] = b
+    rc, out, fails, summary = run()
+    base = {"id": "BASE", "rc": rc, "summary": summary, "fails": fails}
+    print("BASELINE", rc, summary, flush=True)
+    log.write(json.dumps(base) + "\n")
+    if rc != 0:
+        raise SystemExit("baseline not green")
+    for mid, desc, edits, expect in MUTANTS:
+        if only and mid not in only:
+            continue
+        try:
+            for f, old, new in edits:
+                p = os.path.join(ROOT, f)
+                s = open(p).read()
+                open(p, "w").write(s.replace(old, new))
+            t = time.time()
+            rc, out, fails, summary = run()
+            names = sorted({n for n, _ in fails})
+            killed = rc != 0 and any(expect in n for n, _ in fails)
+            res = {"id": mid, "desc": desc, "rc": rc, "summary": summary, "expected_test": expect,
+                   "failing": names, "killed_for_named_reason": killed, "secs": round(time.time() - t)}
+        except Exception as e:
+            res = {"id": mid, "desc": desc, "error": str(e), "killed_for_named_reason": False}
+        finally:
+            for f in files:
+                shutil.copy2(backups[f], os.path.join(ROOT, f))
+            bad = [f for f in files if md5(os.path.join(ROOT, f)) != orig[f]]
+            if bad:
+                raise SystemExit(f"RESTORE MISMATCH after {mid}: {bad}")
+        res["restored_md5_ok"] = True
+        print(mid, "KILLED" if res["killed_for_named_reason"] else "SURVIVED/ERR",
+              (res.get("failing") or res.get("error"))[:6] if res.get("failing") else res.get("error"), flush=True)
+        log.write(json.dumps(res) + "\n")
+        log.flush()
+        results.append(res)
+    json.dump({"baseline": base, "mutants": results, "md5": orig},
+               open(os.path.join(SCR, "mutation_results_grading.json"), "w"), indent=1)
+    print("KILLED", sum(r["killed_for_named_reason"] for r in results), "/", len(results))
+
+
+if __name__ == "__main__":
+    main(set(sys.argv[1:]) or None)

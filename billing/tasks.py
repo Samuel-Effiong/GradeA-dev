@@ -27,6 +27,8 @@ from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
 
+from audit import metrics as audit_metrics
+
 from .imports import stripe
 from .license_service import (
     LicenseSubscriptionService,
@@ -345,6 +347,10 @@ def cleanup_expired_credit_buckets(self):
                 str(exc),
                 exc_info=True,
             )
+            # BE-A-09 #3: reuses this existing reconciliation-failure
+            # detection - a bucket that failed to expire cleanly is
+            # exactly an EXPIRE that doesn't reconcile.
+            audit_metrics.count("credit_ledger_anomaly", tags={"kind": "expire_failed"})
             continue
 
     summary = (
