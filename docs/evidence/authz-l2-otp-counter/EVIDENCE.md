@@ -24,16 +24,18 @@ Scope decision: the budget is per **account** (the OTP row), never refilled by a
 ## Gates
 | Gate | Result |
 |---|---|
-| 1 Baseline/regression | full `users` app: 508 tests, 1 failure = `tests_email_domain_rules…test_nothing_is_exempt_by_default`, the same env-caused failure as in the H-3 evidence (shared `.env` EXEMPT_EMAIL_DOMAINS has yopmail; made hermetic on `task/h39-network-guard`). Full `--parallel 4` suite NOT run (needs a slot from the Integration & Release Lead). |
-| 2 Mutation | 7 mutants, **7 killed, 0 survivors** (`mutate.py`, `mutation_results.json`, `mutation_log.txt`) |
+| 1 Baseline/regression | full `users` app: 508 tests, 1 failure = `tests_email_domain_rules…test_nothing_is_exempt_by_default`, the same env-caused failure as in the H-3 evidence (shared `.env` EXEMPT_EMAIL_DOMAINS has yopmail; made hermetic on `task/h39-network-guard`). Full `--parallel 4` suite NOT run (blocked for all sessions by the permission layer until the founder adds allow rules; not worked around). |
+| 2 Mutation | 8 mutants, **8 killed, 0 survivors** (`mutate.py`, `mutation_results.json`, `mutation_log.txt`) |
 | 4 Adversarial | many-IP cycle loop now evaluates ≤ 5 guesses total; resend can't clear a lock; correct code refused while locked; locked resend sends no email and is indistinguishable to the caller; parallel wrong guesses all counted (20/20) |
 | 9 Isolation | one account's lock/guesses never affect another account; success deletes the row and the next reset gets a full budget |
 | Legit UX | mistype→resend→reset works; resend after lock expiry gives a full budget; resend older than 15 min row is valid; stale partial attempts don't haunt a later reset |
-Tests: `users/tests_reset_otp_budget.py` (14 tests) + `users/tests_throttling.py`.
+Tests: `users/tests_reset_otp_budget.py` (15 tests) + `users/tests_throttling.py`.
 
-## Behaviour changes to be aware of (product/frontend)
-- A locked user can no longer self-recover by re-requesting; they wait out the 30-minute lock. While locked, "resend" returns the normal generic reply but sends nothing. A frontend that says "we sent you a code" will be wrong for that window.
-- Lock is per account, so a third party who deliberately fails 5 guesses can lock a victim out of password reset for 30 minutes (previously they could too, then wipe it; the lockout-DoS trade-off is inherent to any per-account budget; login has the same property).
+## Behaviour change (approved by the Senior Manager)
+- **A locked user waits out the 30-minute lock.** Re-requesting a code no longer clears it (that was the vulnerability). While locked, "resend" sends nothing and returns the normal generic reply.
+- **Lockout message changed** from "Request a new code and try again later." to "Please try again in about 30 minutes." (the old advice no longer helps).
+- **Frontend ticket for the founder:** the frontend's "we sent you a code" copy is WRONG while the account is locked, because no code is sent and the API reply is deliberately identical to a normal send. The frontend should surface the reset-password lockout message and stop implying a new code is on its way. Backend cannot signal this from `/auth/otp` without creating an enumeration signal.
+- **Trade-off (recovery denial):** the budget is per account, so anyone who knows a victim's email can burn 5 guesses every 30 minutes and keep that victim's password RESET locked. Login with the existing password is unaffected. Before the fix an attacker could do the same and then wipe the lock, so this is no worse, but it is now the only lever left. The fix logs a `password_reset_otp_locked` warning (user id and attempt count only, no email or code) on each lock so this abuse is visible; the audit app is not on beta, so a logger is used.
 
 ## Residual risk (not fixed here)
-Bounded but not zero: ≤5 guesses per 30-min lock cycle, or ≈4 per 15-min code-expiry window, per account regardless of IP count: at most ~384 guesses/day against a 1,000,000-code space ≈ under 0.04%/day per targeted account, and each attempt series is visible to the victim only via nothing (failed guesses send no email). Cheap hardening if wanted: longer code (8 digits) and/or an escalating lock, plus an audit event on lock. Not done: outside this finding's scope.
+Assumptions: 6-digit code (1,000,000 values), attacker limited only by the per-account budget: ≤5 guesses per 30-minute lock cycle, or ≈4 per 15-minute code-expiry window, so at most **~384 guesses/day** per account whatever the number of IPs. That is under **0.04%/day** per targeted account, but a patient attacker reaches meaningful odds over months against one account. Failed guesses send the victim no email. Options, deliberately NOT done here: escalating lock, 8-digit code, audit-app event. Tracked as a LOW item in `docs/HARDENING_BACKLOG.md` ("AUTHZ-L2 follow-up").

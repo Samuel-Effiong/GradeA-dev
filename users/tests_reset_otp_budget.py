@@ -128,6 +128,18 @@ class CounterWipeAdversarialTests(Base):
         self.assertEqual((locked.status_code, locked.data), (ok.status_code, ok.data))
         self.mail.assert_not_called()
 
+    def test_locking_emits_a_warning_naming_the_account_but_not_the_code(self):
+        self.request_code()
+        code = self.row().code
+        with self.assertLogs("users.models", level="WARNING") as logs:
+            for _ in range(PasswordResetOTP.MAX_ATTEMPTS):
+                self.guess(self.wrong())
+        locked = [r for r in logs.records if r.msg == "password_reset_otp_locked"]
+        self.assertEqual(len(locked), 1)
+        self.assertEqual(locked[0].user_id, str(self.user.pk))
+        self.assertNotIn(code, logs.output[0])
+        self.assertNotIn(self.user.email, logs.output[0])
+
     def test_attempts_carry_across_a_resend(self):
         self.request_code()
         for _ in range(3):

@@ -1,4 +1,5 @@
 import datetime
+import logging
 import os
 import uuid
 
@@ -13,6 +14,7 @@ from encrypted_model_fields.fields import EncryptedCharField
 from users.services import OTPManager
 
 otp_manager = OTPManager()
+logger = logging.getLogger(__name__)
 
 # How long an invite/renewal activation_token (a 6-digit code, by design -
 # short enough for a teacher or school admin to read out or a student to
@@ -414,6 +416,12 @@ class PasswordResetOTP(models.Model):
         if self.attempts >= self.MAX_ATTEMPTS and not self.is_locked():
             self.locked_until = timezone.now() + self.LOCKOUT_DURATION
             type(self).objects.filter(pk=self.pk).update(locked_until=self.locked_until)
+            # The only signal that someone is burning a victim's reset budget
+            # (recovery denial, see AUTHZ-L2). user id only, no email or code.
+            logger.warning(
+                "password_reset_otp_locked",
+                extra={"user_id": str(self.user_id), "attempts": self.attempts},
+            )
 
     def generate_code(self):
         """Issue a fresh code, or return None if the account is locked.

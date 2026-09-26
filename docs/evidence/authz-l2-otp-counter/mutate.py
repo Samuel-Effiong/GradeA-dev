@@ -39,6 +39,11 @@ MUTANTS = {
         "            if otp_code is None:",
         "            if False:",
     ),
+    "M8_no_lock_warning": (
+        MODELS,
+        '                "password_reset_otp_locked",',
+        '                "password_reset_otp_lockedX",',
+    ),
     "M7_expired_lock_never_refills": (
         MODELS,
         "if row.locked_until is not None or not row.is_valid():",
