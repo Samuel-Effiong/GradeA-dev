@@ -57,9 +57,20 @@ just not building on it).
   handling, and a benign "Free trial plan not found" fixture warning, not
   real errors.)
 - Full regression (`python manage.py test --settings=settings_worktree
-  --parallel 4`, no app filter): **pending — see
-  `full_regression_summary.txt` in this directory once the background run
-  completes.**
+  --parallel 4`, no app filter, machine load ~33 on 8 cores): **4872 tests,
+  3 failures, 28 skipped.** Triage:
+  - `assignments.tests_pdf_renderer.ConcurrentRenderingTest.
+    test_one_slow_render_does_not_stall_the_others` (timing assertion) and
+    `students.tests_grading_redelivery_live.GradingRedeliveryLiveTest.
+    test_5_concurrent_submissions_with_one_redelivery_each_grade_exactly_once`:
+    **pass on targeted re-run** of their modules (39 tests) - load-induced.
+  - `users.tests_email_domain_rules.ExemptDomainTests.
+    test_nothing_is_exempt_by_default`: **reproduces**. Cause is
+    environmental: the symlinked `.env` sets `EXEMPT_EMAIL_DOMAINS` to a
+    value containing yopmail.com, and the test asserts the default is empty.
+    This branch does not touch `users/email_domain_rules*` or that test
+    (empty diff vs 4b902fc). Not caused by Epic A; the Verification Engineer
+    should confirm by running it on plain beta with the same `.env`.
 
 ## 4. Gates (per `docs/phase2/architecture/10 Gates.md`)
 
