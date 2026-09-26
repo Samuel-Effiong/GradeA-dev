@@ -32,6 +32,7 @@ from .models import (
     SessionOwnerType,
     StudentCourse,
     Topic,
+    teacher_can_reach_course,
 )
 
 
@@ -116,7 +117,7 @@ class TopicSerializer(serializers.ModelSerializer):
         if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:
             return value
 
-        if value.teacher_id != user.id:
+        if not teacher_can_reach_course(user, value):
             raise serializers.ValidationError("You do not have access to this course.")
         return value
 

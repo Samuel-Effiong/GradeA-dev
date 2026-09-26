@@ -19,12 +19,14 @@ and the failures are the reproduction.
 """
 
 from datetime import timedelta
+from decimal import Decimal
 
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from assignments.models import Assignment, AssignmentStatus
 from billing.models import (
     LicenseSubscription,
     PlanCategory,
@@ -33,7 +35,8 @@ from billing.models import (
     SchoolCreditAllocation,
     SubscriptionPlan,
 )
-from classrooms.models import Course, School
+from classrooms.models import Course, School, StudentCourse
+from students.models import StudentSubmission
 from users.models import CustomUser, UserTypes
 
 PASSWORD = "Str0ng-h38-password!"  # pragma: allowlist secret
@@ -385,3 +388,40 @@ class RemovalDoesNotClobberAnotherSchoolLinkTests(TeacherRemovalBase):
                 license_subscription=self.license, user=self.teacher, is_active=True
             ).exists()
         )
+
+
+class RemovalLeavesTheSchoolDataIntactTests(TeacherRemovalBase):
+    """Product decision (H-38): the removed teacher stays the recorded owner
+    and the access rule denies them. Nothing is deleted or reassigned, so the
+    school's data survives, unreachable by the removed teacher."""
+
+    def test_course_assignments_submissions_and_enrolments_survive_removal(self):
+        assignment = Assignment.objects.create(
+            title="School A quiz",
+            course_id=self.course_id,
+            total_points=10,
+            due_date=timezone.now() + timedelta(days=7),
+            status=AssignmentStatus.PUBLISHED,
+        )
+        submission = StudentSubmission.objects.create(
+            student=self.student,
+            assignment=assignment,
+            answers={},
+            score=Decimal("7.00"),
+            graded_at=timezone.now(),
+        )
+        before = (
+            Course.objects.get(pk=self.course_id).teacher_id,
+            Assignment.objects.get(pk=assignment.pk).title,
+            StudentSubmission.objects.get(pk=submission.pk).score,
+            StudentCourse.objects.filter(course_id=self.course_id).count(),
+        )
+        self.remove_teacher()
+        after = (
+            Course.objects.get(pk=self.course_id).teacher_id,
+            Assignment.objects.get(pk=assignment.pk).title,
+            StudentSubmission.objects.get(pk=submission.pk).score,
+            StudentCourse.objects.filter(course_id=self.course_id).count(),
+        )
+        self.assertEqual(before, after)
+        self.assertEqual(after[0], self.teacher.id)

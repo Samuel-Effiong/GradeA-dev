@@ -17,7 +17,12 @@ from django.utils import timezone
 
 from ai_processor.services import AI_CONFIDENCE_THRESHOLD
 from assignments.models import Assignment, AssignmentStatus
-from classrooms.models import Course, EnrollmentStatusType, StudentCourse
+from classrooms.models import (
+    Course,
+    EnrollmentStatusType,
+    StudentCourse,
+    reachable_courses,
+)
 from dashboard.rigor import build_rigor_by_teacher, empty_rigor_payload
 from dashboard.risk import TREND_INSUFFICIENT_DATA, RiskInputs, StudentRiskEvaluator
 from students.models import StudentSubmission
@@ -1147,7 +1152,7 @@ class TeacherAIContextService:
         now = now or timezone.now()
 
         courses = list(
-            Course.objects.filter(teacher=teacher)
+            reachable_courses(teacher)
             .select_related("session")
             .order_by("-is_active", "name", "id")
         )

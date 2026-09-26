@@ -262,6 +262,26 @@ def teacher_course_access_q(user, prefix=""):
     return own & reachable
 
 
+def teacher_can_reach_course(user, course):
+    """Object-level twin of `teacher_course_access_q` (H-38).
+
+    For code that already holds a Course and asks "may this teacher act on
+    it?". Must stay in step with the Q version; the two are tested against
+    each other.
+    """
+    if course is None or user is None or course.teacher_id != user.id:
+        return False
+    session = course.session
+    if session is None or session.owner_type == SessionOwnerType.INDIVIDUAL:
+        return True
+    return bool(user.school_id) and session.school_id == user.school_id
+
+
+def reachable_courses(user):
+    """Every Course `user` (a teacher) may currently act on."""
+    return Course.objects.filter(teacher_course_access_q(user))
+
+
 class StudentCourseQuerySet(models.QuerySet):
     def active(self):
         return self.exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)

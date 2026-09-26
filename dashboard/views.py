@@ -61,6 +61,8 @@ from classrooms.models import (
     Session,
     SessionOwnerType,
     StudentCourse,
+    reachable_courses,
+    teacher_course_access_q,
 )
 from classrooms.permissions import IsSchoolAdmin, IsStudent, IsSuperAdmin, IsTeacher
 from dashboard.models import SchoolAtRiskSnapshot
@@ -3348,7 +3350,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         data = cache.get(cache_key)
 
         if data is None:
-            course = get_object_or_404(Course, id=course_id, teacher=request.user)
+            course = get_object_or_404(reachable_courses(request.user), id=course_id)
             assignments = Assignment.objects.filter(course=course)
             total_assigned = assignments.count()
             submissions = StudentSubmission.objects.filter(assignment__course=course)
@@ -3483,7 +3485,10 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
 
         if data is None:
             assignment = get_object_or_404(
-                Assignment, id=assignment_id, course__teacher=self.request.user
+                Assignment.objects.filter(
+                    teacher_course_access_q(self.request.user, prefix="course__")
+                ),
+                id=assignment_id,
             )
             submissions = StudentSubmission.objects.filter(assignment=assignment)
             total_submissions = submissions.count()
@@ -3583,7 +3588,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
 
         if data is None:
             teacher = request.user
-            course = get_object_or_404(Course, id=course_id, teacher=teacher)
+            course = get_object_or_404(reachable_courses(teacher), id=course_id)
 
             assignments = Assignment.objects.filter(course=course)
             total_assigned = assignments.count()

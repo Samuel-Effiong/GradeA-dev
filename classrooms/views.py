@@ -68,6 +68,7 @@ from .models import (  # , Classroom, ClassroomSettings
     SessionOwnerType,
     StudentCourse,
     Topic,
+    teacher_can_reach_course,
     teacher_course_access_q,
 )
 from .permissions import IsSuperAdmin, IsTeacher, IsTeacherOrReadOnly
@@ -1448,7 +1449,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # downgraded to a 500 instead of DRF's normal 404.
         course = self.get_object()
 
-        if request.user != course.teacher:
+        if not teacher_can_reach_course(request.user, course):
             raise PermissionDenied(
                 "You do not have permission to remove students from this "
                 "course. Only course teacher can"
@@ -2039,7 +2040,8 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if self.action == "my_students":
             if user.user_type == UserTypes.TEACHER:
                 active_enrollment = StudentCourse.objects.filter(
-                    student=OuterRef("pk"), course__teacher=user
+                    teacher_course_access_q(user, prefix="course__"),
+                    student=OuterRef("pk"),
                 ).exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
                 # StudentListSerializer walks enrollments -> course ->
                 # teacher and assignments, and submissions -> assignment,
@@ -2080,7 +2082,9 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # their own rows, which student__submissions already guarantees.
         submissions_qs = StudentSubmission.objects.select_related("assignment")
         if user.user_type == UserTypes.TEACHER:
-            submissions_qs = submissions_qs.filter(assignment__course__teacher=user)
+            submissions_qs = submissions_qs.filter(
+                teacher_course_access_q(user, prefix="assignment__course__")
+            )
 
         queryset = (
             StudentCourse.objects
@@ -2097,7 +2101,9 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         )
 
         if user.user_type == UserTypes.TEACHER:
-            return queryset.filter(course__teacher=user).distinct()
+            return queryset.filter(
+                teacher_course_access_q(user, prefix="course__")
+            ).distinct()
         elif user.user_type == UserTypes.STUDENT:
             return queryset.filter(student=user)
         return StudentCourse.objects.none()
@@ -2390,7 +2396,9 @@ class TopicViewSet(UserCacheMixin, viewsets.ModelViewSet):
         user = self.request.user
 
         if user.user_type == UserTypes.TEACHER:
-            return Topic.objects.filter(course__teacher=user)
+            return Topic.objects.filter(
+                teacher_course_access_q(user, prefix="course__")
+            )
         elif user.user_type == UserTypes.STUDENT:
             # Previously matched on "an enrollment row exists", with no
             # status condition - so a WITHDRAWN student kept reading the
