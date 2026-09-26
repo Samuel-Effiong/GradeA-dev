@@ -215,6 +215,10 @@ answer-cache enabled/TTL. `config_version = f"{CONFIG_LABEL}@{sha256(canonical_j
 reflects environment overrides (§0.5). **The `STANDARD` strictness of I-2 must reproduce exactly today's configuration
 (same label and hash inputs), or I-2 must bump the label.** Recorded so I-2 cannot drift silently.
 
+**CI guard (BE-I-06 made mechanical).** `test_grading_config_snapshot_pinned` hashes the snapshot of the **code defaults**
+(not the environment) and compares it to a value pinned beside `CONFIG_LABEL`. Changing a default without bumping the
+label fails CI, so "released through the same gate as application code" is enforced rather than remembered.
+
 The snapshot is taken **once at the start of `grade_student_submission`** and used for both the cache key and the stamp, so
 a mid-run settings change cannot split the two.
 
@@ -222,6 +226,11 @@ a mid-run settings change cannot split the two.
 
 `model_id` = `feedback["grading_model"]` when present, else `"deterministic"` if the run made no AI call, else `"unknown"`.
 `fallback_used` = `model_id` not in `{MAIN_MODEL, "deterministic"}` (the served model differs from the intended primary).
+The audit emitter (`audit/emitter.py::_emit_alertable_metrics` on `task/epic-a-land`) computes `model_fallback_rate` as
+`model in GRADING_FALLBACK_MODELS`. The two predicates differ when a model outside both sets serves a run (`unknown`,
+an unlisted provider route). **Decision:** the column uses the broader predicate above (anything not the primary counts),
+and a test asserts that for every model in `GRADING_FALLBACK_MODELS` both predicates agree, so the metric is a subset of the
+column and never contradicts it.
 A chunked run can be served by different models per chunk **[UNVERIFIED]** (`services.py:2906` sets one
 `grading_model` on the summary; which chunk's value wins is unread). The stamp takes the primary value and records the full
 set in `run_meta.models_used`. Where `models_used` has more than one entry the run is flagged for the fallback metric
@@ -301,10 +310,20 @@ A test enforces the "no new un-mirrored writer" rule: an AST scan of non-test co
 naming any of the mirrored columns, allow-listing the sites above. Adding a writer without deciding fails CI. (Same
 technique as B0's chokepoint test.)
 
-### 5.4 Feature flag
+### 5.4 Audit stamp (no new action)
 
-`GRADING_RECORD_DUAL_WRITE_ENABLED` (env-driven setting, default **True**). Off means the pipeline does not touch the new
-table. NFR-MNT-05 satisfied; also the rollback lever for deploy I-1b. Not a kill switch for the registry or cache key
+On `task/epic-a-land`, `audit/metadata.py` already allow-lists `model`, `prompt_version`, `grading_config_version` and
+`strictness` for `GRADING_COMPLETED`, but the only call site (`assignments/tasks.py:528`) sends only `model`. I-1 populates
+the other three from the run provenance (§5.1) at that call site, three lines. `strictness` is `"STANDARD"` until I-2.
+This is read-only metadata on an existing event: it is **not** behind the dual-write flag, so the audit trail carries the
+stamp even while the table is dark. **No new `AuditAction`**, retention class unchanged. Because B1 and E1 also touch
+this file, the change is kept to that one dict (see §10 item 16).
+
+### 5.5 Feature flag
+
+`GRADING_RECORD_DUAL_WRITE_ENABLED` (env-driven setting, default **False**, so the code ships dark per NFR-MNT-05; the
+environment variable is set to true at deploy I-1b, after I-1a is verified). Off means the pipeline does not touch the new
+table. Also the rollback lever for deploy I-1b. Not a kill switch for the registry or cache key
 (those have no off state; their rollback is a revert).
 
 ---
@@ -373,7 +392,26 @@ operator during I-1; the **I-2 exit criterion is zero drift on a full run**.
 
 Counts recorded in the evidence doc (`docs/evidence/epic-i1/`).
 
-### 8.2 Gate applicability (`10 Gates.md`, Gates 1–9)
+### 8.2 Roadmap §7 checklist
+
+| # | Item | I-1 answer |
+|---|---|---|
+| 1 | Audit actions added | **None.** Three already-allow-listed metadata keys are populated on `GRADING_COMPLETED` (§5.4). No enum or `retention_class_for` change |
+| 2 | Student deletion/export walk (NFR-CMP-04) | Adds `SubmissionGrading` (cascade from `StudentSubmission`; it carries `score`, `feedback`, `graded_by_id`). No export or deletion walk exists on beta (`docs/DATA_PRIVACY_AND_SECURITY_COMPLIANCE.md` §6; roadmap Q4 has no owner), so I-1 delivers the cascade edge, a test that deleting a submission or student removes its runs, and this line for whoever owns the walk. It does not build the walk |
+| 3 | Gates | §8.3 below |
+| 4 | Migration class and three-deploy schedule | One migration, **additive** (create table). Deploy 1 is I-1a/b/c (§2); deploy 2 (readers) and 3 (contract, `# expand-contract-step: contract`) belong to I-2 |
+| 5 | Ships dark | `GRADING_RECORD_DUAL_WRITE_ENABLED`, default False (§5.5) |
+| 6 | Role-by-resource matrix (NFR-SEC-01) | See below |
+
+| Resource | Student | Teacher | School Admin | Super Admin |
+|---|---|---|---|---|
+| `SubmissionGrading` rows | none (no endpoint, not in any student serializer) | none (no endpoint) | none | Django admin only if registered; **decision: not registered**, so all four are denied by absence |
+| `backfill_submission_gradings` / `check_grading_parity` | | | | operator shell only, not reachable over HTTP |
+
+I-2 adds the read surface; its tenancy column is `submission.assignment.course.teacher` for teachers, the school for
+admins, and the student's own submission for students (03a §6). Rows for that surface belong to the I-2 plan.
+
+### 8.3 Gate applicability (`10 Gates.md`, Gates 1–9)
 
 | Gate | Applies | Basis |
 |---|---|---|
@@ -422,6 +460,8 @@ These are pre-existing and matter to I-2, E1 or integrity. Each needs an owner.
 | 13 | Gate 8 needs a cost approval and a beta window |
 | 14 | Soft dependency on Epic A for the metrics module; on beta without it the metrics calls are no-ops and only logs remain |
 | 15 | Estimate excludes independent verification and CI queue time |
+| 16 | File ownership with B1 and E1: I-1 owns writers in `students/services.py` and `students/views.py` and a 3-line metadata edit at `assignments/tasks.py:528`; B1 and E1 own the rest of the grading task path. Agreed boundaries to be confirmed with the B1 plan author |
+| 17 | Decision (Feature Lead): flag default False and enabled by env at I-1b, versus default True as first drafted (§5.5) |
 
 **Effect on the roadmap:** I-1 moves from about 1 week to about 2. The 05 §5 schedule had about 2 weeks of slack, so
 this leaves about 1 week. If E3 (`FeedbackRevision`) depends on this table (it does), E3's start is gated on I-1b.
