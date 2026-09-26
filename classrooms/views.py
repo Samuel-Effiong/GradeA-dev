@@ -68,6 +68,7 @@ from .models import (  # , Classroom, ClassroomSettings
     SessionOwnerType,
     StudentCourse,
     Topic,
+    teacher_course_access_q,
 )
 from .permissions import IsSuperAdmin, IsTeacher, IsTeacherOrReadOnly
 from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
@@ -1263,7 +1264,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         )
 
         if user.user_type == UserTypes.TEACHER:
-            return course.filter(teacher=user)
+            return course.filter(teacher_course_access_q(user))
         elif user.user_type == UserTypes.STUDENT:
             # One rule, shared with assignments and topics - see
             # COURSE_ACCESS_ENROLLMENT_STATUSES in classrooms.models.

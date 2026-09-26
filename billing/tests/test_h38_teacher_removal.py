@@ -260,3 +260,128 @@ class SchoolAdminSeesRemovedTeachersNewDataTests(TeacherRemovalBase):
         self.assertEqual(response.status_code, 200, response.content)
         self.assertNotIn(str(self.private_student.id), response.content.decode())
         self.assertNotIn(self.private_student.email, response.content.decode())
+
+
+class LicensedTeacherKeepsLegitimateAccessTests(TeacherRemovalBase):
+    """Positive controls: the tightened scoping must not lock out anyone it
+    should not. Without these, a queryset that returned nothing at all would
+    pass every 'cannot' test above."""
+
+    def test_licensed_teacher_can_read_list_and_enrol_into_the_school_course(self):
+        client = jwt_client(self.teacher.email)
+        response = client.get(f"{API}/course/{self.course_id}")
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(str(response.data["id"]), str(self.course_id))
+
+        response = client.get(f"{API}/course", {"page_size": 100})
+        self.assertIn(str(self.course_id), response.content.decode())
+
+        response = client.get(f"{API}/users/{self.student.id}")
+        self.assertEqual(response.status_code, 200, response.content)
+
+        response = client.post(
+            f"{API}/course/{self.course_id}/students",
+            {"email": "another-pupil@h38.test"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+
+    def test_another_teacher_in_the_same_school_still_cannot_see_the_course(self):
+        other = make_user("colleague@h38.test", UserTypes.TEACHER)
+        LicenseSubscription.objects.filter(pk=self.license.pk).update(max_seats=5)
+        response = self.admin_client.post(
+            f"{API}/license-subscriptions/{self.license.id}/add_teachers",
+            {"teacher_emails": [other.email]},
+            format="json",
+        )
+        self.assertEqual(response.data["successful"], 1, response.content)
+        response = jwt_client(other.email).get(f"{API}/course/{self.course_id}")
+        self.assertEqual(response.status_code, 404, response.content)
+
+
+class IndividualCoursesSurviveSchoolMembershipTests(TestCase):
+    """A course in an INDIVIDUAL session belongs to the teacher whatever
+    their school status - joining and leaving a school must not move it."""
+
+    def test_private_course_stays_reachable_through_join_and_removal(self):
+        plan = SubscriptionPlan.objects.create(
+            name=PlanType.PRO,
+            display_name="H38 License Plan",
+            category=PlanCategory.LICENSE,
+            tier=PlanTier.PRO,
+            monthly_credits=20000,
+        )
+        school = School.objects.create(name="School Solo H38")
+        admin = make_user("admin-solo@h38.test", UserTypes.SCHOOL_ADMIN, school)
+        lic = LicenseSubscription.objects.create(
+            school=school,
+            admin_user=admin,
+            plan=plan,
+            billing_cycle_start=timezone.now(),
+            billing_cycle_end=timezone.now() + timedelta(days=30),
+            is_active=True,
+        )
+        teacher = make_user("solo@h38.test", UserTypes.TEACHER)
+        client = jwt_client(teacher.email)
+        session = client.post(f"{API}/sessions", {"name": "Mine"}, format="json")
+        self.assertEqual(session.status_code, 201, session.content)
+        course = client.post(
+            f"{API}/course",
+            {"name": "Mine 101", "session": session.data["id"]},
+            format="json",
+        )
+        self.assertEqual(course.status_code, 201, course.content)
+        course_id = course.data["id"]
+
+        admin_client = jwt_client(admin.email)
+        joined = admin_client.post(
+            f"{API}/license-subscriptions/{lic.id}/add_teachers",
+            {"teacher_emails": [teacher.email]},
+            format="json",
+        )
+        self.assertEqual(joined.data["successful"], 1, joined.content)
+        self.assertEqual(
+            jwt_client(teacher.email).get(f"{API}/course/{course_id}").status_code, 200
+        )
+
+        removed = admin_client.post(
+            f"{API}/license-subscriptions/{lic.id}/remove_teachers",
+            {"teacher_ids": [str(teacher.id)]},
+            format="json",
+        )
+        self.assertEqual(removed.data["successful"], 1, removed.content)
+        self.assertEqual(
+            jwt_client(teacher.email).get(f"{API}/course/{course_id}").status_code, 200
+        )
+
+
+class MovedTeacherDoesNotDragOldCoursesToNewSchoolTests(TeacherRemovalBase):
+    def test_school_a_course_stays_hidden_after_joining_school_b(self):
+        self.remove_teacher()
+        response = jwt_client(self.other_admin.email).post(
+            f"{API}/license-subscriptions/{self.other_license.id}/add_teachers",
+            {"teacher_emails": [self.teacher.email]},
+            format="json",
+        )
+        self.assertEqual(response.data["successful"], 1, response.content)
+        client = jwt_client(self.teacher.email)
+        self.assertEqual(client.get(f"{API}/course/{self.course_id}").status_code, 404)
+        self.assertEqual(client.get(f"{API}/users/{self.student.id}").status_code, 404)
+
+
+class RemovalDoesNotClobberAnotherSchoolLinkTests(TeacherRemovalBase):
+    def test_school_link_to_a_different_school_is_left_alone(self):
+        from billing.license_service import LicenseSubscriptionService
+
+        CustomUser.objects.filter(pk=self.teacher.pk).update(school=self.other_school)
+        self.teacher.refresh_from_db()
+        LicenseSubscriptionService.remove_teacher_from_license(
+            self.license, self.teacher
+        )
+        self.teacher.refresh_from_db()
+        self.assertEqual(self.teacher.school_id, self.other_school.id)
+        self.assertFalse(
+            SchoolCreditAllocation.objects.filter(
+                license_subscription=self.license, user=self.teacher, is_active=True
+            ).exists()
+        )

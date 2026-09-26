@@ -2,7 +2,7 @@ import uuid
 
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import UniqueConstraint, UUIDField
+from django.db.models import Q, UniqueConstraint, UUIDField
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -233,6 +233,33 @@ COURSE_ACCESS_ENROLLMENT_STATUSES = (
     EnrollmentStatusType.ENROLLED,
     EnrollmentStatusType.COMPLETED,
 )
+
+
+def teacher_course_access_q(user, prefix=""):
+    """Q for the courses `user` (a teacher) may currently reach (H-38).
+
+    `course.teacher == user` is permanent, so on its own it outlives the
+    teacher's membership of the school whose session the course sits in. A
+    course in a SCHOOL session is reachable only while the teacher still
+    belongs to that school; one in an INDIVIDUAL session (or with no
+    session) is theirs regardless.
+
+    `prefix` reaches the course from another model, e.g. "course__" or
+    "enrollments__course__". Build it into ONE filter() call so multi-valued
+    relations match against the same related row.
+    """
+    own = Q(**{f"{prefix}teacher": user})
+    reachable = Q(**{f"{prefix}session__isnull": True}) | Q(
+        **{f"{prefix}session__owner_type": SessionOwnerType.INDIVIDUAL}
+    )
+    if user.school_id:
+        reachable |= Q(
+            **{
+                f"{prefix}session__owner_type": SessionOwnerType.SCHOOL,
+                f"{prefix}session__school_id": user.school_id,
+            }
+        )
+    return own & reachable
 
 
 class StudentCourseQuerySet(models.QuerySet):
