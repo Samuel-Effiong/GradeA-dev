@@ -386,6 +386,107 @@ class GoogleAuthViewTests(APITestCase):
         self.assertTrue(user.is_active)
         self.assertIsNotNone(user.email_verified_at)
 
+    def test_a_pre_registered_password_stops_working_once_google_completes_the_account(
+        self,
+    ):
+        """
+        AUTHZ-OAUTH: an attacker who self-registers the victim's email with
+        their own password gets a dormant is_active=False row holding a
+        real, usable password. If the victim later signs in with Google
+        instead of clicking the emailed link, this is the exact moment
+        that row goes live - and the attacker's password must not go live
+        with it.
+        """
+        user = self._existing(is_active=False, email_verified_at=None)
+        self.assertTrue(
+            user.has_usable_password(), "test setup: password must start usable"
+        )
+
+        response = self.call(
+            token_response=self.valid_token_response(),
+            id_info=self.valid_id_info(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user.refresh_from_db()
+        self.assertTrue(user.is_active)
+        self.assertFalse(
+            user.has_usable_password(),
+            "the pre-existing password is still usable after Google completed the account",
+        )
+
+    def test_the_attackers_password_login_fails_after_the_victim_signs_in_with_google(
+        self,
+    ):
+        """
+        The end-to-end replay of the takeover: attacker pre-registers the
+        victim's address with a password of their choosing, the victim
+        signs in with Google, and the attacker then tries that password
+        against the ordinary login endpoint. It must not work.
+        """
+        attacker_password = "Attacker-Chosen-Pw-1"  # pragma: allowlist secret
+        register = self.client.post(
+            reverse("auth-register"),
+            {
+                "email": "google.user@gmail.com",
+                "password": attacker_password,
+                "first_name": "Not",
+                "last_name": "TheVictim",
+            },
+            format="json",
+        )
+        self.assertEqual(register.status_code, status.HTTP_200_OK, register.data)
+        pending = User.objects.get(email="google.user@gmail.com")
+        self.assertFalse(
+            pending.is_active, "test setup: pre-registration must be dormant"
+        )
+
+        before = self.client.post(
+            reverse("login"),
+            {"email": pending.email, "password": attacker_password},
+            format="json",
+        )
+        self.assertNotEqual(
+            before.status_code, status.HTTP_200_OK, "dormant row must not log in"
+        )
+
+        response = self.call(
+            token_response=self.valid_token_response(),
+            id_info=self.valid_id_info(),
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        login = self.client.post(
+            reverse("login"),
+            {"email": pending.email, "password": attacker_password},
+            format="json",
+        )
+        self.assertEqual(
+            login.status_code,
+            status.HTTP_401_UNAUTHORIZED,
+            "the attacker's pre-set password can still log in after Google completed the account",
+        )
+
+    def test_an_active_but_unverified_account_keeps_its_password(self):
+        """
+        Companion to test_an_active_but_unverified_account_gets_marked_verified:
+        an already-active row (e.g. a license-invited teacher on their
+        first Google sign-in, verifying email only) must not have its
+        real password wiped - only a row that was actually is_active=False
+        might be carrying a password nobody vetted.
+        """
+        user = self._existing(is_active=True, email_verified_at=None)
+
+        response = self.call(
+            token_response=self.valid_token_response(),
+            id_info=self.valid_id_info(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        user.refresh_from_db()
+        self.assertTrue(user.has_usable_password())
+        self.assertTrue(user.check_password("password123"))
+
     def test_tokens_from_a_completed_account_actually_work(self):
         """
         The bug this closes: the endpoint answered 200 with tokens while
@@ -422,6 +523,10 @@ class GoogleAuthViewTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         user.refresh_from_db()
         self.assertFalse(user.is_active, "Google sign-in re-activated a banned account")
+        self.assertTrue(
+            user.check_password("password123"),
+            "a refused sign-in must not touch the row at all, password included",
+        )
 
     def test_a_deactivated_account_is_issued_no_tokens(self):
         self._existing(
