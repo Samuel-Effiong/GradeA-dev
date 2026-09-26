@@ -42,12 +42,18 @@ moved. This plan uses the beta numbers.
   referenced only inside `__ai_model` (`:685`, `:708`) and assigned once outside
   the class by a benchmark harness
   (`ai_processor/benchmark/isolation_run8/isolation_harness.py:129`), which swaps
-  in its own `OpenAI(...)` and still calls through `execute_graded_task`
-  **[UNVERIFIED: I read the assignment, not the calls that follow]**.
+  in its own `OpenAI(...)` with a 300s timeout and 3 retries. **Verified
+  (2026-09-26, read of the whole `isolation_run8/` directory):** the harness only
+  reassigns `client`; nothing under it calls `client.chat.completions`,
+  `__ai_model` or `execute_graded_task` directly. The AST test's allow-list for
+  assignments to `.client` outside `AIProcessor` is therefore exactly this one
+  path. Side finding: production constructs the client with no timeout or retry
+  cap (the harness docstring says a half-open connection hung a run for 2 hours);
+  not a B0 matter, reported to the Feature Lead.
 - Only `services.py` imports and constructs `OpenAI` in non-test code
   (`AutoGrader/error_messages.py:96` imports exception classes only).
 
-**Decision for the Feature Lead (default in bold):** the requirement wording is
+**Decision (Feature Lead, 2026-09-26): option (a) approved.**  *(Original framing:)* the requirement wording is
 "no component reaches a model provider directly". Removing the function alone
 leaves `client` open. Options: **(a) delete the function and add a test that
 `.client` is used only inside `__ai_model` (AST-checked); leave the attribute
@@ -391,8 +397,7 @@ B0's edit there is two small hunks. Rebase before merge.
 ## 9. Open items and unverified claims
 
 1. **`client` attribute** (§0.2): option (a) vs (b). Default (a).
-2. **Benchmark harness** (§0.2): confirm `isolation_harness.py` only calls through
-   `execute_graded_task` after swapping `client`.
+2. ~~**Benchmark harness** (§0.2)~~ **Resolved 2026-09-26**: harness only reassigns `client`; see §0.2.
 3. **Every writer of `CreditBucket.used_credits` / `total_credits`** (§3.3): audit
    in step 2; any writer that neither writes a ledger row nor passes through
    `save()` is reported, not fixed, by B0.
