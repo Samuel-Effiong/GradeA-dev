@@ -821,8 +821,8 @@ def resend_school_admin_invitation(user):
     """
     if not user.school:
         logger.error(
-            "Cannot resend school admin invitation for %s: no school attached.",
-            user.email,
+            "Cannot resend school admin invitation for user %s: no school attached.",
+            user.id,
         )
         return
 
