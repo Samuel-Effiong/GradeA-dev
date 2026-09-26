@@ -1,0 +1,152 @@
+{
+ "baseline": {
+  "id": "BASE",
+  "rc": 0,
+  "summary": "OK",
+  "fails": []
+ },
+ "mutants": [
+  {
+   "id": "ASTATUS",
+   "desc": "MyLicenseAdminSubscriptionSerializer.get_status ignores context, always ACTIVE",
+   "rc": 1,
+   "summary": "FAILED (failures=3)",
+   "expected_test": "test_lapsed_license_admin_reports_status_expired",
+   "failing": [
+    "test_admin_allocation_never_surfaces_as_a_teacher_expired_row",
+    "test_expired_license_admin_history_wins_over_expired_license_teacher_history",
+    "test_lapsed_license_admin_reports_status_expired"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 11,
+   "restored_md5_ok": true
+  },
+  {
+   "id": "ADAYSREN",
+   "desc": "MyLicenseAdminSubscriptionSerializer.get_days_until_renewal EXPIRED guard removed",
+   "rc": 1,
+   "summary": "FAILED (failures=1)",
+   "expected_test": "test_expired_license_admin_nulls_days_until_renewal",
+   "failing": [
+    "test_expired_license_admin_nulls_days_until_renewal"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 11,
+   "restored_md5_ok": true
+  },
+  {
+   "id": "TSTATUS",
+   "desc": "MyLicenseTeacherSubscriptionSerializer.get_status ignores context, always ACTIVE",
+   "rc": 1,
+   "summary": "FAILED (failures=2)",
+   "expected_test": "test_teachers_own_allocation_deactivated_reports_status_expired",
+   "failing": [
+    "test_license_itself_lapsed_reports_status_expired_and_is_license_active_false",
+    "test_teachers_own_allocation_deactivated_reports_status_expired"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 12,
+   "restored_md5_ok": true
+  },
+  {
+   "id": "TDAYSREN",
+   "desc": "MyLicenseTeacherSubscriptionSerializer.get_days_until_next_credit_grant EXPIRED guard removed",
+   "rc": 1,
+   "summary": "FAILED (failures=1)",
+   "expected_test": "test_expired_teacher_nulls_days_until_next_credit_grant",
+   "failing": [
+    "test_expired_teacher_nulls_days_until_next_credit_grant"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 10,
+   "restored_md5_ok": true
+  },
+  {
+   "id": "AORDER",
+   "desc": "last_managed_license ordering reversed (oldest lapsed license wins)",
+   "rc": 1,
+   "summary": "FAILED (failures=1)",
+   "expected_test": "test_most_recent_lapsed_license_is_the_one_returned",
+   "failing": [
+    "test_most_recent_lapsed_license_is_the_one_returned"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 10,
+   "restored_md5_ok": true
+  },
+  {
+   "id": "ACOUNT",
+   "desc": "last_managed_license reports the ACTIVE-path default managed_license_count of 1 instead of 0",
+   "rc": 1,
+   "summary": "FAILED (failures=1)",
+   "expected_test": "test_expired_license_admin_reports_zero_managed_licenses",
+   "failing": [
+    "test_expired_license_admin_reports_zero_managed_licenses"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 10,
+   "restored_md5_ok": true
+  },
+  {
+   "id": "NARROW",
+   "desc": "last_allocation reverts to the SM's literal is_active=False spec, dropping the license-lapsed-only shape",
+   "rc": 1,
+   "summary": "FAILED (errors=2)",
+   "expected_test": "test_license_itself_lapsed_reports_status_expired_and_is_license_active_false",
+   "failing": [
+    "test_expired_teacher_nulls_days_until_next_credit_grant",
+    "test_license_itself_lapsed_reports_status_expired_and_is_license_active_false"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 10,
+   "restored_md5_ok": true
+  },
+  {
+   "id": "TORDER",
+   "desc": "last_allocation ordering reversed (oldest-touched allocation wins)",
+   "rc": 1,
+   "summary": "FAILED (failures=1)",
+   "expected_test": "test_most_recently_updated_lapsed_allocation_is_the_one_returned",
+   "failing": [
+    "test_most_recently_updated_lapsed_allocation_is_the_one_returned"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 10,
+   "restored_md5_ok": true
+  },
+  {
+   "id": "NOEXCL",
+   "desc": "last_allocation drops the is_admin_allocation=False filter, admin-analytics rows can surface as a teacher EXPIRED row",
+   "rc": 1,
+   "summary": "FAILED (failures=1)",
+   "expected_test": "test_admin_only_allocation_without_managed_license_is_excluded_from_teacher_lookup",
+   "failing": [
+    "test_admin_only_allocation_without_managed_license_is_excluded_from_teacher_lookup"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 9,
+   "restored_md5_ok": true
+  },
+  {
+   "id": "PRIORITY",
+   "desc": "priority chain reordered \u2014 teacher lookup checked before license-admin lookup",
+   "rc": 1,
+   "summary": "FAILED (failures=1, errors=4)",
+   "expected_test": "test_expired_license_admin_history_wins_over_expired_license_teacher_history",
+   "failing": [
+    "test_admin_allocation_never_surfaces_as_a_teacher_expired_row",
+    "test_expired_license_admin_history_wins_over_expired_license_teacher_history",
+    "test_expired_license_admin_reports_zero_managed_licenses",
+    "test_lapsed_license_admin_reports_status_expired",
+    "test_most_recent_lapsed_license_is_the_one_returned"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 10,
+   "restored_md5_ok": true
+  }
+ ],
+ "md5": {
+  "billing/serializers.py": "532f3fed1525319f649d820522ef92d7",
+  "billing/views.py": "a12654bb8d60e3a5188e344f2bad5451"
+ }
+}
