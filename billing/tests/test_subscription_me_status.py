@@ -609,6 +609,40 @@ class LicenseTeacherExpiredTests(SubscriptionMeStatusTestBase):
         self.assertEqual(response.data["subscription_source"], "LICENSE_ADMIN")
         self.assertEqual(response.data["status"], "EXPIRED")
 
+    def test_admin_only_allocation_without_managed_license_is_excluded_from_teacher_lookup(
+        self,
+    ):
+        """
+        Edge case that specifically exercises the is_admin_allocation
+        exclusion on the TEACHER fallback path itself (the test above
+        never reaches it — the admin resolves via their own license
+        lookup first). A user with only an is_admin_allocation=True row
+        and no LicenseSubscription where they're admin_user (an
+        inconsistent/edge-case row) must never be mistaken for a lapsed
+        teacher enrollment.
+        """
+        _, admin, _ = make_license_school("teacher-exp-admin-7@example.com")
+        license_sub = self._make_license(admin, is_active=False)
+        stray_user = CustomUser.objects.create_user(
+            email="stray-admin-allocation@example.com",
+            password=PASSWORD,
+            user_type=UserTypes.TEACHER,
+            is_active=True,
+        )
+        SchoolCreditAllocation.objects.create(
+            license_subscription=license_sub,
+            user=stray_user,
+            is_active=True,
+            is_admin_allocation=True,
+            monthly_allocation=1000,
+        )
+        self.client.force_authenticate(user=stray_user)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
+        self.assertEqual(response.data["status"], "NONE")
+
     def test_most_recently_updated_lapsed_allocation_is_the_one_returned(self):
         """
         SchoolCreditAllocation has no billing_cycle_end, so ordering
