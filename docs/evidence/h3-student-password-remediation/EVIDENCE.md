@@ -32,6 +32,8 @@ python manage.py remediate_student123_passwords --execute \
     --report /secure/path/h3_student123_remediation.jsonl             # 2. only after reviewing 1
 python manage.py remediate_student123_passwords                       # 3. verify: 0 matches
 ```
+Report handling (PROPOSED, founder to confirm owner and period): the `--report` file holds student emails. Write it to a directory readable only by the operator running the command (`chmod 600`, never inside the repo or a web-served path). Custodian: the founder (or the one operator they name). Retention: 90 days, then securely delete; record the deletion date. Do not attach it to tickets or chat.
+
 Runtime note: it verifies PBKDF2 (1M iterations) against every user row, roughly 0.2–0.5 s each; budget minutes, not seconds, and run it off-peak.
 
 ### Expected dry-run output (from the H-3 spec's prod findings)
