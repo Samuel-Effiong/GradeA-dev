@@ -1,0 +1,225 @@
+{
+  "cases": 6,
+  "cases_passed": 6,
+  "counts": {
+    "blooms_level": {
+      "passed": 7,
+      "total": 8
+    },
+    "option_count": {
+      "passed": 8,
+      "total": 8
+    },
+    "option_text": {
+      "passed": 3,
+      "total": 3
+    },
+    "points": {
+      "passed": 8,
+      "total": 8
+    },
+    "question_count": {
+      "passed": 6,
+      "total": 6
+    },
+    "question_type": {
+      "passed": 8,
+      "total": 8
+    },
+    "rubric_level_names": {
+      "passed": 4,
+      "total": 4
+    },
+    "rubric_levels": {
+      "passed": 8,
+      "total": 8
+    },
+    "rubric_points": {
+      "passed": 4,
+      "total": 4
+    }
+  },
+  "overall": 0.9825,
+  "passed": true,
+  "per_case": [
+    {
+      "actual_questions": 1,
+      "case": "custom_level_names",
+      "expected_questions": 1,
+      "metrics": [
+        {
+          "found": true,
+          "metrics": {
+            "blooms_level": true,
+            "option_count": true,
+            "option_text": null,
+            "points": true,
+            "question_type": true,
+            "rubric_level_names": true,
+            "rubric_levels": true,
+            "rubric_points": true
+          },
+          "question_number": 1
+        }
+      ],
+      "passed": true,
+      "strict_failures": []
+    },
+    {
+      "actual_questions": 1,
+      "case": "latex_maths",
+      "expected_questions": 1,
+      "metrics": [
+        {
+          "found": true,
+          "metrics": {
+            "blooms_level": true,
+            "option_count": true,
+            "option_text": null,
+            "points": true,
+            "question_type": true,
+            "rubric_level_names": true,
+            "rubric_levels": true,
+            "rubric_points": true
+          },
+          "question_number": 1
+        }
+      ],
+      "passed": true,
+      "strict_failures": []
+    },
+    {
+      "actual_questions": 3,
+      "case": "mixed_hybrid",
+      "expected_questions": 3,
+      "metrics": [
+        {
+          "found": true,
+          "metrics": {
+            "blooms_level": true,
+            "option_count": true,
+            "option_text": true,
+            "points": true,
+            "question_type": true,
+            "rubric_level_names": null,
+            "rubric_levels": true,
+            "rubric_points": null
+          },
+          "question_number": 1
+        },
+        {
+          "found": true,
+          "metrics": {
+            "blooms_level": true,
+            "option_count": true,
+            "option_text": null,
+            "points": true,
+            "question_type": true,
+            "rubric_level_names": true,
+            "rubric_levels": true,
+            "rubric_points": true
+          },
+          "question_number": 2
+        },
+        {
+          "found": true,
+          "metrics": {
+            "blooms_level": true,
+            "option_count": true,
+            "option_text": true,
+            "points": true,
+            "question_type": true,
+            "rubric_level_names": null,
+            "rubric_levels": true,
+            "rubric_points": null
+          },
+          "question_number": 3
+        }
+      ],
+      "passed": true,
+      "strict_failures": []
+    },
+    {
+      "actual_questions": 1,
+      "case": "no_rubric",
+      "expected_questions": 1,
+      "metrics": [
+        {
+          "found": true,
+          "metrics": {
+            "blooms_level": true,
+            "option_count": true,
+            "option_text": null,
+            "points": true,
+            "question_type": true,
+            "rubric_level_names": null,
+            "rubric_levels": true,
+            "rubric_points": null
+          },
+          "question_number": 1
+        }
+      ],
+      "passed": true,
+      "strict_failures": []
+    },
+    {
+      "actual_questions": 1,
+      "case": "six_level_rubric",
+      "expected_questions": 1,
+      "metrics": [
+        {
+          "found": true,
+          "metrics": {
+            "blooms_level": false,
+            "option_count": true,
+            "option_text": null,
+            "points": true,
+            "question_type": true,
+            "rubric_level_names": true,
+            "rubric_levels": true,
+            "rubric_points": true
+          },
+          "question_number": 1
+        }
+      ],
+      "passed": true,
+      "strict_failures": []
+    },
+    {
+      "actual_questions": 1,
+      "case": "six_option_mcq",
+      "expected_questions": 1,
+      "metrics": [
+        {
+          "found": true,
+          "metrics": {
+            "blooms_level": true,
+            "option_count": true,
+            "option_text": true,
+            "points": true,
+            "question_type": true,
+            "rubric_level_names": null,
+            "rubric_levels": true,
+            "rubric_points": null
+          },
+          "question_number": 1
+        }
+      ],
+      "passed": true,
+      "strict_failures": []
+    }
+  ],
+  "rates": {
+    "blooms_level": 0.875,
+    "option_count": 1.0,
+    "option_text": 1.0,
+    "points": 1.0,
+    "question_count": 1.0,
+    "question_type": 1.0,
+    "rubric_level_names": 1.0,
+    "rubric_levels": 1.0,
+    "rubric_points": 1.0
+  },
+  "strict_failures": [],
+  "weakest_metric": "blooms_level"
+}

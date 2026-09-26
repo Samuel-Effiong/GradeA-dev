@@ -5,7 +5,8 @@ from .models import Course, CourseCategory, School, Session, StudentCourse
 
 @admin.register(School)
 class SchoolAdmin(admin.ModelAdmin):
-    list_display = ("name", "phone", "website", "created_at")
+    list_display = ("name", "phone", "website", "is_active", "created_at")
+    list_filter = ("is_active",)
     search_fields = ("name", "address")
     readonly_fields = ("id", "created_at")
 

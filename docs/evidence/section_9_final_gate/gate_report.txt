@@ -1,0 +1,42 @@
+=== Section 9 strict gate on d59add730bff61a220a180e5d99b99dcca87a402 (started 2026-09-14T23:16:10+01:00)
+disk_available_gb=8
+Preparing worktree (detached HEAD d59add7)
+HEAD is now at d59add7 Mark the overlapped Section 9 mutation run as interim, not counted
+--- fingerprint BEFORE
+HEAD=d59add730bff61a220a180e5d99b99dcca87a402
+index_sha256=a77e6c411ec8934546e2df0f623bd5634e599afbab6f35c912101b3f379f45a8
+content_sha256=a300634ee00c4b05e57112517aff5b71586a779538718695086e01910177677f
+status_lines=0
+--- test database before (must be absent)
+pg_database_rows=0
+pg_stat_activity_connections=0
+--- pre-commit run --all-files (2026-09-14T23:16:11+01:00)
+pre_commit_exit=0
+--- check_migration_safety.py --base beta
+OK   assignments/migrations/0039_assignment_upload_fingerprint.py: additive only
+migration_safety_exit=0
+--- manage.py check / makemigrations --check
+System check identified no issues (0 silenced).
+check_exit=0
+No changes detected
+makemigrations_check_exit=0
+--- full test suite, fresh DB test_s9_final_gate_d59add7, --parallel 1, sleep inhibited (2026-09-14T23:17:34+01:00)
+test_exit=0 finished 2026-09-14T23:48:40+01:00
+full_output_lines=55929 full_output_sha256=5d4815b27395b6aeaa1466f2641d646f0d78eeefd108b8108f21029c2df90abc
+Ran 4194 tests in 1851.281s
+OK (skipped=22)
+Found 4194 test(s).
+fail_or_error_lines=0
+other_sessions_teardown_lines=0
+Destroying test database for alias 'default'...
+--- fingerprint AFTER
+HEAD=d59add730bff61a220a180e5d99b99dcca87a402
+index_sha256=a77e6c411ec8934546e2df0f623bd5634e599afbab6f35c912101b3f379f45a8
+content_sha256=a300634ee00c4b05e57112517aff5b71586a779538718695086e01910177677f
+status_lines=0
+fingerprint_identical=yes
+files_newer_than_start=1990
+--- test database after (must be gone, no connections)
+pg_database_rows=0
+pg_stat_activity_connections=0
+=== gate finished 2026-09-14T23:48:42+01:00

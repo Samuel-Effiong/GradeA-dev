@@ -1,0 +1,39 @@
+........................F..........F..........
+======================================================================
+FAIL: test_silent_pg_probe_aborts_not_zero (__main__.EndToEnd.test_silent_pg_probe_aborts_not_zero)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 492, in test_silent_pg_probe_aborts_not_zero
+    self.assertEqual(self.repo.gate({"pg_silent": True}), 2, self.explain())
+AssertionError: 0 != 2 : exit 0
+stdout:
+[2026-09-17T18:34:10+01:00] pre-launch: {"heavy_slots_in_use": 0, "slots_requested": 1, "max_heavy_slots": 100000, "disk_free_gb": 14.78, "min_disk_gb": 0.0, "ram_available_gb": 10.48, "min_ram_gb": 0.0, "test_processes": [], "refused": []}
+[2026-09-17T18:34:10+01:00] run 1: pre-commit run --all-files: pre-commit run --all-files
+[2026-09-17T18:34:10+01:00] run 1: pre-commit run --all-files: exit 0
+[2026-09-17T18:34:10+01:00] run 1: check_migration_safety.py: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python scripts/check_migration_safety.py --base f045fc8f4eaf08672d02f5e95180c21d272fdf69
+[2026-09-17T18:34:10+01:00] run 1: check_migration_safety.py: exit 0
+[2026-09-17T18:34:10+01:00] run 1: manage.py check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py check --settings=settings_worktree
+[2026-09-17T18:34:10+01:00] run 1: manage.py check: exit 0
+[2026-09-17T18:34:10+01:00] run 1: makemigrations --check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py makemigrations --check --dry-run --settings=settings_worktree
+[2026-09-17T18:34:10+01:00] run 1: makemigrations --check: exit 0
+[2026-09-17T18:34:10+01:00] run 1: full suite: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py test --settings=settings_worktree --noinput --parallel 1 -v 2
+[2026-09-17T18:34:10+01:00] run 1: full suite: exit 0
+[2026-09-17T18:34:10+01:00] run 1: CLEAN []
+[2026-09-17T18:34:10+01:00] VERDICT: PASS []
+
+stderr:
+
+
+======================================================================
+FAIL: test_pg_probe_without_result_raises (__main__.PureLogic.test_pg_probe_without_result_raises)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 714, in test_pg_probe_without_result_raises
+    with self.assertRaises(gate.GateAbort):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: GateAbort not raised
+
+----------------------------------------------------------------------
+Ran 46 tests in 23.178s
+
+FAILED (failures=2)

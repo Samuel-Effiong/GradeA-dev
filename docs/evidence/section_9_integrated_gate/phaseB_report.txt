@@ -1,0 +1,68 @@
+=== Section 9 integrated overlap gate on 7641ed73fb4b167ef053637c4ab16a3d58daa970 (started 2026-09-15T04:25:09+01:00)
+29cc1c7 is an ancestor of 7641ed7: yes
+disk_available_gb=7
+--- host check
+Preparing worktree (detached HEAD 7641ed7)
+HEAD is now at 7641ed7 Delete the upload worker test's queue through kombu, honouring the H-9 prefix
+Preparing worktree (detached HEAD 7641ed7)
+HEAD is now at 7641ed7 Delete the upload worker test's queue through kombu, honouring the H-9 prefix
+--- fingerprints BEFORE
+A HEAD=7641ed73fb4b167ef053637c4ab16a3d58daa970
+A index_sha256=f3eb23806e1df69e03cf63b28f6b251cf93547a000cc243bd2938646383182f3
+A content_sha256=843ca28b20edae56ae438152caddb57c59ed3291aecef96ff01ccdc17884251d
+A status_lines=0
+B HEAD=7641ed73fb4b167ef053637c4ab16a3d58daa970
+B index_sha256=f3eb23806e1df69e03cf63b28f6b251cf93547a000cc243bd2938646383182f3
+B content_sha256=843ca28b20edae56ae438152caddb57c59ed3291aecef96ff01ccdc17884251d
+B status_lines=0
+--- test databases BEFORE (must be absent)
+test_s9_gate_a_7641ed7 pg_database_rows=0 pg_stat_activity_connections=0
+test_s9_gate_b_7641ed7 pg_database_rows=0 pg_stat_activity_connections=0
+--- side A pre-checks (2026-09-15T04:25:12+01:00)
+pre_commit_exit=0
+migration_safety_exit=0
+check_exit=0
+makemigrations_check_exit=0
+--- launching BOTH full suites simultaneously (2026-09-15T04:26:33+01:00)
+side A python pid=355180 (inhibitor 355172, cwd /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-s9-gate-a-7641ed7)
+side B python pid=355178 (inhibitor 355173, cwd /home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-s9-gate-b-7641ed7)
+--- Redis sampling while both run (every 240 s)
+probe 1 2026-09-15T04:26:53+01:00: alive a=y b=y | gaplus-t355180=1 gaplus-t355178=1 other_prefixes=15 other_keys=266
+probe 2 2026-09-15T04:30:53+01:00: alive a=y b=y | gaplus-t355180=199 gaplus-t355178=185 other_prefixes=15 other_keys=266
+probe 3 2026-09-15T04:34:54+01:00: alive a=y b=y | gaplus-t355180=117 gaplus-t355178=111 other_prefixes=16 other_keys=363
+probe 4 2026-09-15T04:38:54+01:00: alive a=y b=y | gaplus-t355180=65 gaplus-t355178=65 other_prefixes=16 other_keys=356
+probe 5 2026-09-15T04:42:54+01:00: alive a=y b=y | gaplus-t355180=612 gaplus-t355178=612 other_prefixes=16 other_keys=318
+probe 6 2026-09-15T04:46:55+01:00: alive a=y b=y | gaplus-t355180=1048 gaplus-t355178=1032 other_prefixes=16 other_keys=865
+probe 7 2026-09-15T04:50:55+01:00: alive a=y b=y | gaplus-t355180=693 gaplus-t355178=675 other_prefixes=16 other_keys=1232
+probe 8 2026-09-15T04:54:55+01:00: alive a=y b=y | gaplus-t355180=80 gaplus-t355178=80 other_prefixes=16 other_keys=912
+probe 9 2026-09-15T04:58:55+01:00: alive a=y b=y | gaplus-t355180=1 gaplus-t355178=1 other_prefixes=16 other_keys=333
+probe 10 2026-09-15T05:02:56+01:00: alive a=y b=y | gaplus-t355180=20 gaplus-t355178=19 other_prefixes=16 other_keys=254
+--- both suites finished (2026-09-15T05:04:06+01:00)
+side A: exit=0 lines=59480 sha256=c0fe7ce858efbfe65b4736337463cd412341f6c98aad27c08d994b5192e14432
+  A Ran 4203 tests in 2221.753s
+  A OK (skipped=22)
+  A Found 4203 test(s).
+  A fail_or_error_lines=0 other_sessions_lines=0 destroying_lines=1
+side B: exit=0 lines=59124 sha256=9760698c2b744aee9ad14e8872da5ae189971c00e396d78fc2e958c53855216b
+  B Ran 4203 tests in 2226.335s
+  B OK (skipped=22)
+  B Found 4203 test(s).
+  B fail_or_error_lines=0 other_sessions_lines=0 destroying_lines=1
+--- fingerprints AFTER
+A HEAD=7641ed73fb4b167ef053637c4ab16a3d58daa970
+A index_sha256=f3eb23806e1df69e03cf63b28f6b251cf93547a000cc243bd2938646383182f3
+A content_sha256=843ca28b20edae56ae438152caddb57c59ed3291aecef96ff01ccdc17884251d
+A status_lines=0
+B HEAD=7641ed73fb4b167ef053637c4ab16a3d58daa970
+B index_sha256=f3eb23806e1df69e03cf63b28f6b251cf93547a000cc243bd2938646383182f3
+B content_sha256=843ca28b20edae56ae438152caddb57c59ed3291aecef96ff01ccdc17884251d
+B status_lines=0
+A fingerprint_identical=yes
+B fingerprint_identical=yes
+Grade-Automator-Plus-s9-gate-a-7641ed7 files_newer_than_start_outside_mypy_cache=0
+Grade-Automator-Plus-s9-gate-b-7641ed7 files_newer_than_start_outside_mypy_cache=0
+--- test databases AFTER (must be gone, no connections)
+test_s9_gate_a_7641ed7 pg_database_rows=0 pg_stat_activity_connections=0
+test_s9_gate_b_7641ed7 pg_database_rows=0 pg_stat_activity_connections=0
+--- Redis after both: gaplus-t355180=69 gaplus-t355178=69 other_prefixes=16 other_keys=254
+=== gate finished 2026-09-15T05:04:08+01:00

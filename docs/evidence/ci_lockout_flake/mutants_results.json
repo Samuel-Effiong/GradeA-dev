@@ -1,0 +1,38 @@
+[
+ {
+  "id": "L1",
+  "guard": "atomic F() increment (no lost updates)",
+  "test": "users.tests_login_lockout.LoginLockoutConcurrencyTests.test_concurrent_wrong_passwords_do_not_lose_increments",
+  "pre_sha_ok": true,
+  "anchor_count": 1,
+  "diff": "diff --git a/users/models.py b/users/models.py\nindex d409fa9..a5a41dd 100644\n--- a/users/models.py\n+++ b/users/models.py\n@@ -277,9 +277,9 @@ class CustomUser(AbstractUser):\n         multi-threaded brute-force) count correctly instead of losing\n         increments to a read-modify-write race.\n         \"\"\"\n-        CustomUser.objects.filter(pk=self.pk).update(\n-            failed_login_attempts=F(\"failed_login_attempts\") + 1\n-        )\n+        self.refresh_from_db(fields=[\"failed_login_attempts\", \"locked_until\"])\n+        stale = self.failed_login_attempts\n+        CustomUser.objects.filter(pk=self.pk).update(failed_login_attempts=stale + 1)\n         self.refresh_from_db(fields=[\"failed_login_attempts\", \"locked_until\"])\n \n         if (\n",
+  "exit": 1,
+  "verdict": "KILLED",
+  "assertion": [
+   "AssertionError: 7 != 25 : an increment was lost (or double-counted) under concurrency"
+  ],
+  "ran": [
+   "Ran 1 test in 0.801s"
+  ],
+  "restore_ok": true,
+  "tree_clean": true
+ },
+ {
+  "id": "L2",
+  "guard": "locked accounts are refused before the password check",
+  "test": "users.tests_login_lockout.LoginLockoutLiveServerTests.test_concurrent_brute_force_against_live_http_server_is_held",
+  "pre_sha_ok": true,
+  "anchor_count": 1,
+  "diff": "diff --git a/users/serializers.py b/users/serializers.py\nindex 01f33f5..7e56702 100644\n--- a/users/serializers.py\n+++ b/users/serializers.py\n@@ -411,7 +411,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):\n         # doesn't get penalized as a brute-force guess.\n         user = CustomUser.objects.filter(email=email).first() if email else None\n \n-        if user and user.is_account_locked():\n+        if False and user and user.is_account_locked():\n             raise AuthenticationFailed(self.LOCKED_MESSAGE, \"account_locked\")\n \n         try:\n",
+  "exit": 1,
+  "verdict": "KILLED",
+  "assertion": [
+   "AssertionError: 200 != 401"
+  ],
+  "ran": [
+   "Ran 1 test in 3.837s"
+  ],
+  "restore_ok": true,
+  "tree_clean": true
+ }
+]

@@ -1,0 +1,40 @@
+.............F............................F...
+======================================================================
+FAIL: test_prelaunch_guard_refuses_low_ram (__main__.EndToEnd.test_prelaunch_guard_refuses_low_ram)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 532, in test_prelaunch_guard_refuses_low_ram
+    self.assertRefusedCleanly()
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 506, in assertRefusedCleanly
+    self.assertEqual(self.repo.result.returncode, 2, self.explain())
+AssertionError: 0 != 2 : exit 0
+stdout:
+[2026-09-17T18:37:12+01:00] pre-launch: {"heavy_slots_in_use": 0, "slots_requested": 1, "max_heavy_slots": 100000, "disk_free_gb": 14.78, "min_disk_gb": 0.0, "ram_available_gb": 10.46, "min_ram_gb": 999999999.0, "test_processes": [], "refused": []}
+[2026-09-17T18:37:12+01:00] run 1: pre-commit run --all-files: pre-commit run --all-files
+[2026-09-17T18:37:12+01:00] run 1: pre-commit run --all-files: exit 0
+[2026-09-17T18:37:12+01:00] run 1: check_migration_safety.py: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python scripts/check_migration_safety.py --base 82f879d0da1b271ddd54d3211b8b3929295bcef1
+[2026-09-17T18:37:12+01:00] run 1: check_migration_safety.py: exit 0
+[2026-09-17T18:37:12+01:00] run 1: manage.py check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py check --settings=settings_worktree
+[2026-09-17T18:37:12+01:00] run 1: manage.py check: exit 0
+[2026-09-17T18:37:12+01:00] run 1: makemigrations --check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py makemigrations --check --dry-run --settings=settings_worktree
+[2026-09-17T18:37:13+01:00] run 1: makemigrations --check: exit 0
+[2026-09-17T18:37:13+01:00] run 1: full suite: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py test --settings=settings_worktree --noinput --parallel 1 -v 2
+[2026-09-17T18:37:13+01:00] run 1: full suite: exit 0
+[2026-09-17T18:37:13+01:00] run 1: CLEAN []
+[2026-09-17T18:37:13+01:00] VERDICT: PASS []
+
+stderr:
+
+
+======================================================================
+FAIL: test_other_project_still_blocked_by_ram_and_disk_floors (__main__.SlotAccounting.test_other_project_still_blocked_by_ram_and_disk_floors)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 804, in test_other_project_still_blocked_by_ram_and_disk_floors
+    self.assertTrue(any("RAM" in p for p in ram), ram)
+AssertionError: False is not true : []
+
+----------------------------------------------------------------------
+Ran 46 tests in 23.258s
+
+FAILED (failures=2)

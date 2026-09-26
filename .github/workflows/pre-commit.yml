@@ -1,0 +1,31 @@
+name: Pre-commit checks
+
+# Runs the same hooks as .pre-commit-config.yaml (detect-secrets, bandit,
+# detect-private-key, black, flake8, mypy, isort) on every push and pull
+# request, regardless of whether the contributor ran `pre-commit install`
+# locally or bypassed the hook with --no-verify. Without this, pre-commit
+# only protects a machine it was set up on - a skipped setup or a
+# force-push straight to main goes unchecked.
+on:
+  push:
+    branches: [main, beta, dev]
+  pull_request:
+    branches: [main, beta, dev]
+
+concurrency:
+  group: pre-commit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: pre-commit/action@v3.0.1

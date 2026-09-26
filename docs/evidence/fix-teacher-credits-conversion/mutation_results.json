@@ -1,0 +1,109 @@
+{
+ "baseline": {
+  "id": "BASE",
+  "rc": 0,
+  "summary": "OK",
+  "fails": []
+ },
+ "mutants": [
+  {
+   "id": "CAT",
+   "desc": "category amount not converted",
+   "rc": 1,
+   "summary": "FAILED (failures=3)",
+   "expected_test": "test_category_amount_is_the_raw_total_divided_by_conversion_factor",
+   "failing": [
+    "test_category_amount_is_the_raw_total_divided_by_conversion_factor",
+    "test_feature_mix_percentages_and_unmapped_feature_falls_to_other",
+    "test_refunded_usage_excluded"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 4,
+   "restored_md5_ok": true
+  },
+  {
+   "id": "USED",
+   "desc": "credits_used not converted",
+   "rc": 1,
+   "summary": "FAILED (failures=4)",
+   "expected_test": "test_credits_used_is_the_raw_total_divided_by_conversion_factor",
+   "failing": [
+    "test_credits_used_is_the_raw_total_divided_by_conversion_factor",
+    "test_days_active_and_daily_usage_window",
+    "test_feature_mix_percentages_and_unmapped_feature_falls_to_other",
+    "test_refunded_usage_excluded"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 3,
+   "restored_md5_ok": true
+  },
+  {
+   "id": "MONTH",
+   "desc": "credits_remaining.monthly not converted",
+   "rc": 1,
+   "summary": "FAILED (failures=1)",
+   "expected_test": "test_credits_remaining_is_the_raw_total_divided_by_conversion_factor",
+   "failing": [
+    "test_credits_remaining_is_the_raw_total_divided_by_conversion_factor"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 4,
+   "restored_md5_ok": true
+  },
+  {
+   "id": "CARRY",
+   "desc": "credits_remaining.carry_over not converted",
+   "rc": 1,
+   "summary": "FAILED (failures=1)",
+   "expected_test": "test_credits_remaining_is_the_raw_total_divided_by_conversion_factor",
+   "failing": [
+    "test_credits_remaining_is_the_raw_total_divided_by_conversion_factor"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 3,
+   "restored_md5_ok": true
+  },
+  {
+   "id": "OVER",
+   "desc": "credits_remaining.overage not converted",
+   "rc": 1,
+   "summary": "FAILED (failures=1)",
+   "expected_test": "test_credits_remaining_is_the_raw_total_divided_by_conversion_factor",
+   "failing": [
+    "test_credits_remaining_is_the_raw_total_divided_by_conversion_factor"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 3,
+   "restored_md5_ok": true
+  },
+  {
+   "id": "TOTAL",
+   "desc": "credits_remaining.total floors the sum of PARTS instead of the raw total",
+   "rc": 1,
+   "summary": "FAILED (failures=1)",
+   "expected_test": "test_credits_remaining_is_the_raw_total_divided_by_conversion_factor",
+   "failing": [
+    "test_credits_remaining_is_the_raw_total_divided_by_conversion_factor"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 3,
+   "restored_md5_ok": true
+  },
+  {
+   "id": "DAILY",
+   "desc": "daily_usage credits not converted",
+   "rc": 1,
+   "summary": "FAILED (failures=1)",
+   "expected_test": "test_daily_usage_credits_is_the_raw_total_divided_by_conversion_factor",
+   "failing": [
+    "test_daily_usage_credits_is_the_raw_total_divided_by_conversion_factor"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 3,
+   "restored_md5_ok": true
+  }
+ ],
+ "md5": {
+  "dashboard/views.py": "3aed3d455d2defd3b5dc7834a0ad9703"
+ }
+}

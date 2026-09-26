@@ -1,0 +1,547 @@
+{
+ "M00 ORIGINAL b744c9f source (all 8 files)": {
+  "failing": [
+   "test_a_failed_delivery_then_a_successful_retry_writes_only_filtered_content.test_a_failed_delivery_then_a_successful_retry_writes_only_filtered_content",
+   "test_a_foreign_course_is_refused_even_alongside_other_fields.test_a_foreign_course_is_refused_even_alongside_other_fields",
+   "test_a_nonexistent_course_is_refused_the_same_way.test_a_nonexistent_course_is_refused_the_same_way",
+   "test_django_admin_only_account_is_not_a_superadmin_here.test_django_admin_only_account_is_not_a_superadmin_here",
+   "test_foreign_course_and_its_own_topic_together_are_refused.test_foreign_course_and_its_own_topic_together_are_refused",
+   "test_foreign_teacher_is_refused.test_foreign_teacher_is_refused",
+   "test_half_superadmin_cannot_edit_another_users_settings.test_half_superadmin_cannot_edit_another_users_settings",
+   "test_half_superadmin_cannot_read_another_users_settings.test_half_superadmin_cannot_read_another_users_settings",
+   "test_half_superadmin_cannot_read_any_schools_usage.test_half_superadmin_cannot_read_any_schools_usage",
+   "test_no_request_in_context_fails_closed.test_no_request_in_context_fails_closed",
+   "test_no_request_in_context_is_refused.test_no_request_in_context_is_refused",
+   "test_redelivered_extraction_task_never_writes_forbidden_keys.test_redelivered_extraction_task_never_writes_forbidden_keys",
+   "test_same_school_colleague_is_refused.test_same_school_colleague_is_refused",
+   "test_teacher_b_cannot_create_async_in_a_foreign_course.test_teacher_b_cannot_create_async_in_a_foreign_course",
+   "test_teacher_b_cannot_create_in_a_foreign_course.test_teacher_b_cannot_create_in_a_foreign_course",
+   "test_teacher_b_cannot_patch_own_assignment_into_a_foreign_course.test_teacher_b_cannot_patch_own_assignment_into_a_foreign_course",
+   "test_twenty_simultaneous_foreign_creates_and_reparents_all_fail_for_ten_rounds.test_twenty_simultaneous_foreign_creates_and_reparents_all_fail_for_ten_rounds",
+   "test_twenty_simultaneous_type_only_ai_calls_never_reach_the_provider.test_twenty_simultaneous_type_only_ai_calls_never_reach_the_provider",
+   "test_type_only_account_is_refused_before_any_provider_call.test_type_only_account_is_refused_before_any_provider_call",
+   "test_type_only_account_with_empty_wallet_is_refused_by_the_credit_gate.test_type_only_account_with_empty_wallet_is_refused_by_the_credit_gate",
+   "test_type_only_course_owner_task_fails_cleanly_without_billing.test_type_only_course_owner_task_fails_cleanly_without_billing",
+   "test_unauthenticated_request_in_context_is_refused.test_unauthenticated_request_in_context_is_refused",
+   "test_update_async_cannot_move_into_a_foreign_course.test_update_async_cannot_move_into_a_foreign_course",
+   "test_update_async_with_raw_input_cannot_move_into_a_foreign_course.test_update_async_with_raw_input_cannot_move_into_a_foreign_course",
+   "tests_ai_output_allowlist.tests_ai_output_allowlist"
+  ],
+  "guard": "baseline",
+  "ran": "61",
+  "restore_detail": {
+   "ai_processor/services.py": true,
+   "assignments/serializers.py": true,
+   "assignments/services.py": true,
+   "assignments/views.py": true,
+   "classrooms/serializers.py": true,
+   "classrooms/views.py": true,
+   "users/permissions.py": true,
+   "users/views.py": true
+  },
+  "restored": false,
+  "seconds": 407,
+  "summary": "FAILED (failures=54, errors=1)",
+  "verdict": "KILLED",
+  "worker": 0
+ },
+ "M01 validate_course body removed": {
+  "failing": [
+   "test_a_foreign_course_is_refused_even_alongside_other_fields.test_a_foreign_course_is_refused_even_alongside_other_fields",
+   "test_a_nonexistent_course_is_refused_the_same_way.test_a_nonexistent_course_is_refused_the_same_way",
+   "test_django_admin_only_account_is_not_a_superadmin_here.test_django_admin_only_account_is_not_a_superadmin_here",
+   "test_foreign_course_and_its_own_topic_together_are_refused.test_foreign_course_and_its_own_topic_together_are_refused",
+   "test_foreign_teacher_is_refused.test_foreign_teacher_is_refused",
+   "test_no_request_in_context_fails_closed.test_no_request_in_context_fails_closed",
+   "test_same_school_colleague_is_refused.test_same_school_colleague_is_refused",
+   "test_teacher_b_cannot_create_async_in_a_foreign_course.test_teacher_b_cannot_create_async_in_a_foreign_course",
+   "test_teacher_b_cannot_create_in_a_foreign_course.test_teacher_b_cannot_create_in_a_foreign_course",
+   "test_teacher_b_cannot_patch_own_assignment_into_a_foreign_course.test_teacher_b_cannot_patch_own_assignment_into_a_foreign_course",
+   "test_twenty_simultaneous_foreign_creates_and_reparents_all_fail_for_ten_rounds.test_twenty_simultaneous_foreign_creates_and_reparents_all_fail_for_ten_rounds",
+   "test_update_async_cannot_move_into_a_foreign_course.test_update_async_cannot_move_into_a_foreign_course",
+   "test_update_async_with_raw_input_cannot_move_into_a_foreign_course.test_update_async_with_raw_input_cannot_move_into_a_foreign_course"
+  ],
+  "guard": "validate_course",
+  "ran": "30",
+  "restore_detail": {
+   "assignments/serializers.py": true
+  },
+  "restored": false,
+  "seconds": 246,
+  "summary": "FAILED (failures=29)",
+  "verdict": "KILLED",
+  "worker": 1
+ },
+ "M02 owner comparison removed": {
+  "failing": [
+   "test_a_foreign_course_is_refused_even_alongside_other_fields.test_a_foreign_course_is_refused_even_alongside_other_fields",
+   "test_a_nonexistent_course_is_refused_the_same_way.test_a_nonexistent_course_is_refused_the_same_way",
+   "test_django_admin_only_account_is_not_a_superadmin_here.test_django_admin_only_account_is_not_a_superadmin_here",
+   "test_foreign_course_and_its_own_topic_together_are_refused.test_foreign_course_and_its_own_topic_together_are_refused",
+   "test_foreign_teacher_is_refused.test_foreign_teacher_is_refused",
+   "test_same_school_colleague_is_refused.test_same_school_colleague_is_refused",
+   "test_teacher_b_cannot_create_async_in_a_foreign_course.test_teacher_b_cannot_create_async_in_a_foreign_course",
+   "test_teacher_b_cannot_create_in_a_foreign_course.test_teacher_b_cannot_create_in_a_foreign_course",
+   "test_teacher_b_cannot_patch_own_assignment_into_a_foreign_course.test_teacher_b_cannot_patch_own_assignment_into_a_foreign_course",
+   "test_twenty_simultaneous_foreign_creates_and_reparents_all_fail_for_ten_rounds.test_twenty_simultaneous_foreign_creates_and_reparents_all_fail_for_ten_rounds",
+   "test_update_async_cannot_move_into_a_foreign_course.test_update_async_cannot_move_into_a_foreign_course",
+   "test_update_async_with_raw_input_cannot_move_into_a_foreign_course.test_update_async_with_raw_input_cannot_move_into_a_foreign_course"
+  ],
+  "guard": "validate_course",
+  "ran": "30",
+  "restore_detail": {
+   "assignments/serializers.py": true
+  },
+  "restored": false,
+  "seconds": 241,
+  "summary": "FAILED (failures=28)",
+  "verdict": "KILLED",
+  "worker": 1
+ },
+ "M03 fail-open without request": {
+  "failing": [
+   "test_no_request_in_context_fails_closed.test_no_request_in_context_fails_closed"
+  ],
+  "guard": "validate_course fail-closed",
+  "ran": "30",
+  "restore_detail": {
+   "assignments/serializers.py": true
+  },
+  "restored": false,
+  "seconds": 248,
+  "summary": "FAILED (failures=1)",
+  "verdict": "KILLED",
+  "worker": 0
+ },
+ "M04 fail-open + update_async without context": {
+  "failing": [
+   "test_no_request_in_context_fails_closed.test_no_request_in_context_fails_closed",
+   "test_update_async_cannot_move_into_a_foreign_course.test_update_async_cannot_move_into_a_foreign_course",
+   "test_update_async_with_raw_input_cannot_move_into_a_foreign_course.test_update_async_with_raw_input_cannot_move_into_a_foreign_course"
+  ],
+  "guard": "validate_course + update_async context",
+  "ran": "30",
+  "restore_detail": {
+   "assignments/serializers.py": true,
+   "assignments/views.py": true
+  },
+  "restored": false,
+  "seconds": 234,
+  "summary": "FAILED (failures=5)",
+  "verdict": "KILLED",
+  "worker": 1
+ },
+ "M05 superadmin bypass loosened to or": {
+  "failing": [
+   "test_django_admin_only_account_is_not_a_superadmin_here.test_django_admin_only_account_is_not_a_superadmin_here"
+  ],
+  "guard": "validate_course superadmin both-flags",
+  "ran": "30",
+  "restore_detail": {
+   "assignments/serializers.py": true
+  },
+  "restored": false,
+  "seconds": 187,
+  "summary": "FAILED (failures=1)",
+  "verdict": "KILLED",
+  "worker": 0
+ },
+ "M06 refuse every course": {
+  "failing": [
+   "test_create_with_own_topic_is_accepted.test_create_with_own_topic_is_accepted",
+   "test_owner_is_accepted.test_owner_is_accepted",
+   "test_teacher_can_create_async_in_own_course.test_teacher_can_create_async_in_own_course",
+   "test_teacher_can_create_in_own_course.test_teacher_can_create_in_own_course",
+   "test_teacher_can_patch_own_assignment_into_own_other_course.test_teacher_can_patch_own_assignment_into_own_other_course",
+   "test_update_async_can_move_into_own_other_course.test_update_async_can_move_into_own_other_course"
+  ],
+  "guard": "validate_course over-correction",
+  "ran": "30",
+  "restore_detail": {
+   "assignments/serializers.py": true
+  },
+  "restored": false,
+  "seconds": 182,
+  "summary": "FAILED (failures=6)",
+  "verdict": "KILLED",
+  "worker": 1
+ },
+ "M07 update_async bare serializer": {
+  "failing": [
+   "test_update_async_can_move_into_own_other_course.test_update_async_can_move_into_own_other_course"
+  ],
+  "guard": "update_async context",
+  "ran": "30",
+  "restore_detail": {
+   "assignments/views.py": true
+  },
+  "restored": false,
+  "seconds": 166,
+  "summary": "FAILED (failures=1)",
+  "verdict": "KILLED",
+  "worker": 0
+ },
+ "M08 settings gate and->or": {
+  "failing": [
+   "test_half_superadmin_cannot_edit_another_users_settings.test_half_superadmin_cannot_edit_another_users_settings",
+   "test_half_superadmin_cannot_read_another_users_settings.test_half_superadmin_cannot_read_another_users_settings"
+  ],
+  "guard": "settings both-flags",
+  "ran": "10",
+  "restore_detail": {
+   "users/views.py": true
+  },
+  "restored": false,
+  "seconds": 23,
+  "summary": "FAILED (failures=4)",
+  "verdict": "KILLED",
+  "worker": 1
+ },
+ "M09 settings gate is_superuser only": {
+  "failing": [
+   "test_half_superadmin_cannot_edit_another_users_settings.test_half_superadmin_cannot_edit_another_users_settings",
+   "test_half_superadmin_cannot_read_another_users_settings.test_half_superadmin_cannot_read_another_users_settings"
+  ],
+  "guard": "settings both-flags",
+  "ran": "10",
+  "restore_detail": {
+   "users/views.py": true
+  },
+  "restored": false,
+  "seconds": 21,
+  "summary": "FAILED (failures=3)",
+  "verdict": "KILLED",
+  "worker": 1
+ },
+ "M10 settings gate user_type only": {
+  "failing": [
+   "test_half_superadmin_cannot_edit_another_users_settings.test_half_superadmin_cannot_edit_another_users_settings",
+   "test_half_superadmin_cannot_read_another_users_settings.test_half_superadmin_cannot_read_another_users_settings"
+  ],
+  "guard": "settings both-flags",
+  "ran": "10",
+  "restore_detail": {
+   "users/views.py": true
+  },
+  "restored": false,
+  "seconds": 22,
+  "summary": "FAILED (failures=2)",
+  "verdict": "KILLED",
+  "worker": 1
+ },
+ "M11 settings gate never true": {
+  "failing": [
+   "test_true_superadmin_can_read_and_edit_another_users_settings.test_true_superadmin_can_read_and_edit_another_users_settings"
+  ],
+  "guard": "settings over-correction",
+  "ran": "10",
+  "restore_detail": {
+   "users/views.py": true
+  },
+  "restored": false,
+  "seconds": 23,
+  "summary": "FAILED (failures=1)",
+  "verdict": "KILLED",
+  "worker": 1
+ },
+ "M12 token gate and->or": {
+  "failing": [
+   "test_half_superadmin_cannot_read_any_schools_usage.test_half_superadmin_cannot_read_any_schools_usage"
+  ],
+  "guard": "token usage both-flags",
+  "ran": "10",
+  "restore_detail": {
+   "classrooms/views.py": true
+  },
+  "restored": false,
+  "seconds": 23,
+  "summary": "FAILED (failures=2)",
+  "verdict": "KILLED",
+  "worker": 0
+ },
+ "M13 token gate is_superuser only": {
+  "failing": [
+   "test_half_superadmin_cannot_read_any_schools_usage.test_half_superadmin_cannot_read_any_schools_usage"
+  ],
+  "guard": "token usage both-flags",
+  "ran": "10",
+  "restore_detail": {
+   "classrooms/views.py": true
+  },
+  "restored": false,
+  "seconds": 25,
+  "summary": "FAILED (failures=1)",
+  "verdict": "KILLED",
+  "worker": 1
+ },
+ "M14 token gate user_type only": {
+  "failing": [
+   "test_half_superadmin_cannot_read_any_schools_usage.test_half_superadmin_cannot_read_any_schools_usage"
+  ],
+  "guard": "token usage both-flags",
+  "ran": "10",
+  "restore_detail": {
+   "classrooms/views.py": true
+  },
+  "restored": false,
+  "seconds": 26,
+  "summary": "FAILED (failures=1)",
+  "verdict": "KILLED",
+  "worker": 0
+ },
+ "M15 token gate never true": {
+  "failing": [
+   "test_true_superadmin_can_read_any_schools_usage.test_true_superadmin_can_read_any_schools_usage"
+  ],
+  "guard": "token usage over-correction",
+  "ran": "10",
+  "restore_detail": {
+   "classrooms/views.py": true
+  },
+  "restored": false,
+  "seconds": 26,
+  "summary": "FAILED (failures=1)",
+  "verdict": "KILLED",
+  "worker": 1
+ },
+ "M16 text-serializer topic check removed": {
+  "failing": [
+   "test_create_async_in_own_course_with_foreign_topic_is_refused.test_create_async_in_own_course_with_foreign_topic_is_refused",
+   "test_create_in_own_course_with_foreign_topic_is_refused.test_create_in_own_course_with_foreign_topic_is_refused",
+   "test_patch_foreign_topic_is_refused.test_patch_foreign_topic_is_refused",
+   "test_update_async_foreign_topic_is_refused.test_update_async_foreign_topic_is_refused"
+  ],
+  "guard": "topic in course",
+  "ran": "30",
+  "restore_detail": {
+   "assignments/serializers.py": true
+  },
+  "restored": false,
+  "seconds": 137,
+  "summary": "FAILED (failures=5)",
+  "verdict": "KILLED",
+  "worker": 1
+ },
+ "M17 partial validate drops instance-course fallback": {
+  "failing": [
+   "test_topic_only_patch_to_own_topic_is_accepted.test_topic_only_patch_to_own_topic_is_accepted"
+  ],
+  "guard": "topic in course (partial)",
+  "ran": "30",
+  "restore_detail": {
+   "assignments/serializers.py": true
+  },
+  "restored": false,
+  "seconds": 106,
+  "summary": "FAILED (failures=2)",
+  "verdict": "KILLED",
+  "worker": 0
+ },
+ "M18 draft-save topic check removed": {
+  "failing": [],
+  "guard": "draft topic",
+  "ran": "30",
+  "restore_detail": {
+   "assignments/serializers.py": true
+  },
+  "restored": false,
+  "seconds": 106,
+  "summary": "OK",
+  "verdict": "SURVIVED",
+  "worker": 1
+ },
+ "M19 draft-save topic + AssignmentSerializer topic check removed": {
+  "failing": [
+   "test_saving_a_draft_with_a_foreign_topic_is_refused.test_saving_a_draft_with_a_foreign_topic_is_refused"
+  ],
+  "guard": "draft topic (both layers)",
+  "ran": "30",
+  "restore_detail": {
+   "assignments/serializers.py": true
+  },
+  "restored": false,
+  "seconds": 109,
+  "summary": "FAILED (failures=1)",
+  "verdict": "KILLED",
+  "worker": 0
+ },
+ "M20 HasCreditBalance user_type only": {
+  "failing": [
+   "test_type_only_account_with_empty_wallet_is_refused_by_the_credit_gate.test_type_only_account_with_empty_wallet_is_refused_by_the_credit_gate"
+  ],
+  "guard": "credit gate both-flags",
+  "ran": "10",
+  "restore_detail": {
+   "users/permissions.py": true
+  },
+  "restored": false,
+  "seconds": 35,
+  "summary": "FAILED (failures=2)",
+  "verdict": "KILLED",
+  "worker": 0
+ },
+ "M21 HasCreditBalance is_superuser only": {
+  "failing": [],
+  "guard": "credit gate both-flags",
+  "ran": "10",
+  "restore_detail": {
+   "users/permissions.py": true
+  },
+  "restored": false,
+  "seconds": 46,
+  "summary": "OK",
+  "verdict": "SURVIVED",
+  "worker": 1
+ },
+ "M22 AI type-only refusal branch removed": {
+  "failing": [
+   "test_twenty_simultaneous_type_only_ai_calls_never_reach_the_provider.test_twenty_simultaneous_type_only_ai_calls_never_reach_the_provider",
+   "test_type_only_account_is_refused_before_any_provider_call.test_type_only_account_is_refused_before_any_provider_call",
+   "test_type_only_course_owner_task_fails_cleanly_without_billing.test_type_only_course_owner_task_fails_cleanly_without_billing"
+  ],
+  "guard": "unmetered AI both-flags",
+  "ran": "10",
+  "restore_detail": {
+   "ai_processor/services.py": true
+  },
+  "restored": false,
+  "seconds": 46,
+  "summary": "FAILED (failures=13)",
+  "verdict": "KILLED",
+  "worker": 0
+ },
+ "M23 AI refusal condition inverted": {
+  "failing": [
+   "test_real_superadmin_is_still_unmetered.test_real_superadmin_is_still_unmetered",
+   "test_real_superadmin_task_still_runs_unmetered.test_real_superadmin_task_still_runs_unmetered",
+   "test_twenty_simultaneous_type_only_ai_calls_never_reach_the_provider.test_twenty_simultaneous_type_only_ai_calls_never_reach_the_provider",
+   "test_type_only_account_is_refused_before_any_provider_call.test_type_only_account_is_refused_before_any_provider_call",
+   "test_type_only_course_owner_task_fails_cleanly_without_billing.test_type_only_course_owner_task_fails_cleanly_without_billing"
+  ],
+  "guard": "unmetered AI both-flags",
+  "ran": "10",
+  "restore_detail": {
+   "ai_processor/services.py": true
+  },
+  "restored": false,
+  "seconds": 37,
+  "summary": "FAILED (failures=14, errors=1)",
+  "verdict": "KILLED",
+  "worker": 1
+ },
+ "M24 extract_assignment_data filter removed": {
+  "failing": [
+   "test_a_failed_delivery_then_a_successful_retry_writes_only_filtered_content.test_a_failed_delivery_then_a_successful_retry_writes_only_filtered_content",
+   "test_create_ignores_forbidden_keys_in_extraction_output.test_create_ignores_forbidden_keys_in_extraction_output",
+   "test_redelivered_extraction_task_never_writes_forbidden_keys.test_redelivered_extraction_task_never_writes_forbidden_keys",
+   "test_reextraction_ignores_forbidden_keys.test_reextraction_ignores_forbidden_keys",
+   "test_upload_ignores_forbidden_keys.test_upload_ignores_forbidden_keys"
+  ],
+  "guard": "allow-list extraction",
+  "ran": "13",
+  "restore_detail": {
+   "assignments/services.py": true
+  },
+  "restored": false,
+  "seconds": 50,
+  "summary": "FAILED (failures=5)",
+  "verdict": "KILLED",
+  "worker": 0
+ },
+ "M25 generate filter removed": {
+  "failing": [
+   "test_generated_draft_snapshot_and_saved_assignment_ignore_forbidden_keys.test_generated_draft_snapshot_and_saved_assignment_ignore_forbidden_keys"
+  ],
+  "guard": "allow-list generate",
+  "ran": "13",
+  "restore_detail": {
+   "assignments/views.py": true
+  },
+  "restored": false,
+  "seconds": 56,
+  "summary": "FAILED (failures=1)",
+  "verdict": "KILLED",
+  "worker": 1
+ },
+ "M26 draft-save snapshot filter removed": {
+  "failing": [
+   "test_saving_a_pre_fix_poisoned_snapshot_writes_content_only.test_saving_a_pre_fix_poisoned_snapshot_writes_content_only"
+  ],
+  "guard": "allow-list save",
+  "ran": "13",
+  "restore_detail": {
+   "assignments/views.py": true
+  },
+  "restored": false,
+  "seconds": 49,
+  "summary": "FAILED (failures=1)",
+  "verdict": "KILLED",
+  "worker": 0
+ },
+ "M27 allow-list widened (status, teacher)": {
+  "failing": [
+   "test_a_failed_delivery_then_a_successful_retry_writes_only_filtered_content.test_a_failed_delivery_then_a_successful_retry_writes_only_filtered_content",
+   "test_allow_list_is_exactly_the_prompt_content_contract.test_allow_list_is_exactly_the_prompt_content_contract",
+   "test_create_ignores_forbidden_keys_in_extraction_output.test_create_ignores_forbidden_keys_in_extraction_output",
+   "test_generated_draft_snapshot_and_saved_assignment_ignore_forbidden_keys.test_generated_draft_snapshot_and_saved_assignment_ignore_forbidden_keys",
+   "test_redelivered_extraction_task_never_writes_forbidden_keys.test_redelivered_extraction_task_never_writes_forbidden_keys",
+   "test_reextraction_ignores_forbidden_keys.test_reextraction_ignores_forbidden_keys",
+   "test_upload_ignores_forbidden_keys.test_upload_ignores_forbidden_keys"
+  ],
+  "guard": "allow-list contents",
+  "ran": "13",
+  "restore_detail": {
+   "assignments/services.py": true
+  },
+  "restored": false,
+  "seconds": 42,
+  "summary": "FAILED (failures=7)",
+  "verdict": "KILLED",
+  "worker": 1
+ },
+ "M28 teacher read-only removed": {
+  "failing": [
+   "test_teacher_in_input_is_ignored_on_create_and_update.test_teacher_in_input_is_ignored_on_create_and_update"
+  ],
+  "guard": "teacher read-only",
+  "ran": "13",
+  "restore_detail": {
+   "assignments/serializers.py": true
+  },
+  "restored": false,
+  "seconds": 42,
+  "summary": "FAILED (failures=1)",
+  "verdict": "KILLED",
+  "worker": 0
+ },
+ "M29 TopicSerializer fail-open": {
+  "failing": [
+   "test_no_request_in_context_is_refused.test_no_request_in_context_is_refused"
+  ],
+  "guard": "topic validator fail-closed",
+  "ran": "6",
+  "restore_detail": {
+   "classrooms/serializers.py": true
+  },
+  "restored": false,
+  "seconds": 23,
+  "summary": "FAILED (failures=1)",
+  "verdict": "KILLED",
+  "worker": 1
+ },
+ "M30 CourseSerializer fail-open": {
+  "failing": [
+   "test_unauthenticated_request_in_context_is_refused.test_unauthenticated_request_in_context_is_refused"
+  ],
+  "guard": "session validator fail-closed",
+  "ran": "6",
+  "restore_detail": {
+   "classrooms/serializers.py": true
+  },
+  "restored": false,
+  "seconds": 17,
+  "summary": "FAILED (failures=1)",
+  "verdict": "KILLED",
+  "worker": 1
+ }
+}

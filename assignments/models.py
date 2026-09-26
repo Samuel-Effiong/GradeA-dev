@@ -43,6 +43,12 @@ class Assignment(models.Model):
     raw_input_hash = models.CharField(max_length=64, editable=False, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
+    # Bumped on every save. Read by assignments/pdf_cache.py, which builds
+    # its cache key from this timestamp: an edit changes the key, so the
+    # next download is a natural miss and the stale entry simply ages out
+    # under its TTL - there is no invalidation hook to keep in sync with
+    # future write paths.
+    updated_at = models.DateTimeField(auto_now=True)
 
     # AI GENERATED FIELDS
     instructions = models.TextField(null=True, blank=True, default="")
@@ -54,6 +60,46 @@ class Assignment(models.Model):
         default=AssignmentTypes.OBJECTIVE,
     )
     questions = models.JSONField(null=True, blank=True)
+
+    # --- Denormalized rigor components (see assignments/rigor.py) ---
+    # Derived from `questions` and kept in sync by the pre_save hook in
+    # assignments/signals.py. Stored rather than computed on read because the
+    # school-admin dashboard and weekly digest aggregate these across every
+    # assignment of every teacher in a school, and re-parsing the questions
+    # JSON per request made that an N+1 over JSON blobs. Both are null when
+    # the source data cannot support a score.
+    rigor_demand = models.FloatField(
+        null=True,
+        blank=True,
+        # Deliberately unindexed: the dashboard roll-up filters by
+        # course__teacher_id and status (both already indexed) and only
+        # aggregates this column, so a standalone index on it would never be
+        # chosen -- while its non-concurrent CREATE INDEX would hold an
+        # exclusive write lock over the whole table at deploy time.
+        help_text=(
+            "Points-weighted mean Bloom's taxonomy level across this "
+            "assignment's questions, 0-5. Null when Bloom's coverage is below "
+            "assignments.rigor.MIN_BLOOMS_COVERAGE."
+        ),
+    )
+    rigor_standards = models.FloatField(
+        null=True,
+        blank=True,
+        help_text=(
+            "Share of open-ended questions carrying a usable rubric, scaled "
+            "0-5. Null when the assignment has no open-ended questions."
+        ),
+    )
+    rigor_blooms_coverage = models.FloatField(
+        null=True,
+        blank=True,
+        help_text=(
+            "Fraction of question points that carried a recognised "
+            "blooms_level, 0.0-1.0. Reported alongside the score so a "
+            "confident-looking number drawn from sparse data is visible."
+        ),
+    )
+
     due_date = models.DateTimeField(null=True, blank=True)
     auto_grade_on_due_date = models.BooleanField(
         default=False,
@@ -95,12 +141,15 @@ class Assignment(models.Model):
         blank=True,
         help_text=_("The name of the Celery task handling the batch grading"),
     )
-
-    # grading_status = models.CharField(
-    #     max_length=20,
-    #     choices=[("NOT_STARTED", "NOT STARTED"), ("COMPLETED", "COMPLETED")],
-    #     default="NOT_STARTED",
-    # )
+    admin_grading_notified_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=_(
+            "When school admins were notified that grading finished for this "
+            "assignment. Also acts as an idempotency guard so the notification "
+            "is only ever sent once per assignment."
+        ),
+    )
 
     # IN REVIEW FOR REMOVAL
     teacher = models.ForeignKey(
@@ -110,13 +159,6 @@ class Assignment(models.Model):
         blank=True,
         related_name="assignments",
     )
-
-    # def save(self, *args, **kwargs):
-    #     self.raw_input_hash = hashlib.sha256(
-    #         self.raw_input.encode("utf-8")
-    #     ).hexdigest()
-    #
-    #     super().save(*args, **kwargs)
 
     class Meta:
         ordering = ["title"]
@@ -128,17 +170,77 @@ class Assignment(models.Model):
             )
         ]
 
+        indexes = [
+            # Backs course__teacher=user (assignments/views.py) sorted by
+            # the default ordering above - Meta.ordering alone doesn't
+            # create a DB index.
+            models.Index(
+                fields=["course", "title"], name="assignment_course_title_idx"
+            ),
+        ]
+
+
+class AssignmentUploadFingerprint(models.Model):
+    """
+    One row per distinct uploaded assignment file per course, keyed by the
+    SHA-256 of its bytes.
+
+    Uploading an assignment file is billed per file, and a teacher who sees
+    part of a batch fail will reasonably upload the whole batch again. This
+    row makes that retry safe: a file whose assignment already exists gets
+    that assignment back instead of being extracted and charged again.
+
+    Claimed before any AI call, completed in the same transaction that saves
+    the assignment, deleted if the upload fails, and deleted with its
+    assignment, so a deleted assignment can be uploaded again. See
+    assignments/file_uploads.py.
+    """
+
+    class Status(models.TextChoices):
+        PROCESSING = "PROCESSING", _("PROCESSING")
+        COMPLETED = "COMPLETED", _("COMPLETED")
+
+    course = models.ForeignKey(
+        "classrooms.Course",
+        on_delete=models.CASCADE,
+        related_name="upload_fingerprints",
+    )
+    sha256 = models.CharField(max_length=64)
+    status = models.CharField(
+        max_length=10, choices=Status.choices, default=Status.PROCESSING
+    )
+    # Changes whenever a stale claim is taken over, so a request that lost
+    # its claim can neither complete nor release the newer claimant's.
+    claim_token = models.UUIDField(default=uuid.uuid4)
+    claimed_at = models.DateTimeField()
+    assignment = models.OneToOneField(
+        Assignment,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="upload_fingerprint",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["course", "sha256"],
+                name="unique_upload_fingerprint_per_course",
+            )
+        ]
+
 
 class AssignmentGenerationHistory(models.Model):
     """
-        Stores the history of assignment generation requests.
+    Stores the history of assignment generation requests.
 
-        This model maintains a record of:
-        - User prompts sent to the AI
-        - Assignments generated in response to those prompts
-    f
-        Used for the chat-like history UI where users can browse
-        and reuse previously generated assignments without re-running AI.
+    This model maintains a record of:
+    - User prompts sent to the AI
+    - Assignments generated in response to those prompts
+
+    Used for the chat-like history UI where users can browse
+    and reuse previously generated assignments without re-running AI.
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

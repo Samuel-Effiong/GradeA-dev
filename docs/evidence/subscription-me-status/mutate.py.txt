@@ -1,0 +1,133 @@
+"""Mutation battery for /subscription/me always-200 status rework
+(billing/views.py: SubscriptionManagementViewSet.get_my_subscription +
+_none_subscription_response; billing/serializers.py:
+MySubscriptionSerializer.get_status/get_next_renewal_date/
+get_days_until_renewal). Each mutant reverts ONE piece of the new
+ACTIVE/EXPIRED/NONE logic; a named test must fail. Restores from a
+collision-safe backup copy and verifies by md5 (never git checkout).
+"""
+import hashlib, json, os, re, shutil, subprocess, sys, time
+
+ROOT = "/home/bond-servant-in-training/Documents/Projects/GAP-subscription-me-status"
+SCR = os.path.dirname(os.path.abspath(__file__))
+VW = "billing/views.py"
+SZ = "billing/serializers.py"
+LABELS = "billing.tests.test_subscription_me_status"
+
+MUTANTS = [
+    ("STATUS", "MySubscriptionSerializer.get_status ignores context, always ACTIVE",
+     [(SZ, 'def get_status(self, obj):\n        return self.context.get("status", "ACTIVE")',
+           'def get_status(self, obj):\n        return "ACTIVE"')],
+     "test_lapsed_individual_subscription_reports_status_expired"),
+    ("NEXTREN", "next_renewal_date EXPIRED guard removed",
+     [(SZ, '    def get_next_renewal_date(self, obj):\n        # EXPIRED: this cycle already ended and nothing is renewing it —\n        # a renewal date would be misleading, not just stale.\n        if self.context.get("status") == "EXPIRED":\n            return None\n        return obj.billing_cycle_end',
+           '    def get_next_renewal_date(self, obj):\n        return obj.billing_cycle_end')],
+     "test_expired_nulls_out_renewal_fields_instead_of_negative_days"),
+    ("DAYSREN", "days_until_renewal EXPIRED guard removed",
+     [(SZ, '        # Same guard as get_next_renewal_date: for an EXPIRED sub,\n        # billing_cycle_end - now is already negative and "days until\n        # renewal" has no meaning, so return None instead of clamping.\n        if self.context.get("status") == "EXPIRED":\n            return None\n        now = timezone.now()',
+           '        now = timezone.now()')],
+     "test_expired_nulls_out_renewal_fields_instead_of_negative_days"),
+    ("FILTER", "EXPIRED lookup filters is_active=True instead of False",
+     [(VW, 'UserSubscription.objects.filter(user=request.user, is_active=False)',
+           'UserSubscription.objects.filter(user=request.user, is_active=True)')],
+     "test_lapsed_individual_subscription_reports_status_expired"),
+    ("ORDER", "EXPIRED lookup ordering reversed (oldest lapsed sub wins)",
+     [(VW, '.order_by("-billing_cycle_end")',
+           '.order_by("billing_cycle_end")')],
+     "test_most_recent_inactive_subscription_is_the_one_returned"),
+    ("NONEVAL", "_none_subscription_response reports ACTIVE instead of NONE",
+     [(VW, '    return {\n        "status": "NONE",',
+           '    return {\n        "status": "ACTIVE",')],
+     "test_user_who_never_had_a_subscription_reports_status_none"),
+    ("BRANCH", "EXPIRED branch disabled, falls straight to NONE",
+     [(VW, 'if last_sub:\n            serializer = MySubscriptionSerializer(',
+           'if False:\n            serializer = MySubscriptionSerializer(')],
+     "test_lapsed_individual_subscription_reports_status_expired"),
+]
+
+
+def md5(p):
+    return hashlib.md5(open(p, "rb").read()).hexdigest()
+
+
+def run(timeout=300):
+    env = dict(os.environ)
+    env["DJANGO_SETTINGS_MODULE"] = "settings_worktree"
+    r = subprocess.run(
+        [sys.executable, "manage.py", "test", *LABELS.split(),
+         "--settings=settings_worktree", "--keepdb", "--noinput"],
+        cwd=ROOT, capture_output=True, text=True, timeout=timeout, env=env,
+    )
+    out = r.stdout + r.stderr
+    fails = re.findall(r"^(?:FAIL|ERROR): (\S+) \(([^)]*)\)", out, re.M)
+    m = re.search(r"^(OK.*|FAILED.*)$", out, re.M)
+    return r.returncode, out, fails, (m.group(1) if m else "?")
+
+
+def precheck():
+    bad = []
+    for mid, desc, edits, expect in MUTANTS:
+        for f, old, new in edits:
+            n = open(os.path.join(ROOT, f)).read().count(old)
+            if n != 1:
+                bad.append((mid, f, n, old[:60]))
+    return bad
+
+
+def main(only=None):
+    bad = precheck()
+    if bad:
+        for b in bad:
+            print("PATTERN PROBLEM", b)
+        raise SystemExit(1)
+    log = open(os.path.join(SCR, "mutation_log.jsonl"), "a")
+    results = []
+    files = sorted({f for _, _, ms, _ in MUTANTS for f, _, _ in ms})
+    orig = {f: md5(os.path.join(ROOT, f)) for f in files}
+    backups = {}
+    for f in files:
+        b = os.path.join(SCR, "backup_" + f.replace("/", "__"))
+        shutil.copy2(os.path.join(ROOT, f), b)
+        backups[f] = b
+    rc, out, fails, summary = run()
+    base = {"id": "BASE", "rc": rc, "summary": summary, "fails": fails}
+    print("BASELINE", rc, summary, flush=True)
+    log.write(json.dumps(base) + "\n")
+    if rc != 0:
+        print(out[-3000:])
+        raise SystemExit("baseline not green")
+    for mid, desc, edits, expect in MUTANTS:
+        if only and mid not in only:
+            continue
+        try:
+            for f, old, new in edits:
+                p = os.path.join(ROOT, f)
+                s = open(p).read()
+                open(p, "w").write(s.replace(old, new))
+            t = time.time()
+            rc, out, fails, summary = run()
+            names = sorted({n for n, _ in fails})
+            killed = rc != 0 and any(expect in n for n, _ in fails)
+            res = {"id": mid, "desc": desc, "rc": rc, "summary": summary, "expected_test": expect,
+                   "failing": names, "killed_for_named_reason": killed, "secs": round(time.time() - t)}
+        except Exception as e:
+            res = {"id": mid, "desc": desc, "error": str(e), "killed_for_named_reason": False}
+        finally:
+            for f in files:
+                shutil.copy2(backups[f], os.path.join(ROOT, f))
+            bad = [f for f in files if md5(os.path.join(ROOT, f)) != orig[f]]
+            if bad:
+                raise SystemExit(f"RESTORE MISMATCH after {mid}: {bad}")
+        res["restored_md5_ok"] = True
+        print(mid, "KILLED" if res["killed_for_named_reason"] else "SURVIVED/ERR",
+              (res.get("failing") or res.get("error"))[:6] if res.get("failing") else res.get("error"), flush=True)
+        log.write(json.dumps(res) + "\n")
+        log.flush()
+        results.append(res)
+    json.dump({"baseline": base, "mutants": results, "md5": orig},
+               open(os.path.join(SCR, "mutation_results.json"), "w"), indent=1)
+    print("KILLED", sum(r["killed_for_named_reason"] for r in results), "/", len(results))
+
+
+if __name__ == "__main__":
+    main(set(sys.argv[1:]) or None)

@@ -1,5 +1,6 @@
 import uuid
 
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import UniqueConstraint, UUIDField
 from django.utils import timezone
@@ -14,9 +15,15 @@ class School(models.Model):
     phone = models.CharField(max_length=20, blank=True, null=True)
     website = models.URLField(max_length=500, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
+
+
+class SessionOwnerType(models.TextChoices):
+    INDIVIDUAL = "INDIVIDUAL", _("Individual Teacher")
+    SCHOOL = "SCHOOL", _("School")
 
 
 class Session(models.Model):
@@ -26,21 +33,85 @@ class Session(models.Model):
     name = models.CharField(max_length=100, db_index=True)
     created_at = models.DateField(auto_now_add=True)
 
+    owner_type = models.CharField(
+        max_length=20,
+        choices=SessionOwnerType.choices,
+        default=SessionOwnerType.INDIVIDUAL,
+        db_index=True,
+        help_text=(
+            "INDIVIDUAL = owned by a single teacher (no school). SCHOOL = "
+            "created by a school admin and shared read-only with every "
+            "teacher under that school."
+        ),
+    )
+
     teacher = models.ForeignKey(
         "users.CustomUser",
         null=True,
         blank=True,
         on_delete=models.CASCADE,
         related_name="sessions",
+        help_text="Set only when owner_type=INDIVIDUAL.",
+    )
+
+    school = models.ForeignKey(
+        "classrooms.School",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="sessions",
+        help_text="Set only when owner_type=SCHOOL.",
+    )
+
+    created_by = models.ForeignKey(
+        "users.CustomUser",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+        help_text=(
+            "Audit trail of who actually created this session — the "
+            "teacher for INDIVIDUAL sessions, or the school admin for "
+            "SCHOOL sessions. Kept separate from `teacher` so a SCHOOL "
+            "session's `teacher` field can stay null while still "
+            "recording who made it."
+        ),
     )
 
     class Meta:
         ordering = ("-created_at",)
         constraints = [
             UniqueConstraint(
-                fields=["name", "teacher"], name="unique_session_name_per_teacher"
+                fields=["name", "teacher"],
+                condition=models.Q(owner_type="INDIVIDUAL"),
+                name="unique_session_name_per_teacher",
+            ),
+            UniqueConstraint(
+                fields=["name", "school"],
+                condition=models.Q(owner_type="SCHOOL"),
+                name="unique_session_name_per_school",
             ),
         ]
+
+    def __str__(self):
+        return self.name
+
+    def clean(self):
+
+        if self.owner_type == SessionOwnerType.INDIVIDUAL:
+            if not self.teacher_id:
+                raise ValidationError("INDIVIDUAL sessions must have a teacher.")
+            if self.school_id:
+                raise ValidationError("INDIVIDUAL sessions must not have a school.")
+        elif self.owner_type == SessionOwnerType.SCHOOL:
+            if not self.school_id:
+                raise ValidationError("SCHOOL sessions must have a school.")
+            if self.teacher_id:
+                raise ValidationError("SCHOOL sessions must not have a teacher.")
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
 
 
 class Course(models.Model):
@@ -120,6 +191,50 @@ class EnrollmentStatusType(models.TextChoices):
     PENDING = "PENDING", _("Pending")
 
 
+#: The enrollment states that entitle a student to READ a course's content
+#: (its assignments, their PDFs, its topics).
+#:
+#: Derived from the rules the rest of the codebase already applies, not
+#: invented here:
+#:   * ENROLLED   - the only state that receives the "new assignment posted"
+#:                  notification and the due-date reminder
+#:                  (assignments/tasks.py), so it is the state the product
+#:                  already treats as "in the class".
+#:   * COMPLETED  - finished the course; must keep their own history, and
+#:                  dashboard/views.py already groups it with ENROLLED as
+#:                  `active_enrollment_statuses`.
+#:   * PENDING    - invited but has not finished registering. Never notified
+#:                  about anything, and users/views.py promotes the row to
+#:                  ENROLLED the moment registration completes.
+#:   * WITHDRAWN  - deliberately removed from the course.
+#:
+#: Deliberately NOT expressed as `StudentCourseQuerySet.active()`, which
+#: excludes only WITHDRAWN and is used by seven dashboard aggregates whose
+#: reported numbers would silently change if it were narrowed. This is a
+#: read-authorization rule; that one is a reporting rule.
+#:
+#: THE SINGLE SOURCE OF TRUTH for what a student may read. Before this was
+#: unified, four endpoints disagreed about the same question:
+#:   * assignments   - ENROLLED + COMPLETED
+#:   * courses       - anything except WITHDRAWN (so PENDING too)
+#:   * sessions      - ENROLLED only (so a COMPLETED student could open an
+#:                     assignment but not see the session holding it)
+#:   * topics        - NO status filter at all, so a WITHDRAWN student kept
+#:                     reading the topic list of a course they were removed
+#:                     from
+#: Every student-facing read of course content now filters on this tuple.
+#: Adding a status here widens access in all four places at once, which is
+#: the point: the rule should not be re-decided per endpoint.
+#:
+#: Teacher-facing *reporting* (dashboard aggregates, "my students") is a
+#: separate question and deliberately still excludes only WITHDRAWN - a
+#: teacher counting their roster should see a pending invitee.
+COURSE_ACCESS_ENROLLMENT_STATUSES = (
+    EnrollmentStatusType.ENROLLED,
+    EnrollmentStatusType.COMPLETED,
+)
+
+
 class StudentCourseQuerySet(models.QuerySet):
     def active(self):
         return self.exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
@@ -160,13 +275,6 @@ class StudentCourse(models.Model):
         blank=True,
         help_text="Timestamp of the last AI summary generation.",
     )
-
-    # attendance_record = models.JSONField(default=dict)
-    # participation_score = models.DecimalField(
-    #     max_digits=5,
-    #     decimal_places=2,
-    #     default=0.00
-    # )
 
     objects = StudentCourseQuerySet.as_manager()
     all_objects = models.Manager()

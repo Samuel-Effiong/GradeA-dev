@@ -1,0 +1,190 @@
+{
+  "grading_summary": {
+    "total_score": 61,
+    "max_total_points": 80,
+    "percentage": 76.25
+  },
+  "question_evaluations": [
+    {
+      "question_number": 1,
+      "question_text": "<p>\u201cThe First World War was the result of systemic alliance structures, not the decisions of individuals.\u201d Evaluate this claim with reference to the historiographical debate.</p>",
+      "question_type": "ESSAY",
+      "max_points": 25,
+      "student_answer": "<p>The alliance system was clearly important. Because of the treaties, a quarrel between Austria-Hungary and Serbia dragged in Russia, then Germany, then France and Britain. The mobilisation schedules also meant that once one country started, the others felt they had to follow or lose the advantage.</p><p>However, people still made the decisions. Fischer argued that Germany had planned for expansion and wanted the war, which puts the responsibility on German leaders rather than on the system. The blank cheque given to Austria-Hungary was a choice, and the ultimatum was written so that it would be refused.</p><p>Overall I think both mattered, but the alliances made the war bigger rather than making it happen in the first place.</p>",
+      "model_answer": "<p>A strong answer weighs structural explanations (the alliance system, mobilisation timetables, the security dilemma) against agency-focused ones (Fischer's thesis of deliberate German war aims; Clark's <em>Sleepwalkers</em> emphasising contingent decisions by identifiable actors), uses the July Crisis as evidence, and reaches a defended judgement rather than asserting a balance.</p>",
+      "score_awarded": 18,
+      "level_achieved": "good",
+      "evidence_quotes": [
+        "Fischer argued that Germany had planned for expansion and wanted the war, which puts the responsibility on German leaders rather than on the system.",
+        "The blank cheque given to Austria-Hungary was a choice, and the ultimatum was written so that it would be refused."
+      ],
+      "evaluation_rationale": "Selected 'good' (18) because the answer presents a clear argument engaging both structural and individual positions with concrete evidence (blank cheque, mobilisation schedules) and names Fischer, but historiography remains thin and the counter-position is handled briefly rather than sustained.",
+      "strengths": [
+        "Engages both sides of the debate",
+        "Names specific historian (Fischer)",
+        "Uses concrete historical detail (blank cheque, ultimatum)"
+      ],
+      "weaknesses": [
+        "Historiography limited to one name",
+        "Judgement is asserted rather than fully defended with deeper analysis"
+      ],
+      "improvement_suggestions": [
+        "Incorporate a second historian such as Clark for balance",
+        "Develop the July Crisis evidence more fully to support the final judgement"
+      ],
+      "feedback_for_student": "You earned 18/25 (good). Your answer clearly weighs alliances against individual choices and correctly references Fischer and the blank cheque. To reach excellent, add another historiographical voice and sustain the argument through more detailed July Crisis evidence so the defended judgement feels fully developed.",
+      "flag_for_review": null,
+      "evidence_verified": true,
+      "graded_by": "x-ai/grok-4.3"
+    },
+    {
+      "question_number": 2,
+      "question_text": "<p>In <em>Macbeth</em>, is Macbeth's downfall driven by his own ambition or by forces beyond his control? Argue a case using close reference to the text.</p>",
+      "question_type": "ESSAY",
+      "max_points": 25,
+      "student_answer": "<p>Macbeth's ambition is the main cause of his downfall, though the witches play a part.</p><p>When the witches tell him he will be king, Macbeth immediately starts thinking about murder, which shows the idea was already there. Lady Macbeth then pushes him when he hesitates, questioning his manhood. The witches never actually tell him to kill Duncan.</p><p>Later the apparitions make him overconfident, telling him no man born of woman can harm him. This is a trick, and it does contribute to his death because he stops being careful.</p><p>So fate sets things up but Macbeth's own choices are what destroy him.</p>",
+      "model_answer": "<p>A strong answer argues a position \u2014 for instance that the witches supply opportunity rather than compulsion, since Macbeth's \u201cvaulting ambition\u201d and Lady Macbeth's goading precede any irreversible act \u2014 and reads the language of the dagger soliloquy and \u201ctomorrow, and tomorrow\u201d closely rather than narrating events.</p>",
+      "score_awarded": 18,
+      "level_achieved": "good",
+      "evidence_quotes": [
+        "When the witches tell him he will be king, Macbeth immediately starts thinking about murder, which shows the idea was already there.",
+        "The witches never actually tell him to kill Duncan."
+      ],
+      "evaluation_rationale": "Selected 'good' (18) because the answer advances a clear thesis with textual support and engages the witches/fate counter-reading, but lacks direct quotation and occasionally remains descriptive rather than analysing language.",
+      "strengths": [
+        "Clear thesis statement",
+        "Engages the counter-reading of fate/witches",
+        "References key scenes (apparitions, Lady Macbeth's persuasion)"
+      ],
+      "weaknesses": [
+        "No direct textual quotation",
+        "Analysis sometimes descriptive rather than close reading of language"
+      ],
+      "improvement_suggestions": [
+        "Include short quotations from the dagger soliloquy or 'tomorrow' speech",
+        "Analyse the language of specific lines instead of summarising events"
+      ],
+      "feedback_for_student": "You earned 18/25 (good). Your thesis is clear and you correctly note that the witches do not command murder. To reach excellent, add direct quotations and shift from scene summary to close analysis of Shakespeare's language.",
+      "flag_for_review": null,
+      "evidence_verified": true,
+      "graded_by": "x-ai/grok-4.3"
+    },
+    {
+      "question_number": 3,
+      "question_text": "<p>Define <em>Realpolitik</em> and explain its significance in nineteenth-century European statecraft, with one concrete example.</p>",
+      "question_type": "SHORT-ANSWER",
+      "max_points": 15,
+      "student_answer": "<p><em>Realpolitik</em> means politics based on practical considerations and power rather than on morality or ideology. It mattered in the nineteenth century because it changed how states made decisions.</p><p>Bismarck is the main example \u2014 he was willing to go to war or make alliances depending on what was useful for Prussia at the time.</p>",
+      "model_answer": "<p><em>Realpolitik</em> is politics conducted on the basis of practical power and material circumstance rather than ideological or moral principle. Bismarck exemplifies it: he engineered the Austro-Prussian and Franco-Prussian wars to unify Germany under Prussian leadership, then reversed course to preserve the resulting balance through alliances.</p>",
+      "score_awarded": 10,
+      "level_achieved": "good",
+      "evidence_quotes": [
+        "<em>Realpolitik</em> means politics based on practical considerations and power rather than on morality or ideology.",
+        "Bismarck is the main example \u2014 he was willing to go to war or make alliances depending on what was useful for Prussia at the time."
+      ],
+      "evaluation_rationale": "Selected 'good' (10) because the definition is accurate and an example is supplied, but significance is stated only generally and the example remains vague rather than precise.",
+      "strengths": [
+        "Accurate definition",
+        "Names a relevant example (Bismarck)"
+      ],
+      "weaknesses": [
+        "Significance underdeveloped",
+        "Example lacks concrete detail (specific wars or policy reversals)"
+      ],
+      "improvement_suggestions": [
+        "Expand the significance with a sentence on how it replaced ideological foreign policy",
+        "Specify Bismarck's engineered wars and subsequent alliance system"
+      ],
+      "feedback_for_student": "You earned 10/15 (good). Your definition is correct and you correctly identify Bismarck. To reach excellent, develop the significance more fully and give a precise example such as the Austro-Prussian War followed by the reversal into alliances.",
+      "flag_for_review": null,
+      "evidence_verified": true,
+      "graded_by": "x-ai/grok-4.3"
+    },
+    {
+      "question_number": 4,
+      "question_text": "<p>Two accounts of the same 1848 uprising survive: a government dispatch describing \u201ca criminal mob\u201d, and a participant's diary describing \u201cthe people in arms\u201d. Explain how a historian should use these sources.</p>",
+      "question_type": "SHORT-ANSWER",
+      "max_points": 15,
+      "student_answer": "<p>A historian should not simply pick one. Both are biased, but the bias is itself useful information about how each side saw the uprising.</p><p>The government dispatch calls them a criminal mob because the official needs to justify putting the rising down. The diary calls them the people in arms because the writer was part of it and believed in it. So the wording tells you about the author's position.</p><p>For the actual facts, like how many people were there and what happened when, the historian should look for other sources to check against, such as newspapers or official records from elsewhere.</p>",
+      "model_answer": "<p>Neither is simply true or false: each is reliable evidence of its author's position. The historian establishes provenance and interest (an official justifying suppression; a participant justifying action), reads the loaded language as data about perspective, and corroborates factual claims \u2014 timing, numbers, casualties \u2014 against independent records.</p>",
+      "score_awarded": 15,
+      "level_achieved": "excellent",
+      "evidence_quotes": [
+        "The government dispatch calls them a criminal mob because the official needs to justify putting the rising down.",
+        "For the actual facts, like how many people were there and what happened when, the historian should look for other sources to check against, such as newspapers or official records from elsewhere."
+      ],
+      "evaluation_rationale": "Selected 'excellent' (15) because the answer treats both sources as evidence of perspective, identifies each author's position and interest, and explains the need for corroboration against independent evidence.",
+      "strengths": [
+        "Treats bias as useful evidence rather than error",
+        "Links wording directly to author's position and interest",
+        "Recommends specific corroboration methods"
+      ],
+      "weaknesses": [],
+      "improvement_suggestions": [],
+      "feedback_for_student": "You earned 15/15 (excellent). Your response fully meets the criteria by treating both accounts as perspective evidence, explaining each author's interest, and outlining corroboration against independent records. Well done.",
+      "flag_for_review": null,
+      "evidence_verified": true,
+      "graded_by": "x-ai/grok-4.3"
+    }
+  ],
+  "score_calculation_verification": {
+    "individual_scores": [
+      18,
+      18,
+      10,
+      15
+    ],
+    "manual_sum": 61,
+    "verification_status": "PASS",
+    "calculation_notes": "Score arithmetic calculated by the system from the clamped per-question scores: 18 + 18 + 10 + 15 = 61. Model-reported totals are not used."
+  },
+  "overall_performance_analysis": {
+    "score_breakdown": "Student scored 61 out of 80 points (76.25%)",
+    "strengths_summary": {
+      "overall_strengths": [
+        "Strong engagement with debate and evidence in history essays",
+        "Clear thesis statements and source-critical reasoning"
+      ]
+    },
+    "areas_for_improvement": {
+      "overall_weaknesses": [
+        "Need for more precise examples and developed significance in short answers",
+        "Greater use of direct quotation and language analysis in literature responses"
+      ]
+    }
+  },
+  "grading_confidence": 80,
+  "recommendations": {
+    "for_student": [
+      "Practice incorporating specific quotations and historiographical references",
+      "Develop significance and concrete detail in short-answer responses"
+    ],
+    "for_teacher": [],
+    "follow_up_actions": []
+  },
+  "grading_model": "x-ai/grok-4.3",
+  "second_opinion": {
+    "model": "deepseek/deepseek-v4-pro",
+    "selected": {
+      "1": [
+        "high_stakes"
+      ],
+      "2": [
+        "high_stakes"
+      ],
+      "3": [
+        "high_stakes"
+      ],
+      "4": [
+        "high_stakes"
+      ]
+    },
+    "agreements": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "disagreements": []
+  }
+}

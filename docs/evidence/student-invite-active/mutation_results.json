@@ -1,0 +1,95 @@
+{
+ "baseline": {
+  "id": "BASE",
+  "rc": 0,
+  "summary": "OK",
+  "fails": []
+ },
+ "mutants": [
+  {
+   "id": "ACT",
+   "desc": "new student created inactive again",
+   "rc": 1,
+   "summary": "FAILED (failures=2)",
+   "expected_test": "test_new_student_is_created_active_with_no_activation_token",
+   "failing": [
+    "test_an_unknown_email_creates_a_pending_student",
+    "test_new_student_is_created_active_with_no_activation_token"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 14,
+   "restored_md5_ok": true
+  },
+  {
+   "id": "GATE",
+   "desc": "re-invite fast-path gate drops the is_active check, so a legacy is_active=False row with must_change_password=False is wrongly treated as already onboarded",
+   "rc": 1,
+   "summary": "FAILED (failures=1)",
+   "expected_test": "test_legacy_pending_row_self_heals_instead_of_fast_pathing",
+   "failing": [
+    "test_legacy_pending_row_self_heals_instead_of_fast_pathing"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 16,
+   "restored_md5_ok": true
+  },
+  {
+   "id": "PENDING",
+   "desc": "new student's enrollment created ENROLLED instead of PENDING",
+   "rc": 1,
+   "summary": "FAILED (failures=2)",
+   "expected_test": "test_new_student_is_created_active_with_no_activation_token",
+   "failing": [
+    "test_an_unknown_email_creates_a_pending_student",
+    "test_new_student_is_created_active_with_no_activation_token"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 12,
+   "restored_md5_ok": true
+  },
+  {
+   "id": "LOGIN",
+   "desc": "login-flips-to-ENROLLED query filters on ENROLLED instead of PENDING, so nothing ever flips on login",
+   "rc": 1,
+   "summary": "FAILED (failures=1)",
+   "expected_test": "test_two_pending_enrollments_both_flip_on_one_login",
+   "failing": [
+    "test_two_pending_enrollments_both_flip_on_one_login"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 13,
+   "restored_md5_ok": true
+  },
+  {
+   "id": "DRYRUN",
+   "desc": "backfill command's --dry-run flag stops gating the conversion, so a dry run mutates real state and sends real mail",
+   "rc": 1,
+   "summary": "FAILED (failures=1)",
+   "expected_test": "test_dry_run_touches_nothing_and_sends_no_mail",
+   "failing": [
+    "test_dry_run_touches_nothing_and_sends_no_mail"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 13,
+   "restored_md5_ok": true
+  },
+  {
+   "id": "IDEMP",
+   "desc": "backfill selection query drops the is_active=False filter, so a second run (or a student who has since logged in) is reprocessed",
+   "rc": 1,
+   "summary": "FAILED (failures=2)",
+   "expected_test": "test_student_who_has_since_logged_in_is_never_revisited",
+   "failing": [
+    "test_idempotent_second_run_is_a_no_op",
+    "test_student_who_has_since_logged_in_is_never_revisited"
+   ],
+   "killed_for_named_reason": true,
+   "secs": 11,
+   "restored_md5_ok": true
+  }
+ ],
+ "md5": {
+  "classrooms/management/commands/backfill_pending_student_invites.py": "773eea64b7da895990c3a2a1fc14d040",
+  "classrooms/services/enrollment.py": "95be30530081490ad562670d576c04ce"
+ }
+}
