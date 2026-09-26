@@ -9,6 +9,7 @@ from django.db.models.functions import Greatest
 from django.template.loader import render_to_string
 from django.utils import timezone
 
+from audit import metrics as audit_metrics
 from AutoGrader.dispatch import safe_delay
 from AutoGrader.tasks import send_email_task
 from users.mailerlite_service import queue_sync
@@ -1343,6 +1344,12 @@ class SubscriptionService:
                     # Bucket vanished (CASCADE would normally have taken the
                     # log with it, so this is defensive). Mark refunded
                     # anyway so we don't keep retrying a dead reference.
+                    # BE-A-09 #3: a usage log with no bucket to refund into
+                    # is a REFUND that cannot reconcile at all.
+                    audit_metrics.count(
+                        "credit_ledger_anomaly",
+                        tags={"kind": "refund_no_bucket"},
+                    )
                     refunded_log_ids.append(log.id)
                     continue
 
@@ -1351,6 +1358,16 @@ class SubscriptionService:
                 # F()-decrement so a partially-refunded or externally-reset
                 # bucket can never push it negative and raise IntegrityError.
                 amount = max(0, min(log.amount, bucket.used_credits))
+                if amount != log.amount:
+                    # BE-A-09 #3: the log claims more credits were consumed
+                    # than the bucket can now give back - a REFUND that
+                    # doesn't reconcile with what was logged. Reuses this
+                    # existing clamp rather than a second comparison
+                    # elsewhere.
+                    audit_metrics.count(
+                        "credit_ledger_anomaly",
+                        tags={"kind": "refund_mismatch"},
+                    )
 
                 if amount:
                     bucket.used_credits -= amount

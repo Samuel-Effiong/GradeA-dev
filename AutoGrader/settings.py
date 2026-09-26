@@ -157,6 +157,8 @@ if SENTRY_DSN and ENVIRONMENT in ("prod", "dev"):
         from sentry_sdk.integrations.django import DjangoIntegration
         from sentry_sdk.integrations.logging import LoggingIntegration
 
+        from AutoGrader.sentry_scrubbing import scrub_pii_before_send
+
         sentry_sdk.init(
             dsn=SENTRY_DSN,
             environment=ENVIRONMENT,
@@ -176,6 +178,14 @@ if SENTRY_DSN and ENVIRONMENT in ("prod", "dev"):
             # These carry student work, grades, and billing identifiers.
             # Keep them out of the error reports.
             send_default_pii=False,
+            # send_default_pii=False only suppresses Sentry's *automatic*
+            # user/request context - it does not touch the string content
+            # of a log message, and LoggingIntegration above turns every
+            # logger.error/.exception call into an event. This is the
+            # actual PII gate on message/exception text (FR-A-04, plan
+            # §0.5a item 3) - defense-in-depth alongside the call-site
+            # fixes and the lint rule, not a replacement for either.
+            before_send=scrub_pii_before_send,
             # Set profile_session_sample_rate to 1.0 to profile 100%
             # of profile sessions.
             profile_session_sample_rate=1.0,
@@ -333,6 +343,7 @@ INSTALLED_APPS = [
     "ai_processor",
     "dashboard",
     "billing",
+    "audit",
     "django_celery_results",
     "django_celery_beat",
     # Third-party packages
@@ -353,6 +364,13 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Last: finishes the automatic ADMIN_ACTION audit coverage that
+    # classrooms.permissions.IsSuperAdmin starts - see audit/admin_action.py.
+    # Position doesn't matter for correctness (RequestIDMiddleware, first in
+    # this list, keeps its correlation id live in context for the whole
+    # request/response cycle regardless), but this only ever has work to do
+    # after a view has actually run, so it reads clearest last.
+    "audit.middleware.AdminActionAuditMiddleware",
 ]
 
 ROOT_URLCONF = "AutoGrader.urls"
@@ -960,6 +978,20 @@ CELERY_BEAT_SCHEDULE = {
         "task": "AutoGrader.beat_health.check_beat_health",
         "schedule": crontab(minute="*/15"),
     },
+    # A6 retention sweep (audit/tasks.py): deletes AuditEvent rows past
+    # their retention_class cutoff (12mo general / 3yr student-record).
+    # 06:00 keeps it after the 05:00 credit-bucket sweep.
+    "sweep-audit-retention-daily": {
+        "task": "audit.tasks.sweep_audit_retention",
+        "schedule": crontab(minute=0, hour=6),
+    },
+    # X-4: nulls source_ip/user_agent after PII_SHORT_RETENTION_DAYS,
+    # independent of the row's own retention_class. 06:30 keeps it clear
+    # of the row-delete sweep above.
+    "sweep-audit-pii-short-retention-daily": {
+        "task": "audit.tasks.sweep_audit_pii_short_retention",
+        "schedule": crontab(minute=30, hour=6),
+    },
 }
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
@@ -998,6 +1030,8 @@ BEAT_HEALTH_EXPECTATIONS = {
     "send-weekly-course-summaries": (timedelta(weeks=1), timedelta(days=10)),
     "send-weekly-student-summaries": (timedelta(weeks=1), timedelta(days=10)),
     "send-weekly-school-admin-summaries": (timedelta(weeks=1), timedelta(days=10)),
+    "sweep-audit-retention-daily": (timedelta(days=1), timedelta(days=2)),
+    "sweep-audit-pii-short-retention-daily": (timedelta(days=1), timedelta(days=2)),
 }
 
 # Static files (CSS, JavaScript, Images)
