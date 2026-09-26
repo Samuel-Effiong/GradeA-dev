@@ -614,10 +614,13 @@ class MyLicenseTeacherSubscriptionSerializer(serializers.Serializer):
     """
 
     subscription_source = serializers.CharField(default="LICENSE_TEACHER")
-    # This pass only resolves EXPIRED/NONE for the INDIVIDUAL track (see
-    # resolve_user_billing_context) — a license teacher only reaches this
-    # serializer via an active allocation, so status is always ACTIVE.
-    status = serializers.CharField(default="ACTIVE")
+    # ACTIVE by default; the view passes context={"status": "EXPIRED"}
+    # when instantiated with the teacher's most recent allocation that
+    # is no longer truly active (either the allocation itself was
+    # deactivated, or it's still flagged active but its parent license
+    # lapsed — see is_license_active below, which reports the real
+    # state either way) — same pattern as MySubscriptionSerializer.status.
+    status = serializers.SerializerMethodField()
 
     # License-level (shared, read-only — the teacher does not manage this)
     license_id = serializers.UUIDField(source="license_subscription.id")
@@ -651,6 +654,9 @@ class MyLicenseTeacherSubscriptionSerializer(serializers.Serializer):
     # Wallet — fully personal, never shared with other teachers
     wallet_summary = serializers.SerializerMethodField()
 
+    def get_status(self, obj) -> str:
+        return self.context.get("status", "ACTIVE")
+
     def get_plan_display_name(self, obj) -> str:
         plan = obj.license_subscription.plan
         return plan.display_name or plan.name
@@ -659,7 +665,10 @@ class MyLicenseTeacherSubscriptionSerializer(serializers.Serializer):
         return obj.license_subscription.admin_user.get_full_name()
 
     def get_days_until_next_credit_grant(self, obj) -> int | None:
-        if not obj.next_credit_grant_at:
+        # EXPIRED: a stale next_credit_grant_at is no longer coming —
+        # same "don't clamp a negative delta to a misleading 0" guard
+        # as the other renewal-derived fields.
+        if not obj.next_credit_grant_at or self.context.get("status") == "EXPIRED":
             return None
         delta = obj.next_credit_grant_at - timezone.now()
         return max(0, delta.days)
@@ -681,9 +690,11 @@ class MyLicenseAdminSubscriptionSerializer(serializers.Serializer):
     """
 
     subscription_source = serializers.CharField(default="LICENSE_ADMIN")
-    # Same reasoning as MyLicenseTeacherSubscriptionSerializer.status —
-    # only reached via an active LicenseSubscription, so always ACTIVE.
-    status = serializers.CharField(default="ACTIVE")
+    # ACTIVE by default; the view passes context={"status": "EXPIRED"}
+    # when instantiated with the admin's most recent INACTIVE
+    # LicenseSubscription instead — same pattern as
+    # MySubscriptionSerializer.status.
+    status = serializers.SerializerMethodField()
 
     license_id = serializers.UUIDField(source="id")
     school_name = serializers.CharField(source="school.name")
@@ -707,10 +718,18 @@ class MyLicenseAdminSubscriptionSerializer(serializers.Serializer):
 
     wallet_summary = serializers.SerializerMethodField()
 
+    def get_status(self, obj) -> str:
+        return self.context.get("status", "ACTIVE")
+
     def get_plan_display_name(self, obj) -> str:
         return obj.plan.display_name or obj.plan.name
 
-    def get_days_until_renewal(self, obj) -> int:
+    def get_days_until_renewal(self, obj) -> int | None:
+        # EXPIRED: same guard as MySubscriptionSerializer — a lapsed
+        # license's billing_cycle_end - now is negative, and clamping to
+        # 0 would misleadingly read as "renews today".
+        if self.context.get("status") == "EXPIRED":
+            return None
         delta = obj.billing_cycle_end - timezone.now()
         return max(0, delta.days)
 
