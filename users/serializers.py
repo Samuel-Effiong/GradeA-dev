@@ -4,7 +4,11 @@ from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
 from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.exceptions import InvalidToken
+from rest_framework_simplejwt.serializers import (
+    TokenObtainPairSerializer,
+    TokenRefreshSerializer,
+)
 
 from AutoGrader.error_messages import describe_user_error
 from billing.serializers import CreditWalletSerializer
@@ -19,6 +23,7 @@ from users.models import (
     Waitlist,
 )
 from users.services import send_user_activation_email
+from users.tokens import EpochRefreshToken, assert_epoch_current
 
 logger = logging.getLogger(__name__)
 
@@ -394,6 +399,8 @@ class GoogleUserSerializer(CustomUserSerializer):
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    token_class = EpochRefreshToken
+
     # Login-specific: kept separate from the generic simplejwt failure
     # message so a locked account gets an explanation instead of looking
     # like a wrong password forever.
@@ -444,6 +451,22 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         AnalyticsService.track_activity(self.user)
 
         return data
+
+
+class EpochTokenRefreshSerializer(TokenRefreshSerializer):
+    """Refuse to refresh a token minted under a revoked epoch, so a device
+    that was signed out by a logout / password change elsewhere gets a clean
+    401 instead of new tokens that would be rejected on first use."""
+
+    token_class = EpochRefreshToken
+
+    def validate(self, attrs):
+        refresh = self.token_class(attrs["refresh"])
+        user = CustomUser.objects.filter(pk=refresh.get("user_id")).first()
+        if user is None:
+            raise InvalidToken("Token contained no recognizable user identification")
+        assert_epoch_current(refresh, user)
+        return super().validate(attrs)
 
 
 class OTPSerializer(serializers.Serializer):

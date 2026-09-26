@@ -96,6 +96,7 @@ from users.serializers import (  # BatchSessionResultTaskEntrySerializer,; TaskC
     ChangePasswordSerializer,
     CustomTokenObtainPairSerializer,
     CustomUserSerializer,
+    EpochTokenRefreshSerializer,
     GoogleUserSerializer,
     OTPSerializer,
     ResetPasswordSerializer,
@@ -115,6 +116,7 @@ from users.throttling import (
     RegisterThrottle,
     VerifyEmailThrottle,
 )
+from users.tokens import EpochRefreshToken
 
 logger = logging.getLogger(__name__)
 
@@ -666,7 +668,7 @@ class AuthViewSet(viewsets.ViewSet):
 
         user_data = CustomUserSerializer(user).data
 
-        refresh = RefreshToken.for_user(user)
+        refresh = EpochRefreshToken.for_user(user)
 
         # Track activity
         AnalyticsService.track_activity(user)
@@ -836,7 +838,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         for token in tokens:
             BlacklistedToken.objects.get_or_create(token=token)
 
-        refresh = RefreshToken.for_user(user)
+        refresh = EpochRefreshToken.for_user(user)
 
         # Track activity
         AnalyticsService.track_activity(user)
@@ -979,7 +981,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             BlacklistedToken.objects.get_or_create(token=token)
 
         # 2. Generate new tokens for the current device
-        refresh = RefreshToken.for_user(user)
+        refresh = EpochRefreshToken.for_user(user)
 
         # Track activity
         AnalyticsService.track_activity(user)
@@ -1077,6 +1079,12 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             raise ParseError("Refresh token is required.") from KeyError
         except TokenError:
             raise ParseError("Invalid or expired token") from TokenError
+
+        # AUTHZ-T1: blacklisting the refresh token never touched the access
+        # token, which stayed valid for up to a day. Bumping the session epoch
+        # kills the access token AND every other device's tokens at once
+        # (logging out anywhere signs the user out everywhere).
+        request.user.revoke_all_sessions()
 
         return Response(status=status.HTTP_205_RESET_CONTENT)
 
@@ -1335,7 +1343,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
             safe_delay(sync_user_to_mailerlite, str(user.id))
 
-            refresh = RefreshToken.for_user(user)
+            refresh = EpochRefreshToken.for_user(user)
 
             # Track activity
             AnalyticsService.track_activity(user)
@@ -1619,7 +1627,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                     },
                 )
 
-            refresh = RefreshToken.for_user(user)
+            refresh = EpochRefreshToken.for_user(user)
 
             return Response(
                 {
@@ -1701,7 +1709,7 @@ class TokenObtainPairView(BaseTokenObtainPairView):
     },
 )
 class TokenRefreshView(BaseTokenRefreshView):
-    pass
+    serializer_class = EpochTokenRefreshSerializer
 
 
 class TaskViewSet(viewsets.ViewSet):
