@@ -3783,9 +3783,16 @@ def _assignment_status_counts(student, assignments, now):
     """The four assignment-status counts (Submitted / Not Submitted /
     Graded / Overdue) for `student` over `assignments` - an already
     course-scoped queryset, either every active course combined or a
-    single one. Shared by StudentAdminDashboardView.overview (all courses)
-    and .status_summary (all courses or one, via ?course=) so the two
-    never compute this differently from each other."""
+    single one. Shared by StudentAdminDashboardView.overview (all courses),
+    .status_summary (all courses or one, via ?course=) and .summary (one
+    course) so none of the three ever compute this differently from each
+    other.
+
+    The four counts are mutually exclusive and sum to `assignments.count()`:
+    Not Submitted explicitly excludes anything already counted as Overdue,
+    rather than the two being independent, overlapping views over the same
+    "no submission" set.
+    """
     submissions = StudentSubmission.objects.filter(
         student=student, assignment__in=assignments
     )
@@ -3794,8 +3801,12 @@ def _assignment_status_counts(student, assignments, now):
     submitted_assignment_ids = submissions.values_list("assignment_id", flat=True)
     pending_assignments = assignments.exclude(id__in=submitted_assignment_ids)
 
-    assignments_not_submitted = pending_assignments.count()
+    # Mutually exclusive with assignments_due_no_submission (Overdue): a
+    # pending assignment is one or the other, never both, so the four
+    # tiles this feeds (Submitted/Not Submitted/Graded/Overdue) sum to the
+    # total assignment count.
     assignments_due_no_submission = pending_assignments.filter(due_date__lt=now).count()
+    assignments_not_submitted = pending_assignments.exclude(due_date__lt=now).count()
 
     # Graded = released to the student, not merely scored - matches the
     # "released" pattern used for grade figures elsewhere in this view
@@ -3851,6 +3862,7 @@ class StudentAdminDashboardView(viewsets.ViewSet):
 
         if data is None:
             student = request.user
+            now = timezone.now()
 
             # 1. Validate course
             course = get_object_or_404(
@@ -3873,7 +3885,6 @@ class StudentAdminDashboardView(viewsets.ViewSet):
             submissions = StudentSubmission.objects.filter(
                 student=student, assignment__in=assignments
             )
-            submitted_count = submissions.count()
 
             # GRADE VISIBILITY. Only grades the teacher has released. Every
             # grade-bearing figure below (average, trend, best, worst) used to
@@ -3884,22 +3895,19 @@ class StudentAdminDashboardView(viewsets.ViewSet):
                 is_published=True, score_percentage__isnull=False
             )
 
-            # 5. Completion rate
+            # 5. Submitted / Not Submitted / Graded / Overdue counts - shared
+            # with .overview and .status_summary so this course-scoped view
+            # can never drift from those again (it used to hand-roll its own
+            # copy of this exact logic).
+            status_counts = _assignment_status_counts(student, assignments, now)
+            submitted_count = status_counts["assignments_submitted"]
+            not_submitted_count = status_counts["assignments_not_submitted"]
+            overdue_count = status_counts["assignments_due_no_submission"]
+
+            # 6. Completion rate
             completion_rate = (
                 (submitted_count / total_assigned) * 100 if total_assigned > 0 else 0
             )
-
-            # 6. Missing / Overdue assignments
-            submitted_assignment_ids = submissions.values_list(
-                "assignment_id", flat=True
-            )
-            missing_assignments = assignments.exclude(id__in=submitted_assignment_ids)
-
-            not_submitted_count = missing_assignments.count()
-
-            overdue_count = missing_assignments.filter(
-                due_date__lt=timezone.now()
-            ).count()
 
             # 7. Average grade (course)
             average_grade = released.aggregate(avg=Avg("score_percentage"))["avg"] or 0
@@ -3934,7 +3942,7 @@ class StudentAdminDashboardView(viewsets.ViewSet):
                 "course": course.id,
                 "assignment_submitted": submitted_count,
                 "assignment_not_submitted": not_submitted_count,
-                "assignment_graded": released.count(),
+                "assignment_graded": status_counts["assignments_graded"],
                 "assignment_assigned": total_assigned,
                 "completion_rate": completion_rate,
                 "missing_or_overdue": overdue_count,
