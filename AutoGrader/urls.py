@@ -39,6 +39,7 @@ schema_urlpatterns = [
 ]
 
 core_urlpatterns = [
+    path("", include("audit.urls")),
     path("", include("assignments.urls")),
     path("", include("classrooms.urls")),
     path("", include("users.urls")),

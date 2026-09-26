@@ -1,0 +1,221 @@
+"""Mutation battery for T2 (auth call-site instrumentation): login
+(users/serializers.py CustomTokenObtainPairSerializer.validate) and logout
+(users/views.py AuthViewSet.logout). Each mutant weakens ONE audit-emission
+protection; a test named for that protection must fail. Restores from
+collision-safe copies and verifies by md5 (never git checkout) - same
+discipline as T1's mutate.py.
+"""
+import hashlib, json, os, re, shutil, subprocess, sys, time
+
+ROOT = "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-t2-auth-audit"
+SCR = os.path.dirname(os.path.abspath(__file__))
+S, V = "users/serializers.py", "users/views.py"
+LABEL = "users.tests_auth_audit_events"
+
+MUTANTS = [
+    ("L1", "locked-account check skipped entirely (no DENIED event, wrong password never even checked)",
+     [(S,
+       '        if user and user.is_account_locked():\n'
+       '            emit(\n'
+       '                AuditAction.AUTH_LOGIN,\n'
+       '                actor=user,\n'
+       '                request=request,\n'
+       '                target_type="CustomUser",\n'
+       '                target_id=user.id,\n'
+       '                outcome=AuditOutcome.DENIED,\n'
+       '                error_class=ErrorClass.USER,\n'
+       '                reason_code="ACCOUNT_LOCKED",\n'
+       '            )\n'
+       '            raise AuthenticationFailed(self.LOCKED_MESSAGE, "account_locked")',
+       '        if False:\n            pass')],
+     "a_locked_account_emits"),
+    ("L2", "locked-account reason code renamed",
+     [(S, 'reason_code="ACCOUNT_LOCKED",', 'reason_code="LOCKED",')],
+     "a_locked_account_emits"),
+    ("L3", "wrong-password detection never fires (always reported as unknown-user)",
+     [(S,
+       '            if user is not None and password and not user.check_password(password):\n'
+       '                wrong_password = True\n'
+       '                user.register_failed_login()',
+       '            if False:\n                wrong_password = True\n                user.register_failed_login()')],
+     "a_wrong_password_emits"),
+    ("L4", "failure event not emitted at all on AuthenticationFailed",
+     [(S,
+       '            emit(\n'
+       '                AuditAction.AUTH_LOGIN,\n'
+       '                actor=user,\n'
+       '                request=request,\n'
+       '                target_type="CustomUser",\n'
+       '                target_id=user.id if user else None,\n'
+       '                outcome=AuditOutcome.FAILURE,\n'
+       '                error_class=ErrorClass.USER,\n'
+       '                reason_code=(\n'
+       '                    "WRONG_PASSWORD" if wrong_password else "INVALID_CREDENTIALS"\n'
+       '                ),\n'
+       '            )\n'
+       '            raise',
+       '            raise')],
+     "failure_event"),
+    ("L5", "success event not emitted at all",
+     [(S,
+       '        emit(\n'
+       '            AuditAction.AUTH_LOGIN,\n'
+       '            actor=self.user,\n'
+       '            request=request,\n'
+       '            target_type="CustomUser",\n'
+       '            target_id=self.user.id,\n'
+       '            outcome=AuditOutcome.SUCCESS,\n'
+       '        )\n'
+       '\n'
+       '        return data',
+       '        return data')],
+     "a_successful_login_emits"),
+    ("L6", "known-user's target_id dropped on failure (always None)",
+     [(S, 'target_id=user.id if user else None,', 'target_id=None,')],
+     "a_wrong_password_emits"),
+    ("L7", "failure error_class widened past USER",
+     [(S,
+       'error_class=ErrorClass.USER,\n'
+       '                reason_code=(\n'
+       '                    "WRONG_PASSWORD"',
+       'error_class=ErrorClass.VALIDATION,\n'
+       '                reason_code=(\n'
+       '                    "WRONG_PASSWORD"')],
+     "failure_event"),
+    ("G1", "missing-refresh-token event not emitted",
+     [(V,
+       '            emit(\n'
+       '                AuditAction.AUTH_LOGOUT,\n'
+       '                actor=request.user,\n'
+       '                request=request,\n'
+       '                target_type="CustomUser",\n'
+       '                target_id=request.user.id,\n'
+       '                outcome=AuditOutcome.FAILURE,\n'
+       '                error_class=ErrorClass.VALIDATION,\n'
+       '                reason_code="REFRESH_TOKEN_MISSING",\n'
+       '            )\n'
+       '            raise ParseError("Refresh token is required.") from KeyError',
+       '            raise ParseError("Refresh token is required.") from KeyError')],
+     "missing_refresh_token_emits"),
+    ("G2", "missing-refresh-token error_class miscategorised as USER not VALIDATION",
+     [(V, 'error_class=ErrorClass.VALIDATION,\n                reason_code="REFRESH_TOKEN_MISSING",',
+          'error_class=ErrorClass.USER,\n                reason_code="REFRESH_TOKEN_MISSING",')],
+     "missing_refresh_token_emits"),
+    ("G3", "invalid-refresh-token event not emitted",
+     [(V,
+       '            emit(\n'
+       '                AuditAction.AUTH_LOGOUT,\n'
+       '                actor=request.user,\n'
+       '                request=request,\n'
+       '                target_type="CustomUser",\n'
+       '                target_id=request.user.id,\n'
+       '                outcome=AuditOutcome.FAILURE,\n'
+       '                error_class=ErrorClass.USER,\n'
+       '                reason_code="REFRESH_TOKEN_INVALID",\n'
+       '            )\n'
+       '            raise ParseError("Invalid or expired token") from TokenError',
+       '            raise ParseError("Invalid or expired token") from TokenError')],
+     "invalid_refresh_token_emits"),
+    ("G4", "invalid-refresh-token reason code renamed",
+     [(V, 'reason_code="REFRESH_TOKEN_INVALID",', 'reason_code="TOKEN_INVALID",')],
+     "invalid_refresh_token_emits"),
+    ("G5", "successful-logout event not emitted",
+     [(V,
+       '        emit(\n'
+       '            AuditAction.AUTH_LOGOUT,\n'
+       '            actor=request.user,\n'
+       '            request=request,\n'
+       '            target_type="CustomUser",\n'
+       '            target_id=request.user.id,\n'
+       '            outcome=AuditOutcome.SUCCESS,\n'
+       '        )\n'
+       '\n'
+       '        return Response(status=status.HTTP_205_RESET_CONTENT)',
+       '        return Response(status=status.HTTP_205_RESET_CONTENT)')],
+     "a_successful_logout_emits"),
+]
+
+
+def md5(p):
+    return hashlib.md5(open(p, "rb").read()).hexdigest()
+
+
+def run(timeout=300):
+    env = dict(os.environ)
+    env["DJANGO_SETTINGS_MODULE"] = "settings_worktree"
+    r = subprocess.run(
+        [sys.executable, "manage.py", "test", LABEL, "--settings=settings_worktree", "--keepdb", "--noinput"],
+        cwd=ROOT, capture_output=True, text=True, timeout=timeout, env=env,
+    )
+    out = r.stdout + r.stderr
+    fails = re.findall(r"^(?:FAIL|ERROR): (\S+) \(([^)]*)\)", out, re.M)
+    m = re.search(r"^(OK.*|FAILED.*)$", out, re.M)
+    return r.returncode, out, fails, (m.group(1) if m else "?")
+
+
+def precheck():
+    bad = []
+    for mid, desc, edits, expect in MUTANTS:
+        for f, old, new in edits:
+            n = open(os.path.join(ROOT, f)).read().count(old)
+            if n != 1:
+                bad.append((mid, f, n, old[:60]))
+    return bad
+
+
+def main(only=None):
+    bad = precheck()
+    if bad:
+        for b in bad:
+            print("PATTERN PROBLEM", b)
+        raise SystemExit(1)
+    log = open(os.path.join(SCR, "mutation_log_t2.jsonl"), "a")
+    results = []
+    files = sorted({f for _, _, ms, _ in MUTANTS for f, _, _ in ms})
+    orig = {f: md5(os.path.join(ROOT, f)) for f in files}
+    backups = {}
+    for f in files:
+        b = os.path.join(SCR, "backup_t2_" + f.replace("/", "__"))
+        shutil.copy2(os.path.join(ROOT, f), b)
+        backups[f] = b
+    rc, out, fails, summary = run()
+    base = {"id": "BASE", "rc": rc, "summary": summary, "fails": fails}
+    print("BASELINE", rc, summary, flush=True)
+    log.write(json.dumps(base) + "\n")
+    if rc != 0:
+        raise SystemExit("baseline not green")
+    for mid, desc, edits, expect in MUTANTS:
+        if only and mid not in only:
+            continue
+        try:
+            for f, old, new in edits:
+                p = os.path.join(ROOT, f)
+                s = open(p).read()
+                open(p, "w").write(s.replace(old, new))
+            t = time.time()
+            rc, out, fails, summary = run()
+            names = sorted({n for n, _ in fails})
+            killed = rc != 0 and any(expect in n for n, _ in fails)
+            res = {"id": mid, "desc": desc, "rc": rc, "summary": summary, "expected_test": expect,
+                   "failing": names, "killed_for_named_reason": killed, "secs": round(time.time() - t)}
+        except Exception as e:
+            res = {"id": mid, "desc": desc, "error": str(e), "killed_for_named_reason": False}
+        finally:
+            for f in files:
+                shutil.copy2(backups[f], os.path.join(ROOT, f))
+            bad = [f for f in files if md5(os.path.join(ROOT, f)) != orig[f]]
+            if bad:
+                raise SystemExit(f"RESTORE MISMATCH after {mid}: {bad}")
+        res["restored_md5_ok"] = True
+        print(mid, "KILLED" if res["killed_for_named_reason"] else "SURVIVED/ERR",
+              (res.get("failing") or res.get("error"))[:6] if res.get("failing") else res.get("error"), flush=True)
+        log.write(json.dumps(res) + "\n")
+        log.flush()
+        results.append(res)
+    json.dump({"baseline": base, "mutants": results, "md5": orig},
+               open(os.path.join(SCR, "mutation_results_t2.json"), "w"), indent=1)
+    print("KILLED", sum(r["killed_for_named_reason"] for r in results), "/", len(results))
+
+
+if __name__ == "__main__":
+    main(set(sys.argv[1:]) or None)

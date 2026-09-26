@@ -114,7 +114,7 @@ for user_sub in candidates:
             exc,
             exc_info=True,
         )
-        print(f"FAILED: {user_sub.id} (user {user_sub.user.email}): {exc}")
+        print(f"FAILED: {user_sub.id} (user {user_sub.user_id}): {exc}")
 
 print(f"\nDone. {succeeded} backfilled, {failed} failed, out of {total} total.")
 if failed:

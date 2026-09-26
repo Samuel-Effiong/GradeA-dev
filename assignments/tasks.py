@@ -8,7 +8,12 @@ from django.utils import timezone
 from rest_framework.exceptions import ParseError
 
 from ai_processor.services import ai_processor
-from AutoGrader.error_messages import describe_background_task_error
+from audit.emitter import emit
+from audit.enums import AuditAction, AuditOutcome, ErrorClass
+from AutoGrader.error_messages import (
+    classify_infra_error,
+    describe_background_task_error,
+)
 from AutoGrader.tasks import send_email_task
 from billing.refusals import PERMANENT_AI_REFUSALS
 from classrooms.models import Course, EnrollmentStatusType, Topic
@@ -442,6 +447,19 @@ def extract_answer_background_task(
         raise
 
 
+def _grading_failure_error_class(exc):
+    """FR-A-05's fixed taxonomy, applied to what grade_engine_async's except
+    block actually sees: an AI content-policy refusal is the model
+    declining to grade, a recognized infra failure (timeout, rate limit,
+    dropped connection, unreadable file) is the provider's fault, and
+    anything else is an unclassified system fault."""
+    if isinstance(exc, PERMANENT_AI_REFUSALS):
+        return ErrorClass.MODEL
+    if classify_infra_error(exc) is not None:
+        return ErrorClass.PROVIDER
+    return ErrorClass.SYSTEM
+
+
 @shared_task(
     bind=True,
     # Hard kill point for a hung grading run. The grading claim's staleness
@@ -486,12 +504,38 @@ def grade_engine_async(
         )
 
         self.update_state(state="PROGRESS", meta={"step": "Completed"})
-        mark_processing_task_success(
+        completed_task = mark_processing_task_success(
             processing_task_id,
             meta={
                 "step": "Completed",
                 "submission_id": str(submission.id),
                 "batch_id": str(batch_id) if batch_id else None,
+            },
+        )
+        # BE-A-09 #2: the model that actually served THIS grading run - not
+        # necessarily MAIN_MODEL, since OpenRouter may have routed to one of
+        # GRADING_FALLBACK_MODELS - is already captured on the graded
+        # result as `grading_model` (ai_processor/services.py) and threaded
+        # onto the submission via `submission.feedback = grading`. Reading
+        # it back here is the only way this emit call, which only sees the
+        # already-persisted submission, learns it too.
+        grading_model = (
+            submission.feedback.get("grading_model")
+            if isinstance(submission.feedback, dict)
+            else None
+        )
+        emit(
+            AuditAction.GRADING_COMPLETED,
+            actor=completed_task.requested_by if completed_task else None,
+            request=None,
+            target_type="StudentSubmission",
+            target_id=submission.id,
+            outcome=AuditOutcome.SUCCESS,
+            metadata={
+                "assignment_id": str(submission.assignment_id),
+                "submission_id": str(submission.id),
+                "task_id": str(processing_task_id) if processing_task_id else None,
+                "model": grading_model,
             },
         )
 
@@ -579,6 +623,22 @@ def grade_engine_async(
             exc,
             meta={"step": "Grading failed", "submission_id": submission_id},
             fallback_message=fallback_message,
+        )
+        emit(
+            AuditAction.GRADING_FAILED,
+            actor=task.requested_by if task else None,
+            request=None,
+            target_type="StudentSubmission",
+            target_id=submission_id,
+            outcome=AuditOutcome.FAILURE,
+            error_class=_grading_failure_error_class(exc),
+            metadata={
+                "assignment_id": (
+                    str(task.assignment_id) if task and task.assignment_id else None
+                ),
+                "submission_id": str(submission_id),
+                "task_id": str(processing_task_id) if processing_task_id else None,
+            },
         )
         if batch_id:
             session = BatchUploadSession.objects.get(id=batch_id)
@@ -1058,7 +1118,7 @@ def grade_batch_async(
             str(submission.id),
             batch_id=batch_id,
         )
-        print(f"Starting grading of Submission {submission.student.get_full_name}")
+        logger.info("Starting grading of submission %s", submission.id)
 
 
 @shared_task(name="assignments.tasks.auto_grade_due_assignment")
