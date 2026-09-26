@@ -24,8 +24,9 @@ against the 10-gate doctrine
   probabilistic replay on the QA beta after landing can raise it later; it is
   not claimed now.
 - **Gate 4 (adversarial) depends on an independent session.** The Attacker
-  session (grade-automator-plus-04) holds the revocation replay. Its result is
-  recorded here when it lands.
+  session named in earlier drafts (grade-automator-plus-04) no longer exists.
+  As of 2026-09-26 the revocation replay is queued with the Security Lead's
+  team. Its result is recorded here when it lands.
 - Under hardening rule H1.3, this change is in the environment-sensitive
   class, so a gate left PARTIAL needs **the user's explicit written sign-off**
   before it lands. The Senior Manager's approval does not substitute for it.
@@ -81,7 +82,7 @@ Reproduced before the fix: `01_reproduce_on_unfixed_beta.log` (see §4, Gate 1).
 | 1 Baseline / Regression | PARTIAL | reproduce-first done: 8/13 fail on `b744c9f`, 13/13 pass on the fix; after the rebase onto `4b902fc` the module passes 14/14 (13 + the crash-safety test), 2026-09-26; the full strict suite (twice) is still pending |
 | 2 Mutation | PASS | `04_mutation_battery.log`: 3/3 mutants killed, sha256-verified restores, control 10/10 |
 | 3 Concurrency | PASS | 20 writers + 20 readers, 10 rounds, real threads/Postgres/Redis; `02_after_fix.log` |
-| 4 Adversarial | PENDING | independent Attacker session replay of the revocation path |
+| 4 Adversarial | PENDING | independent replay of the revocation path, queued with the Security Lead's team |
 | 5 Failure / Recovery | PASS | Redis refused and timing out, at the first bump and at commit; `02_after_fix.log` |
 | 6 Stress / Scale | PARTIAL | counts, query growth and generation arithmetic proven at 600/6,000 and 200/2,000; the timing pass awaits an unloaded machine; `05_double_bump_cost.log` |
 | 7 Real Infrastructure | PASS (LOCAL-REAL) | every test runs on real Postgres + real Redis; no mocked cache backend |
@@ -99,7 +100,10 @@ before this document is offered for review.
   (`scripts/strict_gate.py run <HEAD> cache-commit-race-gate10 --runs 2`) was
   REFUSED by the pre-launch guard: 13 heavy slots in use against a cap of 6,
   load average 27. The guard was not bypassed; the gate is waiting for slots.
-  Gate 6 timings need the same quiet machine.
+  Gate 6 timings need the same quiet machine. Per the Senior Manager, the
+  heavy-run queue (owned by Integration & Release Lead) grants this task a
+  reserved QUIET slot after authz-oauth, epic-a-land, teacher-removal and t9;
+  nothing is launched before then.
 
 ## 4. Gate by gate
 
@@ -158,7 +162,7 @@ cached what it saw.
 
 ### Gate 4 — Adversarial
 
-Held by the independent Attacker session, per H5.1. The strongest atomic
+Held by an independent session (Security Lead's team), per H5.1. The strongest atomic
 revocation path was handed over: `DELETE course/<pk>/student/<student_id>` →
 `remove_student_from_course`, which deletes the enrollment inside
 `transaction.atomic`. The autocommit paths (withdrawal PATCH, school-move
@@ -235,7 +239,7 @@ PARTIAL, accepted in writing by the Senior Manager, and still subject to H1.3
 (the user's sign-off). What the deployed environment could show is that
 enrollment and revocation work, which is not in question. What it cannot show
 is a read landing inside the pre-commit window, because that window is not
-externally addressable. The Attacker session's probabilistic replay against
+externally addressable. The independent probabilistic replay against
 the running app is the closest available evidence and is recorded under
 Gate 4.
 
@@ -375,7 +379,7 @@ for multi-write transactions.
    two scales in both the real and the synthetic write shape.
 4. **Which gates passed.** 2, 3, 5, 7, 9 (7 as LOCAL-REAL).
 5. **Which gates remain incomplete.** 1 is PARTIAL until the two strict runs,
-   which also close 10; 4 is pending the independent Attacker replay; 6 is
+   which also close 10; 4 is pending the independent replay (Security Lead's team); 6 is
    PARTIAL until its timings are remeasured on an unloaded machine; **8 is
    PARTIAL and stays PARTIAL for this landing.**
 6. **What risks remain.** (a) Every in-transaction bump costs a second Redis
