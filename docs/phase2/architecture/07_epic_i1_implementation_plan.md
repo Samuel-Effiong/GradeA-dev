@@ -246,6 +246,54 @@ event. The run's `run_meta.cached_questions` counts cache hits so a partially ca
 Two things a hit must not do: a hit written under version X must never satisfy a lookup under version Y. That is a unit
 test on `build_cache_key`, plus a mutation (remove the version from the key → test fails).
 
+### 4.5 Cold-cache cost of the key change (for the Senior Manager)
+
+**When it occurs.** Only when Phase 2 ships to production. Phase 2 does not merge into beta, so beta, main and production
+are unaffected until then. It is a one-time event at that deploy, not a running cost.
+
+**What the mechanism is.** `build_cache_key` hashes `CACHE_VERSION`, the intended model, the **assignment id**, the question
+fingerprint and the exact answer text (`ai_processor/grading_cache.py:96-107`). A hit therefore needs a *byte-identical
+answer to the same question in the same assignment*, and entries live 3 days
+(`GRADING_ANSWER_CACHE_TTL_SECONDS`). The module's own docstring says the TTL is "just long enough to cover a grade-all run
+across a whole class". Bumping to `v2` orphans every entry written before the deploy; nothing else changes.
+
+**What that costs, bounded.** The only lost hits are lookups after the deploy whose matching entry was written before it, so:
+
+> extra AI spend ≤ H × V × C, over at most the 3-day TTL, where
+> H = share of LLM-bound questions that are served from cache today,
+> V = LLM-bound question gradings per day, C = cost of grading one question.
+
+It is an **upper bound**: it assumes every hit in the window would have matched a pre-deploy entry. Entries written after the
+deploy are v2 and are hit normally, and a class graded in one run repopulates the cache within that run. In practice only
+grading sessions that straddle the deploy, and late or re-graded submissions of an assignment already graded in the previous
+3 days, lose anything.
+
+**Numbers: none can be measured locally; I am not stating any.**
+
+| Input | Available where | How to get it |
+|---|---|---|
+| H | Production logs only | Each grading run logs `[Grading] answer_cache_hit count=N of M LLM-bound question(s)` (`ai_processor/services.py:3058`) **only when N > 0**. `H = Σ N / (Σ M over all runs)`. The denominator is not logged for runs with no hits, so use question counts from the DB (SQL 7 below) for Σ M. Until Phase 2 adds a per-run cache metric (§10 item 18), H is a lower-bound-quality estimate |
+| V | Production DB | SQL 6 below (runs per day) times average LLM-bound questions per run (SQL 8) |
+| C | Provider invoice / OpenRouter dashboard | Not derivable from the repo; no per-token price is configured in code. The SM/founder holds it |
+
+**Estimate of the shape, with its basis:** because a hit needs an identical answer *within one assignment*, H is high only for
+short-answer and choice-style questions and near zero for essays and handwritten answers. So the loss is concentrated in
+objective-ish assignments graded in bulk. This is reasoning from the key structure, not a measurement.
+
+**Options considered.**
+
+| Option | Avoids cold start? | Cost / risk |
+|---|---|---|
+| A. Accept the cold start (**recommended**) | No | Bounded one-off spend, bounded by H × V × C above, ≤ 3 days. No code |
+| B. Lazy dual-read: on a v2 miss, try the v1 key and adopt the entry if it is valid for the current prompt and config, then write it through as v2 | Yes | Adds a second read on the grading hot path for 3 days. A v1 entry carries no version, so adoption rests on a hard-coded assertion "v1 entries were produced under prompt X and config Y" that must be true for **every** production worker and env. Phase 2 does not change the grading prompt in I-1, so it is likely true, but an env override (§0.5) that differed on the old side would make an adopted entry a **false provenance stamp**, the exact defect §0.3 exists to prevent. The code also must be deleted after 3 days |
+| C. Key mapping (rehash v1 → v2 keys) | No | Impossible: keys are one-way hashes of content; the v1 key cannot be turned into a v2 key without the inputs |
+
+**Recommendation: A.** The saving from B is at most the bounded amount above, once, while it risks the property the whole
+epic is built to guarantee. Reconsider B only if the SM's numbers make H × V × C material against the price of one more
+reviewed hot-path change. If so, B must use an explicit adoption allow-list `{(prompt_version, config_version)}` pinned at
+build time, so it can only ever adopt entries provably produced by the currently released pair. This section supersedes
+§4.4's "acceptable" wording only in adding the formula and the numbers to collect.
+
 ---
 
 ## 5. Stamping and dual-write
@@ -326,6 +374,16 @@ environment variable is set to true at deploy I-1b, after I-1a is verified). Off
 table. Also the rollback lever for deploy I-1b. Not a kill switch for the registry or cache key
 (those have no off state; their rollback is a revert).
 
+### 5.6 Reuse by NFR-OBS-04 (non-grading AI features)
+
+NFR-OBS-04 for extraction, generation and summaries becomes its own slice after I-1. It reuses, unchanged:
+`ai_processor/versioning.py` (prompt registry keyed by file, `GradingConfig`-style snapshot pattern, sentinels, and the hash
+rule that makes an unrenamed edit visible); `_response_model_name` for served-model identity and the fallback predicate
+(§4.3); the "provenance as a separate argument, never inside the result" rule (§5.1); and the AST "no un-mirrored writer" test
+technique (§5.3). It would **not** reuse `SubmissionGrading`, which is grading-specific: that slice needs its own record or
+`AuditEvent` metadata, and a per-feature config snapshot. To make that cheap, I-1 builds the registry with a generic
+`prompt_version(filename)` function and only the grading config as a concrete snapshot.
+
 ---
 
 ## 6. Back-fill
@@ -344,6 +402,60 @@ table. Also the rollback lever for deploy I-1b. Not a kill switch for the regist
 Runs in deploy I-1c, after the flag has been on long enough that all recent runs are dual-written.
 
 ---
+
+### 6.1 Read-only sizing queries for the founder or operator
+
+Run against a **read replica or during low traffic**; all are `SELECT`, none locks beyond a normal read. Table names are Django
+defaults for the `students` app (verify with `\dt students_*`). Numbers are needed for the back-fill window (R1), the Gate 6
+volume, and the cold-cache estimate (§4.5).
+
+```sql
+-- 1. Rows the back-fill must create (the headline number)
+SELECT count(*) AS graded_submissions
+FROM students_studentsubmission WHERE graded_at IS NOT NULL;
+
+-- 2. Population, for context, and legacy rows the mapper cannot serve
+SELECT count(*) AS all_submissions,
+       count(*) FILTER (WHERE graded_at IS NOT NULL)                        AS graded,
+       count(*) FILTER (WHERE graded_at IS NOT NULL AND max_points IS NULL) AS graded_null_max_points,
+       count(*) FILTER (WHERE graded_at IS NOT NULL AND feedback IS NULL)   AS graded_null_feedback,
+       count(*) FILTER (WHERE ai_graded_at IS NOT NULL AND graded_at IS NULL) AS ai_started_not_graded,
+       count(*) FILTER (WHERE was_regraded)                                 AS teacher_overridden,
+       count(*) FILTER (WHERE needs_review)                                 AS needs_review
+FROM students_studentsubmission;
+
+-- 3. Size of the JSON the new table will duplicate (storage and copy time)
+SELECT pg_size_pretty(pg_total_relation_size('students_studentsubmission')) AS table_total,
+       pg_size_pretty(sum(pg_column_size(feedback)))                          AS feedback_total,
+       avg(pg_column_size(feedback))::int                                     AS feedback_avg_bytes,
+       percentile_cont(0.99) WITHIN GROUP (ORDER BY pg_column_size(feedback))::int AS feedback_p99_bytes
+FROM students_studentsubmission WHERE graded_at IS NOT NULL;
+
+-- 4. Cheap approximate count if (1) is slow on the primary
+SELECT reltuples::bigint AS approx_rows FROM pg_class WHERE relname = 'students_studentsubmission';
+
+-- 5. Server version (Gate 7 compares against local 18.6)
+SHOW server_version;
+
+-- 6. Grading runs per day, last 30 days (V, and the live dual-write load)
+SELECT date_trunc('day', started_at) AS day, count(*) AS runs
+FROM students_backgroundprocessingtask
+WHERE task_type IN ('submission_grading','batch_submission_grading')
+  AND started_at > now() - interval '30 days'
+GROUP BY 1 ORDER BY 1;
+
+-- 7 and 8. LLM-bound question volume: average questions per graded assignment (denominator for H)
+SELECT count(*) AS graded_last_30d,
+       avg(jsonb_array_length(feedback->'question_evaluations'))::numeric(6,1) AS avg_questions_per_run
+FROM students_studentsubmission
+WHERE graded_at > now() - interval '30 days'
+  AND jsonb_typeof(feedback->'question_evaluations') = 'array';
+```
+
+`feedback` is a `jsonb` column on Postgres (Django `JSONField`); if the deployment column is `json`, cast with `feedback::jsonb`.
+Query 7/8 counts all evaluated questions, not only LLM-bound ones (deterministic questions are included), so it over-states V
+and under-states H; the result is an **upper bound**, stated as such in the evidence. To get H exactly, add a per-run
+cache-hit metric in I-1 (§10 item 18).
 
 ## 7. Parity checker
 
@@ -445,7 +557,8 @@ These are pre-existing and matter to I-2, E1 or integrity. Each needs an owner.
 
 | # | Item |
 |---|---|
-| 1 | **Feature Lead decisions:** (a) vocabulary: `teacher_overridden` vs regrade (§0.2); (b) `LEGACY` strictness sentinel (§3); (c) admin edits report-only vs read-only (§5.3); (d) cold-cache cost of the cache-key change (§4.4); (e) AI re-runs append from I-1 (§5.2); (f) size: M ≈ 2 wk, not ~1 wk |
+| 0 | **Decisions recorded 2026-09-26 (Feature Lead, with SM accepting the plan):** M ≈ 2 wk accepted; `teacher_overridden`/`overridden_at` is Phase 2 vocabulary for E1, I-2 and the frontend; `LEGACY` strictness sentinel accepted and excluded from QA-ACC-07; cache-key change with `CACHE_VERSION` v2 and its cold cache accepted (cost in §4.5, flagged to the SM); shadow-write failure never fails the grade, parity checker heals, **zero drift required before any reader moves in I-2**; flag default False; Django admin grade edits **report-only** in I-1. Production row count and the Gate 8 window are SM/founder asks and are not assumed |
+| 1 | **Feature Lead decisions (as raised):** (a) vocabulary: `teacher_overridden` vs regrade (§0.2); (b) `LEGACY` strictness sentinel (§3); (c) admin edits report-only vs read-only (§5.3); (d) cold-cache cost of the cache-key change (§4.4); (e) AI re-runs append from I-1 (§5.2); (f) size: M ≈ 2 wk, not ~1 wk |
 | 2 | Whether the answer-extraction prompt runs inside one `grade_student_submission` (§4.1) |
 | 3 | Which chunk's `grading_model` wins on a multi-chunk run (§4.3) |
 | 4 | Whether `response.model` is always set by OpenRouter (§0.4) |
@@ -461,7 +574,9 @@ These are pre-existing and matter to I-2, E1 or integrity. Each needs an owner.
 | 14 | Soft dependency on Epic A for the metrics module; on beta without it the metrics calls are no-ops and only logs remain |
 | 15 | Estimate excludes independent verification and CI queue time |
 | 16 | File ownership with B1 and E1: I-1 owns writers in `students/services.py` and `students/views.py` and a 3-line metadata edit at `assignments/tasks.py:528`; B1 and E1 own the rest of the grading task path. Agreed boundaries to be confirmed with the B1 plan author |
-| 17 | Decision (Feature Lead): flag default False and enabled by env at I-1b, versus default True as first drafted (§5.5) |
+| 17 | ~~Decision (Feature Lead): flag default False~~ **Decided 2026-09-26: default False, enabled by env at I-1b** (§5.5) |
+| 18 | Add a per-run answer-cache metric (hits, LLM-bound total) so H in §4.5 can be measured exactly. Small, in the cache code path this plan already edits (§4.4) |
+| 19 | Gate 8 cost approval and beta window: **not raised yet**; to be raised with Feature Lead when I-1 is code-complete |
 
 **Effect on the roadmap:** I-1 moves from about 1 week to about 2. The 05 §5 schedule had about 2 weeks of slack, so
 this leaves about 1 week. If E3 (`FeedbackRevision`) depends on this table (it does), E3's start is gated on I-1b.
