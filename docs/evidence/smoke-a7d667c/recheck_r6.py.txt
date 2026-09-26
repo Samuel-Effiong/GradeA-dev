@@ -1,0 +1,22 @@
+import json, os, re, time, requests
+B = "http://127.0.0.1:18765/api/v1"; S = os.path.dirname(os.path.abspath(__file__))
+PW = "SmokePass!234"  # pragma: allowlist secret
+PDF = "/home/bond-servant-in-training/Documents/Projects/GAP-smoke-0a-a7d667c/sample_teacher.pdf"
+seed = json.load(open(S + "/seed_ids.json"))
+def tok(e):
+    for _ in range(8):
+        r = requests.post(f"{B}/auth/login", json={"email": e, "password": PW})
+        if r.status_code != 429: break
+        time.sleep(5)
+    return {"Authorization": "Bearer " + r.json()["data"]["access"]}
+def upload(h, path, **kw):
+    with open(PDF, "rb") as f: return requests.post(f"{B}/{path}", headers=h, files=kw.get("files") or {"file": ("answers.pdf", f, "application/pdf")}, data=kw.get("data", {}))
+rt = None
+with open(PDF, "rb") as f:
+    rt = requests.post(f"{B}/assignments/upload-async", headers=tok("smoke-tc@smoke.test"), data={"course": seed["cc"]}, files={"assignments": ("s.pdf", f, "application/pdf")})
+rs = upload(tok("smoke-shared@smoke.test"), f"submissions/{seed['asg_c']}/upload-async")
+mt = rt.json()["error"]["field_errors"]["error"]; ms = rs.json()["error"]["field_errors"]["error"]
+banned = re.compile(r"trial|expire|subscription|balance|refill|chargeback|refund|dispute|plan|\d{3,}", re.I)
+print("teacher msg :", rt.status_code, mt); print("student msg :", rs.status_code, ms)
+print("R6b student message identical to the teacher's role-neutral message:", ms == mt)
+print("R6b no specific billing detail (trial/expired/subscription/balance/refill/chargeback/refund/dispute/plan/amounts):", not banned.search(ms), banned.findall(ms))
