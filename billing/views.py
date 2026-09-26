@@ -558,6 +558,58 @@ class CreditUsageLogViewSet(viewsets.ReadOnlyModelViewSet):
         return queryset
 
 
+def _none_subscription_response():
+    """
+    Flat placeholder payload for GET /subscription/me when the caller has
+    no subscription of any kind, ever — no UserSubscription row
+    (active OR expired) and no license context. Mirrors the field names
+    MySubscriptionSerializer would produce, since it can't serialize a
+    nonexistent model instance; everything is null/false/0 except
+    "status".
+    """
+    return {
+        "status": "NONE",
+        "id": None,
+        "user": None,
+        "plan": None,
+        "category": None,
+        "tier": None,
+        "interval": None,
+        "subscription_type": None,
+        "is_under_license": False,
+        "is_active": False,
+        "is_trial": False,
+        "trial_end": None,
+        "trial_days_remaining": None,
+        "trial_credits_remaining": None,
+        "billing_cycle_start": None,
+        "billing_cycle_end": None,
+        "auto_renew": False,
+        "cancellation": {
+            "cancelled_at": None,
+            "has_pending_cancellation": False,
+            "cancellation_effective_date": None,
+            "cancellation_message": None,
+        },
+        "pending_plan": None,
+        "pending_plan_effective_date": None,
+        "pending_change_type": None,
+        "pending_change_message": None,
+        "recommended_plan": None,
+        "has_pending_change": False,
+        "created_at": None,
+        "updated_at": None,
+        "next_renewal_date": None,
+        "days_until_renewal": None,
+        "stripe_status": None,
+        "plan_display_name": None,
+        "monthly_credits_display": None,
+        "current_balance_display": 0,
+        "credit_percentage_remaining": 0.0,
+        "monthly_credit_remaining_display": 0,
+    }
+
+
 class SubscriptionManagementViewSet(viewsets.GenericViewSet):
     """
     Viewset for managing user subscriptions.
@@ -588,13 +640,20 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
         summary="Get my subscription",
         description=(
             "Resolves the caller's current billing context regardless of "
-            "track. An INDIVIDUAL subscriber gets the existing "
-            "UserSubscription-shaped payload (unchanged). A teacher "
-            "actively enrolled under a school LICENSE gets a "
-            "LICENSE_TEACHER-shaped payload. A school admin managing an "
-            "active LICENSE gets a LICENSE_ADMIN-shaped payload. Check "
-            "`subscription_source` in the response to know which shape "
-            "was returned."
+            "track. Always returns 200; check `status` (ACTIVE / EXPIRED / "
+            "NONE) and `subscription_source` to know what was resolved. "
+            "ACTIVE: an INDIVIDUAL subscriber gets the existing "
+            "UserSubscription-shaped payload, a teacher actively enrolled "
+            "under a school LICENSE gets a LICENSE_TEACHER-shaped payload, "
+            "a school admin managing an active LICENSE gets a "
+            "LICENSE_ADMIN-shaped payload. EXPIRED: the caller has no "
+            "active subscription of any kind but has a most-recent lapsed "
+            "individual UserSubscription — same shape as the ACTIVE "
+            "INDIVIDUAL case, with next_renewal_date/days_until_renewal "
+            "null (see `cancellation`/`stripe_status` for why it lapsed). "
+            "NONE: no subscription has ever existed for this user on "
+            "either track — a flat placeholder payload with the same "
+            "field names, everything null/false/0 except `status`."
         ),
         responses={
             200: OpenApiResponse(
@@ -602,19 +661,80 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                     "One of MySubscriptionSerializer, "
                     "MyLicenseTeacherSubscriptionSerializer, or "
                     "MyLicenseAdminSubscriptionSerializer — discriminated "
-                    "by `subscription_source`."
-                )
-            ),
-            404: OpenApiResponse(
-                description="No active subscription found",
+                    "by `subscription_source`, with `status` ACTIVE, "
+                    "EXPIRED, or NONE."
+                ),
                 examples=[
                     OpenApiExample(
-                        name="No active subscription found",
+                        name="Active individual subscription",
                         value={
-                            "status": "inactive",
-                            "message": "No active subscription found",
+                            "status": "ACTIVE",
+                            "subscription_type": "INDIVIDUAL",
+                            "is_active": True,
+                            "plan": {"id": "3fd8...", "name": "PRO_MONTHLY"},
+                            "billing_cycle_start": "2026-09-01T00:00:00Z",
+                            "billing_cycle_end": "2026-10-01T00:00:00Z",
+                            "next_renewal_date": "2026-10-01T00:00:00Z",
+                            "days_until_renewal": 5,
+                            "auto_renew": True,
+                            "stripe_status": "active",
+                            "cancellation": {
+                                "cancelled_at": None,
+                                "has_pending_cancellation": False,
+                                "cancellation_effective_date": None,
+                                "cancellation_message": None,
+                            },
                         },
-                    )
+                    ),
+                    OpenApiExample(
+                        name="Expired individual subscription",
+                        value={
+                            "status": "EXPIRED",
+                            "subscription_type": "INDIVIDUAL",
+                            "is_active": False,
+                            "plan": {"id": "3fd8...", "name": "PRO_MONTHLY"},
+                            "billing_cycle_start": "2026-07-01T00:00:00Z",
+                            "billing_cycle_end": "2026-08-01T00:00:00Z",
+                            "next_renewal_date": None,
+                            "days_until_renewal": None,
+                            "auto_renew": False,
+                            "stripe_status": "canceled",
+                            "cancellation": {
+                                "cancelled_at": "2026-07-15T00:00:00Z",
+                                "has_pending_cancellation": False,
+                                "cancellation_effective_date": None,
+                                "cancellation_message": (
+                                    "You cancelled this subscription on "
+                                    "2026-07-15. You keep your current "
+                                    "plan and credits until 2026-08-01, "
+                                    "and it won't renew after that."
+                                ),
+                            },
+                        },
+                    ),
+                    OpenApiExample(
+                        name="No subscription ever existed",
+                        value={
+                            "status": "NONE",
+                            "id": None,
+                            "plan": None,
+                            "subscription_type": None,
+                            "is_active": False,
+                            "is_trial": False,
+                            "billing_cycle_start": None,
+                            "billing_cycle_end": None,
+                            "next_renewal_date": None,
+                            "days_until_renewal": None,
+                            "auto_renew": False,
+                            "stripe_status": None,
+                            "cancellation": {
+                                "cancelled_at": None,
+                                "has_pending_cancellation": False,
+                                "cancellation_effective_date": None,
+                                "cancellation_message": None,
+                            },
+                        },
+                    ),
                 ],
             ),
         },
@@ -625,7 +745,8 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
 
         if context.source == SOURCE_INDIVIDUAL:
             serializer = MySubscriptionSerializer(
-                context.user_subscription, context={"request": request}
+                context.user_subscription,
+                context={"request": request, "status": "ACTIVE"},
             )
             return Response(serializer.data)
 
@@ -643,10 +764,25 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
             )
             return Response(serializer.data)
 
-        return Response(
-            {"detail": "No active subscription found"},
-            status=status.HTTP_404_NOT_FOUND,
+        # No active context on either track. INDIVIDUAL only for now (see
+        # resolve_user_billing_context's docstring) — a license teacher/
+        # admin with a lapsed allocation still resolves via a DIFFERENT
+        # path (an active LicenseSubscription without an active
+        # allocation isn't representable as "EXPIRED" the same way; not
+        # handled in this pass).
+        last_sub = (
+            UserSubscription.objects.filter(user=request.user, is_active=False)
+            .select_related("plan", "pending_plan")
+            .order_by("-billing_cycle_end")
+            .first()
         )
+        if last_sub:
+            serializer = MySubscriptionSerializer(
+                last_sub, context={"request": request, "status": "EXPIRED"}
+            )
+            return Response(serializer.data)
+
+        return Response(_none_subscription_response())
 
     @extend_schema(
         tags=["Subscription"],
