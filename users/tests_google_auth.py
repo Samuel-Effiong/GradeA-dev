@@ -467,6 +467,103 @@ class GoogleAuthViewTests(APITestCase):
             "the attacker's pre-set password can still log in after Google completed the account",
         )
 
+    def _complete_with_google_then_reset_password(self, new_password):
+        """The rightful owner's recovery path after Google took their password."""
+        from users.models import PasswordResetOTP
+
+        user = self._existing(is_active=False, email_verified_at=None)
+        self.call(
+            token_response=self.valid_token_response(),
+            id_info=self.valid_id_info(),
+        )
+        with patch("users.views.safe_delay"):
+            otp = self.client.post(
+                reverse("auth-otp"),
+                {"email": user.email, "otp_type": "RESET_PASSWORD"},
+                format="json",
+            )
+        self.assertEqual(otp.status_code, status.HTTP_202_ACCEPTED, otp.data)
+        code = PasswordResetOTP.objects.get(user=user).code
+        reset = self.client.post(
+            reverse("auth-reset-password"),
+            {"email": user.email, "otp": str(code), "new_password": new_password},
+            format="json",
+        )
+        self.assertEqual(reset.status_code, status.HTTP_200_OK, reset.data)
+        return user
+
+    def test_the_rightful_owner_can_still_set_a_password_by_reset_after_google(self):
+        """
+        The cost of invalidating the password is that someone who registered
+        with their own password and then used Google loses it. They must be
+        able to get a new one: Google completion stamps email_verified_at,
+        which is what the reset flow requires.
+        """
+        new_password = "Fresh-Owner-Pw-9"  # pragma: allowlist secret
+        user = self._complete_with_google_then_reset_password(new_password)
+
+        login = self.client.post(
+            reverse("login"),
+            {"email": user.email, "password": new_password},
+            format="json",
+        )
+        self.assertEqual(login.status_code, status.HTTP_200_OK)
+
+    def test_a_later_google_sign_in_does_not_wipe_a_password_set_by_reset(self):
+        """
+        Idempotency: the invalidation belongs to the moment the row goes
+        live, not to every Google sign-in. A second sign-in finds the row
+        already active and must leave the owner's new password alone.
+        """
+        new_password = "Fresh-Owner-Pw-9"  # pragma: allowlist secret
+        user = self._complete_with_google_then_reset_password(new_password)
+
+        again = self.call(
+            token_response=self.valid_token_response(),
+            id_info=self.valid_id_info(),
+        )
+
+        self.assertEqual(again.status_code, status.HTTP_200_OK)
+        user.refresh_from_db()
+        self.assertTrue(user.check_password(new_password))
+
+    def test_every_role_loses_a_pre_set_password_when_google_activates_the_row(self):
+        for user_type in UserTypes.values:
+            with self.subTest(user_type=user_type):
+                email = f"dormant.{user_type.lower()}@gmail.com"
+                user = User.objects.create_user(
+                    email=email,
+                    password="password123",  # pragma: allowlist secret
+                    first_name="Dormant",
+                    last_name=user_type,
+                    user_type=user_type,
+                    is_active=False,
+                )
+
+                response = self.call(
+                    token_response=self.valid_token_response(),
+                    id_info=self.valid_id_info(email=email),
+                )
+
+                self.assertEqual(response.status_code, status.HTTP_200_OK)
+                user.refresh_from_db()
+                self.assertTrue(user.is_active)
+                self.assertFalse(user.has_usable_password())
+
+    def test_repeated_google_sign_ins_on_a_dormant_row_are_stable(self):
+        user = self._existing(is_active=False, email_verified_at=None)
+
+        for _ in range(3):
+            response = self.call(
+                token_response=self.valid_token_response(),
+                id_info=self.valid_id_info(),
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        user.refresh_from_db()
+        self.assertTrue(user.is_active)
+        self.assertFalse(user.has_usable_password())
+
     def test_an_active_but_unverified_account_keeps_its_password(self):
         """
         Companion to test_an_active_but_unverified_account_gets_marked_verified:
