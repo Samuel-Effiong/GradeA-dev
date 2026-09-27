@@ -37,3 +37,7 @@ Real login → real JWT auth. Sanity passes; three exploits fail: the same acces
 | 9 Isolation | user B's tokens and epoch untouched by user A's logout; other devices behave as stated above |
 | Checks the Security Lead asked for | missing claim == epoch 0 (test + mutant M4); hasher-upgrade does not bump (test + mutant M8); mint-after-save |
 Tests: `users/tests_token_revocation.py` (22 tests).
+
+## RESUME (shutdown checkpoint)
+Current step: fix committed and evidence written (96f2e8d); handed to Verification Engineer, awaiting their sign-off. Also reported PATCH /users/{id} password bypass as a new finding (now its own task, see task/authz-patch-password).
+Next exact command: none pending from me — check for a reply from Verification Engineer or Security Lead before acting further. If resuming cold: `cd Grade-Automator-Plus-authz-token-epoch && git log --oneline -3` then read EVIDENCE.md top to bottom.
