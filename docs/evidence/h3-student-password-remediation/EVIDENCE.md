@@ -19,9 +19,9 @@ The `audit` app is **not on beta** (only on `task/phase2-t1-audit-event`). So: a
 | Functional | dry-run reports counts and writes nothing (rows or file); execute resets only matches; unaffected/already-unusable accounts untouched; enrollments, submissions and all non-password user columns byte-identical, no deletes; report has no secrets |
 | Adversarial | real `auth/login` route: literal returns 200 before, **401 with no token after**; unaffected account still logs in; a reset account can set a new password and a re-run leaves it alone |
 | Failure | KeyboardInterrupt on the 2nd account write: exactly 1 reset committed, other still literal-valid, 1 report line; re-run resets the remaining 1, ends with zero literal-valid accounts. Concurrent password change between scan and write is not clobbered |
-| Mutation | 6 mutants, **6 killed, 0 survivors** (`mutation_results.json`, `mutation_log.txt`, `mutate.py`). M1 (remove the reset) fails 5 tests incl. `test_nobody_authenticates_with_the_literal_after_execute` and the login-endpoint test |
+| Mutation | 7 mutants, **7 killed, 0 survivors** (`mutation_results.json`, `mutation_log.txt`, `mutate.py`). M1 (remove the reset) fails 5 tests incl. `test_nobody_authenticates_with_the_literal_after_execute` and the login-endpoint test |
 | Regression | full `users` app: 506 tests, 505 pass, **1 failure that is not from this change**: `tests_email_domain_rules.ExemptDomainTests.test_nothing_is_exempt_by_default` fails because the shared `.env` (symlinked into every worktree) sets `EXEMPT_EMAIL_DOMAINS` to include yopmail.com (QA-style env). This change only adds 2 new files (no existing file modified), so it cannot affect that test. Verification Engineer should confirm on a clean env. Trimmed output: `regression_users_app.txt` |
-Feature tests: `python manage.py test users.tests_remediate_student123 --settings=settings_worktree` → 13 tests OK.
+Feature tests: `python manage.py test users.tests_remediate_student123 --settings=settings_worktree` → 15 tests OK.
 Not covered here: Gates 3/6/7/8 (single-pass admin command; no concurrency/scale surface beyond the CAS test). Real-infra: tests ran on real PostgreSQL.
 
 ## Production run (needs founder approval; I have not run anything against prod)

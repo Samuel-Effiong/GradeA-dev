@@ -28,6 +28,10 @@ MUTANTS = {
         "if check_password(LITERAL, user.password, setter=None):",
         "if True:",
     ),
+    "M7_activity_signal_ignored": (
+        'seen_ids = active_ids | {d["id"] for d in details if d["last_login"]}',
+        "seen_ids = set()",
+    ),
     "M6_report_leaks_hash": (
         '"previous_hash_algorithm": _algorithm(old_hash),',
         '"previous_hash_algorithm": old_hash,',

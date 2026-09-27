@@ -40,6 +40,13 @@
       "test_unaffected_account_can_still_log_in"
     ]
   },
+  "M7_activity_signal_ignored": {
+    "killed": true,
+    "failing_tests": [
+      "test_last_login_alone_also_triggers_the_warning",
+      "test_warns_when_a_matching_account_has_recorded_activity"
+    ]
+  },
   "M6_report_leaks_hash": {
     "killed": true,
     "failing_tests": [
