@@ -51,8 +51,8 @@ MUTANTS = {
     ),
     "M9_tokens_not_stamped_with_current_epoch": (
         T,
-        "        token[EPOCH_CLAIM] = (",
-        "        token[EPOCH_CLAIM] = 0 and (",
+        "        token[EPOCH_CLAIM] = CustomUser.objects.values_list(",
+        "        token[EPOCH_CLAIM] = 0 and CustomUser.objects.values_list(",
     ),
     "M10_bump_is_read_modify_write": (
         M,
