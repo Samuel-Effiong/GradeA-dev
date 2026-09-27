@@ -195,12 +195,32 @@ class FunctionalTests(RemediationBase):
             self.assertEqual(r["new_state"], "unusable_password")
             self.assertIn("previous_hash_algorithm", r)
 
-    def test_warns_when_a_matching_account_has_logged_in(self):
+    def test_warns_when_a_matching_account_has_recorded_activity(self):
+        """last_login is never set by this app, so activity rows are the real
+        signal (a successful login through the endpoint writes one)."""
+        from users.models import UserActivity
+
+        access = self.login("one@student.local", LITERAL).json()["data"]["access"]
+        # The heartbeat middleware writes the row on an AUTHENTICATED request,
+        # so a login alone leaves no row; the first call after it does.
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
+        self.client.get(reverse("user-detail", kwargs={"pk": self.bad1.pk}))
+        self.assertTrue(UserActivity.objects.filter(user=self.bad1).exists())
+        CustomUser.objects.update(last_login=None)  # as in prod: never populated
+        out = run()
+        self.assertIn("with recorded sign-in activity (UserActivity rows): 1", out)
+        self.assertIn("WARNING: 1 matching account(s) show sign-in activity", out)
+
+    def test_no_warning_when_nobody_has_signed_in(self):
+        out = run()
+        self.assertIn("with recorded sign-in activity (UserActivity rows): 0", out)
+        self.assertNotIn("WARNING", out)
+
+    def test_last_login_alone_also_triggers_the_warning(self):
         from django.utils import timezone
 
         CustomUser.objects.filter(pk=self.bad1.pk).update(last_login=timezone.now())
-        out = run()
-        self.assertIn("WARNING: 1 matching account(s) have logged in", out)
+        self.assertIn("WARNING: 1 matching account(s) show sign-in activity", run())
 
 
 class AdversarialLoginEndpointTests(RemediationBase):

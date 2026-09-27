@@ -11,7 +11,7 @@ Files: `users/management/commands/remediate_student123_passwords.py`, `users/tes
 - Uses `django.contrib.auth.hashers.check_password(..., setter=None)`, **not** `user.check_password`, because the latter re-hashes and saves an outdated hash, which would make the dry-run write. Pinned by a test and mutant M4.
 
 ## Audit record — which mechanism
-The `audit` app is **not on beta** (only on `task/phase2-t1-audit-event`). So: an append-only **JSONL report** (`--report`, fsync per line, written after the row commits) plus a structured log on logger `users.remediation`. Each line: user_id, email, user_type, is_active, last_login, previous hash *algorithm* only, new_state. No hashes, no literal. The report contains emails (PII): store it outside the repo, restricted. If the DB and report ever disagree (death between commit and write) the DB is the source of truth; re-run is safe. Swap to the audit emitter once it lands on beta.
+The `audit` app is **not on beta** (only on `task/phase2-t1-audit-event`). So: an append-only **JSONL report** (`--report`, fsync per line, written after the row commits) plus a structured log on logger `users.remediation`. Each line: user_id, email, user_type, is_active, has_recorded_activity, last_login, previous hash *algorithm* only, new_state. No hashes, no literal. The report contains emails (PII): store it outside the repo, restricted. If the DB and report ever disagree (death between commit and write) the DB is the source of truth; re-run is safe. Swap to the audit emitter once it lands on beta.
 
 ## Gates
 | Gate | Result |
@@ -36,6 +36,10 @@ Report handling (PROPOSED, founder to confirm owner and period): the `--report` 
 
 Runtime note: it verifies PBKDF2 (1M iterations) against every user row, roughly 0.2–0.5 s each; budget minutes, not seconds, and run it off-peak.
 
+### CORRECTION (Verification Engineer, adopted): "last_login IS NULL on all 116" proves nothing
+This app never sets `last_login` (simplejwt `UPDATE_LAST_LOGIN` is off and no view updates it; a real 200 from `/auth/login` leaves it NULL). So the spec's "not one has ever signed in, therefore zero user impact" is **unproven**. The command now reports the real signal, `UserActivity` rows (written by the heartbeat middleware on authenticated requests), and warns if any matching account has activity or a `last_login`. Limit: a login with no follow-up request leaves no row. **Before `--execute`, the founder should also check auth/web logs for these accounts.**
+Consequences to know: (1) 97 of the 116 are `@student.local` addresses, which are not mailboxes, so password reset cannot reach them; their recovery is a teacher/admin issuing a new generated password (re-invite path). Only the 19 real-email accounts can self-recover. (2) The command resets via `QuerySet.update()`, so it will not bump `token_epoch` if `authz-token-epoch` lands first; add `token_epoch=F("token_epoch") + 1` to the update once both are on beta (only matters if any of these accounts have live tokens, which is what the activity check is for). (3) The log line is emitted before the report-file write, so a disk-full failure after a commit still leaves the reset in the log; the DB remains the source of truth and a re-run is safe.
+
 ### Expected dry-run output (from the H-3 spec's prod findings)
 ```
 Mode: DRY-RUN (no changes will be written)
@@ -44,7 +48,8 @@ Accounts with the literal password: 116
   by user_type: {"STUDENT": 116}
   active: 116
   with a non-@student.local email: 19
-  that have ever logged in (last_login set): 0
+  with recorded sign-in activity (UserActivity rows): <must be 0 to proceed without review>
+  with last_login set (not maintained by this app): 0
 Dry run: would reset 116 account(s). Re-run with --execute to apply.
 ```
-Stop conditions: matches ≠ 116, any user_type other than STUDENT, or the `WARNING ... have logged in` line appears → the data has changed since the spec was written; do not `--execute` without review. Expected `--execute` tail: `Reset: 116`, `Skipped (password changed since scan): 0`, `Audit report: <path>`; step 3 must print `Accounts with the literal password: 0`.
+Stop conditions: matches ≠ 116, any user_type other than STUDENT, or the `WARNING ... show sign-in activity` line appears → the data has changed since the spec was written; do not `--execute` without review. Expected `--execute` tail: `Reset: 116`, `Skipped (password changed since scan): 0`, `Audit report: <path>`; step 3 must print `Accounts with the literal password: 0`.

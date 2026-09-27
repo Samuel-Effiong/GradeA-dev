@@ -2,9 +2,11 @@
 H-3: neutralise accounts whose password is the known literal ``student123!``.
 
 Production data (read-only check): 116 of 122 student accounts authenticate
-with that literal, all active, none has ever logged in. Resetting them to an
-unusable password therefore has no user impact; a holder who wants in uses the
-password-reset flow.
+with that literal, all active. ``last_login`` is NULL on all of them, but this
+app never sets ``last_login``, so that does not show nobody signed in. Check
+the dry-run's UserActivity count (and auth logs) before ``--execute``. Accounts
+with a real mailbox recover through password reset; @student.local addresses
+are not mailboxes, so those need a teacher or admin to set a new password.
 
     python manage.py remediate_student123_passwords             # dry run
     python manage.py remediate_student123_passwords --execute   # write
@@ -103,19 +105,34 @@ class Command(BaseCommand):
         real_email = sum(
             1 for d in details if not d["email"].endswith("@student.local")
         )
-        ever_logged_in = sum(1 for d in details if d["last_login"] is not None)
+        # last_login is NOT maintained by this app (simplejwt's
+        # UPDATE_LAST_LOGIN is off and no view sets it), so a NULL there
+        # proves nothing. UserActivity rows, written on login and on
+        # authenticated activity, are the real "someone signed in" signal.
+        from users.models import UserActivity
+
+        active_ids = set(
+            UserActivity.objects.filter(user_id__in=[d["id"] for d in details])
+            .values_list("user_id", flat=True)
+            .distinct()
+        )
+        seen_ids = active_ids | {d["id"] for d in details if d["last_login"]}
         self.stdout.write(f"  by user_type: {json.dumps(by_type, sort_keys=True)}")
         self.stdout.write(f"  active: {sum(1 for d in details if d['is_active'])}")
         self.stdout.write(f"  with a non-@student.local email: {real_email}")
         self.stdout.write(
-            f"  that have ever logged in (last_login set): {ever_logged_in}"
+            f"  with recorded sign-in activity (UserActivity rows): {len(active_ids)}"
         )
-        if ever_logged_in:
+        self.stdout.write(
+            f"  with last_login set (not maintained by this app): "
+            f"{sum(1 for d in details if d['last_login'])}"
+        )
+        if seen_ids:
             self.stdout.write(
                 self.style.WARNING(
-                    f"WARNING: {ever_logged_in} matching account(s) have logged in "
-                    "before; resetting them locks out a possibly real user "
-                    "(they can use password reset)."
+                    f"WARNING: {len(seen_ids)} matching account(s) show sign-in "
+                    "activity; resetting them locks out a possibly real user "
+                    "(they must use password reset, which needs a real mailbox)."
                 )
             )
 
@@ -159,16 +176,19 @@ class Command(BaseCommand):
                     "email": d["email"],
                     "user_type": d["user_type"],
                     "is_active": d["is_active"],
+                    "has_recorded_activity": pk in active_ids,
                     "last_login": (
                         d["last_login"].isoformat() if d["last_login"] else None
                     ),
                     "previous_hash_algorithm": _algorithm(old_hash),
                     "new_state": "unusable_password",
                 }
+                # Logged BEFORE the file write: if the disk fills after the
+                # row committed, the log line still records the reset.
+                logger.info("h3_student123 reset", extra={"audit": record})
                 report.write(json.dumps(record, sort_keys=True) + "\n")
                 report.flush()
                 os.fsync(report.fileno())
-                logger.info("h3_student123 reset", extra={"audit": record})
 
         self.stdout.write(f"Reset: {reset}")
         self.stdout.write(f"Skipped (password changed since scan): {skipped_changed}")
