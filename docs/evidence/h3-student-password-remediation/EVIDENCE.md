@@ -53,3 +53,7 @@ Accounts with the literal password: 116
 Dry run: would reset 116 account(s). Re-run with --execute to apply.
 ```
 Stop conditions: matches ≠ 116, any user_type other than STUDENT, or the `WARNING ... show sign-in activity` line appears → the data has changed since the spec was written; do not `--execute` without review. Expected `--execute` tail: `Reset: 116`, `Skipped (password changed since scan): 0`, `Audit report: <path>`; step 3 must print `Accounts with the literal password: 0`.
+
+## RESUME (shutdown checkpoint)
+Current step: command + evidence, including the UserActivity-signal fix from Verification Engineer's notes, all committed (e275a10). Verification Engineer says a re-verify pass is still owed (told me not to treat their first pass as a verdict). Prod run needs founder approval, routed through Security Lead/Senior Manager; I have NOT run anything against prod.
+Next exact command: none pending from me — wait for Verification Engineer's re-verify. If resuming cold: `cd Grade-Automator-Plus-h3-student-password-remediation && git log --oneline -5`; the exact prod dry-run command is in EVIDENCE.md's 'Production run' section.
