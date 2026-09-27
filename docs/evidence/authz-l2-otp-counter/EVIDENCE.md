@@ -39,3 +39,7 @@ Tests: `users/tests_reset_otp_budget.py` (15 tests) + `users/tests_throttling.py
 
 ## Residual risk (not fixed here)
 Assumptions: 6-digit code (1,000,000 values), attacker limited only by the per-account budget: ≤5 guesses per 30-minute lock cycle, or ≈4 per 15-minute code-expiry window, so at most **~384 guesses/day** per account whatever the number of IPs. That is under **0.04%/day** per targeted account, but a patient attacker reaches meaningful odds over months against one account. Failed guesses send the victim no email. Options, deliberately NOT done here: escalating lock, 8-digit code, audit-app event. Tracked as a LOW item in `docs/HARDENING_BACKLOG.md` ("AUTHZ-L2 follow-up").
+
+## RESUME (shutdown checkpoint)
+Current step: fix, backlog follow-up item and lock-event logging all committed (53cb7ef); handed to Verification Engineer, awaiting sign-off. No open questions to Security Lead.
+Next exact command: none pending from me — wait for Verification Engineer/Security Lead. If resuming cold: `cd Grade-Automator-Plus-authz-l2-otp-counter && git log --oneline -3`.
