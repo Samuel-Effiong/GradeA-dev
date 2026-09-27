@@ -1,0 +1,4 @@
+SHAPE 400 {"success":false,"message":"Current password: Your current password is required to change your email.","error":{"field_errors":{"current_password":["Your current password is required to change your email."]}}}
+SHAPE 400 {"success":false,"message":"Current password: Current password is incorrect.","error":{"field_errors":{"current_password":["Current password is incorrect."]}}}
+SHAPE 400 {"success":false,"message":"Email: The email address cannot be changed for accounts that sign in without a password (for example Google sign-in).","error":{"field_errors":{"email":["The email address cannot be changed for accounts that sign in without a password (for example Google sign-in)."]}}}
+SHAPE 400 {"success":false,"message":"Password: The password cannot be changed through this endpoint. Use POST /auth/change-password instead.","error":{"field_errors":{"password":["The password cannot be changed through this endpoint. Use POST /auth/change-password instead."]}}}

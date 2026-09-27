@@ -45,6 +45,12 @@ class CustomUserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         write_only=True, required=True, validators=[validate_password]
     )
+    # AUTHZ-PATCHPW: proof of the current password, required when a user
+    # changes their OWN email address (see _require_current_password). Not a
+    # model field; validate() consumes it.
+    current_password = serializers.CharField(
+        write_only=True, required=False, allow_blank=True
+    )
     school = serializers.PrimaryKeyRelatedField(
         queryset=School.objects.all(),
         required=False,
@@ -103,6 +109,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             "profile_image_url",
             "user_type",
             "password",
+            "current_password",
             "is_active",
             "must_change_password",
             "date_joined",
@@ -149,6 +156,50 @@ class CustomUserSerializer(serializers.ModelSerializer):
             and getattr(acting, "pk", None) == self.instance.pk
         )
 
+    def _require_current_password(self, current_password):
+        """Re-authenticate before the account's recovery identity changes.
+
+        The email decides where reset codes go, so changing it on a bearer
+        token alone is an account takeover from a stolen access token (the
+        new address receives the reset OTP). A wrong password counts against
+        the same per-account lockout as login, otherwise this route would be
+        a password-guessing oracle for whoever holds the token.
+        """
+        user = self.instance
+        if not user.has_usable_password():
+            raise serializers.ValidationError(
+                {
+                    "email": (
+                        "The email address cannot be changed for accounts that "
+                        "sign in without a password (for example Google sign-in)."
+                    )
+                }
+            )
+        if user.is_account_locked():
+            raise serializers.ValidationError(
+                {
+                    "current_password": (
+                        "Too many failed attempts. Please try again later."
+                    )
+                }
+            )
+        if not current_password:
+            raise serializers.ValidationError(
+                {
+                    "current_password": (
+                        "Your current password is required to change your email."
+                    )
+                }
+            )
+        if not user.check_password(current_password):
+            user.register_failed_login()
+            raise serializers.ValidationError(
+                {
+                    "current_password": "Current password is incorrect."  # pragma: allowlist secret
+                }
+            )
+        user.reset_login_lockout()
+
     def validate(self, attrs):
         from users.utils import (
             is_business_email,
@@ -173,6 +224,14 @@ class CustomUserSerializer(serializers.ModelSerializer):
                     )
                 }
             )
+
+        current_password = attrs.pop("current_password", None)
+        if (
+            self._is_acting_on_self()
+            and "email" in attrs
+            and attrs["email"] != self.instance.email
+        ):
+            self._require_current_password(current_password)
 
         # Determine user_type and email for this operation
         user_type = attrs.get("user_type")
