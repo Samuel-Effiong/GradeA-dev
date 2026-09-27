@@ -30,7 +30,11 @@ against the 10-gate doctrine
 - Under hardening rule H1.3, this change is in the environment-sensitive
   class, so a gate left PARTIAL needs **the user's explicit written sign-off**
   before it lands. The Senior Manager's approval does not substitute for it.
-  That sign-off is **not yet given**.
+  **Given 2026-09-27**, by the user directly in the Hardening Engineer's
+  session, verbatim: "I approve Gate 8 PARTIAL for cache-commit-race". It
+  covers Gate 8 PARTIAL only (LOCAL-REAL, with a deployed probabilistic replay
+  on QA after landing). It does not cover Gate 4, which is still required
+  before landing.
 - **Gate 6's timing figures are not final.** The first measurement ran while
   five other suites were running (load average 20.9), so its wall-clock and
   p50/p95 numbers were discarded rather than reported. Counts, query numbers
@@ -86,7 +90,7 @@ Reproduced before the fix: `01_reproduce_on_unfixed_beta.log` (see §4, Gate 1).
 | 5 Failure / Recovery | PASS | Redis refused and timing out, at the first bump and at commit; `02_after_fix.log` |
 | 6 Stress / Scale | PARTIAL | counts, query growth and generation arithmetic proven at 600/6,000 and 200/2,000; the timing pass awaits an unloaded machine; `05_double_bump_cost.log` |
 | 7 Real Infrastructure | PASS (LOCAL-REAL) | every test runs on real Postgres + real Redis; no mocked cache backend |
-| 8 Live / E2E | PARTIAL | the pre-commit window cannot be forced over HTTPS; mechanism proven LOCAL-REAL |
+| 8 Live / E2E | PARTIAL (user sign-off 2026-09-27) | the pre-commit window cannot be forced over HTTPS; mechanism proven LOCAL-REAL |
 | 9 Security / Isolation | PASS | the post-commit bump touches only the writer's own scopes; `02_after_fix.log` |
 | 10 Final Production Gate | PENDING | two consecutive clean strict runs on the exact commit |
 
@@ -235,8 +239,8 @@ rather than a SCAN-and-delete of the whole keyspace.
 
 ### Gate 8 — Live / E2E
 
-PARTIAL, accepted in writing by the Senior Manager, and still subject to H1.3
-(the user's sign-off). What the deployed environment could show is that
+PARTIAL, accepted in writing by the Senior Manager, and signed off under H1.3 by
+the user on 2026-09-27: "I approve Gate 8 PARTIAL for cache-commit-race". What the deployed environment could show is that
 enrollment and revocation work, which is not in question. What it cannot show
 is a read landing inside the pre-commit window, because that window is not
 externally addressable. The independent probabilistic replay against
