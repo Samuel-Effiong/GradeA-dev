@@ -32,3 +32,7 @@ Both parts fail on beta's serializer (`prefix_beta_4b902fc_password_failing.txt`
 | 4 Adversarial | full takeover chain (password PATCH, and separately email PATCH → OTP → reset) closed; form-encoded body also rejected; mixed request (password + other fields) refused whole, nothing half-applied; PUT (already 405) confirmed not a bypass; wrong `current_password` counted against lockout, and locked out then refuses even the CORRECT password |
 | 9 Isolation | another teacher, a teacher against their own student, a student against a teacher, and a school admin against a teacher in their school: all refused (403/404), target's password/email unchanged; superadmin-on-other-account unaffected (positive control) |
 Tests: `users/tests_patch_password.py` (12), `users/tests_patch_email.py` (13).
+
+## RESUME (shutdown checkpoint)
+Current step: both fixes (password aa0de82, email 566b447) and evidence (1db6e56) committed; reported to Security Lead and queued with Verification Engineer. No open questions.
+Next exact command: none pending from me — wait for Verification Engineer/Security Lead. If resuming cold: `cd Grade-Automator-Plus-authz-patch-password && git log --oneline -5`.
