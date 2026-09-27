@@ -140,12 +140,39 @@ class CustomUserSerializer(serializers.ModelSerializer):
     def get_is_system_generated_email(self, obj) -> bool:
         return bool(obj.email and str(obj.email).endswith("@student.local"))
 
+    def _is_acting_on_self(self):
+        request = self.context.get("request")
+        acting = getattr(request, "user", None)
+        return bool(
+            self.instance is not None
+            and acting is not None
+            and getattr(acting, "pk", None) == self.instance.pk
+        )
+
     def validate(self, attrs):
         from users.utils import (
             is_business_email,
             is_exempt_email_domain,
             is_personal_email,
         )
+
+        # AUTHZ-PATCHPW: a user must not set their own password through this
+        # serializer (PATCH /users/<id>). That route needs only a bearer
+        # token, so a stolen access token could set a password the attacker
+        # knows and keep the account for good; /auth/change-password
+        # requires current_password (and the OTP when supplied). Rejected
+        # loudly rather than dropped so a client that relied on it fails
+        # visibly. A super admin acting on ANOTHER account, and account
+        # creation (self.instance is None), are unchanged.
+        if "password" in attrs and self._is_acting_on_self():
+            raise serializers.ValidationError(
+                {
+                    "password": (
+                        "The password cannot be changed through this endpoint. "
+                        "Use POST /auth/change-password instead."
+                    )
+                }
+            )
 
         # Determine user_type and email for this operation
         user_type = attrs.get("user_type")
