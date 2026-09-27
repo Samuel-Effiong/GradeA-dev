@@ -1,0 +1,44 @@
+control (unmutated):
+Ran 4 tests in 8.055s
+OK
+
+== mutant a-ignore-enrolled-courses-filter
+FAIL: test_names_and_the_built_payload_match
+FAIL: test_same_students_scores_and_order_as_the_original
+Ran 4 tests in 10.972s
+FAILED (failures=2)
+RESTORE_MISMATCH
+
+== mutant b-count-unpublished-scores
+FAIL: test_names_and_the_built_payload_match
+FAIL: test_same_students_scores_and_order_as_the_original
+Ran 4 tests in 8.833s
+FAILED (failures=2)
+RESTORE_MISMATCH
+
+== mutant c-include-withdrawn
+FAIL: test_names_and_the_built_payload_match
+FAIL: test_same_students_scores_and_order_as_the_original
+Ran 4 tests in 13.569s
+FAILED (failures=2)
+RESTORE_MISMATCH
+
+== mutant d-include-inactive-students
+FAIL: test_names_and_the_built_payload_match
+FAIL: test_same_students_scores_and_order_as_the_original
+Ran 4 tests in 15.858s
+FAILED (failures=2)
+RESTORE_MISMATCH
+
+== mutant e-drop-submission-ordering
+Ran 4 tests in 12.089s
+OK
+RESTORE_MISMATCH
+
+== mutant f-count-future-assignments
+RESTORE_MISMATCH
+
+== mutant g-submitted-count-off-by-one
+Ran 4 tests in 9.260s
+OK
+RESTORE_MISMATCH
