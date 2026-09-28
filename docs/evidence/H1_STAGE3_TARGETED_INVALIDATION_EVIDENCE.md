@@ -285,3 +285,63 @@ PENDING — filled in from the gate report when the run completes.
 2. After step 4: two concurrent full suites (H-9 rule) and a strict gate on
    the committed tree.
 3. Owner approval, then landing on beta.
+
+## 8. Cache families added on beta since `b744c9f`
+
+**Merge correction.** Merge commit `0ca0404`'s message says "Merge beta
+(4b902fc)", but its second parent is local beta **`be78221`** (4b902fc plus
+authz-oauth-takeover, the gate-10 baseline and h39-network-guard). Only the sha
+in the message is wrong; the merged content is be78221. All evidence below is
+against that tree.
+
+**New families.** Every `cache.set` / `get_or_set` / `versioned_key` that beta
+added between `b744c9f` and `be78221` (non-test code) was listed. Exactly one
+production cache family is new; the other hit is a probe key in
+`scripts/strict_gate.py`.
+
+| Family | Introduced by | Written with | TTL |
+|---|---|---|---|
+| `studentadmins:user_id__<student>:view__status_summary:all` and `...:course__<course>` (`dashboard/views.py` `status_summary`, URL `student-status-summary`) | `24c0a7b` "Add unified assignment status-summary endpoint" | raw `cache.set`, NOT generation-versioned | 15 min |
+
+It was absent from `AutoGrader/tests_cache_invalidation_coverage.py`'s key map,
+and beta's own tests (`dashboard/tests.py`) call `cache.clear()` first, so no
+existing test measured its freshness. The Stage 3 targeted invalidation predates
+it.
+
+**Freshness matrix** (`dashboard/tests_cache_matrix_status_summary.py`, 24 tests,
+real Postgres + real Redis, every mutation through the real route or service).
+Viewer: the enrolled student, both variants; an unrelated student on both
+variants is asserted UNAFFECTED in every cell.
+
+| Write path | Wildcards ON (production today) | Wildcards OFF (step-4 simulation) |
+|---|---|---|
+| teacher publishes a draft | FRESH | STALE |
+| student submits | FRESH | STALE |
+| teacher publishes one grade | FRESH | STALE |
+| publish-all-grades | FRESH | STALE |
+| overdue due date extended | FRESH | STALE |
+| assignment unpublished | FRESH | STALE |
+| assignment deleted | FRESH | STALE |
+| enrolled into a new course | FRESH | `all` STALE |
+| withdrawn (PATCH) | FRESH | `all` STALE |
+| removed from course (DELETE) | FRESH | `all` STALE |
+| course deactivated | FRESH | `all` STALE |
+| withdraw → publish → re-enrol | FRESH | STALE: the entry orphaned at withdrawal is served again on return |
+
+On the four enrolment rows, the `?course=` variant reads FRESH even with the
+wildcards off, only because the endpoint's access check runs before the cache
+lookup (the student gets 404 instead of a cached body).
+
+**Conclusions.**
+1. **No live bug.** With the wildcards in place (the production code), every
+   write path invalidates this family: every cell is FRESH. The tests prove
+   the freshness, not which pattern does it; by reading the receivers, each
+   path reaches a legacy wildcard that matches the key (`*studentadmin*`).
+2. **Step-4 prerequisite, proven.** With the wildcards off, the family goes
+   stale on every path. Step 4 (wildcard removal, approved 2026-09-28 as a
+   separate landing) must first put this family on per-viewer generation bumps.
+   The wildcards-OFF tests assert STALE deliberately: they fail by design once
+   the family is versioned, which forces them to be flipped to FRESH in that
+   change rather than silently passing.
+
+Run: 24 tests, OK (`nice -n 10`, no `--parallel`), on `0ca0404`.
