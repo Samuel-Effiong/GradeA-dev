@@ -63,11 +63,6 @@ ALLOWED = {
         'StudentCourse.objects.filter(course__teacher=OuterRef("id"))',
     ): "admin reporting aggregate per teacher; not teacher access",
     (
-        "classrooms/services/roster_import.py",
-        "enrollments__course__teacher=course.teacher,",
-    ): "name match limited to students already with this course's teacher; the "
-    "caller's access to `course` was scoped before this runs",
-    (
         "classrooms/serializers.py",
         "if user.is_under_license() or value.teacher_id != user.id:",
     ): "ownership of an INDIVIDUAL Session (value is a Session, not a Course)",

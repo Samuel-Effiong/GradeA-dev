@@ -13,14 +13,18 @@ table is built from. "changed" is measured on the row, never inferred from the
 status code. Re-run unchanged against the fixed branch.
 """
 
+import io
+import json
 from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
 from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
+from PIL import Image
 from rest_framework.test import APIClient, APIRequestFactory
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -38,6 +42,9 @@ from billing.models import (
     CreditWallet,
     LicenseSubscription,
     PlanCategory,
+    PlanFeature,
+    PlanFeatureInclusion,
+    PlanFeatureKey,
     PlanTier,
     PlanType,
     SubscriptionPlan,
@@ -52,7 +59,11 @@ from classrooms.models import (
     Topic,
 )
 from classrooms.views import StudentCourseViewSet
-from students.models import BatchUploadSession, StudentSubmission
+from students.models import (
+    BackgroundProcessingTask,
+    BatchUploadSession,
+    StudentSubmission,
+)
 from users.models import CustomUser, UserTypes
 
 PASSWORD = "Str0ng-h38-password!"  # pragma: allowlist secret
@@ -250,17 +261,34 @@ class RemovedTeacherAssignmentRouteTests(RemovedTeacherRoutesBase):
         self.assertFalse(gone)
 
     def test_upload_assignment(self):
+        # Funded, so no billing refusal can stand in for the H-38 guard
+        # (A2a: get_object_or_404(reachable_courses(user), id=course_id)).
+        # A real image is sent and the provider stubbed, so a regressed
+        # guard would go on to the extraction instead of stopping early.
+        fund_wallet(self.teacher)
         before = Assignment.objects.count()
-        response = self.client_t.post(
-            f"{API}/assignments/upload", {"course": self.course_id}, format="multipart"
-        )
+        with patch(
+            "ai_processor.services.AIProcessor._AIProcessor__ai_model",
+            return_value=fake_model_response(EXTRACTION),
+        ) as model:
+            response = self.client_t.post(
+                f"{API}/assignments/upload",
+                {"course": self.course_id, "assignments": [png_upload()]},
+                format="multipart",
+            )
         note(
-            "assignments/views.py:776 upload",
+            "assignments/views.py:782 upload",
             "WRITE",
             response,
             Assignment.objects.count() != before,
         )
-        self.assertIn(response.status_code, (402, 403, 404), response.content)
+        # Strict: the guard's own 404. With A2a reverted the course is found
+        # and the file goes on to extraction, where the removed teacher's
+        # lapsed AI access fails it (400, a failed-file list) instead.
+        self.assertEqual(response.status_code, 404, response.content)
+        self.assertLess(response.status_code, 500, response.content)
+        self.assertEqual(Assignment.objects.count(), before)
+        self.assertFalse(model.called)
 
     def test_upload_assignment_async(self):
         # Funded, so HasCreditBalance passes and the request reaches the
@@ -286,13 +314,31 @@ class RemovedTeacherAssignmentRouteTests(RemovedTeacherRoutesBase):
         self.assertEqual(BatchUploadSession.objects.count(), before)
 
     def test_generate_assignment_from_prompt(self):
-        response = self.client_t.post(
-            f"{API}/assignments/generate/{self.course_id}",
-            {"prompt": "Make a quiz on cells"},
-            format="json",
-        )
-        note("assignments/views.py:1232 generate", "WRITE(paid AI)", response, False)
-        self.assertIn(response.status_code, (402, 403, 404), response.content)
+        # Funded, so no billing refusal can stand in for the H-38 guard
+        # (A2c: get_object_or_404(reachable_courses(user), id=course_id)).
+        # The provider is stubbed so a regressed guard never reaches a model.
+        fund_wallet(self.teacher)
+        with patch(
+            "ai_processor.services.AIProcessor._AIProcessor__ai_model",
+            return_value=fake_generation_response(),
+        ) as model:
+            response = self.client_t.post(
+                f"{API}/assignments/generate/{self.course_id}",
+                {"prompt": "Make a quiz on cells"},
+                format="json",
+            )
+        written = AssignmentGenerationSession.objects.filter(
+            course_id=self.course_id
+        ).exists()
+        note("assignments/views.py:1238 generate", "WRITE(paid AI)", response, written)
+        # Strict: the guard's own 404. With A2c reverted the view opens a
+        # generation session in the School A course, writes the teacher's
+        # message into it, and only then is refused by the AI access gate.
+        self.assertEqual(response.status_code, 404, response.content)
+        self.assertLess(response.status_code, 500, response.content)
+        self.assertFalse(written)
+        self.assertFalse(AssignmentGenerationMessage.objects.exists())
+        self.assertFalse(model.called)
 
     def test_associate_topic(self):
         response = self.client_t.patch(
@@ -401,18 +447,33 @@ class RemovedTeacherSubmissionRouteTests(RemovedTeacherRoutesBase):
         self.assertFalse(model.called)
         self.assertFalse(changed)
 
-    def test_submission_upload_to_the_school_assignment(self):
-        before = StudentSubmission.objects.count()
-        response = self.client_t.post(
-            f"{API}/submissions/{self.assignment.id}/upload", {}, format="multipart"
+    def test_batch_upload_answers_to_the_school_assignment(self):
+        # The teacher route behind S1, `_assignment_taught_by` (only caller:
+        # batch_upload). This probe used to post to submissions/<id>/upload,
+        # the IsStudent-only upload_answers action, which never calls it.
+        # Funded past HasCreditBalance, so the refusal is the H-38 guard.
+        fund_wallet(self.teacher)
+        submissions_before = StudentSubmission.objects.count()
+        with patch("students.views.launch_processing_task") as launch:
+            launch.return_value.id = "celery-id"
+            response = self.client_t.post(
+                f"{API}/submissions/{self.assignment.id}/batch-upload",
+                {"answers": [pdf_upload()]},
+                format="multipart",
+            )
+        written = BatchUploadSession.objects.filter(assignment=self.assignment).exists()
+        note("students/views.py:158 batch-upload", "WRITE", response, written)
+        # Strict: the guard's own 404. With S1 reverted the request opens a
+        # BatchUploadSession on the School A assignment and queues the file
+        # (202).
+        self.assertEqual(response.status_code, 404, response.content)
+        self.assertLess(response.status_code, 500, response.content)
+        self.assertFalse(written)
+        self.assertFalse(
+            BackgroundProcessingTask.objects.filter(assignment=self.assignment).exists()
         )
-        note(
-            "students/views.py:158 upload",
-            "WRITE",
-            response,
-            StudentSubmission.objects.count() != before,
-        )
-        self.assertIn(response.status_code, (402, 403, 404), response.content)
+        self.assertFalse(launch.called)
+        self.assertEqual(StudentSubmission.objects.count(), submissions_before)
 
 
 class RemovedTeacherClassroomRouteTests(RemovedTeacherRoutesBase):
@@ -590,6 +651,183 @@ def fake_model_response(content="Stub dashboard answer."):
     response.choices[0].message.content = content
     response.usage.total_tokens = 100
     return response
+
+
+# The extraction a stubbed provider returns for an uploaded assignment image
+# (the shape assignments/tests_upload_batch_billing.py uses).
+EXTRACTION = json.dumps(
+    {
+        "title": "Uploaded quiz",
+        "instructions": "Answer every question.",
+        "assignment_type": "OBJECTIVE",
+        "total_points": 5,
+        "question_count": 1,
+        "questions": [
+            {
+                "question_number": 1,
+                "question_text": "What is 2 + 2?",
+                "question_type": "OBJECTIVE",
+                "points": 5,
+                "options": ["3", "4"],
+                "rubric": [],
+                "model_answer": "4",
+            }
+        ],
+    }
+)
+
+# A generated assignment, as assignments/tests.py's
+# generated_assignment_payload() has it.
+GENERATED_ASSIGNMENT = {
+    "title": "Cell Biology Quiz",
+    "instructions": "Answer every question.",
+    "total_points": 10,
+    "question_count": 1,
+    "assignment_type": "OBJECTIVE",
+    "questions": [
+        {
+            "question_number": 1,
+            "question_text": "What is the powerhouse of the cell?",
+            "question_type": "OBJECTIVE",
+            "question_image": "",
+            "points": 10,
+            "blooms_level": "Remember",
+            "options": ["Mitochondria", "Nucleus", "Ribosome"],
+            "rubric": [],
+            "model_answer": "Mitochondria",
+        }
+    ],
+    "potential_issues": [],
+    "self_assessment": "A focused objective check.",
+    "extraction_confidence": 95,
+}
+
+
+def fake_generation_response():
+    """A final (no tool call) generation reply. A bare MagicMock's
+    `tool_calls` is truthy, which the generation loop would read as a tool
+    round trip, so it is set to None explicitly."""
+    response = fake_model_response(json.dumps(GENERATED_ASSIGNMENT))
+    response.choices[0].message.tool_calls = None
+    return response
+
+
+def png_upload(name="quiz.png"):
+    buffer = io.BytesIO()
+    Image.new("RGB", (200, 120), "white").save(buffer, format="PNG")
+    return SimpleUploadedFile(name, buffer.getvalue(), content_type="image/png")
+
+
+def pdf_upload(name="answers.pdf"):
+    return SimpleUploadedFile(
+        name, b"%PDF-1.4\n%%EOF\n", content_type="application/pdf"
+    )
+
+
+class ActiveTeacherCourseGuardRouteTests(TeacherRemovalBase):
+    """Positive controls for the three removed-teacher probes that go
+    through a course/assignment lookup guard: upload (A2a), generate (A2c)
+    and batch-upload (S1). An ACTIVE teacher on the same School A course,
+    funded the same way and with the same provider stub, gets each route's
+    normal success code - so the removed teacher's 404 is the guard refusing
+    them, not the route (or the test's request) being broken for everyone."""
+
+    def setUp(self):
+        super().setUp()
+        self.client_t = jwt_client(self.teacher.email)
+        fund_wallet(self.teacher)
+
+    def test_upload_assignment_succeeds_for_active_teacher(self):
+        with patch(
+            "ai_processor.services.AIProcessor._AIProcessor__ai_model",
+            return_value=fake_model_response(EXTRACTION),
+        ) as model:
+            response = self.client_t.post(
+                f"{API}/assignments/upload",
+                {"course": self.course_id, "assignments": [png_upload()]},
+                format="multipart",
+            )
+        note(
+            "assignments/views.py:782 upload (positive control - active teacher)",
+            "WRITE",
+            response,
+            True,
+        )
+        self.assertEqual(response.status_code, 201, response.content)
+        self.assertTrue(model.called)
+        self.assertEqual(Assignment.objects.filter(course_id=self.course_id).count(), 1)
+
+    def test_generate_assignment_from_prompt_succeeds_for_active_teacher(self):
+        # Prompt-based creation is a gated premium feature
+        # (billing/access_control.py AI_FEATURE_GATING_MAP), so the School A
+        # license plan has to include it for the active teacher to succeed.
+        feature, _ = PlanFeature.objects.get_or_create(
+            key=PlanFeatureKey.AI_PROMPT_ASSIGNMENT_CREATION,
+            defaults={
+                "label": "AI prompt assignment creation",
+                "is_gating_feature": True,
+            },
+        )
+        PlanFeatureInclusion.objects.update_or_create(
+            plan=self.plan, feature=feature, defaults={"included": True}
+        )
+        with patch(
+            "ai_processor.services.AIProcessor._AIProcessor__ai_model",
+            return_value=fake_generation_response(),
+        ) as model:
+            response = self.client_t.post(
+                f"{API}/assignments/generate/{self.course_id}",
+                {"prompt": "Make a quiz on cells"},
+                format="json",
+            )
+        note(
+            "assignments/views.py:1238 generate (positive control - active teacher)",
+            "WRITE(paid AI)",
+            response,
+            True,
+        )
+        self.assertEqual(response.status_code, 201, response.content)
+        self.assertTrue(model.called)
+        self.assertTrue(
+            AssignmentGenerationSession.objects.filter(
+                course_id=self.course_id, user=self.teacher
+            ).exists()
+        )
+        self.assertTrue(
+            AssignmentGenerationMessage.objects.filter(
+                session__course_id=self.course_id,
+                role=AssignmentGenerationRole.ASSISTANT,
+                metadata__draft_status="AI_DRAFT",
+            ).exists()
+        )
+
+    def test_batch_upload_answers_succeeds_for_active_teacher(self):
+        assignment = Assignment.objects.create(
+            title="School A quiz",
+            course_id=self.course_id,
+            total_points=10,
+            due_date=timezone.now() + timedelta(days=7),
+            status=AssignmentStatus.PUBLISHED,
+        )
+        with patch("students.views.launch_processing_task") as launch:
+            launch.return_value.id = "celery-id"
+            response = self.client_t.post(
+                f"{API}/submissions/{assignment.id}/batch-upload",
+                {"answers": [pdf_upload()]},
+                format="multipart",
+            )
+        note(
+            "students/views.py:158 batch-upload (positive control - active teacher)",
+            "WRITE",
+            response,
+            True,
+        )
+        self.assertEqual(response.status_code, 202, response.content)
+        self.assertEqual(
+            BatchUploadSession.objects.get(assignment=assignment).teacher_id,
+            self.teacher.id,
+        )
+        self.assertEqual(launch.call_count, 1)
 
 
 class CustomAIPromptContextSpy:
@@ -1265,3 +1503,172 @@ class ActiveTeacherSharedStudentTests(SharedStudentBase):
 
     def course_id_uuid(self):
         return Course.objects.get(pk=self.course_id).pk
+
+
+# ---------------------------------------------------------------------------
+# classrooms/services/roster_import.py `_find_existing_student_by_name`: the
+# NO-EMAIL bulk-import row is matched by name against students "the course's
+# teacher already teaches". Scoped on `enrollments__course__teacher=` alone,
+# that still includes a removed teacher's old School A course, so a roster
+# row naming a School A pupil attached that pupil's School A record to the
+# teacher's new course. Unlike the email path it has no cross-school gate
+# (check_existing_account_may_join), so this lookup is the only barrier.
+# ---------------------------------------------------------------------------
+
+ROSTER_ROW = "Ada,Lovelace"
+
+
+def bulk_add_url(course_id):
+    return f"{API}/course/{course_id}/bulk-add-students"
+
+
+class RosterNameMatchBase(TeacherRemovalBase):
+    """The teacher, while still in School A, imports a no-email roster row
+    "Ada Lovelace" into the School A course through the real bulk-import
+    route - the production path that creates a name-only student."""
+
+    def setUp(self):
+        super().setUp()
+        self.teacher_client = jwt_client(self.teacher.email)
+        response = self.teacher_client.post(
+            bulk_add_url(self.course_id), {"raw_data": ROSTER_ROW}, format="json"
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["success_count"] == 1, response.content
+        self.ada = CustomUser.objects.get(
+            first_name="Ada", last_name="Lovelace", user_type=UserTypes.STUDENT
+        )
+        assert self.ada.school_id == self.school.id
+        assert StudentCourse.objects.filter(
+            student=self.ada, course_id=self.course_id
+        ).exists()
+
+    def create_course(self, client, session_id, name):
+        response = client.post(
+            f"{API}/course", {"name": name, "session": session_id}, format="json"
+        )
+        assert response.status_code == 201, response.content
+        return response.data["id"]
+
+    def import_ada(self, course_id):
+        response = self.teacher_client.post(
+            bulk_add_url(course_id), {"raw_data": ROSTER_ROW}, format="json"
+        )
+        self.assertLess(response.status_code, 500, response.content)
+        return response
+
+    def adas_in(self, course_id):
+        return CustomUser.objects.filter(
+            first_name="Ada",
+            last_name="Lovelace",
+            enrollments__course_id=course_id,
+        )
+
+
+class RemovedTeacherRosterNameMatchTests(RosterNameMatchBase):
+    """After removal, the same no-email row imported into a course the
+    teacher CAN still reach must not attach School A's Ada: the import
+    creates a separate, new student instead."""
+
+    def setUp(self):
+        super().setUp()
+        self.remove_teacher()
+        self.teacher_client = jwt_client(self.teacher.email)
+
+    def assert_new_student_not_school_a_ada(self, course_id, response):
+        attached = StudentCourse.objects.filter(
+            student=self.ada, course_id=course_id
+        ).exists()
+        note(
+            "classrooms/services/roster_import.py _find_existing_student_by_name",
+            "WRITE",
+            response,
+            attached,
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(response.data["success_count"], 1, response.content)
+        self.assertEqual(response.data["failure_count"], 0, response.content)
+        [result] = response.data["results"]
+        self.assertEqual(result["status"], "enrolled", result)
+        self.assertEqual(result["type"], "direct_add", result)
+        # School A's Ada is NOT attached to the new course...
+        self.assertFalse(attached)
+        # ...a separate new student is created and enrolled instead, and is
+        # not stamped with School A.
+        [new_ada] = self.adas_in(course_id)
+        self.assertNotEqual(new_ada.pk, self.ada.pk)
+        self.assertNotEqual(new_ada.school_id, self.school.id)
+        # School A's Ada is untouched: still only in the School A course.
+        self.assertEqual(
+            set(
+                StudentCourse.objects.filter(student=self.ada).values_list(
+                    "course_id", flat=True
+                )
+            ),
+            {Course.objects.get(pk=self.course_id).pk},
+        )
+        return new_ada
+
+    def test_import_into_an_individual_course_creates_a_new_student(self):
+        response = self.teacher_client.post(
+            f"{API}/sessions", {"name": "My private term"}, format="json"
+        )
+        assert response.status_code == 201, response.content
+        course_id = self.create_course(
+            self.teacher_client, response.data["id"], "Private tutoring"
+        )
+        response = self.import_ada(course_id)
+        new_ada = self.assert_new_student_not_school_a_ada(course_id, response)
+        self.assertIsNone(new_ada.school_id)
+
+    def test_import_into_a_school_b_course_creates_a_new_student(self):
+        other_admin_client = jwt_client(self.other_admin.email)
+        response = other_admin_client.post(
+            f"{API}/license-subscriptions/{self.other_license.id}/add_teachers",
+            {"teacher_emails": [self.teacher.email]},
+            format="json",
+        )
+        assert response.data["successful"] == 1, response.content
+        response = other_admin_client.post(
+            f"{API}/sessions", {"name": "School B term"}, format="json"
+        )
+        assert response.status_code == 201, response.content
+        self.teacher_client = jwt_client(self.teacher.email)
+        course_id = self.create_course(
+            self.teacher_client, response.data["id"], "School B Chemistry"
+        )
+        response = self.import_ada(course_id)
+        new_ada = self.assert_new_student_not_school_a_ada(course_id, response)
+        self.assertEqual(new_ada.school_id, self.other_school.id)
+
+
+class ActiveTeacherRosterNameMatchTests(RosterNameMatchBase):
+    """Positive control: never removed, the teacher imports the same
+    no-email row into a second School A course, and the name match still
+    attaches the EXISTING School A Ada (no new account) - so the removed
+    teacher's new-student outcome is the H-38 scoping, not the name match
+    being broken for everyone."""
+
+    def test_import_into_a_second_school_course_attaches_the_existing_student(self):
+        course_id = self.create_course(
+            self.teacher_client, self.session_id, "School A Chemistry"
+        )
+        students_before = CustomUser.objects.filter(user_type=UserTypes.STUDENT).count()
+        response = self.import_ada(course_id)
+        note(
+            "classrooms/services/roster_import.py _find_existing_student_by_name "
+            "(positive control - active teacher)",
+            "WRITE",
+            response,
+            True,
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(response.data["success_count"], 1, response.content)
+        [result] = response.data["results"]
+        self.assertEqual(result["status"], "enrolled", result)
+        self.assertEqual(result["type"], "direct_add", result)
+        self.assertEqual([a.pk for a in self.adas_in(course_id)], [self.ada.pk])
+        self.assertEqual(
+            CustomUser.objects.filter(user_type=UserTypes.STUDENT).count(),
+            students_before,
+        )
