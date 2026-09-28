@@ -176,7 +176,7 @@ class Command(BaseCommand):
                     "email": d["email"],
                     "user_type": d["user_type"],
                     "is_active": d["is_active"],
-                    "has_recorded_activity": pk in active_ids,
+                    "has_recorded_activity": pk in seen_ids,
                     "last_login": (
                         d["last_login"].isoformat() if d["last_login"] else None
                     ),
