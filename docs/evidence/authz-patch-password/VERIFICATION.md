@@ -40,3 +40,14 @@ Consequence to handle in the fix: on an EXISTING account, the personal/disposabl
 Verdict: REJECTED until the 5 tests are fixed (with the domain rule re-pinned on create). Once that's in, a quick re-check of the test diff plus a `users` app run should be enough.
 
 Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-28.
+
+## Part 2 re-check after the fix (af986b5): VERIFIED
+- The fix is tests and evidence only: `git diff --quiet c12a8c1 af986b5 -- users/serializers.py` is empty.
+- The 5 broken tests are rewritten correctly. On UPDATE they assert the blanket refusal (`"Email address can't be changed."`, including a business-to-business move). The personal/disposable/consumer-alias rule is re-pinned on CREATE through a real super-admin context (the only caller for whom `user_type` is writable), with a business-email positive control. These negative tests do pin the SCHOOL_ADMIN branch specifically: if `user_type` were silently dropped, the account would default to TEACHER, which may use a personal address, so the tests would fail.
+- Re-ran myself in a detached checkout of af986b5 with EXEMPT_EMAIL_DOMAINS unset: the whole `users` app gives **522 OK (4 skipped)**.
+- My mutants (each restore sha-verified):
+  - T1, the TRUE E3 (stored side's `.lower().strip()` dropped): KILLED, by exactly `test_a_legacy_mixed_case_stored_email_sent_back_unchanged_is_accepted`.
+  - T2, the school-admin personal-email rule disabled (`if False and not is_business_email(...)`): KILLED by the three re-pinned create tests, the open-signup create test and the existing `test_changing_user_type_re_checks_the_email`. So the domain rule's coverage survived part 2.
+- The harness log is 9/9, and E3 is now the real mutant.
+Verdict: VERIFIED. Combined with part 1 (aa0de82, VERIFIED earlier), AUTHZ-PATCHPW is VERIFIED at af986b5; only the full suite remains. Remember that this branch predates H-39, so the full run needs EXEMPT_EMAIL_DOMAINS unset or a merge of beta first.
+Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-28.
