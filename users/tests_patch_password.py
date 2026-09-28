@@ -14,10 +14,10 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 from rest_framework.throttling import SimpleRateThrottle
-from rest_framework_simplejwt.tokens import RefreshToken
 
 from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
 from users.models import CustomUser, UserTypes
+from users.tokens import EpochRefreshToken
 
 LOCMEM = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 PASSWORD = "Original-Passw0rd-1"  # pragma: allowlist secret
@@ -66,7 +66,7 @@ class PatchPasswordTests(APITestCase):
     def client_for(self, user):
         c = APIClient()
         c.credentials(
-            HTTP_AUTHORIZATION=f"Bearer {RefreshToken.for_user(user).access_token}"
+            HTTP_AUTHORIZATION=f"Bearer {EpochRefreshToken.for_user(user).access_token}"
         )
         return c
 
