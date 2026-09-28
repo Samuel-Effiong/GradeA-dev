@@ -23,3 +23,21 @@ The throwaway marker comment from the §9.1 commit test ("# Throwaway marker com
 The only blocker is CI. The local design, the ratchet and the failure modes are all sound. Once the CI workflow is fixed and proven with a real run or an equivalent simulation, a re-check should be quick: I'll look at the workflow diff plus that proof, not redo the whole pass.
 
 Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-28.
+
+## Re-check of the CI fix (5754a64, tip 4f51ca6): VERIFIED-WITH-NOTES
+
+Scope, as agreed: the workflow diff and its proof only, not a full re-pass.
+
+- `pre-commit.yml`: the `pre-commit/action` step sets `SKIP: mypy`, so this job no longer needs mypy, requirements or the settings env. Correct.
+- `tests.yml`: new last step "Type check (mypy)", `if: ${{ !cancelled() }}`, running `pre-commit run mypy --all-files`. The job already installs `requirements.txt` and has the settings env block. I confirmed `pre_commit==4.3.0` is pinned in requirements.txt (line 134), so the command exists in that job. Running the hook itself keeps mypy's args defined once.
+- `billing/license_service.py` is byte-identical to beta (`git diff --quiet 4b902fc HEAD`), so the marker comment is gone.
+- I re-ran B1 myself instead of taking it on trust. I used a throwaway detached checkout of 4f51ca6 (confirmed no `.env`) under `env -i`, with only the venv's PATH and the 18 vars parsed from `tests.yml`'s `jobs.test.env` with PyYAML. `pre-commit run mypy --all-files` Passed, exit 0, 112s cold, matching d5's 117s. The worktree has been removed.
+- The controls in §10.3 are the right ones: B2 (the old placement fails loud), B3 (a planted error is still caught) and A (the pre-commit job skips mypy cleanly). The actionlint negative control (`!canceled()` flagged) makes the clean lint result meaningful.
+
+Notes (non-blocking):
+1. **Timeout headroom is unmeasured on real CI.** `tests.yml` says its own ~5-minute suite time comes from this box, not a GitHub runner, and CI doesn't cache `.mypy_cache`, so mypy adds about 2 minutes cold on every run. That should fit inside 20 minutes, but watch the first real run. Consider an `actions/cache` for `.mypy_cache` if the time is tight.
+2. `!cancelled()` covers a failed test step but not a job timeout. If the suite hangs until the timeout, the job is cancelled and mypy never runs. Before, mypy was its own workflow and ran regardless. This is minor, but it is a small loss of independence.
+3. A mypy failure now shows up under the "Tests" check, not "Pre-commit checks". If branch protection requires specific check names, 0b should confirm that still gives the protection intended.
+4. The fix is proven by a from-scratch simulation, not a real GitHub run, because a push needs the founder's confirmation. The simulation is a strong equivalent, but the first real CI run is the final proof.
+
+Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-28.
