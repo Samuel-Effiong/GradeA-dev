@@ -184,11 +184,17 @@ class PasswordResetOTPLockoutTests(APITestCase):
         code must stop working too. Otherwise an attacker who happens to
         guess right on the last permitted try still takes the account.
         """
-        for _ in range(PasswordResetOTP.MAX_ATTEMPTS):
+        for _ in range(PasswordResetOTP.MAX_ATTEMPTS - 1):
             self.assertEqual(
                 self.submit(self.wrong_code).status_code,
                 status.HTTP_400_BAD_REQUEST,
             )
+        # The guess that spends the budget gets the lockout answer (429,
+        # founder decision 2026-09-28).
+        self.assertEqual(
+            self.submit(self.wrong_code).status_code,
+            status.HTTP_429_TOO_MANY_REQUESTS,
+        )
 
         self.otp.refresh_from_db()
         self.assertEqual(self.otp.attempts, PasswordResetOTP.MAX_ATTEMPTS)
@@ -197,7 +203,7 @@ class PasswordResetOTPLockoutTests(APITestCase):
 
         response = self.submit(self.code)
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
         self.user.refresh_from_db()
         self.assertFalse(self.user.check_password(self.NEW_PASSWORD))
 

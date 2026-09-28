@@ -86,7 +86,10 @@ class Base(APITestCase):
 
     @staticmethod
     def is_lockout_reply(response):
-        return "too many" in str(response.data).lower()
+        return (
+            response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+            and response.json()["error"]["field_errors"]["code"] == "RESET_LOCKED"
+        )
 
 
 @override_settings(CACHES=LOCMEM)
@@ -113,7 +116,7 @@ class CounterWipeAdversarialTests(Base):
             self.guess(self.wrong())
         self.request_code()
         response = self.guess(self.row().code)
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
         self.assertTrue(self.is_lockout_reply(response))
         self.user.refresh_from_db()
         self.assertTrue(self.user.check_password("original-Passw0rd-1"))
@@ -170,7 +173,8 @@ class CounterWipeAdversarialTests(Base):
         for _ in range(PasswordResetOTP.MAX_ATTEMPTS):
             self.guess(self.wrong())
         self.assertEqual(
-            self.guess(self.row().code).status_code, status.HTTP_400_BAD_REQUEST
+            self.guess(self.row().code).status_code,
+            status.HTTP_429_TOO_MANY_REQUESTS,
         )
 
 
@@ -314,4 +318,113 @@ class ConcurrencyTests(TransactionTestCase):
             PasswordResetOTP.objects.get(user=self.user).attempts,
             self.WORKERS,
             "an increment was lost under concurrency",
+        )
+
+
+@override_settings(CACHES=LOCMEM)
+class LockedReset429Tests(Base):
+    """Founder decision 2026-09-28: while the reset code is locked,
+    POST /auth/reset-password answers 429 and tells the person why, until
+    when, and that nothing changed. /auth/otp stays generic (covered by
+    test_locked_resend_sends_no_email_and_looks_identical_to_the_caller)."""
+
+    def lock(self):
+        self.request_code()
+        for _ in range(PasswordResetOTP.MAX_ATTEMPTS - 1):
+            self.guess(self.wrong())
+        return self.guess(self.wrong())  # the guess that spends the budget
+
+    def test_the_guess_that_spends_the_budget_already_gets_the_429(self):
+        response = self.lock()
+
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        self.assertTrue(self.row().is_locked())
+
+    def test_the_429_carries_code_locked_until_retry_after_and_the_message(self):
+        self.lock()
+        before = timezone.now()
+
+        response = self.guess(self.row().code)
+
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        body = response.json()
+        self.assertIs(body["success"], False)
+        fields = body["error"]["field_errors"]
+        self.assertEqual(fields["code"], "RESET_LOCKED")
+        locked_until = self.row().locked_until
+        self.assertEqual(fields["locked_until"], locked_until.isoformat())
+        self.assertTrue(fields["locked_until"].endswith("+00:00"))
+        retry_after = fields["retry_after_seconds"]
+        self.assertIsInstance(retry_after, int)
+        self.assertTrue(
+            0 < retry_after <= int((locked_until - before).total_seconds()) + 1
+        )
+        self.assertEqual(response["Retry-After"], str(retry_after))
+        # The founder's wording, as the envelope's top-level message.
+        minutes = -(-retry_after // 60)
+        expected = (
+            "For your security, password reset is paused on this account "
+            "because the code was entered incorrectly 5 times. You can request "
+            f"a new code after {locked_until:%H:%M} UTC (in {minutes} minutes). "
+            "Your password has not been changed, and you can still sign in "
+            "with your current password. If you didn't try to reset your "
+            "password, someone else may have. Your account is still safe."
+        )
+        self.assertEqual(fields["message"], expected)
+        self.assertEqual(body["message"], expected)
+
+    def test_the_password_is_unchanged_and_still_signs_in(self):
+        self.lock()
+        self.guess(self.row().code)
+
+        login = self.client.post(
+            reverse("login"),
+            {
+                "email": self.user.email,
+                "password": "original-Passw0rd-1",  # pragma: allowlist secret
+            },
+            format="json",
+        )
+        self.assertEqual(login.status_code, status.HTTP_200_OK, login.content)
+
+    def test_an_ordinary_wrong_guess_is_still_the_generic_400(self):
+        self.request_code()
+
+        response = self.guess(self.wrong())
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.json()["message"], "Invalid email, OTP code, or new password."
+        )
+
+
+class StructuredRefusalRenderingTests(APITestCase):
+    """users.renderers: an error body carrying a string `code` and a string
+    `message` shows that message, not a numbered list of every key."""
+
+    def test_code_plus_message_renders_the_message(self):
+        from users.renderers import flatten_errors
+
+        data = {
+            "code": "RESET_LOCKED",
+            "message": "Paused.",
+            "locked_until": "2026-01-01T00:00:00+00:00",
+            "retry_after_seconds": 60,
+        }
+        self.assertEqual(flatten_errors(data), "Paused.")
+
+    def test_billing_style_error_plus_code_is_unchanged(self):
+        from users.renderers import flatten_errors
+
+        self.assertEqual(
+            flatten_errors({"error": "Not enough credits.", "code": "X"}),
+            "Not enough credits.",
+        )
+
+    def test_a_field_named_message_without_a_code_is_unchanged(self):
+        from users.renderers import flatten_errors
+
+        self.assertEqual(
+            flatten_errors({"message": ["Too long."], "title": ["Required."]}),
+            "1. Message: Too long.\n 2. Title: Required.\n",
         )

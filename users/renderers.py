@@ -81,6 +81,13 @@ def flatten_errors(data) -> str:
                 _collect(item, prefix)
 
         elif isinstance(obj, Mapping):
+            # A structured refusal (machine `code` + human `message`, plus
+            # metadata such as locked_until): the message IS the text to
+            # show; the other keys are for clients to branch on.
+            if isinstance(obj.get("code"), str) and isinstance(obj.get("message"), str):
+                _collect(obj["message"])
+                return
+
             # DRF/manual top-level error keys (auth, 404, throttled, etc.)
             top_level_message_keys = ("detail", "error", "message")
             matching_keys = [key for key in top_level_message_keys if key in obj]

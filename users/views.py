@@ -10,7 +10,9 @@ profile.
 """
 
 import logging
+import math
 from datetime import timedelta
+from datetime import timezone as dt_timezone
 
 from django.conf import settings
 from django.core.cache import cache
@@ -613,6 +615,38 @@ class SettingsViewSet(UserCacheMixin, viewsets.ModelViewSet):
         return Response(data)
 
 
+def _reset_locked_response(otp_obj):
+    """429 for POST /auth/reset-password while the reset code is locked.
+
+    Informative by founder decision (2026-09-28): the person resetting is
+    usually the owner, so they're told why, when and that nothing changed.
+    /auth/otp stays generic while locked (anti-enumeration).
+    """
+    locked_until = otp_obj.locked_until.astimezone(dt_timezone.utc)
+    retry_after = max(1, math.ceil((locked_until - timezone.now()).total_seconds()))
+    minutes = max(1, math.ceil(retry_after / 60))
+    message = (
+        "For your security, password reset is paused on this account because "
+        f"the code was entered incorrectly {PasswordResetOTP.MAX_ATTEMPTS} times. "
+        f"You can request a new code after {locked_until:%H:%M} UTC "
+        f"(in {minutes} minute{'' if minutes == 1 else 's'}). "
+        "Your password has not been changed, and you can still sign in with "
+        "your current password. If you didn't try to reset your password, "
+        "someone else may have. Your account is still safe."
+    )
+    response = Response(
+        {
+            "code": "RESET_LOCKED",
+            "message": message,
+            "locked_until": locked_until.isoformat(),
+            "retry_after_seconds": retry_after,
+        },
+        status=status.HTTP_429_TOO_MANY_REQUESTS,
+    )
+    response["Retry-After"] = str(retry_after)
+    return response
+
+
 class AuthViewSet(viewsets.ViewSet):
     """
     Handles user authentication actions
@@ -820,9 +854,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             raise ParseError("Invalid email, OTP code, or new password.") from Exception
 
         if otp_obj.is_locked():
-            raise ParseError(
-                "Too many incorrect codes. Please try again in about 30 minutes."
-            )
+            return _reset_locked_response(otp_obj)
 
         if not otp_obj.is_valid():
             otp_obj.delete()
@@ -834,6 +866,10 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         # / password was the wrong one.
         if not constant_time_compare(str(otp_obj.code), str(otp)):
             otp_obj.register_failure()
+            # The guess that spends the budget gets the lockout answer
+            # straight away, not one more generic 400.
+            if otp_obj.is_locked():
+                return _reset_locked_response(otp_obj)
             raise ParseError("Invalid email, OTP code, or new password.")
 
         user.set_password(new_password)
