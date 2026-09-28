@@ -1,6 +1,7 @@
 import json
 from collections import Counter, defaultdict
 from datetime import timedelta
+from uuid import UUID
 
 from django.db.models import (
     Avg,
@@ -1579,7 +1580,7 @@ class SchoolAdminWeeklySummaryService:
         for row in submissions:
             submissions_by_student[row[0]].append(row[1:])
 
-        at_risk_scores = {}
+        at_risk_scores: dict[UUID, float | None] = {}
         for student_id, student_course_ids in course_ids_by_student.items():
             expected_assignment_count = sum(
                 due_assignment_counts.get(course_id, 0)
@@ -1618,21 +1619,21 @@ class SchoolAdminWeeklySummaryService:
         students_by_id = CustomUser.objects.only(
             "id", "first_name", "middle_name", "last_name"
         ).in_bulk(at_risk_scores.keys())
-        at_risk_students = []
+        at_risk_students: list[CustomUser] = []
         for student_id, avg_score in at_risk_scores.items():
             student = students_by_id.get(student_id)
             if student is None:
                 # Hard-deleted after the enrollment scan above.
                 continue
-            student.avg_score = avg_score
+            # Callers read avg_score off the user, as they would an annotation.
+            student.avg_score = avg_score  # type: ignore[attr-defined]
             at_risk_students.append(student)
 
-        at_risk_students.sort(
-            key=lambda student: (
-                student.avg_score is None,
-                student.avg_score if student.avg_score is not None else 0.0,
-            )
-        )
+        def by_score(student: CustomUser) -> tuple[bool, float]:
+            score = at_risk_scores[student.pk]
+            return (score is None, score if score is not None else 0.0)
+
+        at_risk_students.sort(key=by_score)
         return at_risk_students
 
     def _build_at_risk_students(self, school):
