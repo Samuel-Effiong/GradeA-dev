@@ -42,3 +42,24 @@ M9 is good news beyond this delta: e4984d6's tightened spy test now catches the 
 The branch is landable only when the Security Engineer's core verdict is also VERIFIED.
 
 Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-28.
+
+## Part A re-check (24c737f, 3161413, 68611b1, 3c6dec6): VERIFIED
+
+**Disclosure first.** The roster_import allowlist entry that hid the name-match leak ("name match limited to students already with this course's teacher; the caller's access to `course` was scoped before this runs") was mine, written in the core in my pre-reorg role. The justification was wrong: this no-email path has no cross-school gate of its own. d5's fix and tests below are d5's work, so they're in my scope. The Security Engineer's core verdict (VERIFICATION_CORE.md) found the leak in the first place.
+
+- **Roster fix:** `_find_existing_student_by_name` now applies `teacher_course_access_q(course.teacher, prefix="enrollments__course__")` in the SAME `filter()` call as the name match, so over the multi-valued `enrollments` relation the access rule and the match apply to the same enrollment row. The name fields are on CustomUser itself. The allowlist entry is removed, so the sweep guard now covers this line.
+- **Tests:** in my own detached checkout of 3c6dec6, d5's regression set (H-38 modules + sweep + tenancy_and_roster + cross_school_enrollment + concurrency_and_resilience) gives **173 OK**.
+- **My mutants** (static sweep excluded; each restore sha-verified):
+  | Mutant | Killed by |
+  |---|---|
+  | roster match back to owner-only `enrollments__course__teacher=course.teacher` | both RemovedTeacherRosterNameMatchTests probes (school-B course, individual course) |
+  | A2a upload guard back to owner-only (`request.user.courses.all()`) | test_upload_assignment only |
+  | A2c generate guard back to owner-only | test_generate_assignment_from_prompt only |
+  | S1 `_assignment_taught_by` back to `course__teacher=teacher` | test_batch_upload_answers_to_the_school_assignment only |
+  So my part-A note 1 is closed: all three probes now reach their H-38 guard dynamically, each kills its own site, and S1 is retargeted to the action that actually calls `_assignment_taught_by`.
+- **Exposure SQL (68611b1/3c6dec6):** the whole file sits inside `BEGIN TRANSACTION READ ONLY … ROLLBACK`. The `users_customuser` join and `u.email` are gone, and no name/email/password/token identifier appears outside comments. The active-licence filter excludes ordinary lapses (the under-count is documented). I executed the file statement by statement on the migrated test schema (a throwaway TransactionTestCase, never committed): 5 statements, all 3 queries run, and output columns are ids, a timestamp and counts only. A write attempted inside the same wrapper is refused ("read-only transaction").
+- **mypy (3161413):** the whole-repo hook on 3c6dec6 flags only `docs/evidence/authz-oauth-takeover/replay_scripts/exploit_authz_oauth.py` (2 errors, from beta), which the batch's `exclude: ^docs/` removes. Every H-38 file is clean.
+- Minor notes 2 and 3 from the first pass stand as observations, not defects: the draft-save lock also locks the joined rows (unchanged from beta), and the unlocked-check-then-lock window is negligible.
+
+Verdict (part A): VERIFIED. Together with the Security Engineer's core verdict (VERIFIED-WITH-NOTES, b7ccfaf), H-38 is verified; only the full suite on the tip remains (queued with 0b).
+Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-29.
