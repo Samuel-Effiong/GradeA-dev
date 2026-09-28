@@ -1,0 +1,62 @@
+{
+  "body": {
+    "data": {
+      "admin_email": "sample-admin-tl@example.com",
+      "admin_name": "",
+      "days_until_next_credit_grant": null,
+      "display_monthly_allocation": 1,
+      "is_license_active": false,
+      "license_auto_renew": false,
+      "license_billing_cycle_end": "2026-08-29T14:01:46.689429Z",
+      "license_billing_cycle_start": "2026-07-30T14:01:46.689411Z",
+      "license_id": "b3e93640-0d5a-4e96-98e7-0008581a9019",
+      "license_stripe_status": "CANCELED",
+      "monthly_allocation": 1000,
+      "next_credit_grant_at": null,
+      "plan": {
+        "carry_over_expiry_months": 0,
+        "carry_over_percent": "0.00",
+        "category": "LICENSE",
+        "display_max_bank": null,
+        "display_monthly_credits": 40000,
+        "display_name": "LICENSE_453f1b1b",
+        "display_overage_block_size": 0,
+        "features": [],
+        "id": "86872cf1-830e-4604-8301-fad48d9e4722",
+        "interval": "MONTHLY",
+        "is_active": true,
+        "max_overage_blocks": 0,
+        "name": "LICENSE_453f1b1b",
+        "overage_block_price": 0,
+        "price_cents": "999.00",
+        "price_id": "price_license_453f1b1b",
+        "tagline": "",
+        "tier": "CUSTOM"
+      },
+      "plan_display_name": "LICENSE_453f1b1b",
+      "school_name": "License School sample-admin-tl@example.com",
+      "status": "EXPIRED",
+      "subscription_source": "LICENSE_TEACHER",
+      "wallet_summary": {
+        "active_buckets_count": 0,
+        "bucket_breakdown": {
+          "CARRY_OVER": 0,
+          "MONTHLY": 0,
+          "OVERAGE": 0,
+          "TRIAL": 0
+        },
+        "credit_percentage_remaining": 0.0,
+        "display_total_remaining_credits": 0,
+        "id": "c60da664-7bed-469a-8cbf-f830118a005d",
+        "monthly_credit_remaining": 0,
+        "monthly_credit_total": 0,
+        "overage_blocks_used": 0,
+        "total_remaining_credits": 0,
+        "user": "c032e822-648b-49d6-ba5a-4a482ad0f1e7"
+      }
+    },
+    "message": "Request Successful",
+    "success": true
+  },
+  "http_status": 200
+}
