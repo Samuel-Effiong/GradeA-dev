@@ -1,3 +1,5 @@
+> **SUPERSEDED (2026-09-28).** Every step below is done: mutation 20/20 (plus 8/8 on the rebase sites), rebased onto beta `4b902fc`, backlog entries H-38 and H-38-F1 written. Current state is in `docs/HARDENING_BACKLOG.md` (H-38) and the other files in this directory. Kept as the shutdown record.
+
 # H-38 RESUME — shutdown checkpoint 2026-09-27
 
 Branch `task/teacher-removal` @ `56099ce` (worktree
