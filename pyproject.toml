@@ -1,3 +1,15 @@
 [tool.bandit]
 exclude_dirs = ['tests', 'venv', 'docs']
 tests = ['B101', 'B102']
+
+[tool.mypy]
+# Without this plugin, mypy has no knowledge of Django's metaclass-generated
+# attributes: models.TextChoices members read back as the raw (value, label)
+# tuple instead of str, ForeignKey "_id" shadow attributes don't exist,
+# Manager[Model] loses its model-specific methods, etc. See
+# docs/evidence/mypy_django_stubs/EVIDENCE.md for the before/after error
+# counts this produced on the whole repo.
+plugins = ["mypy_django_plugin.main"]
+
+[tool.django-stubs]
+django_settings_module = "AutoGrader.settings"
