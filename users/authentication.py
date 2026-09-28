@@ -16,10 +16,15 @@ by dotted path, and `users/schema.py` has a drf-spectacular
 Removing the class would break both.
 """
 
+from typing import TYPE_CHECKING, cast
+
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from users.tokens import token_epoch_of
+
+if TYPE_CHECKING:
+    from users.models import CustomUser
 
 # No longer read for enforcement (see MustChangePasswordJWTAuthentication's
 # docstring), but view names a user with must_change_password=True could
@@ -48,7 +53,9 @@ class MustChangePasswordJWTAuthentication(JWTAuthentication):
         if result is None:
             return None
         user, token = result
-        if token_epoch_of(token) != user.token_epoch:
+        # simplejwt types the user as AbstractBaseUser; AUTH_USER_MODEL is
+        # CustomUser, which carries token_epoch.
+        if token_epoch_of(token) != cast("CustomUser", user).token_epoch:
             raise AuthenticationFailed(
                 "Token has been revoked. Please log in again.", code="token_revoked"
             )
