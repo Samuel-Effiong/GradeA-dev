@@ -18,3 +18,25 @@ Branch `task/authz-patch-password` @ 199d928, off beta 4b902fc.
 Both commits (aa0de82 password, 566b447 email) match their design doc in every particular checked. No blocking findings. Deploy timing for fix 1 (frontend must confirm its password-change UI already posts to `/auth/change-password`) is a release-sequencing question, not a correctness one — outside this verdict's scope per the SM's instruction.
 
 Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-28.
+
+## Part 2 re-verification (0a9313f..c12a8c1): REJECTED
+
+**BLOCKING: 5 existing `users` tests fail.** The full `users` app in my own detached checkout of c12a8c1 gives 518 tests, **6 failures**. One is the known env `test_nothing_is_exempt_by_default` (this branch doesn't have H-39's hermetic fix yet; ignore it). The other five are real and caused by part 2:
+- `tests_open_signup.SignupGuardsSurviveTests.test_school_admin_moving_to_a_personal_email_is_still_rejected`
+- `tests_email_domain_rules.SerializerEnforcementTests.test_school_admin_may_not_move_to_a_disposable_email`
+- `tests_email_domain_rules.SerializerEnforcementTests.test_school_admin_may_not_move_to_a_consumer_alias` (3 subtests: proton.me, googlemail.com, yahoo.co.uk)
+They assert `"Personal emails are not allowed"`, but they now get `{'email': ["Email address can't be changed."]}`, because part 2's blanket refusal runs first. The security intent still holds (the change is refused on `email`), but the suite goes red. The "75/75 on touched modules" run didn't include these modules.
+Consequence to handle in the fix: on an EXISTING account, the personal/disposable-email domain rule in `validate()` is now unreachable, since every email change is refused first. It still applies on the create path (a super admin POSTing /users with user_type=SCHOOL_ADMIN). Suggested fix: rewrite these tests to (a) assert the blanket refusal on update, and (b) re-pin the domain rule on the CREATE path, so its coverage isn't silently lost.
+
+**Checked and fine:**
+- The harness fix is real. The killers now match each mutant: E1 and E6 are killed only by email-refusal tests, E4 only by the super-admin-on-another-account test, and E5 by the creation tests. No password test kills an email mutant any more.
+- An echoed `null`/blank email on @student.local rows fails field validation (`EmailField(unique=True)`, not null) before `validate()`. That's pre-existing, and part 2 adds nothing there. A stale `current_password` in a PATCH body is now silently ignored as an unknown field, so old frontends don't break. The remaining `current_password` references are all `/auth/change-password`.
+- Baseline `tests_patch_password` + `tests_patch_email`: 25/25.
+
+**Notes (non-blocking):**
+1. **E3 is mislabelled and the property it names is unpinned.** It compares against `.upper()`, which makes every email differ, so it's a duplicate of E2. I ran the TRUE mutant (drop the stored side's `.lower().strip()`, i.e. `attrs["email"] != self.instance.email`): it **SURVIVES**, 25/25 OK. The existing case/whitespace test only varies the INCOMING value, which validate_email normalises anyway. The stored-side normalisation protects legacy mixed-case rows from a false 400 on an unchanged-email full-profile PATCH. Add a test that stores a mixed-case email via `.update()` and PATCHes it unchanged.
+2. **E5** is killed through an AttributeError (None.email → 500) rather than by the guard refusing. It still proves the create path is exercised, but a test asserting create returns 201 with the email kept would be cleaner.
+
+Verdict: REJECTED until the 5 tests are fixed (with the domain rule re-pinned on create). Once that's in, a quick re-check of the test diff plus a `users` app run should be enough.
+
+Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-28.

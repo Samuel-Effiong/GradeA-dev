@@ -28,6 +28,8 @@ from a disposable provider, is neither personal nor business and is refused
 on both tracks.
 """
 
+from types import SimpleNamespace
+
 from django.contrib.auth import get_user_model
 from django.test import SimpleTestCase, TestCase, override_settings
 
@@ -269,27 +271,63 @@ class SerializerEnforcementTests(TestCase):
         self.assertFalse(serializer.is_valid())
         self.assertIn("Business emails are not allowed", str(serializer.errors))
 
-    def test_school_admin_may_not_move_to_a_consumer_alias(self):
+    # Since AUTHZ-PATCHPW part 2 an existing account can't change its email at
+    # all, so these rules are pinned where they can still fire: a super admin
+    # (for whom user_type is writable) creating a SCHOOL_ADMIN.
+    def create_school_admin(self, email):
+        superadmin = self.make_user(
+            "root@acme-school.org", UserTypes.SUPER_ADMIN, is_superuser=True
+        )
+        return CustomUserSerializer(
+            data={
+                "email": email,
+                "first_name": "School",
+                "last_name": "Admin",
+                # A password that passes AUTH_PASSWORD_VALIDATORS, so only the
+                # email rule can make the positive control fail.
+                "password": "Unguessable-Admin-Pw-42",  # pragma: allowlist secret
+                "user_type": UserTypes.SCHOOL_ADMIN,
+            },
+            context={"request": SimpleNamespace(user=superadmin)},
+        )
+
+    def test_school_admin_may_not_be_created_on_a_consumer_alias(self):
         """proton.me and googlemail.com are personal addresses; the school
         admin gate used to accept both."""
+        for email in ["admin@proton.me", "admin@googlemail.com", "admin@yahoo.co.uk"]:
+            with self.subTest(email=email):
+                serializer = self.create_school_admin(email)
+                self.assertFalse(serializer.is_valid())
+                self.assertIn("Personal emails are not allowed", str(serializer.errors))
+                User.objects.filter(email="root@acme-school.org").delete()
+
+    def test_school_admin_may_not_be_created_on_a_disposable_email(self):
+        serializer = self.create_school_admin("admin@mailinator.com")
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("Personal emails are not allowed", str(serializer.errors))
+
+    def test_school_admin_created_on_a_business_email_is_accepted(self):
+        """Positive control for the two above: the rule isn't refusing
+        every creation."""
+        serializer = self.create_school_admin("admin@acme-school.org")
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+
+    def test_school_admin_moving_email_is_refused_outright(self):
         admin = self.make_user("admin@acme-school.org", UserTypes.SCHOOL_ADMIN)
 
-        for email in ["admin@proton.me", "admin@googlemail.com", "admin@yahoo.co.uk"]:
+        for email in [
+            "admin@proton.me",
+            "admin@mailinator.com",
+            "admin@other-school.org",
+        ]:
             with self.subTest(email=email):
                 serializer = CustomUserSerializer(
                     admin, data={"email": email}, partial=True
                 )
                 self.assertFalse(serializer.is_valid())
-                self.assertIn("Personal emails are not allowed", str(serializer.errors))
-
-    def test_school_admin_may_not_move_to_a_disposable_email(self):
-        admin = self.make_user("admin@acme-school.org", UserTypes.SCHOOL_ADMIN)
-
-        serializer = CustomUserSerializer(
-            admin, data={"email": "admin@mailinator.com"}, partial=True
-        )
-        self.assertFalse(serializer.is_valid())
-        self.assertIn("Personal emails are not allowed", str(serializer.errors))
+                self.assertEqual(
+                    serializer.errors["email"], ["Email address can't be changed."]
+                )
 
     def test_changing_user_type_re_checks_the_email(self):
         """The hole: the guard only fired on creation or on an email change,

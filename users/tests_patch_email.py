@@ -152,6 +152,22 @@ class EmailChangeTests(PatchPasswordTests):
             self.assertEqual(self.teacher.first_name, f"Ok{i}")
         self.assertEqual(self.email_of(self.teacher), "teach.er@gmail.com")
 
+    def test_a_legacy_mixed_case_stored_email_sent_back_unchanged_is_accepted(self):
+        """Rows stored before emails were lower-cased on write: the incoming
+        value is normalised by validate_email, so the STORED side has to be
+        normalised too, or an unchanged full-profile PATCH gets a false 400."""
+        CustomUser.objects.filter(pk=self.teacher.pk).update(
+            email="Teach.Er@Gmail.com "
+        )
+
+        r = self.patch(
+            self.teacher, self.teacher, email="Teach.Er@Gmail.com", first_name="Legacy"
+        )
+
+        self.assertEqual(r.status_code, status.HTTP_200_OK, r.content)
+        self.teacher.refresh_from_db()
+        self.assertEqual(self.teacher.first_name, "Legacy")
+
     def test_other_field_edits_without_an_email_still_succeed(self):
         r = self.patch(self.teacher, self.teacher, first_name="New", last_name="Name")
         self.assertEqual(r.status_code, status.HTTP_200_OK, r.content)

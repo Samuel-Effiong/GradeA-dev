@@ -41,16 +41,15 @@
     "killed": true,
     "failing_tests": [
       "test_a_full_profile_patch_with_unchanged_email_still_works",
+      "test_a_legacy_mixed_case_stored_email_sent_back_unchanged_is_accepted",
       "test_an_unchanged_email_is_accepted_with_case_and_whitespace_variants",
       "test_super_admin_editing_another_users_other_fields_still_succeeds"
     ]
   },
-  "E3_no_normalisation_before_compare": {
+  "E3_stored_email_not_normalised": {
     "killed": true,
     "failing_tests": [
-      "test_a_full_profile_patch_with_unchanged_email_still_works",
-      "test_an_unchanged_email_is_accepted_with_case_and_whitespace_variants",
-      "test_super_admin_editing_another_users_other_fields_still_succeeds"
+      "test_a_legacy_mixed_case_stored_email_sent_back_unchanged_is_accepted"
     ]
   },
   "E4_guard_only_for_self": {

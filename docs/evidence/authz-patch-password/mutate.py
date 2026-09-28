@@ -29,9 +29,13 @@ MUTANTS = {
         '            False\n            and "email" in attrs\n',
     ),
     "E2_guard_fires_on_same_value_email": (GUARD_CMP, "            and True\n"),
-    "E3_no_normalisation_before_compare": (
+    # The stored side compared without lower/strip (the incoming side is
+    # already normalised by validate_email). The first version of this mutant
+    # compared against .upper(), which duplicated E2; corrected per the
+    # Verification Engineer.
+    "E3_stored_email_not_normalised": (
         GUARD_CMP,
-        '            and attrs["email"] != self.instance.email.upper()\n',
+        '            and attrs["email"] != self.instance.email\n',
     ),
     "E4_guard_only_for_self": (
         GUARD_HEAD,
