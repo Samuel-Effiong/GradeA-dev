@@ -19,8 +19,7 @@ active subscription.
   teacher's own allocation row was never touched" shape — see
   LicenseTeacherExpiredTests.
 - NONE: no subscription/license history exists on ANY of the three
-  tracks — a flat placeholder payload, everything null/false/0 except
-  "status".
+  tracks — exactly {"status": "NONE", "message": ...}, nothing more.
 
 Also covers precedence: an ACTIVE context on any track always wins
 over stale/inactive history on a lower-priority track (the resolver's

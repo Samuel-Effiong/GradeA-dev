@@ -1,0 +1,48 @@
+{
+  "body": {
+    "data": {
+      "auto_renew": false,
+      "billing_cycle_end": "2026-08-29T14:01:46.348430Z",
+      "billing_cycle_start": "2026-07-30T14:01:46.348417Z",
+      "billing_method": "STRIPE",
+      "days_until_renewal": null,
+      "has_other_managed_licenses": false,
+      "has_pending_billing_issue": false,
+      "is_active": false,
+      "license_id": "6ff09a8d-d4d0-4551-a6c1-5644faa8a0b9",
+      "managed_license_count": 0,
+      "max_seats": 5,
+      "plan": {
+        "carry_over_expiry_months": 0,
+        "carry_over_percent": "0.00",
+        "category": "LICENSE",
+        "display_max_bank": null,
+        "display_monthly_credits": 40000,
+        "display_name": "LICENSE_6246d299",
+        "display_overage_block_size": 0,
+        "features": [],
+        "id": "921d2a96-1fa2-4ad0-a504-4d304e8f0610",
+        "interval": "MONTHLY",
+        "is_active": true,
+        "max_overage_blocks": 0,
+        "name": "LICENSE_6246d299",
+        "overage_block_price": 0,
+        "price_cents": "999.00",
+        "price_id": "price_license_6246d299",
+        "tagline": "",
+        "tier": "CUSTOM"
+      },
+      "plan_display_name": "LICENSE_6246d299",
+      "school_name": "License School sample-admin-ae@example.com",
+      "seats_remaining": 5,
+      "status": "EXPIRED",
+      "stripe_status": "CANCELED",
+      "subscription_source": "LICENSE_ADMIN",
+      "teacher_count": 0,
+      "wallet_summary": null
+    },
+    "message": "Request Successful",
+    "success": true
+  },
+  "http_status": 200
+}
