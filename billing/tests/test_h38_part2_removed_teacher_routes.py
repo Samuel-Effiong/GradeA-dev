@@ -17,9 +17,11 @@ from datetime import timedelta
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
-from django.test import TestCase
+from django.core.cache import cache
+from django.test import TestCase, override_settings
+from django.urls import reverse
 from django.utils import timezone
-from rest_framework.test import APIClient
+from rest_framework.test import APIClient, APIRequestFactory
 from rest_framework_simplejwt.tokens import RefreshToken
 
 import dashboard.views as dashboard_views
@@ -40,8 +42,17 @@ from billing.models import (
     PlanType,
     SubscriptionPlan,
 )
-from classrooms.models import School, StudentCourse, Topic
-from students.models import StudentSubmission
+from classrooms.models import (
+    Course,
+    EnrollmentStatusType,
+    School,
+    Session,
+    SessionOwnerType,
+    StudentCourse,
+    Topic,
+)
+from classrooms.views import StudentCourseViewSet
+from students.models import BatchUploadSession, StudentSubmission
 from users.models import CustomUser, UserTypes
 
 PASSWORD = "Str0ng-h38-password!"  # pragma: allowlist secret
@@ -152,6 +163,26 @@ def note(site, verb, response, changed):
     print(f"H38P2 {site} {verb} status={response.status_code} changed={changed}")
 
 
+def fund_wallet(user):
+    """A large, live MONTHLY bucket in `user`'s wallet.
+
+    `remove_teachers` expires the removed teacher's credit buckets, so on a
+    credit-gated route the billing gate (HasCreditBalance -> 402
+    insufficient_credits, beta f7cd15e) refuses before any H-38 access check
+    runs, and a test that stops there proves billing, not H-38. Funding the
+    wallet gets the request past billing to the course-access guard. It is
+    also the positive controls' fixture: 500k clears the AI estimator's ~20k
+    baseline that the 20k license allocation alone does not."""
+    wallet, _ = CreditWallet.objects.get_or_create(user=user)
+    CreditBucket.objects.create(
+        wallet=wallet,
+        bucket_type=CreditBucketType.MONTHLY,
+        total_credits=500_000,
+        used_credits=0,
+        expires_at=timezone.now() + timedelta(days=25),
+    )
+
+
 class RemovedTeacherRoutesBase(TeacherRemovalBase):
     """The base scaffold, plus an assignment, a graded submission and a topic
     inside School A's course, and then the teacher's removal."""
@@ -232,20 +263,27 @@ class RemovedTeacherAssignmentRouteTests(RemovedTeacherRoutesBase):
         self.assertIn(response.status_code, (402, 403, 404), response.content)
 
     def test_upload_assignment_async(self):
+        # Funded, so HasCreditBalance passes and the request reaches the
+        # H-38 guard (A2b: get_object_or_404(reachable_courses(user), ...)).
+        # Unfunded, the 402 from the billing gate is all this could prove.
+        fund_wallet(self.teacher)
+        before = BatchUploadSession.objects.count()
         response = self.client_t.post(
             f"{API}/assignments/upload-async",
             {"course": self.course_id},
             format="multipart",
         )
-        note("assignments/views.py:960 upload-async", "WRITE", response, False)
-        # Strict: the credit gate answers 400 (insufficient credits, raised as
-        # a ParseError) for this route, confirmed empirically. Previously
-        # this asserted only "did not succeed" against (200, 201, 202, 204),
-        # which would also have accepted a 500 as "refused" - see the
-        # select_for_update/outer-join regression documented on
-        # RemovedTeacherDraftSaveTests for exactly that failure mode.
-        self.assertEqual(response.status_code, 400, response.content)
+        note(
+            "assignments/views.py:966 upload-async",
+            "WRITE",
+            response,
+            BatchUploadSession.objects.count() != before,
+        )
+        # Strict: the guard's own 404. With A2b reverted the request gets
+        # past it and stops at "No files were uploaded" (400) instead.
+        self.assertEqual(response.status_code, 404, response.content)
         self.assertLess(response.status_code, 500, response.content)
+        self.assertEqual(BatchUploadSession.objects.count(), before)
 
     def test_generate_assignment_from_prompt(self):
         response = self.client_t.post(
@@ -267,16 +305,25 @@ class RemovedTeacherAssignmentRouteTests(RemovedTeacherRoutesBase):
         self.assertFalse(changed)
 
     def test_grade_all(self):
+        # Funded past HasCreditBalance, so the refusal is the H-38 guard:
+        # get_object() over AssignmentViewSet.get_queryset's
+        # teacher_course_access_q filter (A1).
+        fund_wallet(self.teacher)
+        before = BatchUploadSession.objects.count()
         response = self.client_t.post(
             f"{API}/assignments/{self.assignment.id}/grade-all", {}, format="json"
         )
-        note("assignments/views.py grade-all", "WRITE(paid AI)", response, False)
-        # Strict: the credit gate answers 400 (insufficient credits, raised as
-        # a ParseError) for this route, confirmed empirically. See the
-        # upload-async test above for why "did not succeed" alone is not
-        # enough.
-        self.assertEqual(response.status_code, 400, response.content)
+        note(
+            "assignments/views.py grade-all",
+            "WRITE(paid AI)",
+            response,
+            BatchUploadSession.objects.count() != before,
+        )
+        # Strict: the guard's 404. With A1 reverted, get_object() returns the
+        # assignment and the view answers 400 "No ungraded submissons".
+        self.assertEqual(response.status_code, 404, response.content)
         self.assertLess(response.status_code, 500, response.content)
+        self.assertEqual(BatchUploadSession.objects.count(), before)
 
     def test_publish_all_grades(self):
         response = self.client_t.post(
@@ -335,16 +382,24 @@ class RemovedTeacherSubmissionRouteTests(RemovedTeacherRoutesBase):
         self.assertFalse(gone)
 
     def test_grade_paid_ai(self):
-        response = self.client_t.post(
-            f"{API}/submissions/{self.submission.id}/grade", {}, format="json"
-        )
-        note("students/views.py grade", "WRITE(paid AI)", response, False)
-        # Strict: the credit gate answers 400 (insufficient credits, raised as
-        # a ParseError) for this route, confirmed empirically. See the
-        # upload-async test above for why "did not succeed" alone is not
-        # enough.
-        self.assertEqual(response.status_code, 400, response.content)
+        # Funded past HasCreditBalance, so the refusal is the H-38 guard:
+        # get_object() over StudentSubmissionViewSet.get_queryset's
+        # teacher_course_access_q filter (S2). The provider is stubbed so a
+        # regressed guard can never reach a real model.
+        fund_wallet(self.teacher)
+        with patch(
+            "ai_processor.services.AIProcessor._AIProcessor__ai_model",
+            return_value=fake_model_response(),
+        ) as model:
+            response = self.client_t.post(
+                f"{API}/submissions/{self.submission.id}/grade", {}, format="json"
+            )
+        changed = self.reload(self.submission).score != Decimal("7.00")
+        note("students/views.py grade", "WRITE(paid AI)", response, changed)
+        self.assertEqual(response.status_code, 404, response.content)
         self.assertLess(response.status_code, 500, response.content)
+        self.assertFalse(model.called)
+        self.assertFalse(changed)
 
     def test_submission_upload_to_the_school_assignment(self):
         before = StudentSubmission.objects.count()
@@ -566,14 +621,7 @@ class ActiveTeacherCustomAIPromptTests(TeacherRemovalBase):
         # The license allocation alone (20,000) is below the estimator's
         # fixed ~20k baseline plus the prompt, which answers 402 - the same
         # funded-wallet fixture dashboard/tests_real_ai_chat.py uses.
-        wallet, _ = CreditWallet.objects.get_or_create(user=self.teacher)
-        CreditBucket.objects.create(
-            wallet=wallet,
-            bucket_type=CreditBucketType.MONTHLY,
-            total_credits=500_000,
-            used_credits=0,
-            expires_at=timezone.now() + timedelta(days=25),
-        )
+        fund_wallet(self.teacher)
 
     def test_custom_ai_prompt_succeeds_for_active_teacher(self):
         spy = CustomAIPromptContextSpy()
@@ -830,3 +878,390 @@ class RemovedTeacherSchoolAdminSurfaceTests(RemovedTeacherRoutesBase):
             response = self.client_t.get(f"{API}{path}")
             note(f"dashboard/views.py SchoolAdmin {path}", "READ", response, False)
             self.assertIn(response.status_code, (403, 404), path)
+
+
+# ---------------------------------------------------------------------------
+# Sites beta brought in after H-38 part 2 was written (rebase onto 4b902fc):
+# H-22's my-students prefetches and filters (b0644ad), H-22's /users
+# enrollment filters (d40de69) and H-18's assignment course validator
+# (25613d3). Each scoped on `course__teacher=user` / `teacher_id == user.id`,
+# which stays true for a removed teacher's old school course. See
+# docs/evidence/h38_part2/rebase_sweep_hits.md.
+#
+# All of them need a student the removed teacher can still LEGITIMATELY see:
+# otherwise the outer, already-H-38-scoped queryset drops the student and
+# the inner scoping is never consulted. So the teacher also keeps an
+# INDIVIDUAL course of their own, and the School A pupil is enrolled in it
+# too - the shared-student shape H-22 was about, now across a removal.
+# ---------------------------------------------------------------------------
+
+LOCMEM = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+UNKNOWN = "00000000-0000-4000-8000-000000000000"
+MY_STUDENTS_URL = f"{API}/student-course/my-students"
+FAKE_TASK = MagicMock(id="00000000-0000-0000-0000-000000000001")
+
+
+def _passthrough_extraction(user, assignment, content, **kwargs):
+    """Stands in for the billed AI extraction on POST /assignments."""
+    return assignment
+
+
+@override_settings(CACHES=LOCMEM)
+class SharedStudentBase(TeacherRemovalBase):
+    """School A course with the pupil's grade, description, assignment and
+    submission; the teacher's own INDIVIDUAL course with the same pupil; a
+    School A colleague's course with the same pupil (H-22's boundary). Then
+    the teacher is removed, unless `remove` is False (positive controls)."""
+
+    remove = True
+
+    def setUp(self):
+        # /users/<id> caches retrieve per (requester, pk) and ignores the
+        # query string, so every filtered probe must run cold. LocMem, so
+        # clearing it cannot touch a shared Redis.
+        cache.clear()
+        self.addCleanup(cache.clear)
+        super().setUp()
+        Course.objects.filter(pk=self.course_id).update(description="School A syllabus")
+        self.school_assignment = Assignment.objects.create(
+            title="School A quiz",
+            course_id=self.course_id,
+            total_points=10,
+            status=AssignmentStatus.PUBLISHED,
+        )
+        self.school_submission = StudentSubmission.objects.create(
+            student=self.student,
+            assignment=self.school_assignment,
+            answers={},
+            score=Decimal("9.00"),
+            graded_at=timezone.now(),
+        )
+        # After the submission, whose receiver recalculates final_grade.
+        StudentCourse.objects.filter(
+            student=self.student, course_id=self.course_id
+        ).update(final_grade=Decimal("91.50"))
+
+        own_session = Session.objects.create(
+            name="Own term",
+            owner_type=SessionOwnerType.INDIVIDUAL,
+            teacher=self.teacher,
+        )
+        self.own_course = Course.objects.create(
+            name="Own Chemistry",
+            description="Own notes",
+            teacher=self.teacher,
+            session=own_session,
+        )
+        StudentCourse.objects.create(
+            student=self.student,
+            course=self.own_course,
+            enrollment_status=EnrollmentStatusType.ENROLLED,
+        )
+        self.own_assignment = Assignment.objects.create(
+            title="Own quiz",
+            course=self.own_course,
+            total_points=10,
+            status=AssignmentStatus.DRAFT,
+        )
+
+        colleague = make_user("colleague@h38.test", UserTypes.TEACHER, self.school)
+        self.colleague_course = Course.objects.create(
+            name="Colleague Physics",
+            description="Colleague syllabus",
+            teacher=colleague,
+            session_id=self.session_id,
+        )
+        StudentCourse.objects.create(
+            student=self.student,
+            course=self.colleague_course,
+            enrollment_status=EnrollmentStatusType.ENROLLED,
+        )
+
+        if self.remove:
+            self.remove_teacher()
+        self.client_t = jwt_client(self.teacher.email)
+
+    # -- my-students ---------------------------------------------------------
+
+    def my_students(self, **params):
+        response = self.client_t.get(MY_STUDENTS_URL, params)
+        self.assertLess(response.status_code, 500, response.content)
+        return response
+
+    def student_row(self, response):
+        rows = [
+            r for r in response.data["results"] if str(r["id"]) == str(self.student.id)
+        ]
+        self.assertEqual(len(rows), 1, response.content)
+        return rows[0]
+
+    def prefetched(self):
+        """The prefetch caches `StudentListSerializer` is handed, read
+        directly: the serializer only counts submissions of the row's
+        "relevant course", so the submissions prefetch is not observable in
+        the payload while the enrollments prefetch is scoped (the same
+        technique as H-22's test_prefetch_caches_hold_only_the_teachers_own_rows)."""
+        request = APIRequestFactory().get(MY_STUDENTS_URL)
+        request.user = self.teacher
+        view = StudentCourseViewSet(action="my_students", request=request)
+        student = next(s for s in view.get_queryset() if s.pk == self.student.pk)
+        return (
+            {e.course_id for e in student.enrollments.all()},
+            {s.pk for s in student.submissions.all()},
+        )
+
+    # -- /users/<id> ---------------------------------------------------------
+
+    def user_detail(self, **params):
+        cache.clear()
+        response = self.client_t.get(
+            reverse("user-detail", kwargs={"pk": self.student.pk}), params
+        )
+        self.assertLess(response.status_code, 500, response.content)
+        return response
+
+    # -- assignment course validator ----------------------------------------
+
+    def create_payload(self, title):
+        return {
+            "course": str(self.course_id),
+            "raw_input": f"Q1. {title}",
+            "title": title,
+            "status": "PUBLISHED",
+        }
+
+
+class RemovedTeacherSharedStudentTests(SharedStudentBase):
+    # classrooms/views.py my_students: enrollments prefetch
+    def test_my_students_row_names_only_the_own_course(self):
+        response = self.my_students()
+        body = response.content.decode()
+        leaked = "School A Biology" in body or "School A syllabus" in body
+        note(
+            "classrooms/views.py my-students enrollments prefetch",
+            "READ",
+            response,
+            leaked,
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        row = self.student_row(response)
+        self.assertEqual(row["enrolled_courses"], ["Own Chemistry"])
+        self.assertFalse(leaked, body)
+
+    # classrooms/views.py my_students: both prefetches, below the serializer
+    def test_my_students_prefetch_caches_hold_no_school_rows(self):
+        courses, submissions = self.prefetched()
+        self.assertEqual(courses, {self.own_course.id})
+        self.assertEqual(submissions, set())
+
+    # classrooms/filters.py MyStudentsFilter (course)
+    def test_my_students_course_filter_naming_the_school_course_returns_no_rows(self):
+        response = self.my_students(enrollments__course=self.course_id)
+        body = response.content.decode()
+        leaked = response.status_code == 200 and response.data["count"] != 0
+        note(
+            "classrooms/filters.py my-students ?enrollments__course",
+            "READ",
+            response,
+            leaked,
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(response.data["count"], 0, body)
+        for marker in ("School A Biology", "School A syllabus", "91.50"):
+            self.assertNotIn(marker, body)
+
+    # classrooms/filters.py MyStudentsFilter (session)
+    def test_my_students_session_filter_naming_the_school_session_returns_no_rows(self):
+        response = self.my_students(enrollments__course__session=self.session_id)
+        leaked = response.status_code == 200 and response.data["count"] != 0
+        note(
+            "classrooms/filters.py my-students ?enrollments__course__session",
+            "READ",
+            response,
+            leaked,
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(response.data["count"], 0, response.content)
+
+    # users/filters.py visible_enrollments (course)
+    def test_user_detail_course_filter_is_not_an_oracle_on_the_school_course(self):
+        # The student IS reachable (via the own course), so a 404 below is
+        # the filter refusing, not the target being invisible.
+        self.assertEqual(self.user_detail().status_code, 200)
+        probe = self.user_detail(enrollments__course=self.course_id)
+        control = self.user_detail(enrollments__course=UNKNOWN)
+        leaked = probe.status_code == 200
+        note("users/filters.py /users/<id>?enrollments__course", "READ", probe, leaked)
+        self.assertEqual(probe.status_code, 404, probe.content)
+        self.assertEqual(
+            (probe.status_code, probe.data), (control.status_code, control.data)
+        )
+
+    # users/filters.py visible_enrollments (session)
+    def test_user_detail_session_filter_is_not_an_oracle_on_the_school_session(self):
+        self.assertEqual(self.user_detail().status_code, 200)
+        probe = self.user_detail(enrollments__course__session=self.session_id)
+        control = self.user_detail(enrollments__course__session=UNKNOWN)
+        leaked = probe.status_code == 200
+        note(
+            "users/filters.py /users/<id>?enrollments__course__session",
+            "READ",
+            probe,
+            leaked,
+        )
+        self.assertEqual(probe.status_code, 404, probe.content)
+        self.assertEqual(
+            (probe.status_code, probe.data), (control.status_code, control.data)
+        )
+
+    # assignments/serializers.py AssignmentTextSerializer.validate_course
+    @patch(
+        "assignments.views.AssignmentProcessingService.update_assignment_from_extraction",
+        side_effect=_passthrough_extraction,
+    )
+    def test_create_assignment_in_the_school_course(self, mock_extract):
+        response = self.client_t.post(
+            f"{API}/assignments", self.create_payload("PLANTED"), format="json"
+        )
+        changed = Assignment.objects.filter(title="PLANTED").exists()
+        note(
+            "assignments/serializers.py validate_course create",
+            "WRITE",
+            response,
+            changed,
+        )
+        self.assertEqual(response.status_code, 400, response.content)
+        self.assertIn("course", response.content.decode())
+        self.assertFalse(changed)
+        mock_extract.assert_not_called()
+
+    def test_create_async_assignment_in_the_school_course(self):
+        with patch(
+            "assignments.views.launch_processing_task", return_value=FAKE_TASK
+        ) as mock_launch:
+            response = self.client_t.post(
+                reverse("assignment-create-async"),
+                self.create_payload("PLANTED ASYNC"),
+                format="json",
+            )
+        changed = Assignment.objects.filter(title="PLANTED ASYNC").exists()
+        note(
+            "assignments/serializers.py validate_course create-async",
+            "WRITE",
+            response,
+            changed,
+        )
+        self.assertEqual(response.status_code, 400, response.content)
+        self.assertIn("course", response.content.decode())
+        self.assertFalse(changed)
+        mock_launch.assert_not_called()
+
+    def test_patch_own_assignment_into_the_school_course(self):
+        response = self.client_t.patch(
+            f"{API}/assignments/{self.own_assignment.id}",
+            {"course": str(self.course_id)},
+            format="json",
+        )
+        changed = self.reload_course_id(self.own_assignment) != self.own_course.id
+        note(
+            "assignments/serializers.py validate_course patch",
+            "WRITE",
+            response,
+            changed,
+        )
+        self.assertEqual(response.status_code, 400, response.content)
+        self.assertFalse(changed)
+
+    def reload_course_id(self, obj):
+        obj.refresh_from_db()
+        return obj.course_id
+
+
+class ActiveTeacherSharedStudentTests(SharedStudentBase):
+    """Positive controls: the same fixture without the removal. The active
+    teacher still sees School A data through every rewritten site, and still
+    never the colleague's course (H-22's boundary)."""
+
+    remove = False
+
+    def test_my_students_row_names_both_own_courses_but_not_the_colleagues(self):
+        response = self.my_students()
+        self.assertEqual(response.status_code, 200, response.content)
+        row = self.student_row(response)
+        self.assertCountEqual(
+            row["enrolled_courses"], ["School A Biology", "Own Chemistry"]
+        )
+        self.assertNotIn("Colleague", response.content.decode())
+
+    def test_my_students_prefetch_caches_hold_the_school_rows(self):
+        courses, submissions = self.prefetched()
+        self.assertEqual(courses, {self.course_id_uuid(), self.own_course.id})
+        self.assertEqual(submissions, {self.school_submission.pk})
+
+    def test_my_students_course_filter_selects_the_school_course(self):
+        response = self.my_students(enrollments__course=self.course_id)
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(response.data["count"], 1, response.content)
+        row = self.student_row(response)
+        self.assertEqual(row["course_description"], "School A syllabus")
+        self.assertEqual(Decimal(str(row["grade"]["percentage"])), Decimal("91.50"))
+        self.assertEqual(row["total_assignments_submitted"], 1)
+
+    def test_my_students_session_filter_selects_the_student(self):
+        response = self.my_students(enrollments__course__session=self.session_id)
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(response.data["count"], 1, response.content)
+
+    def test_my_students_colleague_course_filter_still_returns_no_rows(self):
+        response = self.my_students(enrollments__course=self.colleague_course.id)
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(response.data["count"], 0, response.content)
+
+    def test_user_detail_course_filter_finds_the_student(self):
+        response = self.user_detail(enrollments__course=self.course_id)
+        self.assertEqual(response.status_code, 200, response.content)
+
+    def test_user_detail_session_filter_finds_the_student(self):
+        response = self.user_detail(enrollments__course__session=self.session_id)
+        self.assertEqual(response.status_code, 200, response.content)
+
+    def test_user_detail_colleague_course_filter_is_still_404(self):
+        response = self.user_detail(enrollments__course=self.colleague_course.id)
+        self.assertEqual(response.status_code, 404, response.content)
+
+    def test_create_async_assignment_in_the_school_course(self):
+        with patch(
+            "assignments.views.launch_processing_task", return_value=FAKE_TASK
+        ) as mock_launch:
+            response = self.client_t.post(
+                reverse("assignment-create-async"),
+                self.create_payload("Legit async"),
+                format="json",
+            )
+        self.assertEqual(response.status_code, 202, response.content)
+        created = Assignment.objects.get(title="Legit async")
+        self.assertEqual(str(created.course_id), str(self.course_id))
+        mock_launch.assert_called_once()
+
+    def test_patch_own_assignment_into_the_school_course(self):
+        response = self.client_t.patch(
+            f"{API}/assignments/{self.own_assignment.id}",
+            {"course": str(self.course_id)},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        self.own_assignment.refresh_from_db()
+        self.assertEqual(str(self.own_assignment.course_id), str(self.course_id))
+
+    def test_create_async_in_the_colleagues_course_is_still_refused(self):
+        payload = self.create_payload("Colleague plant")
+        payload["course"] = str(self.colleague_course.id)
+        with patch("assignments.views.launch_processing_task", return_value=FAKE_TASK):
+            response = self.client_t.post(
+                reverse("assignment-create-async"), payload, format="json"
+            )
+        self.assertEqual(response.status_code, 400, response.content)
+        self.assertFalse(Assignment.objects.filter(title="Colleague plant").exists())
+
+    def course_id_uuid(self):
+        return Course.objects.get(pk=self.course_id).pk
