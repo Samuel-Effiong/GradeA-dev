@@ -1,0 +1,64 @@
+{
+  "M1_register_lookup_not_scoped_to_students": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_pending_school_admin_row_cannot_be_completed_either",
+      "test_a_pending_teacher_row_cannot_be_completed_through_the_student_door",
+      "test_the_teacher_refusal_is_the_same_400_as_an_unknown_code"
+    ]
+  },
+  "M2_renew_lookup_not_scoped_to_students": {
+    "killed": true,
+    "failing_tests": [
+      "test_renewing_a_teacher_code_is_the_same_400_as_an_unknown_code"
+    ]
+  },
+  "M3_budget_never_checked": {
+    "killed": true,
+    "failing_tests": [
+      "test_an_expired_code_counts_as_a_failure",
+      "test_once_the_budget_is_spent_even_a_valid_code_gets_429",
+      "test_the_budget_resets_with_the_next_window"
+    ]
+  },
+  "M4_no_match_not_recorded": {
+    "killed": true,
+    "failing_tests": [
+      "test_failures_are_logged_without_the_code_or_any_email",
+      "test_once_the_budget_is_spent_even_a_valid_code_gets_429",
+      "test_the_budget_resets_with_the_next_window"
+    ]
+  },
+  "M5_expired_not_recorded": {
+    "killed": true,
+    "failing_tests": [
+      "test_an_expired_code_counts_as_a_failure"
+    ]
+  },
+  "M6_budget_off_by_one": {
+    "killed": true,
+    "failing_tests": [
+      "test_an_expired_code_counts_as_a_failure",
+      "test_once_the_budget_is_spent_even_a_valid_code_gets_429",
+      "test_the_budget_resets_with_the_next_window"
+    ]
+  },
+  "M7_window_never_rolls_over": {
+    "killed": false,
+    "failing_tests": []
+  },
+  "M8_throttled_raised_inside_catch_all": {
+    "killed": true,
+    "failing_tests": [
+      "test_an_expired_code_counts_as_a_failure",
+      "test_once_the_budget_is_spent_even_a_valid_code_gets_429",
+      "test_the_budget_resets_with_the_next_window"
+    ]
+  },
+  "M9_log_includes_the_token": {
+    "killed": true,
+    "failing_tests": [
+      "test_failures_are_logged_without_the_code_or_any_email"
+    ]
+  }
+}
