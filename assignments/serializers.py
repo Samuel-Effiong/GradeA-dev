@@ -119,7 +119,10 @@ class AssignmentSerializer(serializers.ModelSerializer):
             "extraction_started_at",
             "extraction_completed_at",
         ]
-        read_only_fields = ["created_at", "id", "submission_count"]
+        # teacher: no production path writes it, and this serializer is fed
+        # AI output, so a writable user FK was a way to point an assignment
+        # at any account (H-18).
+        read_only_fields = ["created_at", "id", "submission_count", "teacher"]
 
         extra_kwargs = {
             "title": {"required": False},
@@ -341,15 +344,10 @@ class AssignmentListStudentSerializer(serializers.ModelSerializer):
 
     def get_status(self, obj):
         "To check if student submitted for this assignment"
-        submission = self._get_submission(obj)
-        if submission and not submission.graded_at:
-            return "SUBMITTED"
-        elif submission and submission.graded_at and submission.is_published:
-            return "GRADED"
-        if obj.due_date and obj.due_date < timezone.now():
-            return "OVERDUE"
+        from .services import get_student_assignment_status
 
-        return "PENDING"
+        submission = self._get_submission(obj)
+        return get_student_assignment_status(obj, submission)
 
     def get_score(self, obj):
         submission = self._get_submission(obj)
@@ -673,6 +671,35 @@ class AssignmentTextSerializer(serializers.Serializer):
     def validate_due_date(self, value):
         if value and value < timezone.now():
             raise serializers.ValidationError("Due date cannot be in the past.")
+        return value
+
+    def validate_course(self, value):
+        """Reject a course the requesting teacher doesn't own (H-18).
+
+        `course` is a plain writable PK field, and the viewset's
+        get_queryset() only scopes which EXISTING assignment a teacher can
+        reach - never the course a new or edited one points at. Without
+        this, a teacher could create an assignment in another teacher's
+        course, or PATCH their own assignment into it, just by knowing the
+        course UUID. This serializer backs three doors (create/create-async,
+        PATCH, update-async), so the check lives here rather than in each.
+
+        Same rule as TopicSerializer.validate_course, with one deliberate
+        difference: with no authenticated request in context this refuses
+        instead of passing. update_async once built this serializer without
+        context, so a pass-through would have left that door open; failing
+        closed makes a caller that forgets the context break loudly.
+        """
+        request = self.context.get("request")
+        user = getattr(request, "user", None) if request else None
+        if user is None or not user.is_authenticated:
+            raise serializers.ValidationError("You do not have access to this course.")
+
+        if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:
+            return value
+
+        if value.teacher_id != user.id:
+            raise serializers.ValidationError("You do not have access to this course.")
         return value
 
     def validate_raw_input(self, value):

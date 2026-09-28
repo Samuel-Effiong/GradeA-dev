@@ -54,7 +54,13 @@ def _user_facing_exception_types():
 
 
 def _passthrough_message(error):
-    """The verbatim message for a known user-authored exception, or None."""
+    """The verbatim message for a known user-authored exception, or None.
+    InsufficientCreditsError is the exception: its text can carry internal
+    billing state, so every one gets the same fixed message."""
+    from billing.errors import INSUFFICIENT_CREDITS_MESSAGE, InsufficientCreditsError
+
+    if isinstance(error, InsufficientCreditsError):
+        return INSUFFICIENT_CREDITS_MESSAGE
     if isinstance(error, _user_facing_exception_types()):
         message = str(error).strip()
         if message:

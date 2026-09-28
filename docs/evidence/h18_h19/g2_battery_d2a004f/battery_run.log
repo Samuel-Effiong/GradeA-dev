@@ -1,0 +1,37 @@
+[w0] warm clean run: rc=0 ran=6 OK
+[w1] warm clean run: rc=0 ran=6 OK
+KILLED   M01 validate_course body removed | guard=validate_course ran=30 FAILED (failures=29) restored=False (246s)
+KILLED   M00 ORIGINAL b744c9f source (all 8 files) | guard=baseline ran=61 FAILED (failures=54, errors=1) restored=False (407s)
+KILLED   M02 owner comparison removed | guard=validate_course ran=30 FAILED (failures=28) restored=False (241s)
+KILLED   M03 fail-open without request | guard=validate_course fail-closed ran=30 FAILED (failures=1) restored=False (248s)
+KILLED   M04 fail-open + update_async without context | guard=validate_course + update_async context ran=30 FAILED (failures=5) restored=False (234s)
+KILLED   M05 superadmin bypass loosened to or | guard=validate_course superadmin both-flags ran=30 FAILED (failures=1) restored=False (187s)
+KILLED   M06 refuse every course | guard=validate_course over-correction ran=30 FAILED (failures=6) restored=False (182s)
+KILLED   M07 update_async bare serializer | guard=update_async context ran=30 FAILED (failures=1) restored=False (166s)
+KILLED   M16 text-serializer topic check removed | guard=topic in course ran=30 FAILED (failures=5) restored=False (137s)
+KILLED   M17 partial validate drops instance-course fallback | guard=topic in course (partial) ran=30 FAILED (failures=2) restored=False (106s)
+SURVIVED M18 draft-save topic check removed | guard=draft topic ran=30 OK restored=False (106s)
+KILLED   M08 settings gate and->or | guard=settings both-flags ran=10 FAILED (failures=4) restored=False (23s)
+KILLED   M09 settings gate is_superuser only | guard=settings both-flags ran=10 FAILED (failures=3) restored=False (21s)
+KILLED   M10 settings gate user_type only | guard=settings both-flags ran=10 FAILED (failures=2) restored=False (22s)
+KILLED   M19 draft-save topic + AssignmentSerializer topic check removed | guard=draft topic (both layers) ran=30 FAILED (failures=1) restored=False (109s)
+KILLED   M11 settings gate never true | guard=settings over-correction ran=10 FAILED (failures=1) restored=False (23s)
+KILLED   M12 token gate and->or | guard=token usage both-flags ran=10 FAILED (failures=2) restored=False (23s)
+KILLED   M13 token gate is_superuser only | guard=token usage both-flags ran=10 FAILED (failures=1) restored=False (25s)
+KILLED   M14 token gate user_type only | guard=token usage both-flags ran=10 FAILED (failures=1) restored=False (26s)
+KILLED   M15 token gate never true | guard=token usage over-correction ran=10 FAILED (failures=1) restored=False (26s)
+KILLED   M20 HasCreditBalance user_type only | guard=credit gate both-flags ran=10 FAILED (failures=2) restored=False (35s)
+SURVIVED M21 HasCreditBalance is_superuser only | guard=credit gate both-flags ran=10 OK restored=False (46s)
+KILLED   M22 AI type-only refusal branch removed | guard=unmetered AI both-flags ran=10 FAILED (failures=13) restored=False (46s)
+KILLED   M23 AI refusal condition inverted | guard=unmetered AI both-flags ran=10 FAILED (failures=14, errors=1) restored=False (37s)
+KILLED   M24 extract_assignment_data filter removed | guard=allow-list extraction ran=13 FAILED (failures=5) restored=False (50s)
+KILLED   M25 generate filter removed | guard=allow-list generate ran=13 FAILED (failures=1) restored=False (56s)
+KILLED   M26 draft-save snapshot filter removed | guard=allow-list save ran=13 FAILED (failures=1) restored=False (49s)
+KILLED   M27 allow-list widened (status, teacher) | guard=allow-list contents ran=13 FAILED (failures=7) restored=False (42s)
+KILLED   M29 TopicSerializer fail-open | guard=topic validator fail-closed ran=6 FAILED (failures=1) restored=False (23s)
+KILLED   M28 teacher read-only removed | guard=teacher read-only ran=13 FAILED (failures=1) restored=False (42s)
+KILLED   M30 CourseSerializer fail-open | guard=session validator fail-closed ran=6 FAILED (failures=1) restored=False (17s)
+
+killed 29/31; all restored by blob hash: False
+worker 0: HEAD=d2a004fff1e2b3b301585dc5a770e544a230f0db clean=False
+worker 1: HEAD=d2a004fff1e2b3b301585dc5a770e544a230f0db clean=False

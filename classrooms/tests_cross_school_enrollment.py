@@ -360,6 +360,11 @@ class NewAccountsStillWork(CrossSchoolBase):
     """Scenario 4: the rule must not block genuine onboarding."""
 
     def test_an_unknown_email_creates_a_pending_student(self):
+        # Single-add-by-email creates the account active immediately with a
+        # system-generated temporary password (see
+        # classrooms/services/enrollment.py::_create_new_student) rather
+        # than is_active=False + an activation token - the enrollment
+        # itself still starts PENDING until the student's first login.
         response = self.add_by_email(
             self.teacher_a, self.course_a, "brand.new@nowhere.test"
         )
@@ -367,7 +372,8 @@ class NewAccountsStillWork(CrossSchoolBase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         student = User.objects.get(email="brand.new@nowhere.test")
         self.assertEqual(student.user_type, UserTypes.STUDENT)
-        self.assertFalse(student.is_active)
+        self.assertTrue(student.is_active)
+        self.assertTrue(student.must_change_password)
         self.assertEqual(
             StudentCourse.objects.get(student=student).enrollment_status,
             EnrollmentStatusType.PENDING,

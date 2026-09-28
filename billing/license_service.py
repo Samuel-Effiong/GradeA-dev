@@ -31,13 +31,8 @@ from AutoGrader.error_messages import describe_stripe_error, describe_user_error
 from AutoGrader.tasks import send_email_task
 from classrooms.models import School
 from users.mailerlite_service import queue_sync
-from users.models import (
-    ACTIVATION_TOKEN_VALIDITY,
-    CustomUser,
-    RegistrationMethod,
-    UserTypes,
-)
-from users.services import otp_manager
+from users.models import CustomUser, RegistrationMethod, UserTypes
+from users.services import generate_temporary_password
 from users.utils import is_business_email, is_exempt_email_domain
 
 from .billing_transaction_service import BillingTransactionService
@@ -84,9 +79,11 @@ def sync_teachers_under_license_to_mailerlite(license_sub: LicenseSubscription) 
     and subscription_tier return for every teacher under it, so their
     MailerLite fields go stale unless re-synced explicitly.
 
-    user__is_active=True excludes teachers who were invited but haven't
-    completed activation yet - same rule queue_sync() applies for a
-    single user (see users/mailerlite_service.py).
+    user__is_active=True is a safety net for teachers an admin has since
+    deactivated - same rule queue_sync() applies for a single user (see
+    users/mailerlite_service.py). License-invited teachers are active
+    immediately, so this no longer excludes an "invited but not yet
+    activated" cohort.
     """
     from users.tasks import sync_user_to_mailerlite
 
@@ -1064,8 +1061,8 @@ class LicenseSubscriptionService:
         raise_on_conflict: bool = False,
     ) -> CustomUser | None:
         """
-        Find an existing teacher by email, or create an inactive teacher account
-        and send an activation email
+        Find an existing teacher by email, or create an active teacher account
+        with a temporary password and email them a login link.
 
         Raises ValueError if email is invalid, teacher belongs to a different school,
         or the email is already used by a non-teacher account
@@ -1130,69 +1127,85 @@ class LicenseSubscriptionService:
                 user.school = school
                 user.save(update_fields=["school"])
 
-            # 5. If user exists but inactive, ALWAYS (re-)send the
-            # invitation email, regardless of whether the previous
-            # activation token has already expired.
-            #
-            if not user.is_active:
-                if (
-                    not user.activation_token
-                    or user.activation_expires < timezone.now()
-                ):
-                    user.activation_token = otp_manager.generate_otp()
-                    user.activation_expires = timezone.now() + ACTIVATION_TOKEN_VALIDITY
-                    user.save(update_fields=["activation_token", "activation_expires"])
+            # 5. If the teacher still hasn't logged in and set their own
+            # password, ALWAYS (re-)send the login email with a fresh
+            # temporary password. Once must_change_password is False
+            # they've already onboarded, so re-adding them here is just
+            # the school-attach above - no reset, no resend.
+            if user.must_change_password:
+                # A fresh password every resend: the previous one's plaintext
+                # can't be recovered from the stored hash to put in this
+                # email, so there's nothing to reuse.
+                generated_password = generate_temporary_password(user)
+                user.set_password(generated_password)
+                user.must_change_password = True
+                user.save(update_fields=["password", "must_change_password"])
 
                 LicenseSubscriptionService._send_teacher_invitation(
-                    user, school, admin_user
+                    user, school, admin_user, generated_password
                 )
 
             return user
 
-        activation_token = otp_manager.generate_otp()
         try:
-            # Create new teacher account (inactive)
+            # Create new teacher account, active immediately - a
+            # license-invited teacher logs straight in with the temporary
+            # password below, no activation link/token to click through
+            # first (unlike self-registration/student/school-admin invites,
+            # which this change does not touch).
             set_license_invitation_context(True)
             user = CustomUser.objects.create(
                 email=email,
                 user_type=UserTypes.TEACHER,
                 school=school,
-                is_active=False,
+                is_active=True,
                 registration_method=RegistrationMethod.EMAIL,
-                activation_token=activation_token,
-                activation_expires=timezone.now() + ACTIVATION_TOKEN_VALIDITY,
             )
 
-            # Set a dummy unusable password (they will set it via activation)
-            user.set_unusable_password()
+            # Generate a real password so the teacher can log in (and so the
+            # forced-change flow below has something to force them off of),
+            # instead of set_unusable_password() leaving them with no way to
+            # ever authenticate.
+            generated_password = generate_temporary_password(user)
+            user.set_password(generated_password)
+            user.must_change_password = True
             user.save()
         finally:
             clear_license_invitation_context()
 
         # Send invitation email
-        LicenseSubscriptionService._send_teacher_invitation(user, school, admin_user)
+        LicenseSubscriptionService._send_teacher_invitation(
+            user, school, admin_user, generated_password
+        )
         return user
 
     @staticmethod
     def _send_teacher_invitation(
-        teacher: CustomUser, school: School, admin_user: CustomUser
+        teacher: CustomUser,
+        school: School,
+        admin_user: CustomUser,
+        generated_password: str,
     ) -> None:
 
         frontend_domain = settings.FRONTEND_DOMAIN
-        activation_link = (
-            f"https://{frontend_domain}/register/teacher?"
-            f"token={teacher.activation_token}&email={teacher.email}"
-        )
+        login_url = f"https://{frontend_domain}/login"
 
         merge_data = {
             "title": f"You have been added to {school.name} as a teacher",
             "name": teacher.get_full_name() or "Teacher",
             "top_content": (
                 f"{admin_user.get_full_name()} has invited you to teach at {school.name}.\n\n"
-                "Complete your registration to set up your password and start using Grade A+."
+                "Your account is ready - log in below with your email and the "
+                f"temporary password: {generated_password}\n\n"
+                "You'll be asked to choose your own password the first time "
+                "you log in."
             ),
-            "bottom_content": "This invitation link expires in 24 hours.",
-            "activation_url": activation_link,
+            "bottom_content": "",
+            # Shared merge key with the school-admin invite email
+            # (classrooms/serializers.py) on this same template - the key
+            # name is the CTA button's merge tag, so it stays "activation_url"
+            # even though it now points at the login page.
+            "activation_url": login_url,
             "current_year": timezone.now().year,
             "support_email": settings.SUPPORT_EMAIL,
         }

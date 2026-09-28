@@ -76,6 +76,7 @@ from students.task_tracking import (
     get_processing_task,
     normalize_processing_task_status,
 )
+from users.filters import UserEnrollmentFilter
 from users.mixins import UserCacheMixin
 from users.models import (
     BetaWhitelist,
@@ -228,13 +229,10 @@ class CustomUserViewSet(UserCacheMixin, viewsets.ModelViewSet):
     pagination_class = StandardPageNumberPagination
     http_method_names = ["get", "head", "post", "delete", "patch", "options"]
 
-    filterset_fields = {
-        "user_type": ["exact"],
-        "school__name": ["exact"],
-        "enrollments__course": ["exact", "isnull"],
-        "enrollments__course__session": ["exact"],
-        "enrollments__enrollment_status": ["exact", "in"],
-    }
+    # Not filterset_fields: the enrollments__* lookups joined every
+    # enrollment an account had, other teachers' included, and get_object()
+    # applies filters too - a yes/no oracle on other tenants' enrollments.
+    filterset_class = UserEnrollmentFilter
     search_fields = ["first_name", "last_name", "email"]
     ordering_fields = ["first_name", "last_name", "email", "username"]
 
@@ -544,7 +542,10 @@ class SettingsViewSet(UserCacheMixin, viewsets.ModelViewSet):
         """
         user = self.request.user
 
-        if user.is_superuser or user.user_type == UserTypes.SUPER_ADMIN:
+        # Both flags, as IsSuperAdmin requires (H-19). `or` let a
+        # createsuperuser account - is_superuser but user_type TEACHER -
+        # read and edit every user's settings.
+        if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:
             return Settings.objects.all()
 
         return Settings.objects.filter(user=user)
@@ -970,6 +971,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             otp_obj.delete()
 
         user.set_password(new_password)
+        user.must_change_password = False
         user.save()
 
         tokens = OutstandingToken.objects.filter(user=user)
@@ -1564,6 +1566,18 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                     if not user.is_active:
                         user.is_active = True
                         resurrected_fields.append("is_active")
+
+                        # This row may carry a password an attacker chose
+                        # while it sat dormant (POST /auth/register creates
+                        # is_active=False rows with a real, caller-supplied
+                        # password). Google has only proven mailbox
+                        # ownership here, not which password belongs to the
+                        # rightful owner, so activating the row must not
+                        # leave any existing password usable - the
+                        # rightful owner can always get a fresh one through
+                        # the reset-password flow.
+                        user.set_unusable_password()
+                        resurrected_fields.append("password")
 
                     if resurrected_fields:
                         user.save(update_fields=resurrected_fields)

@@ -57,6 +57,7 @@ from users.serializers import CustomUserSerializer
 from users.throttling import RegisterThrottle
 
 from . import services
+from .filters import MyStudentsFilter
 from .models import (  # , Classroom, ClassroomSettings
     COURSE_ACCESS_ENROLLMENT_STATUSES,
     Course,
@@ -1028,9 +1029,12 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         school_id = request.query_params.get("school_id")
         if school_id:
             _validate_uuid_query_param(school_id, "school_id")
-            # Superadmin can specify any school
+            # Superadmin can specify any school. Both flags, as IsSuperAdmin
+            # requires (H-19): `or` let a createsuperuser account (user_type
+            # TEACHER) read any school's usage.
             if not (
-                request.user.is_superuser or request.user.user_type == "SUPER_ADMIN"
+                request.user.is_superuser
+                and request.user.user_type == UserTypes.SUPER_ADMIN
             ):
                 return Response(
                     {"detail": "You do not have permission to view this school."},
@@ -1577,7 +1581,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         return Response(data)
 
     @extend_schema(
-        tags=["Courses"],
+        tags=["Course"],
         summary="Generate an AI summary for a student in this course",
         description="""Generates a short, personalised AI narrative about a specific student's
         performance across all assignments in this course.
@@ -2040,18 +2044,28 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 # teacher and assignments, and submissions -> assignment,
                 # for every row. Unprefetched that was ~140 queries PER
                 # STUDENT (425 for a 3-row page, measured).
+                #
+                # Both prefetches are scoped to THIS teacher's courses. A
+                # student is routinely enrolled with several unrelated
+                # teachers, and the serializer reports whatever the cache
+                # holds: unscoped, `enrolled_courses` listed other teachers'
+                # course names, and `?enrollments__course=<their course>`
+                # made that foreign course the row's subject - its
+                # description, its teacher's name and the student's grade.
                 return CustomUser.objects.filter(
                     Exists(active_enrollment)
                 ).prefetch_related(
                     Prefetch(
                         "enrollments",
-                        queryset=StudentCourse.objects.select_related(
-                            "course", "course__teacher"
-                        ).prefetch_related("course__assignments"),
+                        queryset=StudentCourse.objects.filter(course__teacher=user)
+                        .select_related("course", "course__teacher")
+                        .prefetch_related("course__assignments"),
                     ),
                     Prefetch(
                         "submissions",
-                        queryset=StudentSubmission.objects.select_related("assignment"),
+                        queryset=StudentSubmission.objects.filter(
+                            assignment__course__teacher=user
+                        ).select_related("assignment"),
                     ),
                 )
             return CustomUser.objects.none()
@@ -2096,10 +2110,9 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
     def filter_queryset(self, queryset):
         if self.action == "my_students":
-            self.filterset_fields = {
-                "enrollments__course": ["exact"],
-                "enrollments__course__session": ["exact"],
-            }
+            # Not filterset_fields: those join every enrollment the student
+            # has, including other teachers' (see MyStudentsFilter).
+            self.filterset_class = MyStudentsFilter
             self.search_fields = ["first_name", "last_name", "email"]
 
         return super().filter_queryset(queryset)

@@ -42,14 +42,17 @@ whatever the function said.
 """
 
 import threading
+import time
 import uuid
 from datetime import timedelta
+from typing import Any, Callable
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.db import connections
 from django.test import TestCase, TransactionTestCase
 from django.utils import timezone
 
+from AutoGrader.testing.concurrency import run_concurrently
 from billing.models import (
     BillingInterval,
     BillingTransaction,
@@ -97,6 +100,24 @@ class OverageFixture:
 
     #: Set by each TestCase's setUp; declared so the type checker can see it.
     plan: SubscriptionPlan
+
+    #: Supplied by the TestCase this mixin is combined with.
+    addCleanup: Callable[..., Any]
+
+    def stub_receipt_lookup(self):
+        """
+        Every grant path resolves a receipt link through a LIVE Stripe call
+        (resolve_stripe_receipt_url -> stripe.PaymentIntent.retrieve), inside
+        the grant's own transaction. None of the tests here check that link,
+        and the call is a real round trip whose latency they then inherit:
+        it is what made the concurrency tests flaky. Its own behaviour
+        belongs in a test that stubs stripe itself.
+        """
+        patcher = patch(
+            "billing.stripe_service.resolve_stripe_receipt_url", return_value=None
+        )
+        self.receipt_lookup = patcher.start()
+        self.addCleanup(patcher.stop)
 
     def build(self, email="overage@billing.test", plan=None, school=None):
         plan = plan or self.plan
@@ -187,6 +208,7 @@ class IndividualCheckoutOverageTests(TestCase, OverageFixture):
     """Flow 1 — the one that had the defects."""
 
     def setUp(self):
+        self.stub_receipt_lookup()
         self.plan = make_plan()
         self.user, self.wallet = self.build()
 
@@ -446,6 +468,7 @@ class DirectPaymentIntentOverageTests(TestCase, OverageFixture):
     """Flow 2 — the off-session PaymentIntent path."""
 
     def setUp(self):
+        self.stub_receipt_lookup()
         self.plan = make_plan()
         self.user, self.wallet = self.build(email="pi.overage@billing.test")
 
@@ -530,6 +553,7 @@ class OverageConsumptionOrderingTests(TestCase, OverageFixture):
     """Purchased overage must be spent LAST, after every free bucket."""
 
     def setUp(self):
+        self.stub_receipt_lookup()
         self.plan = make_plan()
         self.user, self.wallet = self.build(email="ordering@billing.test")
         now = timezone.now()
@@ -593,6 +617,7 @@ class SchoolLicenseOverageIsolationTests(TestCase, OverageFixture):
     """
 
     def setUp(self):
+        self.stub_receipt_lookup()
         self.plan = make_plan()
         self.school = School.objects.create(name="Overage School")
         self.other_school = School.objects.create(name="Other School")
@@ -675,29 +700,40 @@ class ConcurrentOverageDeliveryTests(TransactionTestCase, OverageFixture):
 
     reset_sequences = True
 
+    #: Total time _run waits for ALL workers, shared by them as one deadline.
+    JOIN_TIMEOUT_SECONDS = 60
+
+    #: Gate 3 load: simultaneous deliveries per round, and rounds per test.
+    LOAD_THREADS = 20
+    LOAD_ROUNDS = 10
+
     def setUp(self):
+        # Unstubbed, this call's latency is what made these tests flaky: one
+        # that outlived the join left the assertions reading a grant that was
+        # written but not yet committed ("0 != 500").
+        self.stub_receipt_lookup()
         self.plan = make_plan()
         self.user, self.wallet = self.build(email="concurrent.ov@billing.test")
 
-    def _run(self, fn, count):
-        barrier = threading.Barrier(count)
-        errors = []
-
-        def worker(i):
-            try:
-                barrier.wait(timeout=30)
-                fn(i)
-            except Exception as exc:  # noqa: BLE001 - asserted on below
-                errors.append(exc)
-            finally:
-                connections.close_all()
-
-        threads = [threading.Thread(target=worker, args=(i,)) for i in range(count)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join(timeout=60)
+    def _run(self, fn, count, join_timeout=None):
+        """Thin wrapper: the rules live in AutoGrader.testing.concurrency."""
+        _, errors = run_concurrently(
+            fn,
+            count,
+            test=self,
+            join_timeout=(
+                self.JOIN_TIMEOUT_SECONDS if join_timeout is None else join_timeout
+            ),
+            name="overage-worker",
+        )
         return errors
+
+    def _buy_as(self, wallet, tag):
+        StripeWebhookHandler.handle_checkout_completed(
+            self.checkout_session(
+                wallet, self.plan, session_id=f"cs_{tag}", payment_intent=f"pi_{tag}"
+            )
+        )
 
     def test_simultaneous_duplicate_deliveries_grant_exactly_once(self):
         """
@@ -708,8 +744,11 @@ class ConcurrentOverageDeliveryTests(TransactionTestCase, OverageFixture):
         """
         session = self.checkout_session(self.wallet, self.plan)
 
-        self._run(lambda i: StripeWebhookHandler.handle_checkout_completed(session), 6)
+        errors = self._run(
+            lambda i: StripeWebhookHandler.handle_checkout_completed(session), 6
+        )
 
+        self.assertEqual(errors, [], f"threads raised: {errors!r}")
         self.assertEqual(
             self.granted_credits(self.wallet),
             BLOCK,
@@ -759,8 +798,9 @@ class ConcurrentOverageDeliveryTests(TransactionTestCase, OverageFixture):
                 )
             )
 
-        self._run(buy, 10)
+        errors = self._run(buy, 10)
 
+        self.assertEqual(errors, [], f"threads raised: {errors!r}")
         self.wallet.refresh_from_db()
         self.assertLessEqual(
             self.wallet.overage_blocks_used,
@@ -796,4 +836,157 @@ class ConcurrentOverageDeliveryTests(TransactionTestCase, OverageFixture):
                 self.granted_credits(wallet),
                 BLOCK,
                 "a teacher did not receive exactly their own block",
+            )
+
+    # --- the harness itself -------------------------------------------------
+
+    def test_a_worker_outliving_the_join_fails_loudly_instead_of_reading_partial_state(
+        self,
+    ):
+        """
+        THE FLAKE, made deterministic. One teacher's receipt lookup blocks
+        past the join timeout, so that thread's grant is written but not
+        committed when the waiting stops. The harness must fail and name
+        the thread, never go on to the ledger assertions.
+        """
+        school = School.objects.create(name="Slow Lookup School")
+        wallets = [
+            self.build(email=f"slow.t{i}@school.test", school=school)[1]
+            for i in range(4)
+        ]
+        slow_intent = "pi_slow_3"
+        entered, release = threading.Event(), threading.Event()
+
+        def lookup(*, invoice_id=None, payment_intent_id=None, **_):
+            if payment_intent_id == slow_intent:
+                entered.set()
+                release.wait(timeout=120)
+            return None
+
+        self.receipt_lookup.side_effect = lookup
+
+        try:
+            with self.assertRaisesRegex(
+                AssertionError, r"still running after 5s: .*'overage-worker-3'"
+            ):
+                self._run(lambda i: self._buy_as(wallets[i], f"slow_{i}"), 4, 5)
+            self.assertTrue(
+                entered.is_set(),
+                "the slow thread never reached the lookup, so this did not "
+                "exercise a written-but-uncommitted grant",
+            )
+            # What the old harness asserted on: the grant isn't visible yet.
+            self.assertEqual(self.granted_credits(wallets[3]), 0)
+        finally:
+            release.set()
+
+        # Once it is allowed to finish, the grant commits normally.
+        settle_by = time.monotonic() + 30
+        while (
+            self.granted_credits(wallets[3]) != BLOCK and time.monotonic() < settle_by
+        ):
+            time.sleep(0.05)
+        self.assertEqual(
+            [self.granted_credits(w) for w in wallets],
+            [BLOCK] * len(wallets),
+            "the released worker's grant never committed",
+        )
+
+    # --- Gate 3 load: 20 simultaneous deliveries, 10 rounds ----------------
+
+    def test_twenty_teachers_buying_at_once_each_get_only_their_own_blocks(self):
+        """
+        Twenty teachers in ONE school buy simultaneously, ten rounds over.
+        After every round each wallet holds exactly the blocks it paid for,
+        every ledger row names its own teacher, and every payment intent
+        in a wallet's ledger is one that teacher paid.
+        """
+        school = School.objects.create(name="Load School")
+        teachers = [
+            self.build(email=f"load.t{i}@school.test", school=school)
+            for i in range(self.LOAD_THREADS)
+        ]
+
+        for rnd in range(1, self.LOAD_ROUNDS + 1):
+            errors = self._run(
+                lambda i, rnd=rnd: self._buy_as(teachers[i][1], f"load_{rnd}_{i}"),
+                self.LOAD_THREADS,
+            )
+
+            self.assertEqual(errors, [], f"round {rnd}: threads raised {errors!r}")
+            for i, (teacher, wallet) in enumerate(teachers):
+                wallet.refresh_from_db()
+                ledger = self.purchase_ledger(wallet)
+                self.assertEqual(
+                    (self.granted_credits(wallet), wallet.overage_blocks_used),
+                    (rnd * BLOCK, rnd),
+                    f"round {rnd}: teacher {i} does not hold exactly the blocks "
+                    f"they paid for",
+                )
+                self.assertEqual(
+                    set(ledger.values_list("user_id", flat=True)), {teacher.id}
+                )
+                self.assertEqual(
+                    {row.metadata["stripe_payment_intent_id"] for row in ledger},
+                    {f"pi_load_{r}_{i}" for r in range(1, rnd + 1)},
+                    f"round {rnd}: teacher {i}'s ledger holds another "
+                    f"teacher's payment",
+                )
+
+    def test_twenty_simultaneous_duplicates_grant_once_every_round(self):
+        for rnd in range(1, self.LOAD_ROUNDS + 1):
+            session = self.checkout_session(
+                self.wallet,
+                self.plan,
+                session_id=f"cs_dup_{rnd}",
+                payment_intent=f"pi_dup_{rnd}",
+            )
+
+            errors = self._run(
+                lambda i, s=session: StripeWebhookHandler.handle_checkout_completed(s),
+                self.LOAD_THREADS,
+            )
+
+            self.assertEqual(errors, [], f"round {rnd}: threads raised {errors!r}")
+            self.wallet.refresh_from_db()
+            self.assertEqual(
+                (
+                    self.granted_credits(self.wallet),
+                    self.purchase_ledger(self.wallet).count(),
+                    self.wallet.overage_blocks_used,
+                ),
+                (rnd * BLOCK, rnd, rnd),
+                f"round {rnd}: {self.LOAD_THREADS} simultaneous duplicates did "
+                f"not grant exactly once",
+            )
+
+    def test_twenty_purchases_racing_for_two_blocks_grant_exactly_two_every_round(
+        self,
+    ):
+        """
+        Every purchase here is paid and valid, and the cap is re-checked
+        under the wallet lock, so exactly two win (not "at most two"), and
+        every loser is still recorded for refund.
+        """
+        for rnd in range(1, self.LOAD_ROUNDS + 1):
+            user, wallet = self.build(email=f"cap.r{rnd}@billing.test")
+            wallet.overage_blocks_used = self.plan.max_overage_blocks - 2
+            wallet.save(update_fields=["overage_blocks_used"])
+
+            errors = self._run(
+                lambda i, w=wallet, rnd=rnd: self._buy_as(w, f"cap_{rnd}_{i}"),
+                self.LOAD_THREADS,
+            )
+
+            self.assertEqual(errors, [], f"round {rnd}: threads raised {errors!r}")
+            wallet.refresh_from_db()
+            self.assertEqual(
+                (
+                    self.granted_credits(wallet),
+                    wallet.overage_blocks_used,
+                    BillingTransaction.objects.filter(user=user).count(),
+                ),
+                (2 * BLOCK, self.plan.max_overage_blocks, self.LOAD_THREADS),
+                f"round {rnd}: the cap race did not end with exactly two grants "
+                f"and every payment recorded",
             )

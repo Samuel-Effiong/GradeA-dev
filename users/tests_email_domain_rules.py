@@ -204,6 +204,9 @@ class BusinessAllowlistTests(SimpleTestCase):
 
 
 class ExemptDomainTests(SimpleTestCase):
+    # An unset/empty setting is the default under test; without the override a
+    # local .env carrying EXEMPT_EMAIL_DOMAINS makes this fail on that box only.
+    @override_settings(EXEMPT_EMAIL_DOMAINS=[])
     def test_nothing_is_exempt_by_default(self):
         """yopmail.com sat in this list permanently, and the exemption opens
         BOTH gates -- so anyone could mint a school admin on a public

@@ -1,0 +1,31 @@
+...F..........................................
+======================================================================
+FAIL: test_existing_test_db_before_run_aborts (__main__.EndToEnd.test_existing_test_db_before_run_aborts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 497, in test_existing_test_db_before_run_aborts
+    self.assertEqual(self.repo.gate({"db_exists_before": True}), 2, self.explain())
+AssertionError: 1 != 2 : exit 1
+stdout:
+[2026-09-17T18:34:39+01:00] pre-launch: {"heavy_slots_in_use": 0, "slots_requested": 1, "max_heavy_slots": 100000, "disk_free_gb": 14.78, "min_disk_gb": 0.0, "ram_available_gb": 10.27, "min_ram_gb": 0.0, "test_processes": [], "refused": []}
+[2026-09-17T18:34:40+01:00] run 1: pre-commit run --all-files: pre-commit run --all-files
+[2026-09-17T18:34:40+01:00] run 1: pre-commit run --all-files: exit 0
+[2026-09-17T18:34:40+01:00] run 1: check_migration_safety.py: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python scripts/check_migration_safety.py --base 04960694133ff31e303f1e5a050922b70fa030d2
+[2026-09-17T18:34:40+01:00] run 1: check_migration_safety.py: exit 0
+[2026-09-17T18:34:40+01:00] run 1: manage.py check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py check --settings=settings_worktree
+[2026-09-17T18:34:40+01:00] run 1: manage.py check: exit 0
+[2026-09-17T18:34:40+01:00] run 1: makemigrations --check: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py makemigrations --check --dry-run --settings=settings_worktree
+[2026-09-17T18:34:40+01:00] run 1: makemigrations --check: exit 0
+[2026-09-17T18:34:40+01:00] run 1: full suite: /home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python manage.py test --settings=settings_worktree --noinput --parallel 1 -v 2
+[2026-09-17T18:34:40+01:00] run 1: full suite: exit 0
+[2026-09-17T18:34:40+01:00] run 1: NOT CLEAN ['pg_before: 1 DB rows, 0 connections']
+[2026-09-17T18:34:40+01:00] VERDICT: FAIL ['run 1: pg_before: 1 DB rows, 0 connections']
+
+stderr:
+/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/bin/python failed with exit status 1.
+
+
+----------------------------------------------------------------------
+Ran 46 tests in 22.547s
+
+FAILED (failures=1)

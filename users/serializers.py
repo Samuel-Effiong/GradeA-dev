@@ -104,6 +104,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             "user_type",
             "password",
             "is_active",
+            "must_change_password",
             "date_joined",
             "settings",
             "credit_wallet",
@@ -115,6 +116,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
             "email": {"required": True},
             "password": {"write_only": True},
             "is_active": {"read_only": True},
+            "must_change_password": {"read_only": True},
             "date_joined": {"read_only": True},
             "profile_image_url": {"read_only": True},
         }
@@ -423,6 +425,16 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         if user:
             user.reset_login_lockout()
+
+        if self.user.user_type == UserTypes.STUDENT:
+            # Local import: classrooms.services (via roster_import ->
+            # classrooms.serializers) imports users.serializers, so a
+            # module-level import here would be circular.
+            from classrooms.services.enrollment import (
+                activate_pending_enrollments_on_login,
+            )
+
+            activate_pending_enrollments_on_login(self.user)
 
         user_data = CustomUserSerializer(self.user).data
 

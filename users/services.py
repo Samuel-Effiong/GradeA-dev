@@ -15,16 +15,59 @@ from AutoGrader.tasks import send_email_task
 logger = logging.getLogger(__name__)
 
 
+def generate_temporary_password(user):
+    """A random password meeting AUTH_PASSWORD_VALIDATORS, never logged.
+
+    Shared by every invite flow that hands a real, usable password to an
+    account it creates or resets rather than leaving it with
+    set_unusable_password() - the license-teacher invite
+    (billing/license_service.py) and the single-add student course invite
+    (classrooms/services/enrollment.py).
+    """
+    from django.contrib.auth.password_validation import validate_password
+
+    alphabet = "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%^&*"
+    for _ in range(10):
+        candidate = get_random_string(20, allowed_chars=alphabet)
+        try:
+            validate_password(candidate, user=user)
+        except Exception:
+            continue
+        return candidate
+    # Astronomically unlikely with a 20-char/66-symbol alphabet, but never
+    # fall through to a weaker password.
+    raise RuntimeError("Failed to generate a password passing validation.")
+
+
 def send_user_activation_email(user):
+    # Local import to dodge a circular import: users.models imports
+    # OTPManager from this module at module load time.
+    from users.models import UserTypes
+
+    if user.user_type == UserTypes.SCHOOL_ADMIN:
+        # A school admin account is invitation-only and is_active=False
+        # only ever means "still pending that invite" for this user_type
+        # (the only completion path, /auth/register/school-admin, sets
+        # is_active=True and email_verified_at together - see H-42). The
+        # generic flow below has no password step and would overwrite this
+        # user's still-valid invite token with one leading to a dead end -
+        # resend the actual invitation instead.
+        from classrooms.serializers import resend_school_admin_invitation
+
+        try:
+            return resend_school_admin_invitation(user)
+        except Exception:
+            logger.exception(
+                "Failed to resend school admin invitation to %s",
+                getattr(user, "email", None),
+            )
+            return None
+
     try:
         token = otp_manager.generate_otp()
         user.activation_token = token
         user.activation_expires = timezone.now() + timedelta(minutes=15)
         user.save()
-
-        # Local import to dodge a circular import: users.models imports
-        # OTPManager from this module at module load time.
-        from users.models import UserTypes
 
         protocol = "https://"
         frontend_domain = (

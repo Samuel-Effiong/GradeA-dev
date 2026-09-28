@@ -103,6 +103,14 @@ FRONTEND_DOMAIN = env.str("FRONTEND_DOMAIN")
 # back to FRONTEND_DOMAIN (the teacher app) when unset so existing
 # deployments keep working until the student app's domain is provisioned.
 STUDENT_FRONTEND_DOMAIN = env.str("STUDENT_FRONTEND_DOMAIN", default=FRONTEND_DOMAIN)
+# Separate frontend app for school admins (a genuinely different app from
+# the teacher one, and it refuses other roles). Falls back to
+# FRONTEND_DOMAIN (the teacher app) when unset so existing deployments keep
+# working until the school-admin app's domain is provisioned - same
+# reasoning as STUDENT_FRONTEND_DOMAIN above.
+SCHOOL_ADMIN_FRONTEND_DOMAIN = env.str(
+    "SCHOOL_ADMIN_FRONTEND_DOMAIN", default=FRONTEND_DOMAIN
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 ENVIRONMENT = env.str("ENVIRONMENT")
@@ -1048,7 +1056,7 @@ REST_FRAMEWORK = {
         "rest_framework.renderers.BrowsableAPIRenderer",
     ),
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "users.authentication.MustChangePasswordJWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
@@ -1250,7 +1258,33 @@ if "test" in sys.argv:
     CELERY_RESULT_BACKEND_TRANSPORT_OPTIONS = {
         "global_keyprefix": f"{_TEST_REDIS_PREFIX}:",
     }
+    # The two `global_keyprefix` values above are baked in right here, in
+    # THIS process - fine for a normal test run, but under
+    # `manage.py test --parallel`, every forked worker inherits this exact
+    # string via copy-on-write, so all of them would use the same prefix
+    # (AutoGrader/test_broker.py has the full account, including how this
+    # was actually reproduced and fixed). These two settings swap in a
+    # broker Transport and a result Backend that resolve the prefix live,
+    # per-process, instead of trusting the value baked in above.
+    CELERY_BROKER_TRANSPORT = "AutoGrader.test_broker:PrefixScopedRedisTransport"
+    CELERY_RESULT_BACKEND = (
+        f"AutoGrader.test_broker.PrefixScopedRedisBackend+{CELERY_RESULT_BACKEND}"
+    )
 
+    # The real hasher (PBKDF2, ~100ms/hash) is deliberately slow so a
+    # stolen password database resists cracking - a property no test
+    # needs. create_user() runs 480+ times across the suite's fixture
+    # setup; at production cost that alone is minutes of wall time spent
+    # proving nothing about the code under test. A couple of test files
+    # already override this locally (users/tests_login_lockout.py,
+    # docs/evidence/refusal_handling/gate6/test_refusal_handling_scale.py)
+    # - this makes it the default everywhere instead of opt-in per file.
+    PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
+
+
+# Removes this run's Redis keys when it ends and sweeps dead runs' keys when it
+# starts, so the shared test Redis cannot fill up and slow every invalidation.
+TEST_RUNNER = "AutoGrader.redis_test_runner.RedisHygieneRunner"
 
 # django-redis defaults to SCAN COUNT=10, i.e. one network round trip per
 # ~10 keys when delete_pattern walks the keyspace. Signal handlers call
@@ -1388,3 +1422,34 @@ BENCHMARK_ARCHIVE_ENABLED = env.bool(
 STRIPE_LIVE_QA_EMAIL_DOMAIN = env.str(
     "STRIPE_LIVE_QA_EMAIL_DOMAIN", default="stripe-live-qa.invalid"
 )
+
+# ── tiktoken cache (ai_processor token counting: services.py, the
+# extraction benchmark's chunk-threshold guard) ───────────────────────────
+#
+# tiktoken has no bundled BPE file; tiktoken.get_encoding("cl100k_base")
+# fetches it over HTTPS on first use and caches it by
+# sha1(blob_url).hexdigest() under TIKTOKEN_CACHE_DIR (default: a
+# tempdir shared by whatever else runs on the box, and gone the next
+# time /tmp is cleared). Two problems follow from the default: a
+# sandbox/CI runner with no outbound HTTPS to
+# openaipublic.blob.core.windows.net fails every token-counting test, and
+# even where the fetch works, every fresh /tmp repeats it.
+#
+# This points TIKTOKEN_CACHE_DIR at a directory inside the repo
+# (ai_processor/tiktoken_cache/) that carries a COMMITTED copy of the
+# cache file, named by tiktoken's own cache_key convention
+# (sha1(blob_url).hexdigest() -- see tiktoken.load.read_file_cached),
+# so token counting works with no outbound network at all, on any
+# machine that has the repo. It does not disable the live fetch: if a
+# future encoding's cache file isn't vendored yet, tiktoken downloads
+# and writes it into this same directory, same as it would anywhere
+# else -- it is just no longer required to. See
+# ai_processor/tiktoken_cache/README.md for what is vendored, why, and
+# how to verify or add to it.
+# TIKTOKEN_CACHE_DIR only gets a value if nothing else already set one,
+# so a session that deliberately sets its own (e.g. TIKTOKEN_CACHE_DIR
+# or DATA_GYM_CACHE_DIR in its own env) is left alone.
+TIKTOKEN_CACHE_DIR = os.environ.get("TIKTOKEN_CACHE_DIR") or str(
+    BASE_DIR / "ai_processor" / "tiktoken_cache"
+)
+os.environ.setdefault("TIKTOKEN_CACHE_DIR", TIKTOKEN_CACHE_DIR)

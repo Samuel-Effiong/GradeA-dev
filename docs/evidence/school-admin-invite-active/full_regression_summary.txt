@@ -1,0 +1,60 @@
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-school-admin-invite-active/users/serializers.py", line 415, in validate
+    raise AuthenticationFailed(self.LOCKED_MESSAGE, "account_locked")
+rest_framework.exceptions.AuthenticationFailed: Too many failed login attempts. Please try again later.
+[2026-09-25 09:08:42,699: ERROR/MainProcess] API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-school-admin-invite-active/users/serializers.py", line 415, in validate
+    raise AuthenticationFailed(self.LOCKED_MESSAGE, "account_locked")
+rest_framework.exceptions.AuthenticationFailed: Too many failed login attempts. Please try again later.
+[2026-09-25 09:08:42,715: ERROR/MainProcess] API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-school-admin-invite-active/users/serializers.py", line 415, in validate
+    raise AuthenticationFailed(self.LOCKED_MESSAGE, "account_locked")
+rest_framework.exceptions.AuthenticationFailed: Too many failed login attempts. Please try again later.
+.........
+----------------------------------------------------------------------
+Ran 4595 tests in 1132.895s
+
+OK (skipped=26)
+Destroying test database for alias 'default'...
+
+[scale] 30-file batch (24 good, 6 bad) took 1.62s
+
+[scale] 6 concurrent 30-file batches took 1.70s; provider calls=24
+
+  backfilled identity on 1 ledger row(s) and 0 usage log row(s)
+
+  backfilled identity on 1 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+
+  backfilled identity on 1 ledger row(s) and 1 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

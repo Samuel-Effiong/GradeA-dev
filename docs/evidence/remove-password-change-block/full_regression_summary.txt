@@ -1,0 +1,150 @@
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-urgent-remove-password-block/users/serializers.py", line 417, in validate
+    raise AuthenticationFailed(self.LOCKED_MESSAGE, "account_locked")
+rest_framework.exceptions.AuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-urgent-remove-password-block/users/serializers.py", line 417, in validate
+    raise AuthenticationFailed(self.LOCKED_MESSAGE, "account_locked")
+rest_framework.exceptions.AuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-urgent-remove-password-block/users/serializers.py", line 417, in validate
+    raise AuthenticationFailed(self.LOCKED_MESSAGE, "account_locked")
+rest_framework.exceptions.AuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-urgent-remove-password-block/users/serializers.py", line 417, in validate
+    raise AuthenticationFailed(self.LOCKED_MESSAGE, "account_locked")
+rest_framework.exceptions.AuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-urgent-remove-password-block/users/serializers.py", line 417, in validate
+    raise AuthenticationFailed(self.LOCKED_MESSAGE, "account_locked")
+rest_framework.exceptions.AuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-urgent-remove-password-block/users/serializers.py", line 417, in validate
+    raise AuthenticationFailed(self.LOCKED_MESSAGE, "account_locked")
+rest_framework.exceptions.AuthenticationFailed: Too many failed login attempts. Please try again later.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-urgent-remove-password-block/users/serializers.py", line 417, in validate
+    raise AuthenticationFailed(self.LOCKED_MESSAGE, "account_locked")
+rest_framework.exceptions.AuthenticationFailed: Too many failed login attempts. Please try again later.
+........{'user_id': '9df5f918-6cc7-4e53-a8cd-b4eab66b871c', 'assignment_id': '7117b33e-e0d3-4fce-96e6-6f3eb8f9bdfb', 'keep_existing_title': True}
+Extracting assignment content
+{'user_id': '9df5f918-6cc7-4e53-a8cd-b4eab66b871c', 'assignment_id': '7117b33e-e0d3-4fce-96e6-6f3eb8f9bdfb', 'keep_existing_title': True}
+Extracting assignment content
+Assignment saved successfully
+{'user_id': '3c929252-7fda-4233-849a-9fedfaaf74df', 'assignment_id': '133a09bf-b2dd-4a5c-8230-291791434000', 'keep_existing_title': True}
+Extracting assignment content
+Assignment saved successfully
+{'user_id': '3c929252-7fda-4233-849a-9fedfaaf74df', 'assignment_id': '133a09bf-b2dd-4a5c-8230-291791434000', 'keep_existing_title': True}
+Extracting assignment content
+Assignment saved successfully
+scanned            : 1
+repaired           : 1 assignment(s)
+questions cleaned  : 1
+done
+scanned  : 1
+repaired : 1 assignment(s)
+done
+
+course payload query counts: roster=2 {'student_detail': 7, 'student_list': 8, 'student_my_courses': 7, 'teacher_detail': 7} roster=6 {'student_detail': 7, 'student_list': 8, 'student_my_courses': 7, 'teacher_detail': 7}
+
+  backfilled identity on 1 ledger row(s) and 0 usage log row(s)
+
+  backfilled identity on 1 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+
+  backfilled identity on 1 ledger row(s) and 1 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+
+[H18/H19 scale] query counts small(60 students)={'foreign_create_refused': 6, 'foreign_reparent_refused': 4, 'own_create_allow_list': 22} large(600)={'foreign_create_refused': 6, 'foreign_reparent_refused': 4, 'own_create_allow_list': 22}
+
+[scale] 30-file batch (24 good, 6 bad) took 3.07s
+
+[scale] 6 concurrent 30-file batches took 3.13s; provider calls=24
+
+----------------------------------------------------------------------
+Ran 4598 tests in 509.406s
+
+OK (skipped=28)
+Preserving test database for alias 'default'...
+Preserving test database for alias 'default'...
+Preserving test database for alias 'default'...
+Preserving test database for alias 'default'...
+Preserving test database for alias 'default'...

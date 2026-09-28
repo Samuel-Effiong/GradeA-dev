@@ -1,0 +1,55 @@
+# M8: answer-edit task result message is described
+# worktree /home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2 @ f7cd15e4aa1765ed6be9424fe93a4d1f0959f6f7
+# labels: billing.tests.test_refusal_handling.D5TaskRetryTest
+# exit 1
+
+Found 2 test(s).
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user d5-edit-feature-97e87866@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking WARNING 2026-09-17 17:53:24,662 refusals 1915493 123257478372288 [request_id=-] Background task f3f8fa6e-43db-4840-b23a-5218e2ebe74c refused: AIFeatureNotAvailableError: AI access denied for this assignment's teacher: No active subscription
+
+
+Cannot activate automatic trial for user d5-edit-credits-4518c961@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking WARNING 2026-09-17 17:53:28,278 refusals 1915493 123257478372288 [request_id=-] Background task 2f092d57-4530-4c8a-8485-eb5c523deeaf refused: InsufficientCreditsError: Task requires ~26467 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+FCannot activate automatic trial for user d5-upload-feature-697558ab@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking WARNING 2026-09-17 17:53:31,996 refusals 1915493 123257478372288 [request_id=-] Background task 1ed19d47-ea1a-49b2-82fa-fe243a1a33ad refused: AIFeatureNotAvailableError: AI access denied for this assignment's teacher: No active subscription
+
+
+Cannot activate automatic trial for user d5-upload-credits-cf53c2cd@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking WARNING 2026-09-17 17:53:35,146 refusals 1915493 123257478372288 [request_id=-] Background task 19e57446-31c1-42d9-a2b2-2a1536a4aea5 refused: InsufficientCreditsError: Task requires ~27514 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+.
+======================================================================
+FAIL: test_extract_answer_background_task_does_not_retry_a_refusal (billing.tests.test_refusal_handling.D5TaskRetryTest.test_extract_answer_background_task_does_not_retry_a_refusal) [credits]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 399, in test_extract_answer_background_task_does_not_retry_a_refusal
+    self.assertTerminalRefusal(tracked, outcome, gate, refusal)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 373, in assertTerminalRefusal
+    self.assertNoCreditDetail(result["message"])
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 212, in assertNoCreditDetail
+    self.assertNotIn(fragment, text or "")
+AssertionError: 'Task requires' unexpectedly found in 'Task requires ~26467 credits, but you only have 1000 credits. Please refill your wallet to continue'
+
+----------------------------------------------------------------------
+Ran 2 tests in 14.720s
+
+FAILED (failures=1)
+Preserving test database for alias 'default'...

@@ -44,6 +44,7 @@ from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from AutoGrader.testing.concurrency import run_concurrently
 from billing.checks import check_atomic_requests_disabled
 from billing.management.commands.backfill_billing_transactions import (
     Command as BackfillCommand,
@@ -350,23 +351,16 @@ class WebhookRaceRegressionTests(TransactionTestCase):
     THREAD_JOIN_TIMEOUT = 60
 
     def test_only_one_of_two_concurrent_claims_succeeds(self):
-        outcomes = []
-        start_barrier = threading.Barrier(2)
+        outcomes, errors = run_concurrently(
+            lambda i: _claim_stripe_event(make_event())[0],
+            2,
+            test=self,
+            join_timeout=self.THREAD_JOIN_TIMEOUT,
+            barrier_timeout=self.THREAD_RENDEZVOUS_TIMEOUT,
+            name="claimer",
+        )
 
-        def attempt_claim():
-            start_barrier.wait(timeout=self.THREAD_RENDEZVOUS_TIMEOUT)
-            try:
-                outcomes.append(_claim_stripe_event(make_event())[0])
-            finally:
-                connection.close()
-
-        threads = [threading.Thread(target=attempt_claim) for _ in range(2)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join(timeout=self.THREAD_JOIN_TIMEOUT)
-
-        self.assertEqual(len(outcomes), 2)
+        self.assertEqual(errors, [], f"a claim attempt raised: {errors!r}")
         self.assertEqual(
             sorted(o.value for o in outcomes),
             ["claimed", "in_flight"],

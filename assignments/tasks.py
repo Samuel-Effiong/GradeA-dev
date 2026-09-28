@@ -10,6 +10,7 @@ from rest_framework.exceptions import ParseError
 from ai_processor.services import ai_processor
 from AutoGrader.error_messages import describe_background_task_error
 from AutoGrader.tasks import send_email_task
+from billing.refusals import PERMANENT_AI_REFUSALS
 from classrooms.models import Course, EnrollmentStatusType, Topic
 from students.exceptions import (
     AssignmentNotOpenError,
@@ -62,6 +63,9 @@ UPLOAD_REFUSALS = (
     SubmissionAlreadyGradedError,
     SubmissionBeingGradedError,
     SubmissionLimitReachedError,
+    # The plan doesn't include the feature, or the wallet can't pay: the
+    # same answer on every attempt (billing/refusals.py).
+    *PERMANENT_AI_REFUSALS,
 )
 
 
@@ -410,7 +414,10 @@ def extract_answer_background_task(
             exc,
             meta={"step": "Submission edit refused", "submission_id": submission_id},
         )
-        return {"status": states.FAILURE, "message": str(exc)}
+        return {
+            "status": states.FAILURE,
+            "message": describe_background_task_error(exc),
+        }
     except Exception as exc:
         if self.request.retries < self.max_retries:
             update_processing_task(
@@ -563,14 +570,15 @@ def grade_engine_async(
             ),
         }
     except Exception as exc:
+        fallback_message = (
+            "We couldn't grade this submission. Please try again, or "
+            "contact support if this continues."
+        )
         task = mark_processing_task_failure(
             processing_task_id,
             exc,
             meta={"step": "Grading failed", "submission_id": submission_id},
-            fallback_message=(
-                "We couldn't grade this submission. Please try again, or "
-                "contact support if this continues."
-            ),
+            fallback_message=fallback_message,
         )
         if batch_id:
             session = BatchUploadSession.objects.get(id=batch_id)
@@ -583,7 +591,13 @@ def grade_engine_async(
             session.update_result(
                 file_name,
                 "FAILED",
-                error=task.error if task else None,
+                # Auto-grade and grade_batch_async dispatch with no tracked
+                # task: the batch row is the only place the reason lands.
+                error=(
+                    task.error
+                    if task
+                    else describe_background_task_error(exc, fallback_message)
+                ),
                 batch_type=BatchUploadType.GRADE,
                 submission_id=submission_id,
             )
@@ -806,8 +820,10 @@ def upload_answers_engine_async(
         # A refusal is a final answer about THIS upload (no student to
         # attach it to; the student is locked out of the assignment), not
         # a transient fault - retrying it three times would only re-bill
-        # the extraction. Recorded verbatim (these are user-facing
-        # messages) and reported as a non-retried failure.
+        # the extraction. Recorded with their user-facing message (never a
+        # credit refusal's internal text) and reported as a non-retried
+        # failure.
+        message = describe_background_task_error(exc)
         task = mark_processing_task_failure(
             processing_task_id,
             exc,
@@ -816,9 +832,9 @@ def upload_answers_engine_async(
         if session_id:
             session = BatchUploadSession.objects.get(id=session_id)
             session.update_result(
-                file_name, "FAILED", error=task.error if task else str(exc)
+                file_name, "FAILED", error=task.error if task else message
             )
-        return {"status": states.FAILURE, "message": str(exc)}
+        return {"status": states.FAILURE, "message": message}
     except Exception as exc:
         if self.request.retries < self.max_retries:
             # Not a failure yet. Marking FAILURE here (as this used to)

@@ -43,15 +43,15 @@ in both orders, and asserts the total never exceeds what the payment
 granted.
 """
 
-import threading
 import uuid
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.db import connections
 from django.test import TestCase, TransactionTestCase
 from django.utils import timezone
 
+from AutoGrader.testing.concurrency import run_concurrently
 from billing.models import (
     BillingInterval,
     BillingTransaction,
@@ -77,6 +77,27 @@ CustomUser = get_user_model()
 
 BLOCK = 500
 PRICE = 1000  # cents per block
+
+# Every purchase in this file goes through handle_checkout_completed, which
+# resolves a receipt link with a LIVE Stripe call
+# (resolve_stripe_receipt_url -> stripe.PaymentIntent.retrieve) inside the
+# grant's transaction. Stripe errors are swallowed, so it never fails a
+# test here; it just makes each purchase a real network round trip, and
+# in ConcurrentRefundTests a slow one would leave the purchase uncommitted
+# while the refund threads raced it. No test here checks that link.
+# Patched once for the whole module, from the main thread: a patch entered
+# inside worker threads is not thread-safe.
+_receipt_lookup = patch(
+    "billing.stripe_service.resolve_stripe_receipt_url", return_value=None
+)
+
+
+def setUpModule():
+    _receipt_lookup.start()
+
+
+def tearDownModule():
+    _receipt_lookup.stop()
 
 
 def make_plan(name=PlanType.STANDARD, tier=PlanTier.STANDARD, max_blocks=10):
@@ -1141,23 +1162,8 @@ class ConcurrentRefundTests(TransactionTestCase, RefundFixture):
         self.user, self.wallet = self.build(email="concurrent.refund@billing.test")
 
     def _run(self, fn, count):
-        barrier = threading.Barrier(count)
-        errors = []
-
-        def worker(i):
-            try:
-                barrier.wait(timeout=30)
-                fn(i)
-            except Exception as exc:  # noqa: BLE001 - asserted on below
-                errors.append(exc)
-            finally:
-                connections.close_all()
-
-        threads = [threading.Thread(target=worker, args=(i,)) for i in range(count)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join(timeout=60)
+        """Thin wrapper: the rules live in AutoGrader.testing.concurrency."""
+        _, errors = run_concurrently(fn, count, test=self, name="refund-worker")
         return errors
 
     def test_simultaneous_duplicate_refunds_reverse_exactly_once(self):

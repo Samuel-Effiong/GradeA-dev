@@ -1,0 +1,28 @@
+# M22: course summary counts refused narration
+# worktree /home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2 @ f7cd15e4aa1765ed6be9424fe93a4d1f0959f6f7
+# labels: billing.tests.test_refusal_handling.D7WeeklySummaryRefusalTest
+# exit 1
+
+Found 2 test(s).
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user d7-course-01149ff8@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+F.
+======================================================================
+FAIL: test_course_summary_refusal_sends_email_counts_and_warns (billing.tests.test_refusal_handling.D7WeeklySummaryRefusalTest.test_course_summary_refusal_sends_email_counts_and_warns)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 495, in test_course_summary_refusal_sends_email_counts_and_warns
+    self.assertIn("AI narration refused for 1", result)
+AssertionError: 'AI narration refused for 1' not found in 'Queued 1 weekly course summary email(s). Processed 1 course(s), skipped 0. AI narration refused for 0 course(s).'
+
+----------------------------------------------------------------------
+Ran 2 tests in 5.505s
+
+FAILED (failures=1)
+Preserving test database for alias 'default'...

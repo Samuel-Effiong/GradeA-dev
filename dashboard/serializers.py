@@ -60,7 +60,8 @@ class StudentDashboardOverviewSerializer(serializers.Serializer):
 
     total_courses = serializers.IntegerField(read_only=True)
     assignments_submitted = serializers.IntegerField(read_only=True)
-    assignments_pending_not_due = serializers.IntegerField(read_only=True)
+    assignments_not_submitted = serializers.IntegerField(read_only=True)
+    assignments_graded = serializers.IntegerField(read_only=True)
     assignments_due_no_submission = serializers.IntegerField(read_only=True)
 
     # Grade Standing Metrics
@@ -73,11 +74,24 @@ class StudentDashboardOverviewSerializer(serializers.Serializer):
     courses_grades = StudentCourseGradeSerializer(many=True, read_only=True)
 
 
+class StudentAssignmentStatusSummarySerializer(serializers.Serializer):
+    """The four assignment-status counts alone (Submitted / Not Submitted
+    / Graded / Overdue), either across all active courses or scoped to
+    one via ?course=<id> - see StudentAdminDashboardView.status_summary."""
+
+    assignments_submitted = serializers.IntegerField(read_only=True)
+    assignments_not_submitted = serializers.IntegerField(read_only=True)
+    assignments_graded = serializers.IntegerField(read_only=True)
+    assignments_due_no_submission = serializers.IntegerField(read_only=True)
+
+
 class CourseAnalyticsSerializer(serializers.Serializer):
     """Main serializer for the student course analytics dashboard"""
 
     course = serializers.UUIDField(read_only=True)
     assignment_submitted = serializers.IntegerField(read_only=True)
+    assignment_not_submitted = serializers.IntegerField(read_only=True)
+    assignment_graded = serializers.IntegerField(read_only=True)
     assignment_assigned = serializers.IntegerField(read_only=True)
     completion_rate = serializers.FloatField(read_only=True)
     missing_or_overdue = serializers.IntegerField(read_only=True)
@@ -519,8 +533,9 @@ class CourseOverviewItemSerializer(serializers.Serializer):
     name = serializers.CharField(read_only=True)
     teachers = serializers.IntegerField(read_only=True)
     avg_grade = serializers.FloatField(
-        allow_null=True,
         read_only=True,
+        help_text="0 when no non-withdrawn enrollment has a graded "
+        "final_grade yet (never null).",
     )
 
 
@@ -657,7 +672,9 @@ class TeacherPerformanceDashboardSerializer(serializers.Serializer):
         ),
     )
     rigor_breakdown = RigorBreakdownSerializer()
-    status = serializers.CharField()
+    status = serializers.BooleanField(
+        help_text="True if the teacher's account is active."
+    )
 
 
 class FeatureMixCategorySerializer(serializers.Serializer):
@@ -668,6 +685,26 @@ class FeatureMixCategorySerializer(serializers.Serializer):
 class TeacherDailyUsageSerializer(serializers.Serializer):
     date = serializers.DateField()
     credits = serializers.IntegerField()
+
+
+class TeacherCreditsRemainingSerializer(serializers.Serializer):
+    """Live (unexpired) credits left, by source. Excludes TRIAL: a teacher
+    added via a school license never has one (see the license-invitation
+    guard in users/signals.py)."""
+
+    monthly = serializers.IntegerField(
+        help_text="Remaining credits in the current plan (MONTHLY) allocation."
+    )
+    carry_over = serializers.IntegerField(
+        help_text="Remaining credits rolled over from a prior billing cycle."
+    )
+    overage = serializers.IntegerField(
+        help_text=(
+            "Remaining credits outside the fixed plan allocation: purchased "
+            "overage blocks plus any manually granted credits."
+        )
+    )
+    total = serializers.IntegerField(help_text="monthly + carry_over + overage.")
 
 
 class TeacherDetailSerializer(TeacherPerformanceDashboardSerializer):
@@ -681,8 +718,11 @@ class TeacherDetailSerializer(TeacherPerformanceDashboardSerializer):
     )
     credits_used_percentage = serializers.FloatField(
         help_text=(
-            "credits_used as a percentage of (credits_used + remaining plan "
-            "credits). Excludes OVERAGE buckets, which are purchased "
+            "Percentage of the CURRENT plan allocation consumed (current "
+            "plan-cycle used credits over used + remaining) - NOT a "
+            "percentage of the all-time credits_used figure above, since "
+            "that would creep toward 100% forever regardless of the "
+            "current cycle. Excludes OVERAGE buckets, which are purchased "
             "reactively and aren't part of the fixed plan allocation."
         )
     )
@@ -692,6 +732,7 @@ class TeacherDetailSerializer(TeacherPerformanceDashboardSerializer):
     daily_usage = TeacherDailyUsageSerializer(
         many=True, help_text="Daily credit usage for the last 60 days, zero-filled."
     )
+    credits_remaining = TeacherCreditsRemainingSerializer()
     grading = FeatureMixCategorySerializer()
     creation = FeatureMixCategorySerializer()
     feedback = FeatureMixCategorySerializer()
@@ -714,7 +755,11 @@ class CoursePerformanceDashboardSerializer(serializers.ModelSerializer):
     teacher = serializers.CharField(source="teacher.get_full_name")
     students = serializers.SerializerMethodField()
     assignments = serializers.IntegerField(source="assignment_count")
-    avg_grade = serializers.FloatField(allow_null=True)
+    avg_grade = serializers.FloatField(
+        help_text="0 when the course has no graded active enrollment yet "
+        "(never null - check `students.total` to tell 'no data' from "
+        "'graded at 0%')."
+    )
     distribution = serializers.SerializerMethodField()
 
     class Meta:

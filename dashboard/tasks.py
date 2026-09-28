@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from ai_processor.services import ai_processor
 from AutoGrader.tasks import send_email_task
+from billing.refusals import PERMANENT_AI_REFUSALS, log_refusal
 from classrooms.models import Course, School
 from dashboard.models import (
     SchoolAtRiskSnapshot,
@@ -62,6 +63,7 @@ def send_weekly_course_summaries(self):
     emails_queued = 0
     courses_processed = 0
     courses_skipped = 0
+    narration_refused = 0
 
     for course in eligible_courses:
         if not course.teacher or not course.teacher.email:
@@ -76,6 +78,17 @@ def send_weekly_course_summaries(self):
                     course.teacher,
                     course,
                     summary,
+                )
+            except PERMANENT_AI_REFUSALS as exc:
+                # The teacher's plan or wallet says no: the summary still
+                # goes out, just without the AI narration.
+                narration_refused += 1
+                log_refusal(
+                    logger,
+                    "Weekly course summary AI narration",
+                    exc,
+                    course_id=str(course.id),
+                    teacher_id=str(course.teacher_id),
                 )
             except Exception:
                 logger.exception(
@@ -127,7 +140,8 @@ def send_weekly_course_summaries(self):
 
     return (
         f"Queued {emails_queued} weekly course summary email(s). "
-        f"Processed {courses_processed} course(s), skipped {courses_skipped}."
+        f"Processed {courses_processed} course(s), skipped {courses_skipped}. "
+        f"AI narration refused for {narration_refused} course(s)."
     )
 
 
@@ -217,6 +231,7 @@ def send_weekly_school_admin_summaries(self):
     emails_queued = 0
     admins_processed = 0
     admins_skipped = 0
+    narration_refused = 0
 
     for admin in eligible_admins:
         if not admin.school or not admin.email:
@@ -233,6 +248,16 @@ def send_weekly_school_admin_summaries(self):
                         admin.school,
                         summary,
                     )
+                )
+            except PERMANENT_AI_REFUSALS as exc:
+                # See send_weekly_course_summaries: sent without narration.
+                narration_refused += 1
+                log_refusal(
+                    logger,
+                    "Weekly school admin summary AI narration",
+                    exc,
+                    school_id=str(admin.school_id),
+                    admin_id=str(admin.id),
                 )
             except Exception:
                 logger.exception(
@@ -284,7 +309,8 @@ def send_weekly_school_admin_summaries(self):
 
     return (
         f"Queued {emails_queued} weekly school admin summary email(s). "
-        f"Processed {admins_processed} admin(s), skipped {admins_skipped}."
+        f"Processed {admins_processed} admin(s), skipped {admins_skipped}. "
+        f"AI narration refused for {narration_refused} admin(s)."
     )
 
 

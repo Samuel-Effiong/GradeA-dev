@@ -29,7 +29,7 @@ from rest_framework.response import Response
 from ai_processor.models import AssistantType, ChatMessage, ChatSession, RoleType
 from ai_processor.services import ai_processor
 from AutoGrader.error_messages import describe_stripe_error, describe_user_error
-from classrooms.permissions import IsNotStudent, IsSuperAdmin, IsTeacher
+from classrooms.permissions import IsNotStudent, IsSuperAdmin
 from dashboard.serializers import (
     CustomAIPrompt,
     CustomAIReply,
@@ -47,11 +47,15 @@ from .models import (
     CreditLedger,
     CreditUsageLog,
     CreditWallet,
+    LicenseSubscription,
     PlanCategory,
     PlanTier,
+    SchoolCreditAllocation,
     SubscriptionPlan,
     UserSubscription,
 )
+from .plan_policy import self_service_plans
+from .refusals import PERMANENT_AI_REFUSALS, log_refusal, refusal_response
 from .serializers import (
     BetaCohortStatsSerializer,
     BetaFeatureMixSerializer,
@@ -192,8 +196,18 @@ class SubscriptionPlanViewSet(viewsets.ModelViewSet):
         if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:
             return queryset
 
-        # Everyone else only sees INDIVIDUAL plans
-        return queryset.filter(category=PlanCategory.INDIVIDUAL)
+        # Everyone else sees only the self-service catalog: a plan is not
+        # listable just because it is active and INDIVIDUAL (BETA, TRIAL
+        # and internal plans are too). A retrieve may additionally read
+        # the plan the caller is currently on or has pending, which is
+        # already visible to them through /subscription/me.
+        visible = Q(pk__in=self_service_plans().values("pk"))
+        if self.action == "retrieve":
+            own = UserSubscription.objects.filter(user=user, is_active=True)
+            visible |= Q(pk__in=own.values("plan_id")) | Q(
+                pk__in=own.exclude(pending_plan__isnull=True).values("pending_plan_id")
+            )
+        return queryset.filter(visible)
 
     @extend_schema(
         tags=["Subscription Plans"],
@@ -304,10 +318,10 @@ class UserSubscriptionViewSet(viewsets.ModelViewSet):
         """
         if self.action in ["list", "retrieve"]:
             permission_classes = [IsAuthenticated]
-        elif self.action == "create":
-            # Allows users to subscribe as long as they are not students
-            permission_classes = [IsAuthenticated, IsTeacher]
         else:
+            # Includes create: it activates a plan and grants its credits
+            # with no payment step, so it is an administrative tool.
+            # Users subscribe through POST /subscription/select-plan.
             permission_classes = [IsAuthenticated, IsSuperAdmin]
         return [permission() for permission in permission_classes]
 
@@ -546,6 +560,58 @@ class CreditUsageLogViewSet(viewsets.ReadOnlyModelViewSet):
         return queryset
 
 
+def _none_subscription_response():
+    """
+    Flat placeholder payload for GET /subscription/me when the caller has
+    no subscription of any kind, ever — no UserSubscription row
+    (active OR expired) and no license context. Mirrors the field names
+    MySubscriptionSerializer would produce, since it can't serialize a
+    nonexistent model instance; everything is null/false/0 except
+    "status".
+    """
+    return {
+        "status": "NONE",
+        "id": None,
+        "user": None,
+        "plan": None,
+        "category": None,
+        "tier": None,
+        "interval": None,
+        "subscription_type": None,
+        "is_under_license": False,
+        "is_active": False,
+        "is_trial": False,
+        "trial_end": None,
+        "trial_days_remaining": None,
+        "trial_credits_remaining": None,
+        "billing_cycle_start": None,
+        "billing_cycle_end": None,
+        "auto_renew": False,
+        "cancellation": {
+            "cancelled_at": None,
+            "has_pending_cancellation": False,
+            "cancellation_effective_date": None,
+            "cancellation_message": None,
+        },
+        "pending_plan": None,
+        "pending_plan_effective_date": None,
+        "pending_change_type": None,
+        "pending_change_message": None,
+        "recommended_plan": None,
+        "has_pending_change": False,
+        "created_at": None,
+        "updated_at": None,
+        "next_renewal_date": None,
+        "days_until_renewal": None,
+        "stripe_status": None,
+        "plan_display_name": None,
+        "monthly_credits_display": None,
+        "current_balance_display": 0,
+        "credit_percentage_remaining": 0.0,
+        "monthly_credit_remaining_display": 0,
+    }
+
+
 class SubscriptionManagementViewSet(viewsets.GenericViewSet):
     """
     Viewset for managing user subscriptions.
@@ -563,18 +629,41 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
     def get_queryset(self):
         return UserSubscription.objects.filter(user=self.request.user, is_active=True)
 
+    def get_permissions(self):
+        # create activates a plan and grants its credits with no payment
+        # step, so only a superadmin may call it. Every other action keeps
+        # its class-level or @action-level permissions untouched.
+        if self.action == "create":
+            return [IsAuthenticated(), IsSuperAdmin()]
+        return super().get_permissions()
+
     @extend_schema(
         tags=["Subscription"],
         summary="Get my subscription",
         description=(
             "Resolves the caller's current billing context regardless of "
-            "track. An INDIVIDUAL subscriber gets the existing "
-            "UserSubscription-shaped payload (unchanged). A teacher "
-            "actively enrolled under a school LICENSE gets a "
-            "LICENSE_TEACHER-shaped payload. A school admin managing an "
-            "active LICENSE gets a LICENSE_ADMIN-shaped payload. Check "
-            "`subscription_source` in the response to know which shape "
-            "was returned."
+            "track. Always returns 200; check `status` (ACTIVE / EXPIRED / "
+            "NONE) and `subscription_source` to know what was resolved. "
+            "ACTIVE: an INDIVIDUAL subscriber gets the existing "
+            "UserSubscription-shaped payload, a teacher actively enrolled "
+            "under a school LICENSE gets a LICENSE_TEACHER-shaped payload, "
+            "a school admin managing an active LICENSE gets a "
+            "LICENSE_ADMIN-shaped payload. EXPIRED: the caller has no "
+            "active subscription/license context, but does have lapsed "
+            "history on exactly one of the three tracks, checked in the "
+            "same priority order as the ACTIVE case (individual, then "
+            "license-admin, then license-teacher) — same per-track shape "
+            "as ACTIVE, with renewal-countdown fields "
+            "(next_renewal_date/days_until_renewal/"
+            "days_until_next_credit_grant) null instead of a misleading "
+            "clamped 0 (see `cancellation`/`stripe_status` or "
+            "`is_license_active` for why it lapsed). A license teacher's "
+            "`is_license_active` reflects the real parent-license state "
+            "even when only the license itself lapsed and the teacher's "
+            "own allocation row was never touched. NONE: no subscription "
+            "or license history exists for this user on ANY track — a "
+            "flat placeholder payload with the same field names as the "
+            "INDIVIDUAL shape, everything null/false/0 except `status`."
         ),
         responses={
             200: OpenApiResponse(
@@ -582,19 +671,113 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                     "One of MySubscriptionSerializer, "
                     "MyLicenseTeacherSubscriptionSerializer, or "
                     "MyLicenseAdminSubscriptionSerializer — discriminated "
-                    "by `subscription_source`."
-                )
-            ),
-            404: OpenApiResponse(
-                description="No active subscription found",
+                    "by `subscription_source`, with `status` ACTIVE, "
+                    "EXPIRED, or NONE."
+                ),
                 examples=[
                     OpenApiExample(
-                        name="No active subscription found",
+                        name="Active individual subscription",
                         value={
-                            "status": "inactive",
-                            "message": "No active subscription found",
+                            "status": "ACTIVE",
+                            "subscription_type": "INDIVIDUAL",
+                            "is_active": True,
+                            "plan": {"id": "3fd8...", "name": "PRO_MONTHLY"},
+                            "billing_cycle_start": "2026-09-01T00:00:00Z",
+                            "billing_cycle_end": "2026-10-01T00:00:00Z",
+                            "next_renewal_date": "2026-10-01T00:00:00Z",
+                            "days_until_renewal": 5,
+                            "auto_renew": True,
+                            "stripe_status": "active",
+                            "cancellation": {
+                                "cancelled_at": None,
+                                "has_pending_cancellation": False,
+                                "cancellation_effective_date": None,
+                                "cancellation_message": None,
+                            },
                         },
-                    )
+                    ),
+                    OpenApiExample(
+                        name="Expired individual subscription",
+                        value={
+                            "status": "EXPIRED",
+                            "subscription_type": "INDIVIDUAL",
+                            "is_active": False,
+                            "plan": {"id": "3fd8...", "name": "PRO_MONTHLY"},
+                            "billing_cycle_start": "2026-07-01T00:00:00Z",
+                            "billing_cycle_end": "2026-08-01T00:00:00Z",
+                            "next_renewal_date": None,
+                            "days_until_renewal": None,
+                            "auto_renew": False,
+                            "stripe_status": "canceled",
+                            "cancellation": {
+                                "cancelled_at": "2026-07-15T00:00:00Z",
+                                "has_pending_cancellation": False,
+                                "cancellation_effective_date": None,
+                                "cancellation_message": (
+                                    "You cancelled this subscription on "
+                                    "2026-07-15. You keep your current "
+                                    "plan and credits until 2026-08-01, "
+                                    "and it won't renew after that."
+                                ),
+                            },
+                        },
+                    ),
+                    OpenApiExample(
+                        name="Expired license (school admin)",
+                        value={
+                            "status": "EXPIRED",
+                            "subscription_source": "LICENSE_ADMIN",
+                            "is_active": False,
+                            "plan": {"id": "9ac1...", "name": "SCHOOL_LICENSE"},
+                            "billing_cycle_start": "2026-06-01T00:00:00Z",
+                            "billing_cycle_end": "2026-09-01T00:00:00Z",
+                            "days_until_renewal": None,
+                            "auto_renew": False,
+                            "stripe_status": "canceled",
+                            "teacher_count": 12,
+                            "max_seats": 20,
+                            "managed_license_count": 0,
+                            "has_other_managed_licenses": False,
+                        },
+                    ),
+                    OpenApiExample(
+                        name="Expired license (teacher)",
+                        value={
+                            "status": "EXPIRED",
+                            "subscription_source": "LICENSE_TEACHER",
+                            "school_name": "Lincoln High School",
+                            "is_license_active": False,
+                            "license_billing_cycle_start": "2026-06-01T00:00:00Z",
+                            "license_billing_cycle_end": "2026-09-01T00:00:00Z",
+                            "monthly_allocation": 1000000,
+                            "display_monthly_allocation": 1000,
+                            "next_credit_grant_at": None,
+                            "days_until_next_credit_grant": None,
+                        },
+                    ),
+                    OpenApiExample(
+                        name="No subscription ever existed",
+                        value={
+                            "status": "NONE",
+                            "id": None,
+                            "plan": None,
+                            "subscription_type": None,
+                            "is_active": False,
+                            "is_trial": False,
+                            "billing_cycle_start": None,
+                            "billing_cycle_end": None,
+                            "next_renewal_date": None,
+                            "days_until_renewal": None,
+                            "auto_renew": False,
+                            "stripe_status": None,
+                            "cancellation": {
+                                "cancelled_at": None,
+                                "has_pending_cancellation": False,
+                                "cancellation_effective_date": None,
+                                "cancellation_message": None,
+                            },
+                        },
+                    ),
                 ],
             ),
         },
@@ -605,12 +788,15 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
 
         if context.source == SOURCE_INDIVIDUAL:
             serializer = MySubscriptionSerializer(
-                context.user_subscription, context={"request": request}
+                context.user_subscription,
+                context={"request": request, "status": "ACTIVE"},
             )
             return Response(serializer.data)
 
         if context.source == SOURCE_LICENSE_TEACHER:
-            serializer = MyLicenseTeacherSubscriptionSerializer(context.allocation)
+            serializer = MyLicenseTeacherSubscriptionSerializer(
+                context.allocation, context={"status": "ACTIVE"}
+            )
             return Response(serializer.data)
 
         if context.source == SOURCE_LICENSE_ADMIN:
@@ -619,14 +805,85 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                 context={
                     "admin_user": request.user,
                     "managed_license_count": context.managed_license_count,
+                    "status": "ACTIVE",
                 },
             )
             return Response(serializer.data)
 
-        return Response(
-            {"detail": "No active subscription found"},
-            status=status.HTTP_404_NOT_FOUND,
+        # No active context on ANY track. Walk the exact same priority
+        # order resolve_user_billing_context uses for the active case —
+        # individual, then license-admin, then license-teacher — so a
+        # user with lapsed history on more than one track (e.g. an old
+        # individual subscriber who later became a license teacher whose
+        # license also lapsed) gets whichever the active path would have
+        # picked, not an arbitrary one. Only truly NONE if none of the
+        # three has any history at all.
+        last_sub = (
+            UserSubscription.objects.filter(user=request.user, is_active=False)
+            .select_related("plan", "pending_plan")
+            .order_by("-billing_cycle_end")
+            .first()
         )
+        if last_sub:
+            serializer = MySubscriptionSerializer(
+                last_sub, context={"request": request, "status": "EXPIRED"}
+            )
+            return Response(serializer.data)
+
+        last_managed_license = (
+            LicenseSubscription.objects.filter(admin_user=request.user, is_active=False)
+            .select_related("plan", "school")
+            .order_by("-billing_cycle_end")
+            .first()
+        )
+        if last_managed_license:
+            serializer = MyLicenseAdminSubscriptionSerializer(
+                last_managed_license,
+                context={
+                    "admin_user": request.user,
+                    # By construction there is no ACTIVE license here,
+                    # so 0 rather than the ACTIVE-path default of 1 —
+                    # otherwise the frontend would be told this admin
+                    # still manages one currently-live license.
+                    "managed_license_count": 0,
+                    "status": "EXPIRED",
+                },
+            )
+            return Response(serializer.data)
+
+        # Broadened past the SM's literal "is_active=False" spec on
+        # purpose: an allocation can also stop being truly active
+        # because its PARENT LICENSE lapsed while the allocation row
+        # itself was never touched (is_active still True). This is the
+        # exact complement of resolve_user_billing_context's ACTIVE
+        # teacher condition (is_active=True AND
+        # license_subscription__is_active=True) — catching only the
+        # allocation-side flag would silently miss that second shape and
+        # send that teacher to NONE despite having real history.
+        # is_license_active on the serializer reports the real state
+        # either way, off the allocation's actual (possibly-inactive)
+        # parent license.
+        last_allocation = (
+            SchoolCreditAllocation.objects.filter(
+                user=request.user, is_admin_allocation=False
+            )
+            .exclude(is_active=True, license_subscription__is_active=True)
+            .select_related(
+                "license_subscription",
+                "license_subscription__plan",
+                "license_subscription__school",
+                "license_subscription__admin_user",
+            )
+            .order_by("-updated_at")
+            .first()
+        )
+        if last_allocation:
+            serializer = MyLicenseTeacherSubscriptionSerializer(
+                last_allocation, context={"status": "EXPIRED"}
+            )
+            return Response(serializer.data)
+
+        return Response(_none_subscription_response())
 
     @extend_schema(
         tags=["Subscription"],
@@ -659,7 +916,11 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
     )
     @action(detail=False, methods=["get"], url_path="plan", url_name="plan")
     def plan(self, request, *args, **kwargs):
-        plans = SubscriptionPlan.objects.all()
+        user = request.user
+        if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:
+            plans = SubscriptionPlan.objects.all()
+        else:
+            plans = self_service_plans()
         serializer = SubscriptionPlanSerializer(plans, many=True)
         return Response(serializer.data)
 
@@ -2472,6 +2733,11 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                 serializer = CustomAIReply(data)
                 return Response(serializer.data)
 
+        except PERMANENT_AI_REFUSALS as e:
+            # Leaving the atomic block by exception already rolled back the
+            # user's chat message, same as any other failure.
+            log_refusal(logger, "Superadmin custom AI prompt", e)
+            return refusal_response(e)
         except Exception as e:
             logger.error("Custom AI prompt failed", exc_info=e)
             return Response(

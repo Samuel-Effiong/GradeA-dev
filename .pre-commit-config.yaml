@@ -13,9 +13,12 @@ repos:
     -   id: check-docstring-first
     -   id: check-added-large-files
         # Same files: single-file documentation editions are a few MB because
-        # the renderer and fonts are inlined so they open with no network. The
+        # the renderer and fonts are inlined so they open with no network.
+        # ai_processor/tiktoken_cache/ vendors tiktoken's cl100k_base BPE
+        # file (~1.7MB, third-party binary data, sha256-verified — see its
+        # README) so token counting works with no outbound network. The
         # 500KB guard still applies to everything else.
-        exclude: ^docs/backend/.*\.html$
+        exclude: ^(docs/backend/.*\.html|ai_processor/tiktoken_cache/[0-9a-f]{40})$
     -   id: check-merge-conflict
     -   id: check-toml
     -   id: check-json

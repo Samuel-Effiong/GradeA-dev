@@ -66,6 +66,14 @@ speed that decision up, not to pre-empt it.
 | H-15 | `global`-scoped per-user cache families invalidate as a herd | Medium | Backend/infra lead (H-1 follow-up) | Open — one change anywhere expires every user's copy (my_courses, superadmin dashboards); 50-student herd p50 792 ms / p95 1,262 ms at realistic scale |
 | H-16 | Teacher submission list issues 63 queries per page | Low | Section 7 (students) | **COMPLETE (2026-09-15)** — `select_related` on the list queryset; 63/304 → flat 4; see item |
 | H-17 | Course payload leaked draft assignments and classmates' real emails to student viewers | **High - security** | Section 3 (classrooms) | **CLOSED (2026-09-16)** — `CourseSerializer` served every assignment (draft/unpublished included) and every enrolled student's real email address to a student viewer, regardless of assignment status or whose row it was. Fixed: `get_assignments`/`get_assignment_count` filter to `PUBLISHED` for a student viewer; `get_students` nulls out `email` for every row but the viewer's own. 15 dedicated tests (`classrooms/tests_course_payload_student_exposure.py`), 2 mutation tests (both killed), 250-test `classrooms` regression clean, query counts flat across roster size (roster=2 and roster=6 both 7/8/7/7). Landed on beta `ee30f08` (merge of `task/course-detail-data-exposure` gated commit `1d920f8`). Teacher/other-viewer payloads unchanged. |
+| H-18 | Assignment writes accepted any course, any topic, and any field the AI emitted | **High - security** | Section 4 (assignments) | **FIXED, awaiting landing (2026-09-17)** — `AssignmentTextSerializer.course` was an unscoped writable PK, so a teacher could create an assignment in another teacher's course or move their own into it, through THREE doors: create/create-async, PATCH, and PATCH update-async (which built the serializer with no request in context). Separately, AI extraction and generation output was saved through `AssignmentSerializer` whole, so injected text could write `status`, `teacher`, `course`, `topic`, `due_date` and more, at four sinks plus stored pre-fix draft snapshots. Fixed: `validate_course` (fail-closed), `update_async` passes context, `ai_assignment_content_only()` at three entry points, `teacher` read-only, and `TopicSerializer`/`CourseSerializer` validators fail closed. Gated on `6811527`; see `docs/evidence/H18_H19_ACCESS_CONTROL_EVIDENCE.md` |
+| H-19 | Superadmin authority granted on a single flag in four places | **High - security** | Section 1 (users) + Section 3 (classrooms) + Section 5 (ai_processor) | **FIXED, awaiting landing (2026-09-17)** — `create_superuser()` leaves `user_type=TEACHER`, so `is_superuser` alone let a Django-admin account read and edit every user's Settings and any school's token usage; and `user_type=SUPER_ADMIN` alone let an account skip `HasCreditBalance` and take `execute_graded_task`'s unmetered branch - free, unlimited billed AI. All four now require both flags, as `IsSuperAdmin` does. The deny-side `or` in `license_service.py:319` and `users/serializers.py:175` is correct and unchanged. Gated on `6811527`; same evidence file |
+| H-21 | Unrestricted discovery and activation of free/internal plans (unlimited free credits) | **High - security/billing** | Session `fix-free-plan` (task/free-plan-activation) | **FIX COMPLETE, NOT LANDED (2026-09-17)** — any teacher could POST a free plan id to `/user-subscriptions` or `/subscription` repeatedly; each call replaced their subscription and granted a full monthly credit bucket (replay: 10 repeats = 100,000,000 raw credits spent). School admins could take TRIAL and the internal benchmark plan; `/subscription/plan` listed every plan to every non-student; inactive plans activated; a Stripe-billed subscriber could be moved to BETA in the app while Stripe kept billing; a licensed teacher could activate their school's license plan. Fixed by `billing/plan_policy.py` (explicit allow-lists for the self-service catalog and admin assignment, price and Stripe-price floors as extra refusals, never price as the eligibility rule), superadmin-only POST routes with a both-flags serializer check and a scoped plan lookup, and `SubscriptionService.activate_plan_without_payment` as the single no-payment path (active plans only; BETA teacher-only and once per user ever including pre-existing history; refused over a live Stripe subscription; license-track guard; all under a `CustomUser` row lock). Plan listings and `select-plan` now share one definition. Evidence: `docs/evidence/FREE_PLAN_ACTIVATION_EVIDENCE.md` — 97 dedicated tests, 26/26 mutants killed, 20 simultaneous requests x 10 rounds, injected DB/Redis/Stripe failures, real Stripe test-mode proof (app and Stripe state unchanged, 0 Stripe writes), replay 10/10 exploited on `b744c9f` and 10/10 refused on the fix, and an N+1 removal (809 -> 9 queries, 343 KB -> 2.7 KB at 808 plans). OPEN: **Gate 8 DEPLOYED-REAL on QA is required before any promotion to production** (billing tier: LOCAL-REAL + QA smoke is enough to land on beta, not enough for prod); independent Gate-4 replay by the red-team session; full-repository gate deferred to the batched integration gate; production plan configuration unverified (impact SQL in the evidence doc). |
+| H-22 | Cross-teacher tenancy leaks: `my-students` served other teachers' course names, description, teacher name and grade; `/users/<id>` enrollment filters were a yes/no oracle on other tenants' enrollments | **Medium - security** | fix-tenant-leak (session 57) | **FIX READY, NOT LANDED (2026-09-17)** — both endpoints joined every enrollment a shared student had. Fixed by scoping the `my_students` prefetches to `course__teacher=user` plus a new `MyStudentsFilter`, and by replacing `CustomUserViewSet.filterset_fields` with a scoped `UserEnrollmentFilter`; the unrouted `StudentViewSet` copy was deleted (V-5, owner sign-off). 42 dedicated tests (22 fail on `b744c9f`), 16 mutants (15 killed, 2 equivalent), 20 threads x 10 rounds, 6,000-student scale with query counts flat at 5. Branch `task/my-students-prefetch-leak` tip `948d710`; Gates 4, 8 and 10 still open — see `docs/evidence/MY_STUDENTS_TENANCY_EVIDENCE.md`. |
+| H-23 | ~95 pre-existing school-side (teacher/admin/subscription-owner, no students) email-logging call sites found across `billing/access_control.py`, `license_service.py`, `services.py`, `stripe_service.py`, `tasks.py`, `views.py`, `qa_time_travel.py`, `management/commands/backfill.py` and `users/signals.py`, mostly at INFO — same leaky-logging shape as the 11 confirmed student/user PII leaks fixed under Epic A's BE-A-04 cleanup, but not students, so out of that cleanup's scope | Medium — privacy/compliance, not tenancy | Proposed: whoever owns Epic A follow-up (audit-lead) or a dedicated session | **Not started.** Found and verified as true positives (not scanner noise) by privacy-guard (2026-09-22) during the Epic A BE-A-04 AST-based lint-rule build. Grandfathered into `scripts/pii_log_baseline.txt` (same convention as the H-12 E800 per-file burn-down) so the new PII-logging CI lint rule doesn't fail on pre-existing code — the lint rule catches any *new* instance of this pattern going forward; this item is the backlog for cleaning up the ~95 that already exist. |
+| H-41 | `students.tests_grading_redelivery_live.GradingRedeliveryLiveTest.test_5_concurrent_submissions_with_one_redelivery_each_grade_exactly_once` failed for real on a GitHub Actions CI run (`AssertionError: 'FAILED' != GradingState.DONE`) under `--parallel 4`, and the same failure was never seen locally, including 3 full-suite reproduction attempts on this box deliberately constrained to match or exceed CI's real CPU pressure (`taskset -c 0-3` x2, `taskset -c 0-1` x1 — all 4553 tests, all clean) | Medium — real but unreproduced; contained by H-39-adjacent tblib fix so it can no longer crash the whole run, but the underlying race is still open | Proposed: whoever owns the live-Celery redelivery test next | **Not started.** gate-runner (2026-09-23): CPU core count/oversubscription on this box is ruled out as the trigger (reproduction attempted up to 4x oversubscribed, never reproduced) - the remaining suspect is network-latency variance specific to GitHub Actions' Docker-networked Postgres/Redis service containers (reached over the docker bridge, not a true localhost socket the way this box's isolated env is), which this box cannot faithfully reproduce without artificial network jitter (e.g. `tc netem`) injected into the repro, not yet attempted. This is a genuinely timing-sensitive live-broker test (`WAIT = 45s`, real Celery worker, real Redis redelivery) - a single occurrence on one CI run is weak evidence of a reliable defect, but not zero. Until reproduced, treat as a flake candidate to watch for recurrence on real CI runs, not a proven bug in the `--parallel` prefix work (H-9's fork-prefix fixes were independently verified via `multiprocessing.get_context("fork")` probes and are not implicated by this failure's causal chain - see the tblib/pickle analysis this entry is filed alongside). |
+| H-42 | `send_user_activation_email` (`users/services.py`) routes school admins to `FRONTEND_DOMAIN` (the teacher app) alongside teachers, same as the now-fixed school-admin invitation email was doing — but the school-admin frontend is a genuinely separate app that refuses other roles | Medium (wrong domain) escalated to **High — real dead-end account** once traced end to end | privacy-guard | **CLOSED (2026-09-23)** — investigation confirmed the wrong-domain bug was the smaller half: `POST /auth/otp` (`otp_type=VERIFY_EMAIL`) is `AllowAny`, takes only an email, and has no `user_type` restriction, so it was reachable for a pending school admin (`SchoolWithAdminSerializer`-created, `is_active=False`, no usable password, real 7-day `activation_token`). Hitting it overwrote that token with a 15-minute generic one and emailed a `/verify-email` link (wrong domain) whose completion endpoint (`/auth/verify`) has no password field at all — and once it set `is_active=True` and cleared the token, `/register/school-admin`'s `is_active=False` filter could never match again. Net effect: an active, verified account with an unusable password and no remaining path to ever set one. Reproduced end-to-end with a failing test against unfixed code first (`classrooms/test_school_admin_otp_deadend.py`), then fixed: `send_user_activation_email()` now recognizes `SCHOOL_ADMIN` and delegates to a new `resend_school_admin_invitation()` (`classrooms/serializers.py`), which reissues a fresh 7-day token and resends the real invitation email instead of ever building the generic, password-less activation email for this user_type — mirroring the existing precedent for invited teachers, who don't go through the generic flow either. 7 dedicated tests, full regression 4571/4571 (256.6s, `--parallel 4`), independently verified by the SM (own worktree, own full-regression run, matching numbers). Landed on beta by fast-forward (`2f2b9bc` → `2bad9c6`) and pushed to origin, user-approved.
+| H-39 | No test-suite guard against real outbound network calls — a test that forgets to mock a third-party call (Stripe, etc.) silently succeeds locally against real credentials and only fails later, on CI, against fake ones | High — this exact gap cost a two-CI-run diagnosis | Proposed: whoever owns test infrastructure next (gate-runner nominated it) | **Not started.** Reinforced-priority per gate-runner (2026-09-23), directly motivated by `task/flaky-stripe-timeout-diagnosis`: `billing.tests.test_free_plan_activation_security.ActivationFailureRecoveryTests.test_stripe_timeout_on_the_allowed_checkout_leaves_no_local_change` mocked `stripe.checkout.Session.create` but not `stripe.Customer.create`; the real call silently succeeded locally (`.env`'s `LOCAL_STRIPE_SECRET_KEY` is a real Stripe test-mode key) and deterministically failed on CI (fake placeholder key rejected by Stripe's own auth check). A guard that fails any test making a real outbound HTTP call (e.g. patching `socket.socket`/`urllib3` at the test-runner level with an allowlist for the local Postgres/Redis sockets) would have caught this on the very first local run instead of needing two failed CI pushes to diagnose. Complements, does not replace, `scripts/isolated-test-env.sh` (which gives CI-matching fake credentials but doesn't itself block a stray real call from a differently-named env var). |
 
 ---
 
@@ -1079,6 +1087,9 @@ endpoints:
   same stale-instance clobber class fixed in the service layer (F-4).
 * **V-5** `StudentViewSet` is defined but not routed (`students/urls.py`
   registers only submissions); dead or missing, decide which.
+  **DECIDED 2026-09-17 (owner): delete.** Deleted in
+  `task/my-students-prefetch-leak` commit `e0b1640`; it also carried the
+  unscoped cross-teacher `enrollments__course` pattern fixed there.
 * **V-6** `teacher_feedback` declares `IsTeacherOrReadOnly` on the action
   but `get_permissions` overrides it to teacher+credits (already commented
   in code; the dead kwarg should go once V-3 is decided).
@@ -1148,7 +1159,8 @@ Remaining (H-11 stays OPEN and release-blocking):
    and `partial_update` once (1) is confirmed — delete, or keep as thin
    dispatchers returning 202 if a compatibility window is needed.
 3. **V-5** `StudentViewSet` unrouted: delete or route (file deletion needs
-   sign-off).
+   sign-off). **Owner signed off on deletion 2026-09-17; deleted in
+   `e0b1640`.**
 4. The same tracked-row idempotency claim for `upload_answers_engine_async`
    (the upload task still marks started unconditionally; Section 9 is
    changing that task, so this is coordinated with it).
@@ -1187,7 +1199,8 @@ the frontend/client dependency is confirmed.
   V-3 decided: `PATCH`/`update-async` follow the docstring — the
   submission's own student and the course teacher, both queryset-scoped.
   V-4 closed by the shared service. V-6 closed (dead kwarg removed).
-  V-5 (`StudentViewSet` unrouted) is a deletion and stays for sign-off.
+  V-5 (`StudentViewSet` unrouted) is a deletion and stays for sign-off
+  (owner signed off 2026-09-17; deleted in `e0b1640`).
 * Evidence: `students/tests_async_edit_path.py` — route, tenancy,
   duplicate guards, task success/refusal/retry/refund, redelivery on a
   real Celery worker, 12 concurrent live-HTTP clients → exactly one task,
@@ -1374,6 +1387,140 @@ unaffected (proven, not assumed); 3/3 mutants killed, restored by
 checksum; regression 318 tests OK across `students` and every cache suite
 touching this endpoint; scoped to `students/views.py` (14 insertions, 2
 deletions) plus a new test module, nothing else.
+
+---
+
+---
+
+# H-18 — assignment writes accepted any course, any topic, and any AI-emitted field
+
+**Found 2026-09-17** by a cross-role data-leakage audit, then widened twice:
+once by reading the views (a third entry point the audit missed), once by a
+sweep of every writable relation (the AI-output sink).
+
+**What was wrong.** `AssignmentTextSerializer.course` was a plain writable PK
+field with no ownership check, while `get_queryset()` only scopes which
+EXISTING assignment a teacher can reach. Knowing a course UUID was enough to
+plant a PUBLISHED assignment in another teacher's course - visible at once to
+that teacher and their students - or to move one's own assignment into it.
+Three doors shared the serializer: create/create-async, PATCH, and
+update-async, which built it without a request in context. Separately, the AI's
+raw JSON was saved through `AssignmentSerializer`, whose writable fields
+include `status`, `teacher`, `course`, `topic` and `due_date`, so text inside a
+typed assignment or an uploaded document could set them.
+
+**Scope of the fix.** `validate_course` on the serializer (fail-closed without
+a request, so no view can forget it); `update_async` uses `get_serializer`;
+`ai_assignment_content_only()` reduces AI output to the 9 content fields at
+extraction, at generation, and again when a stored draft snapshot is saved;
+`AssignmentSerializer.teacher` is read-only. Two fail-open ownership
+validators in `classrooms/serializers.py` were hardened at the same time.
+
+**Acceptance criteria and evidence.** All met; see
+`docs/evidence/H18_H19_ACCESS_CONTROL_EVIDENCE.md`, which opens with the
+10-gate table and the 8 completion answers:
+- every entry point refuses a foreign course and a foreign topic, for a course
+  in another school AND a same-school colleague's course;
+- legitimate own-course and own-topic flows unchanged on every path;
+- AI output cannot write any protected field at any sink, including pre-fix
+  stored snapshots;
+- 30/31 mutants killed, both survivors explained (one two-layer defence, one
+  real test gap that was closed);
+- 20 threads x 10 rounds; provider-failure and Celery-redelivery recovery;
+  query counts flat to 6,000 students;
+- independent HTTP replay by the red team.
+
+**Open:** Gate 8 (deployed end-to-end) is PARTIAL - everything is LOCAL-REAL.
+
+---
+
+# H-19 — superadmin authority granted on a single flag in four places
+
+**Found 2026-09-17**: two places by the audit, two more by this item's own
+sweep of every superadmin check in the codebase.
+
+**What was wrong.** `IsSuperAdmin` requires `is_superuser` AND
+`user_type == SUPER_ADMIN`. Four checks did not:
+
+| Where | Single flag | Effect |
+|---|---|---|
+| `users/views.py` `SettingsViewSet.get_queryset` | either | read and edit every user's Settings |
+| `classrooms/views.py` `monthly_token_usage` | either | read any school's token usage |
+| `users/permissions.py` `HasCreditBalance` | `user_type` | skip the credit-balance check |
+| `ai_processor/services.py` `execute_graded_task` | `user_type` | unmetered, unbilled AI |
+
+`CustomUserManager.create_superuser()` sets `is_superuser` but leaves
+`user_type=TEACHER`, so an account made for Django admin reached the first
+two. The reverse shape - `user_type=SUPER_ADMIN` without `is_superuser`,
+produced by promoting a teacher through the users API or unticking the flag in
+Django admin - reached the last two and ran billed AI for free through
+background jobs that load `course.teacher`.
+
+**Scope of the fix.** All four require both flags. A single-flag account is not
+refused outright by the credit gate: it falls through to the ordinary wallet
+check. The unmetered branch refuses it with `AIFeatureNotAvailableError`, a
+user-facing refusal, rather than the `ValueError` that views report as a
+server fault.
+
+**Deliberately unchanged:** `billing/license_service.py:319` and
+`users/serializers.py:175` use `or` on the deny side, where either flag is
+stricter; `CustomUserViewSet.create`'s inner either-flag check is unreachable
+behind `IsSuperAdmin` and is recorded as a consistency clean-up candidate.
+
+**Acceptance criteria and evidence.** Same evidence file. All three attacker
+shapes refused; true superadmin and school-admin flows unchanged; one real
+billed provider call proves the unmetered path still works with zero billing
+rows; 14 mutants across the four checks, all killed.
+
+**Related, owned elsewhere:** making the newly-refused background paths record
+their refusal cleanly (weekly-summary swallow, `error=None`, retry-3x) belongs
+to the refusal-handling cluster, not to this item.
+
+---
+
+# H-41 — grading-redelivery concurrency test flakes under load
+
+**Found**: seen failing once on CI, never reproduced locally until now.
+
+`students.tests_grading_redelivery_live.GradingRedeliveryLiveTest.
+test_5_concurrent_submissions_with_one_redelivery_each_grade_exactly_once`
+failed during the staging@fc96d9a full-suite redo (2026-09-28, machine load
+~30 from concurrent unrelated sessions): `'FAILED' != GradingState.DONE`.
+Isolated rerun of the whole module immediately after, load ~20: 4/4 pass.
+
+**Status**: load-induced, consistent with the CI sighting — treated as a
+pre-existing flake, not a regression on whichever branch triggers it. No fix
+scoped yet; recorded so a repeat sighting has a home instead of being
+re-diagnosed from scratch each time.
+
+**Acceptance**: TBD once the actual scheduling contention (if fixable) is
+understood; at minimum, note here whether it reproduces isolated under
+deliberately induced load.
+
+---
+
+# H-44 — `pdf_renderer` concurrent-render test is a wall-clock flake
+
+**Found 2026-09-28** during authz-oauth-takeover Gate 10 verification.
+
+`assignments.tests_pdf_renderer.ConcurrentRenderingTest.
+test_one_slow_render_does_not_stall_the_others` asserts the slowest of 6
+concurrent renders finishes under 4.0s. On this shared 4-physical-core
+machine that fails whenever load is elevated — confirmed on plain
+beta@4b902fc (3/3 failures, ~7s each) and on task/authz-oauth-takeover@27d36f0
+(2/3 failures, same signature); `git diff --stat 4b902fc 27d36f0 --
+assignments/` is empty, so it isn't branch-specific.
+
+**Fix direction**: make the assertion independent of the wall clock — measure
+relative ordering (the slow render finishes last; healthy ones finish close
+together) or inject a fake clock — rather than raising the 4.0s threshold,
+which only shifts where the flake reappears under heavier load.
+
+**Priority**: low, behind the test-speed stream's current queue.
+
+**Acceptance**: passes reliably at machine load comparable to a loaded
+CI/dev box; a genuine stall (the behaviour this test guards against) must
+still fail it.
 
 ---
 

@@ -2,6 +2,7 @@ from datetime import date, timedelta
 from unittest.mock import patch
 
 from django.conf import settings
+from django.core.cache import cache
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -10,7 +11,12 @@ from rest_framework.test import APITestCase
 
 from assignments.models import Assignment, AssignmentStatus
 from billing.immutable import allow_unsafe_mutation
-from billing.models import CreditBucket, CreditBucketType, CreditUsageLog
+from billing.models import (
+    CONVERSION_FACTOR,
+    CreditBucket,
+    CreditBucketType,
+    CreditUsageLog,
+)
 from classrooms.models import (
     Course,
     EnrollmentStatusType,
@@ -1452,12 +1458,269 @@ class StudentDashboardOverviewAPITest(APITestCase):
         # Expected:
         # 1. total_courses = 2 (Active Course 1, Active Course 2)
         # 2. assignments_submitted = 2 (a1, a6)
-        # 3. assignments_pending_not_due = 2 (a2 [future], a5 [no due date])
+        # 3. assignments_not_submitted = 2 (a2 [future], a5 [no due date]) -
+        #    excludes a3, which is overdue, not "not submitted": the four
+        #    counts are mutually exclusive and sum to the total assignment
+        #    count (2 + 2 + 1 = 5, matching a1/a2/a3/a5/a6).
         # 4. assignments_due_no_submission = 1 (a3 [passed due date])
+        # 5. assignments_graded = 0 (a1/a6 have scores but neither is released
+        #    (is_published=True) to the student)
         self.assertEqual(response.data["total_courses"], 2)
         self.assertEqual(response.data["assignments_submitted"], 2)
-        self.assertEqual(response.data["assignments_pending_not_due"], 2)
+        self.assertEqual(response.data["assignments_not_submitted"], 2)
         self.assertEqual(response.data["assignments_due_no_submission"], 1)
+        self.assertEqual(response.data["assignments_graded"], 0)
+
+    def test_assignments_graded_only_counts_released_scored_submissions(self):
+        # a1's submission has a score but is_published defaults to False
+        # (not yet released) - graded should stay 0 until it's released.
+        url = reverse("student-overview")
+        self.assertEqual(self.client.get(url).data["assignments_graded"], 0)
+
+        StudentSubmission.objects.filter(assignment=self.a1).update(is_published=True)
+        # The overview endpoint caches its response for 15 minutes; without
+        # clearing it here, this second request would read the stale
+        # pre-release result back out of cache instead of recomputing.
+        cache.clear()
+
+        response = self.client.get(url)
+        self.assertEqual(response.data["assignments_graded"], 1)
+        # Submitted/not-submitted/overdue counts are unaffected by release.
+        self.assertEqual(response.data["assignments_submitted"], 2)
+        self.assertEqual(response.data["assignments_not_submitted"], 2)
+        self.assertEqual(response.data["assignments_due_no_submission"], 1)
+
+    def test_status_summary_without_course_matches_overview(self):
+        # No ?course= - combined across every active course, same numbers
+        # as the overview endpoint (StudentAdminDashboardView.overview).
+        url = reverse("student-status-summary")
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["assignments_submitted"], 2)
+        self.assertEqual(response.data["assignments_not_submitted"], 2)
+        self.assertEqual(response.data["assignments_due_no_submission"], 1)
+        self.assertEqual(response.data["assignments_graded"], 0)
+        # Only the four status counts - no grade/GPA fields on this endpoint.
+        self.assertNotIn("overall_percentage", response.data)
+        self.assertNotIn("courses_grades", response.data)
+
+    def test_status_summary_scoped_to_one_course(self):
+        # Active Course 1 alone: a1 submitted, a2 not-submitted (future),
+        # a3 overdue (not "not submitted" - the two are mutually exclusive),
+        # a4 (draft) excluded. Active Course 2's a5/a6 must not be counted
+        # here.
+        url = reverse("student-status-summary")
+        response = self.client.get(url, {"course": str(self.course_active_1.id)})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["assignments_submitted"], 1)
+        self.assertEqual(response.data["assignments_not_submitted"], 1)
+        self.assertEqual(response.data["assignments_due_no_submission"], 1)
+        self.assertEqual(response.data["assignments_graded"], 0)
+
+    def test_tiles_sum_to_total_assignment_count(self):
+        """Not Submitted, Overdue and Submitted are mutually exclusive and
+        must sum to the total assignment count. Graded is excluded from the
+        sum by design - it is an informational subset of Submitted (a
+        released, scored submission), not a competing bucket, so it is
+        reported separately rather than summed in. Exercised end-to-end
+        through the real API, not just against the shared helper directly,
+        via both endpoints that use it."""
+        total_assignments = 5  # a1, a2, a3, a5, a6 (a_inactive/a_withdrawn excluded)
+
+        overview = self.client.get(reverse("student-overview")).data
+        self.assertEqual(
+            overview["assignments_submitted"]
+            + overview["assignments_not_submitted"]
+            + overview["assignments_due_no_submission"],
+            total_assignments,
+        )
+
+        status_summary = self.client.get(reverse("student-status-summary")).data
+        self.assertEqual(
+            status_summary["assignments_submitted"]
+            + status_summary["assignments_not_submitted"]
+            + status_summary["assignments_due_no_submission"],
+            total_assignments,
+        )
+
+        # Same check after a release, so a graded submission (still counted
+        # under Submitted, not moved out of it) cannot throw the sum off.
+        StudentSubmission.objects.filter(assignment=self.a1).update(is_published=True)
+        cache.clear()
+        overview_after_release = self.client.get(reverse("student-overview")).data
+        self.assertEqual(overview_after_release["assignments_graded"], 1)
+        self.assertEqual(
+            overview_after_release["assignments_submitted"]
+            + overview_after_release["assignments_not_submitted"]
+            + overview_after_release["assignments_due_no_submission"],
+            total_assignments,
+        )
+
+    def test_status_summary_for_a_course_the_student_is_not_enrolled_in_404s(self):
+        other_teacher = CustomUser.objects.create_user(
+            email="other-teacher@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            first_name="Other",
+            last_name="Teacher",
+        )
+        other_session = Session.objects.create(name="Other Term", teacher=other_teacher)
+        foreign_course = Course.objects.create(
+            name="Foreign Course",
+            teacher=other_teacher,
+            session=other_session,
+            is_active=True,
+        )
+
+        url = reverse("student-status-summary")
+        response = self.client.get(url, {"course": str(foreign_course.id)})
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class StudentCourseSummaryAPITest(APITestCase):
+    """Covers StudentAdminDashboardView.summary - the per-course page a
+    student sees after clicking into one class, as distinct from the
+    all-courses dashboard covered by StudentDashboardOverviewAPITest."""
+
+    def setUp(self):
+        self.now = timezone.now()
+
+        self.teacher = CustomUser.objects.create_user(
+            email="course-summary-teacher@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            first_name="Summary",
+            last_name="Teacher",
+        )
+        self.student = CustomUser.objects.create_user(
+            email="course-summary-student@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.STUDENT,
+            first_name="Summary",
+            last_name="Student",
+        )
+
+        self.session = Session.objects.create(name="Summary Term", teacher=self.teacher)
+        self.course = Course.objects.create(
+            name="Summary Course",
+            teacher=self.teacher,
+            session=self.session,
+            is_active=True,
+        )
+        StudentCourse.objects.create(
+            student=self.student,
+            course=self.course,
+            enrollment_status=EnrollmentStatusType.ENROLLED,
+        )
+
+        # 1. Submitted, graded and released
+        self.a1 = Assignment.objects.create(
+            title="A1 Submitted Released",
+            course=self.course,
+            status=AssignmentStatus.PUBLISHED,
+            due_date=self.now - timedelta(days=5),
+        )
+        StudentSubmission.objects.create(
+            assignment=self.a1,
+            student=self.student,
+            answers={"q1": "a"},
+            score=100,
+            score_percentage=100,
+            graded_at=self.now - timedelta(days=4),
+            is_published=True,
+        )
+
+        # 2. Submitted, graded but NOT released
+        self.a2 = Assignment.objects.create(
+            title="A2 Submitted Unreleased",
+            course=self.course,
+            status=AssignmentStatus.PUBLISHED,
+            due_date=self.now - timedelta(days=3),
+        )
+        StudentSubmission.objects.create(
+            assignment=self.a2,
+            student=self.student,
+            answers={"q1": "a"},
+            score=80,
+            score_percentage=80,
+            graded_at=self.now - timedelta(days=2),
+            is_published=False,
+        )
+
+        # 3. Not submitted, not yet due
+        self.a3 = Assignment.objects.create(
+            title="A3 Future Pending",
+            course=self.course,
+            status=AssignmentStatus.PUBLISHED,
+            due_date=self.now + timedelta(days=5),
+        )
+
+        # 4. Not submitted, overdue
+        self.a4 = Assignment.objects.create(
+            title="A4 Overdue",
+            course=self.course,
+            status=AssignmentStatus.PUBLISHED,
+            due_date=self.now - timedelta(days=1),
+        )
+
+        # 5. Draft (should be ignored - students never see drafts)
+        Assignment.objects.create(
+            title="A5 Draft",
+            course=self.course,
+            status=AssignmentStatus.DRAFT,
+            due_date=self.now - timedelta(days=1),
+        )
+
+        self.client.force_authenticate(user=self.student)
+
+    def test_course_summary_breaks_out_submitted_not_submitted_graded_overdue(self):
+        url = reverse("student-summary", kwargs={"course_id": self.course.id})
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # 4 published assignments total (a1-a4; the draft a5 is excluded).
+        # Submitted: a1, a2 = 2. Not submitted: a3 = 1 (a4 is overdue, not
+        # "not submitted" - the two are mutually exclusive and sum to the
+        # total: 2 + 1 + 1 = 4). Overdue: a4 = 1. Graded (released only):
+        # a1 = 1 - a2 has a score but is_published=False, so it does not
+        # count yet.
+        self.assertEqual(response.data["assignment_assigned"], 4)
+        self.assertEqual(response.data["assignment_submitted"], 2)
+        self.assertEqual(response.data["assignment_not_submitted"], 1)
+        self.assertEqual(response.data["missing_or_overdue"], 1)
+        self.assertEqual(response.data["assignment_graded"], 1)
+
+    def test_course_summary_graded_updates_once_grade_is_released(self):
+        url = reverse("student-summary", kwargs={"course_id": self.course.id})
+        self.assertEqual(self.client.get(url).data["assignment_graded"], 1)
+
+        StudentSubmission.objects.filter(assignment=self.a2).update(is_published=True)
+        cache.clear()
+
+        response = self.client.get(url)
+        self.assertEqual(response.data["assignment_graded"], 2)
+        self.assertEqual(response.data["assignment_submitted"], 2)
+
+    def test_tiles_sum_to_total_assignment_count(self):
+        """Submitted, Not Submitted and Overdue (missing_or_overdue) are
+        mutually exclusive and must sum to assignment_assigned. Graded is
+        excluded from the sum by design - see the identical check on
+        StudentDashboardOverviewAPITest. Exercised through the real API,
+        which now goes through the shared _assignment_status_counts helper
+        instead of this endpoint's own former hand-rolled copy."""
+        url = reverse("student-summary", kwargs={"course_id": self.course.id})
+        response = self.client.get(url)
+
+        self.assertEqual(
+            response.data["assignment_submitted"]
+            + response.data["assignment_not_submitted"]
+            + response.data["missing_or_overdue"],
+            response.data["assignment_assigned"],
+        )
 
 
 class StudentDashboardOverviewGPAAPITest(APITestCase):
@@ -1540,6 +1803,91 @@ class StudentDashboardOverviewGPAAPITest(APITestCase):
         # percentage incorrectly produced before the fix).
         self.assertNotEqual(response.data["overall_gpa"], 0.0)
         self.assertEqual(response.data["overall_gpa"], 0.33)
+        # overall_grade must be derived from overall_gpa (0.33 -> F), not
+        # from a separately re-classified flat average percentage.
+        self.assertEqual(response.data["overall_grade"], "F")
+        self.assertEqual(response.data["overall_remark"], "Fail")
+
+
+class OverallGradeFollowsGPANotFlatPercentageAPITest(APITestCase):
+    """Regression test: overall_grade/overall_remark must be derived from
+    overall_gpa (course percentage -> course letter -> course GPA ->
+    overall GPA -> overall letter -> overall remark), never re-classified
+    from the separate overall_percentage stat - the two methods can
+    disagree. Concrete case that exposed the bug: a course at 96% (A, 4.0)
+    and a course at 64% (F, 0.0) average to a flat 80% ("B-" if
+    re-classified), but the GPA-correct overall GPA is 2.0, which this
+    school's own scale calls "C" - not "B-" (worth 2.7)."""
+
+    def setUp(self):
+        self.now = timezone.now()
+
+        self.teacher = CustomUser.objects.create_user(
+            email="overall-grade-teacher@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.TEACHER,
+            first_name="Overall",
+            last_name="Teacher",
+        )
+        self.student = CustomUser.objects.create_user(
+            email="overall-grade-student@example.com",
+            password="password123",  # pragma: allowlist secret
+            user_type=UserTypes.STUDENT,
+            first_name="Overall",
+            last_name="Student",
+        )
+        self.session = Session.objects.create(
+            name="Overall Grade Term", teacher=self.teacher
+        )
+        self.courses = [
+            Course.objects.create(
+                name=f"Overall Grade Course {i}",
+                teacher=self.teacher,
+                session=self.session,
+                is_active=True,
+            )
+            for i in range(2)
+        ]
+        for course in self.courses:
+            StudentCourse.objects.create(
+                student=self.student,
+                course=course,
+                enrollment_status=EnrollmentStatusType.ENROLLED,
+            )
+
+        percentages = [96, 64]  # A (4.0) and F (0.0)
+        for i, (course, pct) in enumerate(zip(self.courses, percentages, strict=True)):
+            assignment = Assignment.objects.create(
+                title=f"Overall Grade Assignment {i}",
+                course=course,
+                status=AssignmentStatus.PUBLISHED,
+                due_date=self.now - timedelta(days=1),
+            )
+            StudentSubmission.objects.create(
+                assignment=assignment,
+                student=self.student,
+                answers={"q1": "a"},
+                score=pct,
+                score_percentage=pct,
+                graded_at=self.now,
+                is_published=True,
+            )
+
+        self.client.force_authenticate(user=self.student)
+
+    def test_overall_grade_matches_the_gpa_scale_not_the_flat_percentage(self):
+        url = reverse("student-overview")
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # overall_percentage remains its own independent stat: (96+64)/2.
+        self.assertEqual(response.data["overall_percentage"], 80.0)
+        # overall_gpa: average of quality points (4.0, 0.0) = 2.0.
+        self.assertEqual(response.data["overall_gpa"], 2.0)
+        # overall_grade must be "C" (2.0 on the school's own GPA scale),
+        # NOT "B-" (what re-classifying the flat 80% would have shown).
+        self.assertEqual(response.data["overall_grade"], "C")
+        self.assertEqual(response.data["overall_remark"], "Pass")
 
 
 class SchoolAtRiskTrendAPITest(APITestCase):
@@ -1821,10 +2169,14 @@ class TeacherDetailAPITest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_feature_mix_percentages_and_unmapped_feature_falls_to_other(self):
-        self._log_usage(1000, "Grading Assignment")
-        self._log_usage(500, "Assignment Extraction")  # -> creation
-        self._log_usage(300, "Formatted Grade")  # -> feedback
-        self._log_usage(200, "Custom AI Prompt")  # unmapped -> other
+        # Logged in raw internal units; displayed amounts below are the
+        # user-facing figures after dividing by CONVERSION_FACTOR.
+        self._log_usage(1000 * CONVERSION_FACTOR, "Grading Assignment")
+        self._log_usage(500 * CONVERSION_FACTOR, "Assignment Extraction")  # -> creation
+        self._log_usage(300 * CONVERSION_FACTOR, "Formatted Grade")  # -> feedback
+        self._log_usage(
+            200 * CONVERSION_FACTOR, "Custom AI Prompt"
+        )  # unmapped -> other
 
         self.client.force_authenticate(user=self.admin)
         response = self.client.get(self.url)
@@ -1842,8 +2194,8 @@ class TeacherDetailAPITest(APITestCase):
         self.assertAlmostEqual(total_percent, 100.0, delta=0.1)
 
     def test_refunded_usage_excluded(self):
-        self._log_usage(1000, "Grading Assignment")
-        self._log_usage(400, "Grading Assignment", is_refunded=True)
+        self._log_usage(1000 * CONVERSION_FACTOR, "Grading Assignment")
+        self._log_usage(400 * CONVERSION_FACTOR, "Grading Assignment", is_refunded=True)
 
         self.client.force_authenticate(user=self.admin)
         response = self.client.get(self.url)
@@ -1872,14 +2224,93 @@ class TeacherDetailAPITest(APITestCase):
 
     def test_days_active_and_daily_usage_window(self):
         now = timezone.now()
-        self._log_usage(100, "Grading Assignment", created_at=now)
-        self._log_usage(200, "Grading Assignment", created_at=now - timedelta(days=5))
+        self._log_usage(100 * CONVERSION_FACTOR, "Grading Assignment", created_at=now)
+        self._log_usage(
+            200 * CONVERSION_FACTOR,
+            "Grading Assignment",
+            created_at=now - timedelta(days=5),
+        )
         # Outside the 60-day window - counted in credits_used (all-time)
         # but not in days_active/daily_usage (windowed).
-        self._log_usage(9999, "Grading Assignment", created_at=now - timedelta(days=90))
+        self._log_usage(
+            9999 * CONVERSION_FACTOR,
+            "Grading Assignment",
+            created_at=now - timedelta(days=90),
+        )
 
         self.client.force_authenticate(user=self.admin)
         response = self.client.get(self.url)
         self.assertEqual(response.data["days_active"], 2)
         self.assertEqual(len(response.data["daily_usage"]), 61)
         self.assertEqual(response.data["credits_used"], 100 + 200 + 9999)
+
+    def test_credits_used_is_the_raw_total_divided_by_conversion_factor(self):
+        # 12345 is not a multiple of CONVERSION_FACTOR (1000) - the display
+        # value must floor, matching every other billing figure's // convention.
+        self._log_usage(12345, "Grading Assignment")
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(self.url)
+        self.assertEqual(response.data["credits_used"], 12345 // CONVERSION_FACTOR)
+        self.assertEqual(response.data["credits_used"], 12)
+
+    def test_category_amount_is_the_raw_total_divided_by_conversion_factor(self):
+        # 7999 is not a multiple of CONVERSION_FACTOR - only `amount` should
+        # be converted; `percent` is a ratio and must stay untouched.
+        self._log_usage(7999, "Assignment Extraction")  # -> creation
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(self.url)
+        self.assertEqual(response.data["creation"]["amount"], 7999 // CONVERSION_FACTOR)
+        self.assertEqual(response.data["creation"]["amount"], 7)
+        self.assertAlmostEqual(response.data["creation"]["percent"], 100.0, delta=0.1)
+
+    def test_credits_remaining_is_the_raw_total_divided_by_conversion_factor(self):
+        # None of these are multiples of CONVERSION_FACTOR. `total` floors
+        # the summed raw credits (not the sum of the already-floored parts)
+        # - 4300 + 2999 + 1000 = 8299 -> 8, not 4 + 2 + 1 = 7.
+        CreditBucket.objects.create(
+            wallet=self.teacher.credit_wallet,
+            bucket_type=CreditBucketType.MONTHLY,
+            total_credits=5500,
+            used_credits=1200,
+        )
+        CreditBucket.objects.create(
+            wallet=self.teacher.credit_wallet,
+            bucket_type=CreditBucketType.CARRY_OVER,
+            total_credits=2999,
+            used_credits=0,
+        )
+        CreditBucket.objects.create(
+            wallet=self.teacher.credit_wallet,
+            bucket_type=CreditBucketType.OVERAGE,
+            total_credits=1500,
+            used_credits=500,
+        )
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(self.url)
+        remaining = response.data["credits_remaining"]
+        self.assertEqual(remaining["monthly"], 4300 // CONVERSION_FACTOR)
+        self.assertEqual(remaining["monthly"], 4)
+        self.assertEqual(remaining["carry_over"], 2999 // CONVERSION_FACTOR)
+        self.assertEqual(remaining["carry_over"], 2)
+        self.assertEqual(remaining["overage"], 1000 // CONVERSION_FACTOR)
+        self.assertEqual(remaining["overage"], 1)
+        self.assertEqual(remaining["total"], (4300 + 2999 + 1000) // CONVERSION_FACTOR)
+        self.assertEqual(remaining["total"], 8)
+
+    def test_daily_usage_credits_is_the_raw_total_divided_by_conversion_factor(self):
+        now = timezone.now()
+        # 6789 is not a multiple of CONVERSION_FACTOR.
+        self._log_usage(6789, "Grading Assignment", created_at=now)
+
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.get(self.url)
+        today_entry = next(
+            row
+            for row in response.data["daily_usage"]
+            if row["date"] == now.date().isoformat()
+        )
+        self.assertEqual(today_entry["credits"], 6789 // CONVERSION_FACTOR)
+        self.assertEqual(today_entry["credits"], 6)

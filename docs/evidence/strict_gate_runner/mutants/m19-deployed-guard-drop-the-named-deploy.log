@@ -1,0 +1,176 @@
+.........FFFF.........FFFFFFFFFFFFFFFFF.........................
+======================================================================
+FAIL: test_named_hosts_cover_beta_and_sandbox (__main__.EndToEnd.test_named_hosts_cover_beta_and_sandbox) (host='shinkansen.proxy.rlwy.net')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 600, in test_named_hosts_cover_beta_and_sandbox
+    self.assertIn(
+AssertionError: 'database target shinkansen.proxy.rlwy.net is a named deployed host' not found in ['database target shinkansen.proxy.rlwy.net:5432 is not local']
+
+======================================================================
+FAIL: test_named_hosts_cover_beta_and_sandbox (__main__.EndToEnd.test_named_hosts_cover_beta_and_sandbox) (host='sandbox-grade-automator-production.up.railway.app')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 600, in test_named_hosts_cover_beta_and_sandbox
+    self.assertIn(
+AssertionError: 'database target sandbox-grade-automator-production.up.railway.app is a named deployed host' not found in ['database target sandbox-grade-automator-production.up.railway.app:5432 is not local']
+
+======================================================================
+FAIL: test_named_hosts_cover_beta_and_sandbox (__main__.EndToEnd.test_named_hosts_cover_beta_and_sandbox) (host='thomas.proxy.rlwy.net')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 600, in test_named_hosts_cover_beta_and_sandbox
+    self.assertIn(
+AssertionError: 'database target thomas.proxy.rlwy.net is a named deployed host' not found in ['database target thomas.proxy.rlwy.net:5432 is not local']
+
+======================================================================
+FAIL: test_named_hosts_cover_beta_and_sandbox (__main__.EndToEnd.test_named_hosts_cover_beta_and_sandbox) (host='iriguchi.proxy.rlwy.net')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 600, in test_named_hosts_cover_beta_and_sandbox
+    self.assertIn(
+AssertionError: 'database target iriguchi.proxy.rlwy.net is a named deployed host' not found in ['database target iriguchi.proxy.rlwy.net:5432 is not local']
+
+======================================================================
+FAIL: test_refuses_deployed_redis_host_even_on_another_port (__main__.EndToEnd.test_refuses_deployed_redis_host_even_on_another_port)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 570, in test_refuses_deployed_redis_host_even_on_another_port
+    s = self.assertRefusesDeployed(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 558, in assertRefusesDeployed
+    self.assertIn(fragment, " ".join(s["verdict_reasons"]))
+AssertionError: 'shinkansen.proxy.rlwy.net is a named deployed host' not found in 'REFUSING deployed infrastructure: cache target shinkansen.proxy.rlwy.net:1 is not local'
+
+======================================================================
+FAIL: test_refuses_every_named_deployed_host_by_name (__main__.EndToEnd.test_refuses_every_named_deployed_host_by_name) (host='iriguchi.proxy.rlwy.net', role='database')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 584, in test_refuses_every_named_deployed_host_by_name
+    self.assertIn(
+AssertionError: 'database target iriguchi.proxy.rlwy.net is a named deployed host' not found in ['database target iriguchi.proxy.rlwy.net:9 is not local']
+
+======================================================================
+FAIL: test_refuses_every_named_deployed_host_by_name (__main__.EndToEnd.test_refuses_every_named_deployed_host_by_name) (host='iriguchi.proxy.rlwy.net', role='cache')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 584, in test_refuses_every_named_deployed_host_by_name
+    self.assertIn(
+AssertionError: 'cache target iriguchi.proxy.rlwy.net is a named deployed host' not found in ['cache target iriguchi.proxy.rlwy.net:9 is not local']
+
+======================================================================
+FAIL: test_refuses_every_named_deployed_host_by_name (__main__.EndToEnd.test_refuses_every_named_deployed_host_by_name) (host='iriguchi.proxy.rlwy.net', role='celery_broker')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 584, in test_refuses_every_named_deployed_host_by_name
+    self.assertIn(
+AssertionError: 'celery_broker target iriguchi.proxy.rlwy.net is a named deployed host' not found in ['celery_broker target iriguchi.proxy.rlwy.net:9 is not local']
+
+======================================================================
+FAIL: test_refuses_every_named_deployed_host_by_name (__main__.EndToEnd.test_refuses_every_named_deployed_host_by_name) (host='iriguchi.proxy.rlwy.net', role='celery_result_backend')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 584, in test_refuses_every_named_deployed_host_by_name
+    self.assertIn(
+AssertionError: 'celery_result_backend target iriguchi.proxy.rlwy.net is a named deployed host' not found in ['celery_result_backend target iriguchi.proxy.rlwy.net:9 is not local']
+
+======================================================================
+FAIL: test_refuses_every_named_deployed_host_by_name (__main__.EndToEnd.test_refuses_every_named_deployed_host_by_name) (host='sandbox-grade-automator-production.up.railway.app', role='database')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 584, in test_refuses_every_named_deployed_host_by_name
+    self.assertIn(
+AssertionError: 'database target sandbox-grade-automator-production.up.railway.app is a named deployed host' not found in ['database target sandbox-grade-automator-production.up.railway.app:9 is not local']
+
+======================================================================
+FAIL: test_refuses_every_named_deployed_host_by_name (__main__.EndToEnd.test_refuses_every_named_deployed_host_by_name) (host='sandbox-grade-automator-production.up.railway.app', role='cache')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 584, in test_refuses_every_named_deployed_host_by_name
+    self.assertIn(
+AssertionError: 'cache target sandbox-grade-automator-production.up.railway.app is a named deployed host' not found in ['cache target sandbox-grade-automator-production.up.railway.app:9 is not local']
+
+======================================================================
+FAIL: test_refuses_every_named_deployed_host_by_name (__main__.EndToEnd.test_refuses_every_named_deployed_host_by_name) (host='sandbox-grade-automator-production.up.railway.app', role='celery_broker')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 584, in test_refuses_every_named_deployed_host_by_name
+    self.assertIn(
+AssertionError: 'celery_broker target sandbox-grade-automator-production.up.railway.app is a named deployed host' not found in ['celery_broker target sandbox-grade-automator-production.up.railway.app:9 is not local']
+
+======================================================================
+FAIL: test_refuses_every_named_deployed_host_by_name (__main__.EndToEnd.test_refuses_every_named_deployed_host_by_name) (host='sandbox-grade-automator-production.up.railway.app', role='celery_result_backend')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 584, in test_refuses_every_named_deployed_host_by_name
+    self.assertIn(
+AssertionError: 'celery_result_backend target sandbox-grade-automator-production.up.railway.app is a named deployed host' not found in ['celery_result_backend target sandbox-grade-automator-production.up.railway.app:9 is not local']
+
+======================================================================
+FAIL: test_refuses_every_named_deployed_host_by_name (__main__.EndToEnd.test_refuses_every_named_deployed_host_by_name) (host='shinkansen.proxy.rlwy.net', role='database')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 584, in test_refuses_every_named_deployed_host_by_name
+    self.assertIn(
+AssertionError: 'database target shinkansen.proxy.rlwy.net is a named deployed host' not found in ['database target shinkansen.proxy.rlwy.net:9 is not local']
+
+======================================================================
+FAIL: test_refuses_every_named_deployed_host_by_name (__main__.EndToEnd.test_refuses_every_named_deployed_host_by_name) (host='shinkansen.proxy.rlwy.net', role='cache')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 584, in test_refuses_every_named_deployed_host_by_name
+    self.assertIn(
+AssertionError: 'cache target shinkansen.proxy.rlwy.net is a named deployed host' not found in ['cache target shinkansen.proxy.rlwy.net:9 is not local']
+
+======================================================================
+FAIL: test_refuses_every_named_deployed_host_by_name (__main__.EndToEnd.test_refuses_every_named_deployed_host_by_name) (host='shinkansen.proxy.rlwy.net', role='celery_broker')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 584, in test_refuses_every_named_deployed_host_by_name
+    self.assertIn(
+AssertionError: 'celery_broker target shinkansen.proxy.rlwy.net is a named deployed host' not found in ['celery_broker target shinkansen.proxy.rlwy.net:9 is not local']
+
+======================================================================
+FAIL: test_refuses_every_named_deployed_host_by_name (__main__.EndToEnd.test_refuses_every_named_deployed_host_by_name) (host='shinkansen.proxy.rlwy.net', role='celery_result_backend')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 584, in test_refuses_every_named_deployed_host_by_name
+    self.assertIn(
+AssertionError: 'celery_result_backend target shinkansen.proxy.rlwy.net is a named deployed host' not found in ['celery_result_backend target shinkansen.proxy.rlwy.net:9 is not local']
+
+======================================================================
+FAIL: test_refuses_every_named_deployed_host_by_name (__main__.EndToEnd.test_refuses_every_named_deployed_host_by_name) (host='thomas.proxy.rlwy.net', role='database')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 584, in test_refuses_every_named_deployed_host_by_name
+    self.assertIn(
+AssertionError: 'database target thomas.proxy.rlwy.net is a named deployed host' not found in ['database target thomas.proxy.rlwy.net:9 is not local']
+
+======================================================================
+FAIL: test_refuses_every_named_deployed_host_by_name (__main__.EndToEnd.test_refuses_every_named_deployed_host_by_name) (host='thomas.proxy.rlwy.net', role='cache')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 584, in test_refuses_every_named_deployed_host_by_name
+    self.assertIn(
+AssertionError: 'cache target thomas.proxy.rlwy.net is a named deployed host' not found in ['cache target thomas.proxy.rlwy.net:9 is not local']
+
+======================================================================
+FAIL: test_refuses_every_named_deployed_host_by_name (__main__.EndToEnd.test_refuses_every_named_deployed_host_by_name) (host='thomas.proxy.rlwy.net', role='celery_broker')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 584, in test_refuses_every_named_deployed_host_by_name
+    self.assertIn(
+AssertionError: 'celery_broker target thomas.proxy.rlwy.net is a named deployed host' not found in ['celery_broker target thomas.proxy.rlwy.net:9 is not local']
+
+======================================================================
+FAIL: test_refuses_every_named_deployed_host_by_name (__main__.EndToEnd.test_refuses_every_named_deployed_host_by_name) (host='thomas.proxy.rlwy.net', role='celery_result_backend')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 584, in test_refuses_every_named_deployed_host_by_name
+    self.assertIn(
+AssertionError: 'celery_result_backend target thomas.proxy.rlwy.net is a named deployed host' not found in ['celery_result_backend target thomas.proxy.rlwy.net:9 is not local']
+
+----------------------------------------------------------------------
+Ran 46 tests in 23.728s
+
+FAILED (failures=21)

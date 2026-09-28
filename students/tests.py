@@ -14,6 +14,7 @@ from students.models import StudentSubmission
 from students.services import (
     _maybe_notify_admins_grading_complete,
     get_grade_details,
+    get_letter_grade_from_gpa,
     upload_answers_engine,
 )
 from users.models import CustomUser, UserTypes
@@ -56,6 +57,73 @@ class GetGradeDetailsScaleTest(TestCase):
                 details = get_grade_details(pct)
                 self.assertEqual(details["letter_grade"], expected_letter)
                 self.assertEqual(details["gpa"], expected_gpa)
+
+
+class GetLetterGradeFromGPAScaleTest(TestCase):
+    """Locks get_letter_grade_from_gpa to the reverse of
+    GetGradeDetailsScaleTest's scale. A+ and A share 4.0 quality points in
+    get_grade_details, which a GPA value alone can't distinguish (A+ is a
+    percentage-only distinction, 97-100 vs 93-96) - a GPA of 4.0 reports
+    as "A"."""
+
+    def test_boundaries_match_approved_scale(self):
+        cases = [
+            (4.0, "A"),
+            (3.8, "A-"),
+            (3.7, "A-"),
+            (3.5, "B+"),
+            (3.3, "B+"),
+            (3.1, "B"),
+            (3.0, "B"),
+            (2.8, "B-"),
+            (2.7, "B-"),
+            (2.5, "C+"),
+            (2.3, "C+"),
+            (2.1, "C"),
+            (2.0, "C"),
+            (1.8, "C-"),
+            (1.7, "C-"),
+            (1.4, "D+"),
+            (1.3, "D+"),
+            (1.1, "D"),
+            (1.0, "D"),
+            (0.99, "F"),
+            (0.5, "F"),
+            (0.0, "F"),
+        ]
+        for gpa, expected_letter in cases:
+            with self.subTest(gpa=gpa):
+                self.assertEqual(
+                    get_letter_grade_from_gpa(gpa)["letter_grade"], expected_letter
+                )
+
+    def test_every_letter_grade_agrees_with_get_grade_details_gpa(self):
+        # For each bracket in get_grade_details, feeding its own quality-
+        # point value back through get_letter_grade_from_gpa must return a
+        # letter grade with the exact same GPA in get_grade_details - the
+        # property the overall-grade fix depends on: whatever GPA number
+        # is shown, the letter grade next to it must own that same number
+        # on the school's own scale.
+        percentages_and_letters = [
+            (96, "A"),
+            (92, "A-"),
+            (89, "B+"),
+            (86, "B"),
+            (82, "B-"),
+            (79, "C+"),
+            (76, "C"),
+            (72, "C-"),
+            (69, "D+"),
+            (66, "D"),
+            (60, "F"),
+        ]
+        for pct, expected_letter in percentages_and_letters:
+            with self.subTest(pct=pct):
+                forward = get_grade_details(pct)
+                reverse = get_letter_grade_from_gpa(forward["gpa"])
+                self.assertEqual(reverse["letter_grade"], expected_letter)
+                self.assertEqual(reverse["letter_grade"], forward["letter_grade"])
+                self.assertEqual(reverse["remark"], forward["remark"])
 
 
 class StudentSubmissionGradeUpdateTest(APITestCase):

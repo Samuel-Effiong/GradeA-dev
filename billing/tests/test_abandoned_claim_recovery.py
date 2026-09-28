@@ -40,10 +40,10 @@ import threading
 from datetime import timedelta
 from unittest.mock import patch
 
-from django.db import connections
 from django.test import TestCase, TransactionTestCase
 from django.utils import timezone
 
+from AutoGrader.testing.concurrency import run_concurrently
 from billing.models import StripeEvent, StripeEventStatus
 from billing.tasks import STRIPE_EVENT_MAX_RECOVERY_ATTEMPTS, sweep_stale_stripe_events
 from billing.webhooks import STRIPE_EVENT_CLAIM_STALE_AFTER
@@ -354,34 +354,27 @@ class ConcurrentRecoveryTests(TransactionTestCase):
 
     reset_sequences = True
 
+    # The dispatch patch is entered ONCE, on the main thread, around the
+    # race. It used to be entered inside each worker: patch() rebinds a
+    # module attribute and is not thread-safe, so the first worker out could
+    # restore the real .delay while the other was still sweeping.
+
     def test_two_sweepers_racing_recover_the_event_exactly_once(self):
         make_event()
 
         queued = []
         lock = threading.Lock()
-        barrier = threading.Barrier(2, timeout=30)
 
         def fake_delay(event_id, token):
             with lock:
                 queued.append((event_id, token))
 
-        def worker():
-            try:
-                barrier.wait(timeout=30)
-                with patch(
-                    "billing.tasks.process_stripe_event.delay",
-                    side_effect=fake_delay,
-                ):
-                    sweep_stale_stripe_events()
-            finally:
-                connections.close_all()
+        with patch("billing.tasks.process_stripe_event.delay", side_effect=fake_delay):
+            _, errors = run_concurrently(
+                lambda i: sweep_stale_stripe_events(), 2, test=self, name="sweeper"
+            )
 
-        threads = [threading.Thread(target=worker) for _ in range(2)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join(timeout=60)
-
+        self.assertEqual(errors, [], f"a sweeper raised: {errors!r}")
         self.assertEqual(
             len(queued),
             1,
@@ -395,21 +388,13 @@ class ConcurrentRecoveryTests(TransactionTestCase):
         winner just handed to a live worker.
         """
         event = make_event()
-        barrier = threading.Barrier(2, timeout=30)
 
-        def worker():
-            try:
-                barrier.wait(timeout=30)
-                with patch("billing.tasks.process_stripe_event.delay"):
-                    sweep_stale_stripe_events()
-            finally:
-                connections.close_all()
+        with patch("billing.tasks.process_stripe_event.delay"):
+            _, errors = run_concurrently(
+                lambda i: sweep_stale_stripe_events(), 2, test=self, name="sweeper"
+            )
 
-        threads = [threading.Thread(target=worker) for _ in range(2)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join(timeout=60)
+        self.assertEqual(errors, [], f"a sweeper raised: {errors!r}")
 
         event.refresh_from_db()
         self.assertEqual(

@@ -22,7 +22,7 @@ from drf_spectacular.utils import (
     extend_schema,
     extend_schema_view,
 )
-from rest_framework import filters, viewsets
+from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotAcceptable, ParseError
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -55,6 +55,7 @@ from AutoGrader.cache_generation import SCOPE_USER, versioned_key
 from AutoGrader.error_messages import describe_user_error, is_user_facing_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.uploads import validate_upload_size
+from billing.refusals import refusal_response
 from classrooms.models import EnrollmentStatusType
 from classrooms.permissions import IsStudent, IsTeacher
 from users.mixins import UserCacheMixin
@@ -75,7 +76,6 @@ from .models import (
     StudentSubmission,
 )
 from .serializers import (
-    StudentListSerializer,
     StudentSubmissionDetailSerializer,
     StudentSubmissionDetailStudentVersionSerializer,
     StudentSubmissionFormattedGradeAsyncSerializer,
@@ -119,9 +119,12 @@ def _submission_closed_response(exc):
 
 
 def _failure_response(exc, fallback_message):
-    """A refusal the user can act on is a 400 with its own text; anything
-    else is a 500 with the operation's fallback text (never the raw
-    exception)."""
+    """An AI refusal (plan or credits) is a 403/402 with a code; any other
+    refusal the user can act on is a 400 with its own text; anything else is
+    a 500 with the operation's fallback text (never the raw exception)."""
+    refused = refusal_response(exc)
+    if refused is not None:
+        return refused
     return Response(
         {"error": describe_user_error(exc, fallback_message=fallback_message)},
         status=(
@@ -1360,24 +1363,3 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             submission, context=self.get_serializer_context()
         )
         return Response(serializer.data, status=HTTP_200_OK)
-
-
-class StudentViewSet(viewsets.ReadOnlyModelViewSet):
-    serializer_class = StudentListSerializer
-    filter_backends = [
-        DjangoFilterBackend,
-        filters.SearchFilter,
-        filters.OrderingFilter,
-    ]
-
-    filterset_fields = {
-        "enrollments__course": ["exact"],
-        "enrollments__course__session": ["exact"],
-    }
-
-    search_fields = ["first_name", "last_name", "middle_name", "email"]
-
-    def get_queryset(self):
-        user = self.request.user
-
-        return CustomUser.objects.filter(enrollments__course__teacher=user).distinct()

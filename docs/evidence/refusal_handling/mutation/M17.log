@@ -1,0 +1,504 @@
+# M17: AIFeatureNotAvailableError is permanent
+# worktree /home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2 @ f7cd15e4aa1765ed6be9424fe93a4d1f0959f6f7
+# labels: billing.tests.test_refusal_handling
+# exit 1
+
+Found 18 test(s).
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+..Cannot activate automatic trial for user d11-teacher-7593d424@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user d11-teacher-0e824fd1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+API request refused: EmptyWalletError: Credit wallet is empty
+.Cannot activate automatic trial for user d1-text-feature-8844c329@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user d1-text-credits-a4dc6de1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user d1-feature-f83e3d5f@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cannot activate automatic trial for user d1-credits-617b3863@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Dashboard AI context section failed to load
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/dashboard/views.py", line 166, in dashboard_context_section
+    body = dashboard_context_json(build())
+                                  ^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/dashboard/views.py", line 2748, in <lambda>
+    lambda: self.students(request, *args, **kwargs).data,
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/dashboard/views.py", line 2415, in students
+    cache_key = versioned_key(
+                ^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/AutoGrader/cache_generation.py", line 299, in versioned_key
+    f"{scope}={get_generation(scope, entity_id)}" for scope, entity_id in scopes
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/AutoGrader/cache_generation.py", line 125, in get_generation
+    key = generation_key(scope, entity_id)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/AutoGrader/cache_generation.py", line 112, in generation_key
+    raise ValueError(f"scope {scope!r} requires an entity id")
+ValueError: scope 'sch' requires an entity id
+Custom AI prompt failed
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/dashboard/views.py", line 191, in run_dashboard_ai_chat
+    ai_feedback = ai_processor.custom_ai_prompt_retry(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 4682, in custom_ai_prompt_retry
+    return self.custom_ai_prompt(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 4644, in custom_ai_prompt
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 4428, in execute_graded_task
+    raise AIFeatureNotAvailableError(f"AI access denied: {reason}")
+billing.access_control.AIFeatureNotAvailableError: AI access denied: No active subscription
+
+
+django.request ERROR 2026-09-17 17:54:20,103 log 1916257 136184650615744 [request_id=-] Internal Server Error: /api/v1/school-admin/dashboard/custom-ai-prompt
+
+
+FCustom AI prompt failed
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/dashboard/views.py", line 191, in run_dashboard_ai_chat
+    ai_feedback = ai_processor.custom_ai_prompt_retry(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 4682, in custom_ai_prompt_retry
+    return self.custom_ai_prompt(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 4617, in custom_ai_prompt
+    raise AIFeatureNotAvailableError(
+billing.access_control.AIFeatureNotAvailableError: The AI analytics assistant is temporarily unavailable. Please try again later.
+
+
+django.request ERROR 2026-09-17 17:54:21,257 log 1916257 136184650615744 [request_id=-] Internal Server Error: /api/v1/super-admin/dashboard/custom-ai-prompt
+
+
+FCustom AI prompt failed
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/views.py", line 2454, in custom_ai_prompt
+    ai_feedback = ai_processor.custom_ai_prompt_retry(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 4682, in custom_ai_prompt_retry
+    return self.custom_ai_prompt(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 4617, in custom_ai_prompt
+    raise AIFeatureNotAvailableError(
+billing.access_control.AIFeatureNotAvailableError: The AI analytics assistant is temporarily unavailable. Please try again later.
+
+
+django.request ERROR 2026-09-17 17:54:21,335 log 1916257 136184650615744 [request_id=-] Internal Server Error: /api/v1/analytics/beta/custom-ai-prompt
+
+
+FCannot activate automatic trial for user d2-feature-779e3fa1@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Custom AI prompt failed
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/dashboard/views.py", line 191, in run_dashboard_ai_chat
+    ai_feedback = ai_processor.custom_ai_prompt_retry(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 4682, in custom_ai_prompt_retry
+    return self.custom_ai_prompt(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 4644, in custom_ai_prompt
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 4428, in execute_graded_task
+    raise AIFeatureNotAvailableError(f"AI access denied: {reason}")
+billing.access_control.AIFeatureNotAvailableError: AI access denied: No active subscription
+
+
+django.request ERROR 2026-09-17 17:54:22,407 log 1916257 136184650615744 [request_id=-] Internal Server Error: /api/v1/teacher-admin/dashboard/custom-ai-prompt
+
+
+FCannot activate automatic trial for user d2-credits-498c19a3@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Custom AI prompt refused: InsufficientCreditsError: Task requires ~22170 credits, but you only have 1000 credits. Please refill your wallet to continue
+Cannot activate automatic trial for user d4-create-feature-521a289a@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+ai_processor.services ERROR 2026-09-17 17:54:26,283 services 1916257 136184650615744 [request_id=685ed761287b45c0818c38a261cc2ac9] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
+    return func(*args, **kwds)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/assignments/views.py", line 401, in create
+    assignment = AssignmentProcessingService.update_assignment_from_extraction(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/assignments/services.py", line 870, in update_assignment_from_extraction
+    assignment_data = cls.extract_assignment_data(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/assignments/services.py", line 805, in extract_assignment_data
+    assignment_questions = ai_processor.extract_assignment_with_retry(
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 1289, in extract_assignment_with_retry
+    return self.extract_assignment_image(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 815, in extract_assignment_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 4428, in execute_graded_task
+    raise AIFeatureNotAvailableError(f"AI access denied: {reason}")
+billing.access_control.AIFeatureNotAvailableError: AI access denied: No active subscription
+
+
+django.request ERROR 2026-09-17 17:54:26,318 log 1916257 136184650615744 [request_id=-] Internal Server Error: /api/v1/assignments
+
+
+FCannot activate automatic trial for user d4-create-credits-9a54a31f@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+ai_processor.services ERROR 2026-09-17 17:54:29,298 services 1916257 136184650615744 [request_id=74f157116adb4514843e92afeac0e851] Error decoding JSON: Expecting value: line 1 column 1 (char 0)
+
+
+API request refused: InsufficientCreditsError: Task requires ~32234 credits, but you only have 1000 credits. Please refill your wallet to continue
+Cannot activate automatic trial for user d5-edit-feature-7761d87c@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking ERROR 2026-09-17 17:54:33,010 task_tracking 1916257 136184650615744 [request_id=-] Background task 521272c2-29c3-46a5-808c-d5a1a9161436 failed
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/assignments/tasks.py", line 390, in extract_answer_background_task
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 2129, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 1827, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 4404, in execute_graded_task
+    raise AIFeatureNotAvailableError(
+billing.access_control.AIFeatureNotAvailableError: AI access denied for this assignment's teacher: No active subscription
+FCannot activate automatic trial for user d5-edit-credits-2e30342a@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking WARNING 2026-09-17 17:54:35,911 refusals 1916257 136184650615744 [request_id=-] Background task 3b1e51ac-0377-497d-a448-dd26114234d8 refused: InsufficientCreditsError: Task requires ~26467 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+Cannot activate automatic trial for user d5-upload-feature-aa08ee4c@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking ERROR 2026-09-17 17:54:39,786 task_tracking 1916257 136184650615744 [request_id=-] Background task 03e055cc-f045-4821-a2be-2d9223faf124 failed
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/assignments/tasks.py", line 776, in upload_answers_engine_async
+    submission = upload_answers_engine(
+                 ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/students/services.py", line 844, in upload_answers_engine
+    student_submission = ai_processor.extract_answer_with_retry(
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 2129, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 1827, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 4404, in execute_graded_task
+    raise AIFeatureNotAvailableError(
+billing.access_control.AIFeatureNotAvailableError: AI access denied for this assignment's teacher: No active subscription
+FCannot activate automatic trial for user d5-upload-credits-3f4c4446@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.task_tracking WARNING 2026-09-17 17:54:44,850 refusals 1916257 136184650615744 [request_id=-] Background task 7e649773-3b90-49a8-9ae3-2385e5f9d52a refused: InsufficientCreditsError: Task requires ~27514 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+Cannot activate automatic trial for user d6-feature-e34f2321@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+ai_processor.services INFO 2026-09-17 17:54:48,748 services 1916257 136184650615744 [request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-17 17:54:48,764 services 1916257 136184650615744 [request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+students.task_tracking ERROR 2026-09-17 17:54:48,936 task_tracking 1916257 136184650615744 [request_id=-] Background task None failed
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/assignments/tasks.py", line 484, in grade_engine_async
+    submission = grade_engine(
+                 ^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/students/services.py", line 286, in grade_engine
+    return _run_grading_pipeline(user, submission, processing_task_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/students/services.py", line 466, in _run_grading_pipeline
+    grading = ai_processor.extract_grade_with_retry(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 4069, in extract_grade_with_retry
+    return self.grade_student_submission(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 3534, in grade_student_submission
+    result = self._grade_student_submission_impl(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 3812, in _grade_student_submission_impl
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 4428, in execute_graded_task
+    raise AIFeatureNotAvailableError(f"AI access denied: {reason}")
+billing.access_control.AIFeatureNotAvailableError: AI access denied: No active subscription
+Cannot activate automatic trial for user d6-credits-d82ee3dc@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+ai_processor.services INFO 2026-09-17 17:54:54,360 services 1916257 136184650615744 [request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-17 17:54:54,387 services 1916257 136184650615744 [request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+students.task_tracking WARNING 2026-09-17 17:54:54,681 refusals 1916257 136184650615744 [request_id=-] Background task None refused: InsufficientCreditsError: Task requires ~25521 credits, but you only have 1000 credits. Please refill your wallet to continue
+
+
+.Cannot activate automatic trial for user d7-course-d4ac76fe@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FFF.Cannot activate automatic trial for user d9-feature-82e9b828@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.views ERROR 2026-09-17 17:55:03,968 views 1916257 136184650615744 [request_id=4dbdc3956de64597a1bd8528f5fc112e] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 2129, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 1827, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 4404, in execute_graded_task
+    raise AIFeatureNotAvailableError(
+billing.access_control.AIFeatureNotAvailableError: AI access denied for this assignment's teacher: No active subscription
+Cannot activate automatic trial for user d9-credits-d25e77fa@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+students.views ERROR 2026-09-17 17:55:08,177 views 1916257 136184650615744 [request_id=e619d12b83af439fad6ec154e4cf6334] Failed to save submission update
+
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/students/views.py", line 663, in partial_update
+    submission = update_submission_from_raw_text(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/students/services.py", line 1142, in update_submission_from_raw_text
+    extracted = ai_processor.extract_answer_with_retry(
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 2129, in extract_answer_with_retry
+    result = self.extract_answer_image(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 1827, in extract_answer_image
+    response = self.execute_graded_task(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<string>", line 3, in execute_graded_task
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
+    return self._mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1143, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
+    result = effect(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/ai_processor/services.py", line 4506, in execute_graded_task
+    raise InsufficientCreditsError(
+billing.errors.InsufficientCreditsError: Task requires ~26467 credits, but you only have 1000 credits. Please refill your wallet to continue
+.
+======================================================================
+FAIL: test_school_admin_chat_refusal_is_403 (billing.tests.test_refusal_handling.D2D3AssistantChatRefusalTest.test_school_admin_chat_refusal_is_403)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 292, in test_school_admin_chat_refusal_is_403
+    self.assertCleanRefusalResponse(response, FORBIDDEN, FEATURE_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 500 != 403 : b'{"success":false,"message":"AI access denied: No active subscription","error":{"field_errors":{"error":"AI access denied: No active subscription"}}}'
+
+======================================================================
+FAIL: test_superadmin_assistants_refused_by_kill_switch_are_403 (billing.tests.test_refusal_handling.D2D3AssistantChatRefusalTest.test_superadmin_assistants_refused_by_kill_switch_are_403) [dashboard-custom-ai-prompt]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 307, in test_superadmin_assistants_refused_by_kill_switch_are_403
+    self.assertCleanRefusalResponse(response, FORBIDDEN, FEATURE_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 500 != 403 : b'{"success":false,"message":"The AI analytics assistant is temporarily unavailable. Please try again later.","error":{"field_errors":{"error":"The AI analytics assistant is temporarily unavailable. Please try again later."}}}'
+
+======================================================================
+FAIL: test_superadmin_assistants_refused_by_kill_switch_are_403 (billing.tests.test_refusal_handling.D2D3AssistantChatRefusalTest.test_superadmin_assistants_refused_by_kill_switch_are_403) [analytics-custom-ai-prompt]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 307, in test_superadmin_assistants_refused_by_kill_switch_are_403
+    self.assertCleanRefusalResponse(response, FORBIDDEN, FEATURE_CODE)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 500 != 403 : b'{"success":false,"message":"The AI analytics assistant is temporarily unavailable. Please try again later.","error":{"field_errors":{"error":"The AI analytics assistant is temporarily unavailable. Please try again later."}}}'
+
+======================================================================
+FAIL: test_teacher_chat_refusals_are_402_or_403_never_500 (billing.tests.test_refusal_handling.D2D3AssistantChatRefusalTest.test_teacher_chat_refusals_are_402_or_403_never_500) [feature]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 283, in test_teacher_chat_refusals_are_402_or_403_never_500
+    self.assertCleanRefusalResponse(response, *expected)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 500 != 403 : b'{"success":false,"message":"AI access denied: No active subscription","error":{"field_errors":{"error":"AI access denied: No active subscription"}}}'
+
+======================================================================
+FAIL: test_sync_assignment_create_refusal_is_402_or_403 (billing.tests.test_refusal_handling.D4UncaughtRefusalTest.test_sync_assignment_create_refusal_is_402_or_403) [feature]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 339, in test_sync_assignment_create_refusal_is_402_or_403
+    self.assertCleanRefusalResponse(response, *expected)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 198, in assertCleanRefusalResponse
+    self.assertEqual(response.status_code, expected_status, response.content)
+AssertionError: 500 != 403 : b'{"success":false,"message":"AI access denied: No active subscription","error":{}}'
+
+======================================================================
+FAIL: test_extract_answer_background_task_does_not_retry_a_refusal (billing.tests.test_refusal_handling.D5TaskRetryTest.test_extract_answer_background_task_does_not_retry_a_refusal) [feature]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 399, in test_extract_answer_background_task_does_not_retry_a_refusal
+    self.assertTerminalRefusal(tracked, outcome, gate, refusal)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 363, in assertTerminalRefusal
+    self.assertEqual(gate.call_count, 1, "a permanent refusal was retried")
+AssertionError: 4 != 1 : a permanent refusal was retried
+
+======================================================================
+FAIL: test_upload_answers_engine_async_does_not_retry_a_refusal (billing.tests.test_refusal_handling.D5TaskRetryTest.test_upload_answers_engine_async_does_not_retry_a_refusal) [feature]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 419, in test_upload_answers_engine_async_does_not_retry_a_refusal
+    self.assertTerminalRefusal(tracked, outcome, gate, refusal)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 363, in assertTerminalRefusal
+    self.assertEqual(gate.call_count, 1, "a permanent refusal was retried")
+AssertionError: 4 != 1 : a permanent refusal was retried
+
+======================================================================
+FAIL: test_course_summary_refusal_sends_email_counts_and_warns (billing.tests.test_refusal_handling.D7WeeklySummaryRefusalTest.test_course_summary_refusal_sends_email_counts_and_warns)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 495, in test_course_summary_refusal_sends_email_counts_and_warns
+    self.assertIn("AI narration refused for 1", result)
+AssertionError: 'AI narration refused for 1' not found in 'Queued 1 weekly course summary email(s). Processed 1 course(s), skipped 0. AI narration refused for 0 course(s).'
+
+======================================================================
+FAIL: test_school_admin_summary_refusal_sends_email_counts_and_warns (billing.tests.test_refusal_handling.D7WeeklySummaryRefusalTest.test_school_admin_summary_refusal_sends_email_counts_and_warns)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 510, in test_school_admin_summary_refusal_sends_email_counts_and_warns
+    self.assertIn("AI narration refused for 1", result)
+AssertionError: 'AI narration refused for 1' not found in 'Queued 1 weekly school admin summary email(s). Processed 1 admin(s), skipped 0. AI narration refused for 0 admin(s).'
+
+======================================================================
+FAIL: test_refusal_is_logged_at_warning_without_a_stack (billing.tests.test_refusal_handling.D8TaskFailureLoggingTest.test_refusal_is_logged_at_warning_without_a_stack) [AIFeatureNotAvailableError]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w2/billing/tests/test_refusal_handling.py", line 527, in test_refusal_is_logged_at_warning_without_a_stack
+    self.assertEqual(record.levelno, logging.WARNING)
+AssertionError: 40 != 30
+
+----------------------------------------------------------------------
+Ran 18 tests in 59.429s
+
+FAILED (failures=10)
+Preserving test database for alias 'default'...

@@ -1,0 +1,70 @@
+# M23: refusals log at WARNING
+# worktree /home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0 @ f7cd15e4aa1765ed6be9424fe93a4d1f0959f6f7
+# labels: billing.tests.test_refusal_handling.D8TaskFailureLoggingTest billing.tests.test_refusal_handling.D7WeeklySummaryRefusalTest
+# exit 1
+
+Found 4 test(s).
+Using existing test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+FF.Cannot activate automatic trial for user d7-course-249c8cf9@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FF
+======================================================================
+FAIL: test_refusal_is_logged_at_warning_without_a_stack (billing.tests.test_refusal_handling.D8TaskFailureLoggingTest.test_refusal_is_logged_at_warning_without_a_stack) [AIFeatureNotAvailableError]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 527, in test_refusal_is_logged_at_warning_without_a_stack
+    self.assertEqual(record.levelno, logging.WARNING)
+AssertionError: 40 != 30
+
+======================================================================
+FAIL: test_refusal_is_logged_at_warning_without_a_stack (billing.tests.test_refusal_handling.D8TaskFailureLoggingTest.test_refusal_is_logged_at_warning_without_a_stack) [InsufficientCreditsError]
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 527, in test_refusal_is_logged_at_warning_without_a_stack
+    self.assertEqual(record.levelno, logging.WARNING)
+AssertionError: 40 != 30
+
+======================================================================
+FAIL: test_course_summary_refusal_sends_email_counts_and_warns (billing.tests.test_refusal_handling.D7WeeklySummaryRefusalTest.test_course_summary_refusal_sends_email_counts_and_warns)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 496, in test_course_summary_refusal_sends_email_counts_and_warns
+    self.assertRefusalNotAnError(logs)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 478, in assertRefusalNotAnError
+    self.assertEqual(errors, [], [r.getMessage() for r in errors])
+AssertionError: Lists differ: [<LogRecord: dashboard.tasks, 40, /home/bo[103 chars]%s">] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+<LogRecord: dashboard.tasks, 40, /home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/refusals.py, 67, "%s refused: %s: %s">
+
+- [<LogRecord: dashboard.tasks, 40, /home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/refusals.py, 67, "%s refused: %s: %s">]
++ [] : ['Weekly course summary AI narration refused: AIFeatureNotAvailableError: AI access denied: No active subscription']
+
+======================================================================
+FAIL: test_school_admin_summary_refusal_sends_email_counts_and_warns (billing.tests.test_refusal_handling.D7WeeklySummaryRefusalTest.test_school_admin_summary_refusal_sends_email_counts_and_warns)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 511, in test_school_admin_summary_refusal_sends_email_counts_and_warns
+    self.assertRefusalNotAnError(logs)
+  File "/home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/tests/test_refusal_handling.py", line 478, in assertRefusalNotAnError
+    self.assertEqual(errors, [], [r.getMessage() for r in errors])
+AssertionError: Lists differ: [<LogRecord: dashboard.tasks, 40, /home/bo[103 chars]%s">] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+<LogRecord: dashboard.tasks, 40, /home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/refusals.py, 67, "%s refused: %s: %s">
+
+- [<LogRecord: dashboard.tasks, 40, /home/bond-servant-in-training/Documents/Projects/GAP-refusal-mut-w0/billing/refusals.py, 67, "%s refused: %s: %s">]
++ [] : ['Weekly school admin summary AI narration refused: AIFeatureNotAvailableError: AI access denied: No active subscription']
+
+----------------------------------------------------------------------
+Ran 4 tests in 4.882s
+
+FAILED (failures=4)
+Preserving test database for alias 'default'...

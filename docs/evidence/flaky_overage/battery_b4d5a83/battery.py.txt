@@ -1,0 +1,175 @@
+"""
+Parallel disposable mutation battery (board rules):
+  - K worker worktrees, detached at COMMIT, each with its own test DB;
+  - one mutant per run; fresh test DB (no --keepdb) so teardown leaks show;
+  - restore by copying the pristine blob from `git show COMMIT:path`,
+    verified by sha256 against the commit; never git checkout;
+  - after the last mutant, each worker reruns the unmutated class;
+  - worker worktrees are removed at the end.
+
+usage: python battery.py <repo> <commit> <K> <outdir>
+"""
+
+import hashlib
+import json
+import os
+import queue
+import re
+import subprocess
+import sys
+import threading
+import time
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from mutants import LABEL, MUTANTS  # noqa: E402
+
+REPO, COMMIT, K, OUT = sys.argv[1], sys.argv[2], int(sys.argv[3]), sys.argv[4]
+PARENT = os.path.dirname(REPO)
+ENV = "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus/.env"
+os.makedirs(OUT, exist_ok=True)
+lock = threading.Lock()
+
+
+def sh(args, cwd, **kw):
+    return subprocess.run(args, cwd=cwd, capture_output=True, text=True, **kw)
+
+
+def blob(path):
+    return sh(["git", "show", f"{COMMIT}:{path}"], REPO).stdout
+
+
+def sha(text):
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
+def record(entry):
+    with lock:
+        with open(os.path.join(OUT, "results.jsonl"), "a") as f:
+            f.write(json.dumps(entry) + "\n")
+        print(
+            json.dumps({k: entry[k] for k in entry if k != "failed_tests"}), flush=True
+        )
+
+
+def run_tests(wt, log_path, labels=None):
+    start = time.time()
+    with open(log_path, "w") as log:
+        log.write(
+            f"# worktree {wt}\n# HEAD {sh(['git', 'rev-parse', 'HEAD'], wt).stdout}"
+        )
+        log.flush()
+        try:
+            rc = subprocess.run(
+                [
+                    "python",
+                    "manage.py",
+                    "test",
+                    *(labels or [LABEL]),
+                    "--settings=settings_worktree",
+                    "--noinput",
+                    "-v",
+                    "2",
+                ],
+                cwd=wt,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                timeout=1800,
+            ).returncode
+        except subprocess.TimeoutExpired:
+            rc = "TIMEOUT"
+    text = open(log_path).read()
+    return dict(
+        exit=rc,
+        secs=round(time.time() - start),
+        ran=(re.findall(r"^Ran .*$", text, re.M) or ["?"])[-1],
+        result=(re.findall(r"^(OK.*|FAILED.*)$", text, re.M) or ["?"])[-1],
+        failed_tests=sorted(set(re.findall(r"^(?:FAIL|ERROR): (\S+)", text, re.M))),
+        other_sessions=len(re.findall(r"other session", text)),
+        log_sha256=hashlib.sha256(text.encode()).hexdigest(),
+    )
+
+
+def worker(k, q):
+    wt = os.path.join(PARENT, f"GAP-mut-w{k}-{COMMIT[:7]}")
+    sh(["git", "worktree", "add", "--detach", wt, COMMIT], REPO)
+    os.symlink(ENV, os.path.join(wt, ".env"))
+    with open(os.path.join(wt, "settings_worktree.py"), "w") as f:
+        f.write(
+            '"""Disposable mutation worker."""\n'
+            "from AutoGrader.settings import *  # noqa: F401,F403\n"
+            "from AutoGrader.settings import DATABASES\n\n"
+            'DATABASES["default"].setdefault("TEST", {})\n'
+            f'DATABASES["default"]["TEST"]["NAME"] = "test_flaky_mut_w{k}"\n'
+        )
+    while True:
+        try:
+            m = q.get_nowait()
+        except queue.Empty:
+            break
+        path = os.path.join(wt, m["path"])
+        pristine = blob(m["path"])
+        entry = dict(id=m["id"], worker=k, guard=m["guard"], expect=m["expect"])
+        entry["pre_sha_ok"] = sha(open(path).read()) == sha(pristine)
+        src = open(path).read()
+        count = src.count(m["old"])
+        entry["anchor_count"] = count
+        if count != 1 or not entry["pre_sha_ok"]:
+            entry["verdict"] = "NOT-APPLIED"
+            record(entry)
+            continue
+        with open(path, "w") as f:
+            f.write(src.replace(m["old"], m["new"]))
+        entry["diff"] = sh(["git", "diff", "--", m["path"]], wt).stdout
+        entry["labels"] = m.get("labels") or [LABEL]
+        entry.update(
+            run_tests(wt, os.path.join(OUT, f"{m['id']}.log"), m.get("labels"))
+        )
+        # restore from the commit blob, prove it by checksum
+        with open(path, "w") as f:
+            f.write(pristine)
+        entry["restored_sha256"] = sha(open(path).read())
+        entry["commit_sha256"] = sha(pristine)
+        entry["restore_ok"] = entry["restored_sha256"] == entry["commit_sha256"]
+        entry["tree_clean_after"] = (
+            sh(["git", "status", "--porcelain", "--untracked-files=no"], wt).stdout
+            == ""
+        )
+        entry["verdict"] = "KILLED" if entry["exit"] != 0 else "SURVIVED"
+        record(entry)
+    # restored tree must pass again
+    post = run_tests(wt, os.path.join(OUT, f"post_restore_w{k}.log"))
+    post.update(
+        id=f"POST-RESTORE-w{k}",
+        worker=k,
+        tree_clean=sh(
+            ["git", "status", "--porcelain", "--untracked-files=no"], wt
+        ).stdout
+        == "",
+        verdict="PASS" if post["exit"] == 0 else "FAIL",
+    )
+    record(post)
+    if post["verdict"] == "PASS" and post["tree_clean"]:
+        os.remove(os.path.join(wt, ".env"))
+        os.remove(os.path.join(wt, "settings_worktree.py"))
+        r = sh(["git", "worktree", "remove", wt], REPO)
+        record(dict(id=f"REMOVE-w{k}", worker=k, rc=r.returncode, err=r.stderr.strip()))
+    else:
+        record(
+            dict(
+                id=f"KEEP-w{k}",
+                worker=k,
+                reason="post-restore failed or dirty; kept for inspection",
+            )
+        )
+
+
+q = queue.Queue()
+for m in MUTANTS:
+    q.put(m)
+threads = [threading.Thread(target=worker, args=(k, q)) for k in range(1, K + 1)]
+for t in threads:
+    t.start()
+    time.sleep(2)  # stagger worktree creation (git index lock)
+for t in threads:
+    t.join()
+print("BATTERY COMPLETE", flush=True)

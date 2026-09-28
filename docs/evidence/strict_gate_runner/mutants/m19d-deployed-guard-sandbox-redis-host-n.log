@@ -1,0 +1,13 @@
+.........F....................................
+======================================================================
+FAIL: test_named_hosts_cover_beta_and_sandbox (__main__.EndToEnd.test_named_hosts_cover_beta_and_sandbox) (host='iriguchi.proxy.rlwy.net')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-strict-gate-runner/scripts/test_strict_gate.py", line 596, in test_named_hosts_cover_beta_and_sandbox
+    self.assertIn(host, gate.DEPLOYED_HOSTS)
+AssertionError: 'iriguchi.proxy.rlwy.net' not found in frozenset({'shinkansen.proxy.rlwy.net', 'thomas.proxy.rlwy.net', 'sandbox-grade-automator-production.up.railway.app'})
+
+----------------------------------------------------------------------
+Ran 46 tests in 22.289s
+
+FAILED (failures=1)

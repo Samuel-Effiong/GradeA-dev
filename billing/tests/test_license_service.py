@@ -5,6 +5,7 @@ Validates all core functionality and edge cases.
 """
 
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 from django.db import transaction
@@ -938,3 +939,178 @@ class TestAllocationInfo(TestCase):
 
         info = LicenseSubscriptionService.get_teacher_allocation_info(teacher)
         assert info is None
+
+
+@pytest.mark.django_db(transaction=True)
+class TestTeacherInvitePasswordGeneration(TransactionTestCase):
+    """A license-invited teacher used to get set_unusable_password() and no
+    way to ever complete registration. They now get a real generated
+    password, must_change_password=True, and that password emailed to them
+    - never logged."""
+
+    def setUp(self):
+        self.school = School.objects.create(name="Test School")
+        self.admin = CustomUser.objects.create_user(
+            email="admin@school.edu",
+            password="test123",  # pragma: allowlist secret
+            first_name="Admin",
+            last_name="User",
+            user_type=UserTypes.SCHOOL_ADMIN,
+            school=self.school,
+        )
+
+    @staticmethod
+    def _password_from_merge_data(mock_send_email):
+        import re
+
+        merge_data = mock_send_email.delay.call_args.kwargs["merge_data"]
+        match = re.search(r"temporary password: (\S+)", merge_data["top_content"])
+        assert match, f"no password found in top_content: {merge_data['top_content']!r}"
+        return match.group(1)
+
+    def test_new_teacher_gets_a_usable_generated_password(self):
+        with patch("billing.license_service.send_email_task") as mock_send_email:
+            teacher = LicenseSubscriptionService._get_or_invite_teacher(
+                "new_teacher@school.edu", self.school, self.admin
+            )
+
+        assert teacher.has_usable_password()
+        assert teacher.must_change_password is True
+
+        password = self._password_from_merge_data(mock_send_email)
+        teacher.refresh_from_db()
+        assert teacher.check_password(password)
+
+    def test_new_teacher_is_active_immediately_with_no_activation_token(self):
+        """A license-invited teacher logs straight in with the temporary
+        password, so there's no activation link/token for this path -
+        unlike self-registration/student/school-admin invites."""
+        with patch("billing.license_service.send_email_task"):
+            teacher = LicenseSubscriptionService._get_or_invite_teacher(
+                "active_teacher@school.edu", self.school, self.admin
+            )
+
+        assert teacher.is_active is True
+        assert not teacher.activation_token
+        assert teacher.activation_expires is None
+
+    def test_invitation_email_links_to_the_login_page(self):
+        """The teacher already has an active account, so the invitation
+        email points them at login (not a verify-email/activation link)."""
+        with patch("billing.license_service.send_email_task") as mock_send_email:
+            LicenseSubscriptionService._get_or_invite_teacher(
+                "linked_teacher@school.edu", self.school, self.admin
+            )
+
+        merge_data = mock_send_email.delay.call_args.kwargs["merge_data"]
+        activation_url = merge_data["activation_url"]
+        assert activation_url.endswith("/login")
+        assert "token=" not in activation_url
+        assert "verify-email" not in activation_url
+        assert "log in" in merge_data["top_content"].lower()
+
+    def test_generated_password_is_never_logged(self):
+        with self.assertLogs("billing.license_service", level="INFO") as captured:
+            with patch("billing.license_service.send_email_task") as mock_send_email:
+                LicenseSubscriptionService._get_or_invite_teacher(
+                    "quiet_teacher@school.edu", self.school, self.admin
+                )
+
+        password = self._password_from_merge_data(mock_send_email)
+        for record in captured.records:
+            assert password not in record.getMessage()
+
+    def test_resending_an_invitation_to_a_still_pending_teacher_issues_a_fresh_password(
+        self,
+    ):
+        """A resend can't reuse the first email's password (only its hash is
+        stored), so it must generate - and actually set - a new one each
+        time, not silently keep the account on the old hash. The resend
+        gate is must_change_password, not is_active - the teacher is
+        already active from creation."""
+        with patch("billing.license_service.send_email_task") as mock_send_email:
+            LicenseSubscriptionService._get_or_invite_teacher(
+                "resend_teacher@school.edu", self.school, self.admin
+            )
+        first_password = self._password_from_merge_data(mock_send_email)
+
+        teacher = CustomUser.objects.get(email="resend_teacher@school.edu")
+        assert teacher.is_active is True
+        assert teacher.must_change_password is True
+
+        with patch("billing.license_service.send_email_task") as mock_send_email:
+            teacher = LicenseSubscriptionService._get_or_invite_teacher(
+                "resend_teacher@school.edu", self.school, self.admin
+            )
+        second_password = self._password_from_merge_data(mock_send_email)
+
+        assert first_password != second_password
+        teacher.refresh_from_db()
+        assert not teacher.check_password(first_password)
+        assert teacher.check_password(second_password)
+        assert teacher.must_change_password is True
+
+    def test_re_adding_an_already_onboarded_teacher_does_not_reset_password_or_resend(
+        self,
+    ):
+        """Once a teacher has set their own password (must_change_password
+        is False), re-adding them under the same or another school must
+        not reset their password or send another invitation - only the
+        school-attach-if-needed behavior applies."""
+        with patch("billing.license_service.send_email_task"):
+            LicenseSubscriptionService._get_or_invite_teacher(
+                "onboarded_teacher@school.edu", self.school, self.admin
+            )
+        teacher = CustomUser.objects.get(email="onboarded_teacher@school.edu")
+        teacher.must_change_password = False
+        teacher.set_password("chosen-by-teacher")  # pragma: allowlist secret
+        teacher.save(update_fields=["must_change_password", "password"])
+
+        with patch("billing.license_service.send_email_task") as mock_send_email:
+            result = LicenseSubscriptionService._get_or_invite_teacher(
+                "onboarded_teacher@school.edu", self.school, self.admin
+            )
+
+        mock_send_email.delay.assert_not_called()
+        assert result == teacher
+        teacher.refresh_from_db()
+        assert teacher.must_change_password is False
+        assert teacher.check_password("chosen-by-teacher")
+
+    def test_re_adding_an_already_onboarded_teacher_still_attaches_missing_school(
+        self,
+    ):
+        """The school-attach-if-needed behavior is unconditional, even when
+        the must_change_password gate skips the password reset/resend."""
+        with patch("billing.license_service.send_email_task"):
+            LicenseSubscriptionService._get_or_invite_teacher(
+                "schoolless_teacher@school.edu", self.school, self.admin
+            )
+        teacher = CustomUser.objects.get(email="schoolless_teacher@school.edu")
+        teacher.must_change_password = False
+        teacher.school = None
+        teacher.save(update_fields=["must_change_password", "school"])
+
+        with patch("billing.license_service.send_email_task") as mock_send_email:
+            LicenseSubscriptionService._get_or_invite_teacher(
+                "schoolless_teacher@school.edu", self.school, self.admin
+            )
+
+        mock_send_email.delay.assert_not_called()
+        teacher.refresh_from_db()
+        assert teacher.school == self.school
+
+    def test_an_already_active_normal_signup_is_unaffected(self):
+        """The must_change_password path is exclusive to this invite flow -
+        a teacher who registered themselves normally never gets flagged."""
+        teacher = CustomUser.objects.create_user(
+            email="self_registered@school.edu",
+            password="test123",  # pragma: allowlist secret
+            first_name="Self",
+            last_name="Registered",
+            user_type=UserTypes.TEACHER,
+            school=self.school,
+            is_active=True,
+        )
+
+        assert teacher.must_change_password is False

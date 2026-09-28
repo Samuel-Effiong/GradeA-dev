@@ -132,7 +132,9 @@ class SuperAdminCustomAIPromptViewTest(APITestCase):
 
         response = self.client.post(self.url, {"prompt": "anything"})
 
-        self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # A refusal, not a server fault (REFUSAL_HANDLING_EVIDENCE.md D2; was 500).
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data["code"], "ai_feature_not_available")
         self.assertEqual(
             response.data["error"],
             "The AI analytics assistant is temporarily unavailable. "
@@ -256,7 +258,8 @@ class SchoolAdminCustomAIPromptViewTest(APITestCase):
     def test_kill_switch_applies_to_school_admin_too(self):
         self.client.force_authenticate(user=self.admin_a)
         response = self.client.post(self.url, {"prompt": "anything"})
-        self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # REFUSAL_HANDLING_EVIDENCE.md D2; was 500.
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_prompt_over_max_length_rejected(self):
         self.client.force_authenticate(user=self.admin_a)
@@ -321,7 +324,8 @@ class TeacherCustomAIPromptViewTest(APITestCase):
     def test_kill_switch_applies_to_teacher_too(self):
         self.client.force_authenticate(user=self.teacher_a)
         response = self.client.post(self.url, {"prompt": "anything"})
-        self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # REFUSAL_HANDLING_EVIDENCE.md D2; was 500.
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 
 @override_settings(CACHES=LOCMEM_CACHES)
