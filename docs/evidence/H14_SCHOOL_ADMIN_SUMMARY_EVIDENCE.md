@@ -223,3 +223,21 @@ rebuild. The pre-fix single query had no such window.
   with `KeyError: UUID(...)`: killed.
 - **Regression**: `dashboard` + the 4 cache-freshness modules, 316 tests OK
   (skipped=2).
+
+## 9. Full suite on the merged tip (Gate 10 input)
+
+Local beta `be78221` merged in (`8f6b7c8`, clean merge, merged rather than
+rebased so the verified commits keep their shas). Run in the slot granted by
+Integration & Release, under the machine lock:
+`nice -n 10 flock ~/.machine-fullsuite.lock python manage.py test --settings=settings_worktree --parallel 4 --noinput`
+(test DB `test_h14_school_admin_summary`). Log:
+`h14_school_admin_summary/04_full_suite_8f6b7c8.log.gz`.
+
+| Result | Value |
+|---|---|
+| Tests | 4692 |
+| Failures / errors | 0 / 0 |
+| Skipped | 28 |
+| Test time | 303.6 s |
+| Wall time | 453 s (includes lock wait) |
+| Exit | 0 |
