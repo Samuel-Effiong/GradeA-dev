@@ -1,22 +1,36 @@
--- H-38 production exposure. READ-ONLY. Run each statement inside
---   BEGIN READ ONLY; ... ROLLBACK;
--- Table and column names are the Django defaults; they were syntax-checked
--- against an empty schema, NOT run on production.
+-- H-38 production exposure. READ-ONLY by construction: the whole file runs
+-- inside one read-only transaction that is rolled back, so no statement can
+-- write even if edited by mistake. Output is ids, types, timestamps and
+-- counts only: no emails or names (founder rule for production output).
+-- Run with, e.g.:  psql "$DATABASE_URL" -f production_exposure.sql
+-- Table and column names are the Django defaults. The 2026-09-28 revision
+-- (read-only wrapper, email dropped, lapsed licences excluded) has NOT yet
+-- been syntax-checked against a schema; do that before the founder runs it.
 --
--- "Removed" = a license allocation that is inactive and the teacher has no
--- active allocation on that same license. remove_teachers is one cause;
--- license cancellation and expiry also leave inactive allocations, and those
--- teachers can hold the same stale access, so they are included on purpose.
+-- "Removed" = the teacher's allocation on a licence is inactive, they have
+-- no active allocation on that licence, AND THE LICENCE ITSELF IS STILL
+-- ACTIVE. Before the fix, remove_teachers left user.school set, so in stored
+-- data a removed teacher looks exactly like a teacher whose licence lapsed.
+-- The licence's own state is what separates them:
+--   * licence active, this allocation inactive  -> removed (in scope);
+--   * licence cancelled or expired              -> the teacher is still a
+--     school member, and reaching their own school's courses is INTENDED
+--     behaviour (SM/product ruling 2026-09-28), so it is excluded.
+-- Known under-count: a teacher removed while the licence was active, whose
+-- licence later lapsed, is excluded too. Stored data cannot tell that case
+-- apart from an ordinary lapse.
 -- allocation.updated_at is the LAST change to the row, so it is the removal
 -- time only if nothing touched the row afterwards.
 
+BEGIN TRANSACTION READ ONLY;
+
 -- Q1: removed teachers who still own courses in the school's sessions.
-SELECT a.user_id, u.email, ls.school_id,
+SELECT a.user_id, ls.school_id,
        MAX(a.updated_at)      AS removed_at_approx,
        COUNT(DISTINCT c.id)   AS school_courses_still_owned
 FROM billing_schoolcreditallocation a
 JOIN billing_licensesubscription ls ON ls.id = a.license_subscription_id
-JOIN users_customuser u             ON u.id = a.user_id
+                                   AND ls.is_active
 JOIN classrooms_course c            ON c.teacher_id = a.user_id
 JOIN classrooms_session s           ON s.id = c.session_id
                                    AND s.owner_type = 'SCHOOL'
@@ -26,7 +40,7 @@ WHERE a.is_active = FALSE
                   WHERE a2.user_id = a.user_id
                     AND a2.license_subscription_id = a.license_subscription_id
                     AND a2.is_active)
-GROUP BY a.user_id, u.email, ls.school_id
+GROUP BY a.user_id, ls.school_id
 ORDER BY removed_at_approx;
 
 -- Q2: rows in those courses that changed AFTER the removal time.
@@ -35,6 +49,7 @@ WITH removed AS (
   SELECT a.user_id, ls.school_id, MAX(a.updated_at) AS removed_at
   FROM billing_schoolcreditallocation a
   JOIN billing_licensesubscription ls ON ls.id = a.license_subscription_id
+                                     AND ls.is_active
   WHERE a.is_active = FALSE
     AND NOT EXISTS (SELECT 1 FROM billing_schoolcreditallocation a2
                     WHERE a2.user_id = a.user_id
@@ -73,18 +88,23 @@ SELECT 'enrollment_created', t.user_id, COUNT(*)
   WHERE x.created_at > t.removed_at GROUP BY t.user_id;
 
 -- Q3: reverse leak. Students stamped with a school whose only link to it is
--- a teacher who is no longer on that school's license.
+-- a teacher who is no longer on that school's licence. Schools with no active
+-- licence are excluded for the same reason as above (a lapse is intended).
 SELECT st.id AS student_id, st.school_id
 FROM users_customuser st
 JOIN classrooms_studentcourse sc ON sc.student_id = st.id
 JOIN classrooms_course c         ON c.id = sc.course_id
 WHERE st.user_type = 'STUDENT' AND st.school_id IS NOT NULL
+  AND EXISTS (SELECT 1 FROM billing_licensesubscription ls0
+              WHERE ls0.school_id = st.school_id AND ls0.is_active)
 GROUP BY st.id, st.school_id
 HAVING BOOL_AND(NOT EXISTS (
   SELECT 1 FROM billing_schoolcreditallocation a
   JOIN billing_licensesubscription ls ON ls.id = a.license_subscription_id
   WHERE a.user_id = c.teacher_id AND a.is_active
     AND ls.school_id = st.school_id));
+
+ROLLBACK;
 
 -- NOT DERIVABLE from stored data:
 --  * hard deletes (assignments, submissions, topics, enrollments): the rows
