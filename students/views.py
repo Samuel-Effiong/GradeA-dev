@@ -56,7 +56,7 @@ from AutoGrader.error_messages import describe_user_error, is_user_facing_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.uploads import validate_upload_size
 from billing.refusals import refusal_response
-from classrooms.models import EnrollmentStatusType
+from classrooms.models import EnrollmentStatusType, teacher_course_access_q
 from classrooms.permissions import IsStudent, IsTeacher
 from users.mixins import UserCacheMixin
 from users.models import CustomUser, UserTypes
@@ -155,7 +155,10 @@ def _assignment_open_to_student(assignment_id, student):
 
 def _assignment_taught_by(assignment_id, teacher):
     """The assignment a teacher may act on: one on a course they teach."""
-    return get_object_or_404(Assignment, id=assignment_id, course__teacher=teacher)
+    return get_object_or_404(
+        Assignment.objects.filter(teacher_course_access_q(teacher, prefix="course__")),
+        id=assignment_id,
+    )
 
 
 @extend_schema_view(
@@ -355,7 +358,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
         elif user.user_type == UserTypes.TEACHER:
             queryset = StudentSubmission.objects.filter(
-                assignment__course__teacher=user
+                teacher_course_access_q(user, prefix="assignment__course__")
             )
         else:
             return StudentSubmission.objects.none()

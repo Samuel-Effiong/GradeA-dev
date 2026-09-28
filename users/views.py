@@ -63,7 +63,11 @@ from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.tasks import send_email_task
 from billing.services import AnalyticsService
-from classrooms.models import EnrollmentStatusType, StudentCourse
+from classrooms.models import (
+    EnrollmentStatusType,
+    StudentCourse,
+    teacher_course_access_q,
+)
 from classrooms.permissions import IsSuperAdmin
 from classrooms.serializers import (
     SchoolAdminRegistrationCompletionSerializer,
@@ -294,7 +298,8 @@ class CustomUserViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         if user.user_type == UserTypes.TEACHER:
             return queryset.filter(
-                Q(pk=user.pk) | Q(enrollments__course__teacher=user)
+                Q(pk=user.pk)
+                | teacher_course_access_q(user, prefix="enrollments__course__")
             ).distinct()
 
         return queryset.filter(pk=user.pk)

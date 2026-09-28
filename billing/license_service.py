@@ -1644,9 +1644,10 @@ class LicenseSubscriptionService:
         Removes a teacher from a License subscription.
 
         1. Marks the SchoolCreditAllocation as inactive.
-        2. Expires all active credit buckets (MONTHLY, CARRY_OVER, OVERAGE, etc.)
+        2. Clears `teacher.school` so the teacher is individual-track again.
+        3. Expires all active credit buckets (MONTHLY, CARRY_OVER, OVERAGE, etc.)
            so the teacher cannot use them.
-        3. Logs the operation.
+        4. Logs the operation.
 
         The teacher's wallet and historical buckets remain for audit purposes.
         If the teacher later re‑enrolls (via license or individual subscription),
@@ -1673,6 +1674,18 @@ class LicenseSubscriptionService:
         # 1. Deactivate allocation
         allocation.is_active = False
         allocation.save(update_fields=["is_active", "updated_at"])
+
+        # 2. Clear the school link `add_teachers` set (H-38). Left in place,
+        # this stale `school_id` is what let the teacher keep reading and
+        # writing the school's courses (CourseViewSet.get_queryset scopes a
+        # SCHOOL-session course by the teacher's CURRENT school) and what a
+        # newly-enrolled private student inherited
+        # (`_create_pending_student` reads `course.teacher.school`). Guarded
+        # by equality so a teacher already re-pointed at a different school
+        # by the time this runs is never clobbered.
+        if teacher.school_id == license_sub.school_id:
+            teacher.school = None
+            teacher.save(update_fields=["school"])
 
         from users.tasks import sync_user_to_mailerlite
 

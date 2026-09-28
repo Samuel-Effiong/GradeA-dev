@@ -11,7 +11,7 @@ from ai_processor.services import ai_processor
 from AutoGrader.error_messages import describe_background_task_error
 from AutoGrader.tasks import send_email_task
 from billing.refusals import PERMANENT_AI_REFUSALS
-from classrooms.models import Course, EnrollmentStatusType, Topic
+from classrooms.models import EnrollmentStatusType, Topic, reachable_courses
 from students.exceptions import (
     AssignmentNotOpenError,
     CannotAssociateStudentError,
@@ -943,7 +943,7 @@ def upload_assignment_async(
         )
 
         user = CustomUser.objects.get(id=user_id)
-        course = Course.objects.get(id=course_id, teacher=user)
+        course = reachable_courses(user).get(id=course_id)
         topic = Topic.objects.get(id=topic_id) if topic_id else None
 
         update_processing_task(
