@@ -93,6 +93,22 @@ ALLOWED = {
         "dashboard/views.py",
         "course__teacher=teacher,",
     ): "same INDIVIDUAL-session lookup as above",
+    # classrooms/scale_my_students.py is the H-22 Gate 6 measurement harness:
+    # a TransactionTestCase run only by name (`manage.py test
+    # classrooms.scale_my_students`), never collected by discovery, never
+    # imported by application code, and not reachable from any URL. Its
+    # measured teacher is an ACTIVE school teacher, for whom owner scoping and
+    # the H-38 rule select the same rows.
+    (
+        "classrooms/scale_my_students.py",
+        "course__teacher=self.measured_teacher",
+    ): "scale-harness fixture seeding (recalculates final_grade on the measured "
+    "teacher's enrollments); not an access decision, not reachable from a route",
+    (
+        "classrooms/scale_my_students.py",
+        "User.objects.filter(enrollments__course__teacher=self.measured_teacher)",
+    ): "scale-harness expected-roster count, reported next to the measurement; "
+    "not an access decision, not reachable from a route",
 }
 
 

@@ -2048,7 +2048,9 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 # for every row. Unprefetched that was ~140 queries PER
                 # STUDENT (425 for a 3-row page, measured).
                 #
-                # Both prefetches are scoped to THIS teacher's courses. A
+                # Both prefetches are scoped to THIS teacher's REACHABLE
+                # courses (the H-38 rule, as `active_enrollment` above; a
+                # course in a school they were removed from is out). A
                 # student is routinely enrolled with several unrelated
                 # teachers, and the serializer reports whatever the cache
                 # holds: unscoped, `enrolled_courses` listed other teachers'
@@ -2060,14 +2062,16 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 ).prefetch_related(
                     Prefetch(
                         "enrollments",
-                        queryset=StudentCourse.objects.filter(course__teacher=user)
+                        queryset=StudentCourse.objects.filter(
+                            teacher_course_access_q(user, prefix="course__")
+                        )
                         .select_related("course", "course__teacher")
                         .prefetch_related("course__assignments"),
                     ),
                     Prefetch(
                         "submissions",
                         queryset=StudentSubmission.objects.filter(
-                            assignment__course__teacher=user
+                            teacher_course_access_q(user, prefix="assignment__course__")
                         ).select_related("assignment"),
                     ),
                 )
