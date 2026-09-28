@@ -35,3 +35,20 @@ not yet on beta.
 
 No H-38 test failed. None of the known flakes (H-41 redelivery, H-44
 pdf_renderer, H-45 redis_hygiene) fired in this run.
+
+## Final full-suite run on the merged tip `acf5f1b` (2026-09-29)
+
+`acf5f1b` = the verified H-38 code (roster fix, funded probes, mypy-stubs
+merge) with local beta `197aa46` (H-47 on top of `be78221`) merged in, clean.
+Same command, under the machine lock. Log: `06_full_suite_acf5f1b.log.gz`.
+
+| Result | Value |
+|---|---|
+| Tests | 4791 |
+| Failures / errors | 0 / 0 |
+| Skipped | 28 |
+| Test time | 773.2 s (machine under shared load; the earlier run was 349 s) |
+| Exit | 0 |
+
+The environmental `EXEMPT_EMAIL_DOMAINS` failure from the first run is gone:
+beta now carries h39's hermetic fix for that test.
