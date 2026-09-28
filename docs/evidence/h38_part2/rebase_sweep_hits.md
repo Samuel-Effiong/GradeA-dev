@@ -167,3 +167,64 @@ Combined with M6 to M8 above, the result is 8 of 8 killed.
 | H-22 and H-18: `classrooms.tests_my_students_course_scope users.tests_user_enrollment_filter_oracle classrooms.tests_my_students_concurrency classrooms.tests_query_budget classrooms.tests_security_penetration assignments.tests_course_ownership_idor assignments.tests_security` | **203 tests, OK** |
 | Dashboard and refusal modules from `custom_ai_prompt_500_triage.md` | **117 tests, OK** (2 skipped, the opt-in real-AI tests) |
 | Other modules that touch these sites: `assignments.tests_course_ownership_scale assignments.tests_course_ownership_concurrency assignments.tests_course_ownership_failure classrooms.tests_fail_closed_ownership_validators classrooms.tests_tenancy_and_roster` | **44 tests, OK** (1 skipped) |
+
+## Verification follow-ups (2026-09-28): the last three credit-gated probes, and roster import
+
+Raised by the Verification Engineer (part A note 1) and the Security Engineer's
+core review (notes 1 and 4). The SM ruled both in scope for this landing.
+
+### The last three removed-teacher probes now reach the H-38 guard
+
+These accepted `(402, 403, 404)` and did not fund the teacher, so billing could
+refuse before the guard ran. Each now funds the removed teacher with
+`fund_wallet()`, asserts the guard's exact code plus `< 500`, asserts nothing was
+written, and has an active-teacher positive control in the new class
+`ActiveTeacherCourseGuardRouteTests`.
+
+| Test | Guard | Asserts | Positive control | Mutant (sweep excluded) |
+|---|---|---|---|---|
+| `test_upload_assignment` (now sends a real PNG; provider stubbed) | A2a | 404, <500, no Assignment, model not called | `test_upload_assignment_succeeds_for_active_teacher` → 201 | killed: 400 ≠ 404 |
+| `test_generate_assignment_from_prompt` | A2c | 404, <500, no generation session or message, model not called | `test_generate_assignment_from_prompt_succeeds_for_active_teacher` → 201 | killed: 403 ≠ 404 |
+| `test_batch_upload_answers_to_the_school_assignment` (was `test_submission_upload_to_the_school_assignment`) | S1 | 404, <500, no BatchUploadSession or task, launch not called | `test_batch_upload_answers_succeeds_for_active_teacher` → 202 | killed: 202 ≠ 404 (the reverted guard queued the upload) |
+
+**`batch-upload` now has a dynamic probe.** The old S1 probe posted to
+`submissions/{id}/upload` (`upload_answers`, IsStudent-only), which never calls
+`_assignment_taught_by`; it is now aimed at `submissions/{id}/batch-upload`, the
+guard's only caller.
+
+Two findings from this: upload and generate carry no `HasCreditBalance`, so on
+those two routes the guard was already reached and only the loose assertion
+hid it; and the generate positive control needs `AI_PROMPT_ASSIGNMENT_CREATION`
+on the plan, because generation is a gated premium feature.
+
+### Roster import: a real removed-teacher leak, fixed in this landing
+
+The sweep allowed `classrooms/services/roster_import.py`
+`_find_existing_student_by_name`, which matched a no-email roster row against
+students in any course where `enrollments__course__teacher=course.teacher`. That
+includes SCHOOL courses the teacher has since been removed from, and
+`_import_row_without_email` enrols the match with no cross-school gate of its own.
+
+- **Reproduced first**, before any code change: a teacher removed from School A
+  imports a no-email "Ada,Lovelace" row. School A's Ada was attached both to the
+  teacher's own individual course and to a School B course.
+- **Fix** (the one production line changed): the lookup uses
+  `teacher_course_access_q(course.teacher, prefix="enrollments__course__")` in
+  the same single `filter()` call, so the access rule and the name match bind
+  to one enrollment row. The sweep's allowlist entry is removed, so the sweep
+  now polices this line.
+- **Tests**: `RemovedTeacherRosterNameMatchTests` (import into an individual
+  course, and into a School B course: each creates a new student and does not
+  attach School A's) and the positive control
+  `ActiveTeacherRosterNameMatchTests` (an active teacher's import into a second
+  School A course still attaches the existing student).
+- **Mutant** (sweep excluded; restored from a saved copy, sha256 verified):
+  reverting to `enrollments__course__teacher=course.teacher` fails both
+  removed-teacher probes (`True is not false`: the School A student was
+  attached); the positive control still passes. Killed.
+
+### Regression (one invocation, `nice -n 10`)
+
+`billing.tests.test_h38_part2_removed_teacher_routes billing.tests.test_h38_teacher_removal classrooms.tests_teacher_access_sweep classrooms.tests_tenancy_and_roster classrooms.tests_cross_school_enrollment classrooms.tests_concurrency_and_resilience`:
+**173 tests, OK.** After black's reformat of the test file, the route module
+alone: 64 OK. All pre-commit hooks pass on the three changed files.
