@@ -21,3 +21,9 @@ Branch `task/authz-token-epoch` @ cdbbe01, off beta 4b902fc.
 Fix is correct and matches its own design doc except the one narrow, harmless discrepancy above. Gates 1/2/4/9 as recorded stand; my own re-run of the targeted test module confirms Gate 1 for that module. Recommend: land as-is, fix the doc line (or the Google branch ordering) as a follow-up, no re-verification needed for that follow-up unless the fix changes bump semantics elsewhere.
 
 Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-28.
+
+## Typing fix for the django-stubs mypy check (d8b84e5): VERIFIED
+- Diff: users/authentication.py only. `cast("CustomUser", user).token_epoch`, with CustomUser imported under `TYPE_CHECKING` only. At runtime `cast()` returns its argument unchanged and the import never executes, so behaviour and the epoch comparison are identical and there's no import cycle.
+- Reproduced both ways in throwaway checkouts merged with mypy-django-stubs @9532373. On 0a2a5c3, `mypy users/authentication.py` (hook args) gives exactly `users/authentication.py:51: error: "AbstractBaseUser" has no attribute "token_epoch" [attr-defined]`, 1 error. On d8b84e5, the whole-repo `pre-commit run mypy --all-files` Passed.
+- `users.tests_token_revocation` on d8b84e5: 22/22 OK.
+Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-28.
