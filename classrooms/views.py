@@ -34,6 +34,7 @@ from rest_framework.exceptions import (
     NotFound,
     ParseError,
     PermissionDenied,
+    Throttled,
     ValidationError,
 )
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -56,7 +57,13 @@ from users.mixins import UserCacheMixin
 from users.models import CustomUser, UserTypes
 from users.permissions import HasCreditBalance
 from users.serializers import CustomUserSerializer
-from users.throttling import RegisterThrottle
+from users.throttling import (
+    RegisterThrottle,
+    log_register_student_refused_by_budget,
+    record_register_student_failure,
+    register_student_budget_retry_after,
+    register_student_failure_budget_spent,
+)
 
 from . import services
 from .filters import MyStudentsFilter
@@ -1528,12 +1535,26 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
     )
     def handle_expired_token(self, request, token=None, *args, **kwargs):
         """Reissue an expired student activation link."""
+        # H-47: this door tests the same codes as /auth/register/student, so
+        # it spends the same global failure budget. Outside the try below:
+        # its catch-all would turn Throttled into a 500.
+        if register_student_failure_budget_spent():
+            log_register_student_refused_by_budget(door="renew")
+            raise Throttled(
+                wait=register_student_budget_retry_after(),
+                detail=(
+                    "Activation-link renewal is paused for a short while "
+                    "because of too many invalid activation codes. Please "
+                    "try again later."
+                ),
+            )
         serializer = ExpiredTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         try:
             services.renew_student_activation(token=serializer.validated_data["token"])
         except services.EnrollmentError as exc:
+            record_register_student_failure("renew_refused")
             raise ParseError(str(exc)) from exc
         except Exception as exc:
             logger.error("Failed to renew activation token", exc_info=exc)
