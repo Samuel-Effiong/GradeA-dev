@@ -21,3 +21,16 @@ The rewrite splits one query (enrollment+student joined) into two phases: scan e
 Equivalence is real and independently confirmed field-by-field, not just via the test suite. The 3 survived mutants are genuinely pre-existing, characterized gaps, verified by my own arithmetic against the fixture, not taken at face value. One new narrow finding (mid-rebuild deletion race) flagged above, non-blocking.
 
 Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-28.
+
+## Re-check of the deletion-race fix (42b64fa): VERIFIED
+
+Scope, as agreed: the fix hunk and its test only.
+- `dashboard/services.py`: `students_by_id.get(student_id)` plus `continue` on None. This is the minimal fix, and behaviour is unchanged whenever the student row still exists.
+- `test_a_student_deleted_between_the_scan_and_the_name_lookup_is_skipped` puts the race exactly where it bites. It hard-deletes an at-risk student inside the patched `QuerySet.in_bulk`, just before the name lookup. It's non-vacuous: it asserts the deletion actually happened (`deleted == [victim_id]`) and that the output equals the pre-deletion baseline minus the victim, in the same order.
+- Re-ran myself: `dashboard.tests_h14_at_risk_equivalence` passes 5/5.
+- My own mutant: restoring the plain `students_by_id[student_id]` index makes the new test ERROR with `KeyError: UUID(...)`, and only that test. Restored and sha-verified against 42b64fa; the worktree is clean.
+- I didn't re-run the 316-test regression. The change is a 3-line guard that's only reachable when a key is missing, and the 4 existing equivalence tests still pass. I accepted the author's 316 OK (skipped=2).
+
+Verdict: VERIFIED. The e/f/g survived mutants are still documented, pre-existing boundary-coverage gaps in the risk evaluator, not in this fix. They're recorded above and aren't a blocker.
+
+Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-28.
