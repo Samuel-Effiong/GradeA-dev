@@ -51,3 +51,9 @@ Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-28.
 - The harness log is 9/9, and E3 is now the real mutant.
 Verdict: VERIFIED. Combined with part 1 (aa0de82, VERIFIED earlier), AUTHZ-PATCHPW is VERIFIED at af986b5; only the full suite remains. Remember that this branch predates H-39, so the full run needs EXEMPT_EMAIL_DOMAINS unset or a merge of beta first.
 Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-28.
+
+## Epoch-aware test tokens (8a0c602 merge + ea9ef13): VERIFIED
+- The test helper `client_for` now mints `users.tokens.EpochRefreshToken`, which stamps the DB epoch at mint time, instead of a plain simplejwt `RefreshToken`, which carries no claim and reads as epoch 0. That's why a test that bumped the epoch (via `set_unusable_password()`) and then minted a plain token got 401 in the batch.
+- Throwaway checkout of ea9ef13: `tests_patch_password` + `tests_patch_email` 26/26. Restoring the old helper reproduces the batch failure exactly (`test_an_account_without_a_usable_password_is_refused_the_same_way`: `401 != 400`, "Token has been revoked").
+- Production check: the only plain `RefreshToken(` outside tests and docs is users/views.py:1076, the logout parse, which parses rather than mints. The 5 `for_user` sites and the login/refresh token classes are EpochRefreshToken. That matches your grep and 0b's.
+Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-29.
