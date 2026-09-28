@@ -36,6 +36,7 @@ Real login → real JWT auth. Sanity passes; three exploits fail: the same acces
 | 4 Adversarial | stolen access token dead the instant logout / change / reset happens; stolen refresh dead; token with epoch above or below current rejected; claim edited without the key rejected; failed logout (bad refresh) revokes nothing |
 | 9 Isolation | user B's tokens and epoch untouched by user A's logout; other devices behave as stated above |
 | Checks the Security Lead asked for | missing claim == epoch 0 (test + mutant M4); hasher-upgrade does not bump (test + mutant M8); mint-after-save |
+| 10 Full-repository | 2026-09-28 on `8c77e87`, `--parallel 4` under the machine full-suite lock (slot from the Integration & Release Engineer): **4,691 tests in 370.8 s (622 s wall), 1 failure, 28 skipped**. The failure is the known environmental `tests_email_domain_rules…test_nothing_is_exempt_by_default` (local `.env` sets `EXEMPT_EMAIL_DOMAINS`); isolated rerun with `EXEMPT_EMAIL_DOMAINS=` unset: 2/2 OK. No other failures. |
 Tests: `users/tests_token_revocation.py` (22 tests).
 
 ## RESUME (shutdown checkpoint)
