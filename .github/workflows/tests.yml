@@ -158,3 +158,12 @@ jobs:
         # writing assertion-free tests that raise the number without
         # catching anything.
         run: coverage report -m
+
+      - name: Type check (mypy)
+        # The pre-commit mypy hook, run here rather than in pre-commit.yml
+        # because it needs this job's installed requirements and settings
+        # env (see the SKIP there). Running the hook itself keeps one
+        # definition of mypy's args. !cancelled() keeps it independent of
+        # the test result, as it was when it lived in the other workflow.
+        if: ${{ !cancelled() }}
+        run: pre-commit run mypy --all-files
