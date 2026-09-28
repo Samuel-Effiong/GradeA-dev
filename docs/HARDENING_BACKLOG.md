@@ -1524,6 +1524,41 @@ still fail it.
 
 ---
 
+# H-48 — thin-webhook signature tests made live Stripe calls and passed on a 500 — FIXED
+
+**Found 2026-09-28** by the H-39 network guard on its first real CI run
+(beta `be78221`, Tests run 36444904862): two blocked connections to
+`api.stripe.com:443`, suite still green.
+
+`ThinWebhookRealSignatureTests` inherited
+`test_a_rolled_secret_still_verifies_while_both_are_live` and
+`test_a_signature_just_inside_the_tolerance_is_accepted` without patching
+`stripe.Event.retrieve`. The thin view verifies, then fetches the event from
+Stripe; unmocked, that is a real network call. With the guard it fails and
+the view returns 500; before the guard, CI called Stripe for real. Both
+tests asserted only `!= 400`, so a 500 passed.
+
+**Fix**: `retrieve` patched for the whole thin class in `setUp`; every
+accepted-path assertion (fat and thin) is now `== 200`.
+Evidence: `docs/evidence/h48_thin_webhook_mock/EVIDENCE.md`.
+
+---
+
+# H-49 — validation 400s log a full traceback at ERROR — LOW
+
+**Found 2026-09-28** in the same CI run: `classrooms/views.py`
+`_validate_uuid_query_param` (via `monthly_token_usage`) turns a bad
+`school_id` into a `ValidationError` 400, and the request is logged as
+"API Exception" with the full `badly formed hexadecimal UUID string`
+traceback at ERROR. GitHub Actions surfaces those as error annotations on a
+green run, and in production they would page as errors for ordinary client
+mistakes.
+
+**Scope**: client-error (4xx) responses should log at WARNING/INFO without a
+traceback; genuine 5xx keep ERROR. Backlog only.
+
+---
+
 Several of these were found during Section 3 but are **not** Section 3
 changes — H-1 spans four apps, H-2 lives in `users`/`assignments`/`students`,
 H-5 is Section 7. They were deliberately kept out of the security work so
