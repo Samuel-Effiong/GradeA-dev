@@ -40,7 +40,7 @@ The new-account branch already did this (`set_unusable_password()`); the control
 | 7 Real infrastructure | Real PostgreSQL for the unit tests and both replay apps. Redis key prefix per lab app. Only the external Google IdP boundary is stubbed (same as the red-team harness; the real-Google failure contract tests remain opt-in) | `settings_redteam.py` |
 | 8 Live / end-to-end | LOCAL-REAL only (running app, real HTTP register/login, in-process real `google_auth` body with Google stubbed). **Not run on a deployed QA environment** | — |
 | 9 Security / isolation | Role matrix: a dormant row of every `UserTypes` value (STUDENT, TEACHER, SCHOOL_ADMIN, SUPER_ADMIN) loses its password on activation. Deactivated (previously verified) accounts are still refused with the row untouched, password included. Already-active rows keep their password | `test_every_role_...`, `test_a_deactivated_account_is_refused_...`, `test_an_active_but_unverified_account_keeps_its_password` |
-| 10 Full-repository | **Pending**: needs a `--parallel 4` slot from the Integration & Release Lead | — |
+| 10 Full-repository | **DONE, see §9** — full run on 27d36f0: 4679 tests, 2 failures, 28 skipped, 29m02s (machine load ~43 during the run). Both failures proven pre-existing/environmental, not caused by this branch | §9 below |
 
 Lab notes: apps ran from a detached scratch worktree at beta `ea7183b` (baseline) and from this branch (fix), DBs `authz_oauth_base` / `authz_oauth_fix`, Redis db 14 with unique key prefixes (nothing flushed), auth throttles disabled in the lab only (throttling is not what this replays). Servers stopped and lab DBs dropped after the run.
 
@@ -98,10 +98,27 @@ Per the Senior Manager's ruling, `/auth/verify` is the normal self-registration 
 - The database cannot show whether the password was used afterwards: the JWT login path does not update `last_login` (lab: takeover login returned 200, `last_login` stayed NULL) and there is no per-login audit table on beta. Triage needs web/auth logs for `POST /auth/login` 200 on each suspect address after `activated_at`.
 - Rows a suspect owner has since reset or that the owner has since verified by another route may drop out of the fingerprint; a clean result is not proof of no takeover.
 
-## 8. Open
+## 9. Full-repository run (Gate 10) — Integration & Release Engineer, 2026-09-28
 
-1. Full-repository gate (Gate 10): requested a slot from the Integration & Release Lead.
-2. Independent verification by the Verification Engineer.
-3. Gate 8 on a deployed QA environment before any production promotion (security tier).
-4. Founder decisions: production exposure query; `/auth/verify` option.
-5. Branch is based on beta `0efba21`; beta is now `ea7183b`. The change is confined to one branch of `google_auth` and its test module; expect a clean merge but re-run the Google module after merging.
+Tip at run time: `27d36f0` (docs-only on top of the fix commit; `git diff --stat df3bd2c 27d36f0` = 2 files, `docs/evidence/authz-oauth-takeover/{EVIDENCE,VERIFICATION}.md`, no code).
+
+**Full run:** `python manage.py test --settings=settings_worktree --parallel 4` — **4679 tests, 2 failures, 28 skipped, ran in 1575.7s (29m02s wall)**, under machine load ~43 (shared 4-physical-core box, concurrent unrelated sessions). Literal result is FAIL; both failures below are proven pre-existing and unrelated to this branch, per standing SM ruling that known failures of this shape are accepted via targeted reruns rather than a second full suite:
+
+1. `assignments.tests_pdf_renderer.ConcurrentRenderingTest.test_one_slow_render_does_not_stall_the_others` — wall-clock timing assertion (slowest of 6 concurrent renders must finish under 4.0s).
+   - `git diff --stat 4b902fc 27d36f0 -- assignments/` is **empty** — this branch touches nothing under `assignments/`.
+   - 3 back-to-back isolated runs on plain beta (fresh worktree @`4b902fc`): **3/3 FAIL**, ~7s each, same assertion shape.
+   - 3 back-to-back isolated runs on `27d36f0`: 2/3 FAIL (~4.3-5.7s), 1/3 PASS (~7.5s wall, faster machine moment) — same signature.
+   - Conclusion: pre-existing, load-dependent flake on beta itself, not introduced by this branch. Logged as `H-44` in `docs/HARDENING_BACKLOG.md` with a fix direction (stop asserting on wall-clock, assert relative ordering or use a fake clock).
+2. `users.tests_email_domain_rules.ExemptDomainTests.test_nothing_is_exempt_by_default` — asserts the *default* `EXEMPT_EMAIL_DOMAINS` is empty; this worktree's `.env` sets it to `yopmail.com`.
+   - Targeted run on `27d36f0` with `EXEMPT_EMAIL_DOMAINS=''` for that one command: **PASS**.
+   - Targeted run on plain beta (`4b902fc`) with the normal `.env` (`yopmail.com` set): **FAILS the same way** (`AssertionError: True is not false`).
+   - Conclusion: environmental, not caused by any branch's code; the underlying hermetic-test fix is tracked in `h39-network-guard`.
+
+**Verdict: Gate 10 PASS-WITH-NOTES.** No failure traceable to this branch's diff; both are known, reproduced identically on plain beta, and have backlog homes (H-44, and the existing h39-network-guard item for the email-domain test's hermeticity).
+
+## 10. Open
+
+1. Independent verification by the Verification Engineer.
+2. Gate 8 on a deployed QA environment before any production promotion (security tier).
+3. Founder decisions: production exposure query; `/auth/verify` option.
+4. Branch is based on beta `0efba21`; beta is now `4b902fc` at merge time. The change is confined to one branch of `google_auth` and its test module; merge is clean (see push package).
