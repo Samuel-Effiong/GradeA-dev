@@ -234,10 +234,14 @@ class RemovedTeacherAssignmentRouteTests(RemovedTeacherRoutesBase):
             format="multipart",
         )
         note("assignments/views.py:960 upload-async", "WRITE", response, False)
-        # The credit gate answers 402, 400 or (custom-ai-prompt, a pre-existing
-        # status-mapping quirk) 500 depending on route; what matters is that
-        # the paid action is refused and nothing changed.
-        self.assertNotIn(response.status_code, (200, 201, 202, 204), response.content)
+        # Strict: the credit gate answers 400 (insufficient credits, raised as
+        # a ParseError) for this route, confirmed empirically. Previously
+        # this asserted only "did not succeed" against (200, 201, 202, 204),
+        # which would also have accepted a 500 as "refused" - see the
+        # select_for_update/outer-join regression documented on
+        # RemovedTeacherDraftSaveTests for exactly that failure mode.
+        self.assertEqual(response.status_code, 400, response.content)
+        self.assertLess(response.status_code, 500, response.content)
 
     def test_generate_assignment_from_prompt(self):
         response = self.client_t.post(
@@ -263,10 +267,12 @@ class RemovedTeacherAssignmentRouteTests(RemovedTeacherRoutesBase):
             f"{API}/assignments/{self.assignment.id}/grade-all", {}, format="json"
         )
         note("assignments/views.py grade-all", "WRITE(paid AI)", response, False)
-        # The credit gate answers 402, 400 or (custom-ai-prompt, a pre-existing
-        # status-mapping quirk) 500 depending on route; what matters is that
-        # the paid action is refused and nothing changed.
-        self.assertNotIn(response.status_code, (200, 201, 202, 204), response.content)
+        # Strict: the credit gate answers 400 (insufficient credits, raised as
+        # a ParseError) for this route, confirmed empirically. See the
+        # upload-async test above for why "did not succeed" alone is not
+        # enough.
+        self.assertEqual(response.status_code, 400, response.content)
+        self.assertLess(response.status_code, 500, response.content)
 
     def test_publish_all_grades(self):
         response = self.client_t.post(
@@ -329,10 +335,12 @@ class RemovedTeacherSubmissionRouteTests(RemovedTeacherRoutesBase):
             f"{API}/submissions/{self.submission.id}/grade", {}, format="json"
         )
         note("students/views.py grade", "WRITE(paid AI)", response, False)
-        # The credit gate answers 402, 400 or (custom-ai-prompt, a pre-existing
-        # status-mapping quirk) 500 depending on route; what matters is that
-        # the paid action is refused and nothing changed.
-        self.assertNotIn(response.status_code, (200, 201, 202, 204), response.content)
+        # Strict: the credit gate answers 400 (insufficient credits, raised as
+        # a ParseError) for this route, confirmed empirically. See the
+        # upload-async test above for why "did not succeed" alone is not
+        # enough.
+        self.assertEqual(response.status_code, 400, response.content)
+        self.assertLess(response.status_code, 500, response.content)
 
     def test_submission_upload_to_the_school_assignment(self):
         before = StudentSubmission.objects.count()
@@ -473,10 +481,54 @@ class RemovedTeacherDashboardRouteTests(RemovedTeacherRoutesBase):
             format="json",
         )
         note("dashboard/views.py custom-ai-prompt", "READ(paid AI)", response, False)
-        # The credit gate answers 402, 400 or (custom-ai-prompt, a pre-existing
-        # status-mapping quirk) 500 depending on route; what matters is that
-        # the paid action is refused and nothing changed.
+        # NOT tightened like the sibling tests in this file: this route
+        # empirically returns 500 for a removed teacher today (confirmed
+        # 2026-09-28), via a pre-existing status-mapping quirk in
+        # `custom_ai_prompt` that is unrelated to H-38 and to the
+        # select_for_update/outer-join regression this pass was scoped to
+        # (this action does not call select_for_update or
+        # teacher_course_access_q at all - it 500s while building superadmin
+        # analytics context for a non-superadmin user). Asserting a sub-500
+        # guard here would immediately fail against that real, separate bug.
+        # Left as a loose "did not succeed" check deliberately; see the
+        # evidence doc for a flagged-but-not-fixed note - do not tighten
+        # this without first triaging that 500 on its own.
         self.assertNotIn(response.status_code, (200, 201, 202, 204), response.content)
+
+
+def make_ai_draft_message(teacher, course_id):
+    session = AssignmentGenerationSession.objects.create(
+        user=teacher, course_id=course_id
+    )
+    return AssignmentGenerationMessage.objects.create(
+        session=session,
+        role=AssignmentGenerationRole.ASSISTANT,
+        content="Here is a draft assignment on cells.",
+        assignment_snapshot={
+            "title": "Cell Biology Quiz",
+            "instructions": "Answer every question.",
+            "total_points": 10,
+            "question_count": 1,
+            "assignment_type": "OBJECTIVE",
+            "questions": [
+                {
+                    "question_number": 1,
+                    "question_text": "What is the powerhouse of the cell?",
+                    "question_type": "OBJECTIVE",
+                    "question_image": "",
+                    "points": 10,
+                    "blooms_level": "Remember",
+                    "options": ["Mitochondria", "Nucleus", "Ribosome"],
+                    "rubric": [],
+                    "model_answer": "Mitochondria",
+                }
+            ],
+            "potential_issues": [],
+            "self_assessment": "A focused objective check.",
+            "extraction_confidence": 95,
+        },
+        metadata={"draft_status": "AI_DRAFT"},
+    )
 
 
 class RemovedTeacherDraftSaveTests(RemovedTeacherRoutesBase):
@@ -488,59 +540,26 @@ class RemovedTeacherDraftSaveTests(RemovedTeacherRoutesBase):
     itself, so there is no credit gate to route around here; the draft-save
     guard is directly reachable.
 
-    Separately (found while writing this test, unrelated to H-38 itself):
-    the live H-38-fixed query - `.select_for_update()` combined with
+    Separately (found while writing this test, unrelated to H-38 itself, and
+    now fixed): the live H-38 query combined `.select_for_update()` with
     `teacher_course_access_q(..., prefix="session__course__")`'s "reachable"
     OR-clause, which needs a LEFT OUTER JOIN through the nullable
-    `Course.session` FK to satisfy its `session__isnull=True` branch - hits
-    Postgres's "FOR UPDATE cannot be applied to the nullable side of an
-    outer join" and 500s. This reproduces for ANY teacher, active or
-    removed (confirmed against a plain active-teacher fixture, not just this
-    one), so it is not a removed-teacher-specific hole; it currently makes
-    the endpoint fail closed for everyone rather than fail open, which is
-    why the status check below is a broad "did not succeed" rather than a
-    strict (403, 404), mirroring the file's existing convention for other
-    quirky-status-mapping routes above. Reverting to the pre-H-38 filter
-    shape (no OR-clause, no outer join) removes the 500 entirely and lets
-    the write through for a removed teacher - see the mutation check this
-    test is paired with."""
-
-    def _make_ai_draft_message(self):
-        session = AssignmentGenerationSession.objects.create(
-            user=self.teacher, course_id=self.course_id
-        )
-        return AssignmentGenerationMessage.objects.create(
-            session=session,
-            role=AssignmentGenerationRole.ASSISTANT,
-            content="Here is a draft assignment on cells.",
-            assignment_snapshot={
-                "title": "Cell Biology Quiz",
-                "instructions": "Answer every question.",
-                "total_points": 10,
-                "question_count": 1,
-                "assignment_type": "OBJECTIVE",
-                "questions": [
-                    {
-                        "question_number": 1,
-                        "question_text": "What is the powerhouse of the cell?",
-                        "question_type": "OBJECTIVE",
-                        "question_image": "",
-                        "points": 10,
-                        "blooms_level": "Remember",
-                        "options": ["Mitochondria", "Nucleus", "Ribosome"],
-                        "rubric": [],
-                        "model_answer": "Mitochondria",
-                    }
-                ],
-                "potential_issues": [],
-                "self_assessment": "A focused objective check.",
-                "extraction_confidence": 95,
-            },
-            metadata={"draft_status": "AI_DRAFT"},
-        )
+    `Course.session` FK to satisfy its `session__isnull=True` branch. Postgres
+    rejects "FOR UPDATE" on the nullable side of an outer join, so the
+    endpoint 500'd for EVERY teacher, active or removed - not a
+    removed-teacher-specific hole, but a regression the H-38 fix itself
+    introduced. A loose "did not succeed" assertion here initially masked
+    that 500 as if it were correct removed-teacher-refusal behaviour. The fix
+    (assignments/views.py `save_generated_assignment_draft`) now runs the
+    access check as its own unlocked query first, then takes the lock with a
+    plain by-primary-key `.get()` (never an outer join). The assertion below
+    is now strict (404) with an explicit sub-500 guard so this class of bug
+    cannot hide behind a loose assertion again; see
+    `ActiveTeacherDraftSaveTests` below for the positive control that would
+    have caught the regression immediately."""
 
     def test_save_generated_assignment_draft_refuses_removed_teacher(self):
-        draft_message = self._make_ai_draft_message()
+        draft_message = make_ai_draft_message(self.teacher, self.course_id)
         before = Assignment.objects.count()
 
         response = self.client_t.post(
@@ -556,15 +575,53 @@ class RemovedTeacherDraftSaveTests(RemovedTeacherRoutesBase):
             response,
             changed,
         )
-        # See the class docstring: the H-38-fixed query currently 500s for
-        # every teacher on Postgres (an unrelated select_for_update/outer-join
-        # bug), so this asserts "did not succeed" rather than a strict
-        # (403, 404) - the same pattern used above for the paid-AI routes.
-        # What matters for H-38 is that nothing was written.
-        self.assertNotIn(response.status_code, (200, 201, 202, 204), response.content)
+        # Strict: get_object_or_404's Http404 maps to DRF's NotFound, i.e.
+        # 404, for this lookup shape (no PermissionDenied is raised here).
+        # The explicit sub-500 guard is what would have caught the
+        # select_for_update/outer-join regression documented in the class
+        # docstring - it was previously masked by an assertNotIn(...,
+        # (200, 201, 202, 204)) check that treated a 500 as "refused".
+        self.assertEqual(response.status_code, 404, response.content)
+        self.assertLess(response.status_code, 500, response.content)
         self.assertFalse(changed)
         draft_message.refresh_from_db()
         self.assertIsNone(draft_message.assignment_id)
+
+
+class ActiveTeacherDraftSaveTests(TeacherRemovalBase):
+    """Positive control for A3_draft_save (see RemovedTeacherDraftSaveTests
+    above). An ACTIVE teacher - never removed - must still be able to save
+    their own AI draft. This is the test that would have caught the
+    select_for_update/outer-join regression immediately: an active teacher
+    being unable to save is obviously wrong, unlike the removed-teacher case
+    above where a non-2xx status was plausible for either "correctly
+    refused" or "broken for everyone"."""
+
+    def setUp(self):
+        super().setUp()
+        self.client_t = jwt_client(self.teacher.email)
+
+    def test_save_generated_assignment_draft_succeeds_for_active_teacher(self):
+        draft_message = make_ai_draft_message(self.teacher, self.course_id)
+        before = Assignment.objects.count()
+
+        response = self.client_t.post(
+            f"{API}/assignments/generated-drafts/{draft_message.id}/save",
+            {},
+            format="json",
+        )
+
+        note(
+            "assignments/views.py:1461 generated-drafts save "
+            "(positive control - active teacher)",
+            "WRITE",
+            response,
+            Assignment.objects.count() != before,
+        )
+        self.assertEqual(response.status_code, 201, response.content)
+        self.assertEqual(Assignment.objects.count(), before + 1)
+        draft_message.refresh_from_db()
+        self.assertIsNotNone(draft_message.assignment_id)
 
 
 class RemovedTeacherPdfTeacherViewTests(RemovedTeacherRoutesBase):
