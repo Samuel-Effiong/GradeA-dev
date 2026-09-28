@@ -130,13 +130,57 @@ class RegisterStudentGlobalFailureBudgetTests(APITestCase):
     def setUp(self):
         cache.clear()
         self.addCleanup(cache.clear)
-        # Only the global budget is under test here: take the per-IP bucket
-        # out so it can't trip first.
+        # Only the global budget is under test here: take the per-IP buckets
+        # out of both doors so they can't trip first.
+        from classrooms.views import CourseViewSet
         from users.views import AuthViewSet
 
-        patcher = patch.object(AuthViewSet, "get_throttles", return_value=[])
-        patcher.start()
-        self.addCleanup(patcher.stop)
+        for viewset in (AuthViewSet, CourseViewSet):
+            patcher = patch.object(viewset, "get_throttles", return_value=[])
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def _renew(self, token):
+        return self.client.post(
+            reverse("course-renew-activation-token"), {"token": token}, format="json"
+        )
+
+    def test_renew_failures_spend_the_same_budget(self):
+        student = self._student("111111")
+        for guess in ("900001", "900002", "900003"):
+            self.assertEqual(self._renew(guess).status_code, 400)
+
+        response = self._post("111111")
+
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        student.refresh_from_db()
+        self.assertFalse(student.is_active)
+
+    def test_renew_is_refused_once_the_budget_is_spent_and_rotates_nothing(self):
+        student = self._student("111111")
+        for guess in ("900001", "900002", "900003"):
+            self._post(guess)
+
+        with self.assertLogs("users.throttling", level="WARNING") as logs:
+            response = self._renew("111111")
+
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        self.assertTrue(1 <= int(response["Retry-After"]) <= 3600)
+        student.refresh_from_db()
+        self.assertEqual(student.activation_token, "111111")
+        self.assertEqual([r.door for r in logs.records], ["renew"])
+
+    def test_the_exhausted_error_fires_once_per_window_not_per_failure(self):
+        from users.throttling import record_register_student_failure
+
+        with self.assertLogs("users.throttling", level="WARNING") as logs:
+            for _ in range(3 + 3):  # LIMIT + 3, past the limit
+                record_register_student_failure("no_match")
+
+        errors = [r for r in logs.records if r.levelname == "ERROR"]
+        self.assertEqual(
+            [r.event for r in errors], ["register_student.budget_exhausted"]
+        )
 
     def _post(self, token):
         return self.client.post(
@@ -186,7 +230,7 @@ class RegisterStudentGlobalFailureBudgetTests(APITestCase):
         self.assertTrue(1 <= retry_after <= 3600, retry_after)
         message = response.json()["message"]
         self.assertIn("paused", message)
-        self.assertIn("invitation is still valid", message)
+        self.assertIn("ask for a new one", message)
         self.assertEqual(
             [r.event for r in logs.records], ["register_student.budget_refusal"]
         )

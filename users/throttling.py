@@ -89,11 +89,12 @@ def register_student_budget_retry_after(now=None):
     return max(1, int(window - (now % window)))
 
 
-def log_register_student_refused_by_budget():
+def log_register_student_refused_by_budget(door="register"):
     logger.warning(
         "register_student refused: global failure budget spent",
         extra={
             "event": "register_student.budget_refusal",
+            "door": door,
             "limit": settings.REGISTER_STUDENT_GLOBAL_FAILURE_LIMIT,
             "window_seconds": settings.REGISTER_STUDENT_FAILURE_WINDOW_SECONDS,
         },

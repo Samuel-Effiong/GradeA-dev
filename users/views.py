@@ -1174,8 +1174,8 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                 wait=register_student_budget_retry_after(),
                 detail=(
                     "Student registration is paused for a short while because "
-                    "of too many invalid activation codes. Your invitation "
-                    "is still valid; please try again later."
+                    "of too many invalid activation codes. Please try again "
+                    "later; if your code has expired by then, ask for a new one."
                 ),
             )
         try:

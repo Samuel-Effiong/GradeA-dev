@@ -18,14 +18,19 @@
     "failing_tests": [
       "test_an_expired_code_counts_as_a_failure",
       "test_once_the_budget_is_spent_even_a_valid_code_gets_429",
+      "test_renew_failures_spend_the_same_budget",
+      "test_the_429_says_why_and_when_and_sets_retry_after",
       "test_the_budget_resets_with_the_next_window"
     ]
   },
   "M4_no_match_not_recorded": {
     "killed": true,
     "failing_tests": [
+      "test_exhausting_the_budget_logs_one_error_for_alerting",
       "test_failures_are_logged_without_the_code_or_any_email",
       "test_once_the_budget_is_spent_even_a_valid_code_gets_429",
+      "test_renew_is_refused_once_the_budget_is_spent_and_rotates_nothing",
+      "test_the_429_says_why_and_when_and_sets_retry_after",
       "test_the_budget_resets_with_the_next_window"
     ]
   },
@@ -40,6 +45,9 @@
     "failing_tests": [
       "test_an_expired_code_counts_as_a_failure",
       "test_once_the_budget_is_spent_even_a_valid_code_gets_429",
+      "test_renew_failures_spend_the_same_budget",
+      "test_renew_is_refused_once_the_budget_is_spent_and_rotates_nothing",
+      "test_the_429_says_why_and_when_and_sets_retry_after",
       "test_the_budget_resets_with_the_next_window"
     ]
   },
@@ -47,12 +55,32 @@
     "killed": false,
     "failing_tests": []
   },
-  "M8_throttled_raised_inside_catch_all": {
+  "M8_refusal_is_not_a_throttled_error": {
     "killed": true,
     "failing_tests": [
       "test_an_expired_code_counts_as_a_failure",
       "test_once_the_budget_is_spent_even_a_valid_code_gets_429",
+      "test_renew_failures_spend_the_same_budget",
+      "test_the_429_says_why_and_when_and_sets_retry_after",
       "test_the_budget_resets_with_the_next_window"
+    ]
+  },
+  "M10_exhausted_error_fires_on_every_failure_past_the_limit": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_exhausted_error_fires_once_per_window_not_per_failure"
+    ]
+  },
+  "M11_renew_door_ignores_the_budget": {
+    "killed": true,
+    "failing_tests": [
+      "test_renew_is_refused_once_the_budget_is_spent_and_rotates_nothing"
+    ]
+  },
+  "M12_renew_failures_not_counted": {
+    "killed": true,
+    "failing_tests": [
+      "test_renew_failures_spend_the_same_budget"
     ]
   },
   "M9_log_includes_the_token": {

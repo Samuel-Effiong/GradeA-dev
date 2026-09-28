@@ -12,6 +12,7 @@ import sys
 VIEWS = "users/views.py"
 THROTTLING = "users/throttling.py"
 ENROLLMENT = "classrooms/services/enrollment.py"
+CLASSROOMS_VIEWS = "classrooms/views.py"
 
 MUTANTS = {
     "M1_register_lookup_not_scoped_to_students": (
@@ -50,12 +51,29 @@ MUTANTS = {
         '    return f"register_student:failures:{bucket}"\n',
         '    return "register_student:failures:0"\n',
     ),
-    "M8_throttled_raised_inside_catch_all": (
+    # The refusal raised as something other than Throttled: the exception
+    # handler then answers 500, not 429.
+    "M8_refusal_is_not_a_throttled_error": (
         VIEWS,
-        "        if register_student_failure_budget_spent():\n"
         "            raise Throttled(\n",
-        "        if register_student_failure_budget_spent():\n"
         "            raise RuntimeError(\n",
+    ),
+    "M10_exhausted_error_fires_on_every_failure_past_the_limit": (
+        THROTTLING,
+        "    if count == settings.REGISTER_STUDENT_GLOBAL_FAILURE_LIMIT:\n",
+        "    if count >= settings.REGISTER_STUDENT_GLOBAL_FAILURE_LIMIT:\n",
+    ),
+    "M11_renew_door_ignores_the_budget": (
+        CLASSROOMS_VIEWS,
+        "        if register_student_failure_budget_spent():\n"
+        '            log_register_student_refused_by_budget(door="renew")\n',
+        "        if False:\n"
+        '            log_register_student_refused_by_budget(door="renew")\n',
+    ),
+    "M12_renew_failures_not_counted": (
+        CLASSROOMS_VIEWS,
+        '            record_register_student_failure("renew_refused")\n',
+        "            pass\n",
     ),
     "M9_log_includes_the_token": (
         THROTTLING,
