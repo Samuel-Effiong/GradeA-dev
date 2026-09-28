@@ -321,6 +321,11 @@ mutant's entry.
   first satisfying the credit/subscription gate. A unit test that calls
   `TeacherAIContextService().build(teacher)` directly (bypassing the view
   and its billing gate) would close this gap cheaply.
+- **Update (2026-09-28): now caught dynamically.** `e4984d6` tightened
+  `test_custom_ai_prompt_on_the_school_course` with a context spy, which reads
+  the AI context before the billing refusal. The Verification Engineer's
+  mutant M9 (this exact revert) is now killed by that test, with the sweep
+  excluded from the run (`VERIFICATION.md`). D4 is no longer sweep-only.
 
 ---
 
