@@ -143,6 +143,14 @@ class CustomUser(AbstractUser):
     failed_login_attempts = models.PositiveSmallIntegerField(default=0)
     locked_until = models.DateTimeField(null=True, blank=True)
 
+    # Session epoch (AUTHZ-T1/T2). Every issued token carries the epoch it was
+    # minted under (users.tokens.EPOCH_CLAIM) and users.authentication rejects
+    # a token whose epoch differs from this. It is bumped on any credential
+    # change (set_password / set_unusable_password) and on logout, which kills
+    # every live access AND refresh token for the user at once. A token with
+    # no claim (minted before this existed) counts as epoch 0.
+    token_epoch = models.PositiveIntegerField(default=0)
+
     must_change_password = models.BooleanField(
         default=False,
         help_text=_(
@@ -277,6 +285,55 @@ class CustomUser(AbstractUser):
 
     def is_account_locked(self):
         return bool(self.locked_until and timezone.now() < self.locked_until)
+
+    # ---- session epoch -------------------------------------------------
+    # The bump is an F() expression, so concurrent credential changes cannot
+    # lose an increment, and it is applied by whichever save() persists the
+    # password: save() adds the column to update_fields (the several
+    # save(update_fields=["password", ...]) callers would otherwise silently
+    # skip it) and reloads the real value afterwards.
+    _epoch_bump_pending = False
+    _rehashing = False
+
+    def _queue_epoch_bump(self):
+        # A brand-new row starts at 0; there is nothing to revoke, and an
+        # F() cannot be used in an INSERT.
+        if not self._state.adding and not self._rehashing:
+            self.token_epoch = F("token_epoch") + 1
+            self._epoch_bump_pending = True
+
+    def set_password(self, raw_password):
+        super().set_password(raw_password)
+        self._queue_epoch_bump()
+
+    def set_unusable_password(self):
+        super().set_unusable_password()
+        self._queue_epoch_bump()
+
+    def check_password(self, raw_password):
+        # Django re-hashes a password with an outdated hasher on a successful
+        # check by calling set_password() + save(update_fields=["password"]).
+        # That is not a credential change, and bumping here would sign the
+        # user out of every device at the moment they log in.
+        self._rehashing = True
+        try:
+            return super().check_password(raw_password)
+        finally:
+            self._rehashing = False
+
+    def save(self, *args, **kwargs):
+        update_fields = kwargs.get("update_fields")
+        if self._epoch_bump_pending and update_fields is not None:
+            kwargs["update_fields"] = set(update_fields) | {"token_epoch"}
+        super().save(*args, **kwargs)
+        if self._epoch_bump_pending:
+            self._epoch_bump_pending = False
+            self.refresh_from_db(fields=["token_epoch"])
+
+    def revoke_all_sessions(self):
+        """Invalidate every token issued so far (logout, credential change)."""
+        CustomUser.objects.filter(pk=self.pk).update(token_epoch=F("token_epoch") + 1)
+        self.refresh_from_db(fields=["token_epoch"])
 
     def register_failed_login(self):
         """
