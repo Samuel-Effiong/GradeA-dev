@@ -115,7 +115,9 @@ from users.throttling import (
     PasswordResetThrottle,
     RegisterThrottle,
     VerifyEmailThrottle,
+    log_register_student_refused_by_budget,
     record_register_student_failure,
+    register_student_budget_retry_after,
     register_student_failure_budget_spent,
 )
 
@@ -1165,11 +1167,16 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
     def register_student(self, request, *args, **kwargs):
         # Outside the try below: its catch-all would turn Throttled into a 500.
         if register_student_failure_budget_spent():
+            log_register_student_refused_by_budget()
+            # `wait` sets Retry-After and appends "Expected available in N
+            # seconds." to the message.
             raise Throttled(
+                wait=register_student_budget_retry_after(),
                 detail=(
-                    "Student registration is temporarily unavailable. "
-                    "Please try again later."
-                )
+                    "Student registration is paused for a short while because "
+                    "of too many invalid activation codes. Your invitation "
+                    "is still valid; please try again later."
+                ),
             )
         try:
             with transaction.atomic():

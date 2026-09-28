@@ -38,6 +38,8 @@ Reproduced on beta `4b902fc` (`f4fe530`): `test_a_pending_teacher_row_cannot_be_
 | Same scope on the **renew** door. It had the identical token-only lookup, and a teacher's code there reached `renew_activation_token()`'s `ValueError` and answered **500**, confirming the code was real | `classrooms/services/enrollment.py` `renew_student_activation` |
 | **Global** failure budget: failed attempts (no match, or expired) are counted per window across all IPs. Once the limit is reached, every caller gets `429` until the window rolls over. Defaults 100/hour, set by `REGISTER_STUDENT_GLOBAL_FAILURE_LIMIT` / `REGISTER_STUDENT_FAILURE_WINDOW_SECONDS`. Checked **before** the view's `try`, whose catch-all would otherwise turn `Throttled` into a 500. Successes don't count | `users/throttling.py`, `users/views.py`, `AutoGrader/settings.py` |
 | Each failure logged at WARNING with `reason` and `window_failures` only (no token, email or IP) | `users/throttling.py` |
+| The `429` says why and when: *"Student registration is paused for a short while because of too many invalid activation codes. Your invitation is still valid; please try again later."* DRF appends "Expected available in N seconds." and sets `Retry-After` to the seconds left in the window | `users/views.py` |
+| Alerting: the failure that exhausts the budget logs **once per window at ERROR** (`event=register_student.budget_exhausted`, with limit, window and retry-after). Every refused request logs at WARNING (`event=register_student.budget_refusal`). Neither carries a token, email or IP | `users/throttling.py` |
 
 A teacher's or school admin's code now gets the byte-identical `400` an unknown code gets, on both doors.
 
@@ -50,7 +52,7 @@ A teacher's or school admin's code now gets the byte-identical `400` an unknown 
 - the confirmation is worth little: an expired code can't complete an account, and posting it to the renew door **rotates** it (a new code is generated and emailed), so a confirmed guess is dead on arrival;
 - expired attempts now count against the global budget like any other failure.
 
-Unifying them is a one-line backend change plus a frontend change: show "request a new link" on any failure. It's the founder's call.
+**SM ruling (2026-09-28): keep it, do not unify.** The SM confirmed from `send_token_renewal_emails` that a renewed code goes only to `student.email` and the student's teacher, never back to whoever called the renew endpoint. A guesser who confirms an expired match and renews it just rotates the code to a mailbox they don't control. The oracle yields nothing usable, and the frontend contract stays as it is.
 
 **Options (b)/(c)** (email + code, or longer student codes like `K7P2-9QXM-4D`) close the pool attack itself. They wait for the founder. The SM noted that the student completion form never asks for an email and that roster students often have placeholder `@student.local` addresses.
 

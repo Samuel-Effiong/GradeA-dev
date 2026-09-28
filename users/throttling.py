@@ -82,6 +82,24 @@ def register_student_failure_budget_spent():
     return count >= settings.REGISTER_STUDENT_GLOBAL_FAILURE_LIMIT
 
 
+def register_student_budget_retry_after(now=None):
+    """Seconds until the current window rolls over (for Retry-After)."""
+    window = settings.REGISTER_STUDENT_FAILURE_WINDOW_SECONDS
+    now = now if now is not None else time.time()
+    return max(1, int(window - (now % window)))
+
+
+def log_register_student_refused_by_budget():
+    logger.warning(
+        "register_student refused: global failure budget spent",
+        extra={
+            "event": "register_student.budget_refusal",
+            "limit": settings.REGISTER_STUDENT_GLOBAL_FAILURE_LIMIT,
+            "window_seconds": settings.REGISTER_STUDENT_FAILURE_WINDOW_SECONDS,
+        },
+    )
+
+
 def record_register_student_failure(reason):
     key = _register_student_failure_key()
     # add() sets the TTL only when the key is new; incr() is atomic on Redis.
@@ -97,4 +115,17 @@ def record_register_student_failure(reason):
         "register_student failed attempt",
         extra={"reason": reason, "window_failures": count},
     )
+    if count == settings.REGISTER_STUDENT_GLOBAL_FAILURE_LIMIT:
+        # Once per window, at ERROR, so alerting can page on it: from here
+        # every student sign-up is refused until the window rolls over.
+        logger.error(
+            "register_student global failure budget exhausted; "
+            "student registration paused until the window rolls over",
+            extra={
+                "event": "register_student.budget_exhausted",
+                "limit": settings.REGISTER_STUDENT_GLOBAL_FAILURE_LIMIT,
+                "window_seconds": settings.REGISTER_STUDENT_FAILURE_WINDOW_SECONDS,
+                "retry_after_seconds": register_student_budget_retry_after(),
+            },
+        )
     return count

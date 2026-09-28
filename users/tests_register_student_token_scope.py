@@ -174,6 +174,34 @@ class RegisterStudentGlobalFailureBudgetTests(APITestCase):
         student.refresh_from_db()
         self.assertFalse(student.is_active)
 
+    def test_the_429_says_why_and_when_and_sets_retry_after(self):
+        for guess in ("900001", "900002", "900003"):
+            self._post(guess)
+
+        with self.assertLogs("users.throttling", level="WARNING") as logs:
+            response = self._post("111111")
+
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        retry_after = int(response["Retry-After"])
+        self.assertTrue(1 <= retry_after <= 3600, retry_after)
+        message = response.json()["message"]
+        self.assertIn("paused", message)
+        self.assertIn("invitation is still valid", message)
+        self.assertEqual(
+            [r.event for r in logs.records], ["register_student.budget_refusal"]
+        )
+
+    def test_exhausting_the_budget_logs_one_error_for_alerting(self):
+        with self.assertLogs("users.throttling", level="WARNING") as logs:
+            for guess in ("900001", "900002", "900003"):
+                self._post(guess)
+
+        errors = [r for r in logs.records if r.levelname == "ERROR"]
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0].event, "register_student.budget_exhausted")
+        self.assertEqual(errors[0].limit, 3)
+        self.assertNotIn("900003", " ".join(logs.output) + repr(errors[0].__dict__))
+
     def test_below_the_budget_a_valid_code_still_works(self):
         student = self._student("111111")
         for guess in ("900001", "900002"):
