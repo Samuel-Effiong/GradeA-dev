@@ -1470,15 +1470,27 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         """
 
         with transaction.atomic():
-            draft_message = get_object_or_404(
-                AssignmentGenerationMessage.objects.select_for_update()
-                .select_related("session__course", "session__user")
-                .filter(
+            # H-38 note: `teacher_course_access_q` OR's across `Course.session`
+            # (nullable), which forces Postgres to plan a LEFT OUTER JOIN for
+            # this lookup. `SELECT ... FOR UPDATE` cannot be applied to the
+            # nullable side of an outer join, so the access check must run as
+            # its own unlocked query first; the row we actually lock is then
+            # fetched by primary key alone (a plain lookup, never an outer
+            # join) so `select_for_update()` stays valid. See
+            # docs/evidence/h38_part2/select_for_update_outer_join_regression.md.
+            access_check = get_object_or_404(
+                AssignmentGenerationMessage.objects.filter(
                     teacher_course_access_q(request.user, prefix="session__course__"),
                     id=message_id,
                     session__user=request.user,
                     role=AssignmentGenerationRole.ASSISTANT,
                 )
+            )
+            draft_message = get_object_or_404(
+                AssignmentGenerationMessage.objects.select_for_update().select_related(
+                    "session__course", "session__user"
+                ),
+                pk=access_check.pk,
             )
 
             if draft_message.assignment_id:
