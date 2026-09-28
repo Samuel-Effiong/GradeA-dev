@@ -1572,6 +1572,18 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                         user.is_active = True
                         resurrected_fields.append("is_active")
 
+                        # This row may carry a password an attacker chose
+                        # while it sat dormant (POST /auth/register creates
+                        # is_active=False rows with a real, caller-supplied
+                        # password). Google has only proven mailbox
+                        # ownership here, not which password belongs to the
+                        # rightful owner, so activating the row must not
+                        # leave any existing password usable - the
+                        # rightful owner can always get a fresh one through
+                        # the reset-password flow.
+                        user.set_unusable_password()
+                        resurrected_fields.append("password")
+
                     if resurrected_fields:
                         user.save(update_fields=resurrected_fields)
                         # Only now does this account become a real, usable
