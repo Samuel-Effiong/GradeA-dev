@@ -438,3 +438,216 @@ no plugin-construction error, no missing-module traceback. Full log:
 `pyproject.toml` modified and this untracked evidence directory. No
 Python source file touched — none of the newly-surfaced real errors in
 section 5 were fixed, per scope.
+
+## 9. Addendum — real-commit proof, hook runtime, venv-unavailable behavior, ratchet
+
+The SM asked for proof this branch actually unblocks a real commit on a
+file with pre-existing mypy errors, not just that the hook "runs to
+completion" in isolation. Four things below, all reproduced live in this
+worktree.
+
+### 9.1 Real commit test — failed first, ratchet fixed it
+
+A trivial, purely-cosmetic change (one throwaway trailing comment, no
+behavior change) was made to `billing/license_service.py` — chosen
+because it's the motivating file for the blocked p1b commit and already
+has several pre-existing errors (section 5: lines 1330, 1362, 1898, 2109,
+2672, 3122, 3478). Committed normally, **no** `--no-verify`:
+
+```
+git add billing/license_service.py
+git commit -m "..."
+```
+
+**First attempt (no ratchet) FAILED as predicted**: the `mypy` hook
+reported 62 errors in 18 files (checked 1 source file — mypy pulls in
+every transitively-imported module, same effect the EVIDENCE.md baseline
+already documented for the whole-repo run). All other hooks
+(black/flake8/isort/bandit/detect-secrets) passed. `git log` confirmed no
+commit landed and the file stayed staged — pre-commit correctly blocked
+it. This is exactly the risk the SM flagged: wiring in the plugin alone
+does not unblock a real commit on a file with legacy errors, it just
+makes the hook *run* instead of crash.
+
+**Fix: a ratchet, not a blanket ignore.** Every module with at least one
+error in the whole-repo `mypy` run (`mypy_after_whole_repo.txt`, matching
+the 159-files-with-errors count in section 4) got its own
+`[[tool.mypy.overrides]]` block in `pyproject.toml`:
+
+```toml
+[[tool.mypy.overrides]]
+module = "billing.license_service"
+ignore_errors = true
+```
+
+159 such blocks were added (one per module), generated from
+`grep -oP '^[a-zA-Z_][a-zA-Z0-9_/]*\.py(?=:\d+: error)' mypy_after_whole_repo.txt | sort -u`
+converted to dotted module paths. Three files under `docs/evidence/...`
+needed a different form: `docs/` has no `__init__.py`, so mypy resolves
+them as bare top-level module names (confirmed with `mypy -v`, which logs
+`BuildSource(..., module='attack_replay', ...)`), not
+`docs.evidence....` dotted paths — the overrides for
+`attack_replay`, `stripe_refusal_real` and `test_refusal_handling_scale`
+use the bare names; all three filenames are unique in the repo (checked
+via `find`), so there's no collision risk.
+
+After the ratchet, `mypy . --ignore-missing-imports --check-untyped-defs
+--disable-error-code=var-annotated` reports **"Success: no issues found
+in 734 source files"** — the 686 pre-existing errors are silenced, at the
+per-module granularity needed to remove any one override individually as
+that module gets cleaned up.
+
+**Retry from the start (fresh `git add` + `git commit`, same trivial
+change) PASSED cleanly** — all hooks including mypy green, commit
+created. That test commit (`139cf5f`, message "THROWAWAY retry: trivial
+comment + ratchet, should pass now") was then unwound with
+`git reset --soft HEAD~1` (working-tree changes preserved, nothing
+discarded) so it wouldn't sit in history as a separate commit — the
+ratchet and the trivial comment are folded into this branch's one real
+commit instead.
+
+**Ratchet doesn't blanket-suppress — verified.** `ai_processor/models.py`
+is clean (not in the 159-module ratchet list). A deliberate throwaway
+type error was appended (`def f() -> int: return "not an int"`) and
+checked two ways:
+
+```
+$ mypy ai_processor/models.py ...
+ai_processor/models.py:176: error: Incompatible return value type (got "str", expected "int")  [return-value]
+Found 1 error in 1 file (checked 1 source file)
+
+$ pre-commit run mypy --files ai_processor/models.py
+mypy.....................................................................Failed
+- hook id: mypy
+- exit code: 1
+ai_processor/models.py:176: error: Incompatible return value type (got "str", expected "int")  [return-value]
+```
+
+Both catch it. The probe was then reverted with `git checkout --
+ai_processor/models.py` (clean, `git diff` empty afterward). This
+confirms the key property: a module NOT in the ratchet list — clean
+today, or created fresh later — stays fully strict; only the 159 modules
+that already had errors at ratchet time are silenced.
+
+### 9.2 Hook runtime
+
+`pre-commit run mypy --all-files` timed three consecutive runs with a
+warm `.mypy_cache` (the steady-state a developer hits after their first
+commit of the session):
+
+| Run | Wall clock |
+|---|---|
+| 1 | 4.16 s |
+| 2 | 2.97 s |
+| 3 | 4.22 s |
+
+All three: "Success: no issues found in 733 source files" (733 vs the
+direct `mypy .` run's 734 — pre-commit passes an explicit file list
+rather than `.`, same one-file difference noted in section 6).
+
+**Cold-cache number, for completeness**: `rm -rf .mypy_cache` then one
+more `pre-commit run mypy --all-files` took **70.2 s**. `.mypy_cache` was
+175 MB before deletion. This only happens once per fresh checkout / cache
+eviction, not on every commit — `django.setup()` itself is not the
+expensive part (it's fast, see the sub-5s warm numbers); the ~70s is
+mypy's normal cold-start cost of building its module graph across 733
+files with no incremental cache to reuse, independent of the
+django-stubs plugin. Verdict: noticeable but not a real problem — low
+single-digit seconds warm (the common case), ~70s worst case (first run
+after a cache wipe), not tens of seconds on every commit.
+
+### 9.3 venv-unavailable failure mode — LOUD failure, confirmed, not silent
+
+The actual git hook pre-commit installs
+(`$(git rev-parse --git-common-dir)/hooks/pre-commit`) hardcodes
+`INSTALL_PYTHON=/home/.../Virtualenvs/AutoGrader_env/bin/python` and execs
+`python -m pre_commit` through that absolute path — so `pre-commit`
+itself always launches even from a shell that never activated the venv.
+But the `mypy` hook uses `language: system`, which resolves the `mypy`
+executable via `shutil.which()` against the *subprocess's* `PATH` at hook
+run time — separate from how pre-commit itself was launched.
+
+Reproduced live: staged the ratchet + trivial-comment changes, then ran
+`git commit` with `PATH` rebuilt to exclude the venv's `bin` directory
+entirely (`echo $PATH | tr ':' '\n' | grep -v AutoGrader_env | paste -sd: -`,
+also confirmed `which mypy` fails under that `PATH`). Result:
+
+```
+mypy........................................................................................Failed
+- hook id: mypy
+- exit code: 1
+
+Executable `mypy` not found
+```
+
+Exit code from the `git commit` invocation: 0 exit from the *shell
+pipeline* only because of the `| tail -40` in the test harness — the
+commit itself did **not** land (`git log` still showed the prior HEAD,
+`git status` still showed the files staged, not committed). This is the
+acceptable outcome the task called for: a clear, unambiguous
+"Executable `mypy` not found" message and a blocked commit — not a
+silent exit 0 / skipped check. No false confidence risk.
+
+**Does it need a live DB / .env, or just the settings import?** Tested
+directly (venv `PATH` restored, so `mypy` resolves and `django.setup()`
+actually runs):
+
+- Pointed the active `DATABASE_URI_LOCAL` env var at an unreachable host
+  (`postgres://baduser:badpass@10.255.255.1:5432/nonexistent_db_unreachable`)
+  — `mypy` still reported **"Success: no issues found in 1 source
+  file"**. `dj_database_url.config()` only parses the URL into Django's
+  `DATABASES` dict at import time; Django connections are lazy, so
+  `django.setup()` never opens a socket. **No live DB is required.**
+- Ran with a fully clean environment (`env -i PATH=... HOME=...`, no
+  inherited env vars at all) — still succeeded, because
+  `AutoGrader/settings.py` calls `env.read_env(".env")` itself and reads
+  the file from disk rather than relying on already-exported shell env
+  vars.
+- Temporarily moved `.env` out of the way (`mv .env .env.bak_test`, same
+  clean environment) — **loud failure**, not silent:
+  `django.core.exceptions.ImproperlyConfigured: Set the SECRET_KEY
+  environment variable`, full traceback, mypy plugin construction fails.
+  `.env` was restored immediately (`mv .env.bak_test .env`) and a
+  follow-up `mypy` run confirmed clean again before proceeding.
+
+Summary: the hook needs the settings module to import successfully
+(which needs `.env` present, since `SECRET_KEY` etc. come from there) but
+does **not** need a reachable database — both the present-and-fake-DB and
+present-.env-missing-DB-string cases were not tested since `.env`'s
+values already parse; the load-bearing check was DB *reachability*,
+confirmed unnecessary.
+
+### 9.4 `additional_dependencies` drop — `waitress` check (flagged by Verification Engineer)
+
+Switching to `language: system` drops the old hook's
+`additional_dependencies` (`types-requests`, `types-redis`,
+`types-waitress`, `types-python-dateutil`, `types-bleach`) in favor of
+whatever's importable from the shared venv. `types-redis` is confirmed
+redundant (redis==7.1.0 ships inline types, `py.typed` present). Checked
+`waitress` specifically, since it isn't in `requirements.txt` and isn't
+installed in the shared venv:
+
+```
+$ grep -rIn "waitress" --include="*.py" .        # no hits, whole repo
+$ grep -n "waitress" requirements.txt            # no hits
+$ grep -rIli "waitress" . --exclude-dir=.git     # only this evidence dir's own files
+```
+
+**Closed question: `waitress` is dead in this repo.** No `.py` file
+imports or references it anywhere, it's not in `requirements.txt`, and
+the only repo hits are inside this evidence directory itself (this file,
+and `precommit_mypy_run_FAILED_isolated_env.txt`'s copy of the old
+`additional_dependencies` line). The project's actual WSGI server is
+`gunicorn==20.0.4` (`requirements.txt:88`). `types-waitress` in the old
+hook's `additional_dependencies` was stub coverage for a package the
+codebase never used — dropping it with the `language: system` switch
+loses no real coverage. If `waitress` is ever actually adopted, its
+stub package would need adding back (now to the shared venv's
+`requirements.txt`, not the mirror hook's isolated env, to stay
+consistent with the `language: system` approach this branch settled on).
+
+### 9.5 Backlog
+
+178 newly-surfaced real errors (section 5) logged and triaged by risk as
+`H-46` in `docs/HARDENING_BACKLOG.md`. Not fixed — logging/triage only,
+per this branch's scope.

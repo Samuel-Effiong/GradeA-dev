@@ -3706,3 +3706,6 @@ class LicenseSubscriptionService:
         )
 
         return {"action": action, "message": message, "license": updated_license}
+
+
+# Throwaway marker comment for task/mypy-django-stubs commit-test (step 1).
