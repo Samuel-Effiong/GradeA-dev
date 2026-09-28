@@ -156,6 +156,18 @@ class BackfillPendingStudentInvitesTest(APITestCase):
         self.assertIn("still holding a code: 0", out.getvalue())
 
     @patch("classrooms.services.notifications.send_student_login_invitation_email")
+    def test_dry_run_leaves_an_orphans_code_in_place(self, mock_email):
+        self.enrollment.delete()
+
+        out = StringIO()
+        call_command("backfill_pending_student_invites", "--dry-run", stdout=out)
+
+        self.student.refresh_from_db()
+        self.assertEqual(self.student.activation_token, "112233")
+        self.assertIn("[dry-run] would clear code only", out.getvalue())
+        self.assertIn("still holding a code: 1", out.getvalue())
+
+    @patch("classrooms.services.notifications.send_student_login_invitation_email")
     def test_a_placeholder_address_is_converted_and_flagged(self, mock_email):
         self.student.email = "legacy.invite.x1@student.local"
         self.student.save(update_fields=["email"])

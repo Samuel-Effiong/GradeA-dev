@@ -1,0 +1,62 @@
+{
+  "R1_roster_names_not_passed": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_new_student_is_active_with_a_temporary_password_and_no_code",
+      "test_bulk_add_via_tsv_string",
+      "test_bulk_add_without_headers_detects_email_in_any_column"
+    ]
+  },
+  "R2_already_enrolled_not_skipped": {
+    "killed": true,
+    "failing_tests": [
+      "test_an_already_enrolled_row_is_skipped_and_nothing_is_sent",
+      "test_bulk_add_with_duplicates"
+    ]
+  },
+  "R3_new_student_ignores_names": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_new_student_is_active_with_a_temporary_password_and_no_code",
+      "test_bulk_add_via_tsv_string",
+      "test_bulk_add_without_headers_detects_email_in_any_column"
+    ]
+  },
+  "R4_promotion_keeps_the_old_code": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_legacy_inactive_row_with_a_code_is_promoted_and_its_code_cleared"
+    ]
+  },
+  "B1_convert_keeps_the_old_code": {
+    "killed": true,
+    "failing_tests": [
+      "test_real_run_converts_and_sends_login_email"
+    ]
+  },
+  "B2_orphan_code_not_cleared": {
+    "killed": true,
+    "failing_tests": [
+      "test_no_pending_enrollment_stays_inactive_but_loses_its_code"
+    ]
+  },
+  "B3_dry_run_clears_codes": {
+    "killed": true,
+    "failing_tests": [
+      "test_dry_run_leaves_an_orphans_code_in_place"
+    ]
+  },
+  "B4_output_names_the_email": {
+    "killed": true,
+    "failing_tests": [
+      "test_dry_run_touches_nothing_and_sends_no_mail",
+      "test_output_names_ids_only_never_an_email"
+    ]
+  },
+  "B5_placeholder_not_flagged": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_placeholder_address_is_converted_and_flagged"
+    ]
+  }
+}
