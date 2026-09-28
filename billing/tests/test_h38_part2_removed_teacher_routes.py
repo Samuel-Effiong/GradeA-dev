@@ -15,13 +15,20 @@ status code. Re-run unchanged against the fixed branch.
 
 from datetime import timedelta
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from assignments.models import Assignment, AssignmentStatus
+from assignments.models import (
+    Assignment,
+    AssignmentGenerationMessage,
+    AssignmentGenerationRole,
+    AssignmentGenerationSession,
+    AssignmentStatus,
+)
 from billing.models import (
     LicenseSubscription,
     PlanCategory,
@@ -470,6 +477,182 @@ class RemovedTeacherDashboardRouteTests(RemovedTeacherRoutesBase):
         # status-mapping quirk) 500 depending on route; what matters is that
         # the paid action is refused and nothing changed.
         self.assertNotIn(response.status_code, (200, 201, 202, 204), response.content)
+
+
+class RemovedTeacherDraftSaveTests(RemovedTeacherRoutesBase):
+    """H-38 part 2 mutation testing (docs/evidence/h38_part2/mutation_results_final.md,
+    A3_draft_save) found `save_generated_assignment_draft`
+    (`generated-drafts/{message_id}/save`) had zero dynamic route coverage for
+    the removed-teacher scenario - only the static sweep guard protected it.
+    This closes that gap. `@require_ai_access` is commented out on the action
+    itself, so there is no credit gate to route around here; the draft-save
+    guard is directly reachable.
+
+    Separately (found while writing this test, unrelated to H-38 itself):
+    the live H-38-fixed query - `.select_for_update()` combined with
+    `teacher_course_access_q(..., prefix="session__course__")`'s "reachable"
+    OR-clause, which needs a LEFT OUTER JOIN through the nullable
+    `Course.session` FK to satisfy its `session__isnull=True` branch - hits
+    Postgres's "FOR UPDATE cannot be applied to the nullable side of an
+    outer join" and 500s. This reproduces for ANY teacher, active or
+    removed (confirmed against a plain active-teacher fixture, not just this
+    one), so it is not a removed-teacher-specific hole; it currently makes
+    the endpoint fail closed for everyone rather than fail open, which is
+    why the status check below is a broad "did not succeed" rather than a
+    strict (403, 404), mirroring the file's existing convention for other
+    quirky-status-mapping routes above. Reverting to the pre-H-38 filter
+    shape (no OR-clause, no outer join) removes the 500 entirely and lets
+    the write through for a removed teacher - see the mutation check this
+    test is paired with."""
+
+    def _make_ai_draft_message(self):
+        session = AssignmentGenerationSession.objects.create(
+            user=self.teacher, course_id=self.course_id
+        )
+        return AssignmentGenerationMessage.objects.create(
+            session=session,
+            role=AssignmentGenerationRole.ASSISTANT,
+            content="Here is a draft assignment on cells.",
+            assignment_snapshot={
+                "title": "Cell Biology Quiz",
+                "instructions": "Answer every question.",
+                "total_points": 10,
+                "question_count": 1,
+                "assignment_type": "OBJECTIVE",
+                "questions": [
+                    {
+                        "question_number": 1,
+                        "question_text": "What is the powerhouse of the cell?",
+                        "question_type": "OBJECTIVE",
+                        "question_image": "",
+                        "points": 10,
+                        "blooms_level": "Remember",
+                        "options": ["Mitochondria", "Nucleus", "Ribosome"],
+                        "rubric": [],
+                        "model_answer": "Mitochondria",
+                    }
+                ],
+                "potential_issues": [],
+                "self_assessment": "A focused objective check.",
+                "extraction_confidence": 95,
+            },
+            metadata={"draft_status": "AI_DRAFT"},
+        )
+
+    def test_save_generated_assignment_draft_refuses_removed_teacher(self):
+        draft_message = self._make_ai_draft_message()
+        before = Assignment.objects.count()
+
+        response = self.client_t.post(
+            f"{API}/assignments/generated-drafts/{draft_message.id}/save",
+            {},
+            format="json",
+        )
+
+        changed = Assignment.objects.count() != before
+        note(
+            "assignments/views.py:1461 generated-drafts save",
+            "WRITE",
+            response,
+            changed,
+        )
+        # See the class docstring: the H-38-fixed query currently 500s for
+        # every teacher on Postgres (an unrelated select_for_update/outer-join
+        # bug), so this asserts "did not succeed" rather than a strict
+        # (403, 404) - the same pattern used above for the paid-AI routes.
+        # What matters for H-38 is that nothing was written.
+        self.assertNotIn(response.status_code, (200, 201, 202, 204), response.content)
+        self.assertFalse(changed)
+        draft_message.refresh_from_db()
+        self.assertIsNone(draft_message.assignment_id)
+
+
+class RemovedTeacherPdfTeacherViewTests(RemovedTeacherRoutesBase):
+    """H-38 part 2 mutation testing (mutation_results_final.md,
+    A4_pdf_teacher_view) found `download_pdf`'s `?view=teacher` branch had
+    zero dynamic route coverage for a removed teacher - the existing
+    `assignments.tests_security.TeacherViewLeakTest` only proves cross-tenant
+    isolation between two *different* teachers, never a teacher who WAS
+    `course.teacher` and lost school membership. This closes that gap."""
+
+    def _give_the_assignment_questions(self):
+        self.assignment.questions = [
+            {
+                "question_number": 1,
+                "question_text": "What is the powerhouse of the cell?",
+                "question_type": "OBJECTIVE",
+                "question_image": "",
+                "points": 10,
+                "blooms_level": "Remember",
+                "options": ["Mitochondria", "Nucleus", "Ribosome"],
+                "rubric": [],
+                "model_answer": "Mitochondria",
+            }
+        ]
+        self.assignment.save(update_fields=["questions"])
+
+    def test_download_pdf_teacher_view_refuses_removed_teacher(self):
+        self._give_the_assignment_questions()
+
+        response = self.client_t.get(
+            f"{API}/assignments/{self.assignment.id}/download-pdf",
+            {"view": "teacher"},
+        )
+
+        leaked = response.status_code == 200
+        note(
+            "assignments/views.py:1788 download-pdf teacher view",
+            "READ",
+            response,
+            leaked,
+        )
+        # A success here is a FileResponse (streaming), which has no
+        # `.content` - use status_code, not the body, as the assertion
+        # message so a leaked PDF fails cleanly instead of erroring on
+        # attribute access.
+        self.assertIn(response.status_code, (403, 404), response.status_code)
+
+    def test_download_pdf_teacher_view_refuses_removed_teacher_past_the_object_filter(
+        self,
+    ):
+        """`AssignmentViewSet.get_queryset`'s teacher branch already filters
+        by `teacher_course_access_q(..., prefix="course__")` - the exact Q
+        twin of the `teacher_can_reach_course` check this action makes at
+        assignments/views.py:1788 - so for a removed teacher requesting
+        their OWN former course's assignment, `self.get_object()` 404s
+        before that line is ever reached (confirmed: the test above still
+        passes even with that line reverted to the pre-H-38
+        `assignment.course.teacher != request.user`, because the outer
+        queryset filter already refuses first). That makes line 1788 a
+        redundant, defense-in-depth guard with no HTTP path that exercises
+        it in isolation today.
+
+        This test patches `get_queryset` open (as a stand-in for "the outer
+        filter has a bug/regresses and lets the row through") so the
+        request reaches `download_pdf`'s body with a real assignment
+        object, and checks that the `?view=teacher` guard still refuses on
+        its own merit rather than relying entirely on the outer filter."""
+        self._give_the_assignment_questions()
+        unfiltered = Assignment.objects.select_related("course__teacher")
+
+        with patch(
+            "assignments.views.AssignmentViewSet.get_queryset",
+            return_value=unfiltered,
+        ):
+            response = self.client_t.get(
+                f"{API}/assignments/{self.assignment.id}/download-pdf",
+                {"view": "teacher"},
+            )
+
+        leaked = response.status_code == 200
+        note(
+            "assignments/views.py:1788 download-pdf teacher view "
+            "(object-level guard in isolation)",
+            "READ",
+            response,
+            leaked,
+        )
+        self.assertIn(response.status_code, (403, 404), response.status_code)
 
 
 class RemovedTeacherSchoolAdminSurfaceTests(RemovedTeacherRoutesBase):
