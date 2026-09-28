@@ -1,9 +1,12 @@
 """
-AUTHZ-PATCHPW (email): changing your OWN email needs your current password.
+AUTHZ-PATCHPW (email): PATCH /users/<id> never changes an email address.
 
 The email is the recovery identity: with only a stolen access token, PATCHing
 it to an attacker's address and then requesting a reset code for that address
-was a complete account takeover. Real JWTs, real endpoints.
+was a complete account takeover. Founder decision 2026-09-28: refuse any
+email change on this route, for every caller (super admins included); an
+unchanged address is still accepted because frontends send the whole object.
+Real JWTs, real endpoints.
 """
 
 from django.urls import reverse
@@ -19,21 +22,28 @@ from users.tests_patch_password import (
 )
 
 ATTACKER_EMAIL = "attacker@gmail.com"
-WRONG_PASSWORD = "definitely-wrong-1"  # pragma: allowlist secret
+REFUSAL = "Email address can't be changed."
 
 
 class EmailChangeTests(PatchPasswordTests):
-    def patch_email(self, actor, target, email, **extra):
-        return self.client_for(actor).patch(
-            self.url(target), {"email": email, **extra}, format="json"
-        )
+    def patch(self, actor, target, **body):
+        return self.client_for(actor).patch(self.url(target), body, format="json")
 
     def email_of(self, user):
         return CustomUser.objects.get(pk=user.pk).email
 
+    def assertRefused(self, response):
+        self.assertEqual(
+            response.status_code, status.HTTP_400_BAD_REQUEST, response.content
+        )
+        body = response.json()
+        self.assertIs(body["success"], False)
+        self.assertEqual(body["error"]["field_errors"]["email"], [REFUSAL])
+
+    # --- the refusal -------------------------------------------------------
+
     def test_the_stolen_token_takeover_chain_is_closed(self):
-        r = self.patch_email(self.teacher, self.teacher, ATTACKER_EMAIL)
-        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST, r.content)
+        self.assertRefused(self.patch(self.teacher, self.teacher, email=ATTACKER_EMAIL))
         self.assertEqual(self.email_of(self.teacher), "teach.er@gmail.com")
         # the rest of the chain has nothing to work with
         anon = APIClient()
@@ -54,127 +64,114 @@ class EmailChangeTests(PatchPasswordTests):
         )
         self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_missing_or_blank_current_password_is_a_400_on_that_field(self):
-        for extra in ({}, {"current_password": ""}):
-            r = self.patch_email(self.teacher, self.teacher, ATTACKER_EMAIL, **extra)
-            self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST, extra)
-            self.assertIn("current_password", r.content.decode())
-        self.assertEqual(self.email_of(self.teacher), "teach.er@gmail.com")
-
-    def test_wrong_current_password_is_refused_and_counted(self):
-        r = self.patch_email(
-            self.teacher, self.teacher, ATTACKER_EMAIL, current_password=WRONG_PASSWORD
-        )
-        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(self.email_of(self.teacher), "teach.er@gmail.com")
-        self.teacher.refresh_from_db()
-        self.assertEqual(self.teacher.failed_login_attempts, 1)
-
-    def test_it_is_not_a_password_guessing_oracle_the_lockout_applies(self):
-        for _ in range(CustomUser.MAX_LOGIN_ATTEMPTS):
-            self.patch_email(
-                self.teacher,
-                self.teacher,
-                ATTACKER_EMAIL,
-                current_password=WRONG_PASSWORD,
+    def test_a_changed_email_is_refused_even_alongside_valid_edits(self):
+        """Refused whole: the other fields in the same request are not saved."""
+        self.assertRefused(
+            self.patch(
+                self.teacher, self.teacher, email=ATTACKER_EMAIL, first_name="Changed"
             )
-        self.teacher.refresh_from_db()
-        self.assertTrue(self.teacher.is_account_locked())
-        # locked: even the CORRECT password is refused, so guessing stops
-        r = self.patch_email(
-            self.teacher, self.teacher, ATTACKER_EMAIL, current_password=PASSWORD
         )
-        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
+        self.teacher.refresh_from_db()
+        self.assertEqual(self.teacher.email, "teach.er@gmail.com")
+        self.assertNotEqual(self.teacher.first_name, "Changed")
+
+    def test_super_admin_on_another_account_is_refused_too(self):
+        """FLAGGED FOR THE FOUNDER: super admins are deliberately included
+        ("any attempt"). Carving them out later is a one-condition change."""
+        self.assertRefused(
+            self.patch(self.superadmin, self.teacher, email="moved@gmail.com")
+        )
         self.assertEqual(self.email_of(self.teacher), "teach.er@gmail.com")
 
-    def test_correct_current_password_changes_the_email_and_clears_the_counter(self):
-        CustomUser.objects.filter(pk=self.teacher.pk).update(failed_login_attempts=2)
-        r = self.patch_email(
-            self.teacher,
-            self.teacher,
-            "New.Address@Gmail.com",
-            current_password=PASSWORD,
+    def test_super_admin_on_their_own_account_is_refused(self):
+        self.assertRefused(
+            self.patch(self.superadmin, self.superadmin, email="root2@example.com")
         )
-        self.assertEqual(r.status_code, status.HTTP_200_OK, r.content)
-        self.assertEqual(self.email_of(self.teacher), "new.address@gmail.com")
+
+    def test_the_old_current_password_mechanism_no_longer_unlocks_a_change(self):
+        self.assertRefused(
+            self.patch(
+                self.teacher,
+                self.teacher,
+                email="new.address@gmail.com",
+                current_password=PASSWORD,
+            )
+        )
+        self.assertEqual(self.email_of(self.teacher), "teach.er@gmail.com")
+
+    def test_refusing_does_not_touch_the_login_lockout_counter(self):
+        for _ in range(CustomUser.MAX_LOGIN_ATTEMPTS + 1):
+            self.patch(self.teacher, self.teacher, email=ATTACKER_EMAIL)
         self.teacher.refresh_from_db()
         self.assertEqual(self.teacher.failed_login_attempts, 0)
-        self.assertNotIn("current_password", r.content.decode())
-        self.assertNotIn(PASSWORD, r.content.decode())
+        self.assertFalse(self.teacher.is_account_locked())
 
-    def test_same_value_email_needs_no_password_even_with_case_and_whitespace(self):
-        for variant in (
-            "teach.er@gmail.com",
-            "  TEACH.ER@gmail.com ",
-            "Teach.Er@Gmail.com",
-        ):
-            r = self.patch_email(self.teacher, self.teacher, variant, first_name="Ok")
-            self.assertEqual(r.status_code, status.HTTP_200_OK, (variant, r.content))
-        self.assertEqual(self.email_of(self.teacher), "teach.er@gmail.com")
-
-    def test_domain_rules_still_apply_when_the_password_is_right(self):
-        r = self.patch_email(
-            self.teacher,
-            self.teacher,
-            "someone@bigcorp-business.com",
-            current_password=PASSWORD,
-        )
-        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(self.email_of(self.teacher), "teach.er@gmail.com")
-
-    def test_an_account_without_a_usable_password_gets_a_clear_400(self):
+    def test_an_account_without_a_usable_password_is_refused_the_same_way(self):
         google = make("g.user@gmail.com")
         google.set_unusable_password()
         google.save()
-        r = self.patch_email(google, google, ATTACKER_EMAIL, current_password="x")
-        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("Google", r.content.decode())
+        self.assertRefused(self.patch(google, google, email=ATTACKER_EMAIL))
         self.assertEqual(self.email_of(google), "g.user@gmail.com")
-        google.refresh_from_db()
-        self.assertEqual(google.failed_login_attempts, 0)
-
-    def test_superadmin_changing_another_users_email_is_unchanged(self):
-        r = self.patch_email(self.superadmin, self.teacher, "moved@gmail.com")
-        self.assertEqual(r.status_code, status.HTTP_200_OK, r.content)
-        self.assertEqual(self.email_of(self.teacher), "moved@gmail.com")
-
-    def test_superadmin_changing_their_own_email_does_need_the_password(self):
-        r = self.patch_email(self.superadmin, self.superadmin, "root2@example.com")
-        self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
-        r = self.patch_email(
-            self.superadmin,
-            self.superadmin,
-            "root2@example.com",
-            current_password=PASSWORD,
-        )
-        self.assertEqual(r.status_code, status.HTTP_200_OK, r.content)
 
     def test_nobody_can_change_someone_elses_email(self):
         for actor, target in (
             (self.other_teacher, self.teacher),
             (self.teacher, self.student),
         ):
-            r = self.patch_email(
-                actor, target, ATTACKER_EMAIL, current_password=PASSWORD
-            )
+            r = self.patch(actor, target, email=ATTACKER_EMAIL)
             self.assertIn(
-                r.status_code, (status.HTTP_403_FORBIDDEN, status.HTTP_404_NOT_FOUND)
+                r.status_code,
+                (
+                    status.HTTP_400_BAD_REQUEST,
+                    status.HTTP_403_FORBIDDEN,
+                    status.HTTP_404_NOT_FOUND,
+                ),
             )
             self.assertNotEqual(self.email_of(target), ATTACKER_EMAIL)
 
-    def test_password_and_email_together_is_still_refused_on_the_password(self):
-        r = self.patch_email(
-            self.teacher,
-            self.teacher,
-            ATTACKER_EMAIL,
-            current_password=PASSWORD,
-            password=ATTACKER_PASSWORD,
+    def test_password_and_email_together_is_still_refused(self):
+        r = self.patch(
+            self.teacher, self.teacher, email=ATTACKER_EMAIL, password=ATTACKER_PASSWORD
         )
         self.assertEqual(r.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("/auth/change-password", r.content.decode())
+        self.teacher.refresh_from_db()
+        self.assertEqual(self.teacher.email, "teach.er@gmail.com")
+        self.assertTrue(self.teacher.check_password(PASSWORD))
+
+    # --- positive controls: what must keep working --------------------------
+
+    def test_an_unchanged_email_is_accepted_with_case_and_whitespace_variants(self):
+        for i, variant in enumerate(
+            ("teach.er@gmail.com", "  TEACH.ER@gmail.com ", "Teach.Er@Gmail.com")
+        ):
+            r = self.patch(
+                self.teacher, self.teacher, email=variant, first_name=f"Ok{i}"
+            )
+            self.assertEqual(r.status_code, status.HTTP_200_OK, (variant, r.content))
+            self.teacher.refresh_from_db()
+            self.assertEqual(self.teacher.first_name, f"Ok{i}")
         self.assertEqual(self.email_of(self.teacher), "teach.er@gmail.com")
 
-    def test_superadmin_create_ignores_a_stray_current_password(self):
+    def test_other_field_edits_without_an_email_still_succeed(self):
+        r = self.patch(self.teacher, self.teacher, first_name="New", last_name="Name")
+        self.assertEqual(r.status_code, status.HTTP_200_OK, r.content)
+        self.teacher.refresh_from_db()
+        self.assertEqual(
+            (self.teacher.first_name, self.teacher.last_name), ("New", "Name")
+        )
+
+    def test_super_admin_editing_another_users_other_fields_still_succeeds(self):
+        r = self.patch(
+            self.superadmin,
+            self.teacher,
+            email="teach.er@gmail.com",
+            first_name="ByAdmin",
+        )
+        self.assertEqual(r.status_code, status.HTTP_200_OK, r.content)
+        self.teacher.refresh_from_db()
+        self.assertEqual(self.teacher.first_name, "ByAdmin")
+
+    def test_account_creation_is_unaffected(self):
         r = self.client_for(self.superadmin).post(
             reverse("user-list"),
             {
@@ -182,8 +179,10 @@ class EmailChangeTests(PatchPasswordTests):
                 "first_name": "C",
                 "last_name": "A",
                 "password": ATTACKER_PASSWORD,
-                "current_password": WRONG_PASSWORD,
             },
             format="json",
         )
         self.assertEqual(r.status_code, status.HTTP_201_CREATED, r.content)
+        self.assertTrue(
+            CustomUser.objects.filter(email="created.by.admin@gmail.com").exists()
+        )
