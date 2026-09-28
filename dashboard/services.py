@@ -1512,27 +1512,33 @@ class SchoolAdminWeeklySummaryService:
         at-risk definition shared across the codebase — and return the
         CustomUser instances that are at-risk, worst average first (students
         with no graded work yet, if flagged via missing work, sort last).
-        Each returned student has `avg_score` set as a dynamic attribute.
+        Each returned student has `avg_score` set as a dynamic attribute. The
+        instances are partial (id and name fields only; see the note where they
+        are loaded).
 
         Only currently-ENROLLED students are considered, so a student who
         withdraws naturally drops out of the at-risk set (rather than
         remaining flagged indefinitely on stale submission history).
         Reused by both the weekly digest and the daily at-risk alert task.
         """
+        # Scalar columns only. This used to build a CustomUser per enrollment
+        # and a StudentSubmission plus its Assignment per submission (a large
+        # school is ~17,000 of them, each carrying its answers/feedback JSON),
+        # so the cost was Python object construction, not SQL (H-14). The
+        # evaluator needs six values per submission, and a student object is
+        # only needed for the students who turn out to be at risk.
         enrollments = StudentCourse.objects.filter(
             course__teacher__school=school,
             enrollment_status=EnrollmentStatusType.ENROLLED,
             student__is_active=True,
             student__user_type=UserTypes.STUDENT,
-        ).select_related("student")
+        ).values_list("student_id", "course_id")
 
         course_ids_by_student = defaultdict(set)
-        students_by_id = {}
-        for enrollment in enrollments:
-            students_by_id[enrollment.student_id] = enrollment.student
-            course_ids_by_student[enrollment.student_id].add(enrollment.course_id)
+        for student_id, course_id in enrollments:
+            course_ids_by_student[student_id].add(course_id)
 
-        if not students_by_id:
+        if not course_ids_by_student:
             return []
 
         all_course_ids = {
@@ -1557,36 +1563,42 @@ class SchoolAdminWeeklySummaryService:
         submissions_by_student = defaultdict(list)
         submissions = (
             StudentSubmission.objects.filter(
-                student_id__in=students_by_id.keys(),
+                student_id__in=course_ids_by_student.keys(),
                 assignment__course_id__in=all_course_ids,
             )
-            .select_related("assignment")
+            .values_list(
+                "student_id",
+                "assignment_id",
+                "assignment__course_id",
+                "submission_date",
+                "is_published",
+                "score_percentage",
+            )
             .order_by("submission_date", "id")
         )
-        for submission in submissions:
-            submissions_by_student[submission.student_id].append(submission)
+        for row in submissions:
+            submissions_by_student[row[0]].append(row[1:])
 
-        at_risk_students = []
-        for student_id, student in students_by_id.items():
-            student_course_ids = course_ids_by_student[student_id]
+        at_risk_scores = {}
+        for student_id, student_course_ids in course_ids_by_student.items():
             expected_assignment_count = sum(
                 due_assignment_counts.get(course_id, 0)
                 for course_id in student_course_ids
             )
             student_submissions = [
-                submission
-                for submission in submissions_by_student.get(student_id, [])
-                if submission.assignment.course_id in student_course_ids
+                row
+                for row in submissions_by_student.get(student_id, [])
+                if row[1] in student_course_ids
             ]
-            submitted_count = len(
-                {submission.assignment_id for submission in student_submissions}
-            )
+            submitted_count = len({row[0] for row in student_submissions})
             # Only published, graded submissions count toward the average
             # shown to school admins (matches the prior school-wide behavior).
             graded_scores = [
-                (submission.submission_date, float(submission.score_percentage))
-                for submission in student_submissions
-                if submission.is_published and submission.score_percentage is not None
+                (submission_date, float(score_percentage))
+                for _, _, submission_date, is_published, score_percentage in (
+                    student_submissions
+                )
+                if is_published and score_percentage is not None
             ]
 
             risk_result = self.risk_evaluator.evaluate(
@@ -1597,8 +1609,23 @@ class SchoolAdminWeeklySummaryService:
                 )
             )
             if risk_result.at_risk:
-                student.avg_score = risk_result.average_grade
-                at_risk_students.append(student)
+                at_risk_scores[student_id] = risk_result.average_grade
+
+        # Partial instances: id and the name fields, which is everything the
+        # weekly digest, the summary endpoint and the daily alert read
+        # (get_full_name, id, avg_score). Any other attribute is deferred and
+        # would cost one query per student.
+        students_by_id = CustomUser.objects.only(
+            "id", "first_name", "middle_name", "last_name"
+        ).in_bulk(at_risk_scores.keys())
+        at_risk_students = []
+        for student_id, avg_score in at_risk_scores.items():
+            student = students_by_id.get(student_id)
+            if student is None:
+                # Hard-deleted after the enrollment scan above.
+                continue
+            student.avg_score = avg_score
+            at_risk_students.append(student)
 
         at_risk_students.sort(
             key=lambda student: (
