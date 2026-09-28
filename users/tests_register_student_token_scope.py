@@ -9,6 +9,7 @@ through the student door with a password the caller chose.
 """
 
 import time
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -42,7 +43,7 @@ class RegisterStudentTokenScopeTests(APITestCase):
             user_type=user_type,
             is_active=False,
             activation_token=token,
-            activation_expires=timezone.now() + timezone.timedelta(minutes=15),
+            activation_expires=timezone.now() + timedelta(minutes=15),
         )
 
     def _complete_as_student(self, token):
@@ -168,7 +169,7 @@ class RegisterStudentGlobalFailureBudgetTests(APITestCase):
         self.assertTrue(1 <= int(response["Retry-After"]) <= 3600)
         student.refresh_from_db()
         self.assertEqual(student.activation_token, "111111")
-        self.assertEqual([r.door for r in logs.records], ["renew"])
+        self.assertEqual([vars(r)["door"] for r in logs.records], ["renew"])
 
     def test_the_exhausted_error_fires_once_per_window_not_per_failure(self):
         from users.throttling import record_register_student_failure
@@ -179,7 +180,7 @@ class RegisterStudentGlobalFailureBudgetTests(APITestCase):
 
         errors = [r for r in logs.records if r.levelname == "ERROR"]
         self.assertEqual(
-            [r.event for r in errors], ["register_student.budget_exhausted"]
+            [vars(r)["event"] for r in errors], ["register_student.budget_exhausted"]
         )
 
     def _post(self, token):
@@ -203,8 +204,7 @@ class RegisterStudentGlobalFailureBudgetTests(APITestCase):
             user_type=UserTypes.STUDENT,
             is_active=False,
             activation_token=token,
-            activation_expires=timezone.now()
-            + timezone.timedelta(minutes=expires_in_minutes),
+            activation_expires=timezone.now() + timedelta(minutes=expires_in_minutes),
         )
 
     def test_once_the_budget_is_spent_even_a_valid_code_gets_429(self):
@@ -232,7 +232,8 @@ class RegisterStudentGlobalFailureBudgetTests(APITestCase):
         self.assertIn("paused", message)
         self.assertIn("ask for a new one", message)
         self.assertEqual(
-            [r.event for r in logs.records], ["register_student.budget_refusal"]
+            [vars(r)["event"] for r in logs.records],
+            ["register_student.budget_refusal"],
         )
 
     def test_exhausting_the_budget_logs_one_error_for_alerting(self):
@@ -242,8 +243,8 @@ class RegisterStudentGlobalFailureBudgetTests(APITestCase):
 
         errors = [r for r in logs.records if r.levelname == "ERROR"]
         self.assertEqual(len(errors), 1)
-        self.assertEqual(errors[0].event, "register_student.budget_exhausted")
-        self.assertEqual(errors[0].limit, 3)
+        self.assertEqual(vars(errors[0])["event"], "register_student.budget_exhausted")
+        self.assertEqual(vars(errors[0])["limit"], 3)
         self.assertNotIn("900003", " ".join(logs.output) + repr(errors[0].__dict__))
 
     def test_below_the_budget_a_valid_code_still_works(self):
@@ -288,8 +289,8 @@ class RegisterStudentGlobalFailureBudgetTests(APITestCase):
             self._post("987654")
 
         record = logs.records[0]
-        self.assertEqual(record.reason, "no_match")
-        self.assertEqual(record.window_failures, 1)
+        self.assertEqual(vars(record)["reason"], "no_match")
+        self.assertEqual(vars(record)["window_failures"], 1)
         rendered = " ".join(logs.output) + repr(record.__dict__)
         self.assertNotIn("987654", rendered)
         self.assertNotIn("@", rendered)
