@@ -5,6 +5,8 @@ Finding origin: `task/redteam-authz` `732b182` (reproduced there on `b744c9f`); 
 
 **Status: FIXED on the branch. Local gates pass. NOT landed, NOT deployed. Independent verification and the full-suite gate are still owed (see "Open").**
 
+**Founder statement 2026-09-28: not exploited in production; prod exposure query not run.**
+
 ## 1. The bug
 
 `POST /auth/google-auth`, existing-account branch (`users/views.py`, "resurrection"): if a row exists for the Google-verified address and is `is_active=False` with `email_verified_at IS NULL`, the view sets both fields and issues tokens. It never touched the password.
