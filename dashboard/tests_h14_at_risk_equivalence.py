@@ -133,6 +133,16 @@ def make_user(email, user_type, school=None, first="F", last="L", active=True):
 
 
 class AtRiskEquivalenceTests(TestCase):
+    school: School
+    other_school: School
+    service: SchoolAdminWeeklySummaryService
+    c1: Course
+    c2: Course
+    foreign: Course
+    a1: list[Assignment]
+    a2: list[Assignment]
+    af: Assignment
+
     @classmethod
     def setUpTestData(cls):
         cls.school = School.objects.create(name="H14 School")
