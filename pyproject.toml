@@ -1,3 +1,663 @@
 [tool.bandit]
 exclude_dirs = ['tests', 'venv', 'docs']
 tests = ['B101', 'B102']
+
+[tool.mypy]
+# Without this plugin, mypy has no knowledge of Django's metaclass-generated
+# attributes: models.TextChoices members read back as the raw (value, label)
+# tuple instead of str, ForeignKey "_id" shadow attributes don't exist,
+# Manager[Model] loses its model-specific methods, etc. See
+# docs/evidence/mypy_django_stubs/EVIDENCE.md for the before/after error
+# counts this produced on the whole repo.
+plugins = ["mypy_django_plugin.main"]
+
+[tool.django-stubs]
+django_settings_module = "AutoGrader.settings"
+
+# Ratchet: modules that had >=1 real mypy error at the time django-stubs/
+# djangorestframework-stubs were wired in (task/mypy-django-stubs). Each of
+# these 159 modules is individually silenced so pre-existing errors do not
+# block unrelated commits (language: system runs mypy on every commit, see
+# .pre-commit-config.yaml); every module NOT listed here is clean today and
+# stays fully strict, so a fresh error anywhere else still fails the hook.
+# Remove an entry individually as that module gets cleaned up. Full
+# file:line list: docs/evidence/mypy_django_stubs/EVIDENCE.md and
+# docs/evidence/mypy_django_stubs/mypy_after_whole_repo.txt. Backlog: H-46
+# in docs/HARDENING_BACKLOG.md.
+[[tool.mypy.overrides]]
+module = "ai_processor.services"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "ai_processor.tests_grading_eval_command"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "ai_processor.tests_objective_pipeline"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "ai_processor.tests_pdf_service_concurrency"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "ai_processor.tests_pdf_type_validation"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "ai_processor.tests_superadmin_unmetered_both_flags"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "ai_processor.tools"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "assignments.file_uploads"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "assignments.serializers"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "assignments.tasks"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "assignments.tests_ai_output_allowlist"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "assignments.tests_course_ownership_failure"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "assignments.tests_course_ownership_idor"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "assignments.tests_download_pdf"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "assignments.tests_extraction_service"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "assignments.tests_load"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "assignments.tests_pdf_cache"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "assignments.tests_prosemirror_converter"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "assignments.tests"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "assignments.tests_rigor"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "assignments.tests_schema_extension"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "assignments.tests_security"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "assignments.tests_strip_duplicate_option_letters"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "assignments.tests_upload_pipeline"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "assignments.tests_upload_task_retry_policy"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "assignments.views"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "AutoGrader.cache_generation"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "AutoGrader.settings"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "AutoGrader.tasks"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "AutoGrader.test_broker"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "AutoGrader.test_health"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "AutoGrader.tests_cache_dashboard_freshness"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "AutoGrader.tests_cache_dashboard_wide"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "AutoGrader.tests_cache_generation"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "AutoGrader.tests_cache_generation_wiring"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "AutoGrader.tests_cache_invalidation_coverage"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "AutoGrader.tests_cache_superadmin_1522"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "AutoGrader.tests_cache_user_fanout"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "AutoGrader.tests_celery_signals"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "AutoGrader.tests"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "AutoGrader.tests_redis_hygiene"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "AutoGrader.tests_redis_test_isolation"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "AutoGrader.urls"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.billing_transaction_views"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.credit_reversal"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.license_service"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.license_views"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.live_qa.checkpoints"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.live_qa.scenarios_deep"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.live_qa.scenarios_fast"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.live_qa.scenarios_license"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.live_qa.scenarios_long"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.management.commands.audit_school_admins"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.management.commands.backfill_billing_transactions"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.migrations.0009_betaprofile_uuid_and_more"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.migrations.0022_usersubscription_is_trial_usersubscription_trial_end_and_more"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.migrations.0028_alter_usersubscription_is_trial"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.models"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.payment_method_views"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.serializers"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.stripe_live_qa_scenarios"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.stripe_service"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tasks"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_access_control"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_admin_credit_grant_api"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_annual_mid_cycle_grants"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_append_only_audit_tables"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_billing_transaction_tenant_isolation"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_broker_outage_resilience"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_chaos"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_conversion_probability_task"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_credit_endpoint_tenant_isolation"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_dispute_lifecycle"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_fake_stripe_harness"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_grading_refund_scope"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_license_multi_month_budget"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_license_overage_offline"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_license_service"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_live_qa_clock"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_live_qa_invariants"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_overage_never_expires"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_overage_price_drift"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_plan_admin_api_and_input_validation"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_price_drift_reconciliation"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_refund_reconciliation_classification"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_refusal_handling_gates"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_scheduled_downgrade_transition"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.tests_free_trial"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.tests"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_subscription_cycle_integrity"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_subscription_upgrade"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_trial_forfeiture_on_activation"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_usage_log_query_count"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.tests.test_webhook_idempotency"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "billing.views"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "classrooms.models"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "classrooms.scale_my_students"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "classrooms.serializers"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "classrooms.test_school_admin_otp_deadend"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "classrooms.tests_concurrency_and_resilience"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "classrooms.tests_fail_closed_ownership_validators"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "classrooms.tests"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "classrooms.tests_query_budget"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "classrooms.tests_student_summary_task"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "classrooms.tests_tenancy_and_roster"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "classrooms.test_views"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "classrooms.views"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "dashboard.serializers"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "dashboard.tasks"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "dashboard.tests_avg_grade_never_null"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "dashboard.tests_dashboard_remediation"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "dashboard.tests"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "dashboard.tests_school_admin_session_scoping"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "dashboard.tests_teacher_credits_remaining"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "dashboard.tests_teacher_status_field"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "dashboard.views"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+# docs/ has no __init__.py, so mypy treats these three as bare top-level
+# module names (confirmed via `mypy -v`), not dotted docs.evidence.* paths.
+module = "attack_replay"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "stripe_refusal_real"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "test_refusal_handling_scale"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "students.serializers"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "students.services"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "students.tests_async_edit_path"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "students.tests_broker_outage"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "students.tests_grading_duration_migration"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "students.tests_grading_followup_dispatch"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "students.tests_grading_hardening"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "students.tests_grading_redelivery_live"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "students.tests_post_grading_submission_lock"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "students.tests"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "students.tests_second_opinion_queue"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "students.tests_submission_concurrency"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "students.tests_submission_list_queries"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "students.tests_submission_update_freshness"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "students.tests_task_tracking"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "students.tests_upload_pipeline"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "students.views"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "users.admin"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "users.exceptions"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "users.models"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "users.serializers"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "users.services"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "users.signals"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "users.tests_activity_middleware_load"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "users.tests_auth_endpoints"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "users.tests_auth_input_validation"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "users.tests_change_password"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "users.tests_exception_handler"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "users.tests_google_auth"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "users.tests_login_lockout"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "users.tests_models_and_admin"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "users.tests_open_signup"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "users.tests"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "users.tests_renderers"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "users.tests_schema_extension"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "users.tests_settings_viewset"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "users.tests_signals_and_edges"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "users.tests_superadmin_tenancy"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "users.tests_throttling"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "users.views"
+ignore_errors = true

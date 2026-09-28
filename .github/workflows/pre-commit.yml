@@ -29,3 +29,10 @@ jobs:
           python-version: "3.12"
 
       - uses: pre-commit/action@v3.0.1
+        env:
+          # The mypy hook is `language: system` (its django-stubs plugin
+          # imports the whole app), so it needs requirements.txt installed
+          # and the settings env vars, neither of which exists in this job.
+          # It runs instead as the "Type check (mypy)" step in tests.yml,
+          # which has both.
+          SKIP: mypy
