@@ -1620,7 +1620,10 @@ class SchoolAdminWeeklySummaryService:
         ).in_bulk(at_risk_scores.keys())
         at_risk_students = []
         for student_id, avg_score in at_risk_scores.items():
-            student = students_by_id[student_id]
+            student = students_by_id.get(student_id)
+            if student is None:
+                # Hard-deleted after the enrollment scan above.
+                continue
             student.avg_score = avg_score
             at_risk_students.append(student)
 

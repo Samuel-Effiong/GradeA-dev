@@ -203,3 +203,23 @@ Summary of gates:
 - Regression: `dashboard` app + 4 cache-freshness modules, 311 tests OK.
 - Diff scope: 2 files in the fix commit (`dashboard/services.py`,
   `dashboard/tests_h14_at_risk_equivalence.py`).
+
+## 8. Follow-up: deletion race flagged in verification (fixed)
+
+The Verification Engineer found a failure mode the rewrite introduced (see
+`docs/evidence/h14_school_admin_summary/VERIFICATION.md`): the scan reads
+enrollments and submissions first, then fetches names with `in_bulk()`. A
+student hard-deleted between the two phases was missing from the `in_bulk()`
+result, and `students_by_id[student_id]` raised `KeyError`, crashing the whole
+rebuild. The pre-fix single query had no such window.
+
+- **Fix**: `students_by_id.get(student_id)`, skipping a missing id. That
+  matches the original's behaviour for a student who no longer exists.
+- **Test**: `test_a_student_deleted_between_the_scan_and_the_name_lookup_is_skipped`
+  patches `QuerySet.in_bulk` to hard-delete one at-risk student immediately
+  before the lookup runs, then asserts no crash and the baseline list minus
+  that student, order unchanged. The equivalence module is now 5/5.
+- **Mutation**: restoring `students_by_id[student_id]` makes the test ERROR
+  with `KeyError: UUID(...)`: killed.
+- **Regression**: `dashboard` + the 4 cache-freshness modules, 316 tests OK
+  (skipped=2).

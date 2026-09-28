@@ -7,9 +7,11 @@ object-based original on every edge case the rule has.
 from collections import defaultdict
 from datetime import timedelta
 from decimal import Decimal
+from unittest import mock
 
 from django.db import connection
 from django.db.models import Count, Q
+from django.db.models.query import QuerySet
 from django.test import TestCase
 from django.utils import timezone
 
@@ -242,6 +244,31 @@ class AtRiskEquivalenceTests(TestCase):
             [(s.id, s.avg_score) for s in actual],
             [(s.id, s.avg_score) for s in expected],
         )
+
+    def test_a_student_deleted_between_the_scan_and_the_name_lookup_is_skipped(
+        self,
+    ):
+        # The rewrite reads enrollments/submissions first and fetches the
+        # students' names afterwards with in_bulk(); a student hard-deleted in
+        # between must drop out, not crash the whole rebuild with KeyError.
+        baseline = [(s.id, s.avg_score) for s in self._ours()]
+        victim_id = baseline[0][0]
+        original_in_bulk = QuerySet.in_bulk
+        deleted = []
+
+        def delete_then_lookup(queryset, *args, **kwargs):
+            if not deleted:
+                CustomUser.objects.filter(pk=victim_id).delete()
+                deleted.append(victim_id)
+            return original_in_bulk(queryset, *args, **kwargs)
+
+        with mock.patch.object(
+            QuerySet, "in_bulk", autospec=True, side_effect=delete_then_lookup
+        ):
+            actual = [(s.id, s.avg_score) for s in self._ours()]
+
+        self.assertEqual(deleted, [victim_id])
+        self.assertEqual(actual, [row for row in baseline if row[0] != victim_id])
 
     def test_names_and_the_built_payload_match(self):
         expected = reference_at_risk_students(self.service, self.school)
