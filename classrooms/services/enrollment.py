@@ -317,7 +317,13 @@ def renew_student_activation(*, token):
 
     Returns (student, enrollment, new_token, expiry).
     """
-    student = CustomUser.objects.filter(activation_token=token, is_active=False).first()
+    # H-47: student rows only. A pending teacher's 6-digit verification code
+    # lives in the same column; matching it here reached
+    # renew_activation_token()'s ValueError and answered 500, which told a
+    # guesser the code was real.
+    student = CustomUser.objects.filter(
+        activation_token=token, is_active=False, user_type=UserTypes.STUDENT
+    ).first()
 
     if student is None:
         raise EnrollmentError("Invalid token or user not found.")

@@ -40,6 +40,7 @@ from rest_framework.exceptions import (
     NotFound,
     ParseError,
     PermissionDenied,
+    Throttled,
     ValidationError,
 )
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -118,6 +119,10 @@ from users.throttling import (
     PasswordResetThrottle,
     RegisterThrottle,
     VerifyEmailThrottle,
+    log_register_student_refused_by_budget,
+    record_register_student_failure,
+    register_student_budget_retry_after,
+    register_student_failure_budget_spent,
 )
 
 logger = logging.getLogger(__name__)
@@ -1165,6 +1170,19 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         url_path="register/student",
     )
     def register_student(self, request, *args, **kwargs):
+        # Outside the try below: its catch-all would turn Throttled into a 500.
+        if register_student_failure_budget_spent():
+            log_register_student_refused_by_budget()
+            # `wait` sets Retry-After and appends "Expected available in N
+            # seconds." to the message.
+            raise Throttled(
+                wait=register_student_budget_retry_after(),
+                detail=(
+                    "Student registration is paused for a short while because "
+                    "of too many invalid activation codes. Please try again "
+                    "later; if your code has expired by then, ask for a new one."
+                ),
+            )
         try:
             with transaction.atomic():
                 serializer = StudentRegistrationCompletionSerializer(data=request.data)
@@ -1174,18 +1192,26 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
                 token = serializer.validated_data["token"]
 
-                # Find user by activation token
+                # H-47: the token is the only thing identifying the row, so
+                # it must only ever match a student's invitation. A pending
+                # teacher's 6-digit verification code lives in the same
+                # column and used to complete that teacher's account here,
+                # with a password chosen by whoever sent the code.
                 user = CustomUser.objects.filter(
-                    activation_token=token, is_active=False
+                    activation_token=token,
+                    is_active=False,
+                    user_type=UserTypes.STUDENT,
                 ).first()
 
                 if not user:
+                    record_register_student_failure("no_match")
                     raise ParseError("Invalid or expired activation token")
 
                 if (
                     not user.activation_expires
                     or user.activation_expires < timezone.now()
                 ):
+                    record_register_student_failure("expired")
                     renewal_url = request.build_absolute_uri(
                         "/course/student/renew-student-token"
                     )
