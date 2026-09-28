@@ -76,8 +76,8 @@ class EmailChangeTests(PatchPasswordTests):
         self.assertNotEqual(self.teacher.first_name, "Changed")
 
     def test_super_admin_on_another_account_is_refused_too(self):
-        """FLAGGED FOR THE FOUNDER: super admins are deliberately included
-        ("any attempt"). Carving them out later is a one-condition change."""
+        """Founder decision (confirmed 2026-09-28): super admins can't change
+        anyone's email through this route either."""
         self.assertRefused(
             self.patch(self.superadmin, self.teacher, email="moved@gmail.com")
         )

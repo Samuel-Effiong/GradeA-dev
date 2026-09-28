@@ -7,11 +7,16 @@ import sys
 
 S = "users/serializers.py"
 SELF = 'if "password" in attrs and self._is_acting_on_self():'
-EMAIL_COND = (
-    "            self._is_acting_on_self()\n"
-    '            and "email" in attrs\n'
-    '            and attrs["email"] != self.instance.email\n'
+# Part 2 as reworked 2026-09-28 (refuse any email change, every caller).
+# The previous E1-E9 mutants targeted the removed current_password
+# mechanism; their record is in git history (mutation_log.txt @ 1db6e56).
+# Two lines, not one: "self.instance is not None" at this indent also
+# appears in _is_acting_on_self, and replace(..., 1) hits the first match.
+GUARD_HEAD = '            self.instance is not None\n            and "email" in attrs\n'
+GUARD_CMP = (
+    '            and attrs["email"] != (self.instance.email or "").lower().strip()\n'
 )
+RAISE = '                {"email": "Email address can\'t be changed."}\n'
 MUTANTS = {
     "P1_password_rejection_removed": (SELF, 'if "password" in attrs and False:'),
     "P2_password_rejected_for_everyone": (SELF, 'if "password" in attrs:'),
@@ -20,49 +25,32 @@ MUTANTS = {
         'and getattr(acting, "pk", None) != self.instance.pk',
     ),
     "E1_email_guard_removed": (
-        "            self._require_current_password(current_password)\n",
-        "            pass\n",
+        GUARD_HEAD,
+        '            False\n            and "email" in attrs\n',
     ),
-    "E2_guard_fires_on_same_value_email": (
-        '            and attrs["email"] != self.instance.email\n',
-        "            and True\n",
+    "E2_guard_fires_on_same_value_email": (GUARD_CMP, "            and True\n"),
+    "E3_no_normalisation_before_compare": (
+        GUARD_CMP,
+        '            and attrs["email"] != self.instance.email.upper()\n',
     ),
-    "E3_wrong_password_not_counted": (
-        "            user.register_failed_login()\n",
-        "            pass\n",
+    "E4_guard_only_for_self": (
+        GUARD_HEAD,
+        '            self._is_acting_on_self()\n            and "email" in attrs\n',
     ),
-    "E4_lockout_check_removed": (
-        "        if user.is_account_locked():\n",
-        "        if False:\n",
+    "E5_guard_also_on_create": (
+        GUARD_HEAD,
+        '            True\n            and "email" in attrs\n',
     ),
-    "E5_wrong_password_accepted": (
-        "        if not user.check_password(current_password):\n",
-        "        if False:\n",
-    ),
-    "E6_unusable_password_case_removed": (
-        "        if not user.has_usable_password():\n",
-        "        if False:\n",
-    ),
-    "E7_success_keeps_failure_counter": (
-        "        user.reset_login_lockout()\n",
-        "        pass\n",
-    ),
-    "E8_guard_applies_to_other_users_too": (
-        EMAIL_COND,
-        EMAIL_COND.replace(
-            "            self._is_acting_on_self()\n", "            True\n"
-        ),
-    ),
-    "E9_current_password_not_consumed": (
-        'current_password = attrs.pop("current_password", None)',
-        'current_password = attrs.get("current_password", None)',
+    "E6_refusal_on_wrong_field": (
+        RAISE,
+        '                {"non_field_errors": "Email address can\'t be changed."}\n',
     ),
 }
 src = open(S).read()
 results = {}
 try:
     for name, (a, b) in MUTANTS.items():
-        assert a in src, f"{name}: anchor not found"
+        assert src.count(a) == 1, f"{name}: anchor found {src.count(a)} times"
         open(S, "w").write(src.replace(a, b, 1))
         p = subprocess.run(
             [
