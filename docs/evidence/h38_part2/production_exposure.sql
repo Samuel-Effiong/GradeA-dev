@@ -4,8 +4,11 @@
 -- counts only: no emails or names (founder rule for production output).
 -- Run with, e.g.:  psql "$DATABASE_URL" -f production_exposure.sql
 -- Table and column names are the Django defaults. The 2026-09-28 revision
--- (read-only wrapper, email dropped, lapsed licences excluded) has NOT yet
--- been syntax-checked against a schema; do that before the founder runs it.
+-- (read-only wrapper, email dropped, lapsed licences excluded) was executed
+-- in full against the migrated schema of task/teacher-removal@3161413 (an
+-- empty test database): BEGIN READ ONLY, Q1, Q2, Q3 and ROLLBACK all ran
+-- without error. That proves syntax and every table/column name; it says
+-- nothing about the result on production data. NOT yet run on production.
 --
 -- "Removed" = the teacher's allocation on a licence is inactive, they have
 -- no active allocation on that licence, AND THE LICENCE ITSELF IS STILL
