@@ -1476,6 +1476,54 @@ rows; 14 mutants across the four checks, all killed.
 their refusal cleanly (weekly-summary swallow, `error=None`, retry-3x) belongs
 to the refusal-handling cluster, not to this item.
 
+---
+
+# H-41 — grading-redelivery concurrency test flakes under load
+
+**Found**: seen failing once on CI, never reproduced locally until now.
+
+`students.tests_grading_redelivery_live.GradingRedeliveryLiveTest.
+test_5_concurrent_submissions_with_one_redelivery_each_grade_exactly_once`
+failed during the staging@fc96d9a full-suite redo (2026-09-28, machine load
+~30 from concurrent unrelated sessions): `'FAILED' != GradingState.DONE`.
+Isolated rerun of the whole module immediately after, load ~20: 4/4 pass.
+
+**Status**: load-induced, consistent with the CI sighting — treated as a
+pre-existing flake, not a regression on whichever branch triggers it. No fix
+scoped yet; recorded so a repeat sighting has a home instead of being
+re-diagnosed from scratch each time.
+
+**Acceptance**: TBD once the actual scheduling contention (if fixable) is
+understood; at minimum, note here whether it reproduces isolated under
+deliberately induced load.
+
+---
+
+# H-44 — `pdf_renderer` concurrent-render test is a wall-clock flake
+
+**Found 2026-09-28** during authz-oauth-takeover Gate 10 verification.
+
+`assignments.tests_pdf_renderer.ConcurrentRenderingTest.
+test_one_slow_render_does_not_stall_the_others` asserts the slowest of 6
+concurrent renders finishes under 4.0s. On this shared 4-physical-core
+machine that fails whenever load is elevated — confirmed on plain
+beta@4b902fc (3/3 failures, ~7s each) and on task/authz-oauth-takeover@27d36f0
+(2/3 failures, same signature); `git diff --stat 4b902fc 27d36f0 --
+assignments/` is empty, so it isn't branch-specific.
+
+**Fix direction**: make the assertion independent of the wall clock — measure
+relative ordering (the slow render finishes last; healthy ones finish close
+together) or inject a fake clock — rather than raising the 4.0s threshold,
+which only shifts where the flake reappears under heavier load.
+
+**Priority**: low, behind the test-speed stream's current queue.
+
+**Acceptance**: passes reliably at machine load comparable to a loaded
+CI/dev box; a genuine stall (the behaviour this test guards against) must
+still fail it.
+
+---
+
 Several of these were found during Section 3 but are **not** Section 3
 changes — H-1 spans four apps, H-2 lives in `users`/`assignments`/`students`,
 H-5 is Section 7. They were deliberately kept out of the security work so
