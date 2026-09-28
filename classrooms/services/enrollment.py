@@ -157,8 +157,14 @@ def check_existing_account_may_join(student, course):
     raise EnrollmentError(CROSS_SCHOOL_REJECTION_MESSAGE)
 
 
-def enroll_student_by_email(*, course, email):
+def enroll_student_by_email(
+    *, course, email, first_name="", middle_name="", last_name=""
+):
     """Add a student to `course` by email address, inviting them if needed.
+
+    The names are used only when a brand-new account is created (the bulk
+    roster import has them; the single add doesn't). An existing account's
+    names are never overwritten.
 
     Mirrors the license-teacher invite (billing/license_service.py): a
     newly invited student is active immediately with a system-generated
@@ -188,7 +194,11 @@ def enroll_student_by_email(*, course, email):
 
         if student is None:
             student, generated_password = _create_new_student(
-                course=course, email=email
+                course=course,
+                email=email,
+                first_name=first_name,
+                middle_name=middle_name,
+                last_name=last_name,
             )
             _create_enrollment(
                 student=student,
@@ -226,7 +236,20 @@ def enroll_student_by_email(*, course, email):
         student.set_password(generated_password)
         student.is_active = True
         student.must_change_password = True
-        student.save(update_fields=["password", "is_active", "must_change_password"])
+        # A legacy pending row's old activation code is dead once the row is
+        # active (both code doors match is_active=False only); clear it so
+        # no student row carries a code after onboarding.
+        student.activation_token = None
+        student.activation_expires = None
+        student.save(
+            update_fields=[
+                "password",
+                "is_active",
+                "must_change_password",
+                "activation_token",
+                "activation_expires",
+            ]
+        )
 
         _create_enrollment(
             student=student,
@@ -239,7 +262,7 @@ def enroll_student_by_email(*, course, email):
         return student, True
 
 
-def _create_new_student(*, course, email):
+def _create_new_student(*, course, email, first_name="", middle_name="", last_name=""):
     """Create a brand-new student account, active immediately with a
     system-generated temporary password.
 
@@ -248,6 +271,9 @@ def _create_new_student(*, course, email):
     """
     student = CustomUser.objects.create(
         email=email,
+        first_name=first_name,
+        middle_name=middle_name,
+        last_name=last_name,
         user_type=UserTypes.STUDENT,
         is_active=True,
         school=course.teacher.school,

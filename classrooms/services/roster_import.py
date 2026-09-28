@@ -16,18 +16,15 @@ from dataclasses import dataclass
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import validate_email
 from django.db import transaction
-from django.utils import timezone
 
 from AutoGrader.error_messages import describe_user_error
-from users.models import ACTIVATION_TOKEN_VALIDITY, CustomUser, UserTypes
-from users.services import otp_manager
+from users.models import CustomUser, UserTypes
 
 from ..models import EnrollmentStatusType, StudentCourse
 from ..serializers import DirectAddStudentSerializer
-from . import notifications
 from .enrollment import (
     EnrollmentError,
-    check_existing_account_may_join,
+    enroll_student_by_email,
     find_account_by_email,
     normalize_email,
 )
@@ -230,58 +227,46 @@ def _find_existing_student_by_name(*, course, row):
 
 
 def _import_row_with_email(*, course, row):
+    """An emailed row goes through exactly the single-add path
+    (enrollment.enroll_student_by_email): a new student is created active
+    with a generated temporary password and gets the login-credentials
+    email; an existing student passes the shared cross-school/staff gate and
+    is either enrolled (already onboarded) or promoted and re-invited (still
+    onboarding, or a legacy inactive row). No activation code is minted, so
+    nothing here feeds the code-based student sign-up being retired."""
     # Normalised and matched case-insensitively, so an uppercase variant of
     # an existing address cannot slip past as a "new" student - see
     # enrollment.normalize_email.
     email = normalize_email(row.email)
-    student = find_account_by_email(email)
-    is_new = student is None
+    existing = find_account_by_email(email)
 
-    if student is not None:
-        # One shared gate for every path that attaches an existing account
-        # to a course: refuses staff accounts, and refuses an account that
-        # belongs to a different school. The bulk path used to apply
-        # neither, so a row carrying a teacher's address enrolled that
-        # teacher as a student, and a row carrying another school's
-        # student pulled them across the tenancy boundary.
-        try:
-            check_existing_account_may_join(student, course)
-        except EnrollmentError as exc:
-            return {
-                "name": row.display_name,
-                "status": "failed",
-                "error": str(exc),
-            }, None
-
-    if is_new:
-        student = CustomUser.objects.create(
-            email=email,
-            first_name=row.first_name,
-            middle_name=row.middle_name,
-            last_name=row.last_name,
-            user_type=UserTypes.STUDENT,
-            is_active=False,
-            school=course.teacher.school,
-            activation_token=otp_manager.generate_otp(),
-            activation_expires=timezone.now() + ACTIVATION_TOKEN_VALIDITY,
-        )
-
-    if StudentCourse.objects.filter(student=student, course=course).exists():
+    # The roster's own contract: an already-enrolled row is "skipped", not
+    # "failed" (the single add treats it as an error).
+    if (
+        existing is not None
+        and StudentCourse.objects.filter(student=existing, course=course).exists()
+    ):
         return {
             "name": row.display_name,
             "status": "skipped",
             "error": "Already enrolled",
         }, False
 
-    StudentCourse.objects.create(
-        student=student,
-        course=course,
-        enrollment_status=(
-            EnrollmentStatusType.PENDING if is_new else EnrollmentStatusType.ENROLLED
-        ),
-        auto_added=False,
-    )
-    notifications.send_bulk_enrollment_email(student, course)
+    try:
+        student, _ = enroll_student_by_email(
+            course=course,
+            email=email,
+            first_name=row.first_name,
+            middle_name=row.middle_name,
+            last_name=row.last_name,
+        )
+    except EnrollmentError as exc:
+        return {
+            "name": row.display_name,
+            "status": "failed",
+            "error": str(exc),
+        }, None
+
     return {
         "name": student.get_full_name(),
         "status": "invited",

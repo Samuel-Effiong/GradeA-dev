@@ -61,9 +61,18 @@ class BackfillPendingStudentInvitesTest(APITestCase):
         self.assertFalse(self.student.is_active)
         self.assertFalse(self.student.has_usable_password())
         self.assertFalse(self.student.must_change_password)
+        self.assertEqual(self.student.activation_token, "112233")
         mock_email.assert_not_called()
-        self.assertIn("legacy-invite@example.com", out.getvalue())
+        self.assertIn(f"student {self.student.pk}", out.getvalue())
         self.assertIn("dry run", out.getvalue())
+
+    @patch("classrooms.services.notifications.send_student_login_invitation_email")
+    def test_output_names_ids_only_never_an_email(self, mock_email):
+        """The founder runs this on Railway, whose logs keep stdout."""
+        for args in (["--dry-run"], []):
+            out = StringIO()
+            call_command("backfill_pending_student_invites", *args, stdout=out)
+            self.assertNotIn("@", out.getvalue(), args)
 
     @patch("classrooms.services.notifications.send_student_login_invitation_email")
     def test_real_run_converts_and_sends_login_email(self, mock_email):
@@ -74,6 +83,9 @@ class BackfillPendingStudentInvitesTest(APITestCase):
         self.assertTrue(self.student.is_active)
         self.assertTrue(self.student.must_change_password)
         self.assertTrue(self.student.has_usable_password())
+        self.assertIsNone(self.student.activation_token)
+        self.assertIsNone(self.student.activation_expires)
+        self.assertIn("still holding a code: 0", out.getvalue())
 
         mock_email.assert_called_once()
         called_student, called_course, called_password = mock_email.call_args[0]
@@ -102,7 +114,7 @@ class BackfillPendingStudentInvitesTest(APITestCase):
         self.student.refresh_from_db()
         self.assertEqual(self.student.password, first_password_hash)
         mock_email.assert_not_called()
-        self.assertIn("0 student(s) converted", out.getvalue())
+        self.assertIn("0 converted", out.getvalue())
 
     @patch("classrooms.services.notifications.send_student_login_invitation_email")
     def test_student_who_has_since_logged_in_is_never_revisited(self, mock_email):
@@ -127,7 +139,9 @@ class BackfillPendingStudentInvitesTest(APITestCase):
         mock_email.assert_not_called()
 
     @patch("classrooms.services.notifications.send_student_login_invitation_email")
-    def test_skips_student_with_no_pending_enrollment(self, mock_email):
+    def test_no_pending_enrollment_stays_inactive_but_loses_its_code(self, mock_email):
+        """Nothing to email about, so the account isn't activated - but its
+        dead code is cleared, so the old sign-up door can't complete it."""
         self.enrollment.delete()
 
         out = StringIO()
@@ -135,5 +149,19 @@ class BackfillPendingStudentInvitesTest(APITestCase):
 
         self.student.refresh_from_db()
         self.assertFalse(self.student.is_active)
+        self.assertIsNone(self.student.activation_token)
+        self.assertIsNone(self.student.activation_expires)
         mock_email.assert_not_called()
-        self.assertIn("1 skipped", out.getvalue())
+        self.assertIn("1 code-only cleared", out.getvalue())
+        self.assertIn("still holding a code: 0", out.getvalue())
+
+    @patch("classrooms.services.notifications.send_student_login_invitation_email")
+    def test_a_placeholder_address_is_converted_and_flagged(self, mock_email):
+        self.student.email = "legacy.invite.x1@student.local"
+        self.student.save(update_fields=["email"])
+
+        out = StringIO()
+        call_command("backfill_pending_student_invites", "--dry-run", stdout=out)
+
+        self.assertIn("placeholder address", out.getvalue())
+        self.assertIn("1 of the converted on a placeholder address", out.getvalue())

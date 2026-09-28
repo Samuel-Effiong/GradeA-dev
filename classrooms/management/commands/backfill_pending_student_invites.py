@@ -8,20 +8,30 @@ each one the new login-credentials email
 (notifications.send_student_login_invitation_email) in place of the old
 activation-link one.
 
-Idempotent by construction, not by a separate marker: the selection query
-is is_active=False AND activation_token is set, and every row this command
-touches comes out with is_active=True. A row already converted (by this
-command, or by the student registering the old way before this ran) no
-longer matches the query, so a second run finds nothing left to do for it.
-A student who HAS since logged in (must_change_password reset to False by
-their own password change) is likewise never revisited, because they too
-are already is_active=True and out of scope.
+It is the precondition for removing the code-based student sign-up
+(POST /auth/register/student and /course/student/renew-student-token): once
+it has run, no student row carries an activation code, so nothing is left
+for those endpoints to complete.
 
-Sends real email and mutates real user state - run --dry-run first and
-read the output before running for real.
+  * A student with a pending enrollment is converted as above, and their
+    old code is cleared.
+  * A student with NO pending enrollment (e.g. the enrollment was deleted
+    after the invite went out) has nothing to be emailed about, so the
+    account is left inactive - but its dead code is still cleared, so it
+    can't be completed through the old door either. Adding them to a course
+    later goes through enroll_student_by_email, which activates them then.
+
+Idempotent by construction, not by a separate marker: the selection query
+is is_active=False AND activation_token set, and every row this command
+touches comes out with its code cleared. A second run finds nothing.
+
+Output carries internal ids only - never an email address, name or
+credential - so it is safe in Railway's logs. Sends real email and
+mutates real user state: run --dry-run first and read the output.
 
 Usage:
-    python manage.py backfill_pending_student_invites [--dry-run]
+    python manage.py backfill_pending_student_invites --dry-run
+    python manage.py backfill_pending_student_invites
 """
 
 import logging
@@ -36,12 +46,23 @@ from users.services import generate_temporary_password
 
 logger = logging.getLogger(__name__)
 
+PLACEHOLDER_DOMAIN = "@student.local"
+
+
+def pending_students():
+    return CustomUser.objects.filter(
+        user_type=UserTypes.STUDENT,
+        is_active=False,
+        activation_token__isnull=False,
+    ).exclude(activation_token="")
+
 
 class Command(BaseCommand):
     help = (
         "Convert legacy is_active=False pending student invites to the "
-        "active-immediately scheme: real password, is_active=True, "
-        "must_change_password=True, and a resent login-credentials email."
+        "active-immediately scheme (real password, is_active=True, "
+        "must_change_password=True, a resent login-credentials email) and "
+        "clear every student activation code."
     )
 
     def add_arguments(self, parser):
@@ -49,40 +70,45 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
+        prefix = "[dry-run] would " if dry_run else ""
 
-        students = CustomUser.objects.filter(
-            user_type=UserTypes.STUDENT,
-            is_active=False,
-            activation_token__isnull=False,
-        ).exclude(activation_token="")
-
-        count = 0
-        skipped = 0
-        for student in students:
+        converted = cleared_only = placeholder = 0
+        for student in pending_students().order_by("date_joined"):
             course = self._pending_course_for(student)
             if course is None:
-                # No pending enrollment left to notify about (e.g. the
-                # enrollment was deleted after the invite went out). Nothing
-                # sane to email, so leave the account alone rather than
-                # activating it with no course context.
-                skipped += 1
-                continue
-
-            if dry_run:
                 self.stdout.write(
-                    f"[dry-run] would convert {student.email} (pending: {course.name})"
+                    f"{prefix}clear code only (no pending enrollment): "
+                    f"student {student.pk}"
                 )
-                count += 1
+                if not dry_run:
+                    self._clear_code(student)
+                cleared_only += 1
                 continue
 
-            self._convert(student, course)
-            self.stdout.write(f"Converted {student.email} (pending: {course.name})")
-            count += 1
+            no_mailbox = student.email.endswith(PLACEHOLDER_DOMAIN)
+            placeholder += no_mailbox
+            self.stdout.write(
+                f"{prefix}convert: student {student.pk} (pending course "
+                f"{course.pk})"
+                + (
+                    " - placeholder address, email won't be delivered"
+                    if no_mailbox
+                    else ""
+                )
+            )
+            if not dry_run:
+                self._convert(student, course)
+            converted += 1
 
+        remaining = pending_students().count()
         self.stdout.write(
             self.style.SUCCESS(
-                f"Backfill complete{' (dry run)' if dry_run else ''}: "
-                f"{count} student(s) converted, {skipped} skipped (no pending enrollment)."
+                f"Backfill {'(dry run) ' if dry_run else ''}complete: "
+                f"{converted} converted, {cleared_only} code-only cleared "
+                f"(no pending enrollment), {placeholder} of the converted on a "
+                f"placeholder address (the teacher must hand them their "
+                f"credentials). Inactive students still holding a code: "
+                f"{remaining}."
             )
         )
 
@@ -105,7 +131,23 @@ class Command(BaseCommand):
         student.set_password(generated_password)
         student.is_active = True
         student.must_change_password = True
-        student.save(update_fields=["password", "is_active", "must_change_password"])
+        student.activation_token = None
+        student.activation_expires = None
+        student.save(
+            update_fields=[
+                "password",
+                "is_active",
+                "must_change_password",
+                "activation_token",
+                "activation_expires",
+            ]
+        )
         notifications.send_student_login_invitation_email(
             student, course, generated_password
         )
+
+    @staticmethod
+    def _clear_code(student):
+        student.activation_token = None
+        student.activation_expires = None
+        student.save(update_fields=["activation_token", "activation_expires"])

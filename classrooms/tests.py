@@ -326,15 +326,16 @@ class ActivationTokenValidityWindowTest(APITestCase):
     window (see users.models.ACTIVATION_TOKEN_VALIDITY) plus a dedicated
     throttle on verify (see users.tests_throttling).
 
-    The single-add invite (`course/<pk>/students`) no longer creates an
-    activation_token at all - new students there are active immediately
-    with a temporary password (see classrooms/services/enrollment.py). The
-    bulk/CSV roster import's with-email branch is untouched and is now the
-    only surviving path that creates this state, so the regression is
-    exercised through it instead.
+    Neither the single add (`course/<pk>/students`) nor, since the H-47
+    follow-through, the bulk/CSV roster import creates an activation_token
+    any more: new students are active immediately with a temporary password
+    (classrooms/services/enrollment.py). The only code-minting path left is
+    renewal (CustomUser.renew_activation_token), whose window is pinned in
+    users.tests_models_and_admin. This test pins that the roster no longer
+    mints one.
     """
 
-    def test_bulk_imported_student_gets_the_shortened_window(self):
+    def test_bulk_imported_student_gets_no_activation_code(self):
         teacher = User.objects.create_user(
             email="activation-window-teacher@example.com",
             password="password123",  # pragma: allowlist secret
@@ -348,26 +349,19 @@ class ActivationTokenValidityWindowTest(APITestCase):
         url = reverse("course-bulk-add-students", kwargs={"pk": course.pk})
         self.client.force_authenticate(user=teacher)
 
-        before = timezone.now()
         response = self.client.post(
             url,
             {"raw_data": "New,Student,new-student@example.com"},
             format="json",
         )
-        after = timezone.now()
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         student = User.objects.get(email="new-student@example.com")
 
-        self.assertIsNotNone(student.activation_expires)
-        self.assertGreaterEqual(
-            student.activation_expires, before + ACTIVATION_TOKEN_VALIDITY
-        )
-        self.assertLessEqual(
-            student.activation_expires, after + ACTIVATION_TOKEN_VALIDITY
-        )
-        # And explicitly not the old 7-day window.
-        self.assertLess(student.activation_expires, before + timedelta(days=2))
+        self.assertIsNone(student.activation_token)
+        self.assertIsNone(student.activation_expires)
+        self.assertTrue(student.is_active)
+        self.assertTrue(student.must_change_password)
 
 
 class RenewActivationTokenTest(APITestCase):
