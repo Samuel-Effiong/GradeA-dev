@@ -16,7 +16,7 @@ import logging
 from django.db import transaction
 from django.utils import timezone
 
-from users.models import ACTIVATION_TOKEN_VALIDITY, CustomUser, UserTypes
+from users.models import ACTIVATION_TOKEN_VALIDITY, CustomUser, UserActivity, UserTypes
 from users.services import generate_temporary_password
 
 from ..models import Course, EnrollmentStatusType, StudentCourse
@@ -157,6 +157,19 @@ def check_existing_account_may_join(student, course):
     raise EnrollmentError(CROSS_SCHOOL_REJECTION_MESSAGE)
 
 
+def has_signed_in(student):
+    """Whether this account has ever signed in.
+
+    `last_login` is stamped on every successful login (SIMPLE_JWT
+    UPDATE_LAST_LOGIN, since the retire-student-token-signup change); before
+    that it was never maintained, so older sign-ins show only as a
+    UserActivity row (written on authenticated requests). Either counts.
+    """
+    return student.last_login is not None or (
+        UserActivity.objects.filter(user=student).exists()
+    )
+
+
 def enroll_student_by_email(
     *, course, email, first_name="", middle_name="", last_name=""
 ):
@@ -173,15 +186,20 @@ def enroll_student_by_email(
 
     Three cases, in the order they are checked:
       * already enrolled -> EnrollmentError, nothing changes;
-      * existing account that has already onboarded (is_active and not
-        must_change_password) -> enrolled immediately, told they're in;
-      * no account at all, or an existing account still mid-onboarding
-        (must_change_password, or a legacy is_active=False row left over
-        from before this change / not yet run through the backfill
-        migration) -> PENDING enrollment plus a fresh temporary password
-        and a login-credentials email.
+      * existing account that has ever signed in -> enrolled immediately,
+        told they're in; password untouched, sessions untouched;
+      * no account at all, or an existing account that has never signed in
+        (a legacy is_active=False row, or an active one with no sign-in
+        signal - see has_signed_in) -> PENDING enrollment plus a fresh
+        temporary password and a login-credentials email.
 
-    Returns (student, is_new_student).
+    `must_change_password` is informational and deliberately NOT used here:
+    a student can use the app indefinitely without clearing it, so treating
+    it as "still onboarding" reset real students' passwords on every add
+    (SM ruling 2026-09-28; a pre-existing bug on the single-add path).
+
+    Returns (student, invited): True when a login-credentials email with a
+    new password was sent, False when an existing student was enrolled.
     """
     with transaction.atomic():
         # Lock the course row for the duration. The caller has already
@@ -217,7 +235,7 @@ def enroll_student_by_email(
         # check_existing_account_may_join.
         check_existing_account_may_join(student, course)
 
-        if student.is_active and not student.must_change_password:
+        if student.is_active and has_signed_in(student):
             _create_enrollment(
                 student=student,
                 course=course,
@@ -226,9 +244,9 @@ def enroll_student_by_email(
             notifications.send_added_to_course_email(student, course)
             return student, False
 
-        # Still mid-onboarding - e.g. invited to a different course and
-        # never logged in - or a legacy pending row from before this
-        # change. A fresh password every resend: the previous one's
+        # Never signed in - e.g. invited to a different course and never
+        # logged in - or a legacy pending row from before this change.
+        # A fresh password every resend: the previous one's
         # plaintext can't be recovered from the stored hash to put in this
         # email, so there's nothing to reuse. is_active is force-set True
         # here too, healing any legacy row this encounters.

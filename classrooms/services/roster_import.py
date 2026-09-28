@@ -253,7 +253,7 @@ def _import_row_with_email(*, course, row):
         }, False
 
     try:
-        student, _ = enroll_student_by_email(
+        student, invited = enroll_student_by_email(
             course=course,
             email=email,
             first_name=row.first_name,
@@ -267,10 +267,20 @@ def _import_row_with_email(*, course, row):
             "error": str(exc),
         }, None
 
+    if invited:
+        # New account, or one that has never signed in: a fresh temporary
+        # password went out by email.
+        return {
+            "name": student.get_full_name(),
+            "status": "invited",
+            "type": "invitation",
+        }, True
+    # An existing student who has signed in: enrolled as-is, password and
+    # sessions untouched, told they were added.
     return {
         "name": student.get_full_name(),
-        "status": "invited",
-        "type": "invitation",
+        "status": "enrolled",
+        "type": "existing_student",
     }, True
 
 

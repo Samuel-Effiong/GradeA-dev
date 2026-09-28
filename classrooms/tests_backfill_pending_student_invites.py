@@ -168,12 +168,24 @@ class BackfillPendingStudentInvitesTest(APITestCase):
         self.assertIn("still holding a code: 1", out.getvalue())
 
     @patch("classrooms.services.notifications.send_student_login_invitation_email")
-    def test_a_placeholder_address_is_converted_and_flagged(self, mock_email):
+    def test_a_placeholder_address_only_loses_its_code(self, mock_email):
+        """Founder: @student.local students are intentionally inaccessible
+        to the student - not activated, not emailed, just the code cleared."""
         self.student.email = "legacy.invite.x1@student.local"
         self.student.save(update_fields=["email"])
 
         out = StringIO()
-        call_command("backfill_pending_student_invites", "--dry-run", stdout=out)
+        call_command("backfill_pending_student_invites", stdout=out)
 
-        self.assertIn("placeholder address", out.getvalue())
-        self.assertIn("1 of the converted on a placeholder address", out.getvalue())
+        self.student.refresh_from_db()
+        self.assertFalse(self.student.is_active)
+        self.assertFalse(self.student.has_usable_password())
+        self.assertIsNone(self.student.activation_token)
+        mock_email.assert_not_called()
+        self.enrollment.refresh_from_db()
+        self.assertEqual(
+            self.enrollment.enrollment_status, EnrollmentStatusType.PENDING
+        )
+        self.assertIn("0 converted", out.getvalue())
+        self.assertIn("1 code-only cleared (placeholder address", out.getvalue())
+        self.assertIn("still holding a code: 0", out.getvalue())

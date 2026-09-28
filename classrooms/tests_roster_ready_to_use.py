@@ -8,6 +8,7 @@ complete. must_change_password is set but informational (the server doesn't
 enforce it).
 """
 
+from typing import Any
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -25,17 +26,38 @@ from classrooms.models import (
     StudentCourse,
 )
 from classrooms.services.enrollment import CROSS_SCHOOL_REJECTION_MESSAGE
-from users.models import UserTypes
+from users.models import UserActivity, UserTypes
 
 User = get_user_model()
 
 LOCMEM_CACHE = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 NOTIFY = "classrooms.services.enrollment.notifications"
 TEACHER_PASSWORD = "Teacher-Roster-Pw-31"  # pragma: allowlist secret
+KIM_PASSWORD = "Kims-Own-Passw0rd!"  # pragma: allowlist secret
+
+
+class SignInHelpers(APITestCase):
+    """Shared helpers for the two test classes below; no tests of its own."""
+
+    teacher: Any
+    course: Course
+
+    def other_course(self):
+        return Course.objects.create(
+            name="Bio 101", teacher=self.teacher, session=self.course.session
+        )
+
+    def sign_in(self, email, password):
+        """A real /auth/login from a separate client, so the teacher's
+        forced authentication on self.client is untouched."""
+        response = self.client_class().post(
+            reverse("login"), {"email": email, "password": password}, format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
 
 
 @override_settings(CACHES=LOCMEM_CACHE)
-class RosterEmailRowsAreReadyToUseTests(APITestCase):
+class RosterEmailRowsAreReadyToUseTests(SignInHelpers):
     def setUp(self):
         self.teacher = User.objects.create_user(
             email="roster.teacher@example.com",
@@ -103,7 +125,7 @@ class RosterEmailRowsAreReadyToUseTests(APITestCase):
             self._enrollment(student).enrollment_status, EnrollmentStatusType.ENROLLED
         )
 
-    def test_an_onboarded_student_is_enrolled_and_keeps_their_password(self):
+    def test_a_student_who_has_signed_in_is_enrolled_and_keeps_their_password(self):
         student = User.objects.create_user(
             email="known@example.com",
             password="Known-Student-Pw-8",  # pragma: allowlist secret
@@ -112,8 +134,9 @@ class RosterEmailRowsAreReadyToUseTests(APITestCase):
             user_type=UserTypes.STUDENT,
             is_active=True,
         )
+        UserActivity.objects.create(user=student)  # the pre-last_login signal
 
-        self._import("Other,Name,known@example.com")
+        response = self._import("Other,Name,known@example.com")
 
         student.refresh_from_db()
         self.assertTrue(student.check_password("Known-Student-Pw-8"))
@@ -123,6 +146,43 @@ class RosterEmailRowsAreReadyToUseTests(APITestCase):
         )
         self.notify.send_added_to_course_email.assert_called_once()
         self.notify.send_student_login_invitation_email.assert_not_called()
+        result = response.data["results"][0]
+        self.assertEqual(
+            (result["status"], result["type"]), ("enrolled", "existing_student")
+        )
+
+    def test_reimporting_a_signed_in_student_with_the_flag_set_keeps_their_password(
+        self,
+    ):
+        """The Verification Engineer's scenario: must_change_password is
+        informational, so a student can sign in and use the app without ever
+        clearing it. A re-import into a second course must not reset them."""
+        kim = User.objects.create_user(
+            email="kim@example.com",
+            password=KIM_PASSWORD,
+            first_name="Kim",
+            last_name="Lee",
+            user_type=UserTypes.STUDENT,
+            is_active=True,
+        )
+        User.objects.filter(pk=kim.pk).update(must_change_password=True)
+        StudentCourse.objects.create(
+            student=kim,
+            course=self.other_course(),
+            enrollment_status=EnrollmentStatusType.ENROLLED,
+        )
+        self.sign_in("kim@example.com", KIM_PASSWORD)
+
+        response = self._import("Kim,Lee,kim@example.com")
+
+        kim.refresh_from_db()
+        self.assertTrue(kim.check_password(KIM_PASSWORD))
+        self.assertEqual(
+            self._enrollment(kim).enrollment_status, EnrollmentStatusType.ENROLLED
+        )
+        self.notify.send_student_login_invitation_email.assert_not_called()
+        self.notify.send_added_to_course_email.assert_called_once()
+        self.assertEqual(response.data["results"][0]["status"], "enrolled")
 
     def test_a_legacy_inactive_row_with_a_code_is_promoted_and_its_code_cleared(self):
         legacy = User.objects.create_user(
@@ -148,8 +208,11 @@ class RosterEmailRowsAreReadyToUseTests(APITestCase):
             self._enrollment(legacy).enrollment_status, EnrollmentStatusType.PENDING
         )
 
-    def test_a_student_still_onboarding_gets_a_fresh_password(self):
-        onboarding = User.objects.create_user(
+    def test_a_student_who_never_signed_in_gets_a_fresh_password(self):
+        """The reverse case: invited before, never signed in (no last_login,
+        no UserActivity). Their first email's password was never used, so a
+        re-add re-sends credentials."""
+        never = User.objects.create_user(
             email="onboarding@example.com",
             password="Old-Temp-Pw-55",  # pragma: allowlist secret
             first_name="On",
@@ -159,15 +222,32 @@ class RosterEmailRowsAreReadyToUseTests(APITestCase):
             must_change_password=True,
         )
 
-        self._import("On,Boarding,onboarding@example.com")
+        response = self._import("On,Boarding,onboarding@example.com")
 
-        onboarding.refresh_from_db()
-        self.assertFalse(onboarding.check_password("Old-Temp-Pw-55"))
-        self.assertTrue(onboarding.check_password(self._emailed_password()))
+        never.refresh_from_db()
+        self.assertFalse(never.check_password("Old-Temp-Pw-55"))
+        self.assertTrue(never.check_password(self._emailed_password()))
         self.assertEqual(
-            self._enrollment(onboarding).enrollment_status,
+            self._enrollment(never).enrollment_status,
             EnrollmentStatusType.PENDING,
         )
+        self.assertEqual(response.data["results"][0]["status"], "invited")
+
+    def test_a_login_stamps_last_login(self):
+        student = User.objects.create_user(
+            email="stamp@example.com",
+            password=KIM_PASSWORD,
+            first_name="St",
+            last_name="Amp",
+            user_type=UserTypes.STUDENT,
+            is_active=True,
+        )
+        self.assertIsNone(student.last_login)
+
+        self.sign_in("stamp@example.com", KIM_PASSWORD)
+
+        student.refresh_from_db()
+        self.assertIsNotNone(student.last_login)
 
     def test_an_already_enrolled_row_is_skipped_and_nothing_is_sent(self):
         student = User.objects.create_user(
@@ -248,3 +328,75 @@ class RosterEmailRowsAreReadyToUseTests(APITestCase):
         self.assertEqual(students.count(), 3)
         self.assertFalse(students.exclude(activation_token__isnull=True).exists())
         self.assertFalse(students.filter(is_active=False).exists())
+
+
+@override_settings(CACHES=LOCMEM_CACHE)
+class SingleAddExistingStudentTests(SignInHelpers):
+    """POST /course/<id>/students (single add) shares enroll_student_by_email.
+    Before this change it reset the password of any student whose
+    must_change_password flag was still set - a pre-existing bug on beta and
+    production, fixed by the same "has ever signed in" rule."""
+
+    def setUp(self):
+        self.teacher = User.objects.create_user(
+            email="single.teacher@example.com",
+            password=TEACHER_PASSWORD,
+            first_name="Single",
+            last_name="Teacher",
+            user_type=UserTypes.TEACHER,
+            is_active=True,
+        )
+        session = Session.objects.create(name="Term", teacher=self.teacher)
+        self.course = Course.objects.create(
+            name="Chemistry", teacher=self.teacher, session=session
+        )
+        self.url = reverse("course-students", kwargs={"pk": self.course.pk})
+        self.client.force_authenticate(user=self.teacher)
+        patcher = patch(NOTIFY)
+        self.notify = patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def _student(self, email, password):
+        student = User.objects.create_user(
+            email=email,
+            password=password,
+            first_name="Ex",
+            last_name="Isting",
+            user_type=UserTypes.STUDENT,
+            is_active=True,
+        )
+        User.objects.filter(pk=student.pk).update(must_change_password=True)
+        return student
+
+    def _add(self, email):
+        response = self.client.post(self.url, {"email": email}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        return response
+
+    def test_a_signed_in_student_is_enrolled_and_keeps_their_password(self):
+        kim = self._student("kim@example.com", KIM_PASSWORD)
+        self.sign_in("kim@example.com", KIM_PASSWORD)
+
+        response = self._add("kim@example.com")
+
+        self.assertIs(response.data["is_new_student"], False)
+        kim.refresh_from_db()
+        self.assertTrue(kim.check_password(KIM_PASSWORD))
+        self.assertEqual(
+            StudentCourse.objects.get(
+                student=kim, course=self.course
+            ).enrollment_status,
+            EnrollmentStatusType.ENROLLED,
+        )
+        self.notify.send_student_login_invitation_email.assert_not_called()
+        self.notify.send_added_to_course_email.assert_called_once()
+
+    def test_a_student_who_never_signed_in_is_re_sent_credentials(self):
+        never = self._student("never@example.com", "Unused-Temp-Pw-3")
+
+        response = self._add("never@example.com")
+
+        self.assertIs(response.data["is_new_student"], True)
+        never.refresh_from_db()
+        self.assertFalse(never.check_password("Unused-Temp-Pw-3"))
+        self.notify.send_student_login_invitation_email.assert_called_once()

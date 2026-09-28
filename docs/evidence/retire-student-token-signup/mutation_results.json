@@ -46,6 +46,12 @@
       "test_dry_run_leaves_an_orphans_code_in_place"
     ]
   },
+  "B6_placeholder_code_not_cleared": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_placeholder_address_only_loses_its_code"
+    ]
+  },
   "B4_output_names_the_email": {
     "killed": true,
     "failing_tests": [
@@ -53,10 +59,45 @@
       "test_output_names_ids_only_never_an_email"
     ]
   },
-  "B5_placeholder_not_flagged": {
+  "B5_placeholder_converted_like_a_real_address": {
     "killed": true,
     "failing_tests": [
-      "test_a_placeholder_address_is_converted_and_flagged"
+      "test_a_placeholder_address_only_loses_its_code"
+    ]
+  },
+  "S1_must_change_password_back_as_the_onboarding_signal": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_signed_in_student_is_enrolled_and_keeps_their_password",
+      "test_reimporting_a_signed_in_student_with_the_flag_set_keeps_their_password"
+    ]
+  },
+  "S2_last_login_ignored": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_signed_in_student_is_enrolled_and_keeps_their_password",
+      "test_reimporting_a_signed_in_student_with_the_flag_set_keeps_their_password"
+    ]
+  },
+  "S3_user_activity_ignored": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_student_who_has_signed_in_is_enrolled_and_keeps_their_password"
+    ]
+  },
+  "S4_roster_reports_every_row_as_invited": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_student_who_has_signed_in_is_enrolled_and_keeps_their_password",
+      "test_reimporting_a_signed_in_student_with_the_flag_set_keeps_their_password"
+    ]
+  },
+  "S5_login_does_not_stamp_last_login": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_login_stamps_last_login",
+      "test_a_signed_in_student_is_enrolled_and_keeps_their_password",
+      "test_reimporting_a_signed_in_student_with_the_flag_set_keeps_their_password"
     ]
   }
 }

@@ -5,6 +5,12 @@ R4_promotion_keeps_the_old_code {'killed': True, 'failing_tests': ['test_a_legac
 B1_convert_keeps_the_old_code {'killed': True, 'failing_tests': ['test_real_run_converts_and_sends_login_email']}
 B2_orphan_code_not_cleared {'killed': True, 'failing_tests': ['test_no_pending_enrollment_stays_inactive_but_loses_its_code']}
 B3_dry_run_clears_codes {'killed': True, 'failing_tests': ['test_dry_run_leaves_an_orphans_code_in_place']}
+B6_placeholder_code_not_cleared {'killed': True, 'failing_tests': ['test_a_placeholder_address_only_loses_its_code']}
 B4_output_names_the_email {'killed': True, 'failing_tests': ['test_dry_run_touches_nothing_and_sends_no_mail', 'test_output_names_ids_only_never_an_email']}
-B5_placeholder_not_flagged {'killed': True, 'failing_tests': ['test_a_placeholder_address_is_converted_and_flagged']}
+B5_placeholder_converted_like_a_real_address {'killed': True, 'failing_tests': ['test_a_placeholder_address_only_loses_its_code']}
+S1_must_change_password_back_as_the_onboarding_signal {'killed': True, 'failing_tests': ['test_a_signed_in_student_is_enrolled_and_keeps_their_password', 'test_reimporting_a_signed_in_student_with_the_flag_set_keeps_their_password']}
+S2_last_login_ignored {'killed': True, 'failing_tests': ['test_a_signed_in_student_is_enrolled_and_keeps_their_password', 'test_reimporting_a_signed_in_student_with_the_flag_set_keeps_their_password']}
+S3_user_activity_ignored {'killed': True, 'failing_tests': ['test_a_student_who_has_signed_in_is_enrolled_and_keeps_their_password']}
+S4_roster_reports_every_row_as_invited {'killed': True, 'failing_tests': ['test_a_student_who_has_signed_in_is_enrolled_and_keeps_their_password', 'test_reimporting_a_signed_in_student_with_the_flag_set_keeps_their_password']}
+S5_login_does_not_stamp_last_login {'killed': True, 'failing_tests': ['test_a_login_stamps_last_login', 'test_a_signed_in_student_is_enrolled_and_keeps_their_password', 'test_reimporting_a_signed_in_student_with_the_flag_set_keeps_their_password']}
 SURVIVORS: []

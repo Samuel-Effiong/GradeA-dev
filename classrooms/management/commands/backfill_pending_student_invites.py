@@ -20,6 +20,11 @@ for those endpoints to complete.
     account is left inactive - but its dead code is still cleared, so it
     can't be completed through the old door either. Adding them to a course
     later goes through enroll_student_by_email, which activates them then.
+  * A student on a placeholder @student.local address is, per the founder,
+    intentionally inaccessible to the student: the code is cleared, and it
+    is neither activated nor emailed (the email is undeliverable, and
+    activating would give the row a usable password nobody holds, unlike
+    direct add's unusable one).
 
 Idempotent by construction, not by a separate marker: the selection query
 is is_active=False AND activation_token set, and every row this command
@@ -74,6 +79,21 @@ class Command(BaseCommand):
 
         converted = cleared_only = placeholder = 0
         for student in pending_students().order_by("date_joined"):
+            if student.email.endswith(PLACEHOLDER_DOMAIN):
+                # Founder: @student.local students are intentionally
+                # inaccessible to the student. No email (undeliverable), no
+                # activation (it would hand the row a usable password that
+                # nobody holds, unlike direct add's unusable one) - only the
+                # dead code goes.
+                self.stdout.write(
+                    f"{prefix}clear code only (placeholder address): "
+                    f"student {student.pk}"
+                )
+                if not dry_run:
+                    self._clear_code(student)
+                placeholder += 1
+                continue
+
             course = self._pending_course_for(student)
             if course is None:
                 self.stdout.write(
@@ -85,16 +105,9 @@ class Command(BaseCommand):
                 cleared_only += 1
                 continue
 
-            no_mailbox = student.email.endswith(PLACEHOLDER_DOMAIN)
-            placeholder += no_mailbox
             self.stdout.write(
                 f"{prefix}convert: student {student.pk} (pending course "
                 f"{course.pk})"
-                + (
-                    " - placeholder address, email won't be delivered"
-                    if no_mailbox
-                    else ""
-                )
             )
             if not dry_run:
                 self._convert(student, course)
@@ -105,10 +118,9 @@ class Command(BaseCommand):
             self.style.SUCCESS(
                 f"Backfill {'(dry run) ' if dry_run else ''}complete: "
                 f"{converted} converted, {cleared_only} code-only cleared "
-                f"(no pending enrollment), {placeholder} of the converted on a "
-                f"placeholder address (the teacher must hand them their "
-                f"credentials). Inactive students still holding a code: "
-                f"{remaining}."
+                f"(no pending enrollment), {placeholder} code-only cleared "
+                f"(placeholder address, left inactive, not emailed). "
+                f"Inactive students still holding a code: {remaining}."
             )
         )
 

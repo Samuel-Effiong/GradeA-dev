@@ -40,25 +40,60 @@ MUTANTS = {
         "        student.activation_token = None\n",
         "        student.must_change_password = True\n",
     ),
+    # The orphan and placeholder branches both call _clear_code; each anchor
+    # includes the branch's own counter line to stay unique.
     "B2_orphan_code_not_cleared": (
         BACKFILL,
-        "                    self._clear_code(student)\n",
-        "                    pass\n",
+        "                    self._clear_code(student)\n                cleared_only += 1\n",
+        "                    pass\n                cleared_only += 1\n",
     ),
     "B3_dry_run_clears_codes": (
         BACKFILL,
-        "                if not dry_run:\n                    self._clear_code(student)\n",
-        "                if True:\n                    self._clear_code(student)\n",
+        "                if not dry_run:\n                    self._clear_code(student)\n"
+        "                cleared_only += 1\n",
+        "                if True:\n                    self._clear_code(student)\n"
+        "                cleared_only += 1\n",
+    ),
+    "B6_placeholder_code_not_cleared": (
+        BACKFILL,
+        "                    self._clear_code(student)\n                placeholder += 1\n",
+        "                    pass\n                placeholder += 1\n",
     ),
     "B4_output_names_the_email": (
         BACKFILL,
         '                f"{prefix}convert: student {student.pk} (pending course "\n',
         '                f"{prefix}convert: student {student.email} (pending course "\n',
     ),
-    "B5_placeholder_not_flagged": (
+    "B5_placeholder_converted_like_a_real_address": (
         BACKFILL,
-        "            no_mailbox = student.email.endswith(PLACEHOLDER_DOMAIN)\n",
-        "            no_mailbox = False\n",
+        "            if student.email.endswith(PLACEHOLDER_DOMAIN):\n",
+        "            if False:\n",
+    ),
+    # The "has ever signed in" rule (SM ruling after the first verification).
+    "S1_must_change_password_back_as_the_onboarding_signal": (
+        ENROLL,
+        "        if student.is_active and has_signed_in(student):\n",
+        "        if student.is_active and not student.must_change_password:\n",
+    ),
+    "S2_last_login_ignored": (
+        ENROLL,
+        "    return student.last_login is not None or (\n",
+        "    return False or (\n",
+    ),
+    "S3_user_activity_ignored": (
+        ENROLL,
+        "        UserActivity.objects.filter(user=student).exists()\n",
+        "        False\n",
+    ),
+    "S4_roster_reports_every_row_as_invited": (
+        ROSTER,
+        "    if invited:\n",
+        "    if True:\n",
+    ),
+    "S5_login_does_not_stamp_last_login": (
+        "AutoGrader/settings.py",
+        '    "UPDATE_LAST_LOGIN": True,\n',
+        '    "UPDATE_LAST_LOGIN": False,\n',
     ),
 }
 

@@ -3,8 +3,9 @@
 **Who runs it:** the founder, on Railway, against production. Nobody else runs it on production.
 **When:** after landing (A) of `task/retire-student-token-signup` is deployed (so no new pending codes are being minted), and **before** landing (B) (which removes `POST /auth/register/student` and `POST /course/student/renew-student-token`) is deployed.
 **What it does:** `backfill_pending_student_invites` finds every student that's inactive and still holds an activation code.
-- With a pending enrollment: it activates the account with a generated temporary password, emails the student their login credentials, and clears the old code. The enrollment stays PENDING until their first login, as with any new invite.
-- With no pending enrollment: it leaves the account inactive and clears the code.
+- Real address with a pending enrollment: it activates the account with a generated temporary password, emails the student their login credentials, and clears the old code. The enrollment stays PENDING until their first login, as with any new invite.
+- Real address, no pending enrollment: it leaves the account inactive and clears the code.
+- **Placeholder `@student.local` address:** it clears the code only. The account is not activated and not emailed. *Founder statement (2026-09-28): `@student.local` students were created to be intentionally inaccessible to the student, so there's no teacher notification and no "set a password" follow-up.* Activating them was considered and rejected: it would give the row a usable password that nobody holds, where direct add gives these rows an unusable one. Matching direct add exactly would also mean flipping their enrollments to ENROLLED, which isn't clearly harmless.
 
 It never prints an email, a name or a credential; output is internal ids only. It's safe to rerun: a second run finds nothing.
 
@@ -18,14 +19,13 @@ Expected shape (ids vary):
 
 ```
 [dry-run] would convert: student <uuid> (pending course <uuid>)
-[dry-run] would convert: student <uuid> (pending course <uuid>) - placeholder address, email won't be delivered
 [dry-run] would clear code only (no pending enrollment): student <uuid>
-Backfill (dry run) complete: N converted, M code-only cleared (no pending enrollment), P of the converted on a placeholder address (the teacher must hand them their credentials). Inactive students still holding a code: N+M.
+[dry-run] would clear code only (placeholder address): student <uuid>
+Backfill (dry run) complete: N converted, M code-only cleared (no pending enrollment), P code-only cleared (placeholder address, left inactive, not emailed). Inactive students still holding a code: N+M+P.
 ```
 
 **Stop and ask before step 2 if:**
 - N is far larger than expected for the pending roster invites (tens to low hundreds is plausible for a term's imports).
-- P > 0. Those students have `@student.local` placeholder addresses, so their credentials email reaches nobody. After step 2 their teacher has to set them a password (manual student password reset). Decide who tells the teachers first.
 - Any line is anything other than the three shapes above, or the command errors.
 
 ## 2. Execute (sends real email, changes real accounts)
@@ -37,7 +37,7 @@ railway run python manage.py backfill_pending_student_invites
 Expected tail:
 
 ```
-Backfill complete: N converted, M code-only cleared (no pending enrollment), P of the converted on a placeholder address (...). Inactive students still holding a code: 0.
+Backfill complete: N converted, M code-only cleared (no pending enrollment), P code-only cleared (placeholder address, ...). Inactive students still holding a code: 0.
 ```
 
 N, M and P must match the dry run. **"still holding a code: 0" is the gate for landing (B).**
