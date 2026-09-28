@@ -67,6 +67,9 @@ repos:
         # (matching requirements.txt) installed, so the plugin can import
         # the app cleanly. See docs/evidence/mypy_django_stubs/EVIDENCE.md.
         language: system
+        # Evidence harnesses reuse names (several mutate.py), which stops
+        # whole-repo mypy with "Duplicate module named"; they aren't app code.
+        exclude: ^docs/
 
 -   repo: https://github.com/pycqa/flake8 # Linting with Flake8
     rev: 7.3.0
