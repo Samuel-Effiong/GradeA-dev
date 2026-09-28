@@ -187,6 +187,12 @@ In `billing/tests/test_h38_part2_removed_teacher_routes.py`:
   into a newly-failing test in this pass, which is out of scope here. Left
   as a loose "did not succeed" check with an inline comment explaining why,
   and flagged here for separate triage.
+  **Correction (2026-09-28, after the rebase onto beta 4b902fc):** the
+  "superadmin analytics context" explanation was wrong. The 500 was
+  `AIFeatureNotAvailableError` ("No active subscription"), which
+  `run_dashboard_ai_chat`'s `except Exception` answered as an explicit 500.
+  Beta `f7cd15e` fixed that, and the route now answers 403. The test is now
+  strict and has a positive control. See `custom_ai_prompt_500_triage.md`.
 - `billing/tests/test_h38_teacher_removal.py` (part 1, ~17 tests) was read
   in full: every status assertion there is already a strict `assertEqual`
   or a narrow `assertIn(status, (403, 404))`/`(402, 403, 404)` tuple, none of

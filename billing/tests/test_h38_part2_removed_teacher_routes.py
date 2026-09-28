@@ -15,13 +15,14 @@ status code. Re-run unchanged against the fixed branch.
 
 from datetime import timedelta
 from decimal import Decimal
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
+import dashboard.views as dashboard_views
 from assignments.models import (
     Assignment,
     AssignmentGenerationMessage,
@@ -30,6 +31,9 @@ from assignments.models import (
     AssignmentStatus,
 )
 from billing.models import (
+    CreditBucket,
+    CreditBucketType,
+    CreditWallet,
     LicenseSubscription,
     PlanCategory,
     PlanTier,
@@ -475,25 +479,127 @@ class RemovedTeacherDashboardRouteTests(RemovedTeacherRoutesBase):
         )
 
     def test_custom_ai_prompt_on_the_school_course(self):
-        response = self.client_t.post(
-            f"{API}/teacher-admin/dashboard/custom-ai-prompt",
-            {"prompt": "Summarise", "course_id": self.course_id},
-            format="json",
+        spy = CustomAIPromptContextSpy()
+        with patch(
+            "ai_processor.services.AIProcessor._AIProcessor__ai_model",
+            return_value=fake_model_response(),
+        ) as model, patch(
+            "dashboard.views.ai_processor.custom_ai_prompt_retry", side_effect=spy
+        ):
+            response = self.client_t.post(
+                CUSTOM_AI_PROMPT_URL,
+                {"prompt": "Summarise", "course_id": self.course_id},
+                format="json",
+            )
+        leaked = any("School A Biology" in context for context in spy.contexts)
+        note("dashboard/views.py custom-ai-prompt", "READ(paid AI)", response, leaked)
+        # Strict. The removal deactivated the teacher's license allocation,
+        # so the AI access gate (billing/access_control.py
+        # can_user_access_ai -> "No active subscription") refuses with
+        # AIFeatureNotAvailableError, which run_dashboard_ai_chat maps to
+        # 403 "ai_feature_not_available" (billing/refusals.py, beta
+        # f7cd15e). Before f7cd15e that same refusal fell into the view's
+        # `except Exception` and answered an explicit 500 - the 500 this
+        # test used to tolerate with a loose "did not succeed" check. See
+        # docs/evidence/h38_part2/custom_ai_prompt_500_triage.md.
+        self.assertEqual(response.status_code, 403, response.content)
+        self.assertLess(response.status_code, 500, response.content)
+        self.assertEqual(
+            response.json()["error"]["field_errors"]["code"],
+            "ai_feature_not_available",
+            response.content,
         )
-        note("dashboard/views.py custom-ai-prompt", "READ(paid AI)", response, False)
-        # NOT tightened like the sibling tests in this file: this route
-        # empirically returns 500 for a removed teacher today (confirmed
-        # 2026-09-28), via a pre-existing status-mapping quirk in
-        # `custom_ai_prompt` that is unrelated to H-38 and to the
-        # select_for_update/outer-join regression this pass was scoped to
-        # (this action does not call select_for_update or
-        # teacher_course_access_q at all - it 500s while building superadmin
-        # analytics context for a non-superadmin user). Asserting a sub-500
-        # guard here would immediately fail against that real, separate bug.
-        # Left as a loose "did not succeed" check deliberately; see the
-        # evidence doc for a flagged-but-not-fixed note - do not tighten
-        # this without first triaging that 500 on its own.
-        self.assertNotIn(response.status_code, (200, 201, 202, 204), response.content)
+        self.assertFalse(model.called)
+        # The H-38 part of this route. The route ignores `course_id`; what
+        # it reads is TeacherAIContextService.build(request.user), which is
+        # built BEFORE the billing gate runs. On beta that context still
+        # carried School A's course for the removed teacher (so one with an
+        # individual subscription of their own would have had it sent to
+        # the model); reachable_courses() now drops it. The positive
+        # control below proves this spy does see the course when it is
+        # reachable, so the assertion cannot pass vacuously.
+        self.assertEqual(len(spy.contexts), 1)
+        self.assertFalse(leaked, spy.contexts[0])
+
+
+CUSTOM_AI_PROMPT_URL = f"{API}/teacher-admin/dashboard/custom-ai-prompt"
+
+
+def fake_model_response(content="Stub dashboard answer."):
+    """The provider response shape execute_graded_task reads: the reply at
+    choices[0].message.content and the metered size at usage.total_tokens.
+    Patched in at the provider boundary (AIProcessor.__ai_model), so the
+    real access gate and credit metering still run - no network call."""
+    response = MagicMock()
+    response.choices = [MagicMock()]
+    response.choices[0].message.content = content
+    response.usage.total_tokens = 100
+    return response
+
+
+class CustomAIPromptContextSpy:
+    """Records the context the teacher custom-AI-prompt view hands the AI
+    layer, then calls the real custom_ai_prompt_retry."""
+
+    def __init__(self):
+        self.contexts = []
+        # The exact object the view calls, captured before it is patched.
+        self._real = dashboard_views.ai_processor.custom_ai_prompt_retry
+
+    def __call__(self, user, context, question, role, **kwargs):
+        self.contexts.append(context)
+        return self._real(user, context, question, role, **kwargs)
+
+
+class ActiveTeacherCustomAIPromptTests(TeacherRemovalBase):
+    """Positive control for RemovedTeacherDashboardRouteTests
+    .test_custom_ai_prompt_on_the_school_course. An ACTIVE teacher on the
+    same School A course, through the same real access gate and credit
+    metering (only the provider call is stubbed), gets a normal 200 whose
+    context contains the course - so the removed teacher's 403 is the gate
+    refusing them, not the route being broken for everyone, and the
+    removed-teacher context assertion is not vacuous."""
+
+    def setUp(self):
+        super().setUp()
+        self.client_t = jwt_client(self.teacher.email)
+        # The license allocation alone (20,000) is below the estimator's
+        # fixed ~20k baseline plus the prompt, which answers 402 - the same
+        # funded-wallet fixture dashboard/tests_real_ai_chat.py uses.
+        wallet, _ = CreditWallet.objects.get_or_create(user=self.teacher)
+        CreditBucket.objects.create(
+            wallet=wallet,
+            bucket_type=CreditBucketType.MONTHLY,
+            total_credits=500_000,
+            used_credits=0,
+            expires_at=timezone.now() + timedelta(days=25),
+        )
+
+    def test_custom_ai_prompt_succeeds_for_active_teacher(self):
+        spy = CustomAIPromptContextSpy()
+        with patch(
+            "ai_processor.services.AIProcessor._AIProcessor__ai_model",
+            return_value=fake_model_response(),
+        ) as model, patch(
+            "dashboard.views.ai_processor.custom_ai_prompt_retry", side_effect=spy
+        ):
+            response = self.client_t.post(
+                CUSTOM_AI_PROMPT_URL,
+                {"prompt": "Summarise", "course_id": self.course_id},
+                format="json",
+            )
+
+        note(
+            "dashboard/views.py custom-ai-prompt (positive control - active teacher)",
+            "READ(paid AI)",
+            response,
+            False,
+        )
+        self.assertEqual(response.status_code, 200, response.content)
+        self.assertEqual(response.json()["data"]["response"], "Stub dashboard answer.")
+        self.assertTrue(model.called)
+        self.assertEqual(len(spy.contexts), 1)
+        self.assertIn("School A Biology", spy.contexts[0])
 
 
 def make_ai_draft_message(teacher, course_id):
