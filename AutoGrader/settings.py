@@ -1125,6 +1125,15 @@ REST_FRAMEWORK = {
     },
 }
 
+# H-47: global (all-IP) budget of failed POST /auth/register/student attempts
+# per window; see users.throttling.register_student_failure_budget_spent.
+REGISTER_STUDENT_GLOBAL_FAILURE_LIMIT = env.int(
+    "REGISTER_STUDENT_GLOBAL_FAILURE_LIMIT", default=100
+)
+REGISTER_STUDENT_FAILURE_WINDOW_SECONDS = env.int(
+    "REGISTER_STUDENT_FAILURE_WINDOW_SECONDS", default=3600
+)
+
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
