@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # H-14 mutation battery on dashboard/services.py; restores from the committed blob and verifies sha256.
 set -u
+# Hardening (2026-09-28, RESTORE_MISMATCH follow-up): every path below (F, the
+# python heredoc's open(), `git checkout --`, `sha256sum`) is CWD-relative, so
+# this script only behaves correctly when run from the worktree root. Pin the
+# cwd explicitly instead of assuming the caller got it right.
+cd "$(git rev-parse --show-toplevel)" || { echo "FATAL: not inside a git worktree"; exit 1; }
 F=dashboard/services.py
 GOOD=$(git show HEAD:$F | sha256sum | cut -d' ' -f1)
 run() { python manage.py test dashboard.tests_h14_at_risk_equivalence --settings=settings_worktree --noinput --parallel 1 2>&1 | grep -E "^(FAIL|ERROR):|^(Ran|FAILED|OK)" | sed 's/ (dashboard.*//'; }
