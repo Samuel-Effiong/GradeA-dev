@@ -37,3 +37,13 @@ Your own log: 8/9 killed, M7 equivalent (argued, and now empirically backed on R
 
 ## Verdict: VERIFIED-WITH-NOTES
 Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-28.
+
+## Re-check of the pre-landing delta (ad3bab2): VERIFIED-WITH-NOTES
+- The renew door (`handle_expired_token`) checks the shared budget BEFORE the serializer and the lookup, and outside the try, so it answers 429 with Retry-After. The refusal log carries `door=renew`. Every `EnrollmentError` is recorded as `renew_refused`.
+- V5 is pinned: `test_the_exhausted_error_fires_once_per_window_not_per_failure`, killed by harness M10. The 429 no longer claims the invitation is still valid.
+- Re-ran in my own detached checkout of ad3bab2: `tests_register_student_token_scope` + `auth_input_validation` + `classrooms.tests` = 58 OK.
+- My own mutant R3 (the renew budget check moved AFTER the lookup, into the failure branch, so a real code would be rotated while spent) is KILLED by `test_renew_is_refused_once_the_budget_is_spent_and_rotates_nothing`. Restore sha-verified.
+- Harness log checked: 11/12 killed, with M7 equivalent (confirmed on Redis earlier). The new M11/M12 kill against the right tests.
+- Minor, non-blocking: `renew_student_activation` raises two different `EnrollmentError` messages, "Invalid token or user not found." and "No pending enrollment found for this user.", and the view returns `str(exc)`. The second one confirms a real student code. It gives no amplification, since each renew guess now costs the same budget as a register guess, and at register a correct guess completes the account anyway. But making both messages identical would remove the oracle for free.
+- Notes 2 and 3 from the first pass stand: legitimate mistypes spend the budget, and the bucket boundary allows up to 2×LIMIT failures in a short span.
+Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-28.
