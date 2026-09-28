@@ -34,3 +34,9 @@ Scope, as agreed: the fix hunk and its test only.
 Verdict: VERIFIED. The e/f/g survived mutants are still documented, pre-existing boundary-coverage gaps in the risk evaluator, not in this fix. They're recorded above and aren't a blocker.
 
 Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-28.
+
+## Typing fix for the django-stubs mypy step (c138fe8, on e6f31c9): VERIFIED
+- The only behavioural-path edit is the sort key, which now reads `at_risk_scores[student.pk]` instead of `student.avg_score`. It's equivalent by construction. `avg_score` was set to `at_risk_scores[student_id]` with `student = students_by_id.get(student_id)`. `in_bulk` keys by pk, so `student.pk == student_id` (same UUID). Only found students are appended, so the lookup can't KeyError. The tuple `(score is None, score or 0.0)` is unchanged. Everything else is annotations, plus one `type: ignore[attr-defined]` on the dynamic `avg_score` attribute.
+- Throwaway checkout of c138fe8: `dashboard.tests_h14_at_risk_equivalence` 5/5. My mutant (the sort key drops the None-last component and reverses the order) is KILLED by `test_same_students_scores_and_order_as_the_original` and `test_names_and_the_built_payload_match`. Restore sha-verified.
+- Whole-repo mypy: c138fe8 merged into task/beta-batch-1 @53e715e reports **no errors in any h14 file**. On h14's own branch the hook still shows 2 errors, but they're in docs/evidence/authz-oauth-takeover/replay_scripts (from beta), which the batch's d52364c `exclude: ^docs/` removes. They aren't h14's.
+Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-28.
