@@ -651,3 +651,52 @@ consistent with the `language: system` approach this branch settled on).
 178 newly-surfaced real errors (section 5) logged and triaged by risk as
 `H-46` in `docs/HARDENING_BACKLOG.md`. Not fixed — logging/triage only,
 per this branch's scope.
+
+## 10. CI fix: mypy moves from pre-commit.yml to tests.yml (commit `5754a64`)
+
+The Verification Engineer rejected `8cf9268` (see `VERIFICATION.md`):
+`.github/workflows/pre-commit.yml` installs no requirements and sets no
+settings env, so the `language: system` hook would fail there with
+"Executable `mypy` not found" on the first push.
+
+### 10.1 Change
+
+- `pre-commit.yml`: the `pre-commit/action` step sets `SKIP: mypy`.
+- `tests.yml`: new last step "Type check (mypy)", `if: ${{ !cancelled() }}`,
+  running `pre-commit run mypy --all-files`. That job already installs
+  `requirements.txt` (which pins `pre_commit==4.3.0`, `mypy==1.17.1`,
+  `django-stubs==5.2.8`, `djangorestframework-stubs==3.16.6`) and sets the
+  settings env block. Running the hook itself keeps mypy's args in one place
+  (`.pre-commit-config.yaml`). `!cancelled()` keeps mypy independent of the
+  test result, as it was when it lived in its own workflow.
+- The §9.1 commit-test marker comment is removed; `billing/license_service.py`
+  is byte-identical to beta.
+
+### 10.2 Workflow lint
+
+`actionlint` 1.7.12 on both files: no findings. Negative control: the same
+`tests.yml` with `!cancelled()` misspelled `!canceled()` is rejected
+(`undefined function "canceled"`, exit 1), so the clean result is meaningful.
+
+### 10.3 From-scratch simulation of both CI jobs
+
+A GitHub run needs a push, which needs founder confirmation, so both jobs were
+simulated locally in a clean detached checkout of `5754a64` (no `.env`, which
+is gitignored) under `env -i`:
+
+| # | Simulates | Environment | Command | Result |
+|---|---|---|---|---|
+| A | `pre-commit.yml` job | fresh venv with only `pre_commit==4.3.0`, no project venv on PATH | `SKIP=mypy pre-commit run --all-files` | every hook Passed, **mypy Skipped**, exit 0 |
+| B1 | `tests.yml` new step | project venv (pins match `requirements.txt` for mypy, both stub packages, pre_commit, Django) + the job's `env:` block loaded from `tests.yml` itself with PyYAML (18 vars, not retyped) | `pre-commit run mypy --all-files` | **mypy Passed**, exit 0, 117 s cold cache |
+| B2 | control: old placement | same job env, no project venv on PATH | same | Failed, "Executable `mypy` not found" (the rejected behaviour) |
+| B3 | control: enforcement | as B1, plus a deliberate `-> int` returning `str` in `ai_processor/models.py` (not ratcheted) | same | Failed, `[return-value]`; reverted, checkout clean |
+
+B1 at 117 s cold fits inside `tests.yml`'s 20-minute job timeout alongside
+the ~5-minute suite.
+
+### 10.4 Addition to §9.3 (from the Verification Engineer)
+
+A WRONG mypy also fails loudly: a throwaway venv with only `mypy==1.17.1` (no
+django-stubs) first on PATH gives `pyproject.toml:1: error: Error importing
+plugin "mypy_django_plugin.main"`, exit 1. The `plugins = [...]` entry acts as
+a hard requirement, so a plugin-less mypy cannot silently pass.
