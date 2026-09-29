@@ -1,12 +1,12 @@
-"""H-1 evidence: what wildcard cache invalidation destroys besides cache.
+"""H-1: cache invalidation cannot destroy anything besides cache.
 
-Runs against REAL Redis, because this is a question about glob matching in a
-shared keyspace and LocMem has no `delete_pattern` at all - a LocMem run
-would pass while proving nothing.
+Runs against REAL Redis, because this is a question about what a shared
+keyspace loses when a model is saved.
 
-The project's cache invalidation is a set of wildcard `delete_pattern` calls
-fired from model signals. Everything written through the Django cache shares
-one keyspace with them, including things that are not caches at all:
+Until H-1 step 4 the project's cache invalidation was a set of wildcard
+`delete_pattern` calls fired from model signals, and everything written
+through the Django cache shared one keyspace with them, including things
+that are not caches at all:
 
   * billing idempotency locks (`billing:planchange:<user id>`,
     `billing:license_overage:<subscription id>`) - deleting one lets a
@@ -17,27 +17,84 @@ one keyspace with them, including things that are not caches at all:
   * DRF throttle buckets (`throttle_<scope>_<ident>`) - deleting one resets
     a rate limit.
 
-These already bit once: `users/middleware.py` documents that the heartbeat
-and presence keys were RENAMED to avoid the substring "user" after
+These bit once: `users/middleware.py` records that the heartbeat and
+presence keys were RENAMED to avoid the substring "user" after
 `delete_pattern("*user*")` was found wiping them on every unrelated user
-save. That mitigation is a naming convention with nothing enforcing it, so
-these tests enforce it: they fail the moment an invalidation pattern starts
-matching a key that is not a cache entry.
+save. That was safety by naming convention.
 
-Tracked as H-1 in docs/HARDENING_BACKLOG.md. These tests describe CURRENT
-behaviour and are expected to keep passing after the H-1 redesign - the
-redesign should make them true by construction rather than by naming.
+Step 4 removed every wildcard, so collateral damage is now structurally
+impossible rather than avoided by naming: invalidation only increments
+generation counters under `cachegen:`. These tests assert exactly that, on
+every model save that invalidates - no DEL/UNLINK/SCAN/KEYS/FLUSH is sent,
+and every key written is a counter - plus the end result (every non-cache
+key survives) and that invalidation still WORKS (the versioned entry
+becomes unreachable), so none of it can pass by invalidating nothing.
 """
 
+from collections import Counter
+from contextlib import contextmanager
+from unittest.mock import patch
+
+import redis
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.test import TransactionTestCase, override_settings
 
+from AutoGrader.cache_generation import SCOPE_USER, versioned_key
 from AutoGrader.test_cache import real_redis_caches
 from classrooms.models import Course, School, Session, StudentCourse, Topic
 from users.models import UserTypes
 
 User = get_user_model()
+
+#: Redis commands that remove keys. Invalidation must send none of them.
+DESTRUCTIVE = {"DEL", "UNLINK", "SCAN", "KEYS", "FLUSHDB", "FLUSHALL", "EXPIRE"}
+#: Commands that write a key. Invalidation may only write counters.
+WRITES = {
+    "SET",
+    "SETEX",
+    "PSETEX",
+    "SETNX",
+    "INCR",
+    "INCRBY",
+    "DECR",
+    "DECRBY",
+    "GETSET",
+}
+
+
+def _text(value):
+    return value.decode() if isinstance(value, bytes) else str(value)
+
+
+@contextmanager
+def redis_commands_with_keys():
+    """Every (command, first key) this process sends to Redis, both the
+    single-command and the pipelined path (see
+    AutoGrader/tests_cache_generation.redis_commands_sent_by_this_process)."""
+    sent = []
+    connection_class = redis.connection.AbstractConnection
+    send_one = connection_class.send_command
+    pack_many = connection_class.pack_commands
+
+    def record(args):
+        name = _text(args[0]).upper()
+        key = _text(args[1]) if len(args) > 1 else ""
+        sent.append((name, key))
+
+    def recording_send_command(self, *args, **kwargs):
+        record(args)
+        return send_one(self, *args, **kwargs)
+
+    def recording_pack_commands(self, commands):
+        for command in commands:
+            record(command)
+        return pack_many(self, commands)
+
+    with patch.object(connection_class, "send_command", recording_send_command):
+        with patch.object(connection_class, "pack_commands", recording_pack_commands):
+            yield sent
+
 
 # A dedicated Redis DB so a developer's or another suite's keys are never in
 # range of the flush this test performs.
@@ -57,10 +114,9 @@ NON_CACHE_KEYS = {
 }
 
 #: DRF's built-in per-user throttle scope. NOT enabled today (settings uses
-#: AnonRateThrottle + ScopedRateThrottle), which is the only reason it is
-#: safe - the key contains "user" and would be matched by the "*user*"
-#: pattern. Asserted separately so enabling UserRateThrottle cannot quietly
-#: reintroduce the defect the presence keys were renamed to escape.
+#: AnonRateThrottle + ScopedRateThrottle). Until H-1 step 4 that was the only
+#: thing keeping it safe - the key contains "user" and the "*user*" sweep
+#: matched it. Now it is safe by construction; asserted below.
 USER_SCOPE_THROTTLE_KEY = "throttle_user_11111111-2222-3333-4444-555555555555"
 
 
@@ -94,15 +150,24 @@ class CacheInvalidationCollateralDamageTests(TransactionTestCase):
     def tearDown(self):
         cache.clear()
 
+    def _cached_entry_key(self):
+        """The student's live versioned course-list key (UserCacheMixin
+        shape), recomputed at call time."""
+        return versioned_key(
+            f"courses:user_id__{self.student.id}:query__x",
+            [(SCOPE_USER, self.student.id)],
+        )
+
     def _seed(self, extra=None):
         for key in NON_CACHE_KEYS.values():
             cache.set(key, "sentinel", 300)
         for key in extra or []:
             cache.set(key, "sentinel", 300)
-        # A real cache entry, so we can also prove invalidation still WORKS -
-        # a test that only checks survival would pass if invalidation were
-        # deleted entirely.
-        cache.set("courses:user_id__sentinel:query__x", "cached", 300)
+        # A real (versioned) cache entry, so we can also prove invalidation
+        # still WORKS - a test that only checks survival would pass if
+        # invalidation were deleted entirely.
+        self.seeded_entry_key = self._cached_entry_key()
+        cache.set(self.seeded_entry_key, "cached", 300)
 
     def _survivors(self, extra=None):
         missing = [
@@ -112,6 +177,34 @@ class CacheInvalidationCollateralDamageTests(TransactionTestCase):
             if cache.get(key) is None:
                 missing.append(key)
         return missing
+
+    @contextmanager
+    def _structurally_harmless(self, action_description):
+        """The mutation may only INCREMENT COUNTERS: it sends no command
+        that removes a key, and every key it writes is under `cachegen:`.
+        That is what makes collateral damage impossible rather than merely
+        absent from the keys this file happens to seed."""
+        with redis_commands_with_keys() as sent:
+            yield
+        commands = Counter(name for name, _ in sent)
+        destructive = {name: n for name, n in commands.items() if name in DESTRUCTIVE}
+        self.assertEqual(
+            destructive,
+            {},
+            f"{action_description} sent key-removing Redis commands: {destructive}",
+        )
+        non_counter_writes = sorted(
+            {key for name, key in sent if name in WRITES and ":cachegen:" not in key}
+        )
+        self.assertEqual(
+            non_counter_writes,
+            [],
+            f"{action_description} wrote non-counter keys while invalidating",
+        )
+        self.assertTrue(
+            any(name in WRITES for name, _ in sent),
+            f"{action_description} bumped no generation at all",
+        )
 
     def _assert_no_collateral(self, action_description):
         missing = self._survivors()
@@ -127,38 +220,44 @@ class CacheInvalidationCollateralDamageTests(TransactionTestCase):
 
     def test_saving_a_student_enrollment_spares_non_cache_keys(self):
         self._seed()
-        StudentCourse.objects.create(student=self.student, course=self.course)
+        with self._structurally_harmless("Creating a StudentCourse"):
+            StudentCourse.objects.create(student=self.student, course=self.course)
         self._assert_no_collateral("Creating a StudentCourse")
 
     def test_saving_a_course_spares_non_cache_keys(self):
         self._seed()
-        Course.objects.create(
-            name="Another", teacher=self.teacher, session=self.session
-        )
+        with self._structurally_harmless("Creating a Course"):
+            Course.objects.create(
+                name="Another", teacher=self.teacher, session=self.session
+            )
         self._assert_no_collateral("Creating a Course")
 
     def test_saving_a_session_spares_non_cache_keys(self):
         self._seed()
-        Session.objects.create(name="Another", teacher=self.teacher)
+        with self._structurally_harmless("Creating a Session"):
+            Session.objects.create(name="Another", teacher=self.teacher)
         self._assert_no_collateral("Creating a Session")
 
     def test_saving_a_topic_spares_non_cache_keys(self):
         self._seed()
-        Topic.objects.create(name="T", course=self.course)
+        with self._structurally_harmless("Creating a Topic"):
+            Topic.objects.create(name="T", course=self.course)
         self._assert_no_collateral("Creating a Topic")
 
     def test_saving_a_school_spares_non_cache_keys(self):
         self._seed()
-        School.objects.create(name="Another School")
+        with self._structurally_harmless("Creating a School"):
+            School.objects.create(name="Another School")
         self._assert_no_collateral("Creating a School")
 
     def test_saving_a_user_spares_non_cache_keys(self):
-        """users.signals.clear_user_cache clears "*user*" - the broadest
-        pattern in the project, and the one that already wiped the presence
-        keys before they were renamed."""
+        """users.signals.clear_user_cache used to clear "*user*" - the
+        broadest pattern in the project, and the one that already wiped the
+        presence keys before they were renamed."""
         self._seed()
-        self.teacher.first_name = "Renamed"
-        self.teacher.save(update_fields=["first_name"])
+        with self._structurally_harmless("Saving a CustomUser"):
+            self.teacher.first_name = "Renamed"
+            self.teacher.save(update_fields=["first_name"])
         self._assert_no_collateral("Saving a CustomUser")
 
     def test_deleting_an_enrollment_spares_non_cache_keys(self):
@@ -166,40 +265,50 @@ class CacheInvalidationCollateralDamageTests(TransactionTestCase):
             student=self.student, course=self.course
         )
         self._seed()
-        enrollment.delete()
+        with self._structurally_harmless("Deleting a StudentCourse"):
+            enrollment.delete()
         self._assert_no_collateral("Deleting a StudentCourse")
 
     # ---- the guard on the guard ----
 
     def test_invalidation_still_actually_works(self):
         """Without this, every test above would pass if invalidation were
-        removed altogether."""
+        removed altogether. The entry is not deleted (nothing is); it
+        becomes unreachable because the key the view would read moved."""
         self._seed()
-        self.assertEqual(cache.get("courses:user_id__sentinel:query__x"), "cached")
+        self.assertEqual(cache.get(self._cached_entry_key()), "cached")
 
         StudentCourse.objects.create(student=self.student, course=self.course)
 
+        self.assertNotEqual(
+            self._cached_entry_key(),
+            self.seeded_entry_key,
+            "the student's generation did not move on their own enrolment",
+        )
         self.assertIsNone(
-            cache.get("courses:user_id__sentinel:query__x"),
-            "the cache entry survived a mutation that should have cleared it",
+            cache.get(self._cached_entry_key()),
+            "the cached entry is still reachable after a mutation that "
+            "should have invalidated it",
+        )
+        self.assertEqual(
+            cache.get(self.seeded_entry_key),
+            "cached",
+            "the superseded entry was deleted - invalidation must not delete",
         )
 
-    def test_a_user_scoped_throttle_key_would_be_collateral_damage(self):
-        """DOCUMENTS A LATENT DEFECT, and fails if it becomes live.
+    def test_a_user_scoped_throttle_key_survives_a_user_save(self):
+        """The latent defect this used to DOCUMENT is closed.
 
         DRF's built-in UserRateThrottle keys as `throttle_user_<pk>`, which
-        the "*user*" pattern matches. It is not enabled today, so this is
-        latent - but enabling it would silently make every user save reset
-        every user's rate limit. Asserted rather than commented so the
-        trade-off is visible when someone turns it on.
+        the "*user*" pattern matched: enabling it would have made every user
+        save reset every user's rate limit, and this test asserted the key
+        was destroyed so that trade-off stayed visible. With the wildcards
+        removed (H-1 step 4) the key survives, so UserRateThrottle can be
+        enabled without a cache-namespace constraint.
         """
         cache.set(USER_SCOPE_THROTTLE_KEY, "sentinel", 300)
-        self.teacher.last_name = "Trigger"
-        self.teacher.save(update_fields=["last_name"])
+        with self._structurally_harmless("Saving a CustomUser"):
+            self.teacher.last_name = "Trigger"
+            self.teacher.save(update_fields=["last_name"])
 
-        self.assertIsNone(
-            cache.get(USER_SCOPE_THROTTLE_KEY),
-            "throttle_user_<pk> survived - if UserRateThrottle has been "
-            "enabled, update H-1: this key is no longer latent and the "
-            "namespace separation is now load-bearing for rate limiting.",
-        )
+        self.assertEqual(cache.get(USER_SCOPE_THROTTLE_KEY), "sentinel")

@@ -25,11 +25,10 @@ extra invalidation is ~2% of misses and does not justify a per-edit fan-out
 query. The tests below assert the *consequence* that matters: a
 teacher-owned change must reach the student's cached view.
 
-Every freshness test runs with the legacy mechanism disabled, per the
-standing rule.
+Every freshness test runs against the real code with no wildcard
+invalidation anywhere (removed in H-1 step 4; until then these tests
+patched it out, per the standing rule).
 """
-
-from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
@@ -52,13 +51,6 @@ from users.models import UserTypes
 User = get_user_model()
 
 REDIS_CACHE = real_redis_caches("redis://127.0.0.1:6379/4")
-
-LEGACY_MODULES = (
-    "classrooms.signals",
-    "users.signals",
-    "students.signals",
-    "assignments.signals",
-)
 
 
 def make_user(email, user_type, school=None):
@@ -95,38 +87,23 @@ class BespokeBase(TransactionTestCase):
         self.student_client.force_authenticate(self.student)
         self.teacher_client = APIClient()
         self.teacher_client.force_authenticate(self.teacher)
-        self.disable_legacy()
 
     def tearDown(self):
         cache.clear()
-
-    def disable_legacy(self):
-        patches = [
-            patch(f"{module}.delete_cache_patterns", lambda *a, **k: None)
-            for module in LEGACY_MODULES
-        ]
-        for p in patches:
-            p.start()
-        self.addCleanup(self._stop, patches)
-
-    @staticmethod
-    def _stop(patches):
-        for p in patches:
-            p.stop()
 
     def get(self, client, path, **params):
         response = client.get(path, params)
         self.assertEqual(response.status_code, 200, response.data)
         return response.data
 
-    def test_the_legacy_mechanism_really_is_disabled(self):
+    def test_no_wildcard_sweep_runs_on_a_mutation(self):
         cache.set("courses:user_id__sentinel:query__x", "cached", 300)
         self.teacher.first_name = "Trigger"
         self.teacher.save(update_fields=["first_name"])
         self.assertEqual(
             cache.get("courses:user_id__sentinel:query__x"),
             "cached",
-            "a legacy sweep still ran - these tests would be masked",
+            "a wildcard sweep ran - these tests would be masked",
         )
 
 

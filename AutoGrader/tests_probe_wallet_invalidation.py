@@ -15,12 +15,12 @@ Mutations run through the real services:
 * `SubscriptionService.grant_overage_bucket` - creates a bucket and raises
   `overage_blocks_used` with a `QuerySet.update()`.
 
-Each runs twice: with the legacy wildcard receivers live (production today)
-and with them disabled (Stage 3). Real Redis + real Postgres.
+Each ran twice while the legacy wildcard receivers existed (live, and
+patched out). H-1 step 4 removed them, so each now runs once, against the
+real code. Real Redis + real Postgres.
 """
 
 import json
-from contextlib import ExitStack
 from datetime import timedelta
 from typing import Any
 from unittest.mock import patch
@@ -31,11 +31,7 @@ from django.test import TransactionTestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from AutoGrader.tests_cache_matrix_support import (
-    FreshnessMatrixMixin,
-    Read,
-    legacy_wildcards_disabled,
-)
+from AutoGrader.tests_cache_matrix_support import FreshnessMatrixMixin, Read
 from billing.license_service import LicenseSubscriptionService
 from billing.models import (
     CreditWallet,
@@ -123,20 +119,17 @@ class WalletInvalidationProbe(FreshnessMatrixMixin, TransactionTestCase):
     def test_probe(self):
         lines = ["", "[wallet invalidation probe]"]
         run = 0
-        for mode in ("legacy ON (production today)", "legacy OFF (Stage 3)"):
+        for mode in ("wildcards removed (H-1 step 4)",):
             for name in ("licence plan change", "overage purchase"):
                 run += 1
                 cache.clear()
                 tag = f"r{run}"
                 f = self._fixture(tag)
-                with ExitStack() as stack:
-                    if mode.startswith("legacy OFF"):
-                        stack.enter_context(legacy_wildcards_disabled())
-                    result = self.run_matrix(
-                        f"{name} [{mode}]",
-                        self._reads(f),
-                        self._mutations(f, tag)[name],
-                    )
+                result = self.run_matrix(
+                    f"{name} [{mode}]",
+                    self._reads(f),
+                    self._mutations(f, tag)[name],
+                )
                 lines.append(f"--- {name} [{mode}]")
                 for o in result.outcomes:
                     lines.append(f"    {o.label:<30} {o.verdict}")

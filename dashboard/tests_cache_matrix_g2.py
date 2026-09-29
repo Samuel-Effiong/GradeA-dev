@@ -28,12 +28,7 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from assignments.models import Assignment, AssignmentStatus
-from AutoGrader.tests_cache_matrix_support import (
-    UNAFFECTED,
-    FreshnessMatrixMixin,
-    Read,
-    legacy_wildcards_disabled,
-)
+from AutoGrader.tests_cache_matrix_support import UNAFFECTED, FreshnessMatrixMixin, Read
 from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
 from users.models import UserTypes
 
@@ -72,8 +67,6 @@ class StudentAdminSummaryFreshnessTests(FreshnessMatrixMixin, TransactionTestCas
         cache.clear()
         # Legacy wildcards disabled: `*studentadmin*` is what used to clear
         # these keys, so this proves the versioned key is enough on its own.
-        self.patched_modules = self.enterContext(legacy_wildcards_disabled())
-        self.assertTrue(self.patched_modules, "no legacy module was patched")
 
         self.teacher = make_active_user("g2-teacher@x.test", UserTypes.TEACHER)
         self.student = make_active_user(

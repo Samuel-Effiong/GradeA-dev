@@ -24,12 +24,7 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from assignments.models import AssignmentGenerationSession
-from AutoGrader.tests_cache_matrix_support import (
-    UNAFFECTED,
-    FreshnessMatrixMixin,
-    Read,
-    legacy_wildcards_disabled,
-)
+from AutoGrader.tests_cache_matrix_support import UNAFFECTED, FreshnessMatrixMixin, Read
 from classrooms.models import Course, Session
 from users.models import UserTypes
 
@@ -54,8 +49,6 @@ class GenerationSessionDeleteFreshnessTests(FreshnessMatrixMixin, TransactionTes
 
     def setUp(self):
         cache.clear()
-        self.patched_modules = self.enterContext(legacy_wildcards_disabled())
-        self.assertTrue(self.patched_modules, "no legacy module was patched")
 
         self.teacher = make_active_user("g9-teacher@x.test", UserTypes.TEACHER, "G9T")
         self.other_teacher = make_active_user(

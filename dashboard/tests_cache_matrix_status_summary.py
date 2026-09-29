@@ -12,16 +12,14 @@ It arrived after Stage 3's targeted invalidation was built and wrote both
 keys with a RAW `cache.set`, so no generation bump could reach them; only
 the legacy `*studentadmin*` wildcard cleared them. H-1 step 4 put both keys
 on `versioned_key(..., [(SCOPE_USER, student.id)])`, exactly like the
-sibling overview/summary/assignments keys (gap G2), before removing the
+sibling overview/summary/assignments keys (gap G2), and then removed the
 wildcards.
 
-The suite runs every (write path x variant) in two modes:
-
-* `StatusSummaryWildcardsOnTests` - legacy wildcards live.
-* `StatusSummaryWildcardsOffTests` - `legacy_wildcards_disabled()`: plan
-  step 4 simulated. Before the family was versioned, these cells were
-  pinned STALE as the step-4 prerequisite; they are now FRESH on the
-  generation bump alone.
+History: this suite first ran every cell twice, with the wildcards live
+(all FRESH) and with them patched out (STALE on every path - the step-4
+prerequisite, docs/evidence/H1_STAGE3_TARGETED_INVALIDATION_EVIDENCE.md
+§8). The wildcards no longer exist, so there is one mode: the real code.
+Every cell is FRESH on the generation bump alone.
 
 Every test also reads two controls:
 
@@ -34,8 +32,8 @@ Every test also reads two controls:
 A key probe inside each mutation records, for every warmed entry, whether
 the live (generation-versioned) key moved and whether the pre-write entry
 physically survived: the student's key must move and the unrelated
-student's must not; with the wildcards off the old entry is left in place
-(nothing is deleted, it is simply unreachable).
+student's must not, and every old entry is left in place (nothing is
+deleted; a superseded entry is simply unreachable and ages out).
 
 Write paths that cannot change this response, and so have no row here:
 
@@ -84,7 +82,6 @@ from AutoGrader.tests_cache_matrix_support import (
     UNAFFECTED,
     FreshnessMatrixMixin,
     Read,
-    legacy_wildcards_disabled,
 )
 from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
 from students.models import GradingState, StudentSubmission
@@ -154,27 +151,13 @@ class StatusSummaryMatrixBase(FreshnessMatrixMixin):
     """Fixture, write paths and the per-case runner.
 
     Defines no `test_*` method, so the loader collects nothing from it;
-    only the two concrete classes below (which add TransactionTestCase)
-    run.
+    only the concrete class below (which adds TransactionTestCase) runs.
     """
 
     reset_sequences = True
 
-    #: Set by the concrete class: True = production today, False = step 4.
-    legacy_wildcards_live: bool
-
     def setUp(self):
         cache.clear()
-        if self.legacy_wildcards_live:
-            # The wildcard mechanism is only real if the backend can
-            # pattern-delete; otherwise the ON column would be vacuous.
-            self.assertTrue(
-                hasattr(cache, "delete_pattern"),
-                "cache backend has no delete_pattern; wildcards cannot run",
-            )
-        else:
-            patched = self.enterContext(legacy_wildcards_disabled())
-            self.assertTrue(patched, "no legacy module was patched")
 
         now = timezone.now()
         future = now + timedelta(days=7)
@@ -417,9 +400,8 @@ class StatusSummaryMatrixBase(FreshnessMatrixMixin):
         * the live key: the student's must move to a new generation (that is
           what makes the cached answer FRESH), the unrelated student's must
           not (isolation, asserted on the key, not only on the payload);
-        * the pre-write entry: evicted with the wildcards live, physically
-          left in place with them off - nothing is deleted, it is simply
-          unreachable.
+        * the pre-write entry: physically left in place - nothing is
+          deleted any more, it is simply unreachable.
         """
         probe = {}
 
@@ -446,7 +428,6 @@ class StatusSummaryMatrixBase(FreshnessMatrixMixin):
                 # STALE here means the pre-write payload, byte for byte.
                 self.assertEqual(outcome.cached_after, outcome.before, result.table())
 
-        expect_survives = not self.legacy_wildcards_live
         for name, (was_present, is_present, key_moved) in probe.items():
             self.assertEqual(
                 key_moved,
@@ -455,154 +436,32 @@ class StatusSummaryMatrixBase(FreshnessMatrixMixin):
                 f"{'moved' if key_moved else 'did not move'}",
             )
             if was_present:
-                self.assertEqual(
+                self.assertTrue(
                     is_present,
-                    expect_survives,
-                    f"{label}: pre-write entry for {name!r} "
-                    f"{'survived' if is_present else 'was evicted'}",
+                    f"{label}: pre-write entry for {name!r} was deleted; "
+                    "nothing should delete cache entries any more",
                 )
         return result
 
 
-class StatusSummaryWildcardsOnTests(StatusSummaryMatrixBase, TransactionTestCase):
-    """Production today: the legacy `*studentadmin*` wildcard is live.
+class StatusSummaryFreshnessTests(StatusSummaryMatrixBase, TransactionTestCase):
+    """The real code, with no wildcard left anywhere.
 
-    Every write path that moves the counts runs a receiver or service that
-    calls the wildcard, which matches the `studentadmins:` prefix and
-    evicts the raw key. Every cell is FRESH; no live staleness.
-    """
-
-    legacy_wildcards_live = True
-
-    def test_publish_draft_assignment_is_fresh(self):
-        """Teacher publishes a draft in the student's course: Not Submitted +1."""
-        self.run_case(
-            "ON: publish draft assignment",
-            self.course_a,
-            self.publish_draft_assignment,
-            verdicts(FRESH, FRESH),
-        )
-
-    def test_student_submits_is_fresh(self):
-        """Student submits: Submitted +1, Not Submitted -1."""
-        self.run_case(
-            "ON: student submits",
-            self.course_a,
-            self.student_submits,
-            verdicts(FRESH, FRESH),
-        )
-
-    def test_teacher_publishes_grade_is_fresh(self):
-        """Single publish (`.update()` + `invalidate_submission_caches`): Graded +1."""
-        self.run_case(
-            "ON: publish grade",
-            self.course_a,
-            self.teacher_publishes_grade,
-            verdicts(FRESH, FRESH),
-        )
-
-    def test_teacher_publishes_all_grades_is_fresh(self):
-        """publish-all-grades (bulk `.update()` + bulk invalidation): Graded +1."""
-        self.run_case(
-            "ON: publish all grades",
-            self.course_a,
-            self.teacher_publishes_all_grades,
-            verdicts(FRESH, FRESH),
-        )
-
-    def test_teacher_extends_due_date_is_fresh(self):
-        """Overdue assignment's due date moved to the future: Overdue -1, Not Submitted +1."""
-        self.run_case(
-            "ON: extend due date",
-            self.course_a,
-            self.teacher_extends_overdue_due_date,
-            verdicts(FRESH, FRESH),
-        )
-
-    def test_teacher_unpublishes_assignment_is_fresh(self):
-        """Published -> UNPUBLISHED: Not Submitted -1."""
-        self.run_case(
-            "ON: unpublish assignment",
-            self.course_a,
-            self.teacher_unpublishes_assignment,
-            verdicts(FRESH, FRESH),
-        )
-
-    def test_teacher_deletes_assignment_is_fresh(self):
-        """DELETE assignment: Not Submitted -1."""
-        self.run_case(
-            "ON: delete assignment",
-            self.course_a,
-            self.teacher_deletes_assignment,
-            verdicts(FRESH, FRESH),
-        )
-
-    def test_enrolment_into_new_course_is_fresh(self):
-        """course-students enrols the student in course B: `all` gains B's work.
-        `?course=B` goes 404 -> 200 and was never cached (a 404 is not written)."""
-        self.run_case(
-            "ON: enrol into course B",
-            self.course_b,
-            self.teacher_enrolls_student_in_course_b,
-            verdicts(FRESH, FRESH),
-        )
-
-    def test_withdrawal_is_fresh(self):
-        """PATCH enrolment to WITHDRAWN: `all` drops to zero, `?course=A` 200 -> 404."""
-        self.run_case(
-            "ON: withdraw",
-            self.course_a,
-            self.teacher_withdraws_student,
-            verdicts(FRESH, FRESH),
-        )
-
-    def test_removal_from_course_is_fresh(self):
-        """DELETE course/<pk>/student/<id> (enrolment row deleted): as withdrawal."""
-        self.run_case(
-            "ON: remove from course",
-            self.course_a,
-            self.teacher_removes_student,
-            verdicts(FRESH, FRESH),
-        )
-
-    def test_course_deactivation_is_fresh(self):
-        """PATCH course is_active=false: `all` drops to zero, `?course=A` 200 -> 404."""
-        self.run_case(
-            "ON: deactivate course",
-            self.course_a,
-            self.teacher_deactivates_course,
-            verdicts(FRESH, FRESH),
-        )
-
-    def test_withdraw_publish_reenrol_is_fresh(self):
-        """Withdraw, publish while withdrawn, re-enrol: Not Submitted +1 on return."""
-        self.run_case(
-            "ON: withdraw, publish, re-enrol",
-            self.course_a,
-            self.withdraw_publish_then_reenroll,
-            verdicts(FRESH, FRESH),
-        )
-
-
-class StatusSummaryWildcardsOffTests(StatusSummaryMatrixBase, TransactionTestCase):
-    """Plan step 4 simulated: legacy wildcards disabled.
-
-    Formerly the step-4 prerequisite: with raw keys, every cell whose truth
-    moved was STALE here. Step 4 built both keys with
-    `versioned_key(..., [(SCOPE_USER, student.id)])`, as G2 did for the
-    sibling overview/summary keys, so every cell is now FRESH on the
+    Formerly the step-4 prerequisite: with raw keys and the wildcards
+    patched out, every cell whose truth moved was STALE here. Step 4 built
+    both keys with `versioned_key(..., [(SCOPE_USER, student.id)])`, as G2
+    did for the sibling overview/summary keys, so every cell is FRESH on the
     generation bump alone. The runner also proves HOW: the student's live
     key moved to a new generation while the pre-write entry physically
     survived (nothing was deleted), and the unrelated student's key did not
-    move at all.
+    move at all. `run_matrix` additionally fails any mutation that issues a
+    keyspace SCAN other than the PDF exact-prefix clear.
     """
-
-    legacy_wildcards_live = False
 
     def test_publish_draft_assignment_is_fresh(self):
         """A newly published assignment appears (G1 fan-out bumps the student)."""
         self.run_case(
-            "OFF: publish draft assignment",
+            "publish draft assignment",
             self.course_a,
             self.publish_draft_assignment,
             verdicts(FRESH, FRESH),
@@ -611,7 +470,7 @@ class StatusSummaryWildcardsOffTests(StatusSummaryMatrixBase, TransactionTestCas
     def test_student_submits_is_fresh(self):
         """The student's own submission is counted (submission receiver)."""
         self.run_case(
-            "OFF: student submits",
+            "student submits",
             self.course_a,
             self.student_submits,
             verdicts(FRESH, FRESH),
@@ -620,7 +479,7 @@ class StatusSummaryWildcardsOffTests(StatusSummaryMatrixBase, TransactionTestCas
     def test_teacher_publishes_grade_is_fresh(self):
         """A released grade is counted as Graded (`invalidate_submission_caches`)."""
         self.run_case(
-            "OFF: publish grade",
+            "publish grade",
             self.course_a,
             self.teacher_publishes_grade,
             verdicts(FRESH, FRESH),
@@ -629,7 +488,7 @@ class StatusSummaryWildcardsOffTests(StatusSummaryMatrixBase, TransactionTestCas
     def test_teacher_publishes_all_grades_is_fresh(self):
         """publish-all-grades is counted as Graded (bulk invalidation, G3)."""
         self.run_case(
-            "OFF: publish all grades",
+            "publish all grades",
             self.course_a,
             self.teacher_publishes_all_grades,
             verdicts(FRESH, FRESH),
@@ -638,7 +497,7 @@ class StatusSummaryWildcardsOffTests(StatusSummaryMatrixBase, TransactionTestCas
     def test_teacher_extends_due_date_is_fresh(self):
         """An extended assignment leaves Overdue (G1 fan-out)."""
         self.run_case(
-            "OFF: extend due date",
+            "extend due date",
             self.course_a,
             self.teacher_extends_overdue_due_date,
             verdicts(FRESH, FRESH),
@@ -647,7 +506,7 @@ class StatusSummaryWildcardsOffTests(StatusSummaryMatrixBase, TransactionTestCas
     def test_teacher_unpublishes_assignment_is_fresh(self):
         """An unpublished assignment stops being counted (G1 fan-out)."""
         self.run_case(
-            "OFF: unpublish assignment",
+            "unpublish assignment",
             self.course_a,
             self.teacher_unpublishes_assignment,
             verdicts(FRESH, FRESH),
@@ -656,7 +515,7 @@ class StatusSummaryWildcardsOffTests(StatusSummaryMatrixBase, TransactionTestCas
     def test_teacher_deletes_assignment_is_fresh(self):
         """A deleted assignment stops being counted (G1 fan-out on post_delete)."""
         self.run_case(
-            "OFF: delete assignment",
+            "delete assignment",
             self.course_a,
             self.teacher_deletes_assignment,
             verdicts(FRESH, FRESH),
@@ -666,7 +525,7 @@ class StatusSummaryWildcardsOffTests(StatusSummaryMatrixBase, TransactionTestCas
         """`all` gains the new course's work (enrolment receiver bumps the
         student). `?course=B` goes 404 -> 200; a 404 is never cached."""
         self.run_case(
-            "OFF: enrol into course B",
+            "enrol into course B",
             self.course_b,
             self.teacher_enrolls_student_in_course_b,
             verdicts(FRESH, FRESH),
@@ -676,7 +535,7 @@ class StatusSummaryWildcardsOffTests(StatusSummaryMatrixBase, TransactionTestCas
         """`all` stops counting the course the student left; `?course=A`
         goes 200 -> 404 (its access check precedes the cache lookup)."""
         self.run_case(
-            "OFF: withdraw",
+            "withdraw",
             self.course_a,
             self.teacher_withdraws_student,
             verdicts(FRESH, FRESH),
@@ -685,7 +544,7 @@ class StatusSummaryWildcardsOffTests(StatusSummaryMatrixBase, TransactionTestCas
     def test_removal_from_course_is_fresh(self):
         """Same shape as withdrawal, via the enrolment row's post_delete."""
         self.run_case(
-            "OFF: remove from course",
+            "remove from course",
             self.course_a,
             self.teacher_removes_student,
             verdicts(FRESH, FRESH),
@@ -695,7 +554,7 @@ class StatusSummaryWildcardsOffTests(StatusSummaryMatrixBase, TransactionTestCas
         """`all` stops counting a deactivated course (G5 `_course_scopes`
         fan-out); `?course=A` 404s via the pre-cache access check."""
         self.run_case(
-            "OFF: deactivate course",
+            "deactivate course",
             self.course_a,
             self.teacher_deactivates_course,
             verdicts(FRESH, FRESH),
@@ -708,7 +567,7 @@ class StatusSummaryWildcardsOffTests(StatusSummaryMatrixBase, TransactionTestCas
         the re-enrolment (and the withdrawal before it) moved the student's
         generation, so the orphaned entry is unreachable."""
         self.run_case(
-            "OFF: withdraw, publish, re-enrol",
+            "withdraw, publish, re-enrol",
             self.course_a,
             self.withdraw_publish_then_reenroll,
             verdicts(FRESH, FRESH),

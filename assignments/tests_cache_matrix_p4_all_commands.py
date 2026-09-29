@@ -47,12 +47,7 @@ from AutoGrader.cache_generation import (
     SCOPE_USER,
     get_generation,
 )
-from AutoGrader.tests_cache_matrix_support import (
-    UNAFFECTED,
-    FreshnessMatrixMixin,
-    Read,
-    legacy_wildcards_disabled,
-)
+from AutoGrader.tests_cache_matrix_support import UNAFFECTED, FreshnessMatrixMixin, Read
 from classrooms.models import (
     Course,
     EnrollmentStatusType,
@@ -85,7 +80,6 @@ class RepairCommandFixture(TransactionTestCase):
 
     def setUp(self):
         cache.clear()
-        self.enterContext(legacy_wildcards_disabled())
         self.school, self.admin, self.teacher, self.student, self.course = self._tenant(
             "a"
         )

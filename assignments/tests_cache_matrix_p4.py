@@ -37,12 +37,7 @@ from django.urls import reverse
 
 from assignments.models import Assignment, AssignmentStatus
 from assignments.signals import sanitize_assignment_title
-from AutoGrader.tests_cache_matrix_support import (
-    UNAFFECTED,
-    FreshnessMatrixMixin,
-    Read,
-    legacy_wildcards_disabled,
-)
+from AutoGrader.tests_cache_matrix_support import UNAFFECTED, FreshnessMatrixMixin, Read
 from classrooms.models import Course, Session
 from users.models import UserTypes
 
@@ -79,8 +74,6 @@ class TitleRepairCommandFreshnessTests(FreshnessMatrixMixin, TransactionTestCase
 
     def setUp(self):
         cache.clear()
-        self.patched_modules = self.enterContext(legacy_wildcards_disabled())
-        self.assertTrue(self.patched_modules, "no legacy module was patched")
 
         self.teacher = make_active_user("p4-teacher@x.test", UserTypes.TEACHER, "P4T")
         self.other_teacher = make_active_user(

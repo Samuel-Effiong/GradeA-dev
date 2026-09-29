@@ -37,12 +37,7 @@ from django.core.cache import cache
 from django.test import TransactionTestCase
 from django.urls import reverse
 
-from AutoGrader.tests_cache_matrix_support import (
-    UNAFFECTED,
-    FreshnessMatrixMixin,
-    Read,
-    legacy_wildcards_disabled,
-)
+from AutoGrader.tests_cache_matrix_support import UNAFFECTED, FreshnessMatrixMixin, Read
 from billing.models import CreditBucket, CreditBucketType, CreditWallet
 from users.models import UserTypes
 
@@ -67,8 +62,6 @@ class CreditGrantFreshnessTests(FreshnessMatrixMixin, TransactionTestCase):
 
     def setUp(self):
         cache.clear()
-        self.patched_modules = self.enterContext(legacy_wildcards_disabled())
-        self.assertTrue(self.patched_modules, "no legacy module was patched")
 
         self.teacher = make_active_user("p5-teacher@x.test", UserTypes.TEACHER, "P5T")
         self.other_teacher = make_active_user(

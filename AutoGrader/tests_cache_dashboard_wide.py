@@ -1,19 +1,20 @@
-"""H-1 Stage 3, item 1: the dashboard as a SYSTEM, legacy invalidation off.
+"""H-1 Stage 3, item 1: the dashboard as a SYSTEM, generations alone.
 
 Thirty-three isolated family proofs do not show that the dashboard behaves.
 Each was written in its own fixture, exercising one endpoint against one
 mutation. This suite does what the owner asked for instead:
 
   * populate **every** migrated dashboard cache for two tenants at once;
-  * disable legacy wildcard invalidation entirely;
+  * with no wildcard invalidation anywhere (patched out until H-1 step 4
+    deleted it; the suite now runs against the real code);
   * perform each relevant mutation;
   * assert every **affected** response changed;
   * assert every unrelated **tenant's** response is byte-identical;
   * assert unrelated **families** were not needlessly invalidated - over-
     invalidation would pass a freshness test while quietly reintroducing the
     performance bug this project exists to remove;
-  * re-enable the legacy mechanism and confirm the generation counters
-    survive all 16 live wildcard patterns.
+  * confirm no pattern delete left in production can reach a generation
+    counter (until step 4: all 16 live wildcard patterns).
 
 That last pair is the point. A freshness-only suite cannot distinguish
 "correctly invalidated" from "invalidated everything", and the original
@@ -48,33 +49,6 @@ User = get_user_model()
 
 REDIS_CACHE = real_redis_caches("redis://127.0.0.1:6379/3")
 
-LEGACY_MODULES = (
-    "classrooms.signals",
-    "users.signals",
-    "students.signals",
-    "assignments.signals",
-)
-
-#: Every live wildcard pattern, for the collision check at the end.
-LIVE_PATTERNS = [
-    "*superadmin*",
-    "*schooladmin*",
-    "*teacheradmin*",
-    "*studentadmin*",
-    "*user*",
-    "*school*",
-    "*course*",
-    "*studentcourse*",
-    "*settings*",
-    "schools:*",
-    "sessions:*",
-    "courses:*",
-    "studentcourses:*",
-    "topics:*",
-    "assignments:*",
-    "studentsubmissions:*",
-]
-
 
 def make_user(email, user_type, school=None, superuser=False):
     user = User.objects.create_user(
@@ -93,7 +67,7 @@ def make_user(email, user_type, school=None, superuser=False):
 
 @override_settings(CACHES=REDIS_CACHE)
 class DashboardWideBase(TransactionTestCase):
-    """Two tenants, every dashboard warmed, legacy invalidation disabled."""
+    """Two tenants, every dashboard warmed, no wildcard invalidation."""
 
     reset_sequences = True
 
@@ -131,8 +105,6 @@ class DashboardWideBase(TransactionTestCase):
         self.client_ta = self._client(self.teacher_a)
         self.client_sup = self._client(self.superadmin)
 
-        self._disable_legacy()
-
     def tearDown(self):
         cache.clear()
 
@@ -141,20 +113,6 @@ class DashboardWideBase(TransactionTestCase):
         client = APIClient()
         client.force_authenticate(user)
         return client
-
-    def _disable_legacy(self):
-        patches = [
-            patch(f"{module}.delete_cache_patterns", lambda *a, **k: None)
-            for module in LEGACY_MODULES
-        ]
-        for p in patches:
-            p.start()
-        self.addCleanup(self._stop, patches)
-
-    @staticmethod
-    def _stop(patches):
-        for p in patches:
-            p.stop()
 
     # ---- the dashboard surface, per audience ----
 
@@ -209,14 +167,14 @@ class DashboardWideBase(TransactionTestCase):
 class DashboardWideFreshnessTests(DashboardWideBase):
     """Every affected view refreshes; every unaffected one does not."""
 
-    def test_the_legacy_mechanism_really_is_disabled(self):
+    def test_no_wildcard_sweep_runs_on_a_mutation(self):
         cache.set("courses:user_id__sentinel:query__x", "cached", 300)
         self.teacher_a.first_name = "Trigger"
         self.teacher_a.save(update_fields=["first_name"])
         self.assertEqual(
             cache.get("courses:user_id__sentinel:query__x"),
             "cached",
-            "a legacy sweep still ran - this entire suite would be masked",
+            "a wildcard sweep ran - this entire suite would be masked",
         )
 
     def test_every_dashboard_can_be_warmed(self):
@@ -328,7 +286,7 @@ class DashboardWideOverInvalidationTests(DashboardWideBase):
 
         This test used to assert `school_a` did NOT move - and that encoded
         a real defect. School A's teacher-performance and summary dashboards
-        list and count the school's teachers, so a legacy-disabled probe
+        list and count the school's teachers, so a wildcards-disabled probe
         showed both serving the pre-join payload (H-1 Stage 3 item 7). The
         user's OWN school must move; the School-TABLE counter and every
         other tenant must not.
@@ -357,48 +315,51 @@ class DashboardWideOverInvalidationTests(DashboardWideBase):
 
 
 class DashboardWideCollisionTests(DashboardWideBase):
-    """With the legacy mechanism RE-ENABLED, counters must still survive."""
+    """No pattern delete left in production can reach a counter.
 
-    def _disable_legacy(self):
-        """Deliberately not disabled for this class - that is the point."""
-        return
+    Until H-1 step 4 this re-enabled the legacy mechanism and swept all 16
+    live wildcard patterns, because a sweep that deleted a counter would
+    reset its generation and revive every superseded entry. Those patterns
+    no longer exist (the guard `AutoGrader/tests_no_wildcard_invalidation.py`
+    keeps it so). The one pattern delete production still issues is the PDF
+    cache's exact-prefix clear, so that is what the counters must survive.
+    """
 
-    def test_generation_counters_survive_every_live_wildcard(self):
-        Assignment.objects.create(
+    def test_generation_counters_survive_the_pdf_exact_prefix_clear(self):
+        from assignments.pdf_cache import invalidate_assignment_pdfs
+
+        assignment = Assignment.objects.create(
             title="Seed", course=self.course_a, teacher=self.teacher_a
         )
-        expected = {
-            "global": get_generation(SCOPE_GLOBAL),
-            "any_school": get_generation(SCOPE_ANY_SCHOOL),
-            "any_user": get_generation(SCOPE_ANY_USER),
-            "school_a": get_generation(SCOPE_SCHOOL, self.school_a.id),
-            "teacher_a": get_generation(SCOPE_USER, self.teacher_a.id),
-        }
 
-        for pattern in LIVE_PATTERNS:
-            cache.delete_pattern(pattern)
-
-        self.assertEqual(
-            {
+        def generations():
+            return {
                 "global": get_generation(SCOPE_GLOBAL),
                 "any_school": get_generation(SCOPE_ANY_SCHOOL),
                 "any_user": get_generation(SCOPE_ANY_USER),
                 "school_a": get_generation(SCOPE_SCHOOL, self.school_a.id),
                 "teacher_a": get_generation(SCOPE_USER, self.teacher_a.id),
-            },
+            }
+
+        expected = generations()
+        with patch("assignments.pdf_cache._enabled", return_value=True):
+            invalidate_assignment_pdfs(assignment.id)
+
+        self.assertEqual(
+            generations(),
             expected,
-            "a legacy wildcard sweep reset a generation counter - every "
+            "the PDF exact-prefix clear reset a generation counter - every "
             "superseded cache entry would become reachable again",
         )
 
-    def test_the_dashboards_still_work_with_both_mechanisms_live(self):
-        """The migration state that actually ships until Stage 3 removes the
-        wildcards: both mechanisms running together."""
+    def test_the_dashboards_work_end_to_end_on_the_real_code(self):
+        """Formerly "both mechanisms live", the state that shipped until
+        step 4. Now the only state: a real write refreshes the dashboard."""
         warmed = self.warm_everything()
         self.assertEqual(len(warmed["sup"]), 7)
 
         Assignment.objects.create(
-            title="Both live", course=self.course_a, teacher=self.teacher_a
+            title="Real code", course=self.course_a, teacher=self.teacher_a
         )
 
         after = self.snapshot(self.client_a, self.school_admin_views(self.client_a))

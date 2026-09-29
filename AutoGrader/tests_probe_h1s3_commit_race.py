@@ -30,12 +30,7 @@ from rest_framework.test import APIClient
 
 import classrooms.signals
 from AutoGrader.cache_generation import bump_many as real_bump_many
-from AutoGrader.tests_cache_matrix_support import (
-    STALE,
-    FreshnessMatrixMixin,
-    Read,
-    legacy_wildcards_disabled,
-)
+from AutoGrader.tests_cache_matrix_support import STALE, FreshnessMatrixMixin, Read
 from classrooms.models import Course, Session
 from users.models import UserTypes
 
@@ -47,7 +42,6 @@ class CommitRaceProbe(FreshnessMatrixMixin, TransactionTestCase):
 
     def setUp(self):
         cache.clear()
-        self.enterContext(legacy_wildcards_disabled())
         self.enterContext(
             patch("classrooms.services.notifications.safe_delay", lambda *a, **k: None)
         )

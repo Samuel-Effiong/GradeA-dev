@@ -19,7 +19,6 @@ from django.core.cache import cache
 from django.db import connection, transaction
 from django.test import TransactionTestCase
 
-from AutoGrader.tests_cache_matrix_support import legacy_wildcards_disabled
 from billing.models import CreditBucket, CreditBucketType, CreditWallet
 from classrooms.models import (
     Course,
@@ -50,7 +49,6 @@ class BucketBumpQueryCostTests(TransactionTestCase):
 
     def setUp(self):
         cache.clear()
-        self.enterContext(legacy_wildcards_disabled())
         self.school = School.objects.create(name="Cost school")
         self.teacher = make_active_user(
             "bc-t@x.test", UserTypes.TEACHER, "BcT", school=self.school

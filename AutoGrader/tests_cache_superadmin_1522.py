@@ -16,14 +16,12 @@ bounded-staleness decision (b)**:
 
 The 24h TTL is the part most easily mistaken for a shortcut, so it is
 tested as a *consequence* of versioning rather than asserted: the freshness
-tests below run with the legacy mechanism disabled, which means a stale
-response cannot be rescued by a wildcard sweep OR by the TTL (24h outlives
-any test). If versioning failed, these tests would fail.
+tests below run with no wildcard invalidation (removed in H-1 step 4;
+patched out before that), which means a stale response cannot be rescued
+by a wildcard sweep OR by the TTL (24h outlives any test). If versioning failed, these tests would fail.
 
 Real Redis + real Postgres.
 """
-
-from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
@@ -43,13 +41,6 @@ from users.models import UserTypes
 User = get_user_model()
 
 REDIS_CACHE = real_redis_caches("redis://127.0.0.1:6379/5")
-
-LEGACY_MODULES = (
-    "classrooms.signals",
-    "users.signals",
-    "students.signals",
-    "assignments.signals",
-)
 
 ADOPTION = "/api/v1/super-admin/dashboard/adoption"
 USAGE = "/api/v1/super-admin/dashboard/usage"
@@ -100,20 +91,6 @@ class SuperadminBase(TransactionTestCase):
     def tearDown(self):
         cache.clear()
 
-    def disable_legacy(self):
-        patches = [
-            patch(f"{module}.delete_cache_patterns", lambda *a, **k: None)
-            for module in LEGACY_MODULES
-        ]
-        for p in patches:
-            p.start()
-        self.addCleanup(self._stop, patches)
-
-    @staticmethod
-    def _stop(patches):
-        for p in patches:
-            p.stop()
-
     def get(self, path, **params):
         response = self.client.get(path, params)
         self.assertEqual(response.status_code, 200, response.data)
@@ -121,24 +98,20 @@ class SuperadminBase(TransactionTestCase):
 
 
 class GlobalScopedFamiliesTests(SuperadminBase):
-    """Families 15-18 and 21 — `global` generation, legacy disabled.
+    """Families 15-18 and 21 — `global` generation, no wildcards.
 
-    With the wildcards off and a 24h TTL, ONLY the generation bump can make
+    With no wildcards and a 24h TTL, ONLY the generation bump can make
     these responses refresh. Nothing else could rescue a stale read.
     """
 
-    def setUp(self):
-        super().setUp()
-        self.disable_legacy()
-
-    def test_the_legacy_mechanism_really_is_disabled(self):
+    def test_no_wildcard_sweep_runs_on_a_mutation(self):
         cache.set("courses:user_id__sentinel:query__x", "cached", 300)
         self.teacher.first_name = "Trigger"
         self.teacher.save(update_fields=["first_name"])
         self.assertEqual(
             cache.get("courses:user_id__sentinel:query__x"),
             "cached",
-            "a legacy sweep still ran - every test here would be masked",
+            "a wildcard sweep ran - every test here would be masked",
         )
 
     def test_adoption_refreshes_after_a_signup(self):
@@ -210,10 +183,6 @@ class EntityClassScopedFamiliesTests(SuperadminBase):
     invalidated by unrelated activity. Both directions are asserted:
     the relevant write refreshes it, and an irrelevant write does not.
     """
-
-    def setUp(self):
-        super().setUp()
-        self.disable_legacy()
 
     def test_schools_refreshes_after_a_new_school(self):
         before = self.get(SCHOOLS)

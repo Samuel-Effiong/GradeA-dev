@@ -35,11 +35,7 @@ from django.test import TransactionTestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from AutoGrader.tests_cache_matrix_support import (
-    FreshnessMatrixMixin,
-    Read,
-    legacy_wildcards_disabled,
-)
+from AutoGrader.tests_cache_matrix_support import FreshnessMatrixMixin, Read
 from billing.models import CreditBucket, CreditBucketType, CreditWallet
 from classrooms.models import (
     Course,
@@ -70,10 +66,6 @@ class PayloadViewerFreshnessTests(FreshnessMatrixMixin, TransactionTestCase):
 
     def setUp(self):
         cache.clear()
-        self.assertTrue(
-            self.enterContext(legacy_wildcards_disabled()),
-            "no legacy module was patched",
-        )
         self.school_a = School.objects.create(name="PV School A")
         self.school_b = School.objects.create(name="PV School B")
         self.admin_a = make_active_user(

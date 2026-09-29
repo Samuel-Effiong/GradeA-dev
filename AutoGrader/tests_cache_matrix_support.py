@@ -22,30 +22,41 @@ other, and a cached 200 served after revocation is STALE.
 
 **Real Redis and real PostgreSQL only.** Fixtures must create rows the way
 production does (see docs/H1_STAGE3_WILDCARD_REMOVAL_PLAN.md §0).
+
+**The matrix runs against the real code, unpatched.** Until H-1 step 4 it
+ran inside `legacy_wildcards_disabled()`, which patched the wildcard
+`delete_cache_patterns` out of every signal module so only the generation
+bumps were measured. Step 4 deleted the wildcards, so there is nothing left
+to patch and the patch is gone: what the matrix measures IS production.
+In its place (plan §4 step 4) every mutation runs under a Redis SCAN spy,
+and `run_matrix` fails if the mutation issues any keyspace SCAN other than
+the one documented exception, the PDF cache's exact-prefix clear of a
+single assignment (`assignments/pdf_cache.py`, plan §2). A wildcard that
+came back would fail every matrix row it runs in, as well as the static
+guard `AutoGrader/tests_no_wildcard_invalidation.py`.
 """
 
-import importlib
 import json
+import re
 import unittest
-from contextlib import ExitStack, contextmanager
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from unittest.mock import patch
 
+import redis
 from django.core.cache import cache
 from rest_framework.test import APIClient
 
 from AutoGrader.tests_cache_generation import redis_commands_sent_by_this_process
 
-#: Every module that has ever held a `delete_cache_patterns` reference used
-#: by production invalidation. Before Stage 3 removes them, disabling the
-#: legacy mechanism means patching all of them; after removal they are gone
-#: and there is nothing to patch.
-LEGACY_MODULES = (
-    "AutoGrader.cache_utils",
-    "classrooms.signals",
-    "users.signals",
-    "students.signals",
-    "assignments.signals",
+#: The only keyspace SCAN production may issue during a mutation: the PDF
+#: cache clearing ONE assignment's own renders,
+#: `<key prefix>:<version>:assignmentpdf:<pdf version>:<assignment uuid>:*`
+#: (the key prefix and version are added by django-redis `make_key`). A
+#: trailing `*` after an exact assignment id, and no other glob character.
+PDF_EXACT_PREFIX_SCAN = re.compile(
+    r"^[^*?\[]*:assignmentpdf:[^:*?\[]+:"
+    r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}:\*$"
 )
 
 FRESH = "FRESH"
@@ -54,25 +65,40 @@ STALE = "STALE"
 SPURIOUS = "SPURIOUS"  # cached answer changed although the truth did not
 
 
-@contextmanager
-def legacy_wildcards_disabled():
-    """Neutralise wildcard invalidation wherever it still exists.
+def _decode(value):
+    return value.decode() if isinstance(value, bytes) else str(value)
 
-    Patches only modules that still define `delete_cache_patterns`, so the
-    same matrix runs before and after Stage 3 removes the mechanism. Yields
-    the list of modules actually patched, so a suite can assert which state
-    it ran in.
+
+@contextmanager
+def scan_patterns_sent_by_this_process():
+    """Record the MATCH pattern of every SCAN this process sends.
+
+    django-redis `delete_pattern` is `scan_iter(match=...)`, which sends
+    `SCAN <cursor> MATCH <pattern> COUNT <n>` through `send_command`, one
+    command per page. A SCAN with no MATCH is recorded as "<no MATCH>" -
+    that would walk every key and is never allowed.
     """
-    patched = []
-    with ExitStack() as stack:
-        for name in LEGACY_MODULES:
-            module = importlib.import_module(name)
-            if hasattr(module, "delete_cache_patterns"):
-                stack.enter_context(
-                    patch.object(module, "delete_cache_patterns", lambda *a, **k: None)
-                )
-                patched.append(name)
-        yield patched
+    patterns = []
+    connection_class = redis.connection.AbstractConnection
+    send_one = connection_class.send_command
+
+    def recording_send_command(self, *args, **kwargs):
+        if args and _decode(args[0]).upper() == "SCAN":
+            parts = [_decode(a) for a in args]
+            upper = [p.upper() for p in parts]
+            if "MATCH" in upper:
+                patterns.append(parts[upper.index("MATCH") + 1])
+            else:
+                patterns.append("<no MATCH>")
+        return send_one(self, *args, **kwargs)
+
+    with patch.object(connection_class, "send_command", recording_send_command):
+        yield patterns
+
+
+def disallowed_scan_patterns(patterns):
+    """Every SCAN pattern that is not the documented PDF exact-prefix clear."""
+    return sorted({p for p in patterns if not PDF_EXACT_PREFIX_SCAN.match(p)})
 
 
 @contextmanager
@@ -122,6 +148,7 @@ class MatrixResult:
     outcomes: list = field(default_factory=list)
     scans_during_mutation: int = 0
     commands_during_mutation: dict = field(default_factory=dict)
+    scan_patterns_during_mutation: list = field(default_factory=list)
 
     def by_verdict(self, verdict):
         return [o for o in self.outcomes if o.verdict == verdict]
@@ -170,13 +197,26 @@ class FreshnessMatrixMixin(unittest.TestCase):
                 )
 
         with redis_commands_sent_by_this_process() as sent:
-            mutate()
+            with scan_patterns_sent_by_this_process() as scan_patterns:
+                mutate()
 
         result = MatrixResult(
             mutation=mutation_label,
             scans_during_mutation=sent["SCAN"],
             commands_during_mutation=dict(sent),
+            scan_patterns_during_mutation=list(scan_patterns),
         )
+        # The no-wildcard guard, on every matrix row (plan §4 step 4). Checked
+        # before any verdict so a wildcard that came back cannot hide behind
+        # a FRESH result it produced itself.
+        disallowed = disallowed_scan_patterns(scan_patterns)
+        if disallowed:
+            self.fail(
+                f"{mutation_label}: the mutation issued a keyspace SCAN other "
+                f"than the PDF exact-prefix clear: {disallowed}. Wildcard "
+                "invalidation was removed in H-1 step 4; invalidate with a "
+                "generation bump (AutoGrader/cache_generation.py) instead."
+            )
         for read in reads:
             cached_after = _canonical(self.get_as(read.viewer, read.url))
             with cache_bypassed():
@@ -223,8 +263,11 @@ class FreshnessMatrixMixin(unittest.TestCase):
             )
 
     def assert_no_scan(self, result):
+        """Strict: not even the PDF exact-prefix clear. For mutations that do
+        not save an Assignment, so no SCAN of any kind is legitimate."""
         self.assertEqual(
             result.scans_during_mutation,
             0,
-            f"{result.mutation} issued {result.scans_during_mutation} keyspace SCAN(s)",
+            f"{result.mutation} issued {result.scans_during_mutation} keyspace "
+            f"SCAN(s): {result.scan_patterns_during_mutation}",
         )

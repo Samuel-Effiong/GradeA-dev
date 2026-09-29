@@ -7,11 +7,12 @@ students).
 Two rules from the 30-33 round are mandatory here and are why this file is
 shaped the way it is:
 
-**Mechanism independence.** Every decisive freshness test runs with the
-legacy `delete_cache_patterns` disabled. These keys contain the substrings
-"school" and "user", so the legacy wildcards still sweep them while both
-mechanisms run - a passing test under dual-running is evidence about the
-PAIR, not about the generation graph.
+**Mechanism independence.** Every decisive freshness test ran with the
+legacy `delete_cache_patterns` disabled, because these keys contain the
+substrings "school" and "user" and the wildcards swept them while both
+mechanisms ran - a passing test under dual-running was evidence about the
+PAIR, not about the generation graph. H-1 step 4 deleted the wildcards, so
+the tests now run against the real code and prove the same thing.
 
 **Dependency correctness derived from code, not names.** The dependency for
 each family was read off the actual query in the cache-miss branch. That
@@ -23,8 +24,6 @@ created for it.
 
 Real Redis + real Postgres.
 """
-
-from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
@@ -46,13 +45,6 @@ from users.models import UserTypes
 User = get_user_model()
 
 REDIS_CACHE = real_redis_caches("redis://127.0.0.1:6379/6")
-
-LEGACY_MODULES = (
-    "classrooms.signals",
-    "users.signals",
-    "students.signals",
-    "assignments.signals",
-)
 
 
 def make_user(email, user_type, school=None):
@@ -93,23 +85,6 @@ class DashboardBase(TransactionTestCase):
     def tearDown(self):
         cache.clear()
 
-    def disable_legacy(self):
-        """Neutralise the wildcard mechanism in EVERY module that holds a
-        reference. Patching one leaves the others live and silently restores
-        the masking that hid a broken dependency in the 30-33 round."""
-        patches = [
-            patch(f"{module}.delete_cache_patterns", lambda *a, **k: None)
-            for module in LEGACY_MODULES
-        ]
-        for p in patches:
-            p.start()
-        self.addCleanup(self._stop_legacy_patches, patches)
-
-    @staticmethod
-    def _stop_legacy_patches(patches):
-        for p in patches:
-            p.stop()
-
     def get(self, client, path, **params):
         response = client.get(path, params)
         self.assertEqual(response.status_code, 200, response.data)
@@ -117,24 +92,19 @@ class DashboardBase(TransactionTestCase):
 
 
 class SchoolAdminFamiliesTests(DashboardBase):
-    """Families 23-25, proved without the legacy mechanism."""
+    """Families 23-25, proved on generations alone."""
 
     SUMMARY = "/api/v1/school-admin/dashboard/summary"
     STUDENTS = "/api/v1/school-admin/dashboard/students"
 
-    def setUp(self):
-        super().setUp()
-        self.disable_legacy()
-
-    def test_the_legacy_mechanism_really_is_disabled(self):
+    def test_no_wildcard_sweep_runs_on_a_mutation(self):
         cache.set("courses:user_id__sentinel:query__x", "cached", 300)
         self.teacher.first_name = "Trigger"
         self.teacher.save(update_fields=["first_name"])
         self.assertEqual(
             cache.get("courses:user_id__sentinel:query__x"),
             "cached",
-            "a legacy sweep still ran - the patch did not take, so every "
-            "test in this class would be masked",
+            "a wildcard sweep ran, so every test in this class would be " "masked",
         )
 
     def test_summary_refreshes_after_a_new_assignment(self):
@@ -220,10 +190,9 @@ class AtRiskTrendSnapshotDependencyTests(DashboardBase):
         that was open: a daily snapshot changed the data and the chart kept
         serving the previous week's counts for its full 3600s TTL.
 
-        Runs with the legacy mechanism disabled, so only the generation
-        bump can be responsible for the refresh.
+        No wildcard invalidation exists (H-1 step 4), so only the
+        generation bump can be responsible for the refresh.
         """
-        self.disable_legacy()
         url = "/api/v1/school-admin/dashboard/at-risk-trend"
 
         SchoolAtRiskSnapshot.objects.create(
@@ -260,17 +229,13 @@ class AtRiskTrendSnapshotDependencyTests(DashboardBase):
 
 
 class TeacherDashboardFamiliesTests(DashboardBase):
-    """Families 26-29, proved without the legacy mechanism.
+    """Families 26-29, proved on generations alone.
 
     26 keys on a SESSION id and 28 on an ASSIGNMENT id - not a course, as
     the matrix originally claimed. `usr` alone is correct for both because
     every mutation that can affect a teacher's dashboard bumps that
     teacher's generation.
     """
-
-    def setUp(self):
-        super().setUp()
-        self.disable_legacy()
 
     def overview_url(self):
         return f"/api/v1/teacher-admin/dashboard/overview/{self.session.id}"
@@ -359,7 +324,6 @@ class DashboardTenantIsolationTests(DashboardBase):
         self.other_teacher = make_user(
             "iso-t@x.test", UserTypes.TEACHER, self.other_school
         )
-        self.disable_legacy()
 
     def test_a_mutation_here_does_not_bump_the_other_schools_generation(self):
         before = get_generation(SCOPE_SCHOOL, self.other_school.id)

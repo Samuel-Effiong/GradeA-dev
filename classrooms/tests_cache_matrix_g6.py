@@ -26,12 +26,7 @@ from django.test import TransactionTestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from AutoGrader.tests_cache_matrix_support import (
-    UNAFFECTED,
-    FreshnessMatrixMixin,
-    Read,
-    legacy_wildcards_disabled,
-)
+from AutoGrader.tests_cache_matrix_support import UNAFFECTED, FreshnessMatrixMixin, Read
 from classrooms.models import School, Session, SessionOwnerType
 from users.models import UserTypes
 
@@ -57,8 +52,6 @@ class SchoolSessionEditFreshnessTests(FreshnessMatrixMixin, TransactionTestCase)
 
     def setUp(self):
         cache.clear()
-        self.patched_modules = self.enterContext(legacy_wildcards_disabled())
-        self.assertTrue(self.patched_modules, "no legacy module was patched")
 
         self.school = School.objects.create(name="G6 School")
         self.other_school = School.objects.create(name="G6 Other School")

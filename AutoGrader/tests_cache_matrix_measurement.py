@@ -1,9 +1,13 @@
-"""H-1 Stage 3: per-mutation Redis invalidation, legacy wildcards on vs off.
+"""H-1: per-mutation Redis invalidation, with the legacy wildcards removed.
 
 The owner asked for evidence that broad clearing is eliminated rather than
-moved somewhere else. For each of the twelve fixed write paths this runs
-the real mutation once with the legacy wildcard receivers live and once
-with them disabled. It measures:
+moved somewhere else. Until H-1 step 4 this ran each of the twelve fixed
+write paths twice, with the legacy wildcard receivers live and with them
+patched out; the ON column (24-32 of 32 bystander entries deleted per
+mutation) is recorded in docs/evidence/
+H1_STAGE3_TARGETED_INVALIDATION_EVIDENCE.md §5. Step 4 deleted the
+wildcards, so the ON side can no longer run: this now measures the real
+code once per path and asserts what the OFF column asserted. It measures:
 
 * the Redis commands this process sent during the mutation (SCAN, DEL and
   UNLINK, and INCR/INCRBY - redis-py sends `incr` as INCRBY - which is
@@ -48,7 +52,10 @@ from assignments.models import (
 )
 from assignments.signals import sanitize_assignment_title
 from AutoGrader.tests_cache_generation import redis_commands_sent_by_this_process
-from AutoGrader.tests_cache_matrix_support import legacy_wildcards_disabled
+from AutoGrader.tests_cache_matrix_support import (
+    disallowed_scan_patterns,
+    scan_patterns_sent_by_this_process,
+)
 from billing.models import CreditBucket, CreditBucketType, CreditWallet
 from classrooms.models import (
     Course,
@@ -403,7 +410,6 @@ class InvalidationMeasurementTests(TransactionTestCase):
         return owned
 
     def _measure(self, mode):
-        disable = mode == "off"
         s = self._subject(mode)
         reads = []
         for n in range(BYSTANDER_SCHOOLS):
@@ -420,12 +426,8 @@ class InvalidationMeasurementTests(TransactionTestCase):
                 f"{mode}/{name}: expected one cached entry per bystander read",
             )
 
-            if disable:
-                with legacy_wildcards_disabled():
-                    with redis_commands_sent_by_this_process() as sent:
-                        mutate()
-            else:
-                with redis_commands_sent_by_this_process() as sent:
+            with redis_commands_sent_by_this_process() as sent:
+                with scan_patterns_sent_by_this_process() as scans:
                     mutate()
 
             deleted = len(warmed_keys - self._response_keys())
@@ -445,6 +447,7 @@ class InvalidationMeasurementTests(TransactionTestCase):
                 {
                     "mutation": name,
                     "scan": sent["SCAN"],
+                    "disallowed_scans": disallowed_scan_patterns(scans),
                     "del": sent["DEL"] + sent["UNLINK"],
                     "incr": sent["INCR"] + sent["INCRBY"],
                     "deleted": deleted,
@@ -454,48 +457,34 @@ class InvalidationMeasurementTests(TransactionTestCase):
             )
         return rows, len(reads)
 
-    def test_legacy_on_vs_off_for_every_fixed_write_path(self):
-        on, total = self._measure("on")
-        off, _ = self._measure("off")
+    def test_every_fixed_write_path_invalidates_only_its_own_viewers(self):
+        rows, total = self._measure("real")
 
         tenant_reads = total - BYSTANDER_SCHOOLS
-        header = (
-            f"{'mutation':<30} | {'legacy wildcards ON':^38} | "
-            f"{'legacy wildcards OFF (targeted only)':^38}"
-        )
-        sub = (
-            f"{'':<30} | {'SCAN':>4} {'DEL':>4} {'INCR':>4} {'gone':>5} "
-            f"{'coldT':>6} {'coldG':>6}  | {'SCAN':>4} {'DEL':>4} {'INCR':>4} "
-            f"{'gone':>5} {'coldT':>6} {'coldG':>6}"
-        )
         lines = [
             "",
-            "[H-1 Stage 3 per-mutation invalidation measurement]",
+            "[H-1 step 4 per-mutation invalidation measurement, wildcards removed]",
             f"bystanders: {BYSTANDER_SCHOOLS} other schools, {total} cached reads "
             f"({tenant_reads} tenant-keyed, {BYSTANDER_SCHOOLS} global-keyed "
             "my-courses)",
             "gone = bystander entries deleted; coldT = tenant-keyed bystander "
             "reads that missed; coldG = global-keyed my-courses reads that missed",
-            header,
-            sub,
+            f"{'mutation':<30} | {'SCAN':>4} {'DEL':>4} {'INCR':>4} {'gone':>5} "
+            f"{'coldT':>6} {'coldG':>6}",
         ]
-        for a, b in zip(on, off, strict=True):
+        for row in rows:
             lines.append(
-                f"{a['mutation']:<30} | {a['scan']:>4} {a['del']:>4} {a['incr']:>4} "
-                f"{a['deleted']:>5} {a['cold_tenant']:>6} {a['cold_global']:>6}  | "
-                f"{b['scan']:>4} {b['del']:>4} {b['incr']:>4} {b['deleted']:>5} "
-                f"{b['cold_tenant']:>6} {b['cold_global']:>6}"
+                f"{row['mutation']:<30} | {row['scan']:>4} {row['del']:>4} "
+                f"{row['incr']:>4} {row['deleted']:>5} {row['cold_tenant']:>6} "
+                f"{row['cold_global']:>6}"
             )
         report = "\n".join(lines)
         print(report)
 
-        # The measurement can see collateral damage: with the legacy
-        # receivers live, other schools' entries are deleted.
-        self.assertGreater(sum(row["deleted"] for row in on), 0, report)
-
-        for row in off:
+        for row in rows:
             name = row["mutation"]
             self.assertEqual(row["deleted"], 0, f"{name} deleted bystanders\n{report}")
+            self.assertEqual(row["del"], 0, f"{name} sent DEL/UNLINK\n{report}")
             self.assertEqual(
                 row["cold_tenant"],
                 0,
@@ -505,3 +494,7 @@ class InvalidationMeasurementTests(TransactionTestCase):
             # rendered PDFs by prefix (plan §2: kept, not a legacy wildcard).
             expected_scan = 1 if name.startswith("G1 ") else 0
             self.assertEqual(row["scan"], expected_scan, f"{name}\n{report}")
+            self.assertEqual(row["disallowed_scans"], [], f"{name}\n{report}")
+            # Every path still invalidates SOMETHING: removing the wildcards
+            # must not have left a write path with no invalidation at all.
+            self.assertGreater(row["incr"], 0, f"{name} bumped nothing\n{report}")

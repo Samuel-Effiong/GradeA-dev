@@ -11,9 +11,10 @@ The fix (owner-approved, precise fan-out, no global flush):
 * for students, the teachers of their courses and those teachers' schools;
 * only when a field another user can see actually changed.
 
-Every freshness test here runs with the legacy wildcard receivers DISABLED.
-While they run, `*user*`/`*school*`/`*course*` sweeps hide exactly this
-class of bug, so a test under dual-running would prove nothing.
+Every freshness test here ran with the legacy wildcard receivers DISABLED,
+because their `*user*`/`*school*`/`*course*` sweeps hid exactly this class
+of bug. H-1 step 4 deleted them, so the tests now run against the real
+code, where nothing can hide it.
 
 Real Redis + real Postgres.
 """
@@ -52,13 +53,6 @@ from users.models import Settings, UserTypes
 
 User = get_user_model()
 
-LEGACY_MODULES = (
-    "classrooms.signals",
-    "users.signals",
-    "students.signals",
-    "assignments.signals",
-)
-
 
 def make_user(email, user_type, school=None, first="First", last="Last"):
     user = User.objects.create_user(
@@ -79,10 +73,6 @@ class UserFanoutBase(TransactionTestCase):
 
     def setUp(self):
         cache.clear()
-        for module in LEGACY_MODULES:
-            p = patch(f"{module}.delete_cache_patterns", lambda *a, **k: None)
-            p.start()
-            self.addCleanup(p.stop)
 
         self.school_a = School.objects.create(name="Fanout A")
         self.school_b = School.objects.create(name="Fanout B")
@@ -182,12 +172,12 @@ class UserFanoutBase(TransactionTestCase):
             )
 
 
-class LegacyReallyDisabledTests(UserFanoutBase):
+class RealBackendNoSweepTests(UserFanoutBase):
     def test_the_backend_is_real_redis(self):
         self.assertIn("redis", settings.CACHES["default"]["BACKEND"].lower())
         self.assertTrue(cache.client.get_client().ping())
 
-    def test_the_legacy_mechanism_really_is_disabled(self):
+    def test_no_wildcard_sweep_runs_on_a_mutation(self):
         cache.set("courses:user_id__sentinel:query__x", "cached", 300)
         self.teacher_a.first_name = "Trigger"
         self.teacher_a.save(update_fields=["first_name"])

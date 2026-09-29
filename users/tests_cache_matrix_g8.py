@@ -26,11 +26,7 @@ from django.test import TransactionTestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from AutoGrader.tests_cache_matrix_support import (
-    FreshnessMatrixMixin,
-    Read,
-    legacy_wildcards_disabled,
-)
+from AutoGrader.tests_cache_matrix_support import FreshnessMatrixMixin, Read
 from users.models import UserTypes
 
 User = get_user_model()
@@ -55,8 +51,6 @@ class SuperAdminUserListFreshnessTests(FreshnessMatrixMixin, TransactionTestCase
 
     def setUp(self):
         cache.clear()
-        self.patched_modules = self.enterContext(legacy_wildcards_disabled())
-        self.assertTrue(self.patched_modules, "no legacy module was patched")
 
         self.superadmin = make_active_user(
             "g8-super@x.test", UserTypes.SUPER_ADMIN, "G8Super", is_superuser=True

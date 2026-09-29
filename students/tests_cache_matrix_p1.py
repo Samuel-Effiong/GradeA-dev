@@ -31,12 +31,7 @@ from django.test import TransactionTestCase
 from django.urls import reverse
 
 from assignments.models import Assignment, AssignmentStatus
-from AutoGrader.tests_cache_matrix_support import (
-    UNAFFECTED,
-    FreshnessMatrixMixin,
-    Read,
-    legacy_wildcards_disabled,
-)
+from AutoGrader.tests_cache_matrix_support import UNAFFECTED, FreshnessMatrixMixin, Read
 from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
 from students.models import GradingState, StudentSubmission
 from students.services import _claim_submission_for_grading, _mark_grading_claim_failed
@@ -75,8 +70,6 @@ class GradingClaimFreshnessTests(FreshnessMatrixMixin, TransactionTestCase):
 
     def setUp(self):
         cache.clear()
-        self.patched_modules = self.enterContext(legacy_wildcards_disabled())
-        self.assertTrue(self.patched_modules, "no legacy module was patched")
 
         self.teacher = make_active_user("p1-teacher@x.test", UserTypes.TEACHER, "P1T")
         self.other_teacher = make_active_user(

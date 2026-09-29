@@ -5,8 +5,8 @@ the database write, and data is fresh once Redis returns." The new
 Stage 3 receivers (G1-G9, P1-P5) all go through `bump_many`/
 `bump_generation` (AutoGrader/cache_generation.py), called from inside a
 `post_save`/`post_delete` receiver -- which Django runs INSIDE the
-caller's transaction, exactly like `delete_cache_patterns` already
-documents for the legacy wildcard path.
+caller's transaction, exactly as the removed legacy wildcard helper
+(`delete_cache_patterns`, deleted in H-1 step 4) documented for its path.
 
 This is an empirical PROBE, not a pre-written assertion of the desired
 behaviour: it forces a real Redis connection error during a real write

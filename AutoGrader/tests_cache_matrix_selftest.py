@@ -4,15 +4,16 @@ A matrix that reports "no stale data" is only evidence if the same machinery
 reports STALE when data IS stale. These tests feed it writes whose outcome is
 known in advance:
 
-* a `QuerySet.update()` with the legacy wildcards disabled and no bump: the
-  database moves, nothing invalidates, so it MUST be reported STALE;
+* a `QuerySet.update()` with no bump: the database moves, nothing
+  invalidates, so it MUST be reported STALE;
 * the same update followed by an explicit generation bump of exactly the
   affected viewers: FRESH for them, UNAFFECTED for an unrelated teacher;
 * a bump with no data change: UNAFFECTED, not SPURIOUS;
 * a read whose payload changes between two reads of unchanged data: the
   harness refuses to classify it;
-* with the legacy mechanism still live, a routed write issues a keyspace
-  SCAN and the spy counts it, so the no-SCAN assertion can fail.
+* the no-wildcard guard `run_matrix` applies to every mutation (H-1 step 4)
+  fails on a wildcard SCAN, lets the documented PDF exact-prefix clear
+  through, and a routed write now issues no SCAN at all.
 
 Rows are created through the real endpoints (session, course, enrolment by
 email), per the Stage 3 fixture rule.
@@ -35,7 +36,6 @@ from AutoGrader.tests_cache_matrix_support import (
     UNAFFECTED,
     FreshnessMatrixMixin,
     Read,
-    legacy_wildcards_disabled,
 )
 from classrooms.models import Course, EnrollmentStatusType, StudentCourse
 from users.models import UserTypes
@@ -56,13 +56,9 @@ def make_active_user(email, user_type):
 
 class MatrixFixtureBase(FreshnessMatrixMixin, TransactionTestCase):
     reset_sequences = True
-    disable_legacy = True
 
     def setUp(self):
         cache.clear()
-        if self.disable_legacy:
-            patched = self.enterContext(legacy_wildcards_disabled())
-            self.assertTrue(patched, "no legacy module was patched")
         # Enrolment notifications would enqueue onto the (prefixed) test
         # broker; the matrix is about cache state, not mail.
         self.enterContext(
@@ -200,17 +196,17 @@ class MatrixDetectsStalenessTests(MatrixFixtureBase):
         self.assertIn("cannot be classified", str(caught.exception))
 
 
-class ScanSpyCountsLegacyWildcardsTests(MatrixFixtureBase):
-    """With the legacy receivers LIVE, a routed write sweeps the keyspace.
+class NoWildcardGuardTests(MatrixFixtureBase):
+    """The SCAN guard that replaced `legacy_wildcards_disabled()`.
 
-    This is the "before" side of the Stage 3 measurement and proves the
-    zero-SCAN assertion is not vacuous. Once Stage 3 removes the wildcards
-    this class is expected to change: it becomes the "after" proof.
+    Until H-1 step 4 this class proved the spy counted the legacy receivers'
+    SCANs (a routed course rename swept the keyspace). The wildcards are
+    gone, so it now proves the opposite on the same write, and that the
+    guard `run_matrix` applies to every mutation is not vacuous: it fails on
+    a wildcard and lets only the documented PDF exact-prefix clear through.
     """
 
-    disable_legacy = False
-
-    def test_routed_course_rename_is_counted_by_the_scan_spy(self):
+    def test_routed_course_rename_issues_no_scan_and_is_fresh(self):
         client = APIClient()
         client.force_authenticate(self.teacher)
 
@@ -221,9 +217,42 @@ class ScanSpyCountsLegacyWildcardsTests(MatrixFixtureBase):
             )
             self.assertEqual(response.status_code, 200, response.content)
 
-        result = self.run_matrix("course rename (legacy live)", self.reads(), rename)
-        self.assertGreater(
-            result.scans_during_mutation, 0, result.commands_during_mutation
+        result = self.run_matrix("course rename", self.reads(), rename)
+        self.assert_no_scan(result)
+        self.assertEqual(result.scan_patterns_during_mutation, [])
+        self.assert_no_stale(
+            result, expect_changed=["student course list", "teacher course list"]
         )
+
+    def test_a_wildcard_delete_during_a_mutation_fails_the_matrix(self):
+        def rename_with_a_wildcard():
+            Course.objects.filter(pk=self.course.pk).update(name="MX 101 swept")
+            cache.delete_pattern("*user*")
+
+        with self.assertRaises(AssertionError) as caught:
+            self.run_matrix("wildcard", self.reads(), rename_with_a_wildcard)
+        self.assertIn("*user*", str(caught.exception))
+        self.assertIn("other than the PDF exact-prefix clear", str(caught.exception))
+
+    def test_the_pdf_exact_prefix_clear_is_the_one_allowed_scan(self):
+        from assignments.models import Assignment
+        from assignments.pdf_cache import invalidate_assignment_pdfs
+
+        assignment = Assignment.objects.create(title="PDF", course=self.course)
+
+        # Only the PDF clear itself runs inside the matrix mutation.
+        with patch("assignments.pdf_cache._enabled", return_value=True):
+            result = self.run_matrix(
+                "pdf clear",
+                self.reads(),
+                lambda: invalidate_assignment_pdfs(assignment.id),
+            )
+        self.assertEqual(len(set(result.scan_patterns_during_mutation)), 1)
+        self.assertIn(
+            f":assignmentpdf:v1:{assignment.id}:*",
+            result.scan_patterns_during_mutation[0],
+        )
+        # The strict variant still refuses it, for mutations that save no
+        # Assignment and so have no reason to scan at all.
         with self.assertRaises(AssertionError):
             self.assert_no_scan(result)

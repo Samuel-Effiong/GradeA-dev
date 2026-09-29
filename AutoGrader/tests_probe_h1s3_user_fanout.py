@@ -24,11 +24,7 @@ from django.test import TransactionTestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from AutoGrader.tests_cache_matrix_support import (
-    FreshnessMatrixMixin,
-    Read,
-    legacy_wildcards_disabled,
-)
+from AutoGrader.tests_cache_matrix_support import FreshnessMatrixMixin, Read
 from billing.models import CreditBucket, CreditBucketType, CreditWallet
 from classrooms.models import (
     Course,
@@ -188,7 +184,6 @@ class UserFanoutDecisionProbe(FreshnessMatrixMixin, TransactionTestCase):
 
     def test_probe(self):
         cache.clear()
-        self.enterContext(legacy_wildcards_disabled())
         lines = ["", "[H-1 Stage 3 user fan-out decision probe]"]
         run = 0
         for name in self._mutations(self._fixture("names")):

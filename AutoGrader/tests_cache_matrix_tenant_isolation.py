@@ -24,7 +24,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from assignments.models import Assignment, AssignmentStatus
-from AutoGrader.tests_cache_matrix_support import _canonical, legacy_wildcards_disabled
+from AutoGrader.tests_cache_matrix_support import _canonical
 from classrooms.models import (
     Course,
     EnrollmentStatusType,
@@ -67,8 +67,6 @@ class TenantAMutationBurstLeavesTenantBUntouchedTests(TransactionTestCase):
 
     def setUp(self):
         cache.clear()
-        self.patched = self.enterContext(legacy_wildcards_disabled())
-        self.assertTrue(self.patched, "no legacy module was patched")
 
         # --- Tenant A: everything the burst mutates ---
         self.school_a = School.objects.create(name="Tenant A School")

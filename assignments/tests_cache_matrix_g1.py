@@ -30,12 +30,7 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from assignments.models import Assignment, AssignmentStatus
-from AutoGrader.tests_cache_matrix_support import (
-    UNAFFECTED,
-    FreshnessMatrixMixin,
-    Read,
-    legacy_wildcards_disabled,
-)
+from AutoGrader.tests_cache_matrix_support import UNAFFECTED, FreshnessMatrixMixin, Read
 from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
 from users.models import UserTypes
 
@@ -73,8 +68,6 @@ class AssignmentPublishFreshnessTests(FreshnessMatrixMixin, TransactionTestCase)
 
     def setUp(self):
         cache.clear()
-        self.patched_modules = self.enterContext(legacy_wildcards_disabled())
-        self.assertTrue(self.patched_modules, "no legacy module was patched")
 
         self.teacher = make_active_user("g1-teacher@x.test", UserTypes.TEACHER)
         self.other_teacher = make_active_user(
