@@ -8,6 +8,7 @@ complete. must_change_password is set but informational (the server doesn't
 enforce it).
 """
 
+from datetime import timedelta
 from typing import Any
 from unittest.mock import patch
 
@@ -193,7 +194,7 @@ class RosterEmailRowsAreReadyToUseTests(SignInHelpers):
             user_type=UserTypes.STUDENT,
             is_active=False,
             activation_token="123456",
-            activation_expires=timezone.now() + timezone.timedelta(hours=1),
+            activation_expires=timezone.now() + timedelta(hours=1),
         )
 
         self._import("Legacy,Pending,legacy@example.com")
@@ -284,7 +285,7 @@ class RosterEmailRowsAreReadyToUseTests(SignInHelpers):
             is_active=False,
             school=other_school,
             activation_token="654321",
-            activation_expires=timezone.now() + timezone.timedelta(hours=1),
+            activation_expires=timezone.now() + timedelta(hours=1),
         )
 
         response = self._import("Far,Away,foreign@example.com")
