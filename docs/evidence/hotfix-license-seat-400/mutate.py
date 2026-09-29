@@ -55,6 +55,34 @@ MUTANTS = {
         "            seats = f\"{max_seats} seat{'' if max_seats == 1 else 's'}\"\n",
         '            seats = f"{max_seats} seats"\n',
     ),
+    # The Verification Engineer's surviving mutants (VERIFICATION.md, N1),
+    # killed by the tests added for N1.
+    "V1_stripe_precheck_ignores_carry_forward": (
+        STRIPE,
+        "            existing_license=LicenseSubscription.objects.filter(\n"
+        "                school=school, is_active=True\n"
+        "            ).first(),\n",
+        "            existing_license=None,\n",
+    ),
+    "V2_zero_credit_plan_refusal_untyped": (
+        SERVICE,
+        "            raise LicenseRequestError(\n"
+        '                f"License plan {plan.name} must define monthly_credits. "\n',
+        "            raise ValueError(\n"
+        '                f"License plan {plan.name} must define monthly_credits. "\n',
+    ),
+    "V3_standard_tier_refusal_untyped": (
+        SERVICE,
+        "            raise LicenseRequestError(\n"
+        '                "Standard Grader tier is not available under License subscription"\n',
+        "            raise ValueError(\n"
+        '                "Standard Grader tier is not available under License subscription"\n',
+    ),
+    "V4_max_seats_guard_untyped": (
+        SERVICE,
+        '            raise LicenseRequestError("max_seats must be a positive integer")\n',
+        '            raise ValueError("max_seats must be a positive integer")\n',
+    ),
 }
 
 TESTS = [

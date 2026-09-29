@@ -48,6 +48,7 @@ class LicenseSeatCapIs400Test(APITestCase):
             category=PlanCategory.LICENSE,
             tier=PlanTier.PRO,
             monthly_credits=20000,
+            stripe_price_id="price_seatcap",
         )
         self.school_admin = CustomUser.objects.create_user(
             email="admin@seatcap.edu",
@@ -175,6 +176,89 @@ class LicenseSeatCapIs400Test(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.json()["message"], SEATS_2_TEACHERS_3)
         mock_stripe.checkout.Session.create.assert_not_called()
+        self.assertFalse(LicenseSubscription.objects.exists())
+
+    def post_stripe(self, emails, **extra):
+        with patch("billing.stripe_service.stripe") as mock_stripe:
+            mock_stripe.checkout.Session.create.return_value.url = (
+                "https://checkout.example/session"
+            )
+            payload = self.payload(emails, billing_method=LicenseBillingMethod.STRIPE)
+            payload.update(extra)
+            response = self.client.post(self.url, payload, format="json")
+        return response, mock_stripe.checkout.Session.create
+
+    def keep_one_teacher_on_a_current_licence(self):
+        LicenseSubscriptionService.create_license_subscription(
+            school=self.school,
+            plan=self.plan,
+            teacher_emails=["kept@seatcap.edu"],
+            max_seats=5,
+            billing_method=LicenseBillingMethod.OFFLINE,
+        )
+
+    def test_stripe_counts_carried_over_teachers_before_checkout(self):
+        """The checkout's pre-check must count the current licence's
+        teachers, or a school pays for a licence the webhook then refuses
+        (Verification Engineer's N1/V1)."""
+        self.keep_one_teacher_on_a_current_licence()
+
+        response, session_create = self.post_stripe(
+            ["new1@seatcap.edu", "new2@seatcap.edu"]
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json()["message"], SEATS_2_CARRIED_1_NEW_2)
+        session_create.assert_not_called()
+
+    def test_stripe_checkout_goes_ahead_when_nobody_is_carried_over(self):
+        """Control for the test above: the same 2 new teachers fit when the
+        current licence's teachers are not carried over."""
+        self.keep_one_teacher_on_a_current_licence()
+
+        response, session_create = self.post_stripe(
+            ["new1@seatcap.edu", "new2@seatcap.edu"], carry_forward_teachers=False
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        session_create.assert_called_once()
+
+    def test_a_plan_without_monthly_credits_is_a_400(self):
+        self.plan.monthly_credits = 0
+        self.plan.save()
+
+        response = self.client.post(
+            self.url, self.payload(["teacher1@seatcap.edu"]), format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("must define monthly_credits", response.json()["message"])
+        self.assertFalse(LicenseSubscription.objects.exists())
+
+    def test_a_standard_tier_plan_is_a_400(self):
+        self.plan.tier = PlanTier.STANDARD
+        self.plan.save()
+
+        response = self.client.post(
+            self.url, self.payload(["teacher1@seatcap.edu"]), format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("Standard Grader tier", response.json()["message"])
+        self.assertFalse(LicenseSubscription.objects.exists())
+
+    def test_omitted_max_seats_is_a_400(self):
+        """max_seats is optional on the serializer and falls back to 0, so
+        the service's positive-seats guard is reachable through the API."""
+        payload = self.payload(["teacher1@seatcap.edu"])
+        del payload["max_seats"]
+
+        response = self.client.post(self.url, payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.json()["message"], "max_seats must be a positive integer"
+        )
         self.assertFalse(LicenseSubscription.objects.exists())
 
     def test_a_bare_value_error_is_still_a_500(self):

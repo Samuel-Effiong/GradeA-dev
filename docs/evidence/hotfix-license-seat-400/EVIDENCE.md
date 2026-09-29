@@ -39,7 +39,7 @@ Reproduce-first on beta's code (a scratch copy of the new tests; the typed error
 - Carry-forward: "This licence has 2 seats, but 3 teachers were added (1 carried over from the current licence + 2 new). Remove a teacher or increase Max seats."
 
 ## Tests
-`billing/tests/test_license_seat_400.py`, 7 tests, all through the real `POST /license-subscriptions` except the last two:
+`billing/tests/test_license_seat_400.py`, 12 tests (7, plus 5 for N1: see VERIFICATION.md "Author's N1 response"), all through the real `POST /license-subscriptions` except the last two:
 - OFFLINE, 3 teachers on 2 seats: **400**, the exact message as the envelope's top-level `message`, and **nothing created** (no licence, no billing record, no teacher accounts).
 - Carry-forward, with 1 carried over and 2 new on 2 seats: 400 with the carry-forward message. The **old licence stays active**, only one licence exists, and its allocations are byte-for-byte unchanged (atomic).
 - Positive control: 2 teachers on 2 seats → **201**, with 2 teacher allocations.
@@ -60,7 +60,7 @@ Also: `billing/tests/test_license_service.py`'s existing carry-forward over-cap 
 |---|---|
 | 1 Reproduce-first | 3 fail on beta (500, 500, 200), and the 2 guards pass. See `prefix_beta_e7e4bdf_failing.txt` |
 | 1 Regression | whole `billing` app (the serializer-change rule), `EXEMPT_EMAIL_DOMAINS=`: **1654 OK**. See `regression_billing_app.txt` |
-| 2 Mutation | **8 mutants, 8 killed**, every anchor asserted unique (`mutate.py`, `mutation_log.txt`, `mutation_results.json`). H1 catch removed (500); H2 catch widened to bare `ValueError` (the 500 guard); H3 seat refusal raised untyped; H4 Stripe pre-flight removed; H5 cap off by one (kills the 2-on-2 control); H6 carried-over teachers not counted; H7 message loses the remedy; H8 singular wording broken |
+| 2 Mutation | **12 mutants, 12 killed** (after N1; the Verification Engineer's V1–V4 were added and are killed by the N1 tests: Stripe pre-check ignoring carry-forward, zero-credit plan untyped, STANDARD tier untyped, max_seats guard untyped). Originally 8 of 8, every anchor asserted unique (`mutate.py`, `mutation_log.txt`, `mutation_results.json`). H1 catch removed (500); H2 catch widened to bare `ValueError` (the 500 guard); H3 seat refusal raised untyped; H4 Stripe pre-flight removed; H5 cap off by one (kills the 2-on-2 control); H6 carried-over teachers not counted; H7 message loses the remedy; H8 singular wording broken |
 | mypy | whole-repo `pre-commit run mypy --all-files` → Passed |
 | 4 Adversarial | the bare `ValueError` stays a 500 and its text never reaches the client; the Stripe checkout cannot be paid for an impossible licence |
 | 5 Failure/atomicity | the refused request leaves the old licence and its allocations unchanged, and creates nothing |
