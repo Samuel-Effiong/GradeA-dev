@@ -317,13 +317,13 @@ class RedisDownAtCommitTests(CommitRaceBase):
             f"courses:user_id__{self.teacher.pk}:instance_id__{self.course.pk}",
             [(SCOPE_USER, self.teacher.pk)],
         )
-        ttl = cache.ttl(key)
+        ttl = cache.ttl(key)  # type: ignore[attr-defined]  # django-redis
         self.assertIsNotNone(ttl, "the poisoned entry has no expiry")
         self.assertGreater(ttl, 0)
         self.assertLessEqual(ttl, 300, "stale for longer than the 5-minute TTL")
 
         # The bound itself: once the entry expires, the next read is fresh.
-        cache.expire(key, 1)
+        cache.expire(key, 1)  # type: ignore[attr-defined]  # django-redis
         time.sleep(1.5)
         self.assert_cached_read_is_fresh()
 
@@ -400,11 +400,11 @@ class WriterRedisFailureTests(CommitRaceBase):
                     f":instance_id__{self.course.pk}",
                     [(SCOPE_USER, self.teacher.pk)],
                 )
-                ttl = cache.ttl(key)
+                ttl = cache.ttl(key)  # type: ignore[attr-defined]  # django-redis
                 self.assertIsNotNone(ttl, "the stale entry has no expiry")
                 self.assertGreater(ttl, 0)
                 self.assertLessEqual(ttl, 300)
-                cache.expire(key, 1)
+                cache.expire(key, 1)  # type: ignore[attr-defined]  # django-redis
                 time.sleep(1.5)
                 self.assert_cached_read_is_fresh()
 
