@@ -1562,6 +1562,29 @@ traceback; genuine 5xx keep ERROR. Backlog only.
 
 ---
 
+# H-50 — webhook cycle tests made live Stripe PaymentIntent calls — FIXED
+
+**Found 2026-09-29** by the H-39 guard during the beta-batch-1 full run
+(a112eda): two blocked connections to `api.stripe.com`
+`/v1/payment_intents/pi_test_{1,2}?expand=latest_charge`, suite green.
+
+`billing/tests/test_subscription_cycle_integrity.py`
+`test_webhook_preserves_cycle_for_same_interval` and
+`test_webhook_resets_cycle_for_interval_crossing` pass a real
+`payment_intent` id into `_handle_individual_upgrade_checkout_completed`,
+which reaches `resolve_stripe_receipt_url` →
+`stripe.PaymentIntent.retrieve`. Only `stripe.Subscription`/`Invoice` were
+patched, despite the module docstring claiming every Stripe call is mocked.
+`resolve_stripe_receipt_url` swallows `StripeError` by design, so the blocked
+(or, before H-39, real) call never failed the test. Present on beta before
+the batch; not introduced by it.
+
+**Fix**: `stripe.PaymentIntent` patched in both tests, and the lookup
+asserted (`retrieve("pi_test_N", expand=["latest_charge"])`).
+Evidence: `docs/evidence/h50_cycle_receipt_mock/EVIDENCE.md`.
+
+---
+
 Several of these were found during Section 3 but are **not** Section 3
 changes — H-1 spans four apps, H-2 lives in `users`/`assignments`/`students`,
 H-5 is Section 7. They were deliberately kept out of the security work so
