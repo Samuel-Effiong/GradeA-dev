@@ -5,6 +5,7 @@ so a column typo would only surface there.
 """
 
 import re
+from datetime import timedelta
 from pathlib import Path
 
 from django.conf import settings
@@ -64,14 +65,14 @@ class ExposureQueryTests(TestCase):
             UserTypes.TEACHER,
             is_active=False,
             activation_token="123456",
-            activation_expires=timezone.now() + timezone.timedelta(minutes=10),
+            activation_expires=timezone.now() + timedelta(minutes=10),
         )
         self._user(
             "r@student.local",
             UserTypes.STUDENT,
             is_active=False,
             activation_token="654321",
-            activation_expires=timezone.now() - timezone.timedelta(hours=1),
+            activation_expires=timezone.now() - timedelta(hours=1),
         )
         candidates_sql, pool_sql = _selects()
 

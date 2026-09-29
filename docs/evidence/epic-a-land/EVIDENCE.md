@@ -84,15 +84,36 @@ each already-landed Epic A branch's own evidence
 is this doc's §3. Independent verification is Integration & Release Lead's
 final gate before merge, per team rules.
 
-## 5. Independent verification status: PARTIAL
+## 5. Independent verification status: VERIFIED
 
-**Verification PARTIAL: independent full suite pending.** Verification
-Engineer, on tip `b83350f`, independently confirmed: no evil merge
-(re-merge tree identical), cherry-picks byte-identical and docs-only, no
-revert commits, `makemigrations --check` clean, targeted suite 204/204, T1
-retirement claim. `test_nothing_is_exempt_by_default` fails identically on
-plain beta (environmental; passes with `EXEMPT_EMAIL_DOMAINS=''`); the pdf
-slow-render test flakes on plain beta under load. Their own full-suite run
-is still outstanding and REQUIRED; if it finds a real failure it is fixed on
-`phase2/epic-a` and dependent branches rebase (accepted risk, SM ruling).
-`phase2/epic-a` may be created at `b83350f` on that basis; it is not beta.
+**Verification VERIFIED**, closing the PARTIAL above. On tip `18f9ea8`
+(one commit past `b83350f`: `18f9ea8` logs the school-admin resend-invite
+error by user id instead of email, a BE-A-04 lint fix; docs-only otherwise,
+confirmed via `git show --stat 18f9ea8`):
+
+- Everything the PARTIAL pass already confirmed at `b83350f` still holds
+  (no evil merge, cherry-picks byte-identical, no revert commits,
+  `makemigrations --check` clean, T1 retirement).
+- Re-ran the targeted Epic A suite myself on `18f9ea8`, including the new
+  commit: **204/204**, plus `scripts.test_check_no_pii_in_logs` (6/6) to
+  cover the new logging fix specifically.
+- The full-suite run this section previously called outstanding is now
+  done, independently, two ways:
+  1. My own `--parallel 4` run on `task/epic-a-land@18f9ea8` (flock-wrapped,
+     queued behind Integration & Release Engineer's staging redo): **4872
+     tests, 1 failure, 28 skipped.** The one failure is
+     `test_nothing_is_exempt_by_default`, the already-triaged environmental
+     `.env` `EXEMPT_EMAIL_DOMAINS` issue (reproduces identically on plain
+     beta). The two timing-sensitive tests flagged as load-induced at
+     `b83350f` passed cleanly this run.
+  2. Confirmed `git diff --stat 18f9ea8 staging -- . ':!docs'` is **empty**
+     — the code tree (docs aside) is byte-identical to `staging` (`fc96d9a`
+     = beta + `phase2/epic-a`). Integration & Release Engineer's full run of
+     `staging` (not the author, a genuine independent run) got **4872
+     tests, 2 failures, 28 skipped**: the same environmental test plus one
+     `H-41` redelivery timing test, being re-run isolated separately — not
+     an Epic A regression, and not reproduced at all in my own run of the
+     identical code on `18f9ea8`.
+- `phase2/epic-a` (`7ae0102`) may be built on as verified on this basis.
+  `staging` already carries it; `beta` does not yet (Epic A lands to beta
+  as its own decision, separate from this verification).

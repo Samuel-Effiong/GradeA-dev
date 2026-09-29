@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 try:
     import sentry_sdk
 except ImportError:  # pragma: no cover - depends on deploy state
-    sentry_sdk = None
+    sentry_sdk = None  # type: ignore[assignment]
 
 
 def _live() -> bool:

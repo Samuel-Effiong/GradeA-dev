@@ -56,6 +56,8 @@ def _make_event(*, school_id, action="ASSIGNMENT_CREATE", actor_id=None, **extra
 class _TwoSchools(TestCase):
     """Two unrelated schools, each with its own School Admin and events."""
 
+    client: APIClient
+
     def setUp(self):
         self.client = APIClient()
         self.school_a = School.objects.create(name="School A")

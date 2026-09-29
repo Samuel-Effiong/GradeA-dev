@@ -11,6 +11,7 @@ Run with:
 """
 
 import threading
+from datetime import timedelta
 
 from django.db import connection
 from django.test import TestCase, TransactionTestCase
@@ -38,11 +39,11 @@ class RowDeleteCutoffTests(TestCase):
         now = timezone.now()
         expired = make_event(
             retention_class=RetentionClass.GENERAL,
-            occurred_at=now - timezone.timedelta(days=365, hours=1),
+            occurred_at=now - timedelta(days=365, hours=1),
         )
         fresh = make_event(
             retention_class=RetentionClass.GENERAL,
-            occurred_at=now - timezone.timedelta(days=364),
+            occurred_at=now - timedelta(days=364),
         )
 
         summary = sweep_audit_retention()
@@ -56,11 +57,11 @@ class RowDeleteCutoffTests(TestCase):
         now = timezone.now()
         expired = make_event(
             retention_class=RetentionClass.STUDENT_RECORD,
-            occurred_at=now - timezone.timedelta(days=365 * 3, hours=1),
+            occurred_at=now - timedelta(days=365 * 3, hours=1),
         )
         fresh = make_event(
             retention_class=RetentionClass.STUDENT_RECORD,
-            occurred_at=now - timezone.timedelta(days=365 * 3 - 1),
+            occurred_at=now - timedelta(days=365 * 3 - 1),
         )
 
         summary = sweep_audit_retention()
@@ -77,7 +78,7 @@ class RowDeleteCutoffTests(TestCase):
         now = timezone.now()
         row = make_event(
             retention_class=RetentionClass.GENERAL,
-            occurred_at=now - timezone.timedelta(days=400),
+            occurred_at=now - timedelta(days=400),
         )
 
         sweep_audit_retention()
@@ -88,11 +89,11 @@ class RowDeleteCutoffTests(TestCase):
         now = timezone.now()
         make_event(
             retention_class=RetentionClass.GENERAL,
-            occurred_at=now - timezone.timedelta(days=366),
+            occurred_at=now - timedelta(days=366),
         )
         make_event(
             retention_class=RetentionClass.STUDENT_RECORD,
-            occurred_at=now - timezone.timedelta(days=365 * 3 + 1),
+            occurred_at=now - timedelta(days=365 * 3 + 1),
         )
 
         first = sweep_audit_retention()
@@ -108,13 +109,12 @@ class PiiShortRetentionCutoffTests(TestCase):
     def test_ip_and_agent_are_nulled_past_cutoff_and_untouched_within_it(self):
         now = timezone.now()
         stale = make_event(
-            occurred_at=now
-            - timezone.timedelta(days=PII_SHORT_RETENTION_DAYS, hours=1),
+            occurred_at=now - timedelta(days=PII_SHORT_RETENTION_DAYS, hours=1),
             source_ip="203.0.113.5",
             user_agent="Mozilla/5.0 stale",
         )
         recent = make_event(
-            occurred_at=now - timezone.timedelta(days=PII_SHORT_RETENTION_DAYS - 1),
+            occurred_at=now - timedelta(days=PII_SHORT_RETENTION_DAYS - 1),
             source_ip="203.0.113.9",
             user_agent="Mozilla/5.0 recent",
         )
@@ -136,7 +136,7 @@ class PiiShortRetentionCutoffTests(TestCase):
         now = timezone.now()
         row = make_event(
             retention_class=RetentionClass.STUDENT_RECORD,
-            occurred_at=now - timezone.timedelta(days=PII_SHORT_RETENTION_DAYS + 1),
+            occurred_at=now - timedelta(days=PII_SHORT_RETENTION_DAYS + 1),
             source_ip="203.0.113.5",
             user_agent="Mozilla/5.0",
         )
@@ -150,7 +150,7 @@ class PiiShortRetentionCutoffTests(TestCase):
     def test_a_row_with_no_ip_or_agent_is_left_out_of_the_update_count(self):
         now = timezone.now()
         make_event(
-            occurred_at=now - timezone.timedelta(days=PII_SHORT_RETENTION_DAYS + 1),
+            occurred_at=now - timedelta(days=PII_SHORT_RETENTION_DAYS + 1),
             source_ip=None,
             user_agent=None,
         )
@@ -162,7 +162,7 @@ class PiiShortRetentionCutoffTests(TestCase):
     def test_running_the_sweep_twice_reports_zero_on_the_second_run(self):
         now = timezone.now()
         make_event(
-            occurred_at=now - timezone.timedelta(days=PII_SHORT_RETENTION_DAYS + 1),
+            occurred_at=now - timedelta(days=PII_SHORT_RETENTION_DAYS + 1),
             source_ip="203.0.113.5",
             user_agent="Mozilla/5.0",
         )
@@ -205,14 +205,14 @@ class ConcurrentSweepTests(TransactionTestCase):
         expired_general_ids = {
             make_event(
                 retention_class=RetentionClass.GENERAL,
-                occurred_at=now - timezone.timedelta(days=366),
+                occurred_at=now - timedelta(days=366),
             ).pk
             for _ in range(10)
         }
         expired_student_ids = {
             make_event(
                 retention_class=RetentionClass.STUDENT_RECORD,
-                occurred_at=now - timezone.timedelta(days=365 * 3 + 1),
+                occurred_at=now - timedelta(days=365 * 3 + 1),
             ).pk
             for _ in range(10)
         }
@@ -239,7 +239,7 @@ class ConcurrentSweepTests(TransactionTestCase):
         now = timezone.now()
         stale_ids = {
             make_event(
-                occurred_at=now - timezone.timedelta(days=PII_SHORT_RETENTION_DAYS + 1),
+                occurred_at=now - timedelta(days=PII_SHORT_RETENTION_DAYS + 1),
                 source_ip="203.0.113.5",
                 user_agent="Mozilla/5.0",
             ).pk
