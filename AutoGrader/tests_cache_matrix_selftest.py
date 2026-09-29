@@ -227,7 +227,7 @@ class NoWildcardGuardTests(MatrixFixtureBase):
     def test_a_wildcard_delete_during_a_mutation_fails_the_matrix(self):
         def rename_with_a_wildcard():
             Course.objects.filter(pk=self.course.pk).update(name="MX 101 swept")
-            cache.delete_pattern("*user*")
+            cache.delete_pattern("*user*")  # type: ignore[attr-defined]  # django-redis
 
         with self.assertRaises(AssertionError) as caught:
             self.run_matrix("wildcard", self.reads(), rename_with_a_wildcard)

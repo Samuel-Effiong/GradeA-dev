@@ -49,14 +49,6 @@ from users.models import UserTypes
 
 User = get_user_model()
 
-LEGACY_MODULES = (
-    "AutoGrader.cache_utils",
-    "classrooms.signals",
-    "users.signals",
-    "students.signals",
-    "assignments.signals",
-)
-
 
 def make_user(email, user_type, first_name):
     return User.objects.create_user(
@@ -85,16 +77,9 @@ class CommitRaceBase(TransactionTestCase):
 
     def setUp(self):
         cache.clear()
-        # The legacy wildcard deletes also run before commit; disabling them
-        # isolates the generation mechanism this change is about.
-        for module in LEGACY_MODULES:
-            imported = __import__(module, fromlist=["delete_cache_patterns"])
-            if hasattr(imported, "delete_cache_patterns"):
-                self.enterContext(
-                    patch.object(
-                        imported, "delete_cache_patterns", lambda *a, **k: None
-                    )
-                )
+        # H-1 step 4 removed the legacy wildcard deletes, which also ran before
+        # commit and had to be patched out here. Generation bumps are now the
+        # only invalidation, so these tests measure production as it is.
         self.enterContext(
             patch("classrooms.services.notifications.safe_delay", lambda *a, **k: None)
         )

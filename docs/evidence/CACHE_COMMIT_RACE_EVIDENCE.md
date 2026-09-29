@@ -270,6 +270,12 @@ deliberate failure injection in Gate 5 and the legacy wildcard deletes, which
 are disabled in these tests so that they measure the generation mechanism
 rather than a SCAN-and-delete of the whole keyspace.
 
+Update with H-1 step 4 (stacked on this change in batch-2): step 4 deletes the
+wildcard deletes and `AutoGrader/cache_utils.py`, so the patch loop in
+`CommitRaceBase.setUp` is removed there and these tests run against
+production's invalidation unpatched. Every logged result above was produced
+with the wildcards patched out, which is the same generation-only behaviour.
+
 ### Gate 8 — Live / E2E
 
 PARTIAL, accepted in writing by the Senior Manager, and signed off under H1.3 by
