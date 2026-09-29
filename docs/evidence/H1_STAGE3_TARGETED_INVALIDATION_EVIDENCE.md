@@ -274,7 +274,24 @@ student course and submission lists) are byte-identical before and after.
 
 ## 6. Strict final gate
 
-PENDING — filled in from the gate report when the run completes.
+**PASS** on `168d57e` (2026-09-29): `scripts/strict_gate.py run 168d57e
+h1-stage3-gate10-rerun --runs 2`, run under the machine lock. Two consecutive
+serial (`--parallel 1`) runs, each on a fresh database: `pre-commit run
+--all-files`, `check_migration_safety.py`, `manage.py check` and `makemigrations
+--check` all exit 0; full suite **4775 tests OK** (skipped 26) both times;
+tree fingerprint identical before and after each run; 0 leftover databases or
+connections; `beta` unchanged at `197aa46` throughout. Report and logs:
+`docs/evidence/h1-stage3-gate10-rerun/` (its gate table points back into this
+document for gates 1-9; gate 8 is PARTIAL, no live gunicorn or deployed run).
+
+**First attempt FAILED** (`docs/evidence/h1-stage3-gate10/`, on `65202ee`): run 1
+had one failure, `billing.tests.test_billing_period_anchoring`
+`test_local_period_matches_stripe_exactly_across_twelve_renewals`, which failed
+on any run dated the 29th-31st. It was pre-existing on beta `197aa46`
+(reproduced alone there) and a bug in the test, not H-1: its fake Stripe
+chained `+1 month` steps that clamp at Feb 28. Fixed test-only on
+`task/fix-renewal-anchor-test` (`3802d64`, independently verified), merged here
+at `168d57e`, then the gate was re-run.
 
 ## 7. What remains before H-1 closes
 
