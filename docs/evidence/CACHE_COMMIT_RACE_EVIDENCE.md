@@ -9,6 +9,10 @@ against the 10-gate doctrine
   beta `4b902fc` with no conflicts; code diff vs beta is still 3 files, +1,037
   (`cache_generation.py` +15, two test files). Pre-rebase SHAs quoted below
   (`a183fb3`…`9d62048`) no longer exist; the logs were produced on them.
+  Rebased again 2026-09-29 onto beta `e7e4bdf` (the landed beta batch) with no
+  conflicts. The code delta is byte-identical to the pre-rebase tip `bd2f016`,
+  which is kept reachable as tag `archive/cache-commit-race-pre-rebase-bd2f016`.
+  Gate 4's replay ran on `bd2f016`.
 - Logs: `docs/evidence/cache_commit_race/`
 - Role: h1-stage3-cache. This change is **separate from H-1 Stage 3** at the
   Senior Manager's direction, and lands first.
@@ -23,10 +27,15 @@ against the 10-gate doctrine
   The Senior Manager has accepted a written PARTIAL here. A deployed
   probabilistic replay on the QA beta after landing can raise it later; it is
   not claimed now.
-- **Gate 4 (adversarial) depends on an independent session.** The Attacker
-  session named in earlier drafts (grade-automator-plus-04) no longer exists.
-  As of 2026-09-26 the revocation replay is queued with the Security Lead's
-  team. Its result is recorded here when it lands.
+- **Gate 4 (adversarial) PASSED for the revocation path on `bd2f016`, not yet
+  on the rebased tip.** The Security Lead replayed it independently
+  (`task/cache-race-gate4` @ `3ea4e5e`,
+  `docs/evidence/cache-race-gate4/EVIDENCE.md`): unfixed beta served the
+  removed student a cached 200 in 4 of 5 rounds; the fix in 0 of 5. Their
+  record asks for a re-run if the branch is rebased again, and it has been
+  (onto `e7e4bdf`). The Verification Engineer is re-running the replay on the
+  rebased tip, with beta `e7e4bdf` as the control, as part of independent
+  verification.
 - Under hardening rule H1.3, this change is in the environment-sensitive
   class, so a gate left PARTIAL needs **the user's explicit written sign-off**
   before it lands. The Senior Manager's approval does not substitute for it.
@@ -86,7 +95,7 @@ Reproduced before the fix: `01_reproduce_on_unfixed_beta.log` (see §4, Gate 1).
 | 1 Baseline / Regression | PARTIAL | reproduce-first done: 8/13 fail on `b744c9f`, 13/13 pass on the fix; after the rebase onto `4b902fc` the module passes 14/14 (13 + the crash-safety test), 2026-09-26; the full strict suite (twice) is still pending |
 | 2 Mutation | PASS | `04_mutation_battery.log`: 3/3 mutants killed, sha256-verified restores, control 10/10 |
 | 3 Concurrency | PASS | 20 writers + 20 readers, 10 rounds, real threads/Postgres/Redis; `02_after_fix.log` |
-| 4 Adversarial | PENDING | independent replay of the revocation path, queued with the Security Lead's team |
+| 4 Adversarial | PASS on `bd2f016` (re-run on the rebased tip owed) | Security Lead's independent replay, `task/cache-race-gate4` @ `3ea4e5e`: removed student served a cached 200 in 4/5 rounds on beta `4b902fc`, 0/5 on `bd2f016`; the re-run on the rebased tip is with the Verification Engineer |
 | 5 Failure / Recovery | PASS | Redis refused and timing out, at the first bump and at commit; `02_after_fix.log` |
 | 6 Stress / Scale | PARTIAL | counts, query growth and generation arithmetic proven at 600/6,000 and 200/2,000; the timing pass awaits an unloaded machine; `05_double_bump_cost.log` |
 | 7 Real Infrastructure | PASS (LOCAL-REAL) | every test runs on real Postgres + real Redis; no mocked cache backend |
@@ -108,6 +117,13 @@ before this document is offered for review.
   heavy-run queue (owned by Integration & Release Lead) grants this task a
   reserved QUIET slot after authz-oauth, epic-a-land, teacher-removal and t9;
   nothing is launched before then.
+
+- 2026-09-29: rebased onto beta `e7e4bdf` (the landed batch) at the Senior
+  Manager's direction, no conflicts, code delta byte-identical to `bd2f016`
+  (`git diff 4b902fc bd2f016` equals `git diff e7e4bdf HEAD`). Gate 4 is
+  recorded from the Security Lead's replay. Landing order (Senior Manager):
+  H-1 stage 3, then this change, then H-1 step 4, which removes the wildcards
+  and so makes generation bumps the only invalidation.
 
 ## 4. Gate by gate
 
@@ -172,6 +188,23 @@ revocation path was handed over: `DELETE course/<pk>/student/<student_id>` →
 `transaction.atomic`. The autocommit paths (withdrawal PATCH, school-move
 PATCH, admin bulk deactivation) are not exposed to this race and serve as
 negative controls.
+
+**Result: PASS for the revocation path** (Security Lead, 2026-09-27,
+`task/cache-race-gate4` @ `3ea4e5e`, `docs/evidence/cache-race-gate4/`). A
+`LiveServerTestCase` with a real threaded HTTP server, real JWTs, real
+PostgreSQL and real Redis, 5,000 warm keys to widen the window, and 16
+concurrent readers racing the teacher's DELETE, over 5 rounds:
+
+| Code | Rounds where the removed student was still served 200 | Poisoned entry written |
+| --- | --- | --- |
+| beta `4b902fc` (unfixed) | **4 of 5** | 4 of 5 |
+| `bd2f016` (this fix, before the 2026-09-29 rebase) | **0 of 5** (every post-commit read 404) | 5 of 5, under the pre-commit generation, never served |
+
+The window was hit in every fixed round and no stale read followed, which is
+the property the on-commit re-bump provides. Limits, as the Security Lead
+records them: LOCAL-REAL only; only the student-revocation key was replayed
+(the teacher-view key is covered by this branch's own tests); and a re-run is
+owed on the SHA that lands. That re-run is with the Verification Engineer.
 
 ### Gate 5 — Failure / Recovery
 
@@ -285,11 +318,12 @@ different failures.
   every entry cached before the write is orphaned. Only an entry poisoned by a
   reader racing the window survives, and only until its TTL. Without it (the
   Senior Manager's option B, mutant c), a crash in that gap would leave every
-  pre-write entry live for the full TTL. **This is argued, not yet tested:**
-  mutant c is killed today only by the generation-arithmetic tests, not by a
-  behavioural one. A test that drops the `on_commit` callbacks (standing in
-  for a crash after `COMMIT`) and asserts that pre-write entries are still
-  orphaned is owed before the final battery.
+  pre-write entry live for the full TTL. This is now tested behaviourally:
+  `CrashAfterCommitTests` (added in `ca463c0`, formerly `362f100`) drops the
+  `on_commit` callbacks, standing in for a crash after `COMMIT`, and asserts
+  that the pre-write entry is still orphaned. It is aimed at mutant c. The
+  mutation battery in `04_mutation_battery.log` predates it and has not been
+  re-run, so the claim that this test kills mutant c is not yet measured.
 - The **post-commit** bump is race safety. It orphans whatever a reader cached
   in the pre-commit window.
 
@@ -381,9 +415,11 @@ for multi-write transactions.
    at each bump step; 20×10 concurrent enrollments against real infrastructure;
    tenant isolation of the post-commit bump; and the cost of the second bump at
    two scales in both the real and the synthetic write shape.
-4. **Which gates passed.** 2, 3, 5, 7, 9 (7 as LOCAL-REAL).
+4. **Which gates passed.** 2, 3, 5, 7, 9 (7 as LOCAL-REAL), and 4 for the
+   revocation path on `bd2f016` (Security Lead's independent replay).
 5. **Which gates remain incomplete.** 1 is PARTIAL until the two strict runs,
-   which also close 10; 4 is pending the independent replay (Security Lead's team); 6 is
+   which also close 10; 4 needs its replay re-run on the rebased tip (with the
+   Verification Engineer); 6 is
    PARTIAL until its timings are remeasured on an unloaded machine; **8 is
    PARTIAL and stays PARTIAL for this landing.**
 6. **What risks remain.** (a) Every in-transaction bump costs a second Redis
