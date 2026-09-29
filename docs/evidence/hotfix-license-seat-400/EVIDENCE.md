@@ -108,6 +108,7 @@ Also: `billing/tests/test_license_service.py`'s existing carry-forward over-cap 
 | `update_license_plan` (`validate_license_plan`) | — | no callers |
 | `audit_school_admins` command | its own `except ValueError` | no: superadmin CLI |
 | `students/views.py` `is_user_facing_error` | — | no: never sees a licence error |
+| Renderer's unhandled-500 branch (`users/renderers.py:152`) | `describe_user_error` on an uncaught exception | **latent** (1a's N7): no web route lets a `LicenseRequestError` escape uncaught today (create serializer, `validate()`, Stripe branch, add/remove teachers all catch it; the webhook answers with a bare `HttpResponse`). If a future view did, the status stays 500 and the body shows the typed, written-to-be-shown message instead of "An unexpected error occurred" |
 
 - `validate_admin_user`'s texts (with emails and school names) therefore reach only the superadmin create and checkout paths, which already showed them. They never reach a school admin.
 - `update_seats`' Stripe-wrapped raise stays a **bare** `ValueError`, so the listing doesn't touch it (N3 unchanged).

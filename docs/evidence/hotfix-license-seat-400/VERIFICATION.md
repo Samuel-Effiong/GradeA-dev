@@ -63,3 +63,35 @@ Added to `billing/tests/test_license_seat_400.py`, all through the real `POST /l
 - `test_a_plan_without_monthly_credits_is_a_400` (V2) and `test_a_standard_tier_plan_is_a_400` (V3): 400 with the service's message, nothing created.
 - `test_omitted_max_seats_is_a_400` (V4): 400 "max_seats must be a positive integer", nothing created.
 N4 and N5 are backlog H-58 and H-59 (SM, 2026-09-29), batch-3, owner ed; the hotfix is not widened for them. N6: the strict full run on the landing tip before the push is 0b's.
+
+## Re-verification: N1 (665b026) and the widening (2e25139). Verification Engineer, 2026-09-29
+
+**Combined verdict for the tip 2e25139: VERIFIED-WITH-NOTES.** Nothing is required before the push other than N6, the strict full run on the landing tip.
+
+### N1 @665b026: closed
+- The delta is tests-only: under `billing/` it touches only `billing/tests/test_license_seat_400.py`. It is a descendant of 324164f.
+- This file's first section is committed verbatim; I diffed it against my copy.
+- My V1, V2, V3 and V4 are each killed by exactly the test added for it. V7 is still killed. All restores were sha-checked.
+- Baseline: the seat tests plus `test_license_service`, **46 OK**.
+
+### Widening @2e25139
+| Check | Result |
+|---|---|
+| Scope | `AutoGrader/error_messages.py` (allowlist +1), `billing/license_service.py` (`add_teachers_batch` and `remove_teacher_from_license` refusals typed, plus `_no_seats_message`), a new test file, and evidence. No view code changes. A descendant of 665b026. |
+| Seat message correctness | Built from the **locked** row (`select_for_update`) after skipping teachers who are already active. `seats_remaining` is floored at 0, so it never says "-1 seats"; a licence already over its cap reads "no seats left (3 of 2 in use)". The plural path only runs with 2 or more teachers, because `adding > remaining >= 1`. |
+| Real-commit atomicity (TransactionTestCase, the school admin through the real `add_teachers` route) | A full licence with 2 new teachers → 400 with the exact message. Every billing, users and classrooms table count is unchanged, apart from the `UserActivity` heartbeat. **0** `on_commit` callbacks, **0** emails. |
+| Global allowlist reach | I enumerated every non-test caller of `describe_user_error` and `is_user_facing_error`, and of each `LicenseRequestError` raiser. My result matches ed's reach table. One addition: the **renderer's unhandled-500 branch** (`users/renderers.py:152`) also uses `describe_user_error`, so a `LicenseRequestError` escaping any view uncaught would show its text in a 500. That is **latent**: every web path to a raiser catches it (create serializer, `validate()`, the Stripe branch, `add_teachers`, `remove_teachers`), and the webhook answers with a bare `HttpResponse`, never the renderer. See N7. |
+| Admin texts with emails and school names | They still reach only the superadmin create and checkout paths, which already showed them. A school admin can't reach `validate_admin_user`. |
+| N3 (`update_seats`, Stripe text) | Unchanged: its Stripe raise stays a bare `ValueError`, which is not on the allowlist. |
+| A bug in `add_teachers` | Still a 400 with the generic fallback; its text is not shown (pinned). |
+| Whole billing app + `AutoGrader.tests_error_messages`, `users.tests_renderers`, `users.tests_exception_handler`, `students.tests_task_tracking` @2e25139 | **Ran 1725, OK** (`EXEMPT_EMAIL_DOMAINS=`, 441 s, committed tree) |
+
+**My mutants on the widening:**
+- **X1: allowlist widened to `ValueError`.** Killed by 3 of ed's tests: `test_a_bare_value_error_is_still_a_500` (through the renderer's 500 branch), `test_any_other_error_keeps_the_generic_message`, and `test_unknown_exception_falls_back_to_default_when_no_fallback_given`.
+- **X2: the add-teachers seat refusal removed.** Killed by `test_a_full_licence_says_so` and `test_fewer_seats_than_teachers_says_how_many`, and by my real-commit probe.
+- Restores were sha-checked against 2e25139.
+
+### New notes (not blocking)
+**N7 (latent).** Listing `LicenseRequestError` as user-facing also affects the renderer's unhandled-500 message. Today no web route lets one escape uncaught. If a future view does, the status stays 500, but the body shows the typed message instead of "An unexpected error occurred". That is acceptable, because the typed messages are written to be shown. Please add one row for it to the reach table.
+
+**N8 (informational).** `remove_teachers` now tells a school admin two cases apart. An **existing** user who isn't on their licence gets "This teacher isn't an active teacher on this licence." An id that doesn't exist gets the generic fallback, because it's a 404 inside the loop. That is a user-existence oracle, but user ids are random UUIDs (`users/models.py` `UUIDField(default=uuid4)`), so it can't be enumerated. No action; recorded for the anti-enumeration register.
