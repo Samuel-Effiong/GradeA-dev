@@ -299,6 +299,10 @@ at `168d57e`, then the gate was re-run.
    definitions, `batched_cache_invalidation` and the warn-once path; rewrite
    the tests that assert wildcard behaviour; add the guard test that fails
    if non-test code calls a wildcard delete. Needs owner approval.
+   **Approved 2026-09-28; implemented on `task/h1-step4-wildcard-removal`,
+   evidence in `docs/evidence/H1_STEP4_WILDCARD_REMOVAL_EVIDENCE.md`** (the
+   status-summary family in §8 was versioned first, and its wildcards-OFF
+   tests now assert FRESH).
 2. After step 4: two concurrent full suites (H-9 rule) and a strict gate on
    the committed tree.
 3. Owner approval, then landing on beta.
