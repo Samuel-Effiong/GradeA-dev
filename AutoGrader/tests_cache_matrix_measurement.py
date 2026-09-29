@@ -28,6 +28,7 @@ endpoint, service or management command as its matrix test.
 
 from decimal import Decimal
 from io import StringIO
+from typing import Any
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
@@ -158,7 +159,7 @@ class InvalidationMeasurementTests(TransactionTestCase):
         ]
 
     def _subject(self, mode):
-        s = {}
+        s: dict[str, Any] = {}
         s["school"] = School.objects.create(name=f"Subject {mode}")
         s["other_school"] = School.objects.create(name=f"Subject {mode} move target")
         s["admin"] = self._user(
@@ -377,7 +378,11 @@ class InvalidationMeasurementTests(TransactionTestCase):
     def _response_keys():
         # Versioned response entries carry ":g."; generation counters and
         # unversioned bookkeeping keys (heartbeats, throttles) do not.
-        return {key for key in cache.keys("*") if ":g." in key}
+        return {
+            key
+            for key in cache.keys("*")  # type: ignore[attr-defined]  # django-redis
+            if ":g." in key
+        }
 
     def _read(self, user, url):
         response = self._client(user).get(url)

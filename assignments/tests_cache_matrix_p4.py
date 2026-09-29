@@ -128,7 +128,9 @@ class TitleRepairCommandFreshnessTests(FreshnessMatrixMixin, TransactionTestCase
     def run_repair_command(self):
         call_command("strip_html_from_assignment_titles", stdout=StringIO())
         self.assignment.refresh_from_db()
-        self.assertNotIn("<p>", self.assignment.title)
+        title = self.assignment.title
+        self.assertIsNotNone(title)
+        self.assertNotIn("<p>", title or "")
 
     def test_repair_command_now_refreshes_only_the_owning_teacher(self):
         result = self.run_matrix(

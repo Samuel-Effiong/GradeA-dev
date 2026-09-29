@@ -22,6 +22,7 @@ and with them disabled (Stage 3). Real Redis + real Postgres.
 import json
 from contextlib import ExitStack
 from datetime import timedelta
+from typing import Any
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -70,7 +71,7 @@ class WalletInvalidationProbe(FreshnessMatrixMixin, TransactionTestCase):
         )
 
     def _fixture(self, tag):
-        f = {"school": School.objects.create(name=f"Wallet {tag}")}
+        f: dict[str, Any] = {"school": School.objects.create(name=f"Wallet {tag}")}
         f["admin"] = self._user(
             f"w-{tag}-a@x.test", UserTypes.SCHOOL_ADMIN, "WA", school=f["school"]
         )

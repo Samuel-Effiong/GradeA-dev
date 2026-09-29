@@ -15,6 +15,7 @@ Legacy wildcards disabled. Real Redis + real Postgres.
 """
 
 from contextlib import ExitStack
+from typing import Any
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -61,7 +62,7 @@ class UserFanoutDecisionProbe(FreshnessMatrixMixin, TransactionTestCase):
         )
 
     def _fixture(self, tag):
-        f = {}
+        f: dict[str, Any] = {}
         f["school_a"] = School.objects.create(name=f"Probe A {tag}")
         f["school_b"] = School.objects.create(name=f"Probe B {tag}")
         f["admin_a"] = self._user(

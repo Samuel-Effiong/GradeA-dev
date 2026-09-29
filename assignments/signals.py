@@ -1,5 +1,6 @@
 import json
 from datetime import timedelta
+from uuid import UUID
 
 from django.db import transaction
 from django.db.models.signals import post_delete, post_save, pre_save
@@ -156,7 +157,7 @@ def bump_assignment_course_scopes_bulk(course_ids):
     if not course_ids:
         return
 
-    scopes = [(SCOPE_GLOBAL, None)]
+    scopes: list[tuple[str, UUID | None]] = [(SCOPE_GLOBAL, None)]
     scopes.extend((SCOPE_COURSE, course_id) for course_id in course_ids)
     scopes.extend(
         (SCOPE_USER, teacher_id)
