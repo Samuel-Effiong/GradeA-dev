@@ -20,3 +20,13 @@ Mutation log (`mutation_log.txt`) checked directly: 8 mutants (M1-M8, no M9 — 
 Fix matches its design doc in every particular I checked; both new tests plus the inverted `test_generate_code_does_not_clear_an_active_lockout` test correctly assert the fixed behavior; mutation coverage is real (checked the log, not just the summary line). No blocking findings.
 
 Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-28.
+
+## Locked reset answers 429 (a181184, merge c705326, typing d7054a2): VERIFIED-WITH-NOTES
+- **429 path.** `_reset_locked_response` returns 429 with body `{code: RESET_LOCKED, message, locked_until (UTC ISO), retry_after_seconds}` and a `Retry-After` header equal to the ceiling of the seconds to unlock, floored at 1. It's used both for an already-locked request and for the guess that spends the budget. The correct code is still refused while locked. No new enumeration oracle: a locked account was already distinguishable by its distinct lock message before this change, and `/auth/otp` stays generic.
+- **The global renderer change is proven safe by output comparison.** I extracted the OLD (a181184^) and NEW `flatten_errors` and ran both on 8 payload shapes. The ONLY output that changes is the new locked-429 payload (old: "1. Code: RESET_LOCKED 2. Message: … 3. Locked until: …"; new: the message). Refusals (`{error, code}`), `detail`, field errors, a nested field `{code, message}`, a numeric code with a message, and message-only are all byte-identical. A search of non-test code finds no other error payload with both a string `code` and a string `message`.
+- **Merge c705326** (150f4c4 + e7e4bdf): my re-merge conflicts only in docs/HARDENING_BACKLOG.md, and no other file differs from c705326. The merged backlog is the union of both parents' H-rows (adds H-38 and H-46 from beta; nothing dropped).
+- **Tests** (my detached checkout of d7054a2, EXEMPT_EMAIL_DOMAINS unset): whole `users` app **610 OK** (skipped=4).
+- **Mutation:** author N1–N7 are all killed, covering the 400 fallback, the budget-spending guess, Retry-After, the code, the status, the renderer and the attempt count. My extra mutant (`locked_until` via `timezone.localtime` instead of `astimezone(UTC)`) SURVIVES, but it's **equivalent under this config** (`TIME_ZONE = "UTC"`).
+- **Note (non-blocking):** the message promises "HH:MM UTC". A test under `override_settings(TIME_ZONE="Africa/Lagos")` asserting the UTC clock time would pin that promise if TIME_ZONE ever changes.
+Full suite: covered by the batch-2 run.
+Verdict: VERIFIED-WITH-NOTES. Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-29.
