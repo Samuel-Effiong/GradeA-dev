@@ -16,7 +16,11 @@ The query parameter names are unchanged.
 import django_filters
 from django.db.models import Exists, OuterRef, Q
 
-from classrooms.models import EnrollmentStatusType, StudentCourse
+from classrooms.models import (
+    EnrollmentStatusType,
+    StudentCourse,
+    teacher_course_access_q,
+)
 
 from .models import CustomUser, UserTypes
 
@@ -42,7 +46,10 @@ def visible_enrollments(user):
     if user.user_type == UserTypes.SCHOOL_ADMIN and user.school_id:
         return Q(course__teacher__school_id=user.school_id)
     if user.user_type == UserTypes.TEACHER:
-        return Q(course__teacher=user)
+        # The same H-38 rule get_queryset() applies to a teacher: a course in
+        # a school they were removed from is no longer visible, so it must
+        # not be filterable either. Narrower than `course__teacher=user`.
+        return teacher_course_access_q(user, prefix="course__")
     return Q(student=user)
 
 
