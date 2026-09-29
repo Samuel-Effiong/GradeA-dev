@@ -14,6 +14,50 @@ Never paste response bodies, email addresses or tokens into this file.
 
 ---
 
+## G. Deployment sanity, before anything else (all read-only)
+
+Run this first. If any row fails, stop: the rest of the check would be
+testing the wrong build.
+
+**G1. The right commit is running.**
+- `GET https://<staging-host>/health` returns `{"status", "checks", "version"}`.
+- `version` is the commit Railway deployed (`RAILWAY_GIT_COMMIT_SHA`).
+- **PASS:** `version` equals the pushed origin/staging sha in the package, on
+  every web replica. With several replicas, call it about 10 times and
+  record every distinct `version` seen: there must be exactly one.
+- `"unknown"` means the variable isn't set. Record the deploy id from the
+  Railway dashboard instead.
+
+**G2. Migrations are applied.**
+- `railway run --service <web> -- python manage.py migrate --plan`
+- **PASS:** "No planned migration operations."
+- Also record `python manage.py showmigrations users audit` and confirm
+  `users 0039_customuser_token_epoch` and `audit 0001_initial` are `[X]`.
+- Do **not** run `migrate` from here. If anything is pending, the deploy's
+  release step didn't run. Stop and tell the SM.
+
+**G3. Services are healthy.**
+- `/health` returns HTTP 200 with every entry in `checks` ok.
+- A 503 names the failing service. Stop.
+- `GET /health/beat` returns 200. It checks Celery Beat separately from the
+  web deploy gate.
+- For the worker: `railway run --service <worker> -- celery -A AutoGrader inspect ping`
+  gets a `pong` from each worker. Record the count and compare it with the
+  topology in §0.
+
+**G4. Sentry is quiet across the deploy.**
+- In Sentry, filter to the staging `environment`. Events carry the
+  environment but no release tag, so use a time window: 30 minutes before
+  the push to 30 minutes after the checks finish.
+- **PASS:** no new issue in that window, and no spike in an existing one.
+  Pay particular attention to `audit`, cache/Redis, `users` auth and the
+  status-summary view.
+- Record issue ids and counts only, never event bodies.
+
+**Rollback target:** the previous origin/staging sha, given in the push
+package. Rolling back code does not reverse migrations (all of them are
+additive), and the generation counters in Redis stay in place (§4).
+
 ## 0. Setup (writes test data; see §4)
 
 **URLs have no trailing slash.** The routers use `trailing_slash=False` and
@@ -187,6 +231,10 @@ means 40 emails to the team-controlled test address.
 
 | Check | Result | Notes (counts, ids, times only) |
 |---|---|---|
+| G1 running `version` = pushed sha (distinct values seen) | | |
+| G2 `migrate --plan` empty; 0039 + audit 0001 applied | | |
+| G3 `/health` 200, `/health/beat` 200, worker pongs | | |
+| G4 Sentry new issues / spikes in window | | |
 | Topology (web replicas / workers) | | |
 | §1 R1 | | |
 | §1 R2 | | |
