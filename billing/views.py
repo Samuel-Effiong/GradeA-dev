@@ -562,53 +562,13 @@ class CreditUsageLogViewSet(viewsets.ReadOnlyModelViewSet):
 
 def _none_subscription_response():
     """
-    Flat placeholder payload for GET /subscription/me when the caller has
-    no subscription of any kind, ever — no UserSubscription row
-    (active OR expired) and no license context. Mirrors the field names
-    MySubscriptionSerializer would produce, since it can't serialize a
-    nonexistent model instance; everything is null/false/0 except
-    "status".
+    Payload for GET /subscription/me when the caller has no subscription of
+    any kind, ever — no UserSubscription row (active OR expired) and no
+    license context.
     """
     return {
         "status": "NONE",
-        "id": None,
-        "user": None,
-        "plan": None,
-        "category": None,
-        "tier": None,
-        "interval": None,
-        "subscription_type": None,
-        "is_under_license": False,
-        "is_active": False,
-        "is_trial": False,
-        "trial_end": None,
-        "trial_days_remaining": None,
-        "trial_credits_remaining": None,
-        "billing_cycle_start": None,
-        "billing_cycle_end": None,
-        "auto_renew": False,
-        "cancellation": {
-            "cancelled_at": None,
-            "has_pending_cancellation": False,
-            "cancellation_effective_date": None,
-            "cancellation_message": None,
-        },
-        "pending_plan": None,
-        "pending_plan_effective_date": None,
-        "pending_change_type": None,
-        "pending_change_message": None,
-        "recommended_plan": None,
-        "has_pending_change": False,
-        "created_at": None,
-        "updated_at": None,
-        "next_renewal_date": None,
-        "days_until_renewal": None,
-        "stripe_status": None,
-        "plan_display_name": None,
-        "monthly_credits_display": None,
-        "current_balance_display": 0,
-        "credit_percentage_remaining": 0.0,
-        "monthly_credit_remaining_display": 0,
+        "message": "You don't have a subscription yet.",
     }
 
 
@@ -759,23 +719,7 @@ class SubscriptionManagementViewSet(viewsets.GenericViewSet):
                         name="No subscription ever existed",
                         value={
                             "status": "NONE",
-                            "id": None,
-                            "plan": None,
-                            "subscription_type": None,
-                            "is_active": False,
-                            "is_trial": False,
-                            "billing_cycle_start": None,
-                            "billing_cycle_end": None,
-                            "next_renewal_date": None,
-                            "days_until_renewal": None,
-                            "auto_renew": False,
-                            "stripe_status": None,
-                            "cancellation": {
-                                "cancelled_at": None,
-                                "has_pending_cancellation": False,
-                                "cancellation_effective_date": None,
-                                "cancellation_message": None,
-                            },
+                            "message": "You don't have a subscription yet.",
                         },
                     ),
                 ],

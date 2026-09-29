@@ -34,6 +34,7 @@ from rest_framework.exceptions import (
     NotFound,
     ParseError,
     PermissionDenied,
+    Throttled,
     ValidationError,
 )
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -54,7 +55,13 @@ from users.mixins import UserCacheMixin
 from users.models import CustomUser, UserTypes
 from users.permissions import HasCreditBalance
 from users.serializers import CustomUserSerializer
-from users.throttling import RegisterThrottle
+from users.throttling import (
+    RegisterThrottle,
+    log_register_student_refused_by_budget,
+    record_register_student_failure,
+    register_student_budget_retry_after,
+    register_student_failure_budget_spent,
+)
 
 from . import services
 from .filters import MyStudentsFilter
@@ -68,6 +75,8 @@ from .models import (  # , Classroom, ClassroomSettings
     SessionOwnerType,
     StudentCourse,
     Topic,
+    teacher_can_reach_course,
+    teacher_course_access_q,
 )
 from .permissions import IsSuperAdmin, IsTeacher, IsTeacherOrReadOnly
 from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
@@ -1263,7 +1272,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         )
 
         if user.user_type == UserTypes.TEACHER:
-            return course.filter(teacher=user)
+            return course.filter(teacher_course_access_q(user))
         elif user.user_type == UserTypes.STUDENT:
             # One rule, shared with assignments and topics - see
             # COURSE_ACCESS_ENROLLMENT_STATUSES in classrooms.models.
@@ -1447,7 +1456,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # downgraded to a 500 instead of DRF's normal 404.
         course = self.get_object()
 
-        if request.user != course.teacher:
+        if not teacher_can_reach_course(request.user, course):
             raise PermissionDenied(
                 "You do not have permission to remove students from this "
                 "course. Only course teacher can"
@@ -1502,12 +1511,26 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
     )
     def handle_expired_token(self, request, token=None, *args, **kwargs):
         """Reissue an expired student activation link."""
+        # H-47: this door tests the same codes as /auth/register/student, so
+        # it spends the same global failure budget. Outside the try below:
+        # its catch-all would turn Throttled into a 500.
+        if register_student_failure_budget_spent():
+            log_register_student_refused_by_budget(door="renew")
+            raise Throttled(
+                wait=register_student_budget_retry_after(),
+                detail=(
+                    "Activation-link renewal is paused for a short while "
+                    "because of too many invalid activation codes. Please "
+                    "try again later."
+                ),
+            )
         serializer = ExpiredTokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         try:
             services.renew_student_activation(token=serializer.validated_data["token"])
         except services.EnrollmentError as exc:
+            record_register_student_failure("renew_refused")
             raise ParseError(str(exc)) from exc
         except Exception as exc:
             logger.error("Failed to renew activation token", exc_info=exc)
@@ -2038,14 +2061,17 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if self.action == "my_students":
             if user.user_type == UserTypes.TEACHER:
                 active_enrollment = StudentCourse.objects.filter(
-                    student=OuterRef("pk"), course__teacher=user
+                    teacher_course_access_q(user, prefix="course__"),
+                    student=OuterRef("pk"),
                 ).exclude(enrollment_status=EnrollmentStatusType.WITHDRAWN)
                 # StudentListSerializer walks enrollments -> course ->
                 # teacher and assignments, and submissions -> assignment,
                 # for every row. Unprefetched that was ~140 queries PER
                 # STUDENT (425 for a 3-row page, measured).
                 #
-                # Both prefetches are scoped to THIS teacher's courses. A
+                # Both prefetches are scoped to THIS teacher's REACHABLE
+                # courses (the H-38 rule, as `active_enrollment` above; a
+                # course in a school they were removed from is out). A
                 # student is routinely enrolled with several unrelated
                 # teachers, and the serializer reports whatever the cache
                 # holds: unscoped, `enrolled_courses` listed other teachers'
@@ -2057,14 +2083,16 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 ).prefetch_related(
                     Prefetch(
                         "enrollments",
-                        queryset=StudentCourse.objects.filter(course__teacher=user)
+                        queryset=StudentCourse.objects.filter(
+                            teacher_course_access_q(user, prefix="course__")
+                        )
                         .select_related("course", "course__teacher")
                         .prefetch_related("course__assignments"),
                     ),
                     Prefetch(
                         "submissions",
                         queryset=StudentSubmission.objects.filter(
-                            assignment__course__teacher=user
+                            teacher_course_access_q(user, prefix="assignment__course__")
                         ).select_related("assignment"),
                     ),
                 )
@@ -2079,7 +2107,9 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # their own rows, which student__submissions already guarantees.
         submissions_qs = StudentSubmission.objects.select_related("assignment")
         if user.user_type == UserTypes.TEACHER:
-            submissions_qs = submissions_qs.filter(assignment__course__teacher=user)
+            submissions_qs = submissions_qs.filter(
+                teacher_course_access_q(user, prefix="assignment__course__")
+            )
 
         queryset = (
             StudentCourse.objects
@@ -2096,7 +2126,9 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         )
 
         if user.user_type == UserTypes.TEACHER:
-            return queryset.filter(course__teacher=user).distinct()
+            return queryset.filter(
+                teacher_course_access_q(user, prefix="course__")
+            ).distinct()
         elif user.user_type == UserTypes.STUDENT:
             return queryset.filter(student=user)
         return StudentCourse.objects.none()
@@ -2389,7 +2421,9 @@ class TopicViewSet(UserCacheMixin, viewsets.ModelViewSet):
         user = self.request.user
 
         if user.user_type == UserTypes.TEACHER:
-            return Topic.objects.filter(course__teacher=user)
+            return Topic.objects.filter(
+                teacher_course_access_q(user, prefix="course__")
+            )
         elif user.user_type == UserTypes.STUDENT:
             # Previously matched on "an enrollment row exists", with no
             # status condition - so a WITHDRAWN student kept reading the

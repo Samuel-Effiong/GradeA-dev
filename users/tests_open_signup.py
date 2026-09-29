@@ -26,6 +26,7 @@ Two mechanics worth knowing when editing this file:
   about the broker.
 """
 
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -228,10 +229,9 @@ class SignupGuardsSurviveTests(SignupTestCase):
 
     def test_school_admin_moving_to_a_personal_email_is_still_rejected(self):
         """
-        The mirror-image rule. `user_type` is read-only on this serializer,
-        so the SCHOOL_ADMIN branch is only reachable on an existing account
-        changing its email -- which is also where the old gate used to fire
-        a second time.
+        Since AUTHZ-PATCHPW part 2, an existing account can't change its
+        email at all, so the move is refused before the personal-email rule
+        is reached.
         """
         admin = User.objects.create_user(
             email="admin@acme-school.org",
@@ -244,6 +244,38 @@ class SignupGuardsSurviveTests(SignupTestCase):
 
         serializer = CustomUserSerializer(
             admin, data={"email": "admin@gmail.com"}, partial=True
+        )
+
+        self.assertFalse(serializer.is_valid())
+        self.assertEqual(
+            serializer.errors["email"], ["Email address can't be changed."]
+        )
+
+    def test_school_admin_created_on_a_personal_email_is_rejected(self):
+        """
+        The mirror-image rule's remaining path: a super admin (the only
+        caller for whom `user_type` is writable) creating a SCHOOL_ADMIN on
+        a personal address.
+        """
+        superadmin = User.objects.create_user(
+            email="root@acme-school.org",
+            password=PASSWORD,
+            first_name="Root",
+            last_name="Admin",
+            user_type=UserTypes.SUPER_ADMIN,
+            is_superuser=True,
+            is_active=True,
+        )
+
+        serializer = CustomUserSerializer(
+            data={
+                "email": "admin@gmail.com",
+                "first_name": "School",
+                "last_name": "Admin",
+                "password": "Unguessable-Admin-Pw-42",  # pragma: allowlist secret
+                "user_type": UserTypes.SCHOOL_ADMIN,
+            },
+            context={"request": SimpleNamespace(user=superadmin)},
         )
 
         self.assertFalse(serializer.is_valid())

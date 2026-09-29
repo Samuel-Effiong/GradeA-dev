@@ -42,6 +42,7 @@ from rest_framework.exceptions import (
     NotFound,
     ParseError,
     PermissionDenied,
+    Throttled,
     ValidationError,
 )
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -64,7 +65,11 @@ from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.tasks import send_email_task
 from billing.services import AnalyticsService
-from classrooms.models import EnrollmentStatusType, StudentCourse
+from classrooms.models import (
+    EnrollmentStatusType,
+    StudentCourse,
+    teacher_course_access_q,
+)
 from classrooms.permissions import IsSuperAdmin
 from classrooms.serializers import (
     SchoolAdminRegistrationCompletionSerializer,
@@ -98,6 +103,7 @@ from users.serializers import (  # BatchSessionResultTaskEntrySerializer,; TaskC
     ChangePasswordSerializer,
     CustomTokenObtainPairSerializer,
     CustomUserSerializer,
+    EpochTokenRefreshSerializer,
     GoogleUserSerializer,
     OTPSerializer,
     ResetPasswordSerializer,
@@ -116,7 +122,12 @@ from users.throttling import (
     PasswordResetThrottle,
     RegisterThrottle,
     VerifyEmailThrottle,
+    log_register_student_refused_by_budget,
+    record_register_student_failure,
+    register_student_budget_retry_after,
+    register_student_failure_budget_spent,
 )
+from users.tokens import EpochRefreshToken
 
 logger = logging.getLogger(__name__)
 
@@ -289,7 +300,8 @@ class CustomUserViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         if user.user_type == UserTypes.TEACHER:
             return queryset.filter(
-                Q(pk=user.pk) | Q(enrollments__course__teacher=user)
+                Q(pk=user.pk)
+                | teacher_course_access_q(user, prefix="enrollments__course__")
             ).distinct()
 
         return queryset.filter(pk=user.pk)
@@ -700,7 +712,7 @@ class AuthViewSet(viewsets.ViewSet):
 
         user_data = CustomUserSerializer(user).data
 
-        refresh = RefreshToken.for_user(user)
+        refresh = EpochRefreshToken.for_user(user)
 
         # Track activity
         AnalyticsService.track_activity(user)
@@ -881,7 +893,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         for token in tokens:
             BlacklistedToken.objects.get_or_create(token=token)
 
-        refresh = RefreshToken.for_user(user)
+        refresh = EpochRefreshToken.for_user(user)
 
         # Track activity
         AnalyticsService.track_activity(user)
@@ -1024,7 +1036,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             BlacklistedToken.objects.get_or_create(token=token)
 
         # 2. Generate new tokens for the current device
-        refresh = RefreshToken.for_user(user)
+        refresh = EpochRefreshToken.for_user(user)
 
         # Track activity
         AnalyticsService.track_activity(user)
@@ -1123,6 +1135,12 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         except TokenError:
             raise ParseError("Invalid or expired token") from TokenError
 
+        # AUTHZ-T1: blacklisting the refresh token never touched the access
+        # token, which stayed valid for up to a day. Bumping the session epoch
+        # kills the access token AND every other device's tokens at once
+        # (logging out anywhere signs the user out everywhere).
+        request.user.revoke_all_sessions()
+
         return Response(status=status.HTTP_205_RESET_CONTENT)
 
     @extend_schema(
@@ -1205,6 +1223,19 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         url_path="register/student",
     )
     def register_student(self, request, *args, **kwargs):
+        # Outside the try below: its catch-all would turn Throttled into a 500.
+        if register_student_failure_budget_spent():
+            log_register_student_refused_by_budget()
+            # `wait` sets Retry-After and appends "Expected available in N
+            # seconds." to the message.
+            raise Throttled(
+                wait=register_student_budget_retry_after(),
+                detail=(
+                    "Student registration is paused for a short while because "
+                    "of too many invalid activation codes. Please try again "
+                    "later; if your code has expired by then, ask for a new one."
+                ),
+            )
         try:
             with transaction.atomic():
                 serializer = StudentRegistrationCompletionSerializer(data=request.data)
@@ -1214,18 +1245,26 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
                 token = serializer.validated_data["token"]
 
-                # Find user by activation token
+                # H-47: the token is the only thing identifying the row, so
+                # it must only ever match a student's invitation. A pending
+                # teacher's 6-digit verification code lives in the same
+                # column and used to complete that teacher's account here,
+                # with a password chosen by whoever sent the code.
                 user = CustomUser.objects.filter(
-                    activation_token=token, is_active=False
+                    activation_token=token,
+                    is_active=False,
+                    user_type=UserTypes.STUDENT,
                 ).first()
 
                 if not user:
+                    record_register_student_failure("no_match")
                     raise ParseError("Invalid or expired activation token")
 
                 if (
                     not user.activation_expires
                     or user.activation_expires < timezone.now()
                 ):
+                    record_register_student_failure("expired")
                     renewal_url = request.build_absolute_uri(
                         "/course/student/renew-student-token"
                     )
@@ -1380,7 +1419,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
             safe_delay(sync_user_to_mailerlite, str(user.id))
 
-            refresh = RefreshToken.for_user(user)
+            refresh = EpochRefreshToken.for_user(user)
 
             # Track activity
             AnalyticsService.track_activity(user)
@@ -1612,6 +1651,18 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                         user.is_active = True
                         resurrected_fields.append("is_active")
 
+                        # This row may carry a password an attacker chose
+                        # while it sat dormant (POST /auth/register creates
+                        # is_active=False rows with a real, caller-supplied
+                        # password). Google has only proven mailbox
+                        # ownership here, not which password belongs to the
+                        # rightful owner, so activating the row must not
+                        # leave any existing password usable - the
+                        # rightful owner can always get a fresh one through
+                        # the reset-password flow.
+                        user.set_unusable_password()
+                        resurrected_fields.append("password")
+
                     if resurrected_fields:
                         user.save(update_fields=resurrected_fields)
                         # Only now does this account become a real, usable
@@ -1664,7 +1715,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                     },
                 )
 
-            refresh = RefreshToken.for_user(user)
+            refresh = EpochRefreshToken.for_user(user)
 
             return Response(
                 {
@@ -1746,7 +1797,7 @@ class TokenObtainPairView(BaseTokenObtainPairView):
     },
 )
 class TokenRefreshView(BaseTokenRefreshView):
-    pass
+    serializer_class = EpochTokenRefreshSerializer
 
 
 class TaskViewSet(viewsets.ViewSet):

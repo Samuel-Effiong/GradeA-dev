@@ -15,7 +15,7 @@ from django.db.models import Exists, OuterRef
 
 from users.models import CustomUser
 
-from .models import StudentCourse
+from .models import StudentCourse, teacher_course_access_q
 
 
 class MyStudentsFilter(django_filters.FilterSet):
@@ -35,11 +35,15 @@ class MyStudentsFilter(django_filters.FilterSet):
         fields = []
 
     def _through_own_enrollments(self, queryset, **lookup):
+        # "Own" is the H-38 rule, not bare `course__teacher=user`: a course in
+        # a school the teacher was removed from is no longer theirs to filter
+        # by, or the filter answers "is my student in that school course?".
+        # The helper ANDs `course__teacher=user`, so it can only narrow H-22.
         return queryset.filter(
             Exists(
                 StudentCourse.objects.filter(
+                    teacher_course_access_q(self.request.user, prefix="course__"),
                     student=OuterRef("pk"),
-                    course__teacher=self.request.user,
                     **lookup,
                 )
             )

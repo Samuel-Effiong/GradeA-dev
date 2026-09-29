@@ -71,9 +71,12 @@ speed that decision up, not to pre-empt it.
 | H-21 | Unrestricted discovery and activation of free/internal plans (unlimited free credits) | **High - security/billing** | Session `fix-free-plan` (task/free-plan-activation) | **FIX COMPLETE, NOT LANDED (2026-09-17)** — any teacher could POST a free plan id to `/user-subscriptions` or `/subscription` repeatedly; each call replaced their subscription and granted a full monthly credit bucket (replay: 10 repeats = 100,000,000 raw credits spent). School admins could take TRIAL and the internal benchmark plan; `/subscription/plan` listed every plan to every non-student; inactive plans activated; a Stripe-billed subscriber could be moved to BETA in the app while Stripe kept billing; a licensed teacher could activate their school's license plan. Fixed by `billing/plan_policy.py` (explicit allow-lists for the self-service catalog and admin assignment, price and Stripe-price floors as extra refusals, never price as the eligibility rule), superadmin-only POST routes with a both-flags serializer check and a scoped plan lookup, and `SubscriptionService.activate_plan_without_payment` as the single no-payment path (active plans only; BETA teacher-only and once per user ever including pre-existing history; refused over a live Stripe subscription; license-track guard; all under a `CustomUser` row lock). Plan listings and `select-plan` now share one definition. Evidence: `docs/evidence/FREE_PLAN_ACTIVATION_EVIDENCE.md` — 97 dedicated tests, 26/26 mutants killed, 20 simultaneous requests x 10 rounds, injected DB/Redis/Stripe failures, real Stripe test-mode proof (app and Stripe state unchanged, 0 Stripe writes), replay 10/10 exploited on `b744c9f` and 10/10 refused on the fix, and an N+1 removal (809 -> 9 queries, 343 KB -> 2.7 KB at 808 plans). OPEN: **Gate 8 DEPLOYED-REAL on QA is required before any promotion to production** (billing tier: LOCAL-REAL + QA smoke is enough to land on beta, not enough for prod); independent Gate-4 replay by the red-team session; full-repository gate deferred to the batched integration gate; production plan configuration unverified (impact SQL in the evidence doc). |
 | H-22 | Cross-teacher tenancy leaks: `my-students` served other teachers' course names, description, teacher name and grade; `/users/<id>` enrollment filters were a yes/no oracle on other tenants' enrollments | **Medium - security** | fix-tenant-leak (session 57) | **FIX READY, NOT LANDED (2026-09-17)** — both endpoints joined every enrollment a shared student had. Fixed by scoping the `my_students` prefetches to `course__teacher=user` plus a new `MyStudentsFilter`, and by replacing `CustomUserViewSet.filterset_fields` with a scoped `UserEnrollmentFilter`; the unrouted `StudentViewSet` copy was deleted (V-5, owner sign-off). 42 dedicated tests (22 fail on `b744c9f`), 16 mutants (15 killed, 2 equivalent), 20 threads x 10 rounds, 6,000-student scale with query counts flat at 5. Branch `task/my-students-prefetch-leak` tip `948d710`; Gates 4, 8 and 10 still open — see `docs/evidence/MY_STUDENTS_TENANCY_EVIDENCE.md`. |
 | H-23 | ~95 pre-existing school-side (teacher/admin/subscription-owner, no students) email-logging call sites found across `billing/access_control.py`, `license_service.py`, `services.py`, `stripe_service.py`, `tasks.py`, `views.py`, `qa_time_travel.py`, `management/commands/backfill.py` and `users/signals.py`, mostly at INFO — same leaky-logging shape as the 11 confirmed student/user PII leaks fixed under Epic A's BE-A-04 cleanup, but not students, so out of that cleanup's scope | Medium — privacy/compliance, not tenancy | Proposed: whoever owns Epic A follow-up (audit-lead) or a dedicated session | **Not started.** Found and verified as true positives (not scanner noise) by privacy-guard (2026-09-22) during the Epic A BE-A-04 AST-based lint-rule build. Grandfathered into `scripts/pii_log_baseline.txt` (same convention as the H-12 E800 per-file burn-down) so the new PII-logging CI lint rule doesn't fail on pre-existing code — the lint rule catches any *new* instance of this pattern going forward; this item is the backlog for cleaning up the ~95 that already exist. |
+| H-38 | A teacher removed from a school keeps reading, writing and deleting that school's data: `remove_teachers` deactivates the credit allocation but never clears `user.school` and never touches the courses the teacher built in the school's sessions, and `course.teacher == user` (permanent) was the only ownership test at ~30 sites across assignments, classrooms, students, dashboard, users and billing | **High - security** | Hardening Engineer (grade-automator-plus-d5) | **FIX COMPLETE, NOT LANDED (2026-09-28).** Reproduce-first on beta: 33 probes, 23 open. One landing, as decided: part 1 clears the school link on removal; part 2 routes every teacher-scoped site through one shared rule (`teacher_course_access_q` / `reachable_courses` / `teacher_can_reach_course` in `classrooms/models.py`, which ANDs `course__teacher=user`, so it can only narrow earlier tenancy fixes), plus a static sweep test (`classrooms/tests_teacher_access_sweep.py`) that fails on any unlisted direct-owner scoping. The course owner stays in place (founder decision). Mutation: 20/20 killed on the original sites, then 8/8 on the rebase sites. **Two regressions/gaps caught before landing and recorded plainly:** (1) an earlier version of the fix put the helper's OR clause under `select_for_update()` in `save_generated_assignment_draft`, so Postgres rejected the outer join and AI draft saving 500'd for EVERY teacher; a loose test assertion hid it; fixed by an unlocked access check then a pk lock, with strict assertions and an active-teacher positive control now the pattern on every H-38 route (`docs/evidence/h38_part2/select_for_update_outer_join_regression.md`); (2) rebasing onto `4b902fc` brought in 5 new direct-owner sites (H-22's my_students prefetches, `MyStudentsFilter`, `UserEnrollmentFilter`, and H-18's `AssignmentTextSerializer.validate_course`), all reproduced as real removed-teacher leaks and fixed; 2 harness-only lines allowlisted with reasons; plus a 6th leak found in core review, `roster_import._find_existing_student_by_name` (a removed teacher's no-email roster row attached a same-named School A student), reproduced and fixed, its allowlist entry removed (`docs/evidence/h38_part2/rebase_sweep_hits.md`). Evidence: `docs/evidence/h38_teacher_removal/`, `docs/evidence/h38_part2/`. OPEN: Gate 10 full-suite run (slot from Integration & Release), independent verification, and the production exposure query (`docs/evidence/h38_part2/production_exposure.sql`, read-only, founder-run). Follow-ups in H-38-F1. |
+| H-38-F1 | H-38 follow-ups: courses left with a removed owner, and removed-teacher paths still guarded only by the static sweep | Medium | Proposed: Hardening + product (reassignment) | **Not started (logged 2026-09-28).** (a) **Admin "reassign course" feature**: because the owner stays in place, a removed teacher's school courses become unreachable to every teacher; a school admin needs a way to reassign them to another teacher, and the dashboard should show orphaned courses. Product decision needed on who may reassign and what history moves. (b) **Async upload race (T1)**: the Celery task `upload_assignment_async` re-fetches the course through `reachable_courses`, but no test covers a teacher removed AFTER the request is accepted and BEFORE the task runs. Probe design: create the batch session through the real route as an active teacher, remove the teacher through `remove_teachers`, then run the task synchronously (`upload_assignment_async.apply(...)`) with the queued arguments, and assert it refuses, writes no Assignment, and marks the processing task failed rather than raising a 5xx-shaped error; add the active-teacher positive control (same sequence without removal writes the assignment). (c) **Other sweep-only sites** that still lack a behavioural removed-teacher probe: `CourseViewSet.remove_student`'s object-level guard in isolation, and the StudentCourse submissions prefetch; each needs a strict probe plus a positive control. (`batch_upload` got its dynamic probe in the H-38 landing.) (d) The unrouted `StudentViewSet` flagged by the mutation pass was already deleted on beta (`e0b1640`, V-5); nothing left to do. See `docs/evidence/h38_part2/mutation_results_final.md`. |
 | H-41 | `students.tests_grading_redelivery_live.GradingRedeliveryLiveTest.test_5_concurrent_submissions_with_one_redelivery_each_grade_exactly_once` failed for real on a GitHub Actions CI run (`AssertionError: 'FAILED' != GradingState.DONE`) under `--parallel 4`, and the same failure was never seen locally, including 3 full-suite reproduction attempts on this box deliberately constrained to match or exceed CI's real CPU pressure (`taskset -c 0-3` x2, `taskset -c 0-1` x1 — all 4553 tests, all clean) | Medium — real but unreproduced; contained by H-39-adjacent tblib fix so it can no longer crash the whole run, but the underlying race is still open | Proposed: whoever owns the live-Celery redelivery test next | **Not started.** gate-runner (2026-09-23): CPU core count/oversubscription on this box is ruled out as the trigger (reproduction attempted up to 4x oversubscribed, never reproduced) - the remaining suspect is network-latency variance specific to GitHub Actions' Docker-networked Postgres/Redis service containers (reached over the docker bridge, not a true localhost socket the way this box's isolated env is), which this box cannot faithfully reproduce without artificial network jitter (e.g. `tc netem`) injected into the repro, not yet attempted. This is a genuinely timing-sensitive live-broker test (`WAIT = 45s`, real Celery worker, real Redis redelivery) - a single occurrence on one CI run is weak evidence of a reliable defect, but not zero. Until reproduced, treat as a flake candidate to watch for recurrence on real CI runs, not a proven bug in the `--parallel` prefix work (H-9's fork-prefix fixes were independently verified via `multiprocessing.get_context("fork")` probes and are not implicated by this failure's causal chain - see the tblib/pickle analysis this entry is filed alongside). |
 | H-42 | `send_user_activation_email` (`users/services.py`) routes school admins to `FRONTEND_DOMAIN` (the teacher app) alongside teachers, same as the now-fixed school-admin invitation email was doing — but the school-admin frontend is a genuinely separate app that refuses other roles | Medium (wrong domain) escalated to **High — real dead-end account** once traced end to end | privacy-guard | **CLOSED (2026-09-23)** — investigation confirmed the wrong-domain bug was the smaller half: `POST /auth/otp` (`otp_type=VERIFY_EMAIL`) is `AllowAny`, takes only an email, and has no `user_type` restriction, so it was reachable for a pending school admin (`SchoolWithAdminSerializer`-created, `is_active=False`, no usable password, real 7-day `activation_token`). Hitting it overwrote that token with a 15-minute generic one and emailed a `/verify-email` link (wrong domain) whose completion endpoint (`/auth/verify`) has no password field at all — and once it set `is_active=True` and cleared the token, `/register/school-admin`'s `is_active=False` filter could never match again. Net effect: an active, verified account with an unusable password and no remaining path to ever set one. Reproduced end-to-end with a failing test against unfixed code first (`classrooms/test_school_admin_otp_deadend.py`), then fixed: `send_user_activation_email()` now recognizes `SCHOOL_ADMIN` and delegates to a new `resend_school_admin_invitation()` (`classrooms/serializers.py`), which reissues a fresh 7-day token and resends the real invitation email instead of ever building the generic, password-less activation email for this user_type — mirroring the existing precedent for invited teachers, who don't go through the generic flow either. 7 dedicated tests, full regression 4571/4571 (256.6s, `--parallel 4`), independently verified by the SM (own worktree, own full-regression run, matching numbers). Landed on beta by fast-forward (`2f2b9bc` → `2bad9c6`) and pushed to origin, user-approved.
 | H-39 | No test-suite guard against real outbound network calls — a test that forgets to mock a third-party call (Stripe, etc.) silently succeeds locally against real credentials and only fails later, on CI, against fake ones | High — this exact gap cost a two-CI-run diagnosis | Proposed: whoever owns test infrastructure next (gate-runner nominated it) | **Not started.** Reinforced-priority per gate-runner (2026-09-23), directly motivated by `task/flaky-stripe-timeout-diagnosis`: `billing.tests.test_free_plan_activation_security.ActivationFailureRecoveryTests.test_stripe_timeout_on_the_allowed_checkout_leaves_no_local_change` mocked `stripe.checkout.Session.create` but not `stripe.Customer.create`; the real call silently succeeded locally (`.env`'s `LOCAL_STRIPE_SECRET_KEY` is a real Stripe test-mode key) and deterministically failed on CI (fake placeholder key rejected by Stripe's own auth check). A guard that fails any test making a real outbound HTTP call (e.g. patching `socket.socket`/`urllib3` at the test-runner level with an allowlist for the local Postgres/Redis sockets) would have caught this on the very first local run instead of needing two failed CI pushes to diagnose. Complements, does not replace, `scripts/isolated-test-env.sh` (which gives CI-matching fake credentials but doesn't itself block a stray real call from a differently-named env var). |
+| H-46 | 178 real (non-false-positive) mypy errors newly surfaced by wiring django-stubs/djangorestframework-stubs into the mypy pre-commit hook (`task/mypy-django-stubs`) — genuinely new `file:line` sites the plugin now understands well enough to flag, that had zero mypy complaint at all before (distinct from the 581 pre-plugin false positives the same change resolved) | Mixed — see triage in this cell; not blocking, ratcheted via `pyproject.toml` `[[tool.mypy.overrides]]` (`ignore_errors = true` per pre-existing-error module) so these don't block unrelated commits | Proposed: section owners of the files involved (mostly billing/, students/, assignments/, classrooms/) | **Not started — logging/triage only, per this branch's scope; no fix attempted.** Full `file:line` list and pattern breakdown: `docs/evidence/mypy_django_stubs/EVIDENCE.md` section 5 (and `newly_surfaced_errors.txt` in that directory). Triage by risk: **(a) Higher priority — likely real bugs:** nullable-field/FK access without a None-guard (`Item "None" of "X \| None" has no attribute "Y"`, largest cluster, concentrated in test files but flagging real optionality the production code paths share) and `Decimal \| None` passed to `float()` (~15 sites across `students/tests*.py`, `billing/tests/test_grading_refund_scope.py`) — a `None` slipping through either shape at runtime would raise, so these are worth a closer look even though most current sites are in tests. **(b) Lower priority — likely safe:** `request.user` (typed `CustomUser \| AnonymousUser`) passed into a typed FK lookup (~35 sites, mostly `classrooms/views.py`, `billing/views.py`, `assignments/views.py`, `students/views.py`) — these are almost all behind DRF permission classes that already guarantee an authenticated, non-anonymous user by the time the lookup runs, a runtime guarantee mypy has no way to see; likely a narrowing/cast cleanup, not a bug hunt. **(c) Needs a closer look — not yet triaged either way:** Stripe SDK argument-type mismatches (`str \| None` where the `stripe` stubs expect `str`, in `billing/stripe_service.py`, `billing/license_service.py`, `billing/live_qa/scenarios_license.py`) and the six `.annotate()`-result TypedDict `[union-attr]` sites in `classrooms/views.py` (mypy tracks the annotated fields as a TypedDict and doesn't yet see them dotted onto the base type the way the runtime code accesses them — could be a stubs-precision gap or a genuine access-pattern issue). |
 
 ---
 
@@ -1502,6 +1505,112 @@ reset locked (recovery denial; login with the existing password is unaffected).
 **Acceptance:** worst-case guesses per account per day measurably lower than
 384, or the code space larger; every lock visible to an operator. Evidence
 as for AUTHZ-L2 (adversarial many-IP loop, mutation).
+
+---
+
+# H-41 — grading-redelivery concurrency test flakes under load
+
+**Found**: seen failing once on CI, never reproduced locally until now.
+
+`students.tests_grading_redelivery_live.GradingRedeliveryLiveTest.
+test_5_concurrent_submissions_with_one_redelivery_each_grade_exactly_once`
+failed during the staging@fc96d9a full-suite redo (2026-09-28, machine load
+~30 from concurrent unrelated sessions): `'FAILED' != GradingState.DONE`.
+Isolated rerun of the whole module immediately after, load ~20: 4/4 pass.
+
+**Status**: load-induced, consistent with the CI sighting — treated as a
+pre-existing flake, not a regression on whichever branch triggers it. No fix
+scoped yet; recorded so a repeat sighting has a home instead of being
+re-diagnosed from scratch each time.
+
+**Acceptance**: TBD once the actual scheduling contention (if fixable) is
+understood; at minimum, note here whether it reproduces isolated under
+deliberately induced load.
+
+---
+
+# H-44 — `pdf_renderer` concurrent-render test is a wall-clock flake
+
+**Found 2026-09-28** during authz-oauth-takeover Gate 10 verification.
+
+`assignments.tests_pdf_renderer.ConcurrentRenderingTest.
+test_one_slow_render_does_not_stall_the_others` asserts the slowest of 6
+concurrent renders finishes under 4.0s. On this shared 4-physical-core
+machine that fails whenever load is elevated — confirmed on plain
+beta@4b902fc (3/3 failures, ~7s each) and on task/authz-oauth-takeover@27d36f0
+(2/3 failures, same signature); `git diff --stat 4b902fc 27d36f0 --
+assignments/` is empty, so it isn't branch-specific.
+
+**Fix direction**: make the assertion independent of the wall clock — measure
+relative ordering (the slow render finishes last; healthy ones finish close
+together) or inject a fake clock — rather than raising the 4.0s threshold,
+which only shifts where the flake reappears under heavier load.
+
+**Priority**: low, behind the test-speed stream's current queue.
+
+**Acceptance**: passes reliably at machine load comparable to a loaded
+CI/dev box; a genuine stall (the behaviour this test guards against) must
+still fail it.
+
+---
+
+# H-48 — thin-webhook signature tests made live Stripe calls and passed on a 500 — FIXED
+
+**Found 2026-09-28** by the H-39 network guard on its first real CI run
+(beta `be78221`, Tests run 36444904862): two blocked connections to
+`api.stripe.com:443`, suite still green.
+
+`ThinWebhookRealSignatureTests` inherited
+`test_a_rolled_secret_still_verifies_while_both_are_live` and
+`test_a_signature_just_inside_the_tolerance_is_accepted` without patching
+`stripe.Event.retrieve`. The thin view verifies, then fetches the event from
+Stripe; unmocked, that is a real network call. With the guard it fails and
+the view returns 500; before the guard, CI called Stripe for real. Both
+tests asserted only `!= 400`, so a 500 passed.
+
+**Fix**: `retrieve` patched for the whole thin class in `setUp`; every
+accepted-path assertion (fat and thin) is now `== 200`.
+Evidence: `docs/evidence/h48_thin_webhook_mock/EVIDENCE.md`.
+
+---
+
+# H-49 — validation 400s log a full traceback at ERROR — LOW
+
+**Found 2026-09-28** in the same CI run: `classrooms/views.py`
+`_validate_uuid_query_param` (via `monthly_token_usage`) turns a bad
+`school_id` into a `ValidationError` 400, and the request is logged as
+"API Exception" with the full `badly formed hexadecimal UUID string`
+traceback at ERROR. GitHub Actions surfaces those as error annotations on a
+green run, and in production they would page as errors for ordinary client
+mistakes.
+
+**Scope**: client-error (4xx) responses should log at WARNING/INFO without a
+traceback; genuine 5xx keep ERROR. Backlog only.
+
+---
+
+# H-50 — webhook cycle tests made live Stripe PaymentIntent calls — FIXED
+
+**Found 2026-09-29** by the H-39 guard during the beta-batch-1 full run
+(a112eda): two blocked connections to `api.stripe.com`
+`/v1/payment_intents/pi_test_{1,2}?expand=latest_charge`, suite green.
+
+`billing/tests/test_subscription_cycle_integrity.py`
+`test_webhook_preserves_cycle_for_same_interval` and
+`test_webhook_resets_cycle_for_interval_crossing` pass a real
+`payment_intent` id into `_handle_individual_upgrade_checkout_completed`,
+which reaches `resolve_stripe_receipt_url` →
+`stripe.PaymentIntent.retrieve`. Only `stripe.Subscription`/`Invoice` were
+patched, despite the module docstring claiming every Stripe call is mocked.
+`resolve_stripe_receipt_url` swallows `StripeError` by design, so the blocked
+(or, before H-39, real) call never failed the test. Present on beta before
+the batch; not introduced by it.
+
+**Fix**: `stripe.PaymentIntent` patched in both tests, and the lookup
+asserted (`retrieve("pi_test_N", expand=["latest_charge"])`).
+Evidence: `docs/evidence/h50_cycle_receipt_mock/EVIDENCE.md`.
+
+---
 
 Several of these were found during Section 3 but are **not** Section 3
 changes — H-1 spans four apps, H-2 lives in `users`/`assignments`/`students`,
