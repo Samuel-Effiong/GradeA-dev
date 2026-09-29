@@ -42,3 +42,16 @@ The single-add path already did this on beta (pre-existing); (A) extends it to e
 
 Verdict: REJECTED. Full suite: covered by the batch-2 run, once the two blockers are fixed.
 Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-29.
+
+## Second re-verification @44e2893: VERIFIED
+**Blocker 1 (login cache fan-out): closed.** `SIMPLE_JWT UPDATE_LAST_LOGIN` is back off. `users.services.stamp_last_login` does a queryset `update(last_login=now)`, so there's no save() and no post_save. It's called in `CustomTokenObtainPairSerializer.validate` only after `super().validate()` succeeds and the lockout is reset (a failed login stamps nothing), and from Google sign-in. My own probe, re-run on 44e2893 (throwaway test wrapping the receiver's `bump_many` and `delete_cache_patterns`), for one real `/auth/login`: **200, last_login set, 0 bumps, 0 wildcard calls** (previously 1 bump of anyusr/global/usr plus 9 patterns).
+**Blocker 2 (re-enabling deactivated accounts): closed on both paths.** `enroll_student_by_email` raises `AccountDisabledError` for any inactive account unless `was_never_activated` (inactive AND `email_verified_at` is None AND not `has_signed_in`), after the cross-school gate. My Dee scenario re-run: `is_active_after=False, password_unchanged=True`, row `skipped: "This student's account is disabled. Contact support if they should have access."`.
+- Premise checked: every real activation door stamps `email_verified_at` (users/views.py: /auth/verify, register_student, register_school_admin, Google). Two activations don't, and both fall under the SM-accepted edge ("deactivated before first use is re-invited"): the admin "Mark selected users as active" action (`queryset.update(is_active=True)`) and students created active by the new scheme or direct-add. For those, any later use is caught by the sign-in signal.
+**My original finding stays fixed:** the Kim scenario gives `ENROLLED, password_unchanged=True`, row `enrolled / existing_student`.
+**Tests** (my detached checkout of 44e2893): my 3 scenario tests + users.tests_last_login_stamp + tests_roster_ready_to_use + test_bulk_enrollment + tests_backfill_pending_student_invites: **56 OK**.
+**My mutants** (independent; each restore sha-verified):
+- X1, stamp via `save(update_fields=["last_login"])`: KILLED (the student and teacher no-invalidation login tests).
+- X2, `email_verified_at is None` dropped from `was_never_activated`: KILLED (test_roster_import_skips_a_deactivated_student_who_was_verified).
+Your battery: 23/23 (S5–S8, D1–D5), per your log.
+Full suite: covered by the batch-2 run (you reported 1027 targeted OK plus whole-repo mypy Passed).
+Verdict: VERIFIED. Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-29.
