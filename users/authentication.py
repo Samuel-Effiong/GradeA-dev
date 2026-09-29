@@ -16,7 +16,15 @@ by dotted path, and `users/schema.py` has a drf-spectacular
 Removing the class would break both.
 """
 
+from typing import TYPE_CHECKING, cast
+
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.authentication import JWTAuthentication
+
+from users.tokens import token_epoch_of
+
+if TYPE_CHECKING:
+    from users.models import CustomUser
 
 # No longer read for enforcement (see MustChangePasswordJWTAuthentication's
 # docstring), but view names a user with must_change_password=True could
@@ -31,11 +39,24 @@ PASSWORD_CHANGE_ALLOWED_VIEW_NAMES = frozenset(
 
 
 class MustChangePasswordJWTAuthentication(JWTAuthentication):
-    """No-op wrapper kept only so its dotted path and schema extension
-    (see module docstring) keep resolving. Behaves exactly like plain
-    JWTAuthentication.
+    """JWTAuthentication plus the session-epoch check (AUTHZ-T1/T2).
+
+    Name kept because AutoGrader/settings.py and users/schema.py reference it
+    by dotted path (see module docstring). It no longer enforces
+    must_change_password. A token is rejected when its epoch claim differs
+    from the user's `token_epoch`, i.e. after logout or any credential change.
+    No extra query: JWTAuthentication.get_user already loaded the user row.
     """
 
     def authenticate(self, request):
         result = super().authenticate(request)
+        if result is None:
+            return None
+        user, token = result
+        # simplejwt types the user as AbstractBaseUser; AUTH_USER_MODEL is
+        # CustomUser, which carries token_epoch.
+        if token_epoch_of(token) != cast("CustomUser", user).token_epoch:
+            raise AuthenticationFailed(
+                "Token has been revoked. Please log in again.", code="token_revoked"
+            )
         return result

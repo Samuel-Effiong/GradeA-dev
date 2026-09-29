@@ -38,6 +38,7 @@ from dateutil.relativedelta import relativedelta
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
+from freezegun import freeze_time
 
 from billing.models import (
     BillingInterval,
@@ -381,23 +382,20 @@ class RenewalAnchoringTests(TestCase):
             timezone.now() + relativedelta(months=1) - timedelta(hours=5),
         )
 
-    def test_local_period_matches_stripe_exactly_across_twelve_renewals(self):
-        """
-        THE REGRESSION. Twelve cycles, each webhook processed at a
-        different realistic lag. Under the old wall-clock arithmetic every
-        lag compounded into the next cycle's dates; anchored on Stripe's
-        period they must match exactly, every time, forever.
-        """
-        anchor = stripe_now(-relativedelta(months=12))
+    def _assert_twelve_renewals_track_stripe(self, anchor):
+        # Stripe dates every period from the subscription's billing anchor:
+        # a 31st anchor gives Feb 28, then Mar 31 again. Each boundary is
+        # therefore anchor + n months, never the previous boundary + 1 month
+        # (that chain clamps at Feb 28 and stays on the 28th).
         sub = self._make_sub(anchor - relativedelta(months=1), anchor)
 
         # Minutes of webhook latency for each cycle — a slow cycle followed
         # by a fast one is exactly what used to swallow a renewal.
         lags = [1, 240, 3, 90, 720, 2, 45, 5, 300, 1, 180, 30]
-        boundary = anchor
 
         for cycle, lag_minutes in enumerate(lags, start=1):
-            next_boundary = boundary + relativedelta(months=1)
+            boundary = anchor + relativedelta(months=cycle - 1)
+            next_boundary = anchor + relativedelta(months=cycle)
             processed_at = boundary + timedelta(minutes=lag_minutes)
 
             with patch("django.utils.timezone.now", return_value=processed_at):
@@ -413,12 +411,32 @@ class RenewalAnchoringTests(TestCase):
                 next_boundary,
                 f"cycle {cycle}: end drifted from Stripe's boundary",
             )
-            boundary = next_boundary
 
         self.assertEqual(
             sub.billing_cycle_end,
             anchor + relativedelta(months=12),
             "twelve renewals must land exactly twelve months after the anchor",
+        )
+
+    # Explicit anchors and a frozen clock: this test once depended on the day
+    # it ran (it failed on the 29th-31st), and must never do so again.
+    @freeze_time("2026-01-31 01:00:00")
+    def test_local_period_matches_stripe_exactly_across_twelve_renewals(self):
+        """
+        THE REGRESSION. Twelve cycles, each webhook processed at a
+        different realistic lag. Under the old wall-clock arithmetic every
+        lag compounded into the next cycle's dates; anchored on Stripe's
+        period they must match exactly, every time, forever. Month-end
+        anchor (the 31st), so the cycle crosses a 28-day February.
+        """
+        self._assert_twelve_renewals_track_stripe(
+            datetime(2025, 1, 31, 0, 6, 2, tzinfo=dt_timezone.utc)
+        )
+
+    @freeze_time("2026-03-15 01:00:00")
+    def test_twelve_renewals_track_stripe_from_a_mid_month_anchor(self):
+        self._assert_twelve_renewals_track_stripe(
+            datetime(2025, 3, 15, 0, 6, 2, tzinfo=dt_timezone.utc)
         )
 
     def test_renewal_without_a_usable_period_still_renews(self):

@@ -4,7 +4,11 @@ from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
 from rest_framework import serializers
 from rest_framework.exceptions import AuthenticationFailed
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.exceptions import InvalidToken
+from rest_framework_simplejwt.serializers import (
+    TokenObtainPairSerializer,
+    TokenRefreshSerializer,
+)
 
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome, ErrorClass
@@ -21,6 +25,7 @@ from users.models import (
     Waitlist,
 )
 from users.services import send_user_activation_email
+from users.tokens import EpochRefreshToken, assert_epoch_current
 
 logger = logging.getLogger(__name__)
 
@@ -142,12 +147,55 @@ class CustomUserSerializer(serializers.ModelSerializer):
     def get_is_system_generated_email(self, obj) -> bool:
         return bool(obj.email and str(obj.email).endswith("@student.local"))
 
+    def _is_acting_on_self(self):
+        request = self.context.get("request")
+        acting = getattr(request, "user", None)
+        return bool(
+            self.instance is not None
+            and acting is not None
+            and getattr(acting, "pk", None) == self.instance.pk
+        )
+
     def validate(self, attrs):
         from users.utils import (
             is_business_email,
             is_exempt_email_domain,
             is_personal_email,
         )
+
+        # AUTHZ-PATCHPW: a user must not set their own password through this
+        # serializer (PATCH /users/<id>). That route needs only a bearer
+        # token, so a stolen access token could set a password the attacker
+        # knows and keep the account for good; /auth/change-password
+        # requires current_password (and the OTP when supplied). Rejected
+        # loudly rather than dropped so a client that relied on it fails
+        # visibly. A super admin acting on ANOTHER account, and account
+        # creation (self.instance is None), are unchanged.
+        if "password" in attrs and self._is_acting_on_self():
+            raise serializers.ValidationError(
+                {
+                    "password": (
+                        "The password cannot be changed through this endpoint. "
+                        "Use POST /auth/change-password instead."
+                    )
+                }
+            )
+
+        # AUTHZ-PATCHPW part 2 (founder decision 2026-09-28): the email is
+        # the recovery identity - reset codes go there - so changing it on a
+        # bearer token alone hands a stolen access token the account. It is
+        # refused for EVERY caller on an existing account, super admins
+        # acting on someone else included. Frontends send the whole object,
+        # so an unchanged address (compared after validate_email's
+        # lower/strip) still passes.
+        if (
+            self.instance is not None
+            and "email" in attrs
+            and attrs["email"] != (self.instance.email or "").lower().strip()
+        ):
+            raise serializers.ValidationError(
+                {"email": "Email address can't be changed."}
+            )
 
         # Determine user_type and email for this operation
         user_type = attrs.get("user_type")
@@ -396,6 +444,8 @@ class GoogleUserSerializer(CustomUserSerializer):
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    token_class = EpochRefreshToken
+
     # Login-specific: kept separate from the generic simplejwt failure
     # message so a locked account gets an explanation instead of looking
     # like a wrong password forever.
@@ -480,6 +530,22 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         )
 
         return data
+
+
+class EpochTokenRefreshSerializer(TokenRefreshSerializer):
+    """Refuse to refresh a token minted under a revoked epoch, so a device
+    that was signed out by a logout / password change elsewhere gets a clean
+    401 instead of new tokens that would be rejected on first use."""
+
+    token_class = EpochRefreshToken
+
+    def validate(self, attrs):
+        refresh = self.token_class(attrs["refresh"])
+        user = CustomUser.objects.filter(pk=refresh.get("user_id")).first()
+        if user is None:
+            raise InvalidToken("Token contained no recognizable user identification")
+        assert_epoch_current(refresh, user)
+        return super().validate(attrs)
 
 
 class OTPSerializer(serializers.Serializer):

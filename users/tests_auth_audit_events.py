@@ -4,8 +4,12 @@ branch of login (CustomTokenObtainPairSerializer.validate) and logout
 each emits the outcome/error_class/reason_code the plan specifies.
 """
 
+from datetime import timedelta
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.db import DatabaseError
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -97,7 +101,7 @@ class LoginAuditEventTests(APITestCase):
         self,
     ):
         self.user.failed_login_attempts = User.MAX_LOGIN_ATTEMPTS
-        self.user.locked_until = timezone.now() + timezone.timedelta(minutes=30)
+        self.user.locked_until = timezone.now() + timedelta(minutes=30)
         self.user.save()
 
         response = self.login(PASSWORD)
@@ -135,6 +139,42 @@ class LogoutAuditEventTests(APITestCase):
         self.assertIsNone(event.reason_code)
         self.assertEqual(event.actor_id, self.user.id)
         self.assertEqual(event.target_id, self.user.id)
+
+    def test_a_successful_logout_revokes_sessions_before_recording_success(self):
+        refresh = RefreshToken.for_user(self.user)
+        epoch_before = self.user.token_epoch
+
+        self.client.post(self.url, {"refresh": str(refresh)}, format="json")
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.token_epoch, epoch_before + 1)
+        self.assertTrue(
+            AuditEvent.objects.filter(
+                action=AuditAction.AUTH_LOGOUT, outcome=AuditOutcome.SUCCESS
+            ).exists()
+        )
+
+    def test_a_failed_session_revocation_is_recorded_as_a_failure_not_success(self):
+        refresh = RefreshToken.for_user(self.user)
+        self.client.raise_request_exception = False
+
+        with patch.object(
+            get_user_model(),
+            "revoke_all_sessions",
+            side_effect=DatabaseError("epoch update failed"),
+        ):
+            response = self.client.post(
+                self.url, {"refresh": str(refresh)}, format="json"
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        events = AuditEvent.objects.filter(action=AuditAction.AUTH_LOGOUT)
+        self.assertEqual(events.count(), 1)
+        event = events.get()
+        self.assertEqual(event.outcome, AuditOutcome.FAILURE)
+        self.assertEqual(event.error_class, ErrorClass.SYSTEM)
+        self.assertEqual(event.reason_code, "SESSION_REVOKE_FAILED")
+        self.assertEqual(event.actor_id, self.user.id)
 
     def test_a_missing_refresh_token_emits_exactly_one_failure_event(self):
         response = self.client.post(self.url, {}, format="json")

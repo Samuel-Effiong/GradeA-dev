@@ -43,7 +43,13 @@ from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.uploads import PayloadTooLarge, validate_upload_size
 from billing.access_control import AIFeatureNotAvailableError
 from billing.errors import InsufficientCreditsError
-from classrooms.models import COURSE_ACCESS_ENROLLMENT_STATUSES, Course, Topic
+from classrooms.models import (
+    COURSE_ACCESS_ENROLLMENT_STATUSES,
+    Topic,
+    reachable_courses,
+    teacher_can_reach_course,
+    teacher_course_access_q,
+)
 from classrooms.permissions import IsTeacher, IsTeacherOrReadOnly
 from classrooms.serializers import TopicSerializer
 from students.models import BackgroundTaskType, BatchUploadSession, BatchUploadType
@@ -309,7 +315,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 .annotate(
                     annotated_submission_count=Count("submissions", distinct=True)
                 )
-                .filter(course__teacher=user)
+                .filter(teacher_course_access_q(user, prefix="course__"))
                 # order_by is REQUIRED here, not decoration. annotate()
                 # puts a GROUP BY on the query, and Django's compiler
                 # drops Meta.ordering entirely once that happens
@@ -837,7 +843,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         # Validate course exists and user has access to it
         try:
-            course = get_object_or_404(Course, id=course_id, teacher=request.user)
+            course = get_object_or_404(reachable_courses(request.user), id=course_id)
         except (ValueError, ValidationError):
             raise ParseError(
                 "Invalid Course ID format. Must be with a valid UUID"
@@ -1021,7 +1027,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             raise ParseError("Course ID is required.")
 
         # Validate course exists and user has access to it
-        course = get_object_or_404(Course, id=course_id, teacher=request.user)
+        course = get_object_or_404(reachable_courses(request.user), id=course_id)
 
         topic_value = request.data.get("topic", "")
         topic_id = topic_value.strip() if isinstance(topic_value, str) else None
@@ -1293,7 +1299,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         as an AI draft in the generation session until the teacher explicitly saves it.
         """
 
-        course = get_object_or_404(Course, id=course_id, teacher=request.user)
+        course = get_object_or_404(reachable_courses(request.user), id=course_id)
         serializer = AssignmentGeneratorSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         prompt = serializer.validated_data["prompt"]
@@ -1528,15 +1534,27 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         """
 
         with transaction.atomic():
-            draft_message = get_object_or_404(
-                AssignmentGenerationMessage.objects.select_for_update()
-                .select_related("session__course", "session__user")
-                .filter(
+            # H-38 note: `teacher_course_access_q` OR's across `Course.session`
+            # (nullable), which forces Postgres to plan a LEFT OUTER JOIN for
+            # this lookup. `SELECT ... FOR UPDATE` cannot be applied to the
+            # nullable side of an outer join, so the access check must run as
+            # its own unlocked query first; the row we actually lock is then
+            # fetched by primary key alone (a plain lookup, never an outer
+            # join) so `select_for_update()` stays valid. See
+            # docs/evidence/h38_part2/select_for_update_outer_join_regression.md.
+            access_check = get_object_or_404(
+                AssignmentGenerationMessage.objects.filter(
+                    teacher_course_access_q(request.user, prefix="session__course__"),
                     id=message_id,
                     session__user=request.user,
-                    session__course__teacher=request.user,
                     role=AssignmentGenerationRole.ASSISTANT,
                 )
+            )
+            draft_message = get_object_or_404(
+                AssignmentGenerationMessage.objects.select_for_update().select_related(
+                    "session__course", "session__user"
+                ),
+                pk=access_check.pk,
             )
 
             if draft_message.assignment_id:
@@ -1870,7 +1888,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # Permission enforcement for teacher view
         if include_rubric:
             # Only the teacher who owns the course can see the teacher viersion
-            if assignment.course.teacher != request.user:
+            if not teacher_can_reach_course(request.user, assignment.course):
                 raise PermissionDenied(
                     "Only the course teacher can download the teacher version."
                 )

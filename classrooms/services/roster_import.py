@@ -22,7 +22,7 @@ from AutoGrader.error_messages import describe_user_error
 from users.models import ACTIVATION_TOKEN_VALIDITY, CustomUser, UserTypes
 from users.services import otp_manager
 
-from ..models import EnrollmentStatusType, StudentCourse
+from ..models import EnrollmentStatusType, StudentCourse, teacher_course_access_q
 from ..serializers import DirectAddStudentSerializer
 from . import notifications
 from .enrollment import (
@@ -219,13 +219,20 @@ def _find_existing_student_by_name(*, course, row):
     other school's John Smith to this course - exposing that student's
     record to a teacher with no relationship to them, and surfacing this
     course in that student's dashboard.
+
+    "Already teaches" means through a course the teacher can still REACH
+    (H-38). `course.teacher` stays set after a teacher is removed from a
+    school, so owner scoping alone matched their old school's pupils and
+    attached those records to the teacher's new course - and this no-email
+    path has no cross-school gate of its own. One filter() call, so the
+    access rule and the enrollment match the same enrollment row.
     """
     return CustomUser.objects.filter(
+        teacher_course_access_q(course.teacher, prefix="enrollments__course__"),
         first_name__iexact=row.first_name,
         last_name__iexact=row.last_name,
         middle_name__iexact=row.middle_name,
         user_type=UserTypes.STUDENT,
-        enrollments__course__teacher=course.teacher,
     ).first()
 
 
