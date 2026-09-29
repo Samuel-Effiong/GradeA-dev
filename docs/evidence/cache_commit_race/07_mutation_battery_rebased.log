@@ -1,0 +1,53 @@
+=== mutation battery on c5d1a6e5cec67dc5f00ceaebe4adea5fff82e374 started 2026-09-29T12:41:50+01:00
+Preparing worktree (detached HEAD c5d1a6e)
+HEAD is now at c5d1a6e Type the commit-race test's django-redis ttl/expire calls for mypy
+blob_sha256(AutoGrader/cache_generation.py@c5d1a6e)=3fca9ec55f6b57bc1517a6f968f4aa708cfd7d42ff3823503811115b577241e1
+
+--- control: unmutated tree
+test_exit=0
+Ran 14 tests in 40.753s
+OK
+
+--- mutant a_drop_post_commit_bump
+applied
+mutated_sha256=9154d51fda4f6123a9d26ca991ef038479bc03dbff23dbcc362133fdd0eb8911
+test_exit=1
+FAIL: test_a_nested_caller_with_a_rolled_back_savepoint_is_not_served_stale
+FAIL: test_a_read_in_the_pre_commit_window_is_not_served_stale
+FAIL: test_only_the_writers_scopes_move_and_the_commit_exactly_repeats_them
+FAIL: test_a_committed_transaction_bumps_before_and_after_commit
+FAIL: test_an_inner_savepoint_rollback_keeps_the_outer_post_commit_bump
+FAIL: test_nested_committed_savepoints_bump_once_after_the_outer_commit
+FAIL: test_a_failed_in_transaction_bump_is_recovered_by_the_post_commit_bump
+FAIL: test_a_failed_in_transaction_bump_is_recovered_by_the_post_commit_bump
+Ran 14 tests in 20.652s
+FAILED (failures=8)
+restored_sha256=3fca9ec55f6b57bc1517a6f968f4aa708cfd7d42ff3823503811115b577241e1 MATCHES blob
+
+--- mutant b_post_commit_bump_everywhere
+applied
+mutated_sha256=280c15e3ade36feb12c410f4dfd6d24b918c778b1a4758d4c2a4b1346b3891b8
+test_exit=1
+FAIL: test_outside_a_transaction_a_bump_happens_once
+Ran 14 tests in 55.454s
+FAILED (failures=1)
+restored_sha256=3fca9ec55f6b57bc1517a6f968f4aa708cfd7d42ff3823503811115b577241e1 MATCHES blob
+
+--- mutant c_skip_immediate_bump_in_transaction
+applied
+mutated_sha256=60a59aa8558c2716333c3c25b5720ccc0dce907fff4707826d4b057431e8aacf
+test_exit=1
+FAIL: test_pre_write_entries_are_orphaned_even_if_on_commit_never_runs
+FAIL: test_only_the_writers_scopes_move_and_the_commit_exactly_repeats_them
+FAIL: test_a_bump_inside_a_rolled_back_savepoint_is_not_repeated_on_commit
+FAIL: test_a_committed_transaction_bumps_before_and_after_commit
+FAIL: test_a_rolled_back_transaction_does_not_bump_after_commit
+FAIL: test_an_inner_savepoint_rollback_keeps_the_outer_post_commit_bump
+FAIL: test_nested_committed_savepoints_bump_once_after_the_outer_commit
+FAIL: test_a_failed_in_transaction_bump_is_recovered_by_the_post_commit_bump
+FAIL: test_a_failed_in_transaction_bump_is_recovered_by_the_post_commit_bump
+Ran 14 tests in 63.447s
+FAILED (failures=9)
+restored_sha256=3fca9ec55f6b57bc1517a6f968f4aa708cfd7d42ff3823503811115b577241e1 MATCHES blob
+final_sha256=3fca9ec55f6b57bc1517a6f968f4aa708cfd7d42ff3823503811115b577241e1 status_lines=0
+=== finished 2026-09-29T12:47:16+01:00; disposable worktree removed
