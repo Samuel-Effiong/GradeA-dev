@@ -139,7 +139,7 @@ class CounterWipeAdversarialTests(Base):
                 self.guess(self.wrong())
         locked = [r for r in logs.records if r.msg == "password_reset_otp_locked"]
         self.assertEqual(len(locked), 1)
-        self.assertEqual(locked[0].user_id, str(self.user.pk))
+        self.assertEqual(vars(locked[0])["user_id"], str(self.user.pk))
         self.assertNotIn(code, logs.output[0])
         self.assertNotIn(self.user.email, logs.output[0])
 
