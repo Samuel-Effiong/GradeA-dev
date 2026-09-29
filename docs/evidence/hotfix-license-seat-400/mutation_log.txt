@@ -1,0 +1,9 @@
+H1_catch_removed {'killed': True, 'failing_tests': ['test_carried_over_teachers_are_counted_and_the_old_licence_is_untouched', 'test_offline_create_over_the_seat_cap_is_a_400_with_the_message']}
+H2_catch_widened_to_bare_value_error {'killed': True, 'failing_tests': ['test_a_bare_value_error_is_still_a_500']}
+H3_seat_refusal_raised_untyped {'killed': True, 'failing_tests': ['test_carried_over_teachers_are_counted_and_the_old_licence_is_untouched', 'test_create_license_carry_forward_seat_overflow_rejected', 'test_offline_create_over_the_seat_cap_is_a_400_with_the_message', 'test_singular_wording']}
+H4_stripe_preflight_removed {'killed': True, 'failing_tests': ['test_stripe_checkout_over_the_seat_cap_is_a_400_before_stripe']}
+H5_cap_off_by_one {'killed': True, 'failing_tests': ['test_two_teachers_on_two_seats_is_created']}
+H6_carried_over_teachers_not_counted {'killed': True, 'failing_tests': ['test_carried_over_teachers_are_counted_and_the_old_licence_is_untouched', 'test_create_license_carry_forward_seat_overflow_rejected']}
+H7_message_loses_the_remedy {'killed': True, 'failing_tests': ['test_carried_over_teachers_are_counted_and_the_old_licence_is_untouched', 'test_offline_create_over_the_seat_cap_is_a_400_with_the_message', 'test_singular_wording', 'test_stripe_checkout_over_the_seat_cap_is_a_400_before_stripe']}
+H8_singular_wording_broken {'killed': True, 'failing_tests': ['test_singular_wording']}
+SURVIVORS: []

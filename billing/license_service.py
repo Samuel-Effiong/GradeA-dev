@@ -102,6 +102,16 @@ class IndividualSubscriptionConflictError(Exception):
     pass
 
 
+class LicenseRequestError(ValueError):
+    """A license request the caller can fix (seat count, plan choice, admin).
+
+    A ValueError subclass so every existing `except ValueError` caller and
+    test keeps working, but distinct from a bare ValueError: API layers
+    turn THIS into a 400 with its message, while any other ValueError is a
+    programming error and must stay a loud 500.
+    """
+
+
 class LicenseSubscriptionService:
     """
     Service for managing institutional License subscriptions.
@@ -266,21 +276,78 @@ class LicenseSubscriptionService:
             ValueError: If plan is not configured for LICENSE category
         """
         if plan.category != PlanCategory.LICENSE:
-            raise ValueError(
+            raise LicenseRequestError(
                 f"Plan {plan.name} has category={plan.category}, "
                 f"but only LICENSE plans are allowed for license subscriptions."
             )
 
         if plan.monthly_credits is None or plan.monthly_credits == 0:
-            raise ValueError(
+            raise LicenseRequestError(
                 f"License plan {plan.name} must define monthly_credits. "
                 f"Custom/contact-sales plans cannot be activated directly."
             )
 
         if plan.tier == PlanTier.STANDARD:
-            raise ValueError(
+            raise LicenseRequestError(
                 "Standard Grader tier is not available under License subscription"
             )
+
+    @staticmethod
+    def check_seat_capacity(
+        *,
+        existing_license: Optional[LicenseSubscription],
+        teacher_emails: Optional[List[str]],
+        max_seats: int,
+        carry_forward_teachers: bool,
+    ) -> tuple[set, list]:
+        """Split the requested teachers into (carried forward, genuinely new)
+        and refuse the request if together they exceed max_seats.
+
+        Teachers carried forward from the school's current license are
+        matched by email against teacher_emails, so a teacher listed in both
+        is counted (and processed) once. Shared by create_license_subscription
+        and the Stripe checkout, so an impossible seat count is refused
+        before the school pays, not in the webhook after.
+
+        Raises:
+            LicenseRequestError: more teachers than seats (max_seats > 0).
+        """
+        carry_forward_emails: set = set()
+        if existing_license and carry_forward_teachers:
+            carried_user_ids = existing_license.allocations.filter(
+                is_active=True, is_admin_allocation=False
+            ).values_list("user_id", flat=True)
+            carry_forward_emails = set(
+                CustomUser.objects.filter(id__in=list(carried_user_ids)).values_list(
+                    "email", flat=True
+                )
+            )
+
+        normalized_new_emails = [
+            e.strip().lower() for e in (teacher_emails or []) if e and e.strip()
+        ]
+        genuinely_new_emails = [
+            e for e in normalized_new_emails if e not in carry_forward_emails
+        ]
+
+        total_requested = len(carry_forward_emails) + len(genuinely_new_emails)
+        if max_seats > 0 and total_requested > max_seats:
+            seats = f"{max_seats} seat{'' if max_seats == 1 else 's'}"
+            added = (
+                f"{total_requested} teacher{'' if total_requested == 1 else 's'} "
+                f"{'was' if total_requested == 1 else 'were'} added"
+            )
+            if carry_forward_emails:
+                added += (
+                    f" ({len(carry_forward_emails)} carried over from the current "
+                    f"licence + {len(genuinely_new_emails)} new)"
+                )
+            raise LicenseRequestError(
+                f"This licence has {seats}, but {added}. "
+                "Remove a teacher or increase Max seats."
+            )
+
+        return carry_forward_emails, genuinely_new_emails
 
     @staticmethod
     def validate_admin_user(admin_user: CustomUser, school: School) -> None:
@@ -308,26 +375,28 @@ class LicenseSubscriptionService:
             ValueError: If admin_user is not authorized
         """
         if admin_user.user_type == UserTypes.STUDENT:
-            raise ValueError("Student users cannot manage license subscriptions.")
+            raise LicenseRequestError(
+                "Student users cannot manage license subscriptions."
+            )
 
         # A superadmin is platform staff, not a tenant member. They create
         # and administer licenses through their own elevated permissions and
         # never need to be named as the license's admin_user to do so.
         if admin_user.user_type == UserTypes.SUPER_ADMIN or admin_user.is_superuser:
-            raise ValueError(
+            raise LicenseRequestError(
                 f"User {admin_user.email} is a super admin and cannot be set "
                 f"as the license admin for school {school.name}. Name a school "
                 "admin belonging to that school instead."
             )
 
         if admin_user.school_id is None:
-            raise ValueError(
+            raise LicenseRequestError(
                 f"User {admin_user.email} does not belong to any school and "
                 f"cannot manage licenses for school {school.name}."
             )
 
         if admin_user.school_id != school.id:
-            raise ValueError(
+            raise LicenseRequestError(
                 f"User {admin_user.email} is not authorized to manage "
                 f"licenses for school {school.name}."
             )
@@ -366,7 +435,7 @@ class LicenseSubscriptionService:
         )
 
         if resolved is None:
-            raise ValueError(
+            raise LicenseRequestError(
                 f"School {school.name} has no school admin, so there is "
                 "nobody to manage its license. Create the school's admin "
                 "first (POST /schools/create_with_admin/), then create the "
@@ -852,7 +921,7 @@ class LicenseSubscriptionService:
         admin_user = LicenseSubscriptionService.resolve_admin_user(school, admin_user)
 
         if max_seats <= 0:
-            raise ValueError("max_seats must be a positive integer")
+            raise LicenseRequestError("max_seats must be a positive integer")
 
         now = timezone.now()
         # Use contract_months to compute the billing window (e.g. 12 months for annual)
@@ -866,45 +935,17 @@ class LicenseSubscriptionService:
             school=school, is_active=True
         ).first()
 
-        # Teachers who will be silently carried forward from the old
-        # license, if any — matched by email against teacher_emails so a
-        # teacher listed in both isn't double-processed (carried forward
-        # once, not ALSO sent through the new-invite path below).
-        carry_forward_emails: set = set()
-        if existing_license and carry_forward_teachers:
-            carried_user_ids = existing_license.allocations.filter(
-                is_active=True, is_admin_allocation=False
-            ).values_list("user_id", flat=True)
-            carry_forward_emails = set(
-                CustomUser.objects.filter(id__in=list(carried_user_ids)).values_list(
-                    "email", flat=True
-                )
+        # Rejects the WHOLE creation rather than truncating — since this
+        # method is @transaction.atomic, raising here leaves the old license
+        # untouched and active.
+        carry_forward_emails, genuinely_new_emails = (
+            LicenseSubscriptionService.check_seat_capacity(
+                existing_license=existing_license,
+                teacher_emails=teacher_emails,
+                max_seats=max_seats,
+                carry_forward_teachers=carry_forward_teachers,
             )
-
-        normalized_new_emails = [
-            e.strip().lower() for e in (teacher_emails or []) if e and e.strip()
-        ]
-        genuinely_new_emails = [
-            e for e in normalized_new_emails if e not in carry_forward_emails
-        ]
-
-        # Validate combined seats (carried-forward + genuinely new)
-        # against the cap. Rejects the WHOLE creation rather than
-        # truncating — since this method is @transaction.atomic, raising
-        # here leaves the old license untouched and active.
-        total_requested = len(carry_forward_emails) + len(genuinely_new_emails)
-        if max_seats > 0 and total_requested > max_seats:
-            if carry_forward_emails:
-                raise ValueError(
-                    f"Cannot enroll {total_requested} teachers "
-                    f"({len(carry_forward_emails)} carried forward from the "
-                    f"previous license + {len(genuinely_new_emails)} new): "
-                    f"license max_seats is {max_seats}."
-                )
-            raise ValueError(
-                f"Cannot enroll {total_requested} teachers: "
-                f"license max_seats is {max_seats}."
-            )
+        )
 
         if existing_license:
             logger.warning(
