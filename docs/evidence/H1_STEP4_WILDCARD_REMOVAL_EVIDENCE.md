@@ -11,7 +11,8 @@ rule) and the strict committed-tree gate pass, the branch is rebased onto
 beta, and the owner approves landing (§9).
 
 Commits on `task/h1-step4-wildcard-removal` (stacked on `dd2dc6a`, the gated
-Stage 3 tip):
+Stage 3 tip; **restacked 2026-09-29 for batch-2, see §10**; the SHAs below
+are the pre-restack ones the verification cites):
 
 | Stage | Commit | What |
 |---|---|---|
@@ -319,3 +320,44 @@ matrix's SCAN-pattern check and
 3. Verification Engineer review, notably the
    `ConcurrentAccessRevocationTest` labelling change (§4).
 4. Owner approval, then landing; H-1 closes after that.
+
+## 10. Restack for batch-2 (2026-09-29)
+
+At the SM's direction, step 4 lands in `task/beta-batch-2` after H-1 stage 3
+and H-25 (`task/cache-commit-race`), so it no longer rebases onto beta alone.
+§9 items 1–2 are replaced accordingly: no per-fix full suites. The combined
+batch-2 tip gets two strict full runs overnight.
+
+- **New base `55a0ee0`**: a merge of stage 3 `22389ca` (beta `e7e4bdf` merged
+  in, plus the whole-repo mypy fixes) and H-25 `c5d1a6e` (rebased onto
+  `e7e4bdf`). The two sides touch no common file, and the merge is clean.
+- **The 8 step-4 commits were rebased with no conflicts** (`dd2dc6a..7763f7d`
+  onto `55a0ee0`). The pre-restack tip is kept as tag
+  `archive/h1-step4-pre-restack-7763f7d`.
+
+  | Pre-restack | Restacked |
+  |---|---|
+  | `ffe90cc` | `a729e03` |
+  | `99124e4` | `6bcddfa` |
+  | `6ba0805` | `8f950b7` |
+  | `008b5ac` | `c633c12` |
+  | `4691157` | `8bfbed2` |
+  | `a86354b` | `5924e1c` |
+  | `9ef174d` | `dbf58f0` |
+  | `7763f7d` | `72ee18f` |
+- **One interaction with H-25, fixed in `7be0db0`.** H-25's
+  `CommitRaceBase.setUp` imported `AutoGrader.cache_utils`, which step 4
+  deletes, to patch the wildcards out. That would have been a
+  ModuleNotFoundError in all of H-25's tests. The loop is removed, so those
+  tests now measure production unpatched. The H-25 evidence records this
+  under its Gate 7. The matrix self-test's deliberate `delete_pattern` got a
+  django-redis `attr-defined` ignore.
+- **Rechecked after the restack:**
+  - a non-test search finds no live `cache_utils`, `delete_cache_patterns`,
+    `batched_cache_invalidation` or `legacy_wildcards` reference; the only
+    remaining mentions are comments, docs and the guard's own tests;
+  - whole-repo `pre-commit run mypy --all-files` passes.
+- **Owed on the restacked tip:** targeted cache and guard runs, then the
+  Verification Engineer's look at the restack. The H-25 on-commit re-bump now
+  sits beneath step 4, so the SM's sequencing condition (note (a) in
+  `docs/evidence/h1_step4/VERIFICATION.md`) is met in batch order.
