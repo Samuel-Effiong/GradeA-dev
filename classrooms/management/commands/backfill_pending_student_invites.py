@@ -25,6 +25,9 @@ for those endpoints to complete.
     is neither activated nor emailed (the email is undeliverable, and
     activating would give the row a usable password nobody holds, unlike
     direct add's unusable one).
+  * A student that was ever verified or signed in is inactive because
+    someone deactivated it (enrollment.was_never_activated): the code is
+    cleared, and it is neither re-enabled nor emailed.
 
 Idempotent by construction, not by a separate marker: the selection query
 is is_active=False AND activation_token set, and every row this command
@@ -46,6 +49,7 @@ from django.db import transaction
 
 from classrooms.models import EnrollmentStatusType, StudentCourse
 from classrooms.services import notifications
+from classrooms.services.enrollment import was_never_activated
 from users.models import CustomUser, UserTypes
 from users.services import generate_temporary_password
 
@@ -77,7 +81,7 @@ class Command(BaseCommand):
         dry_run = options["dry_run"]
         prefix = "[dry-run] would " if dry_run else ""
 
-        converted = cleared_only = placeholder = 0
+        converted = cleared_only = placeholder = deactivated = 0
         for student in pending_students().order_by("date_joined"):
             if student.email.endswith(PLACEHOLDER_DOMAIN):
                 # Founder: @student.local students are intentionally
@@ -92,6 +96,20 @@ class Command(BaseCommand):
                 if not dry_run:
                     self._clear_code(student)
                 placeholder += 1
+                continue
+
+            if not was_never_activated(student):
+                # Verified or signed in at some point, so it is inactive
+                # because someone deactivated it: never re-enabled or
+                # emailed (SM product rule 2026-09-29), only the dead code
+                # goes.
+                self.stdout.write(
+                    f"{prefix}clear code only (deactivated account): "
+                    f"student {student.pk}"
+                )
+                if not dry_run:
+                    self._clear_code(student)
+                deactivated += 1
                 continue
 
             course = self._pending_course_for(student)
@@ -119,7 +137,9 @@ class Command(BaseCommand):
                 f"Backfill {'(dry run) ' if dry_run else ''}complete: "
                 f"{converted} converted, {cleared_only} code-only cleared "
                 f"(no pending enrollment), {placeholder} code-only cleared "
-                f"(placeholder address, left inactive, not emailed). "
+                f"(placeholder address, left inactive, not emailed), "
+                f"{deactivated} code-only cleared (deactivated account, left "
+                f"inactive, not emailed). "
                 f"Inactive students still holding a code: {remaining}."
             )
         )

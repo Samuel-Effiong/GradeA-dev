@@ -1144,12 +1144,10 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
-    # Stamp last_login on every successful /auth/login. A login alone
-    # otherwise leaves no trace (UserActivity is written only on the
-    # authenticated requests that follow), and enroll_student_by_email uses
-    # "has ever signed in" to decide whether an existing student may be sent
-    # a fresh password. Forward-only: sign-ins before this have no last_login.
-    "UPDATE_LAST_LOGIN": True,
+    # UPDATE_LAST_LOGIN stays OFF. simplejwt stamps it with save(), which
+    # fires post_save -> clear_user_cache and bumps the global cache
+    # generation on every login. last_login is stamped instead by
+    # users.services.stamp_last_login, a queryset update that sends no signal.
 }
 
 DJOSER = {

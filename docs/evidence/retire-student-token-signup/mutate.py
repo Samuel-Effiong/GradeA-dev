@@ -90,10 +90,56 @@ MUTANTS = {
         "    if invited:\n",
         "    if True:\n",
     ),
+    # Re-verification blocker 1: stamp last_login without the cache fan-out.
     "S5_login_does_not_stamp_last_login": (
+        "users/serializers.py",
+        "        stamp_last_login(self.user)\n",
+        "",
+    ),
+    "S6_google_sign_in_does_not_stamp_last_login": (
+        "users/views.py",
+        "            stamp_last_login(user)\n"
+        "            refresh = EpochRefreshToken.for_user(user)\n",
+        "            refresh = EpochRefreshToken.for_user(user)\n",
+    ),
+    "S7_stamp_through_save_fires_the_fanout": (
+        "users/services.py",
+        "    type(user).objects.filter(pk=user.pk).update(last_login=now)\n"
+        "    user.last_login = now\n",
+        "    user.last_login = now\n" '    user.save(update_fields=["last_login"])\n',
+    ),
+    "S8_update_last_login_back_on": (
         "AutoGrader/settings.py",
-        '    "UPDATE_LAST_LOGIN": True,\n',
-        '    "UPDATE_LAST_LOGIN": False,\n',
+        "    # users.services.stamp_last_login, a queryset update that sends no "
+        "signal.\n}",
+        "    # users.services.stamp_last_login, a queryset update that sends no "
+        'signal.\n    "UPDATE_LAST_LOGIN": True,\n}',
+    ),
+    # Re-verification blocker 2: a deactivated account is never re-enabled.
+    "D1_deactivated_refusal_removed": (
+        ENROLL,
+        "        if not student.is_active and not was_never_activated(student):\n",
+        "        if False:\n",
+    ),
+    "D2_email_verified_at_ignored": (
+        ENROLL,
+        "        and student.email_verified_at is None\n",
+        "        and True\n",
+    ),
+    "D3_sign_in_ignored_by_never_activated": (
+        ENROLL,
+        "        and not has_signed_in(student)\n    )",
+        "        and True\n    )",
+    ),
+    "D4_roster_reports_a_disabled_account_as_failed": (
+        ROSTER,
+        "    except AccountDisabledError as exc:\n",
+        "    except ZeroDivisionError as exc:\n",
+    ),
+    "D5_backfill_converts_a_deactivated_account": (
+        BACKFILL,
+        "            if not was_never_activated(student):\n",
+        "            if False:\n",
     ),
 }
 
@@ -101,6 +147,7 @@ TESTS = [
     "classrooms.tests_roster_ready_to_use",
     "classrooms.tests_backfill_pending_student_invites",
     "classrooms.test_bulk_enrollment",
+    "users.tests_last_login_stamp",
 ]
 
 originals = {}

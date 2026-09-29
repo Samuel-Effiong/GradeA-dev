@@ -1,7 +1,7 @@
 R1_roster_names_not_passed {'killed': True, 'failing_tests': ['test_a_new_student_is_active_with_a_temporary_password_and_no_code', 'test_bulk_add_via_tsv_string', 'test_bulk_add_without_headers_detects_email_in_any_column']}
 R2_already_enrolled_not_skipped {'killed': True, 'failing_tests': ['test_an_already_enrolled_row_is_skipped_and_nothing_is_sent', 'test_bulk_add_with_duplicates']}
 R3_new_student_ignores_names {'killed': True, 'failing_tests': ['test_a_new_student_is_active_with_a_temporary_password_and_no_code', 'test_bulk_add_via_tsv_string', 'test_bulk_add_without_headers_detects_email_in_any_column']}
-R4_promotion_keeps_the_old_code {'killed': True, 'failing_tests': ['test_a_legacy_inactive_row_with_a_code_is_promoted_and_its_code_cleared']}
+R4_promotion_keeps_the_old_code {'killed': True, 'failing_tests': ['test_a_legacy_inactive_row_with_a_code_is_promoted_and_its_code_cleared', 'test_single_add_still_invites_a_never_activated_legacy_row']}
 B1_convert_keeps_the_old_code {'killed': True, 'failing_tests': ['test_real_run_converts_and_sends_login_email']}
 B2_orphan_code_not_cleared {'killed': True, 'failing_tests': ['test_no_pending_enrollment_stays_inactive_but_loses_its_code']}
 B3_dry_run_clears_codes {'killed': True, 'failing_tests': ['test_dry_run_leaves_an_orphans_code_in_place']}
@@ -9,8 +9,16 @@ B6_placeholder_code_not_cleared {'killed': True, 'failing_tests': ['test_a_place
 B4_output_names_the_email {'killed': True, 'failing_tests': ['test_dry_run_touches_nothing_and_sends_no_mail', 'test_output_names_ids_only_never_an_email']}
 B5_placeholder_converted_like_a_real_address {'killed': True, 'failing_tests': ['test_a_placeholder_address_only_loses_its_code']}
 S1_must_change_password_back_as_the_onboarding_signal {'killed': True, 'failing_tests': ['test_a_signed_in_student_is_enrolled_and_keeps_their_password', 'test_reimporting_a_signed_in_student_with_the_flag_set_keeps_their_password']}
-S2_last_login_ignored {'killed': True, 'failing_tests': ['test_a_signed_in_student_is_enrolled_and_keeps_their_password', 'test_reimporting_a_signed_in_student_with_the_flag_set_keeps_their_password']}
-S3_user_activity_ignored {'killed': True, 'failing_tests': ['test_a_student_who_has_signed_in_is_enrolled_and_keeps_their_password']}
+S2_last_login_ignored {'killed': True, 'failing_tests': ['test_a_signed_in_student_is_enrolled_and_keeps_their_password', 'test_reimporting_a_signed_in_student_with_the_flag_set_keeps_their_password', 'test_roster_import_skips_a_deactivated_student_who_signed_in', 'test_single_add_refuses_a_deactivated_student']}
+S3_user_activity_ignored {'killed': True, 'failing_tests': ['test_a_student_who_has_signed_in_is_enrolled_and_keeps_their_password', 'test_roster_import_skips_a_deactivated_student_with_only_activity']}
 S4_roster_reports_every_row_as_invited {'killed': True, 'failing_tests': ['test_a_student_who_has_signed_in_is_enrolled_and_keeps_their_password', 'test_reimporting_a_signed_in_student_with_the_flag_set_keeps_their_password']}
-S5_login_does_not_stamp_last_login {'killed': True, 'failing_tests': ['test_a_login_stamps_last_login', 'test_a_signed_in_student_is_enrolled_and_keeps_their_password', 'test_reimporting_a_signed_in_student_with_the_flag_set_keeps_their_password']}
+S5_login_does_not_stamp_last_login {'killed': True, 'failing_tests': ['test_a_login_stamps_last_login', 'test_a_signed_in_student_is_enrolled_and_keeps_their_password', 'test_a_student_login_stamps_last_login_with_no_cache_invalidation', 'test_a_teacher_login_stamps_last_login_with_no_cache_invalidation', 'test_reimporting_a_signed_in_student_with_the_flag_set_keeps_their_password', 'test_roster_import_skips_a_deactivated_student_who_signed_in', 'test_single_add_refuses_a_deactivated_student']}
+S6_google_sign_in_does_not_stamp_last_login {'killed': True, 'failing_tests': ['test_a_google_sign_in_stamps_last_login']}
+S7_stamp_through_save_fires_the_fanout {'killed': True, 'failing_tests': ['test_a_student_login_stamps_last_login_with_no_cache_invalidation', 'test_a_teacher_login_stamps_last_login_with_no_cache_invalidation']}
+S8_update_last_login_back_on {'killed': True, 'failing_tests': ['test_a_student_login_stamps_last_login_with_no_cache_invalidation', 'test_a_teacher_login_stamps_last_login_with_no_cache_invalidation', 'test_simplejwt_update_last_login_stays_off']}
+D1_deactivated_refusal_removed {'killed': True, 'failing_tests': ['test_roster_import_skips_a_deactivated_student_who_signed_in', 'test_roster_import_skips_a_deactivated_student_who_was_verified', 'test_roster_import_skips_a_deactivated_student_with_only_activity', 'test_single_add_refuses_a_deactivated_student']}
+D2_email_verified_at_ignored {'killed': True, 'failing_tests': ['test_a_deactivated_account_only_loses_its_code', 'test_roster_import_skips_a_deactivated_student_who_was_verified']}
+D3_sign_in_ignored_by_never_activated {'killed': True, 'failing_tests': ['test_roster_import_skips_a_deactivated_student_who_signed_in', 'test_roster_import_skips_a_deactivated_student_with_only_activity', 'test_single_add_refuses_a_deactivated_student']}
+D4_roster_reports_a_disabled_account_as_failed {'killed': True, 'failing_tests': ['test_roster_import_skips_a_deactivated_student_who_signed_in', 'test_roster_import_skips_a_deactivated_student_who_was_verified', 'test_roster_import_skips_a_deactivated_student_with_only_activity']}
+D5_backfill_converts_a_deactivated_account {'killed': True, 'failing_tests': ['test_a_deactivated_account_only_loses_its_code']}
 SURVIVORS: []

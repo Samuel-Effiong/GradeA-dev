@@ -23,6 +23,7 @@ from users.models import CustomUser, UserTypes
 from ..models import EnrollmentStatusType, StudentCourse, teacher_course_access_q
 from ..serializers import DirectAddStudentSerializer
 from .enrollment import (
+    AccountDisabledError,
     EnrollmentError,
     enroll_student_by_email,
     find_account_by_email,
@@ -238,9 +239,10 @@ def _import_row_with_email(*, course, row):
     (enrollment.enroll_student_by_email): a new student is created active
     with a generated temporary password and gets the login-credentials
     email; an existing student passes the shared cross-school/staff gate and
-    is either enrolled (already onboarded) or promoted and re-invited (still
-    onboarding, or a legacy inactive row). No activation code is minted, so
-    nothing here feeds the code-based student sign-up being retired."""
+    is either enrolled (already onboarded), promoted and re-invited (still
+    onboarding, or a legacy never-activated row) or, if someone deactivated
+    it, skipped untouched. No activation code is minted, so nothing here
+    feeds the code-based student sign-up being retired."""
     # Normalised and matched case-insensitively, so an uppercase variant of
     # an existing address cannot slip past as a "new" student - see
     # enrollment.normalize_email.
@@ -267,6 +269,14 @@ def _import_row_with_email(*, course, row):
             middle_name=row.middle_name,
             last_name=row.last_name,
         )
+    except AccountDisabledError as exc:
+        # A deactivated account is left exactly as it is (no reactivation,
+        # no email, no enrollment); the row says so rather than failing.
+        return {
+            "name": row.display_name,
+            "status": "skipped",
+            "error": str(exc),
+        }, False
     except EnrollmentError as exc:
         return {
             "name": row.display_name,

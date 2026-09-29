@@ -26,7 +26,10 @@ from classrooms.models import (
     Session,
     StudentCourse,
 )
-from classrooms.services.enrollment import CROSS_SCHOOL_REJECTION_MESSAGE
+from classrooms.services.enrollment import (
+    CROSS_SCHOOL_REJECTION_MESSAGE,
+    DEACTIVATED_ACCOUNT_MESSAGE,
+)
 from users.models import UserActivity, UserTypes
 
 User = get_user_model()
@@ -400,4 +403,143 @@ class SingleAddExistingStudentTests(SignInHelpers):
         self.assertIs(response.data["is_new_student"], True)
         never.refresh_from_db()
         self.assertFalse(never.check_password("Unused-Temp-Pw-3"))
+        self.notify.send_student_login_invitation_email.assert_called_once()
+
+
+DEE_PASSWORD = "Deactivated-Own-Passw0rd!"  # pragma: allowlist secret
+
+
+@override_settings(CACHES=LOCMEM_CACHE)
+class DeactivatedAccountIsNeverReenabledTests(SignInHelpers):
+    """SM product rule 2026-09-29: a teacher's add (roster or single) never
+    re-enables an account that is inactive because someone deactivated it -
+    no reactivation, no email, no enrollment. Only a never-activated legacy
+    row (inactive, never verified, never signed in) is (re)invited. The
+    Verification Engineer's "Dee" scenario."""
+
+    def setUp(self):
+        self.teacher = User.objects.create_user(
+            email="deact.teacher@example.com",
+            password=TEACHER_PASSWORD,
+            first_name="Deact",
+            last_name="Teacher",
+            user_type=UserTypes.TEACHER,
+            is_active=True,
+        )
+        session = Session.objects.create(name="Term", teacher=self.teacher)
+        self.course = Course.objects.create(
+            name="Physics", teacher=self.teacher, session=session
+        )
+        self.roster_url = reverse(
+            "course-bulk-add-students", kwargs={"pk": self.course.pk}
+        )
+        self.single_url = reverse("course-students", kwargs={"pk": self.course.pk})
+        self.client.force_authenticate(user=self.teacher)
+        patcher = patch(NOTIFY)
+        self.notify = patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def dee(self, how):
+        """An account that was used, then deactivated by an admin (the
+        admin action is a queryset update, as here)."""
+        dee = User.objects.create_user(
+            email="dee@example.com",
+            password=DEE_PASSWORD,
+            first_name="Dee",
+            last_name="Act",
+            user_type=UserTypes.STUDENT,
+            is_active=True,
+        )
+        StudentCourse.objects.create(
+            student=dee,
+            course=self.other_course(),
+            enrollment_status=EnrollmentStatusType.ENROLLED,
+        )
+        if how == "signed_in":
+            self.sign_in("dee@example.com", DEE_PASSWORD)
+        elif how == "activity":
+            UserActivity.objects.create(user=dee)
+        elif how == "verified":
+            User.objects.filter(pk=dee.pk).update(email_verified_at=timezone.now())
+        User.objects.filter(pk=dee.pk).update(is_active=False)
+        return dee
+
+    def assert_untouched(self, dee):
+        dee.refresh_from_db()
+        self.assertFalse(dee.is_active)
+        self.assertTrue(dee.check_password(DEE_PASSWORD))
+        self.assertFalse(
+            StudentCourse.objects.filter(student=dee, course=self.course).exists()
+        )
+        self.notify.send_student_login_invitation_email.assert_not_called()
+        self.notify.send_added_to_course_email.assert_not_called()
+
+    def roster_import(self):
+        response = self.client.post(
+            self.roster_url,
+            {"raw_data": "Dee,Act,dee@example.com"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        return response.data["results"][0]
+
+    def test_roster_import_skips_a_deactivated_student_who_signed_in(self):
+        dee = self.dee("signed_in")
+
+        result = self.roster_import()
+
+        self.assertEqual(
+            (result["status"], result["error"]),
+            ("skipped", DEACTIVATED_ACCOUNT_MESSAGE),
+        )
+        self.assert_untouched(dee)
+
+    def test_roster_import_skips_a_deactivated_student_with_only_activity(self):
+        """Sign-ins from before last_login was stamped show only as activity."""
+        dee = self.dee("activity")
+
+        self.assertEqual(self.roster_import()["status"], "skipped")
+        self.assert_untouched(dee)
+
+    def test_roster_import_skips_a_deactivated_student_who_was_verified(self):
+        """Verified (e.g. through the old code sign-up) but never signed in
+        since: still an account someone switched off."""
+        dee = self.dee("verified")
+
+        self.assertEqual(self.roster_import()["status"], "skipped")
+        self.assert_untouched(dee)
+
+    def test_single_add_refuses_a_deactivated_student(self):
+        """The same rule on the single-add path, where it was a pre-existing
+        bug on beta."""
+        dee = self.dee("signed_in")
+
+        response = self.client.post(
+            self.single_url, {"email": "dee@example.com"}, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn(DEACTIVATED_ACCOUNT_MESSAGE, str(response.data))
+        self.assert_untouched(dee)
+
+    def test_single_add_still_invites_a_never_activated_legacy_row(self):
+        legacy = User.objects.create_user(
+            email="legacy.single@example.com",
+            password=None,
+            first_name="Legacy",
+            last_name="Single",
+            user_type=UserTypes.STUDENT,
+            is_active=False,
+            activation_token="246810",
+            activation_expires=timezone.now() + timedelta(hours=1),
+        )
+
+        response = self.client.post(
+            self.single_url, {"email": "legacy.single@example.com"}, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        legacy.refresh_from_db()
+        self.assertTrue(legacy.is_active)
+        self.assertIsNone(legacy.activation_token)
         self.notify.send_student_login_invitation_email.assert_called_once()

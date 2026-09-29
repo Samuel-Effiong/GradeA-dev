@@ -189,3 +189,25 @@ class BackfillPendingStudentInvitesTest(APITestCase):
         self.assertIn("0 converted", out.getvalue())
         self.assertIn("1 code-only cleared (placeholder address", out.getvalue())
         self.assertIn("still holding a code: 0", out.getvalue())
+
+    @patch("classrooms.services.notifications.send_student_login_invitation_email")
+    def test_a_deactivated_account_only_loses_its_code(self, mock_email):
+        """SM product rule 2026-09-29: an account that was ever verified or
+        signed in is inactive because someone deactivated it, so even with a
+        pending enrollment it is neither re-enabled nor emailed."""
+        from django.utils import timezone
+
+        User.objects.filter(pk=self.student.pk).update(email_verified_at=timezone.now())
+
+        out = StringIO()
+        call_command("backfill_pending_student_invites", stdout=out)
+
+        self.student.refresh_from_db()
+        self.assertFalse(self.student.is_active)
+        self.assertFalse(self.student.has_usable_password())
+        self.assertIsNone(self.student.activation_token)
+        mock_email.assert_not_called()
+        self.assertIn("0 converted", out.getvalue())
+        self.assertIn("1 code-only cleared (deactivated account", out.getvalue())
+        self.assertIn("still holding a code: 0", out.getvalue())
+        self.assertNotIn("@", out.getvalue())

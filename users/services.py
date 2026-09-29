@@ -39,6 +39,26 @@ def generate_temporary_password(user):
     raise RuntimeError("Failed to generate a password passing validation.")
 
 
+def stamp_last_login(user):
+    """Record a successful sign-in on `user.last_login`.
+
+    A login alone otherwise leaves no trace (UserActivity is written only on
+    the authenticated requests that follow), and enroll_student_by_email
+    uses "has ever signed in" to decide whether an existing student may be
+    sent a fresh password.
+
+    A queryset update, never save(): save() fires post_save ->
+    clear_user_cache, which bumps the global cache generation (and, before
+    H-1 step 4, sweeps nine key patterns) - on every login that would keep
+    the dashboards and course lists permanently cold. last_login is in no
+    cached payload, so nothing needs invalidating. This is also why
+    SIMPLE_JWT's UPDATE_LAST_LOGIN stays off.
+    """
+    now = timezone.now()
+    type(user).objects.filter(pk=user.pk).update(last_login=now)
+    user.last_login = now
+
+
 def send_user_activation_email(user):
     # Local import to dodge a circular import: users.models imports
     # OTPManager from this module at module load time.

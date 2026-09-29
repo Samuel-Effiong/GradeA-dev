@@ -21,12 +21,16 @@ Expected shape (ids vary):
 [dry-run] would convert: student <uuid> (pending course <uuid>)
 [dry-run] would clear code only (no pending enrollment): student <uuid>
 [dry-run] would clear code only (placeholder address): student <uuid>
-Backfill (dry run) complete: N converted, M code-only cleared (no pending enrollment), P code-only cleared (placeholder address, left inactive, not emailed). Inactive students still holding a code: N+M+P.
+[dry-run] would clear code only (deactivated account): student <uuid>
+Backfill (dry run) complete: N converted, M code-only cleared (no pending enrollment), P code-only cleared (placeholder address, left inactive, not emailed), D code-only cleared (deactivated account, left inactive, not emailed). Inactive students still holding a code: N+M+P+D.
 ```
+
+"Deactivated account" means the row still holds a code but was verified or signed in at some point, so it is inactive because someone switched it off. It is never re-enabled or emailed (SM product rule 2026-09-29). D is expected to be 0 or very small.
 
 **Stop and ask before step 2 if:**
 - N is far larger than expected for the pending roster invites (tens to low hundreds is plausible for a term's imports).
-- Any line is anything other than the three shapes above, or the command errors.
+- D is more than a handful. That many deactivated accounts still holding a code would mean the data isn't what we think.
+- Any line is anything other than the four shapes above, or the command errors.
 
 ## 2. Execute (sends real email, changes real accounts)
 
@@ -37,10 +41,10 @@ railway run python manage.py backfill_pending_student_invites
 Expected tail:
 
 ```
-Backfill complete: N converted, M code-only cleared (no pending enrollment), P code-only cleared (placeholder address, ...). Inactive students still holding a code: 0.
+Backfill complete: N converted, M code-only cleared (no pending enrollment), P code-only cleared (placeholder address, ...), D code-only cleared (deactivated account, ...). Inactive students still holding a code: 0.
 ```
 
-N, M and P must match the dry run. **"still holding a code: 0" is the gate for landing (B).**
+N, M, P and D must match the dry run. **"still holding a code: 0" is the gate for landing (B).**
 
 ## 3. Verify
 

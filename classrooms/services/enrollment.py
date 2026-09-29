@@ -157,16 +157,53 @@ def check_existing_account_may_join(student, course):
     raise EnrollmentError(CROSS_SCHOOL_REJECTION_MESSAGE)
 
 
+#: What a teacher is told when the address belongs to an account someone
+#: deactivated. Only reached after check_existing_account_may_join passes, so
+#: it never tells a teacher anything about another school's accounts.
+DEACTIVATED_ACCOUNT_MESSAGE = (
+    "This student's account is disabled. Contact support if they should have access."
+)
+
+
+class AccountDisabledError(EnrollmentError):
+    """The address belongs to an account that was deactivated, not one that
+    never finished onboarding. A teacher's action never re-enables it (SM
+    product rule 2026-09-29): no reactivation, no email, no enrollment."""
+
+
 def has_signed_in(student):
     """Whether this account has ever signed in.
 
-    `last_login` is stamped on every successful login (SIMPLE_JWT
-    UPDATE_LAST_LOGIN, since the retire-student-token-signup change); before
-    that it was never maintained, so older sign-ins show only as a
-    UserActivity row (written on authenticated requests). Either counts.
+    `last_login` is stamped on every successful password or Google sign-in
+    (users.services.stamp_last_login, since the retire-student-token-signup
+    change); before that it was never maintained, so older sign-ins show
+    only as a UserActivity row (written on authenticated requests). Either
+    counts.
     """
     return student.last_login is not None or (
         UserActivity.objects.filter(user=student).exists()
+    )
+
+
+def was_never_activated(student):
+    """An inactive row that never finished onboarding: never verified and
+    never signed in. Only such a row may be (re)activated by a teacher's add.
+
+    `email_verified_at` is the activation signal every old door stamped
+    (/auth/register/student, /auth/verify, Google sign-in), and sign-in
+    activity covers accounts that were used without it (a new-scheme
+    student who logged in with the emailed password). An account a
+    superadmin deactivated after it was ever used has one or the other.
+
+    Known edge: an account deactivated before it was EVER used (never
+    verified, never signed in) is indistinguishable from a legacy pending
+    row - nothing records who set is_active=False - so it is treated as
+    one and re-invited.
+    """
+    return (
+        not student.is_active
+        and student.email_verified_at is None
+        and not has_signed_in(student)
     )
 
 
@@ -184,14 +221,17 @@ def enroll_student_by_email(
     temporary password, and logs straight in instead of clicking an
     activation link first.
 
-    Three cases, in the order they are checked:
+    The cases, in the order they are checked:
       * already enrolled -> EnrollmentError, nothing changes;
-      * existing account that has ever signed in -> enrolled immediately,
+      * an inactive account that was ever activated or used, i.e. one
+        someone deactivated -> AccountDisabledError, nothing changes and
+        nothing is sent (see was_never_activated);
+      * active account that has ever signed in -> enrolled immediately,
         told they're in; password untouched, sessions untouched;
       * no account at all, or an existing account that has never signed in
-        (a legacy is_active=False row, or an active one with no sign-in
-        signal - see has_signed_in) -> PENDING enrollment plus a fresh
-        temporary password and a login-credentials email.
+        (a legacy never-activated is_active=False row, or an active one with
+        no sign-in signal - see has_signed_in) -> PENDING enrollment plus a
+        fresh temporary password and a login-credentials email.
 
     `must_change_password` is informational and deliberately NOT used here:
     a student can use the app indefinitely without clearing it, so treating
@@ -235,6 +275,17 @@ def enroll_student_by_email(
         # check_existing_account_may_join.
         check_existing_account_may_join(student, course)
 
+        if not student.is_active and not was_never_activated(student):
+            # Deactivated on purpose (e.g. the admin "Mark selected users as
+            # inactive" action). Refused before any write or email.
+            logger.warning(
+                "Refused to enroll student %s into course %s: the account is "
+                "deactivated.",
+                student.pk,
+                course.pk,
+            )
+            raise AccountDisabledError(DEACTIVATED_ACCOUNT_MESSAGE)
+
         if student.is_active and has_signed_in(student):
             _create_enrollment(
                 student=student,
@@ -245,7 +296,7 @@ def enroll_student_by_email(
             return student, False
 
         # Never signed in - e.g. invited to a different course and never
-        # logged in - or a legacy pending row from before this change.
+        # logged in - or a legacy never-activated row from before this change.
         # A fresh password every resend: the previous one's
         # plaintext can't be recovered from the stored hash to put in this
         # email, so there's nothing to reuse. is_active is force-set True

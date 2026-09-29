@@ -22,7 +22,7 @@ from users.models import (
     UserTypes,
     Waitlist,
 )
-from users.services import send_user_activation_email
+from users.services import send_user_activation_email, stamp_last_login
 from users.tokens import EpochRefreshToken, assert_epoch_current
 
 logger = logging.getLogger(__name__)
@@ -475,6 +475,8 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         if user:
             user.reset_login_lockout()
+
+        stamp_last_login(self.user)
 
         if self.user.user_type == UserTypes.STUDENT:
             # Local import: classrooms.services (via roster_import ->
