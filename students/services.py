@@ -192,8 +192,8 @@ def _mark_grading_claim_failed(submission_id):
     # without this a failed submission keeps serving its cached
     # pre-failure detail (grading_state RUNNING) for up to CACHE_TTL, and
     # nobody sees that the run needs retrying. Uses the receiver's own
-    # helper so the generation bumps and wildcard families can't drift
-    # from what a normal save() would have cleared.
+    # helper so the generation bumps can't drift from what a normal save()
+    # would have invalidated.
     submission = (
         StudentSubmission.objects.select_related("assignment__course__teacher")
         .filter(pk=submission_id)

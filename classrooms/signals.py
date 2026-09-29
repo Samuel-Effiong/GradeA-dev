@@ -1,14 +1,11 @@
 import logging
 from decimal import ROUND_HALF_UP, Decimal
 
-from django.core.cache import cache
 from django.db import transaction
 from django.db.models import Sum
 from django.db.models.functions import Coalesce
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
-from redis.exceptions import ConnectionError as RedisConnectionError
-from redis.exceptions import TimeoutError as RedisTimeoutError
 
 from assignments.models import Assignment
 from AutoGrader.cache_generation import (
@@ -24,95 +21,20 @@ from students.models import StudentSubmission
 
 logger = logging.getLogger(__name__)
 
-#: What "the cache is unreachable" looks like coming out of django-redis.
-#: Mirrors AutoGrader.dispatch.BROKER_UNAVAILABLE_ERRORS, which classifies
-#: the same failure for Celery's broker: redis-py's own errors at the
-#: bottom, plus the socket-level builtins either layer may surface a raw
-#: connection failure as. Deliberately NOT `except Exception` - a bug in an
-#: invalidation call (a bad pattern, a typo) should still fail loudly in
-#: tests rather than be swallowed as if it were an outage.
-#: Set once the process has reported an invalidation-incapable backend.
-_warned_backend_lacks_delete_pattern = False
-
-CACHE_UNAVAILABLE_ERRORS = (
-    RedisConnectionError,
-    RedisTimeoutError,
-    ConnectionError,
-    TimeoutError,
-)
-
-
-def delete_cache_patterns(*patterns):
-    """Invalidate cached list/detail responses by key pattern.
-
-    These calls are what revokes a withdrawn student's cached course list,
-    so both ways they can fail need handling and neither may be silent:
-
-    * The backend has no `delete_pattern` at all. It is a django-redis
-      extension, not part of Django's cache API, so a backend swap or a
-      misconfigured environment would quietly turn a security boundary into
-      a stale-cache window. Warn ONCE - this is a static property of the
-      configured backend, not a per-event condition, so warning on every
-      save would bury it in its own noise (and floods the test log, where
-      LocMem is the backend).
-    * The call raises because Redis is unreachable. Receivers run inside
-      the caller's transaction, so an escaping exception fails the write
-      itself - see the comment on the except clause.
-    """
-    if not hasattr(cache, "delete_pattern"):
-        global _warned_backend_lacks_delete_pattern
-        if not _warned_backend_lacks_delete_pattern:
-            _warned_backend_lacks_delete_pattern = True
-            logger.warning(
-                "Cache backend %s has no delete_pattern(); wildcard cache "
-                "invalidation is disabled for this process. Cached responses "
-                "will serve stale data until they expire, including for users "
-                "whose access was just revoked.",
-                type(cache).__name__,
-            )
-        return
-
-    for pattern in patterns:
-        try:
-            cache.delete_pattern(pattern)
-        except CACHE_UNAVAILABLE_ERRORS:
-            # Every caller here is a post_save/post_delete receiver, which
-            # Django runs INSIDE the caller's transaction - so an exception
-            # escaping this loop doesn't just skip an invalidation, it
-            # fails the write that triggered it. A Redis blip would have
-            # made enrolling a student impossible, even though enrollment
-            # needs nothing from Redis.
-            #
-            # The trade is deliberate and one-directional: a missed
-            # invalidation serves stale reads until the entry expires
-            # (CACHE_TTL, 5 minutes), which for a revocation is a bounded
-            # window; letting it raise loses the write permanently. Logged
-            # at ERROR because the stale window includes users whose access
-            # was just revoked, so it needs to be alertable, not merely
-            # visible.
-            logger.error(
-                "Cache invalidation failed for pattern %s; entries matching "
-                "it will serve stale data until they expire. Access changes "
-                "made now may not take effect immediately.",
-                pattern,
-                exc_info=True,
-            )
-
-
 # ---------------------------------------------------------------------------
-# H-1 stage 2: generation bumps.
+# Cache invalidation: generation bumps (H-1).
 #
-# These run ALONGSIDE the wildcard `delete_cache_patterns` calls above, not
-# instead of them. Both mechanisms are live during the migration so that a
-# read site can be moved to versioned keys one at a time, and so that
-# reverting a read site restores working invalidation without a deploy of
-# this file. Removing the wildcard receivers is stage 3, gated on proving
-# every family is covered - see docs/H1_CACHE_INVALIDATION_DESIGN.md.
+# These bumps are the ONLY cache invalidation. The legacy wildcard sweeps
+# that ran alongside them were removed in H-1 step 4
+# (docs/evidence/H1_STEP4_WILDCARD_REMOVAL_EVIDENCE.md), after every cache
+# family was proven fresh on generations alone. A missing bump here is
+# therefore stale data for the entry's whole TTL, with nothing to mask it,
+# and AutoGrader/tests_no_wildcard_invalidation.py keeps a wildcard from
+# coming back as a shortcut.
 #
-# Bumping is deliberately cheap and total: a bump that is not yet read by
-# anything costs one INCR and invalidates nothing, whereas a MISSING bump
-# after a read site migrates would serve permanently stale data. When in
-# doubt these bump more, not less.
+# Bumping is deliberately cheap and total: a bump nothing reads costs one
+# INCR and invalidates nothing, whereas a MISSING bump serves stale data.
+# When in doubt these bump more, not less.
 # ---------------------------------------------------------------------------
 
 
@@ -153,13 +75,6 @@ def clear_school_cache(sender, instance, **kwargs):
             (SCOPE_GLOBAL, None),
         ]
     )
-    delete_cache_patterns(
-        "*superadmin*",
-        "*schooladmin*",
-        "schools:*",
-        "courses:*",
-        "sessions:*",
-    )
 
 
 @receiver([post_save, post_delete], sender=Session)
@@ -195,34 +110,11 @@ def clear_session_cache(sender, instance, **kwargs):
         )
     scopes.extend((SCOPE_USER, admin_id) for admin_id in superadmin_user_ids())
     bump_many(list(dict.fromkeys(scopes)))
-    delete_cache_patterns(
-        "*superadmin*",
-        "*schooladmin*",
-        "*school*",
-        "sessions:*",
-        "courses:*",
-        "assignments:*",
-        "studentsubmissions:*",
-    )
 
 
 @receiver([post_save, post_delete], sender=Course)
 def clear_course_cache(sender, instance, **kwargs):
     bump_many(_course_scopes(instance) + [(SCOPE_GLOBAL, None)])
-    delete_cache_patterns(
-        "*superadmin*",
-        "*schooladmin*",
-        "*teacheradmin*",
-        "*studentadmin*",
-        "*user*",
-        "*school*",
-        "sessions:*",
-        "courses:*",
-        "assignments:*",
-        "studentsubmissions:*",
-        "studentcourses:*",
-        "topics:*",
-    )
 
 
 @receiver(post_save, sender=Course)
@@ -256,35 +148,12 @@ def clear_student_course_cache(sender, instance, **kwargs):
         [(SCOPE_USER, instance.student_id), (SCOPE_GLOBAL, None)]
         + _course_scopes(getattr(instance, "course", None))
     )
-    delete_cache_patterns(
-        "*superadmin*",
-        "*schooladmin*",
-        "*teacheradmin*",
-        "*studentadmin*",
-        "*user*",
-        "*school*",
-        "sessions:*",
-        "courses:*",
-        "studentcourses:*",
-        "assignments:*",
-        "studentsubmissions:*",
-    )
 
 
 @receiver([post_save, post_delete], sender=Topic)
 def clear_topic_cache(sender, instance, **kwargs):
     bump_many(
         _course_scopes(getattr(instance, "course", None)) + [(SCOPE_GLOBAL, None)]
-    )
-    delete_cache_patterns(
-        "*superadmin*",
-        "*schooladmin*",
-        "*teacheradmin*",
-        "*studentadmin*",
-        "*user*",
-        "topics:*",
-        "courses:*",
-        "assignments:*",
     )
 
 

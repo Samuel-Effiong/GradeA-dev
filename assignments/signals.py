@@ -24,16 +24,6 @@ from AutoGrader.cache_generation import (
     SCOPE_USER,
     bump_many,
 )
-from AutoGrader.cache_utils import delete_cache_patterns
-
-# `delete_cache_patterns` is the project's shared helper (AutoGrader/
-# cache_utils.py), not a local copy. These are post_save/post_delete
-# receivers, which Django runs inside the caller's transaction, so an
-# unguarded cache.delete_pattern here did not merely skip an invalidation -
-# it failed the assignment save that triggered it, meaning a Redis blip
-# stopped teachers saving their work. The shared helper treats invalidation
-# as best-effort (stale for at most CACHE_TTL beats refusing the write) and
-# additionally coalesces patterns inside a batched_cache_invalidation block.
 
 ASSIGNMENT_DUE_REMINDER_OFFSETS = (24, 1)
 
@@ -189,25 +179,11 @@ def clear_assignment_cache(sender, instance, **kwargs):
     # would never refresh - it is one of the four families that no
     # invalidation mechanism reached at all before this change.
     _bump_assignment_scopes(instance)
-    # These patterns cover the per-user DRF list/retrieve JSON that
-    # users/mixins.py caches. Those entries are keyed by user + query
-    # params only, so nothing in the key reveals that they went stale and
-    # a wildcard sweep is the only way to clear them.
-    delete_cache_patterns(
-        "*superadmin*",
-        "*schooladmin*",
-        "*teacheradmin*",
-        "*studentadmin*",
-        "*user*",
-        "courses:*",
-        "assignments:*",
-        "studentsubmissions:*",
-    )
     # Rendered PDFs are handled separately and precisely: they live under
-    # their own key prefix (see assignments/pdf_cache.py) specifically so
-    # that saving THIS assignment cannot discard every other assignment's
-    # cached documents, which is what the "assignments:*" sweep above used
-    # to do to them.
+    # their own key prefix (see assignments/pdf_cache.py), and this clears
+    # only THIS assignment's documents. It is the one exact-prefix delete
+    # H-1 kept (plan section 2); the legacy "assignments:*" sweep that used
+    # to discard every other assignment's cached PDFs is gone.
     invalidate_assignment_pdfs(instance.id)
 
 
@@ -217,9 +193,6 @@ def clear_assignment_generation_session_cache(sender, instance, **kwargs):
     # bump_many at all, so the owner's own cached session list/retrieve
     # never refreshed under the generation-counter mechanism.
     bump_many([(SCOPE_USER, instance.user_id)])
-    delete_cache_patterns(
-        "*assignmentgenerationsession*",
-    )
 
 
 @receiver([post_save, post_delete], sender=AssignmentGenerationMessage)

@@ -1225,9 +1225,10 @@ CACHES = {
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         },
-        # Namespaces cache keys so wildcard delete_pattern calls (e.g.
-        # "*user*") can only ever match cache entries — never Celery
-        # broker/result keys living in the same Redis instance.
+        # Namespaces cache keys so the one remaining pattern delete (the PDF
+        # cache's exact-prefix clear, assignments/pdf_cache.py) can only
+        # ever match cache entries — never Celery broker/result keys living
+        # in the same Redis instance.
         "KEY_PREFIX": "gaplus",
     }
 }
@@ -1296,9 +1297,11 @@ if "test" in sys.argv:
 TEST_RUNNER = "AutoGrader.redis_test_runner.RedisHygieneRunner"
 
 # django-redis defaults to SCAN COUNT=10, i.e. one network round trip per
-# ~10 keys when delete_pattern walks the keyspace. Signal handlers call
-# delete_pattern on every user/course/enrollment save, so on a remote Redis
-# that default turns each save into seconds of scanning.
+# ~10 keys when delete_pattern walks the keyspace. The legacy wildcard
+# receivers that ran it on every save were removed (H-1 step 4); the PDF
+# cache's exact-prefix clear on an assignment save still walks it, so on a
+# remote Redis the default would still turn that save into seconds of
+# scanning.
 DJANGO_REDIS_SCAN_ITERSIZE = 100_000
 
 CACHE_TTL = 60 * 5

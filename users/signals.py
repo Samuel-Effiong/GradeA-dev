@@ -13,7 +13,6 @@ from AutoGrader.cache_generation import (
     SCOPE_USER,
     bump_many,
 )
-from AutoGrader.cache_utils import delete_cache_patterns
 from billing.context import get_license_invitation_context
 from billing.models import BetaProfile, CreditWallet, PlanType, SubscriptionPlan
 from billing.services import SubscriptionService
@@ -237,10 +236,10 @@ def invalidate_user_caches(users):
 @receiver([post_save, post_delete], sender=CustomUser)
 @receiver([post_save, post_delete], sender=Settings)
 def clear_user_cache(sender, instance, **kwargs):
-    # H-1 stage 2: bump only THIS user's generation. The wildcard "*user*"
-    # below matches 29 of the project's 35 cache families, which is why
-    # every CustomUser/Settings save is currently a de-facto full flush.
-    # The bump is the targeted replacement; both run until stage 3.
+    # H-1: bump only the generations of users who can see this change. The
+    # legacy "*user*" wildcard this replaced matched 29 of the project's 35
+    # cache families, so every CustomUser/Settings save was a de-facto full
+    # flush; it was removed in H-1 step 4.
     user_id = getattr(instance, "user_id", None) or instance.pk
     # `anyusr` backs super-admin/dashboard/teachers, whose dependency is the
     # CustomUser table and nothing else; `global` backs the superadmin
@@ -266,23 +265,6 @@ def clear_user_cache(sender, instance, **kwargs):
     # One pipelined round trip; duplicates (a student whose two teachers
     # share a school) are dropped so a count stays one bump per entity.
     bump_many(list(dict.fromkeys(scopes)))
-    # Routed through the project's shared helper rather than calling
-    # `cache.delete_pattern` directly. This is a post_save/post_delete
-    # receiver, so Django runs it inside the caller's transaction: an
-    # unguarded call meant a Redis blip failed the user save itself, even
-    # though saving a user needs nothing from Redis. The helper treats
-    # invalidation as best-effort and logs rather than raising.
-    delete_cache_patterns(
-        "*superadmin*",
-        "*schooladmin*",
-        "*teacheradmin*",
-        "*studentadmin*",
-        "*user*",
-        "*school*",
-        "*course*",
-        "*studentcourse*",
-        "*settings*",
-    )
 
 
 @receiver(post_save, sender=CustomUser)
