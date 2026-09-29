@@ -1,44 +1,41 @@
-"""H-1 Stage 3: freshness of the status-summary cache family added on beta.
+"""H-1: freshness of the status-summary cache family added on beta.
 
 Beta commit 24c0a7b ("Add unified assignment status-summary endpoint")
 added `StudentAdminDashboardView.status_summary` (URL name
-`student-status-summary`), which caches with a RAW `cache.set` for 15
-minutes under
+`student-status-summary`), which caches for 15 minutes under
 
 * `studentadmins:user_id__<student>:view__status_summary:all`
 * `studentadmins:user_id__<student>:view__status_summary:course__<course>`
   (with `?course=<id>`).
 
-Neither key goes through `versioned_key`, so no generation bump can ever
-reach it. It arrived after Stage 3's targeted invalidation was built
-(merged into this branch at 0ca0404), so nothing in Stage 3 covers it.
-The only thing that clears it is the legacy `*studentadmin*` wildcard,
-which is still in the code on the owner's instruction.
+It arrived after Stage 3's targeted invalidation was built and wrote both
+keys with a RAW `cache.set`, so no generation bump could reach them; only
+the legacy `*studentadmin*` wildcard cleared them. H-1 step 4 put both keys
+on `versioned_key(..., [(SCOPE_USER, student.id)])`, exactly like the
+sibling overview/summary/assignments keys (gap G2), before removing the
+wildcards.
 
-This suite records what that means, per (write path x variant), in two
-modes:
+The suite runs every (write path x variant) in two modes:
 
-* `StatusSummaryWildcardsOnTests` - legacy wildcards live: production
-  today. Every cell must be FRESH here, or it is a live staleness bug.
+* `StatusSummaryWildcardsOnTests` - legacy wildcards live.
 * `StatusSummaryWildcardsOffTests` - `legacy_wildcards_disabled()`: plan
-  step 4 simulated. The assertions pin the cells that go STALE. They are
-  the step-4 prerequisite: this family needs a generation-versioned key
-  (or an equivalent bump) before the wildcards can be removed. When that
-  lands these tests fail by design and must be flipped to FRESH.
+  step 4 simulated. Before the family was versioned, these cells were
+  pinned STALE as the step-4 prerequisite; they are now FRESH on the
+  generation bump alone.
 
 Every test also reads two controls:
 
 * an unrelated student (different teacher, different course), both
   variants, which must be UNAFFECTED in every cell and never SPURIOUS;
 * the same student's `student-overview`, which reports the same four
-  counts from the same `_assignment_status_counts` helper but IS
-  generation-versioned (gap G2). It is FRESH in both modes, which shows
-  the OFF-mode staleness belongs to this key family, not to a missing
-  bump on the write path.
+  counts from the same `_assignment_status_counts` helper under the same
+  `usr(student)` scope. It is FRESH in every row.
 
-A key probe inside each mutation records whether the raw status-summary
-entries physically survived the write: evicted with the wildcards on,
-left in place with them off.
+A key probe inside each mutation records, for every warmed entry, whether
+the live (generation-versioned) key moved and whether the pre-write entry
+physically survived: the student's key must move and the unrelated
+student's must not; with the wildcards off the old entry is left in place
+(nothing is deleted, it is simply unreachable).
 
 Write paths that cannot change this response, and so have no row here:
 
@@ -80,6 +77,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from assignments.models import Assignment, AssignmentStatus
+from AutoGrader.cache_generation import SCOPE_USER, versioned_key
 from AutoGrader.tests_cache_matrix_support import (
     FRESH,
     STALE,
@@ -128,13 +126,16 @@ def make_active_user(email, user_type, first_name):
 
 
 def status_summary_key(student, course=None):
-    """The exact raw key `status_summary` writes (dashboard/views.py)."""
+    """The live key `status_summary` would read right now (dashboard/views.py):
+    the base key versioned on the student's current generation."""
     if course is None:
-        return f"studentadmins:user_id__{student.id}:view__status_summary:all"
-    return (
-        f"studentadmins:user_id__{student.id}"
-        f":view__status_summary:course__{course.id}"
-    )
+        base = f"studentadmins:user_id__{student.id}:view__status_summary:all"
+    else:
+        base = (
+            f"studentadmins:user_id__{student.id}"
+            f":view__status_summary:course__{course.id}"
+        )
+    return versioned_key(base, [(SCOPE_USER, student.id)])
 
 
 def verdicts(student_all, student_course, overview=FRESH):
@@ -411,18 +412,30 @@ class StatusSummaryMatrixBase(FreshnessMatrixMixin):
     def run_case(self, label, variant_course, mutate, expected):
         """Run one matrix row and assert the full observed verdict map.
 
-        Also asserts, for every raw status-summary key that existed before
-        the write, whether it physically survived it: evicted with the
-        wildcards live, untouched with them off.
+        Also probes, for every status-summary entry warmed before the write:
+
+        * the live key: the student's must move to a new generation (that is
+          what makes the cached answer FRESH), the unrelated student's must
+          not (isolation, asserted on the key, not only on the payload);
+        * the pre-write entry: evicted with the wildcards live, physically
+          left in place with them off - nothing is deleted, it is simply
+          unreachable.
         """
-        keys = self.raw_keys(variant_course)
-        presence = {}
+        probe = {}
 
         def mutate_and_probe():
-            before = {name: cache.get(key) is not None for name, key in keys.items()}
+            keys_before = self.raw_keys(variant_course)
+            present_before = {
+                name: cache.get(key) is not None for name, key in keys_before.items()
+            }
             mutate()
-            for name, key in keys.items():
-                presence[name] = (before[name], cache.get(key) is not None)
+            keys_after = self.raw_keys(variant_course)
+            for name, key in keys_before.items():
+                probe[name] = (
+                    present_before[name],
+                    cache.get(key) is not None,
+                    keys_after[name] != key,
+                )
 
         result = self.run_matrix(label, self.reads(variant_course), mutate_and_probe)
         observed = {o.label: o.verdict for o in result.outcomes}
@@ -434,12 +447,18 @@ class StatusSummaryMatrixBase(FreshnessMatrixMixin):
                 self.assertEqual(outcome.cached_after, outcome.before, result.table())
 
         expect_survives = not self.legacy_wildcards_live
-        for name, (was_present, is_present) in presence.items():
+        for name, (was_present, is_present, key_moved) in probe.items():
+            self.assertEqual(
+                key_moved,
+                name in (STUDENT_ALL, STUDENT_COURSE),
+                f"{label}: live key for {name!r} "
+                f"{'moved' if key_moved else 'did not move'}",
+            )
             if was_present:
                 self.assertEqual(
                     is_present,
                     expect_survives,
-                    f"{label}: raw key for {name!r} "
+                    f"{label}: pre-write entry for {name!r} "
                     f"{'survived' if is_present else 'was evicted'}",
                 )
         return result
@@ -568,134 +587,129 @@ class StatusSummaryWildcardsOnTests(StatusSummaryMatrixBase, TransactionTestCase
 class StatusSummaryWildcardsOffTests(StatusSummaryMatrixBase, TransactionTestCase):
     """Plan step 4 simulated: legacy wildcards disabled.
 
-    The status-summary keys are not generation-versioned, so nothing
-    clears them. Every cell whose truth moves is STALE for the 15-minute
-    TTL, except the `?course=` cells where the student loses access: that
-    variant runs its enrolment/is_active check BEFORE the cache lookup, so
-    the 404 is served fresh (the orphaned entry stays behind - see the
-    re-enrolment test).
-
-    These assertions are the step-4 prerequisite, not a desired state:
-    step 4 must add a generation bump for this family (build both keys
-    with `versioned_key(..., [(SCOPE_USER, student.id)])`, as G2 did for
-    the sibling overview/summary keys) before removing the wildcards.
-    When it does, these tests fail by design; flip them to FRESH. The
-    versioned overview control is FRESH in every row, proving the write
-    paths already bump the student and only the key needs versioning.
+    Formerly the step-4 prerequisite: with raw keys, every cell whose truth
+    moved was STALE here. Step 4 built both keys with
+    `versioned_key(..., [(SCOPE_USER, student.id)])`, as G2 did for the
+    sibling overview/summary keys, so every cell is now FRESH on the
+    generation bump alone. The runner also proves HOW: the student's live
+    key moved to a new generation while the pre-write entry physically
+    survived (nothing was deleted), and the unrelated student's key did not
+    move at all.
     """
 
     legacy_wildcards_live = False
 
-    def test_publish_draft_assignment_is_stale_step4_prerequisite(self):
-        """Step 4 must version this family: a newly published assignment never appears."""
+    def test_publish_draft_assignment_is_fresh(self):
+        """A newly published assignment appears (G1 fan-out bumps the student)."""
         self.run_case(
             "OFF: publish draft assignment",
             self.course_a,
             self.publish_draft_assignment,
-            verdicts(STALE, STALE),
+            verdicts(FRESH, FRESH),
         )
 
-    def test_student_submits_is_stale_step4_prerequisite(self):
-        """Step 4 must version this family: the student's own submission is not counted."""
+    def test_student_submits_is_fresh(self):
+        """The student's own submission is counted (submission receiver)."""
         self.run_case(
             "OFF: student submits",
             self.course_a,
             self.student_submits,
-            verdicts(STALE, STALE),
+            verdicts(FRESH, FRESH),
         )
 
-    def test_teacher_publishes_grade_is_stale_step4_prerequisite(self):
-        """Step 4 must version this family: a released grade is not counted as Graded."""
+    def test_teacher_publishes_grade_is_fresh(self):
+        """A released grade is counted as Graded (`invalidate_submission_caches`)."""
         self.run_case(
             "OFF: publish grade",
             self.course_a,
             self.teacher_publishes_grade,
-            verdicts(STALE, STALE),
+            verdicts(FRESH, FRESH),
         )
 
-    def test_teacher_publishes_all_grades_is_stale_step4_prerequisite(self):
-        """Step 4 must version this family: publish-all-grades not counted as Graded."""
+    def test_teacher_publishes_all_grades_is_fresh(self):
+        """publish-all-grades is counted as Graded (bulk invalidation, G3)."""
         self.run_case(
             "OFF: publish all grades",
             self.course_a,
             self.teacher_publishes_all_grades,
-            verdicts(STALE, STALE),
+            verdicts(FRESH, FRESH),
         )
 
-    def test_teacher_extends_due_date_is_stale_step4_prerequisite(self):
-        """Step 4 must version this family: an extended assignment still shows Overdue."""
+    def test_teacher_extends_due_date_is_fresh(self):
+        """An extended assignment leaves Overdue (G1 fan-out)."""
         self.run_case(
             "OFF: extend due date",
             self.course_a,
             self.teacher_extends_overdue_due_date,
-            verdicts(STALE, STALE),
+            verdicts(FRESH, FRESH),
         )
 
-    def test_teacher_unpublishes_assignment_is_stale_step4_prerequisite(self):
-        """Step 4 must version this family: an unpublished assignment is still counted."""
+    def test_teacher_unpublishes_assignment_is_fresh(self):
+        """An unpublished assignment stops being counted (G1 fan-out)."""
         self.run_case(
             "OFF: unpublish assignment",
             self.course_a,
             self.teacher_unpublishes_assignment,
-            verdicts(STALE, STALE),
+            verdicts(FRESH, FRESH),
         )
 
-    def test_teacher_deletes_assignment_is_stale_step4_prerequisite(self):
-        """Step 4 must version this family: a deleted assignment is still counted."""
+    def test_teacher_deletes_assignment_is_fresh(self):
+        """A deleted assignment stops being counted (G1 fan-out on post_delete)."""
         self.run_case(
             "OFF: delete assignment",
             self.course_a,
             self.teacher_deletes_assignment,
-            verdicts(STALE, STALE),
+            verdicts(FRESH, FRESH),
         )
 
-    def test_enrolment_into_new_course_all_is_stale_step4_prerequisite(self):
-        """Step 4 must version this family: `all` omits the new course's work.
-        `?course=B` is FRESH only because a 404 was never cached."""
+    def test_enrolment_into_new_course_is_fresh(self):
+        """`all` gains the new course's work (enrolment receiver bumps the
+        student). `?course=B` goes 404 -> 200; a 404 is never cached."""
         self.run_case(
             "OFF: enrol into course B",
             self.course_b,
             self.teacher_enrolls_student_in_course_b,
-            verdicts(STALE, FRESH),
+            verdicts(FRESH, FRESH),
         )
 
-    def test_withdrawal_all_is_stale_step4_prerequisite(self):
-        """Step 4 must version this family: `all` keeps counting the course the
-        student left (counts only, no course content). `?course=A` is FRESH
-        (404) only because its access check precedes the cache lookup."""
+    def test_withdrawal_is_fresh(self):
+        """`all` stops counting the course the student left; `?course=A`
+        goes 200 -> 404 (its access check precedes the cache lookup)."""
         self.run_case(
             "OFF: withdraw",
             self.course_a,
             self.teacher_withdraws_student,
-            verdicts(STALE, FRESH),
+            verdicts(FRESH, FRESH),
         )
 
-    def test_removal_from_course_all_is_stale_step4_prerequisite(self):
-        """Step 4 must version this family: same shape as withdrawal, via row delete."""
+    def test_removal_from_course_is_fresh(self):
+        """Same shape as withdrawal, via the enrolment row's post_delete."""
         self.run_case(
             "OFF: remove from course",
             self.course_a,
             self.teacher_removes_student,
-            verdicts(STALE, FRESH),
+            verdicts(FRESH, FRESH),
         )
 
-    def test_course_deactivation_all_is_stale_step4_prerequisite(self):
-        """Step 4 must version this family: `all` keeps counting a deactivated
-        course; `?course=A` 404s fresh via the pre-cache access check."""
+    def test_course_deactivation_is_fresh(self):
+        """`all` stops counting a deactivated course (G5 `_course_scopes`
+        fan-out); `?course=A` 404s via the pre-cache access check."""
         self.run_case(
             "OFF: deactivate course",
             self.course_a,
             self.teacher_deactivates_course,
-            verdicts(STALE, FRESH),
+            verdicts(FRESH, FRESH),
         )
 
-    def test_reenrolment_resurfaces_orphaned_course_entry_step4_prerequisite(self):
-        """Step 4 must version this family: the pre-cache access check does not
-        protect `?course=`. The entry orphaned at withdrawal is served again
-        on re-enrolment, without the assignment published meanwhile."""
+    def test_withdraw_publish_reenrol_is_fresh(self):
+        """The case the raw keys got wrong even behind the access check: the
+        `?course=` entry cached before withdrawal was served again on
+        re-enrolment, without the assignment published meanwhile. Versioned,
+        the re-enrolment (and the withdrawal before it) moved the student's
+        generation, so the orphaned entry is unreachable."""
         self.run_case(
             "OFF: withdraw, publish, re-enrol",
             self.course_a,
             self.withdraw_publish_then_reenroll,
-            verdicts(STALE, STALE),
+            verdicts(FRESH, FRESH),
         )

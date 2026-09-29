@@ -4281,6 +4281,17 @@ class StudentAdminDashboardView(viewsets.ViewSet):
         now = timezone.now()
         course_id = request.query_params.get("course")
 
+        # H-1 step 4: versioned on the student, exactly like the sibling
+        # overview/summary/assignments keys above (gap G2). These keys were
+        # raw, so only the legacy `*studentadmin*` wildcard ever cleared
+        # them. The counts read published assignments, the student's own
+        # submissions and their active enrolments; every write to any of
+        # those bumps usr(student) (assignment fan-out G1, submission and
+        # publish-all receivers G3, enrolment and course receivers G5), so
+        # usr(student) is the whole dependency.
+        #
+        # The `?course=` access check stays BEFORE the cache lookup: a
+        # student who lost access gets a live 404, never a cached body.
         if course_id:
             course = get_object_or_404(
                 Course.objects.filter(
@@ -4290,15 +4301,19 @@ class StudentAdminDashboardView(viewsets.ViewSet):
                 ),
                 id=course_id,
             )
-            cache_key = (
+            cache_key = versioned_key(
                 f"studentadmins:user_id__{student.id}"
-                f":view__status_summary:course__{course.id}"
+                f":view__status_summary:course__{course.id}",
+                [(SCOPE_USER, student.id)],
             )
             assignments = Assignment.objects.filter(
                 course=course, status=AssignmentStatus.PUBLISHED
             )
         else:
-            cache_key = f"studentadmins:user_id__{student.id}:view__status_summary:all"
+            cache_key = versioned_key(
+                f"studentadmins:user_id__{student.id}:view__status_summary:all",
+                [(SCOPE_USER, student.id)],
+            )
             active_courses = Course.objects.filter(
                 enrollments__student=student,
                 enrollments__in=StudentCourse.objects.active(),
