@@ -34,6 +34,7 @@
   "H5_cap_off_by_one": {
     "killed": true,
     "failing_tests": [
+      "test_a_full_licence_says_so",
       "test_stripe_checkout_goes_ahead_when_nobody_is_carried_over",
       "test_two_teachers_on_two_seats_is_created"
     ]
@@ -84,6 +85,47 @@
     "killed": true,
     "failing_tests": [
       "test_omitted_max_seats_is_a_400"
+    ]
+  },
+  "W1_no_seats_refusal_untyped": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_full_licence_says_so",
+      "test_fewer_seats_than_teachers_says_how_many"
+    ]
+  },
+  "W2_inactive_licence_refusal_untyped": {
+    "killed": true,
+    "failing_tests": [
+      "test_an_inactive_licence_says_so"
+    ]
+  },
+  "W3_not_listed_as_user_facing": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_full_licence_says_so",
+      "test_an_inactive_licence_says_so",
+      "test_fewer_seats_than_teachers_says_how_many",
+      "test_removing_a_teacher_not_on_the_licence_says_so"
+    ]
+  },
+  "W4_remove_refusal_untyped": {
+    "killed": true,
+    "failing_tests": [
+      "test_removing_a_teacher_not_on_the_licence_says_so"
+    ]
+  },
+  "W5_no_seats_message_loses_the_counts": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_full_licence_says_so",
+      "test_fewer_seats_than_teachers_says_how_many"
+    ]
+  },
+  "W6_full_licence_message_branch_lost": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_full_licence_says_so"
     ]
   }
 }

@@ -83,11 +83,50 @@ MUTANTS = {
         '            raise LicenseRequestError("max_seats must be a positive integer")\n',
         '            raise ValueError("max_seats must be a positive integer")\n',
     ),
+    # Widening (founder report): the school admin's add/remove teachers.
+    "W1_no_seats_refusal_untyped": (
+        SERVICE,
+        "            raise LicenseRequestError(\n"
+        "                LicenseSubscriptionService._no_seats_message(\n",
+        "            raise ValueError(\n"
+        "                LicenseSubscriptionService._no_seats_message(\n",
+    ),
+    "W2_inactive_licence_refusal_untyped": (
+        SERVICE,
+        "            raise LicenseRequestError(\n"
+        "                \"This licence isn't active, so teachers can't be added to it.\"\n",
+        "            raise ValueError(\n"
+        "                \"This licence isn't active, so teachers can't be added to it.\"\n",
+    ),
+    "W3_not_listed_as_user_facing": (
+        "AutoGrader/error_messages.py",
+        "        # Written to be shown: a licence request the caller can fix.\n"
+        "        LicenseRequestError,\n",
+        "",
+    ),
+    "W4_remove_refusal_untyped": (
+        SERVICE,
+        "            raise LicenseRequestError(\n"
+        '                "This teacher isn\'t an active teacher on this licence."\n',
+        "            raise ValueError(\n"
+        '                "This teacher isn\'t an active teacher on this licence."\n',
+    ),
+    "W5_no_seats_message_loses_the_counts": (
+        SERVICE,
+        '        in_use = f"{license_sub.teacher_count} of {license_sub.max_seats} in use"\n',
+        '        in_use = "some in use"\n',
+    ),
+    "W6_full_licence_message_branch_lost": (
+        SERVICE,
+        "        if remaining == 0:\n",
+        "        if False:\n",
+    ),
 }
 
 TESTS = [
     "billing.tests.test_license_seat_400",
     "billing.tests.test_license_service",
+    "billing.tests.test_license_teacher_changes_400",
 ]
 
 originals: dict = {}

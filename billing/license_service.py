@@ -1599,6 +1599,22 @@ class LicenseSubscriptionService:
         return LicenseSubscriptionService._enroll_teacher_internal(license_sub, teacher)
 
     @staticmethod
+    def _no_seats_message(license_sub, adding: int, remaining: int) -> str:
+        """The school admin's message when a licence can't take the teachers
+        being added. Plain wording, and the seat counts they can act on."""
+        in_use = f"{license_sub.teacher_count} of {license_sub.max_seats} in use"
+        if remaining == 0:
+            return (
+                f"Your licence has no seats left ({in_use}). "
+                "Remove a teacher or ask us to add seats."
+            )
+        return (
+            f"Your licence has {remaining} seat{'' if remaining == 1 else 's'} "
+            f"left, but you're adding {adding} teachers ({in_use}). "
+            "Add fewer teachers, remove a teacher, or ask us to add seats."
+        )
+
+    @staticmethod
     @transaction.atomic
     def add_teachers_batch(
         license_sub: LicenseSubscription,
@@ -1619,8 +1635,8 @@ class LicenseSubscriptionService:
             }
         """
         if not license_sub.is_active:
-            raise ValueError(
-                f"Cannot add teachers to inactive license subscription {license_sub.id}"
+            raise LicenseRequestError(
+                "This licence isn't active, so teachers can't be added to it."
             )
 
         # Lock License row to prevent concurrent modification
@@ -1648,8 +1664,10 @@ class LicenseSubscriptionService:
         # Check seats
         seats_remaining = license_sub.seats_remaining
         if seats_remaining is not None and len(new_teacher_emails) > seats_remaining:
-            raise ValueError(
-                f"Not enough seats available. Need {len(new_teacher_emails)}, only {seats_remaining} remaining."
+            raise LicenseRequestError(
+                LicenseSubscriptionService._no_seats_message(
+                    license_sub, len(new_teacher_emails), seats_remaining
+                )
             )
 
         results: Dict[str, Any] = {"successful": 0, "failed": 0, "errors": []}
@@ -1707,9 +1725,8 @@ class LicenseSubscriptionService:
         )
 
         if not allocation:
-            raise ValueError(
-                f"Teacher {teacher.email} is not actively enrolled in "
-                f"license {license_sub.id}"
+            raise LicenseRequestError(
+                "This teacher isn't an active teacher on this licence."
             )
 
         # 1. Deactivate allocation
