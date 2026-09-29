@@ -20,3 +20,25 @@ The single add already behaved this way (pre-existing), but (A) extends it to ev
 
 Verdict: REJECTED until the re-import no longer resets an active student's password, with a test pinning that.
 Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-28.
+
+## Re-verification @65321ec: REJECTED
+
+**My earlier finding is fixed.** My original Kim scenario (an active student who has signed in, bulk-imported into a second course) now gives `status=ENROLLED, password_unchanged=True`, and the roster row reads `enrolled / existing_student` instead of a misleading "invited". My scratch test plus tests_roster_ready_to_use, test_bulk_enrollment and tests_backfill_pending_student_invites: 36 OK. Author mutation log: 15/15, SURVIVORS [].
+
+**BLOCKING 1: `SIMPLE_JWT["UPDATE_LAST_LOGIN"] = True` triggers a full user-cache invalidation on every login.** simplejwt stamps `last_login` with `user.save(update_fields=["last_login"])`, which fires `post_save` → `clear_user_cache`. That receiver has no `update_fields` filter on beta, on H-1 stage 3 (168d57e) or on step 4 (a86354b). Measured on 65321ec with a recording patch around the receiver (throwaway test, never committed), for one password login:
+- UPDATE_LAST_LOGIN off: 0 bumps, 0 wildcard calls.
+- UPDATE_LAST_LOGIN on: 1 `bump_many` over `anyusr`, `global` and `usr`, plus 1 `delete_cache_patterns` call with **9 keyspace patterns**.
+So every login anywhere bumps the **global** generation, which turns cold every student's `course/my-courses` and the superadmin dashboards (H-15). On today's beta it also runs a 9-pattern SCAN sweep. After stage 3 it additionally bumps every superadmin; after step 4 the SCANs go but the global bump stays. Beta is live, so at term-start login volume this effectively disables those caches.
+Fix: no cached payload renders `last_login` (no serializer includes it; `billing`'s `last_login_date` is a different field), so either (a) keep UPDATE_LAST_LOGIN off and stamp `CustomUser.objects.filter(pk=user.pk).update(last_login=now)` in the login serializer (no signal), or (b) have `clear_user_cache` return early when `update_fields == {"last_login"}`. Pin it with a test asserting a login causes zero bumps and zero wildcard calls.
+
+**BLOCKING 2: a teacher's roster import re-enables an account a superadmin deliberately deactivated.** users/admin.py has the "Mark selected users as inactive" action (`queryset.update(is_active=False)`). In `enroll_student_by_email`, any student that isn't (active AND signed in) goes down the reset branch, which sets `is_active=True`, a new password, and emails credentials. `check_existing_account_may_join` doesn't look at `is_active`. Proven with the same scenario test on both trees: Dee has a password she knows, has signed in (`last_login` set), is enrolled in another course, and is then deactivated. The teacher bulk-imports her into a second course:
+- beta e7e4bdf: `is_active_after=False, password_unchanged=True` (the old bulk path enrolled without reactivating).
+- 65321ec: `is_active_after=True, password_unchanged=False`, "a teacher's roster import re-enabled an admin-deactivated account".
+The single-add path already did this on beta (pre-existing); (A) extends it to every roster import. Fix: reactivate an inactive account ONLY when it has never signed in (a legacy pending row; `activation_token` present is a good extra signal). Otherwise return a failed row such as "This account has been deactivated". Test both the roster and single-add paths.
+
+**Non-blocking:**
+- Google sign-in mints tokens directly (EpochRefreshToken.for_user), not via the login serializer, so it never stamps `last_login`. A Google student who signs in but makes no further authenticated request leaves no trace, and `has_signed_in` would still say False. That's rare, but worth a line in the docs, or stamp it there too via fix (a).
+- The reorder, runbook and backfill checks from my previous pass still hold.
+
+Verdict: REJECTED. Full suite: covered by the batch-2 run, once the two blockers are fixed.
+Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-29.
