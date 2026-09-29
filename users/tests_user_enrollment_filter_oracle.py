@@ -29,6 +29,7 @@ from django.core.cache import cache
 from django.db.models import Q
 from django.test import override_settings
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIRequestFactory, APITestCase
 
@@ -56,6 +57,9 @@ def make_user(email, user_type, school=None, first_name="", last_name=""):
     user.is_active = True
     user.school = school
     user.first_name, user.last_name = first_name, last_name
+    # Has signed in: an existing student who hasn't is re-sent credentials
+    # and enrolled PENDING instead (enrollment.has_signed_in).
+    user.last_login = timezone.now()
     user.save()
     return user
 

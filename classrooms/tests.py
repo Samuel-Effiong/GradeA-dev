@@ -497,6 +497,8 @@ class EnrollStudentByEmailActiveImmediatelyTest(APITestCase):
             user_type="STUDENT",
             is_active=True,
             must_change_password=False,
+            # Onboarded = has signed in (enrollment.has_signed_in).
+            last_login=timezone.now(),
         )
         old_password_hash = student.password
 

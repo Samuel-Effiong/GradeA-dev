@@ -8,6 +8,7 @@ For the founder to pass to the frontend team. Nothing here changes before landin
 |---|---|---|
 | `/register/student/<token>?email=<email>` | The student completes their invitation: enters first/last name and a password, and posts to `POST /auth/register/student`. | The backend route is gone (404). No email links here any more. **Remove the page.** |
 | The "link expired, request a new one" state of that page | Shown when `/auth/register/student` answers `200` with `renewal_url`/`expired_token`; posts the token to `POST /course/student/renew-student-token`. | Both backend routes are gone. **Remove it.** |
+| `/verify-email?email=<email>&token=<code>` (student app only) | A student verifies an email address with a 6-digit code. It was reachable when `POST /auth/otp` `VERIFY_EMAIL` was called for an unverified student. | (B) refuses `VERIFY_EMAIL` for student accounts (SM ruling, 2026-09-28), with the same generic reply as any other call so it can't reveal which addresses are students. Nothing sends a student here any more. **Remove it.** The teacher app's `/verify-email` is unaffected. |
 
 Emails that linked to that page are removed in (B): the course invitation email (`send_course_invitation_email`, already without callers), the bulk-enrollment email (`send_bulk_enrollment_email`, without callers since landing A), and the token-renewal emails to the student and teacher (`send_token_renewal_emails`).
 
@@ -21,10 +22,7 @@ Emails that linked to that page are removed in (B): the course invitation email 
 | Student change-password screen | `must_change_password` is set on new students. It's **informational only**: the server does not enforce it (product decision, `users/authentication.py`), so the frontend decides whether to prompt. |
 | Teacher `/verify-email` and `POST /auth/verify` | Untouched (founder: leave teacher `/auth/verify` alone). |
 
-## Open question for the founder (affects landing B's scope)
+## Changes to existing screens from landing (A)
 
-`POST /auth/otp` with `otp_type=VERIFY_EMAIL` still works for a **student** row that has no `email_verified_at` (manual-add and roster students are created active but unverified). It calls `send_user_activation_email`, which puts a fresh 6-digit code on the student's row and emails a link to the **student** app's `/verify-email` page. Completing it goes through `/auth/verify`, which needs the email plus the code and is per-email throttled, so it's not a takeover path. But it means a student row can get a code again after the backfill, and the student app keeps a `/verify-email` page that nothing in the new flow sends students to.
-
-Options:
-- (1) Leave it. The student `/verify-email` page stays alive.
-- (2) In (B), refuse `VERIFY_EMAIL` for students (their email is effectively verified by the login-credentials email reaching them). The student `/verify-email` page then goes dead too.
+- **Roster import results:** a row for an existing student who has already signed in now comes back as `status: "enrolled"` with a new `type: "existing_student"`. Previously every emailed row said `"invited"`. `"invited"` / `"invitation"` now means login credentials were actually emailed. The results screen should show both.
+- **Single add** (`POST /course/<id>/students`): `is_new_student: true` now means "credentials were emailed"; `false` means "an existing student was enrolled".
