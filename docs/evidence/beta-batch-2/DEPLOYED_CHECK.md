@@ -58,6 +58,28 @@ testing the wrong build.
 package. Rolling back code does not reverse migrations (all of them are
 additive), and the generation counters in Redis stay in place (§4).
 
+**Rollback caveat: NOT NULL columns with no DB default (H-56).** Nine
+columns, added by 8 migrations, are NOT NULL with a default in Django only:
+- `users` 0036, 0037, 0039;
+- `billing` 0063, 0064, 0067;
+- `assignments` 0038;
+- `dashboard` 0003.
+
+Code older than a column's migration omits it from INSERT and fails
+(user creation, wallet `get_or_create`, every Stripe webhook).
+
+- **This package:** no migrations between the rollback target (the current
+  staging `4595487`) and the new tip, so a code-only rollback to that target
+  is safe.
+- **Rolling back further** than the target, to code older than any of those
+  migrations: first run the prepared, tested `ALTER TABLE … ALTER COLUMN …
+  SET DEFAULT …` statements (with founder approval; metadata-only, no
+  rewrite).
+- The SQL is kept outside the repo:
+  `~/Documents/Projects/GAP-rollback-set-defaults.sql`.
+- Once H-56 lands, the schema carries these defaults and the caveat
+  goes away.
+
 ## 0. Setup (writes test data; see §4)
 
 **URLs have no trailing slash.** The routers use `trailing_slash=False` and
