@@ -20,6 +20,8 @@ filter combination in §8.1 hits one of the indexes already defined on
 AuditEvent (audit/models.py).
 """
 
+from typing import TYPE_CHECKING, cast
+
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import generics
@@ -29,6 +31,9 @@ from classrooms.permissions import IsSchoolAdmin, IsSuperAdmin
 from .filters import SchoolAdminAuditEventFilter, SuperAdminAuditEventFilter
 from .models import AuditEvent
 from .serializers import AuditEventSerializer
+
+if TYPE_CHECKING:
+    from users.models import CustomUser
 
 _QUERY_PARAMETERS = [
     OpenApiParameter("actor_id", str, description="Filter by actor UUID."),
@@ -87,5 +92,6 @@ class SchoolAdminAuditEventListView(generics.ListAPIView):
 
     def get_queryset(self):
         return AuditEvent.objects.filter(
-            school_id=self.request.user.school_id
+            # IsSchoolAdmin has already rejected anonymous callers.
+            school_id=cast("CustomUser", self.request.user).school_id
         ).order_by("-occurred_at")

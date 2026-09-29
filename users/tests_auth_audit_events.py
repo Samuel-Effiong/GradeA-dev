@@ -4,6 +4,8 @@ branch of login (CustomTokenObtainPairSerializer.validate) and logout
 each emits the outcome/error_class/reason_code the plan specifies.
 """
 
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.test import override_settings
@@ -97,7 +99,7 @@ class LoginAuditEventTests(APITestCase):
         self,
     ):
         self.user.failed_login_attempts = User.MAX_LOGIN_ATTEMPTS
-        self.user.locked_until = timezone.now() + timezone.timedelta(minutes=30)
+        self.user.locked_until = timezone.now() + timedelta(minutes=30)
         self.user.save()
 
         response = self.login(PASSWORD)

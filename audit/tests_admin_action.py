@@ -164,6 +164,8 @@ class RealEndpointIntegrationTests(_Users):
     endpoint that predates this change (the audit query API's own
     super-admin list view) - not a hand-wired unit."""
 
+    client: APIClient
+
     def setUp(self):
         super().setUp()
         self.client = APIClient()

@@ -59,6 +59,10 @@ def request(**meta):
 
 
 class WhatOneEventRecordsTest(TestCase):
+    school: School
+    teacher: CustomUser
+    student: CustomUser
+
     @classmethod
     def setUpTestData(cls):
         cls.school = School.objects.create(name="Emit School")
@@ -174,6 +178,8 @@ class WhatOneEventRecordsTest(TestCase):
 class StudentDataTest(TestCase):
     """X-4 and FR-A-04: a student's identity, address and browser are never
     stored, whatever the call site passes."""
+
+    student: CustomUser
 
     @classmethod
     def setUpTestData(cls):
