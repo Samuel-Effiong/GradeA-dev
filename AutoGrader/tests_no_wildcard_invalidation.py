@@ -22,6 +22,15 @@ What counts as a wildcard call:
   SCAN commands (a dict's `.keys()` takes none, so it is not matched);
 * `execute_command("SCAN" | "KEYS", ...)` - the same commands sent raw.
 
+It also flags whole-cache wipes, which are broader than any wildcard:
+
+* `flushdb(...)`, `flushall(...)` - the redis-py commands, on any receiver;
+* `.clear()` on a cache - `cache.clear()`, `caches[...].clear()`, or a
+  receiver built from `get_redis_connection(...)`. django-redis implements
+  `cache.clear()` as FLUSHDB. A `.clear()` on anything else (a dict, a set)
+  is not a cache operation and is not matched;
+* `execute_command("FLUSHDB" | "FLUSHALL", ...)` - the same sent raw.
+
 Allowlist (plan §2, `docs/H1_STAGE3_WILDCARD_REMOVAL_PLAN.md`): exactly one
 `delete_pattern` in `assignments/pdf_cache.py`, clearing ONE assignment's
 own rendered PDFs by exact prefix. Its key is versioned by `updated_at` and
@@ -41,9 +50,16 @@ from django.test import SimpleTestCase
 
 REPO = Path(settings.BASE_DIR)
 
-WILDCARD_CALLS = {"delete_pattern", "delete_cache_patterns", "iter_keys", "scan_iter"}
+WILDCARD_CALLS = {
+    "delete_pattern",
+    "delete_cache_patterns",
+    "iter_keys",
+    "scan_iter",
+    "flushdb",
+    "flushall",
+}
 WILDCARD_CALLS_WITH_ARGS = {"keys", "scan"}
-RAW_COMMANDS = {"SCAN", "KEYS"}
+RAW_COMMANDS = {"SCAN", "KEYS", "FLUSHDB", "FLUSHALL"}
 
 #: (path, call name) -> (allowed count, why). The plan's only exception.
 ALLOWED = {
@@ -90,6 +106,21 @@ def _call_name(call):
     return getattr(func, "attr", None) or getattr(func, "id", None)
 
 
+def _is_cache_receiver(node):
+    """`cache`, `caches[...]`, or anything built from get_redis_connection()."""
+    if isinstance(node, ast.Name):
+        return node.id == "cache"
+    if isinstance(node, ast.Attribute):
+        return node.attr == "cache" or _is_cache_receiver(node.value)
+    if isinstance(node, ast.Subscript):
+        return isinstance(node.value, ast.Name) and node.value.id == "caches"
+    if isinstance(node, ast.Call):
+        return _call_name(node) == "get_redis_connection" or _is_cache_receiver(
+            node.func
+        )
+    return False
+
+
 def wildcard_calls(tree):
     """(name, line, call node) for every wildcard-style call in a module."""
     found = []
@@ -98,6 +129,12 @@ def wildcard_calls(tree):
             continue
         name = _call_name(node)
         if name in WILDCARD_CALLS:
+            found.append((name, node.lineno, node))
+        elif (
+            name == "clear"
+            and isinstance(node.func, ast.Attribute)
+            and _is_cache_receiver(node.func.value)
+        ):
             found.append((name, node.lineno, node))
         elif name in WILDCARD_CALLS_WITH_ARGS and isinstance(node.func, ast.Attribute):
             if node.args or node.keywords:
@@ -201,10 +238,19 @@ class NoWildcardInvalidationTests(SimpleTestCase):
                 "client.scan(0, match='*')",
                 "client.execute_command('SCAN', 0)",
                 "client.execute_command('keys', '*')",
+                # whole-cache wipes:
+                "cache.clear()",
+                "caches['default'].clear()",
+                "get_redis_connection('default').clear()",
+                "client.flushdb()",
+                "client.flushall(asynchronous=True)",
+                "client.execute_command('FLUSHDB')",
                 # not wildcard operations:
                 "{}.keys()",
                 "client.execute_command('GET', 'k')",
                 "cache.delete('exact-key')",
+                "seen.clear()",
+                "self._memo.clear()",
             ]
         )
         found = sorted(name for name, _, _ in wildcard_calls(ast.parse(source)))
@@ -220,6 +266,12 @@ class NoWildcardInvalidationTests(SimpleTestCase):
                     "scan",
                     "execute_command(SCAN)",
                     "execute_command(keys)",
+                    "clear",
+                    "clear",
+                    "clear",
+                    "flushdb",
+                    "flushall",
+                    "execute_command(FLUSHDB)",
                 ]
             ),
         )
