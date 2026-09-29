@@ -129,6 +129,15 @@ from users.tokens import EpochRefreshToken
 
 logger = logging.getLogger(__name__)
 
+# Founder-approved wording (2026-09-28) for the password-reset email.
+# Wording only: no link.
+RESET_EMAIL_WARNING = (
+    "Didn't ask for this? Someone may be trying to get into your account. "
+    "Don't share this code with anyone, including Grade A+ staff. Your "
+    "password hasn't been changed. If you didn't request this, you can ignore "
+    "this email."
+)
+
 # Create your views here.
 
 USER_EXAMPLE = {
@@ -761,8 +770,9 @@ We received a request to reset your Grade A+ password
 
 Your Password reset code is: {otp_code}
 
-Enter this code in the app to continue. If you did not request a password reset,
-you can ignore this email and your account will remain secure.
+Enter this code in the app to continue.
+
+{RESET_EMAIL_WARNING}
 
 The Grade A+ Team
 
