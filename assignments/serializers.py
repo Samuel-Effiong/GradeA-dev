@@ -6,7 +6,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 
-from classrooms.models import Course, StudentCourse, Topic
+from classrooms.models import Course, StudentCourse, Topic, teacher_can_reach_course
 from students.models import StudentSubmission
 from students.serializers import StudentSubmissionSerializer
 from users.models import UserTypes
@@ -698,7 +698,11 @@ class AssignmentTextSerializer(serializers.Serializer):
         if user.is_superuser and user.user_type == UserTypes.SUPER_ADMIN:
             return value
 
-        if value.teacher_id != user.id:
+        # teacher_can_reach_course, not `value.teacher_id != user.id`: owning
+        # the course is permanent, so the bare comparison kept accepting a
+        # course in a school the teacher has been removed from (H-38). The
+        # helper still requires ownership, so H-18 is unchanged.
+        if not teacher_can_reach_course(user, value):
             raise serializers.ValidationError("You do not have access to this course.")
         return value
 

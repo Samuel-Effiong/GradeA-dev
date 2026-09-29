@@ -41,7 +41,12 @@ jobs:
     # once a real run here confirms the actual CI time, the same way the
     # old 60-minute cap should have been revisited once --parallel landed
     # instead of left at "the suite plus margin" indefinitely.
-    timeout-minutes: 20
+    #
+    # First real run (2026-09-28, beta be78221, run 36444904862): test step
+    # 633s, whole job 12m55s. The whole-repo mypy step added after the suite
+    # costs ~2 min cold, so 20 left too little margin; 30 until the test-speed
+    # work brings the job down.
+    timeout-minutes: 30
 
     services:
       postgres:
@@ -158,3 +163,12 @@ jobs:
         # writing assertion-free tests that raise the number without
         # catching anything.
         run: coverage report -m
+
+      - name: Type check (mypy)
+        # The pre-commit mypy hook, run here rather than in pre-commit.yml
+        # because it needs this job's installed requirements and settings
+        # env (see the SKIP there). Running the hook itself keeps one
+        # definition of mypy's args. !cancelled() keeps it independent of
+        # the test result, as it was when it lived in the other workflow.
+        if: ${{ !cancelled() }}
+        run: pre-commit run mypy --all-files

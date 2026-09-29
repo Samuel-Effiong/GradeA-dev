@@ -1,0 +1,12 @@
+{
+  "body": {
+    "error": {
+      "field_errors": {
+        "detail": "You must not be a student to access this endpoint."
+      }
+    },
+    "message": "You must not be a student to access this endpoint.",
+    "success": false
+  },
+  "http_status": 403
+}

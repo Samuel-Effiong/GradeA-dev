@@ -19,8 +19,7 @@ active subscription.
   teacher's own allocation row was never touched" shape — see
   LicenseTeacherExpiredTests.
 - NONE: no subscription/license history exists on ANY of the three
-  tracks — a flat placeholder payload, everything null/false/0 except
-  "status".
+  tracks — exactly {"status": "NONE", "message": ...}, nothing more.
 
 Also covers precedence: an ACTIVE context on any track always wins
 over stale/inactive history on a lower-priority track (the resolver's
@@ -335,34 +334,13 @@ class NoneStatusTests(SubscriptionMeStatusTestBase):
         self.assertEqual(response.status_code, status.HTTP_200_OK, response.data)
         self.assertEqual(response.data["status"], "NONE")
 
-    def test_none_response_matches_the_active_shape_with_safe_defaults(self):
-        self.make_sub()  # baseline ACTIVE response for the same user
-        active_response = self.client.get(self.url)
-        UserSubscription.objects.filter(user=self.user).delete()
+    def test_none_response_is_exactly_status_and_message_no_other_fields(self):
+        response = self.client.get(self.url)
 
-        none_response = self.client.get(self.url)
-
-        self.assertEqual(none_response.status_code, status.HTTP_200_OK)
-        self.assertEqual(
-            set(none_response.data.keys()), set(active_response.data.keys())
-        )
-        self.assertIsNone(none_response.data["id"])
-        self.assertIsNone(none_response.data["plan"])
-        self.assertFalse(none_response.data["is_active"])
-        self.assertFalse(none_response.data["auto_renew"])
-        self.assertIsNone(none_response.data["next_renewal_date"])
-        self.assertIsNone(none_response.data["days_until_renewal"])
-        self.assertEqual(
-            none_response.data["cancellation"],
-            {
-                "cancelled_at": None,
-                "has_pending_cancellation": False,
-                "cancellation_effective_date": None,
-                "cancellation_message": None,
-            },
-        )
-        self.assertEqual(none_response.data["current_balance_display"], 0)
-        self.assertEqual(none_response.data["credit_percentage_remaining"], 0.0)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(set(response.data.keys()), {"status", "message"})
+        self.assertEqual(response.data["status"], "NONE")
+        self.assertEqual(response.data["message"], "You don't have a subscription yet.")
 
 
 def make_license_school(admin_email, teacher_email=None):

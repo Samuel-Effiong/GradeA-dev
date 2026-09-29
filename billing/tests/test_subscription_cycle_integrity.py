@@ -53,6 +53,9 @@ from users.models import UserTypes
 CustomUser = get_user_model()
 
 
+RECEIPT_PI = {"latest_charge": {"receipt_url": "https://pay.stripe.test/receipt"}}
+
+
 class FakeStripeObject(dict):
     """
     Minimal stand-in for Stripe's response objects, which support both
@@ -238,10 +241,14 @@ class UpgradeEntryPointCycleIntegrityTestCase(TestCase):
             "proration_amount": "500",
         }
 
+    @patch("stripe.PaymentIntent")
     @patch("stripe.Subscription")
-    def test_webhook_preserves_cycle_for_same_interval(self, mock_subscription):
+    def test_webhook_preserves_cycle_for_same_interval(
+        self, mock_subscription, mock_payment_intent
+    ):
         sub = self._make_sub(self.standard_plan)
         mock_subscription.modify.return_value = None
+        mock_payment_intent.retrieve.return_value = RECEIPT_PI
 
         session = {
             "id": "cs_test_1",
@@ -256,14 +263,19 @@ class UpgradeEntryPointCycleIntegrityTestCase(TestCase):
         sub.refresh_from_db()
         self.assertEqual(sub.plan_id, self.pro_plan.id)
         self.assertEqual(sub.billing_cycle_end, self.cycle_end)
+        mock_payment_intent.retrieve.assert_called_once_with(
+            "pi_test_1", expand=["latest_charge"]
+        )
 
+    @patch("stripe.PaymentIntent")
     @patch("stripe.Invoice")
     @patch("stripe.Subscription")
     def test_webhook_resets_cycle_for_interval_crossing(
-        self, mock_subscription, mock_invoice
+        self, mock_subscription, mock_invoice, mock_payment_intent
     ):
         sub = self._make_sub(self.standard_plan)
         mock_subscription.modify.return_value = None
+        mock_payment_intent.retrieve.return_value = RECEIPT_PI
         mock_subscription.retrieve.return_value = {
             "id": "sub_entry_1",
             "latest_invoice": None,
@@ -292,6 +304,9 @@ class UpgradeEntryPointCycleIntegrityTestCase(TestCase):
         self.assertGreaterEqual(new_sub.billing_cycle_start, before)
         self.assertLessEqual(new_sub.billing_cycle_start, after)
         self.assertGreater(new_sub.billing_cycle_end, self.cycle_end)
+        mock_payment_intent.retrieve.assert_called_once_with(
+            "pi_test_2", expand=["latest_charge"]
+        )
 
 
 class DowngradeAfterUpgradeDateIntegrityTestCase(TestCase):

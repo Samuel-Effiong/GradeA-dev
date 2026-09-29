@@ -1,0 +1,2 @@
+SHAPE 400 {"success":false,"message":"Email: Email address can't be changed.","error":{"field_errors":{"email":["Email address can't be changed."]}}}
+SHAPE 400 {"success":false,"message":"Password: The password cannot be changed through this endpoint. Use POST /auth/change-password instead.","error":{"field_errors":{"password":["The password cannot be changed through this endpoint. Use POST /auth/change-password instead."]}}}

@@ -1,0 +1,11 @@
+FAIL: test_nothing_is_exempt_by_default (users.tests_email_domain_rules.ExemptDomainTests.test_nothing_is_exempt_by_default)
+yopmail.com sat in this list permanently, and the exemption opens
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h3-student-password-remediation/users/tests_email_domain_rules.py", line 211, in test_nothing_is_exempt_by_default
+    self.assertFalse(is_exempt_email_domain("qa@yopmail.com"))
+AssertionError: True is not false
+
+----------------------------------------------------------------------
+Ran 506 tests in 82.513s
+FAILED (failures=1, skipped=4)
