@@ -1,0 +1,63 @@
+# beta 4b902fc, 2026-09-26T23:44:44+01:00
+# python manage.py test billing.tests.test_h38_part2_removed_teacher_routes --settings=settings_worktree --noinput --parallel 1
+FAIL: test_associate_topic (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherAssignmentRouteTests.test_associate_topic)
+FAIL: test_delete_assignment (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherAssignmentRouteTests.test_delete_assignment)
+FAIL: test_list_assignments (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherAssignmentRouteTests.test_list_assignments)
+FAIL: test_patch_assignment (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherAssignmentRouteTests.test_patch_assignment)
+FAIL: test_publish_all_grades (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherAssignmentRouteTests.test_publish_all_grades)
+FAIL: test_retrieve_assignment (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherAssignmentRouteTests.test_retrieve_assignment)
+FAIL: test_upload_assignment (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherAssignmentRouteTests.test_upload_assignment)
+FAIL: test_create_topic_in_the_school_course (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherClassroomRouteTests.test_create_topic_in_the_school_course)
+FAIL: test_create_topic_through_the_course_action (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherClassroomRouteTests.test_create_topic_through_the_course_action)
+FAIL: test_delete_topic (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherClassroomRouteTests.test_delete_topic)
+FAIL: test_list_topics (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherClassroomRouteTests.test_list_topics)
+FAIL: test_my_students (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherClassroomRouteTests.test_my_students)
+FAIL: test_patch_topic (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherClassroomRouteTests.test_patch_topic)
+FAIL: test_student_course_delete (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherClassroomRouteTests.test_student_course_delete)
+FAIL: test_student_course_list (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherClassroomRouteTests.test_student_course_list)
+FAIL: test_student_course_patch (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherClassroomRouteTests.test_student_course_patch)
+FAIL: test_dashboard_assignment (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherDashboardRouteTests.test_dashboard_assignment)
+FAIL: test_dashboard_course (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherDashboardRouteTests.test_dashboard_course)
+FAIL: test_dashboard_students (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherDashboardRouteTests.test_dashboard_students)
+FAIL: test_delete_submission (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherSubmissionRouteTests.test_delete_submission)
+FAIL: test_list_submissions (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherSubmissionRouteTests.test_list_submissions)
+FAIL: test_publish_grade (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherSubmissionRouteTests.test_publish_grade)
+FAIL: test_retrieve_submission (billing.tests.test_h38_part2_removed_teacher_routes.RemovedTeacherSubmissionRouteTests.test_retrieve_submission)
+FAILED (failures=23)
+H38P2 assignments/views.py associate-topic WRITE status=200 changed=True
+H38P2 assignments/views.py:310 delete DELETE status=204 changed=True
+H38P2 assignments/views.py:1232 generate WRITE(paid AI) status=403 changed=False
+H38P2 assignments/views.py grade-all WRITE(paid AI) status=402 changed=False
+H38P2 assignments/views.py:310 list READ status=200 changed=True
+H38P2 assignments/views.py:310 patch WRITE status=200 changed=True
+H38P2 assignments/views.py publish-all-grades WRITE status=200 changed=True
+H38P2 assignments/views.py:310 retrieve READ status=200 changed=True
+H38P2 assignments/views.py:776 upload WRITE status=400 changed=False
+H38P2 assignments/views.py:960 upload-async WRITE status=402 changed=False
+H38P2 classrooms/views.py topics create WRITE status=201 changed=True
+H38P2 classrooms/views.py:1723 course topics WRITE status=201 changed=True
+H38P2 classrooms/views.py:2392 topic delete DELETE status=204 changed=True
+H38P2 classrooms/views.py:2392 topics list READ status=200 changed=True
+H38P2 classrooms/views.py:2041-2082 my-students READ status=200 changed=True
+H38P2 classrooms/views.py:2392 topic patch WRITE status=200 changed=True
+H38P2 classrooms/views.py:2099 student-course delete DELETE status=204 changed=True
+H38P2 classrooms/views.py:2099 student-course list READ status=200 changed=True
+H38P2 classrooms/views.py:2099 student-course patch WRITE status=200 changed=True
+H38P2 dashboard/views.py custom-ai-prompt READ(paid AI) status=403 changed=False
+H38P2 dashboard/views.py teacher assignments/{id} READ status=200 changed=True
+H38P2 dashboard/views.py teacher courses/{id} READ status=200 changed=True
+H38P2 dashboard/views.py teacher overview/{session} READ status=404 changed=False
+H38P2 dashboard/views.py teacher students/{course} READ status=200 changed=True
+H38P2 dashboard/views.py SchoolAdmin /school-admin/dashboard/assignment-activity-over-time READ status=403 changed=False
+H38P2 dashboard/views.py SchoolAdmin /school-admin/dashboard/teachers READ status=403 changed=False
+H38P2 dashboard/views.py SchoolAdmin /school-admin/dashboard/students READ status=403 changed=False
+H38P2 students/views.py:358 delete DELETE status=204 changed=True
+H38P2 students/views.py grade WRITE(paid AI) status=402 changed=False
+H38P2 students/views.py:358 list READ status=200 changed=True
+H38P2 students/views.py publish WRITE status=200 changed=True
+H38P2 students/views.py:358 retrieve READ status=200 changed=True
+H38P2 students/views.py:158 upload WRITE status=403 changed=False
+H38P2 students/views.py teacher_feedback READ status=402 changed=False
+H38P2 students/views.py update-grade WRITE status=402 changed=False
+Ran 33 tests in 29.935s
+log_lines=359 log_sha256=8335bec8b831c78b9e5167bfb558f244f0f9e2439841aaa5f2796cb760c9510c

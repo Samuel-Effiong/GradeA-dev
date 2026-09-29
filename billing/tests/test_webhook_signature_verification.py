@@ -106,10 +106,10 @@ class RealSignatureVerificationTests(TestCase):
         payload = event_payload()
         response = self.post(payload, stripe_signature(payload, WEBHOOK_SECRET))
 
-        self.assertNotEqual(
+        self.assertEqual(
             response.status_code,
-            400,
-            "a validly signed payload was rejected — the configured "
+            200,
+            "a validly signed payload was not accepted — the configured "
             "STRIPE_WEBHOOK_SECRET is not the one used to verify",
         )
         self.assertTrue(
@@ -232,10 +232,10 @@ class RealSignatureVerificationTests(TestCase):
         # past the first one.
         response = self.post(payload, f"t={timestamp},v1={wrong},v1={right}")
 
-        self.assertNotEqual(
+        self.assertEqual(
             response.status_code,
-            400,
-            "a rolled-secret header was rejected — rolling the webhook "
+            200,
+            "a rolled-secret header was not accepted — rolling the webhook "
             "secret would take the endpoint down for three days",
         )
 
@@ -252,7 +252,7 @@ class RealSignatureVerificationTests(TestCase):
             payload, stripe_signature(payload, WEBHOOK_SECRET, timestamp=recent)
         )
 
-        self.assertNotEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 200)
 
     def test_a_signature_just_outside_the_tolerance_is_rejected(self):
         payload = event_payload()
@@ -281,21 +281,20 @@ class ThinWebhookRealSignatureTests(RealSignatureVerificationTests):
     The thin endpoint duplicates the verification block rather than sharing
     it, so it can drift independently. Same contract, re-run against it.
 
-    `test_a_correctly_signed_payload_passes_verification` is overridden
-    because the thin flow calls stripe.Event.retrieve() after verifying,
-    which would be a live API call here; the rejection cases all fail
-    BEFORE that point and inherit unchanged.
+    The thin flow calls stripe.Event.retrieve() after verifying, so it is
+    patched for the whole class: every inherited accepted-path test would
+    otherwise make a live API call (H-48: the H-39 network guard caught two
+    doing exactly that, and they passed on the resulting 500).
     """
 
     endpoint = "stripe-webhook-thin"
 
-    def test_a_correctly_signed_payload_passes_verification(self):
+    def setUp(self):
         from unittest.mock import patch
 
         import stripe as real_stripe
 
-        payload = event_payload()
-        with patch.object(
+        patcher = patch.object(
             real_stripe.Event,
             "retrieve",
             return_value={
@@ -303,11 +302,16 @@ class ThinWebhookRealSignatureTests(RealSignatureVerificationTests):
                 "type": "invoice.payment_succeeded",
                 "data": {"object": {"id": "in_sig_1"}},
             },
-        ) as retrieve:
-            response = self.post(payload, stripe_signature(payload, WEBHOOK_SECRET))
+        )
+        self.retrieve = patcher.start()
+        self.addCleanup(patcher.stop)
 
-        self.assertNotEqual(response.status_code, 400)
-        retrieve.assert_called_once()
+    def test_a_correctly_signed_payload_passes_verification(self):
+        payload = event_payload()
+        response = self.post(payload, stripe_signature(payload, WEBHOOK_SECRET))
+
+        self.assertEqual(response.status_code, 200)
+        self.retrieve.assert_called_once_with(EVENT_ID)
 
     def test_retrieve_is_never_reached_when_the_signature_is_bad(self):
         """

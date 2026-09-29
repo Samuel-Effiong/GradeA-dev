@@ -1,0 +1,11 @@
+{
+  "body": {
+    "data": {
+      "message": "You don't have a subscription yet.",
+      "status": "NONE"
+    },
+    "message": "You don't have a subscription yet.",
+    "success": true
+  },
+  "http_status": 200
+}

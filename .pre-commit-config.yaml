@@ -48,7 +48,28 @@ repos:
     hooks:
     -   id: mypy
         args: [--ignore-missing-imports, --check-untyped-defs, --disable-error-code=var-annotated]
-        additional_dependencies: [types-requests,  types-redis, types-waitress, types-python-dateutil, types-bleach]
+        # language: system, not the mirror's own isolated venv: the
+        # mypy_django_plugin (wired up in pyproject.toml's
+        # [tool.mypy]/[tool.django-stubs]) calls django.setup() on
+        # AutoGrader.settings to inspect real models, which imports the
+        # WHOLE app (AutoGrader/__init__.py -> celery, every installed app's
+        # third-party deps, ...). additional_dependencies only ever installs
+        # mypy + stub packages into an isolated env, so django.setup() there
+        # fails with ModuleNotFoundError before a single file is checked
+        # (confirmed: `ModuleNotFoundError: No module named 'celery'` from
+        # AutoGrader/celery.py). Listing the whole of requirements.txt as
+        # additional_dependencies is the alternative, but that duplicates
+        # the project's real dependency set in a second place that silently
+        # drifts. language: system instead runs mypy from whatever
+        # environment invokes pre-commit — this project's shared venv,
+        # which already has mypy==1.17.1 (matching `rev` above),
+        # django-stubs==5.2.8 and djangorestframework-stubs==3.16.6
+        # (matching requirements.txt) installed, so the plugin can import
+        # the app cleanly. See docs/evidence/mypy_django_stubs/EVIDENCE.md.
+        language: system
+        # Evidence harnesses reuse names (several mutate.py), which stops
+        # whole-repo mypy with "Duplicate module named"; they aren't app code.
+        exclude: ^docs/
 
 -   repo: https://github.com/pycqa/flake8 # Linting with Flake8
     rev: 7.3.0
