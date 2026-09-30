@@ -232,7 +232,7 @@ class ResetPasswordDoorTests(DoorBase):
         ]
 
         self.assertEqual(statuses, [400] * (PasswordResetOTP.MAX_ATTEMPTS - 1) + [429])
-        events = list(AuditEvent.objects.order_by("occurred_at"))
+        events = list(AuditEvent.objects.order_by("occurred_at", "pk"))
         self.assertEqual(len(events), PasswordResetOTP.MAX_ATTEMPTS)
         for event in events:
             self.assert_event(
