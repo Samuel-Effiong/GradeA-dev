@@ -1,0 +1,12 @@
+# T2: expiry: still active
+# file: billing/services.py (occurrence 1)
+# old: '        if not (locked.is_trial and locked.is_active):\n'
+# new: '        if not locked.is_trial:\n'
+# commit: ae944e9664f7cb27d116f20f49b3230dda9f4f9c
+# exit: 1
+# elapsed_s: 4.4
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_each_trial_condition_is_rechecked_under_the_lock (billing.tests.test_overlapping_run_rechecks.TrialExpiryOverlapTests.test_each_trial_condition_is_rechecked_under_the_lock) [deactivated]
+
+FAILED (failures=1)

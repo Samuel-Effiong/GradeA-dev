@@ -1,0 +1,12 @@
+# G7: grant: the row lock
+# file: billing/services.py (occurrence 1)
+# old: '        user_subscription = UserSubscription.objects.select_for_update().get(\n            id=user_subscription.id\n        )\n        plan = user_subscription.plan\n'
+# new: '        user_subscription = UserSubscription.objects.get(\n            id=user_subscription.id\n        )\n        plan = user_subscription.plan\n'
+# commit: ae944e9664f7cb27d116f20f49b3230dda9f4f9c
+# exit: 1
+# elapsed_s: 5.0
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_run_b_blocked_behind_run_a_does_not_grant_again (billing.tests.test_overlapping_run_rechecks.MidCycleGrantRealLockTests.test_run_b_blocked_behind_run_a_does_not_grant_again)
+
+FAILED (failures=1)
