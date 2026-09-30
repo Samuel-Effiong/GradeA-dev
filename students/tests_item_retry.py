@@ -17,6 +17,7 @@ FR-A-07 S7b: per-item retry (08a §4.4, §5; F4).
 * `resolve` is deferred (F2/F3).
 """
 
+import pickle
 import threading
 import uuid
 from types import SimpleNamespace
@@ -254,6 +255,27 @@ class RetryOneItem(RetryFixture, TestCase):
         )
         self.assertEqual(self.retry(item, session=elsewhere).status_code, 404)
         self.assertEqual(self.launched, [])
+
+
+class TheRefusalSurvivesSerialization(TestCase):
+    """ItemNotRetryable is a CodedError, which Celery serializes (the
+    CodedError fix): the upload refusal's display text must survive both
+    pickle and the json backend's cls(*args) rebuild."""
+
+    def test_pickle_and_args_rebuild_keep_code_params_and_message(self):
+        from students.item_retry import REUPLOAD, ItemNotRetryable
+
+        refusal = ItemNotRetryable(
+            params={"resolution": "replace_file"}, display={"why": REUPLOAD}
+        )
+        for rebuilt in (
+            pickle.loads(pickle.dumps(refusal)),
+            ItemNotRetryable(*refusal.args),
+        ):
+            with self.subTest(via=type(rebuilt).__name__):
+                self.assertEqual(rebuilt.reason_code, "NOT_RETRYABLE")
+                self.assertEqual(rebuilt.params, {"resolution": "replace_file"})
+                self.assertEqual(str(rebuilt), REUPLOAD)
 
 
 class RetryFailed(RetryFixture, TestCase):
