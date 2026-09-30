@@ -1734,20 +1734,32 @@ class LicenseSubscriptionService:
                 )
         except Exception as exc:
             failure = teacher_failure(exc, email)
-            if failure.reason_code == ReasonCode.TEACHER_ADD_FAILED:
-                logger.error(
-                    "Teacher not added to license %s (school %s): %s",
+            if isinstance(exc, (IndividualSubscriptionConflictError, ValueError)):
+                # The same ids-only line as the copied
+                # _invite_and_enroll_one_teacher (H-78), so both lines log a
+                # refused teacher alike: the exception's class, never its
+                # text (the not-business and subscription refusals carry
+                # the address).
+                logger.warning(
+                    "Skipped enrolling a teacher in license %s (school %s): %s",
                     license_sub.id,
                     license_sub.school_id,
                     type(exc).__name__,
                 )
             else:
-                logger.info(
-                    "Teacher not added to license %s (school %s): %s",
+                logger.error(
+                    "Unexpected error adding a teacher to license %s (school %s): %s",
                     license_sub.id,
                     license_sub.school_id,
-                    failure.reason_code,
+                    type(exc).__name__,
                 )
+            # Epic A only: the reason code, on its own line (SM ruling).
+            logger.info(
+                "Teacher not added to license %s (school %s): %s",
+                license_sub.id,
+                license_sub.school_id,
+                failure.reason_code,
+            )
             return None, failure
         return teacher, None
 

@@ -231,10 +231,9 @@ BATCHES = {
             ),
             "E9_refusal_log_carries_the_exception": (
                 LS,
-                "                    license_sub.school_id,\n"
-                "                    failure.reason_code,\n",
-                "                    license_sub.school_id,\n"
-                "                    exc,\n",
+                "                license_sub.school_id,\n"
+                "                failure.reason_code,\n",
+                "                license_sub.school_id,\n" "                exc,\n",
             ),
             "E10_malformed_id_escapes": (
                 LV,
