@@ -16,7 +16,7 @@ import logging
 from django.db import transaction
 from django.utils import timezone
 
-from users.models import ACTIVATION_TOKEN_VALIDITY, CustomUser, UserTypes
+from users.models import ACTIVATION_TOKEN_VALIDITY, CustomUser, UserActivity, UserTypes
 from users.services import generate_temporary_password
 
 from ..models import Course, EnrollmentStatusType, StudentCourse
@@ -157,25 +157,89 @@ def check_existing_account_may_join(student, course):
     raise EnrollmentError(CROSS_SCHOOL_REJECTION_MESSAGE)
 
 
-def enroll_student_by_email(*, course, email):
+#: What a teacher is told when the address belongs to an account someone
+#: deactivated. Only reached after check_existing_account_may_join passes, so
+#: it never tells a teacher anything about another school's accounts.
+DEACTIVATED_ACCOUNT_MESSAGE = (
+    "This student's account is disabled. Contact support if they should have access."
+)
+
+
+class AccountDisabledError(EnrollmentError):
+    """The address belongs to an account that was deactivated, not one that
+    never finished onboarding. A teacher's action never re-enables it (SM
+    product rule 2026-09-29): no reactivation, no email, no enrollment."""
+
+
+def has_signed_in(student):
+    """Whether this account has ever signed in.
+
+    `last_login` is stamped on every successful password or Google sign-in
+    (users.services.stamp_last_login, since the retire-student-token-signup
+    change); before that it was never maintained, so older sign-ins show
+    only as a UserActivity row (written on authenticated requests). Either
+    counts.
+    """
+    return student.last_login is not None or (
+        UserActivity.objects.filter(user=student).exists()
+    )
+
+
+def was_never_activated(student):
+    """An inactive row that never finished onboarding: never verified and
+    never signed in. Only such a row may be (re)activated by a teacher's add.
+
+    `email_verified_at` is the activation signal every old door stamped
+    (/auth/register/student, /auth/verify, Google sign-in), and sign-in
+    activity covers accounts that were used without it (a new-scheme
+    student who logged in with the emailed password). An account a
+    superadmin deactivated after it was ever used has one or the other.
+
+    Known edge: an account deactivated before it was EVER used (never
+    verified, never signed in) is indistinguishable from a legacy pending
+    row - nothing records who set is_active=False - so it is treated as
+    one and re-invited.
+    """
+    return (
+        not student.is_active
+        and student.email_verified_at is None
+        and not has_signed_in(student)
+    )
+
+
+def enroll_student_by_email(
+    *, course, email, first_name="", middle_name="", last_name=""
+):
     """Add a student to `course` by email address, inviting them if needed.
+
+    The names are used only when a brand-new account is created (the bulk
+    roster import has them; the single add doesn't). An existing account's
+    names are never overwritten.
 
     Mirrors the license-teacher invite (billing/license_service.py): a
     newly invited student is active immediately with a system-generated
     temporary password, and logs straight in instead of clicking an
     activation link first.
 
-    Three cases, in the order they are checked:
+    The cases, in the order they are checked:
       * already enrolled -> EnrollmentError, nothing changes;
-      * existing account that has already onboarded (is_active and not
-        must_change_password) -> enrolled immediately, told they're in;
-      * no account at all, or an existing account still mid-onboarding
-        (must_change_password, or a legacy is_active=False row left over
-        from before this change / not yet run through the backfill
-        migration) -> PENDING enrollment plus a fresh temporary password
-        and a login-credentials email.
+      * an inactive account that was ever activated or used, i.e. one
+        someone deactivated -> AccountDisabledError, nothing changes and
+        nothing is sent (see was_never_activated);
+      * active account that has ever signed in -> enrolled immediately,
+        told they're in; password untouched, sessions untouched;
+      * no account at all, or an existing account that has never signed in
+        (a legacy never-activated is_active=False row, or an active one with
+        no sign-in signal - see has_signed_in) -> PENDING enrollment plus a
+        fresh temporary password and a login-credentials email.
 
-    Returns (student, is_new_student).
+    `must_change_password` is informational and deliberately NOT used here:
+    a student can use the app indefinitely without clearing it, so treating
+    it as "still onboarding" reset real students' passwords on every add
+    (SM ruling 2026-09-28; a pre-existing bug on the single-add path).
+
+    Returns (student, invited): True when a login-credentials email with a
+    new password was sent, False when an existing student was enrolled.
     """
     with transaction.atomic():
         # Lock the course row for the duration. The caller has already
@@ -188,7 +252,11 @@ def enroll_student_by_email(*, course, email):
 
         if student is None:
             student, generated_password = _create_new_student(
-                course=course, email=email
+                course=course,
+                email=email,
+                first_name=first_name,
+                middle_name=middle_name,
+                last_name=last_name,
             )
             _create_enrollment(
                 student=student,
@@ -207,7 +275,18 @@ def enroll_student_by_email(*, course, email):
         # check_existing_account_may_join.
         check_existing_account_may_join(student, course)
 
-        if student.is_active and not student.must_change_password:
+        if not student.is_active and not was_never_activated(student):
+            # Deactivated on purpose (e.g. the admin "Mark selected users as
+            # inactive" action). Refused before any write or email.
+            logger.warning(
+                "Refused to enroll student %s into course %s: the account is "
+                "deactivated.",
+                student.pk,
+                course.pk,
+            )
+            raise AccountDisabledError(DEACTIVATED_ACCOUNT_MESSAGE)
+
+        if student.is_active and has_signed_in(student):
             _create_enrollment(
                 student=student,
                 course=course,
@@ -216,9 +295,9 @@ def enroll_student_by_email(*, course, email):
             notifications.send_added_to_course_email(student, course)
             return student, False
 
-        # Still mid-onboarding - e.g. invited to a different course and
-        # never logged in - or a legacy pending row from before this
-        # change. A fresh password every resend: the previous one's
+        # Never signed in - e.g. invited to a different course and never
+        # logged in - or a legacy never-activated row from before this change.
+        # A fresh password every resend: the previous one's
         # plaintext can't be recovered from the stored hash to put in this
         # email, so there's nothing to reuse. is_active is force-set True
         # here too, healing any legacy row this encounters.
@@ -226,7 +305,20 @@ def enroll_student_by_email(*, course, email):
         student.set_password(generated_password)
         student.is_active = True
         student.must_change_password = True
-        student.save(update_fields=["password", "is_active", "must_change_password"])
+        # A legacy pending row's old activation code is dead once the row is
+        # active (both code doors match is_active=False only); clear it so
+        # no student row carries a code after onboarding.
+        student.activation_token = None
+        student.activation_expires = None
+        student.save(
+            update_fields=[
+                "password",
+                "is_active",
+                "must_change_password",
+                "activation_token",
+                "activation_expires",
+            ]
+        )
 
         _create_enrollment(
             student=student,
@@ -239,7 +331,7 @@ def enroll_student_by_email(*, course, email):
         return student, True
 
 
-def _create_new_student(*, course, email):
+def _create_new_student(*, course, email, first_name="", middle_name="", last_name=""):
     """Create a brand-new student account, active immediately with a
     system-generated temporary password.
 
@@ -248,6 +340,9 @@ def _create_new_student(*, course, email):
     """
     student = CustomUser.objects.create(
         email=email,
+        first_name=first_name,
+        middle_name=middle_name,
+        last_name=last_name,
         user_type=UserTypes.STUDENT,
         is_active=True,
         school=course.teacher.school,

@@ -11,7 +11,7 @@ from rest_framework import serializers
 
 from users.models import CustomUser, UserTypes
 
-from .license_service import LicenseSubscriptionService
+from .license_service import LicenseRequestError, LicenseSubscriptionService
 from .models import (
     CONVERSION_FACTOR,
     BetaProfile,
@@ -2144,18 +2144,23 @@ class LicenseSubscriptionSerializer(serializers.ModelSerializer):
             k: v for k, v in validated_data.items() if k in ["is_active", "auto_renew"]
         }
 
-        license_sub = LicenseSubscriptionService.create_license_subscription(
-            school=school,
-            plan=plan,
-            admin_user=admin_user,
-            teacher_emails=teacher_emails,
-            contract_months=contract_months,
-            max_seats=max_seats,
-            custom_price_cents=custom_price_cents,
-            billing_method=billing_method,
-            carry_forward_teachers=carry_forward_teachers,
-            **extra_kwargs,
-        )
+        # Only the service's user-input refusals become a 400 (seat count,
+        # plan, admin). A bare ValueError is a bug and stays a loud 500.
+        try:
+            license_sub = LicenseSubscriptionService.create_license_subscription(
+                school=school,
+                plan=plan,
+                admin_user=admin_user,
+                teacher_emails=teacher_emails,
+                contract_months=contract_months,
+                max_seats=max_seats,
+                custom_price_cents=custom_price_cents,
+                billing_method=billing_method,
+                carry_forward_teachers=carry_forward_teachers,
+                **extra_kwargs,
+            )
+        except LicenseRequestError as exc:
+            raise serializers.ValidationError({"non_field_errors": [str(exc)]}) from exc
 
         return license_sub
 
