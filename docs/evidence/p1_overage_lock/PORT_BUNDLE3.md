@@ -61,9 +61,8 @@ Logs are in `port_runs/<tip>/`, trimmed to one outcome line per test with emails
 
 - **Migration 0071** adds exactly two fields, `StripeEvent.auto_replay_attempts` and `auto_replay_note`, and changes nothing else. Outside `billing` and `docs`, the only code that names `StripeEvent` or its table is `AutoGrader.tests_migration_rollback_defaults` (the H-56 guard). It ran with the changed modules. No app outside `billing` reads the two fields.
 - **`BillingTransaction`**: H-62 changes only when `receipt_url` is written (after commit), and nothing outside `billing` names the model.
-- **`AutoGrader/settings.py`** gains two `CELERY_BEAT_SCHEDULE` entries and their two `BEAT_HEALTH_EXPECTATIONS` thresholds. These are new keys, and no existing key changes. The readers outside `billing` do not look at them:
-  - `AutoGrader.tests_beat_health` overrides `BEAT_HEALTH_EXPECTATIONS` with its own;
-  - `AutoGrader.test_health` sets up only the watchdog's own row;
-  - `dashboard/tests.py` reads its three named entries only.
+- **`AutoGrader/settings.py`** gains two `CELERY_BEAT_SCHEDULE` entries and their two `BEAT_HEALTH_EXPECTATIONS` thresholds. These are new keys, and no existing key changes.
+  - **Corrected after verification (1a's N2):** `AutoGrader/beat_health.py` and `AutoGrader/health.py` read **every** `BEAT_HEALTH_EXPECTATIONS` entry, so AutoGrader reads the new ones at run time. Their tests (`AutoGrader.tests_beat_health`, `AutoGrader.test_health`) use their own expectations and the watchdog's own row, so they would not catch a bad entry, but they are the readers. 1a ran both at `f3002bc`: 30 OK. So no further regression is owed.
+  - `dashboard/tests.py` reads only its three named schedule entries.
 
   `billing.tests.test_event_replay` and `test_receipts` assert that the new entries exist, and both ran.
