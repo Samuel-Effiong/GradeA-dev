@@ -364,13 +364,14 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    # Last: finishes the automatic ADMIN_ACTION audit coverage that
-    # classrooms.permissions.IsSuperAdmin starts - see audit/admin_action.py.
-    # Position doesn't matter for correctness (RequestIDMiddleware, first in
-    # this list, keeps its correlation id live in context for the whole
-    # request/response cycle regardless), but this only ever has work to do
-    # after a view has actually run, so it reads clearest last.
-    "audit.middleware.AdminActionAuditMiddleware",
+    # Last: request-level audit coverage - finishes the automatic
+    # ADMIN_ACTION audit that classrooms.permissions.IsSuperAdmin starts, and
+    # writes the generic STATE_CHANGE event for a write that recorded no named
+    # event (audit/middleware.py, audit/request_audit.py). It reads
+    # request.user after the view has run, so it must stay after
+    # AuthenticationMiddleware; RequestIDMiddleware, first, keeps the
+    # correlation id live for the whole cycle.
+    "audit.middleware.AuditMiddleware",
 ]
 
 ROOT_URLCONF = "AutoGrader.urls"

@@ -19,6 +19,14 @@ there before the beta package goes. The founder may run them via Railway.
 >   no-wildcard behaviour) don't hold without that code.
 > - §0 setup is still needed for §3.
 
+> **Founder decision, 2026-09-30: staging deployed check reduced to web-only.** Every step that needs
+> Railway (G2 `migrate --plan`, G3 worker ping, G4 Sentry, topology) or staging test logins
+> (§0 setup, §3 H-25 race replay, §4 cleanup) is **SKIPPED**. The founder will give access when it's
+> needed for security testing. Only G1 (version) and G3's `/api/v1/health` + `/api/v1/health/beat`
+> remain, and they run only once the staging backend host is known (not guessed or probed).
+> **H-25 race replay: done in the test suite only** (`AutoGrader.tests_cache_commit_race`, plus the
+> local discriminating replay on `task/cache-race-gate4`). The beta package does not wait on this check.
+
 Every result is recorded as **counts, statuses, ids and timestamps only**.
 Never paste response bodies, email addresses or tokens into this file.
 
@@ -30,7 +38,8 @@ Run this first. If any row fails, stop: the rest of the check would be
 testing the wrong build.
 
 **G1. The right commit is running.**
-- `GET https://<staging-host>/health` returns `{"status", "checks", "version"}`.
+- `GET https://<staging-host>/api/v1/health` returns `{"status", "checks", "version"}`.
+  (Every route is under `/api/v1/`; see `AutoGrader/urls.py`. A bare `/health` is a 404.)
 - `version` is the commit Railway deployed (`RAILWAY_GIT_COMMIT_SHA`).
 - **PASS:** `version` equals the pushed origin/staging sha in the package, on
   every web replica. With several replicas, call it about 10 times and
@@ -47,9 +56,9 @@ testing the wrong build.
   release step didn't run. Stop and tell the SM.
 
 **G3. Services are healthy.**
-- `/health` returns HTTP 200 with every entry in `checks` ok.
+- `/api/v1/health` returns HTTP 200 with every entry in `checks` ok.
 - A 503 names the failing service. Stop.
-- `GET /health/beat` returns 200. It checks Celery Beat separately from the
+- `GET /api/v1/health/beat` returns 200. It checks Celery Beat separately from the
   web deploy gate.
 - For the worker: `railway run --service <worker> -- celery -A AutoGrader inspect ping`
   gets a `pong` from each worker. Record the count and compare it with the
@@ -269,7 +278,7 @@ means 40 emails to the team-controlled test address.
 |---|---|---|
 | G1 running `version` = pushed sha (distinct values seen) | | |
 | G2 `migrate --plan` empty; 0039 + audit 0001 applied | | |
-| G3 `/health` 200, `/health/beat` 200, worker pongs | | |
+| G3 `/api/v1/health` 200, `/api/v1/health/beat` 200, worker pongs | | |
 | G4 Sentry new issues / spikes in window | | |
 | Topology (web replicas / workers) | | |
 | §1 R1 | deferred to batch-2b | |

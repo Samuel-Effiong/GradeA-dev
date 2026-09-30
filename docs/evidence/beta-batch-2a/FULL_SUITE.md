@@ -44,3 +44,21 @@ No failures, errors or flakes, and no reruns.
 - `users/management/commands/remediate_student123_passwords.py`
 
 Running either against production is a production action. It needs founder approval, and the founder runs it via Railway.
+
+## Confirmation run after the H-25 cost cap (605510a), no RACE_COST env
+After the two strict runs, three verified additions joined 2a:
+- the auth API docs (4ed4ee5: OpenAPI decorators and docstrings in `users/views.py`, no runtime change);
+- the H-25 cost cap port (fa2d351: default 600 enrolments, a per-test wall-clock budget, and a pin that the default stays ≤ 600);
+- the deployed-check path fix (0d8b095, docs).
+
+The cap was needed because the 6000 default held a `--parallel` worker for about 20 min, a CI time and memory risk once 2a reaches beta.
+
+One confirmation run at 605510a, with the environment **unset** for all `RACE_COST_*` variables (this proves the code defaults), under team brief rule 13's memory cap:
+`systemd-run --user --scope -q -p MemoryMax=12G -p MemorySwapMax=0 nice -n 10 flock ~/.machine-fullsuite.lock timeout -k 60 3600 python manage.py test --settings=settings_worktree --parallel 4 --noinput`
+
+| Start (WAT) | End | Wall | Result | "Blocked real outbound" |
+|---|---|---|---|---|
+| 12:49:27 | 12:58:49 | 562 s | Ran 4973 tests in 520.7 s, **OK (skipped=28)**, exit 0, under the 12G cap | 0 |
+
+Also at 605510a: `makemigrations --check`: no changes. Whole-repo mypy passed at d510786 (after the docs merge); fa2d351 is test-only.
+Commits after 605510a are docs only (the cap's verification record and deployed-check notes).

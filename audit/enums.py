@@ -16,6 +16,9 @@ class ActorRole(models.TextChoices):
     SCHOOL_ADMIN = "SCHOOL_ADMIN", "School admin"
     SUPER_ADMIN = "SUPER_ADMIN", "Super admin"
     SYSTEM = "SYSTEM", "System"
+    # Epic A S1: someone not signed in (a failed sign-in, a refused code).
+    # Distinct from SYSTEM, which is the app's own background work.
+    ANONYMOUS = "ANONYMOUS", "Anonymous (not signed in)"
 
 
 class AuditOutcome(models.TextChoices):
@@ -76,6 +79,9 @@ class AuditAction(models.TextChoices):
     ADMIN_ACTION = "ADMIN_ACTION", "Admin action"
     DATA_EXPORT = "DATA_EXPORT", "Data export"
     PERMISSION_CHANGE = "PERMISSION_CHANGE", "Permission changed"
+    # Epic A completion S1: the generic event for a state-changing request
+    # that recorded no named event. `metadata.route` says which route.
+    STATE_CHANGE = "STATE_CHANGE", "State-changing request"
 
 
 # Actions that always touch a student's record, so they are kept 3 years.

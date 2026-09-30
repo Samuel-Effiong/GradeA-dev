@@ -16,6 +16,7 @@ from AutoGrader.error_messages import describe_user_error
 from billing.serializers import CreditWalletSerializer
 from billing.services import AnalyticsService
 from classrooms.models import School
+from users.auth_audit import failure_actor
 from users.models import (
     BetaWhitelist,
     CustomUser,
@@ -469,10 +470,13 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         if user and user.is_account_locked():
             emit(
                 AuditAction.AUTH_LOGIN,
-                actor=user,
+                # SM ruling: a failed attempt never names the account holder as
+                # its actor; the account is the target.
+                actor=failure_actor(request),
                 request=request,
                 target_type="CustomUser",
                 target_id=user.id,
+                school_id=user.school_id,
                 outcome=AuditOutcome.DENIED,
                 error_class=ErrorClass.USER,
                 reason_code="ACCOUNT_LOCKED",
@@ -488,10 +492,11 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                 user.register_failed_login()
             emit(
                 AuditAction.AUTH_LOGIN,
-                actor=user,
+                actor=failure_actor(request),
                 request=request,
                 target_type="CustomUser",
                 target_id=user.id if user else None,
+                school_id=user.school_id if user else None,
                 outcome=AuditOutcome.FAILURE,
                 error_class=ErrorClass.USER,
                 reason_code=(

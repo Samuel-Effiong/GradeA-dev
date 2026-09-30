@@ -233,7 +233,15 @@ class ClosedVocabulariesTest(TestCase):
     def test_the_role_outcome_class_and_retention_values_match_the_data_model(self):
         self.assertEqual(
             set(ActorRole.values),
-            {"STUDENT", "TEACHER", "SCHOOL_ADMIN", "SUPER_ADMIN", "SYSTEM"},
+            # ANONYMOUS: Epic A S1 (plan 08), for callers not signed in.
+            {
+                "STUDENT",
+                "TEACHER",
+                "SCHOOL_ADMIN",
+                "SUPER_ADMIN",
+                "SYSTEM",
+                "ANONYMOUS",
+            },
         )
         self.assertEqual(set(AuditOutcome.values), {"SUCCESS", "FAILURE", "DENIED"})
         self.assertEqual(

@@ -55,3 +55,82 @@ def trace_context(trace_id=None):
         yield value
     finally:
         _trace_var.reset(token)
+
+
+# ---------------------------------------------------------------------------
+# Per-request audit state (Epic A completion S1, plan 08 §2).
+#
+# FR-A-01's "exactly one event per action" needs to know, when a request ends,
+# whether any NAMED event (login, grading, credit, CRUD, admin ...) is still
+# recorded for it; only if none is does `audit.middleware.AuditMiddleware`
+# write the generic STATE_CHANGE. The emitter records the id of every stored
+# event, so no call site has to remember to.
+#
+# Ids, not a yes/no flag (Verification Engineer's R1): an event is stored in a
+# savepoint inside the caller's transaction, so if that transaction later rolls
+# back the event is gone. A flag would still say "recorded" and the request
+# would end with no event at all. The middleware checks the ids still exist.
+#
+# A ContextVar, not a request attribute, because the emitter is called from
+# services and model methods that never see the request. Outside a request
+# (Celery, management commands, tests without the middleware) there is no
+# state and marking is a no-op.
+
+
+class RequestAuditState:
+    __slots__ = ("stored_event_ids",)
+
+    def __init__(self):
+        self.stored_event_ids = []
+
+
+_request_state_var: ContextVar[Optional[RequestAuditState]] = ContextVar(
+    "audit_request_state", default=None
+)
+
+
+@contextmanager
+def request_audit_state():
+    """Open a fresh per-request state for the block, and always restore the
+    previous one after it, even if the block raises."""
+    state = RequestAuditState()
+    token = _request_state_var.set(state)
+    try:
+        yield state
+    finally:
+        _request_state_var.reset(token)
+
+
+def record_stored_event(event_id) -> None:
+    """Remember that `event_id` was stored for the current request, if any."""
+    state = _request_state_var.get()
+    if state is not None:
+        state.stored_event_ids.append(event_id)
+
+
+def a_surviving_event_names(state, user) -> bool:
+    """Whether an event stored during the request still exists AND names
+    `user` (the requester) as its actor.
+
+    - One stored in an atomic block that later rolled back is gone with it
+      (R1).
+    - One that names someone else does not count (V1): a school admin's
+      add_teachers stores the TEACHER's CREDIT_TRANSACTION (the wallet owner
+      is its actor), and that must not stand in for the admin's own trace.
+
+    On any error this answers False, so the generic event is written: a
+    second event is better than none."""
+    # An anonymous requester has no pk, and filtering on actor_id=None would
+    # match NULL-actor events. Answer False without asking: harmless, since
+    # the generic event is never written for an anonymous request
+    # (request_audit.should_record), but it keeps the check honest.
+    if not state.stored_event_ids or not getattr(user, "is_authenticated", False):
+        return False
+    try:
+        from .models import AuditEvent
+
+        return AuditEvent.objects.filter(
+            pk__in=state.stored_event_ids, actor_id=getattr(user, "pk", None)
+        ).exists()
+    except Exception:  # noqa: BLE001 - never fail the response
+        return False
