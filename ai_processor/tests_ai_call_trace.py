@@ -186,16 +186,33 @@ class CeleryHopTests(TestCase):
         cls.grade = grade
 
     def test_the_worker_logs_the_dispatching_requests_trace_id(self):
+        """The log call's own arguments are recorded: starting a worker
+        reconfigures logging, so a handler attached by assertLogs in the test
+        thread never sees the worker thread's record."""
+        from unittest.mock import patch
+
+        logged = []
+        real_log = services._log_ai_call
+
+        def recording_log(**fields):
+            logged.append(fields)
+            return real_log(**fields)
+
         dispatch_id = uuid.uuid4()
         token = set_request_id(dispatch_id.hex)
         try:
-            with self.assertLogs(LOGGER, logging.INFO) as logs:
+            with patch.object(services, "_log_ai_call", side_effect=recording_log):
                 with start_worker(self.app, perform_ping_check=False):
                     self.grade.delay().get(timeout=10)
         finally:
             reset_request_id(token)
 
-        self.assertEqual(logged_trace_id(ai_call_lines(logs)[0]), dispatch_id)
+        self.assertEqual(len(logged), 1)
+        self.assertEqual(logged[0]["trace_id"], dispatch_id)
+        self.assertEqual(
+            self.completions.requests[-1]["extra_headers"]["X-Request-ID"],
+            str(dispatch_id),
+        )
 
 
 class EveryCallerNamesItsPromptTests(SimpleTestCase):
