@@ -309,6 +309,29 @@ never raises.
 4. **H-32** (resume-and-finish sweeper for stuck intents) — registered, **not** in Change 1;
    priority contingent on the user's alert-ownership answer.
 
+### 9h-bis. Resolving an ESCALATED intent — RULED by the SM (4b), 2026-09-19
+
+**Why it is required, not optional:** an `ESCALATED` intent is in flight, so the per-licence
+guard (9b) blocks every further Stripe change on that licence. With no way to close it, **one
+escalation would lock a school's billing forever** — an availability defect Change 1 would
+itself introduce. Found while writing the model; fields added in commit 2 (`resolved_at`,
+`resolved_by`, `resolution_note`) to keep it to one migration.
+
+| Option | For | Against |
+|---|---|---|
+| (a) Django admin action | discoverable; no shell access needed | **adds a writable billing-state surface to the admin** — the red team has just raised admin-write and token-revocation concerns (H-39), and the StripeEvent admin is deliberately read-only for the same reason |
+| **(b) management command — CHOSEN** | operator-run, auditable, **no new attack surface** | needs shell access to production |
+
+**Ruling (binding):** a management command.
+- **Dry-run by default:** prints the intent and the app-vs-Stripe disagreement it represents.
+- **`--apply` requires an explicit `--note`** and records `resolved_by` + `resolved_at`.
+- **Resolving ONLY closes the intent and frees the guard.** It must **not** move money or touch
+  Stripe — the human reconciles Stripe **before** running it. A command that "fixed" Stripe
+  itself would be exactly the automated money movement d4 ruled out for P0.
+- The admin registration stays view-only (commit 2).
+
+The SM confirms the full design in its H11.1 read.
+
 ### 9i. The hard-kill case — correction accepted, two additions APPROVED INTO Change 1
 
 **The premise corrected:** moving the Stripe call out of the transaction removes the 60 s
@@ -384,7 +407,7 @@ piece, so every commit is green on its own:
 | 5 | `change_license_plan`/`change_license_price` + F1/F2/F3 + F1's 4-point record | its reproductions; licence-path `requires_action` |
 | 6 | P0 `convert_license_to_offline` | its reproductions; the unknown-outcome delete case |
 | 7 | Bounded retry of the local finalise | **named assertion: succeeds on a fresh connection** |
-| 8 | Alerting + stale-intent periodic check | alert fires; stale rows found; best-effort never raises |
+| 8 | Alerting + stale-intent periodic check + **escalation-resolution command** (9h-bis) | alert fires; stale rows found; best-effort never raises; command is dry-run by default, refuses `--apply` without a note, never calls Stripe |
 | 9 | Per-request Stripe budget | **named assertion: slow on every call, alert completes < 100 s** |
 | 10 | Detector-spec amendment (docs) | — |
 
