@@ -114,24 +114,27 @@ def retry_item(item, requested_by, request=None):
 
     # The claim: only a row still in the state that was judged retryable,
     # and still reachable (a removal between the check above and here).
-    claimed = (
-        BackgroundProcessingTask.objects.filter(reachable_items_q(requested_by))
-        .filter(
-            pk=item.pk,
-            status=BackgroundTaskStatus.FAILURE,
-            reason_code=item.reason_code,
-            retry_count=item.retry_count,
-        )
-        .update(
-            status=BackgroundTaskStatus.PENDING,
-            retry_count=F("retry_count") + 1,
-            reason_code="",
-            error="",
-            started_at=None,
-            finished_at=None,
-            trace_id=resolve_trace_id(),
-            updated_at=timezone.now(),
-        )
+    # Reachability is a subquery on the pk, so the state conditions stay on
+    # the UPDATE's own row, which Postgres re-checks on the locked version
+    # when two claims race. A join here makes Django move every condition
+    # into an "id IN (SELECT ...)" read from the snapshot: both claims win.
+    claimed = BackgroundProcessingTask.objects.filter(
+        pk=item.pk,
+        status=BackgroundTaskStatus.FAILURE,
+        reason_code=item.reason_code,
+        retry_count=item.retry_count,
+        pk__in=BackgroundProcessingTask.objects.filter(
+            reachable_items_q(requested_by)
+        ).values("pk"),
+    ).update(
+        status=BackgroundTaskStatus.PENDING,
+        retry_count=F("retry_count") + 1,
+        reason_code="",
+        error="",
+        started_at=None,
+        finished_at=None,
+        trace_id=resolve_trace_id(),
+        updated_at=timezone.now(),
     )
     if not claimed:
         # Another retry (or the item's own worker) got there first.
