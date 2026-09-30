@@ -64,6 +64,13 @@ Today five allow-listed sites remain, none of them on a tracked model: `record_b
 - `/auth/verify` success, Google resurrection and the two invitation completions each also write a PERMISSION_CHANGE (`is_active` false→true) naming the account itself. That's once per account.
 - A no-op second publish or mark-reviewed changes nothing, so it gets S1's generic event, like any other state-changing request with no named event.
 
+**`history.suppressed()` is an audit off-switch (SM condition).** Its production call sites are named in `SUPPRESSION_ALLOWED`, and the guard fails on any other:
+1. `audit/history.py` `record_bulk`: around its own update, because it writes one event per changed row itself, so the signals must not write a second.
+2. `students/services.py` `_populate_and_save_grade`: the AI grading save (SM note 2). Its before/after go on GRADING_COMPLETED.
+3. `audit/bench_history.py`: the Gate 6 benchmark's capture-off baseline. It runs by label only, never in the suite and never in production.
+
+There is no migration, backfill or command use. Tests use it only to create privileged or enrolment fixtures whose own history isn't what the test is about.
+
 ## 3. Tests updated on purpose
 - `classrooms/tests_epic_a_roster_audit.py`: bulk-add is N + 1, and remove-student's one event is the enrolment's history delete.
 - `audit/tests_emitter.py`: before/after follow the action's own allow-list.
@@ -72,6 +79,7 @@ Today five allow-listed sites remain, none of them on a tracked model: `record_b
 - `audit/tests_state_change.py`: a superadmin's write compares only its request's events. The school-admin scoping tests filter `?action=AUTH_LOGIN`, because a privileged fixture account's creation is now a PERMISSION_CHANGE in its school.
 - `audit/tests_query_api.py`, `audit/tests_admin_action.py`: the privileged fixture accounts are created inside `history.suppressed()`. Those tests are about query scoping and admin coverage, not account creation.
 - `audit/tests_license_admin_attribution.py` (S3's SM pin): add-teachers now records the credit GRANT, the **seat** taken (SUBSCRIPTION_CHANGE on the allocation, R4) and the teacher's **school** set (PERMISSION_CHANGE). Remove-teachers records the EXPIRE, the seat released and the school cleared. All of them name the admin, so there is still no STATE_CHANGE.
+- `students/tests_epic_a_submission_upload_audit.py`: its fixture enrolment is created under `history.suppressed()`.
 - `audit/tests_enums.py`: GRADE_CHANGE joins the three-year (STUDENT_RECORD) actions (D6).
 
 ## 4. Changed-module map (0b: every touched production file under a label)

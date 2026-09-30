@@ -100,6 +100,13 @@ MUTANTS = {
         "history.record_bulk(graded_submissions, is_published=True)",
         "graded_submissions.update(is_published=True)",
     ),
+    # SM condition: a new, unlisted production use of the audit off-switch.
+    "S1_unlisted_suppression": (
+        "students/views.py",
+        "            grade_before = history.snapshot(submission)\n",
+        "            grade_before = history.snapshot(submission)\n"
+        "            history.suppressed()\n",
+    ),
     "X1_export_not_recorded": (
         AV,
         "            AuditAction.DATA_EXPORT,\n",

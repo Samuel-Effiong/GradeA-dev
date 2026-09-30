@@ -132,6 +132,82 @@ def scan_repository():
     return found
 
 
+# `history.suppressed()` switches history off: it must never be used quietly
+# in production code (SM condition). (file, enclosing function) -> why.
+SUPPRESSION_ALLOWED = {
+    ("audit/history.py", "record_bulk"): (
+        "the helper's own update: it writes one event per changed row itself, "
+        "so the signals must not write a second"
+    ),
+    ("students/services.py", "_populate_and_save_grade"): (
+        "the AI grading save (SM note 2): its before/after go onto the one "
+        "GRADING_COMPLETED event, never a GRADE_CHANGE"
+    ),
+    ("audit/bench_history.py", "test_print_the_cost"): (
+        "the Gate 6 benchmark's capture-off baseline; run by label only, "
+        "never in the suite or in production"
+    ),
+}
+
+
+def scan_suppression(source):
+    """[(line, function)] for every call of `suppressed()` or
+    `<anything>.suppressed()`."""
+    tree = ast.parse(source)
+    parents = {}
+    for node in ast.walk(tree):
+        for child in ast.iter_child_nodes(node):
+            parents[child] = node
+    found = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        name = (
+            func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", None)
+        )
+        if name == "suppressed":
+            found.append((node.lineno, _enclosing_function(parents, node)))
+    return found
+
+
+def suppression_sites():
+    return [
+        (rel, line, function)
+        for rel, file in production_files()
+        for line, function in scan_suppression(file.read_text())
+    ]
+
+
+class HistorySuppressionIsNamedTests(SimpleTestCase):
+    """SM condition: the audit off-switch has only named, justified uses."""
+
+    def test_no_unlisted_production_use_of_suppressed(self):
+        unlisted = [
+            f"{rel}:{line} in {function}()"
+            for rel, line, function in suppression_sites()
+            if (rel, function) not in SUPPRESSION_ALLOWED
+        ]
+        self.assertEqual(
+            unlisted,
+            [],
+            "history.suppressed() turns audit history off. Don't; or list the "
+            "call in SUPPRESSION_ALLOWED with the reason, for review.",
+        )
+
+    def test_the_suppression_allow_list_has_no_stale_entries(self):
+        seen = {(rel, function) for rel, _, function in suppression_sites()}
+        self.assertEqual(sorted(set(SUPPRESSION_ALLOWED) - seen), [])
+
+    def test_the_scanner_finds_both_spellings(self):
+        source = (
+            "def a():\n    with history.suppressed():\n        pass\n"
+            "def b():\n    with suppressed():\n        pass\n"
+            "def c():\n    history.record_bulk(qs, x=1)\n"
+        )
+        self.assertEqual(scan_suppression(source), [(2, "a"), (5, "b")])
+
+
 class BulkWritesKeepHistoryTests(SimpleTestCase):
     def test_no_unlisted_bulk_write_of_a_tracked_field(self):
         unlisted = [
