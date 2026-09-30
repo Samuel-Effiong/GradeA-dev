@@ -30,3 +30,6 @@ All restores were sha-checked.
 **N1.** Nothing pins that Graded needs a score. A submission that is published but has no `score_percentage` would move from Submitted to Graded under T3, and the tiles would still sum to the total. This definition predates the change (unchanged here), but a test with one published-unscored submission (expected: Submitted) would pin it.
 
 **N2 (frontend).** `assignments_submitted` and `assignment_submitted` now exclude graded work. The field names and shape are unchanged; the values drop by the Graded count. Any client that computed "graded out of submitted" or its own completion figure from these fields needs updating. The EVIDENCE flags this.
+
+## Re-verification: N1 @ f2510cc. Verification Engineer 1a, 2026-09-30
+**Verdict for the tip f2510cc: VERIFIED.** f908aaf..f2510cc is this record (d6bb320, committed verbatim) plus one test, `test_a_published_but_unscored_submission_stays_submitted` (dashboard/tests.py +26, test-only). `dashboard.tests`: **Ran 89, OK**. My T3 (Graded = `is_published` only) is now **killed** by the new test; T1 and T2 are still killed. N1 is closed. N2 (the frontend value change) stands as information.
