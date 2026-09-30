@@ -77,6 +77,11 @@ TEST_INFRASTRUCTURE = {
         "to clean up after a test run; loaded only by the test runner"
     ),
     "AutoGrader/redis_test_runner.py": "the test runner that loads it",
+    "AutoGrader/testing/beat_locks.py": (
+        "H-65: scan_iter over the TEST process's own beat-lock keys "
+        "(gaplus-t<pid>:*:beat-lock:*) to clear them before every test; "
+        "installed only by the test runner"
+    ),
 }
 
 
