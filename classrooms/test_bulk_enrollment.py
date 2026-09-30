@@ -41,10 +41,13 @@ class BulkEnrollmentTest(APITestCase):
         self.assertEqual(response.data["total_processed"], 2)
         self.assertEqual(response.data["success_count"], 2)
 
-        # Verify John Doe (with email)
+        # Verify John Doe (with email): ready to use, like a single add -
+        # active with a temporary password, no activation code.
         john = User.objects.get(email="john.doe@example.com")
         self.assertEqual(john.first_name, "John")
-        self.assertFalse(john.is_active)  # Should be inactive (invitation flow)
+        self.assertTrue(john.is_active)
+        self.assertTrue(john.must_change_password)
+        self.assertIsNone(john.activation_token)
 
         # Verify Jane Smith (without email)
         jane = User.objects.get(first_name="Jane", last_name="Smith")

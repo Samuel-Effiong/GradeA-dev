@@ -1,0 +1,116 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user t@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Cache backend ConnectionProxy has no delete_pattern(); wildcard cache invalidation is disabled for this process. Cached responses will serve stale data until they expire, including for users whose access was just revoked.
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h3-token-epoch/users/serializers.py", line 470, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 73, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 57, in validate
+    raise exceptions.AuthenticationFailed(
+rest_framework.exceptions.AuthenticationFailed: No active account found with the given credentials
+API Exception
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/views.py", line 46, in post
+    serializer.is_valid(raise_exception=True)
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 225, in is_valid
+    self._validated_data = self.run_validation(self.initial_data)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/serializers.py", line 447, in run_validation
+    value = self.validate(value)
+            ^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h3-token-epoch/users/serializers.py", line 470, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 73, in validate
+    data = super().validate(attrs)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework_simplejwt/serializers.py", line 57, in validate
+    raise exceptions.AuthenticationFailed(
+rest_framework.exceptions.AuthenticationFailed: No active account found with the given credentials
+.Cannot activate automatic trial for user t@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user t@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user t@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user t@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+h3_student123 skipped: password changed since scan
+.Cannot activate automatic trial for user t@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user t@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user t@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user t@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user t@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user t@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user t@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user t@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user t@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user t@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user t@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FFCannot activate automatic trial for user t@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user t@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+FCannot activate automatic trial for user t@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.Cannot activate automatic trial for user t@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+.
+======================================================================
+FAIL: test_epoch_bumped_once_for_each_reset_account_only (users.tests_remediate_student123.TokenRevocationTests.test_epoch_bumped_once_for_each_reset_account_only) (pk=UUID('77356aec-78c5-4b15-8844-2ac06b71da3f'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h3-token-epoch/users/tests_remediate_student123.py", line 329, in test_epoch_bumped_once_for_each_reset_account_only
+    self.assertEqual(after[pk], epoch + (1 if pk in reset else 0))
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_epoch_bumped_once_for_each_reset_account_only (users.tests_remediate_student123.TokenRevocationTests.test_epoch_bumped_once_for_each_reset_account_only) (pk=UUID('064e42b4-02e7-41f7-85ae-c60da7497564'))
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h3-token-epoch/users/tests_remediate_student123.py", line 329, in test_epoch_bumped_once_for_each_reset_account_only
+    self.assertEqual(after[pk], epoch + (1 if pk in reset else 0))
+AssertionError: 0 != 1
+
+======================================================================
+FAIL: test_matched_account_access_token_rejected_after_execute (users.tests_remediate_student123.TokenRevocationTests.test_matched_account_access_token_rejected_after_execute)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h3-token-epoch/users/tests_remediate_student123.py", line 298, in test_matched_account_access_token_rejected_after_execute
+    self.assertEqual(
+AssertionError: 200 != 401
+
+======================================================================
+FAIL: test_matched_account_refresh_token_rejected_after_execute (users.tests_remediate_student123.TokenRevocationTests.test_matched_account_refresh_token_rejected_after_execute)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-h3-token-epoch/users/tests_remediate_student123.py", line 309, in test_matched_account_refresh_token_rejected_after_execute
+    self.assertEqual(r.status_code, status.HTTP_401_UNAUTHORIZED)
+AssertionError: 200 != 401
+
+----------------------------------------------------------------------
+Ran 20 tests in 9.106s
+
+FAILED (failures=4)
+Destroying test database for alias 'default'...
+Found 20 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment

@@ -39,6 +39,26 @@ def generate_temporary_password(user):
     raise RuntimeError("Failed to generate a password passing validation.")
 
 
+def stamp_last_login(user):
+    """Record a successful sign-in on `user.last_login`.
+
+    A login alone otherwise leaves no trace (UserActivity is written only on
+    the authenticated requests that follow), and enroll_student_by_email
+    uses "has ever signed in" to decide whether an existing student may be
+    sent a fresh password.
+
+    A queryset update, never save(): save() fires post_save ->
+    clear_user_cache, which bumps the global cache generation (and, before
+    H-1 step 4, sweeps nine key patterns) - on every login that would keep
+    the dashboards and course lists permanently cold. last_login is in no
+    cached payload, so nothing needs invalidating. This is also why
+    SIMPLE_JWT's UPDATE_LAST_LOGIN stays off.
+    """
+    now = timezone.now()
+    type(user).objects.filter(pk=user.pk).update(last_login=now)
+    user.last_login = now
+
+
 def send_user_activation_email(user):
     # Local import to dodge a circular import: users.models imports
     # OTPManager from this module at module load time.
@@ -85,10 +105,14 @@ def send_user_activation_email(user):
         submissions, and course activity with confidence.<br><br>
         """
 
-        bottom_content = """
-        This link expires in 15 minutes. <br>
-        If you did not create this account, you can safely ignore this email<br>.
-        """
+        # Founder-approved wording (2026-09-28). Wording only: no link.
+        bottom_content = (
+            "This link expires in 15 minutes. <br><br>"
+            "Didn't sign up? Someone may have used your email address. "
+            "Don't click the activation link. Just ignore this email and the "
+            "account won't be activated. Never share this link or code with "
+            "anyone, including Grade A+ staff.<br>"
+        )
 
         merge_data = {
             "title": "Activate your Grade A+ account",

@@ -30,7 +30,10 @@ def _user_facing_exception_types():
     )
     from billing.access_control import AIFeatureNotAvailableError
     from billing.errors import InsufficientCreditsError
-    from billing.license_service import IndividualSubscriptionConflictError
+    from billing.license_service import (
+        IndividualSubscriptionConflictError,
+        LicenseRequestError,
+    )
     from students.exceptions import (
         AssignmentNotOpenError,
         CannotAssociateStudentError,
@@ -50,6 +53,8 @@ def _user_facing_exception_types():
         AIFeatureNotAvailableError,
         InsufficientCreditsError,
         IndividualSubscriptionConflictError,
+        # Written to be shown: a licence request the caller can fix.
+        LicenseRequestError,
     )
 
 

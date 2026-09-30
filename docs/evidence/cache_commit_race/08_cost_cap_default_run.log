@@ -1,0 +1,84 @@
+# H-25 cost harness at the capped defaults, batch-2a port d322165 (2026-09-30 12:18)
+# Command: env -u RACE_COST_ENROLLMENTS -u RACE_COST_ROWS -u RACE_COST_TIMEOUT EXEMPT_EMAIL_DOMAINS= \
+#   systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 nice -n 10 timeout -k 60 1800 \
+#   /usr/bin/time -v python manage.py test AutoGrader.tests_cache_commit_race AutoGrader.tests_cache_commit_race_cost --settings=settings_worktree --noinput -v 2
+# Defaults in effect: RACE_COST_ENROLLMENTS=600, RACE_COST_ROWS=2000, RACE_COST_TIMEOUT=900
+
+## /usr/bin/time -v
+	User time (seconds): 93.03
+	System time (seconds): 3.76
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 2:33.34
+	Maximum resident set size (kbytes): 231336
+	Exit status: 0
+
+## Outcomes (one line per test)
+AutoGrader.tests_cache_commit_race.ConcurrentEnrollmentRaceLoadTests.test_twenty_concurrent_enrollments_racing_reads_settle_fresh_every_round ... ok
+AutoGrader.tests_cache_commit_race.CrashAfterCommitTests.test_pre_write_entries_are_orphaned_even_if_on_commit_never_runs ... ok
+AutoGrader.tests_cache_commit_race.ForcedInterleavingTests.test_a_nested_caller_with_a_rolled_back_savepoint_is_not_served_stale ... ok
+AutoGrader.tests_cache_commit_race.ForcedInterleavingTests.test_a_read_in_the_pre_commit_window_is_not_served_stale ... ok
+AutoGrader.tests_cache_commit_race.PostCommitBumpIsolationTests.test_only_the_writers_scopes_move_and_the_commit_exactly_repeats_them ... ok
+AutoGrader.tests_cache_commit_race.RedisDownAtCommitTests.test_the_write_commits_and_staleness_ends_when_the_entry_expires ... ok
+AutoGrader.tests_cache_commit_race.TransactionBumpCountTests.test_a_bump_inside_a_rolled_back_savepoint_is_not_repeated_on_commit ... ok
+AutoGrader.tests_cache_commit_race.TransactionBumpCountTests.test_a_committed_transaction_bumps_before_and_after_commit ... ok
+AutoGrader.tests_cache_commit_race.TransactionBumpCountTests.test_a_rolled_back_transaction_does_not_bump_after_commit ... ok
+AutoGrader.tests_cache_commit_race.TransactionBumpCountTests.test_an_inner_savepoint_rollback_keeps_the_outer_post_commit_bump ... ok
+AutoGrader.tests_cache_commit_race.TransactionBumpCountTests.test_nested_committed_savepoints_bump_once_after_the_outer_commit ... ok
+AutoGrader.tests_cache_commit_race.TransactionBumpCountTests.test_outside_a_transaction_a_bump_happens_once ... ok
+AutoGrader.tests_cache_commit_race.WriterRedisFailureTests.test_a_failed_in_transaction_bump_is_recovered_by_the_post_commit_bump ... ok
+AutoGrader.tests_cache_commit_race.WriterRedisFailureTests.test_both_bumps_failing_leaves_staleness_bounded_by_the_ttl ... ok
+AutoGrader.tests_cache_commit_race_cost.PerRowRosterImportCostTests.test_first_import_of_never_signed_in_students_is_two_bumps_per_row ... ok
+AutoGrader.tests_cache_commit_race_cost.PerRowRosterImportCostTests.test_import_roster_at_200_and_2000_rows ... ok
+AutoGrader.tests_cache_commit_race_cost.SingleTransactionRosterCostTests.test_one_transaction_at_a_tenth_and_at_full_scale ... ok
+AutoGrader.tests_cache_commit_race_cost.WallClockBudgetTests.test_a_test_over_budget_fails_instead_of_running_on ... ok
+AutoGrader.tests_cache_commit_race_cost.WallClockBudgetTests.test_a_test_within_budget_is_untouched ... ok
+Ran 19 tests in 133.512s
+OK
+
+## Cost report blocks
+=== 20-row import_roster, never-signed-in students (PENDING), fix ON: wall=0.30s round_trips/row=4.00 per-row write p50=14.88ms
+  open   round_trips=    40 commands=   320 bumps=    40 bump p50=0.334ms p95=0.531ms
+  commit round_trips=    40 commands=   320 bumps=    40 bump p50=0.275ms p95=0.440ms
+=== 200-row import_roster, never-signed-in students (PENDING), fix ON: wall=3.60s round_trips/row=4.00 per-row write p50=17.15ms
+  open   round_trips=   400 commands=  3200 bumps=   400 bump p50=0.378ms p95=0.567ms
+  commit round_trips=   400 commands=  3200 bumps=   400 bump p50=0.306ms p95=0.456ms
+=== 200-row import_roster, one transaction per row
+fix OFF (before): wall=2.43s commit=0.000s
+  open   round_trips=   200 commands=  2000 bumps=   200 bump p50=0.398ms p95=0.566ms
+  commit round_trips=     0 commands=     0 bumps=     0 no bumps
+fix ON  (after):  wall=2.50s commit=0.000s
+  open   round_trips=   200 commands=  2000 bumps=   200 bump p50=0.391ms p95=0.545ms
+  commit round_trips=   200 commands=  2000 bumps=   200 bump p50=0.354ms p95=0.529ms
+added by the fix: round_trips=200 commands=2000 wall=+0.07s
+per-row write: before p50=11.70ms p95=16.05ms | after p50=12.27ms p95=14.62ms
+=== 2000-row import_roster, one transaction per row
+fix OFF (before): wall=35.11s commit=0.000s
+  open   round_trips=  2000 commands= 20000 bumps=  2000 bump p50=0.444ms p95=0.680ms
+  commit round_trips=     0 commands=     0 bumps=     0 no bumps
+fix ON  (after):  wall=32.42s commit=0.000s
+  open   round_trips=  2000 commands= 20000 bumps=  2000 bump p50=0.416ms p95=0.613ms
+  commit round_trips=  2000 commands= 20000 bumps=  2000 bump p50=0.364ms p95=0.565ms
+added by the fix: round_trips=2000 commands=20000 wall=-2.69s
+per-row write: before p50=16.60ms p95=23.76ms | after p50=15.57ms p95=22.66ms
+=== 60 enrollments in ONE transaction
+fix OFF (before): wall=0.39s commit=0.000s
+  open   round_trips=    60 commands=   600 bumps=    60 bump p50=0.312ms p95=0.442ms
+  commit round_trips=     0 commands=     0 bumps=     0 no bumps
+fix ON  (after):  wall=0.40s commit=0.011s
+  open   round_trips=    60 commands=   600 bumps=    60 bump p50=0.359ms p95=0.452ms
+  commit round_trips=    60 commands=   600 bumps=    60 bump p50=0.162ms p95=0.273ms
+added by the fix: round_trips=60 commands=600 wall=+0.00s
+both orders (off,on,on,off), best wall per mode is reported; off=[0.39, 0.53]s on=[0.4, 0.45]s
+DB queries: before=360 after=360 (6.00/row)
+peak traced memory: before=112KiB after=181KiB (+69KiB, 1184 bytes/row)
+=== 600 enrollments in ONE transaction
+fix OFF (before): wall=2.85s commit=0.000s
+  open   round_trips=   600 commands=  6000 bumps=   600 bump p50=0.457ms p95=0.794ms
+  commit round_trips=     0 commands=     0 bumps=     0 no bumps
+fix ON  (after):  wall=4.17s commit=0.149s
+  open   round_trips=   600 commands=  6000 bumps=   600 bump p50=0.481ms p95=0.708ms
+  commit round_trips=   600 commands=  6000 bumps=   600 bump p50=0.223ms p95=0.342ms
+added by the fix: round_trips=600 commands=6000 wall=+1.31s
+both orders (off,on,on,off), best wall per mode is reported; off=[3.97, 2.85]s on=[4.37, 4.17]s
+DB queries: before=3600 after=3600 (6.00/row)
+peak traced memory: before=141KiB after=895KiB (+754KiB, 1287 bytes/row)
+queries/row: 60 rows=6.00 600 rows=6.00 marginal=6.00
