@@ -349,6 +349,27 @@ class PublishAllTests(APITestCase):
         self.assertFalse(events(AuditAction.STATE_CHANGE).exists())
 
 
+class DataExportTests(APITestCase):
+    def test_download_pdf_records_what_left_and_how_big(self):
+        """FR-A-01 'data export', SM-approved: the assignment PDF (questions
+        and, for its teacher, the rubric - no student work)."""
+        world = World("export", graded=False)
+        self.client.force_authenticate(user=world.teacher)
+        pdf = b"%PDF-1.4 s4 export test"
+        with patch("assignments.views.get_or_render", return_value=pdf):
+            response = self.client.get(
+                reverse("assignment-download-pdf", kwargs={"pk": world.assignment.pk}),
+                {"view": "teacher"},
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        event = events(AuditAction.DATA_EXPORT).get()
+        self.assertEqual(event.actor_id, world.teacher.id)
+        self.assertEqual(event.target_type, "Assignment")
+        self.assertEqual(event.target_id, world.assignment.id)
+        self.assertEqual(event.metadata, {"file_count": 1, "file_size_bytes": len(pdf)})
+
+
 # ---------------------------------------------------------------- AI grading
 
 
