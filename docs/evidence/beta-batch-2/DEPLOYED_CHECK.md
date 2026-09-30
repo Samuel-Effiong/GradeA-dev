@@ -30,7 +30,8 @@ Run this first. If any row fails, stop: the rest of the check would be
 testing the wrong build.
 
 **G1. The right commit is running.**
-- `GET https://<staging-host>/health` returns `{"status", "checks", "version"}`.
+- `GET https://<staging-host>/api/v1/health` returns `{"status", "checks", "version"}`.
+  (Every route is under `/api/v1/`; see `AutoGrader/urls.py`. A bare `/health` is a 404.)
 - `version` is the commit Railway deployed (`RAILWAY_GIT_COMMIT_SHA`).
 - **PASS:** `version` equals the pushed origin/staging sha in the package, on
   every web replica. With several replicas, call it about 10 times and
@@ -47,9 +48,9 @@ testing the wrong build.
   release step didn't run. Stop and tell the SM.
 
 **G3. Services are healthy.**
-- `/health` returns HTTP 200 with every entry in `checks` ok.
+- `/api/v1/health` returns HTTP 200 with every entry in `checks` ok.
 - A 503 names the failing service. Stop.
-- `GET /health/beat` returns 200. It checks Celery Beat separately from the
+- `GET /api/v1/health/beat` returns 200. It checks Celery Beat separately from the
   web deploy gate.
 - For the worker: `railway run --service <worker> -- celery -A AutoGrader inspect ping`
   gets a `pong` from each worker. Record the count and compare it with the
@@ -269,7 +270,7 @@ means 40 emails to the team-controlled test address.
 |---|---|---|
 | G1 running `version` = pushed sha (distinct values seen) | | |
 | G2 `migrate --plan` empty; 0039 + audit 0001 applied | | |
-| G3 `/health` 200, `/health/beat` 200, worker pongs | | |
+| G3 `/api/v1/health` 200, `/api/v1/health/beat` 200, worker pongs | | |
 | G4 Sentry new issues / spikes in window | | |
 | Topology (web replicas / workers) | | |
 | §1 R1 | deferred to batch-2b | |

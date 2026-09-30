@@ -668,6 +668,33 @@ def _reset_locked_response(otp_obj):
     return response
 
 
+# --- OpenAPI documentation for the public auth code flows -------------------
+# Every response goes through users.renderers.APIJSONRenderer, so the frontend
+# sees {"success", "message", "data"} on success and {"success": false,
+# "message", "error": {"field_errors": {...}}} on failure. The examples below
+# show the rendered (on-the-wire) bodies, not the raw view payloads.
+
+
+def _auth_error_example(name, message, summary=None):
+    return OpenApiExample(
+        name,
+        summary=summary or message,
+        value={
+            "success": False,
+            "message": message,
+            "error": {"field_errors": {"detail": message}},
+        },
+        response_only=True,
+    )
+
+
+_THROTTLED_EXAMPLE = _auth_error_example(
+    "Throttled",
+    "Request was throttled. Expected available in 3599 seconds.",
+    summary="Per-IP rate limit hit (also sets the Retry-After header)",
+)
+
+
 class AuthViewSet(viewsets.ViewSet):
     """
     Handles user authentication actions
@@ -677,10 +704,81 @@ class AuthViewSet(viewsets.ViewSet):
 
     @extend_schema(
         tags=["Authentication"],
-        summary="Verify email and activate account",
-        description="""Verify the email address of a user.""",
+        summary="Verify email and activate account (signs the user in)",
+        description="""
+Activates an account with the 6-digit code from the activation email and
+returns a JWT pair, so the user is signed in straight away.
+
+**Frontend flow**
+1. The activation email links to `<frontend>/verify-email?email=<email>&token=<6 digits>`.
+   Read both query parameters and POST them here unchanged.
+2. On **202**, store `data.access` / `data.refresh` and treat the user as signed in
+   (`data.user` is the full user object, same shape as `GET /users/me`).
+3. On **400** show `message`. If it is "Activation link has expired.", offer
+   "Send a new link", which calls `POST /auth/otp` with `otp_type: "VERIFY_EMAIL"`.
+
+**Values**
+- `email`: the address from the link (string, required).
+- `token`: the 6-digit code from the link, sent as a **string** (keep leading zeros).
+- The code from a self-registration email is valid for **15 minutes**; requesting a
+  new one (`/auth/otp`) replaces the old code.
+- Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
+""",
         request=VerifyCustomUserSerializer,
-        responses=VerifyCustomUserSerializer,
+        examples=[
+            OpenApiExample(
+                "Verify request",
+                value={"email": "teacher@example.com", "token": "048213"},
+                request_only=True,
+            ),
+        ],
+        responses={
+            202: OpenApiResponse(
+                response=OpenApiTypes.OBJECT,
+                description="Account activated; JWT pair issued (user is signed in).",
+                examples=[
+                    OpenApiExample(
+                        "Activated",
+                        value={
+                            "success": True,
+                            "message": "Request Successful",
+                            "data": {
+                                "refresh": "<jwt refresh token>",
+                                "access": "<jwt access token>",
+                                "user": {
+                                    "id": "<uuid>",
+                                    "email": "teacher@example.com",
+                                    "...": "...",
+                                },
+                            },
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                response=OpenApiTypes.OBJECT,
+                description="Missing fields, wrong code or email, or an expired code. Show `message`.",
+                examples=[
+                    _auth_error_example(
+                        "Missing fields", "Email and Token are required."
+                    ),
+                    _auth_error_example(
+                        "Wrong email or code", "Invalid email or token."
+                    ),
+                    _auth_error_example(
+                        "Expired code",
+                        "Activation link has expired.",
+                        summary="Expired: offer a resend via POST /auth/otp (VERIFY_EMAIL)",
+                    ),
+                ],
+            ),
+            429: OpenApiResponse(
+                response=OpenApiTypes.OBJECT,
+                description="Too many attempts from this IP (5/hour). Wait for `Retry-After` seconds.",
+                examples=[_THROTTLED_EXAMPLE],
+            ),
+        },
     )
     @action(
         detail=False,
@@ -737,19 +835,86 @@ class AuthViewSet(viewsets.ViewSet):
 
     @extend_schema(
         tags=["Authentication"],
-        summary="Send verification email",
-        description="""Send a verification email to the specified email address.""",
+        summary="Send a verification link or a password-reset code",
+        description="""
+Sends one of two emails, chosen by `otp_type`:
+
+| `otp_type` | Sends | Next call |
+|---|---|---|
+| `VERIFY_EMAIL` | a new activation link, valid 15 min (replaces the old code) | `POST /auth/verify` |
+| `RESET_PASSWORD` | a 6-digit password-reset code (valid 15 min) | `POST /auth/reset-password` |
+
+**An unknown address always gets 202.** Show the same neutral confirmation (e.g.
+"If an account exists for that address, we've sent an email") for every 202 and
+never branch on `message`: its wording can differ between cases. The two 400s
+below only happen for existing accounts in the wrong state.
+
+**Values**
+- `email`: string, required, must be a valid email address.
+- `otp_type`: exactly `"VERIFY_EMAIL"` or `"RESET_PASSWORD"` (upper case).
+
+**400 cases** (show `message`):
+- invalid `otp_type` or email → "Invalid OTP type. Valid values are `VERIFY_EMAIL` and `RESET_PASSWORD`"
+- `VERIFY_EMAIL` for an account that is already active → "Email already verified. Please login."
+  (send the user to sign in)
+- `RESET_PASSWORD` for an account that never verified its email → "Email not verified."
+  (offer `VERIFY_EMAIL` instead)
+
+While a password reset is locked after 5 wrong codes, this endpoint still answers
+202 but sends no code; the lock is reported by `POST /auth/reset-password` (429
+`RESET_LOCKED`).
+
+Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
+""",
         request=OTPSerializer,
+        examples=[
+            OpenApiExample(
+                "Resend verification link",
+                value={"email": "teacher@example.com", "otp_type": "VERIFY_EMAIL"},
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Request password-reset code",
+                value={"email": "teacher@example.com", "otp_type": "RESET_PASSWORD"},
+                request_only=True,
+            ),
+        ],
         responses={
             202: OpenApiResponse(
                 response=OpenApiTypes.OBJECT,
-                description="Verification email sent successfully",
+                description="Accepted. Show one neutral confirmation for every 202; don't branch on `message`.",
                 examples=[
                     OpenApiExample(
-                        "Verification Email Sent",
-                        value={"Detail": "Verification email sent successfully"},
+                        "Accepted",
+                        value={
+                            "success": True,
+                            "message": "An OTP has been sent if an account with that email exists.",
+                            "data": {
+                                "detail": "An OTP has been sent if an account with that email exists."
+                            },
+                        },
+                        response_only=True,
                     )
                 ],
+            ),
+            400: OpenApiResponse(
+                response=OpenApiTypes.OBJECT,
+                description="Bad input, or the account is in the wrong state for this otp_type.",
+                examples=[
+                    _auth_error_example(
+                        "Invalid otp_type or email",
+                        "Invalid OTP type. Valid values are `VERIFY_EMAIL` and `RESET_PASSWORD`",
+                    ),
+                    _auth_error_example(
+                        "Already verified", "Email already verified. Please login."
+                    ),
+                    _auth_error_example("Email not verified", "Email not verified."),
+                ],
+            ),
+            429: OpenApiResponse(
+                response=OpenApiTypes.OBJECT,
+                description="Too many requests from this IP (5/hour). Wait for `Retry-After` seconds.",
+                examples=[_THROTTLED_EXAMPLE],
             ),
         },
     )
@@ -837,15 +1002,115 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
 
     @extend_schema(
         tags=["Authentication"],
-        summary="Reset the password using an OTP",
+        summary="Reset the password with the emailed code (signs the user in)",
         description="""
-        Resets a user's password after a valid OTP has been provided via the `forgot-password` endpoint.
-        This endpoint is public and does not require authentication.
-        """,
+Sets a new password using the 6-digit code from `POST /auth/otp`
+(`otp_type: "RESET_PASSWORD"`), signs the user out of every other device and
+returns a fresh JWT pair.
+
+**Values**
+- `email`: string, required.
+- `otp`: the 6-digit code from the email, sent as a **string** (keep leading zeros).
+- `new_password`: string, must pass the password rules (errors come back under
+  `error.field_errors.new_password`).
+- The code is valid for **15 minutes**.
+
+**Wrong code handling.** Every wrong email / code / expired code gives the same
+400 "Invalid email, OTP code, or new password." After **5 wrong codes** the reset
+is locked for **30 minutes**: the answer becomes **429** with
+`error.field_errors.code == "RESET_LOCKED"`, plus `locked_until` (UTC ISO time),
+`retry_after_seconds` and a `Retry-After` header. Show `message` as is; it tells
+the user their password was not changed. Requesting a new code during the lock
+sends nothing.
+
+**Telling the two 429s apart:** `RESET_LOCKED` has `error.field_errors.code`;
+the plain rate limit (10 requests/hour per IP) does not.
+""",
         request=ResetPasswordSerializer,
+        examples=[
+            OpenApiExample(
+                "Reset request",
+                value={
+                    "email": "teacher@example.com",
+                    "otp": "731904",
+                    "new_password": "a-new-strong-passphrase",  # pragma: allowlist secret
+                },
+                request_only=True,
+            ),
+        ],
         responses={
-            200: {"description": "Password has been reset successfully."},
-            400: {"description": "Invalid email, OTP code, or new password."},
+            200: OpenApiResponse(
+                response=OpenApiTypes.OBJECT,
+                description="Password changed; other sessions revoked; JWT pair issued.",
+                examples=[
+                    OpenApiExample(
+                        "Reset done",
+                        value={
+                            "success": True,
+                            "message": "Password has been reset successfully. You are now logged in.",
+                            "data": {
+                                "detail": "Password has been reset successfully. You are now logged in.",
+                                "access": "<jwt access token>",
+                                "refresh": "<jwt refresh token>",
+                            },
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                response=OpenApiTypes.OBJECT,
+                description="Wrong or expired code (one generic message), or a password-rule failure.",
+                examples=[
+                    _auth_error_example(
+                        "Wrong or expired code",
+                        "Invalid email, OTP code, or new password.",
+                    ),
+                    OpenApiExample(
+                        "Weak password",
+                        value={
+                            "success": False,
+                            "message": "New password: This password is too common.",
+                            "error": {
+                                "field_errors": {
+                                    "new_password": ["This password is too common."]
+                                }
+                            },
+                        },
+                        response_only=True,
+                    ),
+                ],
+            ),
+            429: OpenApiResponse(
+                response=OpenApiTypes.OBJECT,
+                description="RESET_LOCKED after 5 wrong codes (30 min), or the plain per-IP rate limit.",
+                examples=[
+                    OpenApiExample(
+                        "Reset locked",
+                        value={
+                            "success": False,
+                            "message": (
+                                "For your security, password reset is paused on this account because "
+                                "the code was entered incorrectly 5 times. You can request a new code "
+                                "after 14:32 UTC (in 30 minutes). Your password has not been changed, "
+                                "and you can still sign in with your current password. If you didn't "
+                                "try to reset your password, someone else may have. Your account is "
+                                "still safe."
+                            ),
+                            "error": {
+                                "field_errors": {
+                                    "code": "RESET_LOCKED",
+                                    "message": "For your security, password reset is paused … (same text)",
+                                    "locked_until": "2026-09-30T14:32:05+00:00",
+                                    "retry_after_seconds": 1800,
+                                }
+                            },
+                        },
+                        response_only=True,
+                    ),
+                    _THROTTLED_EXAMPLE,
+                ],
+            ),
         },
     )
     @action(
