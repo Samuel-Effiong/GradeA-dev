@@ -2,17 +2,17 @@
 
 **Owner:** fix-overage-lock (grade-automator-plus-e2)
 **Branch:** `task/overage-lock`
-**Implementation commit:** `f7db2f2` (parent `b744c9f`)
-**Status: NOT LANDED. Gates 2, 6, 7 (real Stripe), 8 and 10 are NOT RUN.**
+**Commits:** Design A `f7db2f2`; P1c `22cc9cf` + `2a7d285`; harness shared with H-28 on `task/fake-stripe-harness` @ `5400759` (byte-identical copy here). Parent `b744c9f`.
+**Status: NOT LANDED. Gate 2 is PARTIAL (10 of 56 mutants run); gates 6, 7 (real Stripe), 8 and 10 are NOT RUN.**
 
 ## 10-gate table
 
 | Gate | Status | Evidence |
 |---|---|---|
 | 1 Baseline / Regression | PASS | 12 tests fail on `b744c9f`, pass on `f7db2f2`: `g1_repro_b744c9f.log` (sha256 `d015b27d…`), `g1_repro_perflow_b744c9f.log` (550 lines, sha256 `851533eb…`). Billing app 1,448 tests OK (`billing_regression` run, 638s). pre-commit clean on every changed file. |
-| 2 Mutation | NOT RUN | 41 mutants ready, one per guard the diff adds: `mutation/run_mutants.py`. Held by the fixes-coordinator for host contention; slots at 09:00. |
+| 2 Mutation | PARTIAL | 56 mutants defined, one per guard (41 Design A, 15 P1c): `mutation/run_mutants.py`. **10 of 10 run so far killed** (M03–M12, the schedule guard at every receipt call site), each restored from the commit blob with a verified sha256: `mutation/logs/`. The rest are held by the fixes-coordinator for host contention. The results table will be regenerated from the per-mutant logs (the runner's summary file is only written at the end of a batch, and the first batch was paused). |
 | 3 Concurrency | PASS (LOCAL-REAL) | `ReceiptConcurrencyTests`: 20 threads × 10 rounds on real Postgres. Concurrent fills → exactly one FILLED per round; duplicate deliveries → exactly one grant, one BillingTransaction, no lookup inside a transaction. |
-| 4 Adversarial | NOT APPLICABLE (accepted by fixes-coordinator, pending d4 confirmation) | Design A adds no endpoint, no authorization decision and no user-controllable input. `metadata.flow` is server-set when the Checkout Session is created (`billing/stripe_service.py:2173`). **Becomes APPLICABLE for P1c**, which adds automatic replay of money-moving events. |
+| 4 Adversarial | Design A: NOT APPLICABLE (accepted by fixes-coordinator, pending d4). **P1c: NOT RUN.** | Design A adds no endpoint, no authorization decision and no user-controllable input; `metadata.flow` is server-set when the Checkout Session is created (`billing/stripe_service.py:2173`). P1c automatically replays money-moving events, so it is attack surface. Red-team target, routed to d4: can an event reach the allow-listed path that should not? Forging needs a valid Stripe signature or write access to `StripeEvent` rows, so the surface is the signature check plus whoever can write those rows, including the Django admin. |
 | 5 Failure / Recovery | PASS | See the failure matrix below. Every case records the app DB **and** the Stripe side. |
 | 6 Stress / Scale | NOT RUN | Planned: sweep query cost at two table sizes ≥10× apart, constant query count, p50/p95, peak memory. |
 | 7 Real Infrastructure | PARTIAL (LOCAL-REAL) | Real Postgres and real Redis throughout. Stripe is faked at stripe-python's HTTP layer. **Real Stripe test-mode receipt resolution still to run.** |
@@ -71,6 +71,26 @@ Stripe state is recorded for every case. The path **only ever reads** from Strip
 | Redelivery / duplicate deliveries | Exactly one grant, one row, one link | Unchanged | `test_duplicate_webhook_deliveries_with_slow_stripe_grant_once` |
 
 The ordering that used to lose money is now inverted: Stripe is called only after the grant is durable, so a failure at any point can cost the link, never the credits.
+
+## P1c — automatic replay, one flow only
+
+Approved by the Senior Manager with exactly one allow-list entry: `("checkout.session.completed", "overage_block_purchase_checkout")`. The approval, the denied list with reasons, and the binding requirements are in `team/sessions/fix-overage-lock.md`.
+
+How each requirement is met, and the test that proves it:
+
+| Requirement | Implementation | Proof |
+|---|---|---|
+| Deny by default | Only keys of `AUTO_REPLAYABLE` are replayed; missing or unknown flow is skipped | `DenyByDefaultTests` |
+| Cannot reach a refund or `Subscription.modify` even if the list is widened | The mapped flow handler is called directly, never the dispatcher; and a second gate checks its qualified name against `VETTED_HANDLERS` | `WidenedAllowListTests` add a refund handler and an upgrade handler and prove neither is called and Stripe sees no mutation; `test_runs_exactly_the_mapped_handler_not_the_dispatcher` |
+| Pinned membership | — | `AllowListPinningTests` |
+| Stored payload, never re-fetch Stripe | `event_flow` reads the recorded payload | `test_stripe_is_never_re_fetched_to_decide` asserts zero Stripe calls |
+| Per-event skip reason, durable | `auto_replay_note` on the row, plus the log | every `DenyByDefaultTests` case asserts the note |
+| Capped attempts | `auto_replay_attempts`, max 3, capped rows not selected, re-checked at claim time | `test_attempts_are_capped`, `test_exhausted_row_is_not_run_even_when_handed_over` |
+| Exactly one grant under concurrency | One conditional UPDATE from FAILED, fenced on the attempts count seen | `ReplayConcurrencyTests` (20 threads × 10 rounds: concurrent sweeps; sweep vs live redelivery); `ReplayOneGuardTests` |
+| Idempotency proof exercised, not asserted | — | `test_replaying_an_already_granted_purchase_grants_nothing_more` |
+| A replay that fails again stays FAILED | settled by `_run_handler_inline` | `test_a_replay_that_fails_again_stays_failed` |
+
+**Migration 0070** adds `auto_replay_attempts` and `auto_replay_note` to `billing_stripeevent`. `scripts/check_migration_safety.py --base b744c9f`: additive only, exit 0. Both columns are added with a constant default, which Postgres 11+ applies without rewriting the table. The one cost on a large table: `PositiveIntegerField` adds `CHECK (auto_replay_attempts >= 0)`, which Postgres validates with one sequential scan under `ACCESS EXCLUSIVE`, briefly blocking webhook claims. Migration 0067 (`recovery_attempts`) shipped the identical pattern to production on this table. A zero-lock variant (a `NOT VALID` constraint validated separately) is available if the Senior Manager asks for it.
 
 ## Environment finding (not a product defect)
 
