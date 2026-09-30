@@ -33,6 +33,7 @@ from billing import license_stripe_mutation
 from billing.billing_transaction_service import BillingTransactionService
 from billing.imports import stripe
 from billing.license_service import LicenseSubscriptionService
+from billing.license_stripe_mutation import LicenceStripe
 from billing.models import (
     BillingTransaction,
     BillingTransactionType,
@@ -237,7 +238,7 @@ class PlanPhaseTests(LicencePhaseTestCase):
             raise stripe.error.APIConnectionError("Stripe unreachable")
 
         with patch.object(
-            stripe.Invoice, "retrieve", side_effect=unreadable
+            LicenceStripe, "retrieve_invoice", side_effect=unreadable
         ), self.assertLogs(MUTATION_LOGGER, level="ERROR"):
             with self.assertRaises(
                 license_stripe_mutation.LicenceStripeChangeNotRecorded
@@ -255,7 +256,7 @@ class PlanPhaseTests(LicencePhaseTestCase):
         def refuse(*args, **kwargs):
             raise stripe.error.InvalidRequestError("No such product", "product")
 
-        with patch.object(stripe.Price, "create", side_effect=refuse):
+        with patch.object(LicenceStripe, "create_price", side_effect=refuse):
             with self.assertRaisesRegex(ValueError, "Stripe price change failed"):
                 self.change_plan(self.cheaper_plan)
 

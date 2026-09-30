@@ -25,6 +25,7 @@ from django.db import OperationalError, transaction
 from billing import license_stripe_mutation
 from billing.imports import stripe
 from billing.license_service import LicenseSubscriptionService
+from billing.license_stripe_mutation import LicenceStripe
 from billing.models import (
     LicenseBillingMethod,
     LicenseBillingRecord,
@@ -65,8 +66,8 @@ class ConvertToOfflinePhaseTests(LicencePhaseTestCase):
         """Delete calls are not wrapped by the fixture; wrap them so the
         transaction check covers them too."""
         p = patch.object(
-            stripe.Subscription,
-            "delete",
+            LicenceStripe,
+            "delete_subscription",
             side_effect=self._recording(self.stripe.subscription_delete),
         )
         p.start()
@@ -122,7 +123,9 @@ class ConvertToOfflinePhaseTests(LicencePhaseTestCase):
                 "No such subscription", "id", http_status=404
             )
 
-        with patch.object(stripe.Subscription, "delete", side_effect=gone_already):
+        with patch.object(
+            LicenceStripe, "delete_subscription", side_effect=gone_already
+        ):
             updated = self.convert()
 
         self.assertEqual(updated.billing_method, LicenseBillingMethod.OFFLINE)
@@ -136,7 +139,7 @@ class ConvertToOfflinePhaseTests(LicencePhaseTestCase):
                 "This subscription cannot be cancelled", "id"
             )
 
-        with patch.object(stripe.Subscription, "delete", side_effect=refuse):
+        with patch.object(LicenceStripe, "delete_subscription", side_effect=refuse):
             with self.assertRaisesRegex(ValueError, "Failed to cancel Stripe"):
                 self.convert()
 
@@ -152,7 +155,7 @@ class ConvertToOfflinePhaseTests(LicencePhaseTestCase):
             raise stripe.error.APIConnectionError("Stripe unreachable")
 
         with patch.object(
-            stripe.Subscription, "retrieve", side_effect=unreachable
+            LicenceStripe, "retrieve_subscription", side_effect=unreachable
         ), self.assertLogs(MUTATION_LOGGER, level="ERROR") as logs:
             with self.assertRaises(ValueError):
                 self.convert()

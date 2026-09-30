@@ -245,6 +245,30 @@ MUTANTS = [
     ),
     ("L25", "convert phase A durable", LS, PHASE_A, PHASE_A_NOT_DURABLE, 4),
     ("L26", "plan change phase A durable", LS, PHASE_A, PHASE_A_NOT_DURABLE, 2),
+    (
+        "L27",
+        "each call is bounded at the socket by the time left",
+        LSM,
+        '        "http_client": stripe.RequestsClient(timeout=timeout),',
+        '        "http_client": stripe.RequestsClient(timeout=MAX_CALL_TIMEOUT_SECONDS),',
+        1,
+    ),
+    (
+        "L29",
+        "the worker runs in the caller's context (sees the deadline)",
+        LSM,
+        "        target=context.run, args=(run,), name=",
+        "        target=run, name=",
+        1,
+    ),
+    (
+        "L28",
+        "licence calls use the app's Stripe API version",
+        LSM,
+        '        "stripe_version": stripe.api_version,\n',
+        "",
+        1,
+    ),
 ]
 
 LOAD_FAILURE = ("unittest.loader._FailedTest", "ImportError", "SyntaxError")

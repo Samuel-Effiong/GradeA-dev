@@ -53,6 +53,7 @@ import threading
 import time
 from contextlib import contextmanager
 from datetime import timedelta
+from typing import Any, cast
 
 from django.db import (
     IntegrityError,
@@ -167,16 +168,124 @@ def caller_in_atomic_block() -> bool:
     )
 
 
+#: Network retries per Stripe call, inside its socket bound. stripe-python
+#: resends the same idempotency key on its own retries.
+CALL_MAX_NETWORK_RETRIES = 1
+#: Each attempt's socket timeout is the time left divided by the attempts,
+#: kept within these limits.
+MIN_CALL_TIMEOUT_SECONDS = 1.0
+MAX_CALL_TIMEOUT_SECONDS = 30.0
+#: stripe-python sleeps before a retry (0.5 s for the first, with jitter);
+#: allowed for per retry, so the socket gives up before the budget does.
+RETRY_SLEEP_ALLOWANCE_SECONDS = 1.0
+#: Fraction of the time left the attempts may use; the rest is margin, so
+#: the socket bound, not the outer wait, is what ends a slow call.
+CALL_SHARE_OF_REMAINING = 0.9
+#: Tests point the client at a local server; None means Stripe.
+_BASE_ADDRESSES = None
+
+
+def call_timeout_seconds() -> float:
+    """
+    The socket timeout for one attempt of the next Stripe call: what is left
+    of the request's budget, less the retry sleeps and a margin, shared
+    between the call's attempts, so that the attempts and their sleeps end
+    before the budget does. With no budget set, the maximum.
+    """
+    deadline = _deadline.get()
+    if deadline is None:
+        return MAX_CALL_TIMEOUT_SECONDS
+    usable = (
+        deadline
+        - time.monotonic()
+        - RETRY_SLEEP_ALLOWANCE_SECONDS * CALL_MAX_NETWORK_RETRIES
+    ) * CALL_SHARE_OF_REMAINING
+    share = usable / (CALL_MAX_NETWORK_RETRIES + 1)
+    return max(MIN_CALL_TIMEOUT_SECONDS, min(MAX_CALL_TIMEOUT_SECONDS, share))
+
+
+def _client(timeout: float):
+    kwargs: dict = {
+        # The app's key and Stripe API version, so licence calls never
+        # drift to a different version from the rest of the app.
+        "stripe_version": stripe.api_version,
+        "http_client": stripe.RequestsClient(timeout=timeout),
+        "max_network_retries": CALL_MAX_NETWORK_RETRIES,
+    }
+    if _BASE_ADDRESSES is not None:
+        kwargs["base_addresses"] = _BASE_ADDRESSES
+    return stripe.StripeClient(cast(str, stripe.api_key), **kwargs)
+
+
+def _options(idempotency_key):
+    return {"idempotency_key": idempotency_key} if idempotency_key else None
+
+
+class LicenceStripe:
+    """
+    The licence flows' only route to Stripe (H-28).
+
+    stripe-python 14's legacy resource API (stripe.Subscription.modify and
+    the like) has no per-call timeout: its HTTP client is process-wide, so
+    bounding it would change every Stripe call in the app. Here each call
+    builds its own StripeClient whose socket timeout is sized from the time
+    left in the request's budget (call_timeout_seconds), as
+    billing/receipts.py does for receipt lookups. A slow Stripe fails the
+    call at the socket; nothing is left running past it.
+    """
+
+    @staticmethod
+    def retrieve_subscription(sub_id):
+        return _client(call_timeout_seconds()).v1.subscriptions.retrieve(sub_id)
+
+    @staticmethod
+    def modify_subscription(sub_id, idempotency_key=None, **params):
+        return _client(call_timeout_seconds()).v1.subscriptions.update(
+            sub_id, params=cast(Any, params), options=_options(idempotency_key)
+        )
+
+    @staticmethod
+    def delete_subscription(sub_id, idempotency_key=None):
+        # DELETE /v1/subscriptions/{id}: the legacy Subscription.delete.
+        return _client(call_timeout_seconds()).v1.subscriptions.cancel(
+            sub_id, options=_options(idempotency_key)
+        )
+
+    @staticmethod
+    def retrieve_invoice(invoice_id, expand=None):
+        params = {"expand": expand} if expand else None
+        return _client(call_timeout_seconds()).v1.invoices.retrieve(
+            invoice_id, params=cast(Any, params)
+        )
+
+    @staticmethod
+    def void_invoice(invoice_id, idempotency_key=None):
+        return _client(call_timeout_seconds()).v1.invoices.void_invoice(
+            invoice_id, options=_options(idempotency_key)
+        )
+
+    @staticmethod
+    def create_price(idempotency_key=None, **params):
+        return _client(call_timeout_seconds()).v1.prices.create(
+            params=cast(Any, params), options=_options(idempotency_key)
+        )
+
+
 def call_stripe(fn, *args, **kwargs):
     """
     Make one Stripe call within the current request's budget.
 
     With no budget set it simply calls `fn`. With one, the call runs on a
     short-lived daemon thread and is waited for only as long as the budget
-    allows, because stripe-python 14 has no per-call timeout (its HTTP
-    timeout is process-wide). A call that outlives the budget is NOT
-    cancelled: it may still land at Stripe. So StripeBudgetExhausted says
-    whether it had started, and callers never conclude that a started
+    allows. The call itself is bounded at the socket by LicenceStripe
+    (each attempt's timeout is the time left shared between the attempts),
+    so it normally fails there, inside the budget, and the thread ends with
+    it. This wait is the outer bound only, for a reply that trickles in
+    slower than the per-read timeout; a thread it abandons still ends at
+    its own socket timeout, so abandoned threads cannot pile up.
+
+    An abandoned call may still land at Stripe. So StripeBudgetExhausted
+    says whether it had started, and callers never conclude that a started
     call did not happen.
     """
     deadline = _deadline.get()
@@ -202,7 +311,13 @@ def call_stripe(fn, *args, **kwargs):
             # connection leaks against Postgres's limit.
             connections.close_all()
 
-    worker = threading.Thread(target=run, name="h28-stripe-call", daemon=True)
+    # Run in a copy of the caller's context: a new thread does not inherit
+    # contextvars, and LicenceStripe sizes its socket timeout from the
+    # deadline (without this it saw no budget and used the maximum).
+    context = contextvars.copy_context()
+    worker = threading.Thread(
+        target=context.run, args=(run,), name="h28-stripe-call", daemon=True
+    )
     setattr(worker, _CALLER_IN_ATOMIC, connection.in_atomic_block)
     worker.start()
     worker.join(remaining)
@@ -296,7 +411,7 @@ def new_invoice_since(sub_id: str, invoice_before):
     so an unpaid renewal is never mistaken for the change's own invoice.
     Reads Stripe; a StripeError propagates."""
     latest = stripe_id(
-        call_stripe(stripe.Subscription.retrieve, sub_id).get("latest_invoice")
+        call_stripe(LicenceStripe.retrieve_subscription, sub_id).get("latest_invoice")
     )
     return latest if latest and latest != invoice_before else None
 
@@ -556,10 +671,10 @@ def undo_unpaid_change(intent, revert, find_invoice, why: str) -> bool:
     try:
         invoice_id = find_invoice()
         if invoice_id:
-            invoice = call_stripe(stripe.Invoice.retrieve, invoice_id)
+            invoice = call_stripe(LicenceStripe.retrieve_invoice, invoice_id)
             if invoice.get("status") == "open":
                 call_stripe(
-                    stripe.Invoice.void_invoice,
+                    LicenceStripe.void_invoice,
                     invoice_id,
                     idempotency_key=intent.idempotency_key("void"),
                 )

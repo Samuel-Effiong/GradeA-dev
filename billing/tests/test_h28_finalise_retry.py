@@ -24,8 +24,8 @@ from unittest.mock import patch
 from django.db import IntegrityError, OperationalError, connection
 
 from billing import license_stripe_mutation
-from billing.imports import stripe
 from billing.license_service import LicenseSubscriptionService
+from billing.license_stripe_mutation import LicenceStripe
 from billing.models import (
     LicenseBillingRecord,
     LicenseBillingRecordType,
@@ -110,7 +110,9 @@ class FinaliseRetryTests(LicencePhaseTestCase):
                 arm()
             return result
 
-        return patch.object(stripe.Subscription, "modify", side_effect=apply_then_arm)
+        return patch.object(
+            LicenceStripe, "modify_subscription", side_effect=apply_then_arm
+        )
 
     # -- the named Gate-5 assertion ------------------------------------------
 

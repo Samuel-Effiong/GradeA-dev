@@ -36,6 +36,7 @@ from django.utils import timezone
 from billing import license_stripe_mutation
 from billing.imports import stripe
 from billing.license_service import LicenseSubscriptionService
+from billing.license_stripe_mutation import LicenceStripe
 from billing.models import (
     LicenseBillingMethod,
     LicenseBillingRecord,
@@ -114,11 +115,11 @@ class LicencePhaseTestCase(TransactionTestCase):
         # made. Wraps the fake, so its state still changes as Stripe's would.
         self.in_transaction_at_call = []
         for name, fake_method in (
-            ("modify", self.stripe.subscription_modify),
-            ("retrieve", self.stripe.subscription_retrieve),
+            ("modify_subscription", self.stripe.subscription_modify),
+            ("retrieve_subscription", self.stripe.subscription_retrieve),
         ):
             p = patch.object(
-                stripe.Subscription, name, side_effect=self._recording(fake_method)
+                LicenceStripe, name, side_effect=self._recording(fake_method)
             )
             p.start()
             self.addCleanup(p.stop)
@@ -211,7 +212,7 @@ class CancelPhaseTests(LicencePhaseTestCase):
                 "No such subscription", "id", http_status=404
             )
 
-        with patch.object(stripe.Subscription, "modify", side_effect=refuse):
+        with patch.object(LicenceStripe, "modify_subscription", side_effect=refuse):
             with self.assertRaisesRegex(
                 ValueError, "Failed to schedule Stripe cancellation"
             ):
@@ -246,7 +247,7 @@ class CancelPhaseTests(LicencePhaseTestCase):
             raise stripe.error.APIConnectionError("Request timed out")
 
         with patch.object(
-            stripe.Subscription, "modify", side_effect=time_out_without_applying
+            LicenceStripe, "modify_subscription", side_effect=time_out_without_applying
         ):
             with self.assertRaisesRegex(ValueError, "Request timed out"):
                 self.cancel()
@@ -262,7 +263,7 @@ class CancelPhaseTests(LicencePhaseTestCase):
             raise stripe.error.APIError("Internal error", http_status=500)
 
         with patch.object(
-            stripe.Subscription, "modify", side_effect=fail_after_applying
+            LicenceStripe, "modify_subscription", side_effect=fail_after_applying
         ):
             updated = self.cancel()
 
@@ -277,7 +278,9 @@ class CancelPhaseTests(LicencePhaseTestCase):
         def unreachable(*args, **kwargs):
             raise stripe.error.APIConnectionError("Stripe unreachable")
 
-        with patch.object(stripe.Subscription, "retrieve", side_effect=unreachable):
+        with patch.object(
+            LicenceStripe, "retrieve_subscription", side_effect=unreachable
+        ):
             with self.assertLogs(MUTATION_LOGGER, level="ERROR") as logs:
                 with self.assertRaises(ValueError):
                     self.cancel()
@@ -355,7 +358,7 @@ class CancelPhaseTests(LicencePhaseTestCase):
             return self.stripe.subscription_modify(*args, **kwargs)
 
         with self._fail_the_local_write(), patch.object(
-            stripe.Subscription, "modify", side_effect=apply_but_refuse_the_undo
+            LicenceStripe, "modify_subscription", side_effect=apply_but_refuse_the_undo
         ):
             with self.assertLogs(MUTATION_LOGGER, level="ERROR") as logs:
                 with self.assertRaises(
@@ -385,8 +388,8 @@ class CancelPhaseTests(LicencePhaseTestCase):
             return result
 
         with patch.object(
-            stripe.Subscription,
-            "modify",
+            LicenceStripe,
+            "modify_subscription",
             side_effect=apply_then_someone_else_deactivates,
         ):
             with self.assertRaises(

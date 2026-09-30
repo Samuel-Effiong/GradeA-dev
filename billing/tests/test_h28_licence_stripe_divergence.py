@@ -54,6 +54,7 @@ from django.utils import timezone
 
 from billing.imports import stripe
 from billing.license_service import LicenseSubscriptionService
+from billing.license_stripe_mutation import LicenceStripe
 from billing.models import (
     LicenseBillingMethod,
     LicenseSubscription,
@@ -275,17 +276,25 @@ class _FakeLicenceStripe:
     def patches(self):
         return [
             patch.object(
-                stripe.Subscription, "retrieve", side_effect=self.subscription_retrieve
+                LicenceStripe,
+                "retrieve_subscription",
+                side_effect=self.subscription_retrieve,
             ),
             patch.object(
-                stripe.Subscription, "modify", side_effect=self.subscription_modify
+                LicenceStripe,
+                "modify_subscription",
+                side_effect=self.subscription_modify,
             ),
             patch.object(
-                stripe.Subscription, "delete", side_effect=self.subscription_delete
+                LicenceStripe,
+                "delete_subscription",
+                side_effect=self.subscription_delete,
             ),
-            patch.object(stripe.Price, "create", side_effect=self.price_create),
-            patch.object(stripe.Invoice, "retrieve", side_effect=self.invoice_retrieve),
-            patch.object(stripe.Invoice, "void_invoice", side_effect=self.invoice_void),
+            patch.object(LicenceStripe, "create_price", side_effect=self.price_create),
+            patch.object(
+                LicenceStripe, "retrieve_invoice", side_effect=self.invoice_retrieve
+            ),
+            patch.object(LicenceStripe, "void_invoice", side_effect=self.invoice_void),
         ]
 
     def mutations(self):

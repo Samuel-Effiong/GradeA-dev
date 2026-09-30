@@ -28,6 +28,7 @@ from billing import license_stripe_mutation
 from billing.billing_transaction_service import BillingTransactionService
 from billing.imports import stripe
 from billing.license_service import LicenseSubscriptionService
+from billing.license_stripe_mutation import LicenceStripe
 from billing.models import (
     BillingTransaction,
     BillingTransactionType,
@@ -181,7 +182,7 @@ class SeatPhaseTests(LicencePhaseTestCase):
             return self.stripe.subscription_modify(*args, **kwargs)
 
         with patch.object(
-            stripe.Subscription, "modify", side_effect=refuse_the_revert
+            LicenceStripe, "modify_subscription", side_effect=refuse_the_revert
         ), self.assertLogs(MUTATION_LOGGER, level="ERROR") as logs:
             with self.assertRaises(
                 license_stripe_mutation.LicenceStripeChangeNotRecorded
@@ -207,7 +208,7 @@ class SeatPhaseTests(LicencePhaseTestCase):
             raise stripe.error.APIConnectionError("Stripe unreachable")
 
         with patch.object(
-            stripe.Invoice, "retrieve", side_effect=unreadable
+            LicenceStripe, "retrieve_invoice", side_effect=unreadable
         ), self.assertLogs(MUTATION_LOGGER, level="ERROR"):
             with self.assertRaises(
                 license_stripe_mutation.LicenceStripeChangeNotRecorded
@@ -269,7 +270,9 @@ class SeatPhaseTests(LicencePhaseTestCase):
             return result
 
         with patch.object(
-            stripe.Subscription, "modify", side_effect=apply_then_the_licence_moves_on
+            LicenceStripe,
+            "modify_subscription",
+            side_effect=apply_then_the_licence_moves_on,
         ):
             with self.assertRaises(
                 license_stripe_mutation.LicenceStripeChangeNotRecorded
@@ -287,7 +290,9 @@ class SeatPhaseTests(LicencePhaseTestCase):
         def unreachable(*args, **kwargs):
             raise stripe.error.APIConnectionError("Stripe unreachable")
 
-        with patch.object(stripe.Subscription, "retrieve", side_effect=unreachable):
+        with patch.object(
+            LicenceStripe, "retrieve_subscription", side_effect=unreachable
+        ):
             with self.assertRaisesRegex(ValueError, "Stripe error while updating"):
                 self.update_seats(self.SEATS + 5)
 

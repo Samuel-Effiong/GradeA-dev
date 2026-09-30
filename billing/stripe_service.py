@@ -1613,7 +1613,7 @@ class StripeSubscriptionMutationService:
         # What the change needs from Stripe, read before changing it.
         try:
             before = license_stripe_mutation.call_stripe(
-                stripe.Subscription.retrieve, sub_id
+                license_stripe_mutation.LicenceStripe.retrieve_subscription, sub_id
             )
         except stripe.error.StripeError as exc:
             license_stripe_mutation.abandon(
@@ -1646,7 +1646,7 @@ class StripeSubscriptionMutationService:
             )
             try:
                 price = license_stripe_mutation.call_stripe(
-                    stripe.Price.create,
+                    license_stripe_mutation.LicenceStripe.create_price,
                     product=new_plan.product_id,
                     unit_amount=int(monthly_cents * contract_months),
                     currency="usd",
@@ -1670,7 +1670,7 @@ class StripeSubscriptionMutationService:
         )
 
         def set_price(price_id, proration, **key):
-            return stripe.Subscription.modify(
+            return license_stripe_mutation.LicenceStripe.modify_subscription(
                 sub_id,
                 items=[{"id": item_id, "price": price_id}],
                 proration_behavior=proration,
@@ -1678,7 +1678,11 @@ class StripeSubscriptionMutationService:
             )
 
         def price_reached():
-            data = stripe.Subscription.retrieve(sub_id).get("items", {}).get("data", [])
+            data = (
+                license_stripe_mutation.LicenceStripe.retrieve_subscription(sub_id)
+                .get("items", {})
+                .get("data", [])
+            )
             return bool(data) and data[0]["price"]["id"] == new_price_id
 
         def revert(**key):
@@ -1721,7 +1725,7 @@ class StripeSubscriptionMutationService:
             )
             invoice = (
                 license_stripe_mutation.call_stripe(
-                    stripe.Invoice.retrieve,
+                    license_stripe_mutation.LicenceStripe.retrieve_invoice,
                     invoice_id,
                     expand=INVOICE_PAYMENT_INTENT_EXPAND,
                 )

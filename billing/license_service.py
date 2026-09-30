@@ -2150,11 +2150,13 @@ class LicenseSubscriptionService:
         try:
             license_stripe_mutation.apply_at_stripe(
                 intent,
-                call=lambda **key: stripe.Subscription.modify(
+                call=lambda **key: license_stripe_mutation.LicenceStripe.modify_subscription(
                     sub_id, cancel_at_period_end=True, **key
                 ),
                 reached=lambda: bool(
-                    stripe.Subscription.retrieve(sub_id).get("cancel_at_period_end")
+                    license_stripe_mutation.LicenceStripe.retrieve_subscription(
+                        sub_id
+                    ).get("cancel_at_period_end")
                 ),
             )
         except stripe.error.StripeError as exc:
@@ -2185,7 +2187,7 @@ class LicenseSubscriptionService:
             write=write,
             # No money moves when a cancellation is scheduled, so undoing it
             # is safe (DESIGN_PROPOSAL.md §9d).
-            compensate=lambda **key: stripe.Subscription.modify(
+            compensate=lambda **key: license_stripe_mutation.LicenceStripe.modify_subscription(
                 sub_id, cancel_at_period_end=False, **key
             ),
         )
@@ -2451,7 +2453,7 @@ class LicenseSubscriptionService:
                 )
 
         def compensate(**key):
-            return stripe.Subscription.modify(
+            return license_stripe_mutation.LicenceStripe.modify_subscription(
                 sub_id,
                 items=[{"id": item_id, "price": old_price_id}],
                 proration_behavior="none",
@@ -2561,7 +2563,7 @@ class LicenseSubscriptionService:
         # Phase B: what the change needs from Stripe, read before changing it.
         try:
             before = license_stripe_mutation.call_stripe(
-                stripe.Subscription.retrieve, sub_id
+                license_stripe_mutation.LicenceStripe.retrieve_subscription, sub_id
             )
         except stripe.error.StripeError as exc:
             license_stripe_mutation.abandon(
@@ -2576,7 +2578,7 @@ class LicenseSubscriptionService:
         invoice_before = license_stripe_mutation.stripe_id(before.get("latest_invoice"))
 
         def set_quantity(quantity, proration, **key):
-            return stripe.Subscription.modify(
+            return license_stripe_mutation.LicenceStripe.modify_subscription(
                 sub_id,
                 items=[{"id": item_id, "quantity": quantity}],
                 proration_behavior=proration,
@@ -2584,7 +2586,11 @@ class LicenseSubscriptionService:
             )
 
         def quantity_reached():
-            data = stripe.Subscription.retrieve(sub_id).get("items", {}).get("data", [])
+            data = (
+                license_stripe_mutation.LicenceStripe.retrieve_subscription(sub_id)
+                .get("items", {})
+                .get("data", [])
+            )
             return bool(data) and data[0].get("quantity") == new_max_seats
 
         def revert(**key):
@@ -2630,7 +2636,8 @@ class LicenseSubscriptionService:
                 invoice_id = invoice_of_this_change()
                 invoice = (
                     license_stripe_mutation.call_stripe(
-                        stripe.Invoice.retrieve, invoice_id
+                        license_stripe_mutation.LicenceStripe.retrieve_invoice,
+                        invoice_id,
                     )
                     if invoice_id
                     else None
@@ -3920,13 +3927,20 @@ class LicenseSubscriptionService:
         sub_id = intent.stripe_subscription_id
 
         def deleted():
-            return stripe.Subscription.retrieve(sub_id).get("status") == "canceled"
+            return (
+                license_stripe_mutation.LicenceStripe.retrieve_subscription(sub_id).get(
+                    "status"
+                )
+                == "canceled"
+            )
 
         # Phases B and C.
         try:
             license_stripe_mutation.apply_at_stripe(
                 intent,
-                call=lambda **key: stripe.Subscription.delete(sub_id, **key),
+                call=lambda **key: license_stripe_mutation.LicenceStripe.delete_subscription(
+                    sub_id, **key
+                ),
                 reached=deleted,
                 read_back_on=(stripe.error.InvalidRequestError,),
             )

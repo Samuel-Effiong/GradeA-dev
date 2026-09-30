@@ -28,7 +28,9 @@ Clean re-apply, not a rebase. Each of the 11 commits that were not WIP was appli
 | 7 | `f3e8d4d` | the bounded retry of the local write (§9e); the named Gate-5 assertion is `test_h28_finalise_retry.test_after_the_connection_is_killed_the_retry_succeeds_on_a_fresh_one` (see *The kill in commit 7's test* below) |
 | 8 | `0cfe219` | a human is told (§9g–§9i): every reconciliation alert also emails every active super admin; the stale-intent periodic task `escalate-stale-licence-stripe-intents` (every 5 min, one query, no Stripe call; beat entry and health expectation added); and `manage.py resolve_licence_stripe_intent` (§9h-bis) |
 | 9 | `77e8c95` | the per-request Stripe budget (§9i (2)); the named Gate-5 assertion is `test_h28_stripe_budget.test_slow_stripe_on_every_call_ends_in_the_error_branch_with_its_alert_in_time` (see *The request budget* below) |
-| 10 | (the commit adding this row) | docs: the detector-spec amendment (`SPEC_audit_stripe_divergence.md`): compare price, quantity, renewal and open change-invoices, not only status, and read the intent ledger first |
+| 10 | `01bde47` | docs: the detector-spec amendment (`SPEC_audit_stripe_divergence.md`): compare price, quantity, renewal and open change-invoices, not only status, and read the intent ledger first |
+| — | `69dada7` | the mutation battery runner |
+| 11 | (next) | the SM's review of commit 9: every licence Stripe call through `LicenceStripe`, bounded at the socket (see *The request budget*) |
 
 ## F1: the 4-point behaviour-change record
 
@@ -51,13 +53,17 @@ The named Gate-5 assertion needs Postgres to really end a session, as the 60 s i
 - Just before, it reads that session's `(pg_backend_pid(), current_database())`. The test asserts the database is the test's own (`connection.settings_dict["NAME"]`, starting `test_`), and that the retry then committed on a **different** backend pid.
 - It fires only on phase D's row lock (`FOR UPDATE`) after Stripe applied the change, so it tests the retry of the local write, not phase C's status write.
 
-## The request budget (commit 9)
+## The request budget (commit 9, reworked in commit 11)
 
-stripe-python 14.4.1 has no per-call timeout: its HTTP timeout is process-wide (80 s, with two retries), and gunicorn runs threads, so it cannot be changed per request. So each licence operation runs under one deadline (`REQUEST_BUDGET_SECONDS`, 75 s, which is 25 s inside gunicorn's 100 s), and each Stripe call runs on a short-lived daemon thread that is waited for only as long as the deadline allows (`call_stripe`). Consequences, each tested:
+Each licence operation runs under one deadline (`REQUEST_BUDGET_SECONDS`, 75 s, which is 25 s inside gunicorn's 100 s). Every Stripe call in the licence flows goes through `LicenceStripe` and is bounded **at the socket** by the time left.
 
-- **An abandoned call is not cancelled, and may still land.** So a mutation abandoned after it started is never read back and never classified "not applied": its intent stays PENDING, a human is alerted, and the stale-intent task escalates it. Only a call the budget never started is FAILED. The named test joins the abandoned modify, sees it land at the fake, and checks the intent is still PENDING.
+- **Why an adapter.** stripe-python 14.4.1's legacy resource API (`stripe.Subscription.modify` and the like) accepts no per-call timeout. Its request options are `api_key`, `stripe_version`, `stripe_account`, `stripe_context`, `max_network_retries`, `idempotency_key`, `content_type` and `headers`. Its HTTP client (`stripe.default_http_client`) is process-wide, so bounding it would change every Stripe call in the app, which is wider than H-28. So `LicenceStripe` builds a `StripeClient` per call, as `billing/receipts.py` does for receipt lookups. It uses the app's api_key and **the app's Stripe API version** (`stripe.api_version`, so licence calls never drift to another version; the SM's condition), `max_network_retries=1`, and a `RequestsClient` whose timeout is `(time left − retry sleeps) × 0.9 ÷ attempts`, clamped to 1–30 s. The six call types are subscription retrieve, update and cancel (DELETE), invoice retrieve and void, and price create.
+- **The outer wait remains, as the outer bound only (commit 9's `call_stripe`).** A call normally fails at its socket inside the budget. The outer wait covers only a reply trickling in slower than the per-read timeout. A thread it abandons still ends at its own socket timeout, so abandoned threads cannot pile up (the SM's review of commit 9).
+- **An abandoned call may still land.** So a mutation abandoned after it started is never read back and never classified "not applied": its intent stays PENDING, a human is alerted, and the stale-intent task escalates it. Only a call that never started is FAILED. The named test joins the abandoned modify, sees it land at the fake, and checks the intent is still PENDING.
 - **The worker thread only calls Stripe**, and closes any database connection its thread opened (`connections.close_all()` is per-thread), so none can leak against Postgres's limit.
 - **The proof that no Stripe call runs inside a transaction survives the thread:** the worker carries its caller's `in_atomic_block` (`caller_in_atomic_block()`), which the test fake and the idle-in-transaction kill read.
+
+Tests: `LicenceStripeAdapterTests` covers the client's key, version, retries, sized timeout, and the idempotency key in its options; the mapping of each call; and the sizing. `test_a_hung_stripe_fails_at_the_socket_inside_the_budget` uses a real socket against a local server that never answers: the call fails with a connection error, not the outer wait's, inside a 3 s budget, and leaves no thread. `NoLegacyStripeCallTests` scans the licence flows' source for any direct `stripe.Subscription/Invoice/Price` call, with a guard-on-guard. The test fake now patches `LicenceStripe`.
 
 ## Runs
 
@@ -73,5 +79,6 @@ Dev runs, each under rule 13 (`systemd-run` MemoryMax=6G, `nice -n 10`, `timeout
 | Commit 7's modules | commit-7 tree, over `04314f6` | 123 ran, OK |
 | Commit 8's modules, with `AutoGrader.tests_beat_health` and `AutoGrader.test_health` (a new beat entry) | commit-8 tree | 165 ran, OK |
 | Commit 9's modules | commit-9 tree | 173 ran, **1 failure in a new test of mine**: `test_the_worker_thread_leaves_no_database_connection_open` compared `django.db.connection`, a proxy shared by every thread. Fixed to compare each thread's `connections["default"]`; `test_h28_stripe_budget` re-run: 8 OK. The other 172 passed in the first run |
+| Commit 11's modules (the socket-bound rework), with `AutoGrader.tests_network_guard` and the live-QA registry | commit-11 tree | first run: 195 ran, **1 failure that found a real bug**. `test_a_hung_stripe_fails_at_the_socket_inside_the_budget` showed the outer wait firing: a new thread does not inherit contextvars, so on the worker the deadline was invisible and every call got the 30 s maximum socket timeout. Fixed by running the worker in a copy of the caller's context (mutant L29 pins it). Re-run: **195 ran, OK** |
 
 Rule 15's runs (changed modules, a mutation battery, the `billing` regression) and the whole-range hooks log come at the end of Change 1.
