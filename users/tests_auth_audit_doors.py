@@ -206,16 +206,45 @@ class ResetPasswordDoorTests(DoorBase):
         )
 
     def test_locked_is_denied(self):
+        """batch-2a (L2) behaviour, merged into Epic A: a locked reset
+        answers 429 RESET_LOCKED (it used to be S1's 400), and the attempt is
+        recorded as DENIED."""
         PasswordResetOTP.objects.filter(pk=self.otp.pk).update(
             locked_until=timezone.now() + timedelta(minutes=30)
         )
-        self.reset(self.user.email, self.code)
+        self.assertEqual(self.reset(self.user.email, self.code).status_code, 429)
         self.assert_event(
             self.only_event(),
             outcome=AuditOutcome.DENIED,
             method="password_reset",
             account=self.user,
             reason="RESET_LOCKED",
+        )
+
+    def test_the_guess_that_spends_the_budget_is_a_failure_that_set_the_lock(self):
+        """SM ruling for the 2a merge: that guess answers 429 at once (L2),
+        and is recorded as what it was - a wrong code - flagged
+        lock_triggered. One event per attempt."""
+        wrong = "000000" if self.code != "000000" else "111111"
+        statuses = [
+            self.reset(self.user.email, wrong).status_code
+            for _ in range(PasswordResetOTP.MAX_ATTEMPTS)
+        ]
+
+        self.assertEqual(statuses, [400] * (PasswordResetOTP.MAX_ATTEMPTS - 1) + [429])
+        events = list(AuditEvent.objects.order_by("occurred_at"))
+        self.assertEqual(len(events), PasswordResetOTP.MAX_ATTEMPTS)
+        for event in events:
+            self.assert_event(
+                event,
+                outcome=AuditOutcome.FAILURE,
+                method="password_reset",
+                account=self.user,
+                reason="INVALID_CODE",
+            )
+        self.assertEqual(
+            [event.metadata.get("lock_triggered") for event in events],
+            [None] * (PasswordResetOTP.MAX_ATTEMPTS - 1) + [True],
         )
 
     def test_unknown_email(self):
