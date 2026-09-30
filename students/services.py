@@ -11,6 +11,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 
 from ai_processor.services import GRADING_ASSIGNMENT_PROMPT, ai_processor
+from assignments.exceptions import SubmissionEmptyError
 from assignments.models import Assignment, AssignmentStatus
 from assignments.services import AssignmentProcessingService
 from audit import history
@@ -1182,6 +1183,11 @@ def ensure_no_active_extraction(*, submission=None, assignment=None, student=Non
         )
 
 
+#: How SUBMISSION_EMPTY names a text submission, which has no file name:
+#: "The submitted text has no student answers to grade."
+SUBMITTED_TEXT = "The submitted text"
+
+
 def update_submission_from_raw_text(
     user, submission, raw_input, processing_task_id=None
 ):
@@ -1204,7 +1210,10 @@ def update_submission_from_raw_text(
             "This assignment is not currently open for submissions."
         )
     if not raw_input or not str(raw_input).strip():
-        raise ValueError("There is no text to extract answers from.")
+        # FR-A-06 #6 (S6d): empty text input is SUBMISSION_EMPTY (422),
+        # refused before the billed extraction. Blank ANSWERS in real text
+        # are not refused in Epic A (08a §6.1).
+        raise SubmissionEmptyError(params={"file_name": SUBMITTED_TEXT})
 
     ensure_submission_open(submission)
     ensure_task_not_cancelled(processing_task_id)
