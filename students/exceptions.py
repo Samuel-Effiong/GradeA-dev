@@ -29,6 +29,14 @@ class StudentNotOnRosterError(CodedError, CannotAssociateStudentError):
     status_code = REASON_CODES[ReasonCode.STUDENT_NOT_ON_ROSTER].http_status
 
 
+class RubricMissingError(CodedError):
+    """#7 RUBRIC_MISSING (409): the assignment has nothing to grade against.
+    Refused before any claim, AI call or charge (08a F5; students.grading_gates)."""
+
+    reason_code = ReasonCode.RUBRIC_MISSING
+    status_code = REASON_CODES[ReasonCode.RUBRIC_MISSING].http_status
+
+
 class SubmissionAlreadyGradedError(Exception):
     """
     Product rule (owner, 2026-09-13): once a student's submission for an
