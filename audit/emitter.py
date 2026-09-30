@@ -44,8 +44,9 @@ from django.db import transaction
 
 from AutoGrader.request_context import get_request_id
 
+from . import failed_auth_cap
 from . import metrics as audit_metrics
-from .context import current_trace_id, record_stored_event
+from .context import current_trace_id, record_stored_event, record_suppressed_event
 from .enums import (
     STUDENT_RECORD_ACTIONS,
     ActorRole,
@@ -128,6 +129,7 @@ def emit(
     metadata=None,
     touches_student_record=False,
     strict=False,
+    _bypass_failed_auth_cap=False,
 ):
     """Record one audit event. Returns the saved `AuditEvent`, or None if it
     was rejected or could not be stored.
@@ -173,6 +175,14 @@ def emit(
             extra={"audit_kind": "metadata_dropped", "audit_action": label},
         )
 
+    if not _bypass_failed_auth_cap and _failed_auth_cap_applies(fields):
+        verdict = failed_auth_cap.admit(fields.get("target_id"))
+        if not verdict.write:
+            record_suppressed_event()
+            if verdict.summary is not None:
+                _emit_failed_auth_summary(action, request, verdict.summary)
+            return None
+
     try:
         with transaction.atomic():
             event = AuditEvent.objects.create(**fields)
@@ -193,6 +203,56 @@ def emit(
 
 
 # ---------------------------------------------------------------------------
+
+
+_CAPPED_ACTIONS = frozenset(
+    {AuditAction.AUTH_LOGIN.value, AuditAction.ACCOUNT_REGISTER.value}
+)
+
+
+def _failed_auth_cap_applies(fields) -> bool:
+    """S1b's scope: an anonymous requester's failed sign-in or registration.
+    Successes, DENIED (locked) events and signed-in requesters are never
+    capped; see audit.failed_auth_cap."""
+    return (
+        fields.get("action") in _CAPPED_ACTIONS
+        and fields.get("outcome") == AuditOutcome.FAILURE.value
+        and fields.get("actor_role") == ActorRole.ANONYMOUS.value
+    )
+
+
+def _emit_failed_auth_summary(action, request, summary) -> None:
+    """The summary written in place of suppressed failures (S1b). Scoped to
+    the targeted account's school, like the failures it stands for."""
+    from django.contrib.auth import get_user_model
+    from django.contrib.auth.models import AnonymousUser
+
+    school_id = None
+    if summary.target_id is not None:
+        school_id = (
+            get_user_model()
+            .objects.filter(pk=summary.target_id)
+            .values_list("school_id", flat=True)
+            .first()
+        )
+    emit(
+        action,
+        actor=AnonymousUser(),
+        request=request,
+        target_type="CustomUser",
+        target_id=summary.target_id,
+        school_id=school_id,
+        outcome=AuditOutcome.FAILURE,
+        error_class=ErrorClass.USER,
+        reason_code=failed_auth_cap.FAILED_AUTH_CAPPED,
+        metadata={
+            "cap": summary.cap,
+            "suppressed_so_far": summary.suppressed_so_far,
+            "limit": summary.limit,
+            "window_seconds": summary.window_seconds,
+        },
+        _bypass_failed_auth_cap=True,
+    )
 
 
 def _safe_label(action) -> str:

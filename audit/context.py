@@ -78,10 +78,14 @@ def trace_context(trace_id=None):
 
 
 class RequestAuditState:
-    __slots__ = ("stored_event_ids",)
+    __slots__ = ("stored_event_ids", "suppressed")
 
     def __init__(self):
         self.stored_event_ids = []
+        # S1b: an event this request would have written was held back by the
+        # failed-auth cap (and is counted in its summary), so no fallback
+        # event may stand in for it.
+        self.suppressed = False
 
 
 _request_state_var: ContextVar[Optional[RequestAuditState]] = ContextVar(
@@ -106,6 +110,14 @@ def record_stored_event(event_id) -> None:
     state = _request_state_var.get()
     if state is not None:
         state.stored_event_ids.append(event_id)
+
+
+def record_suppressed_event() -> None:
+    """Mark the current request, if any, as having had an event suppressed by
+    the failed-auth cap (S1b)."""
+    state = _request_state_var.get()
+    if state is not None:
+        state.suppressed = True
 
 
 def a_stored_event_survives(state) -> bool:
