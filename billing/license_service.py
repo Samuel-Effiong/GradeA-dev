@@ -766,13 +766,14 @@ class LicenseSubscriptionService:
                 "error": None,
             }
         except (IndividualSubscriptionConflictError, ValueError) as exc:
-            # No address here: this line used to carry the email next to a
-            # refusal that named another school. The refusals it can log
-            # for a cross-tenant case are generic now.
+            # Class and ids only, never the refusal's text (H-78): the
+            # not-business and individual-subscription refusals carry the
+            # address. Each refusal logs its own ids-only line.
             logger.warning(
-                "Skipped enrolling a teacher in license %s: %s",
+                "Skipped enrolling a teacher in license %s (school %s): %s",
                 license_sub.id,
-                exc,
+                school.id,
+                type(exc).__name__,
             )
             return {
                 "email": email,
@@ -1150,11 +1151,9 @@ class LicenseSubscriptionService:
         # 1. Business email validation
         if not is_exempt_email_domain(email) and not is_business_email(email):
             error_msg = f"Email {email} is not a business email. Only business emails are allowed."
-
+            logger.warning("Not a business email: teacher not enrolled.")
             if raise_on_conflict:
                 raise ValueError(error_msg)
-            logger.warning(error_msg)
-
             return None
 
         # Check if user with this email already exists, whatever its case
@@ -1172,22 +1171,8 @@ class LicenseSubscriptionService:
                     raise ValueError(error_msg)
                 return None
 
-            # 3. Check for active individual subscription
-            has_individual_sub = user.subscriptions.filter(is_active=True).exists()
-
-            if has_individual_sub:
-                error_msg = (
-                    f"Teacher {email} has an active individual subscription. "
-                    "Individual subscriptions cannot be converted to a license. "
-                    "Please cancel the individual subscription first."
-                )
-
-                if raise_on_conflict:
-                    raise IndividualSubscriptionConflictError(error_msg)
-                logger.warning(error_msg)
-                return None
-
-            # 4. School validation
+            # 3. School validation. Before the subscription check (H-78): another
+            # school's teacher's billing status is not this admin's to learn.
             if user.school and user.school != school:
                 # Generic on purpose: naming the other school told any school
                 # admin which school an arbitrary address belongs to (a
@@ -1201,6 +1186,23 @@ class LicenseSubscriptionService:
                 )
                 if raise_on_conflict:
                     raise ValueError(error_msg)
+                return None
+
+            # 4. Check for active individual subscription
+            has_individual_sub = user.subscriptions.filter(is_active=True).exists()
+
+            if has_individual_sub:
+                error_msg = (
+                    f"Teacher {email} has an active individual subscription. "
+                    "Individual subscriptions cannot be converted to a license. "
+                    "Please cancel the individual subscription first."
+                )
+                logger.warning(
+                    "Teacher %s has an individual subscription: not enrolled.",
+                    user.id,
+                )
+                if raise_on_conflict:
+                    raise IndividualSubscriptionConflictError(error_msg)
                 return None
 
             # Associate the teacher with the school if they don't have one
