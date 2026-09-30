@@ -22,6 +22,7 @@ from classrooms.models import EnrollmentStatusType, Topic, reachable_courses
 from students.exceptions import (
     AssignmentNotOpenError,
     CannotAssociateStudentError,
+    CourseNotReachableError,
     RubricMissingError,
     SubmissionAlreadyGradedError,
     SubmissionBeingGradedError,
@@ -48,6 +49,7 @@ from students.task_tracking import (
     claim_processing_task_start,
     cleanup_cancelled_task_artifacts,
     create_processing_task,
+    ensure_batch_has_credits,
     ensure_task_not_cancelled,
     get_processing_task_by_id,
     launch_processing_task,
@@ -467,8 +469,9 @@ def _grading_failure_error_class(exc):
     misfiled as MODEL, 08a §2.2) carry their own class. PROVIDER_FAILURE
     is the provider's fault when its cause is a recognised infra failure
     (timeout, rate limit, dropped connection, 5xx), and the model's when
-    it is not (unusable output). Any other recognised infra failure is the
-    provider's, and anything else an unclassified system fault."""
+    it is not (unusable output). A teacher who lost access to the course
+    (H-38; uncoded) is the user's case. Any other recognised infra failure
+    is the provider's, and anything else an unclassified system fault."""
     reason = reason_of(exc)
     if reason is not None:
         code = reason[0]
@@ -478,6 +481,8 @@ def _grading_failure_error_class(exc):
         ):
             return ErrorClass.MODEL
         return REASON_CODES[code].error_class
+    if isinstance(exc, CourseNotReachableError):
+        return ErrorClass.USER
     if classify_infra_error(exc) is not None:
         return ErrorClass.PROVIDER
     return ErrorClass.SYSTEM
@@ -503,6 +508,9 @@ def grade_engine_async(
         mark_processing_task_started(
             processing_task_id, meta={"step": "Retrieving submission"}
         )
+        # FR-A-07 (S7c): if the batch already ran out of credits, stop here,
+        # before any provider call (never charged).
+        ensure_batch_has_credits(processing_task_id)
         self.update_state(state="PROGRESS", meta={"step": "Retrieving submission"})
         submission = StudentSubmission.objects.select_related("assignment").get(
             id=submission_id
@@ -515,6 +523,15 @@ def grade_engine_async(
             submission.save(update_fields=["scheduled_grading_at", "grading_task_name"])
 
         user = CustomUser.objects.get(id=user_id)
+        # H-38, checked when the run starts, not only when it was requested:
+        # a retry, a scheduled grading or a queued batch item must not grade
+        # (or bill) for a teacher since removed from the course's school.
+        if (
+            not reachable_courses(user)
+            .filter(pk=submission.assignment.course_id)
+            .exists()
+        ):
+            raise CourseNotReachableError()
 
         self.update_state(state="PROGRESS", meta={"step": "Grading"})
         update_processing_task(processing_task_id, meta={"step": "Grading"})
@@ -845,6 +862,9 @@ def upload_answers_engine_async(
         self.update_state(state="PROGRESS", meta={"step": "Extracting answers"})
         update_processing_task(processing_task_id, meta={"step": "Extracting answers"})
         ensure_task_not_cancelled(processing_task_id)
+        # FR-A-07 (S7c): stop before the billed extraction if the batch
+        # already ran out of credits.
+        ensure_batch_has_credits(processing_task_id)
         outcome: dict = {}
         submission = upload_answers_engine(
             assignment=assignment,

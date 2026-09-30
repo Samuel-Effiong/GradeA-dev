@@ -12,6 +12,7 @@ profile.
 import logging
 import math
 import time
+import uuid
 from datetime import timedelta
 from datetime import timezone as dt_timezone
 
@@ -75,13 +76,18 @@ from classrooms.models import (
     StudentCourse,
     teacher_course_access_q,
 )
-from classrooms.permissions import IsSuperAdmin
+from classrooms.permissions import IsSuperAdmin, IsTeacher
 from classrooms.serializers import (
     SchoolAdminRegistrationCompletionSerializer,
     StudentRegistrationCompletionSerializer,
 )
+from students import item_retry
 from students.item_results import UNCLASSIFIED, failure_summary, item_result
-from students.models import BackgroundTaskStatus, BatchUploadSession
+from students.models import (
+    BackgroundProcessingTask,
+    BackgroundTaskStatus,
+    BatchUploadSession,
+)
 from students.task_context import get_session_context, get_task_context
 from students.task_tracking import (
     TERMINAL_TASK_STATUSES,
@@ -104,6 +110,7 @@ from users.models import (
     UserTypes,
     Waitlist,
 )
+from users.permissions import HasCreditBalance
 from users.serializers import (  # BatchSessionResultTaskEntrySerializer,; TaskContextSerializer,
     BatchSessionCancelSerializer,
     BatchSessionResultSerializer,
@@ -2361,6 +2368,15 @@ class TokenRefreshView(BaseTokenRefreshView):
     serializer_class = EpochTokenRefreshSerializer
 
 
+def _uuid_or_404(value):
+    """A path id as a UUID; a malformed one is simply not found (a 404, not
+    a 500 from the UUIDField lookup)."""
+    try:
+        return uuid.UUID(str(value))
+    except ValueError as exc:
+        raise NotFound() from exc
+
+
 class TaskViewSet(viewsets.ViewSet):
     """
     ViewSet for managing background task status endpoints.
@@ -2574,6 +2590,71 @@ class TaskViewSet(viewsets.ViewSet):
             }
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        tags=["Tasks"],
+        summary="Retry one failed batch item in place (FR-A-07 S7b)",
+        description=(
+            "Retries a FAILED grade item whose reason code is retryable as it "
+            "is (PROVIDER_FAILURE, INSUFFICIENT_CREDITS_MID_BATCH): the same "
+            "item_id, retry_count + 1, relaunched. 202 with the item in "
+            "session-results' shape. Anything else is 409 NOT_RETRYABLE; an "
+            "upload item answers 'upload the file again' with "
+            "params.resolution = 'replace_file' (its file isn't kept)."
+        ),
+    )
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path=r"session/(?P<session_id>[^/.]+)/items/(?P<item_id>[^/.]+)/retry",
+        url_name="retry-item",
+        permission_classes=[IsAuthenticated, IsTeacher, HasCreditBalance],
+    )
+    def retry_item(self, request, session_id=None, item_id=None):
+        session = self._own_session(request, session_id)
+        item = get_object_or_404(
+            BackgroundProcessingTask, id=_uuid_or_404(item_id), batch_session=session
+        )
+        item = item_retry.retry_item(item, request.user, request=request)
+        return Response(
+            item_result(item, get_task_context(item)), status=status.HTTP_202_ACCEPTED
+        )
+
+    @extend_schema(
+        tags=["Tasks"],
+        summary="Retry every retryable failed item of a batch (FR-A-07 S7b)",
+        description=(
+            'Body (optional): {"reason_codes": [...]} to retry only those codes. '
+            "202 with {retried: [item_id], skipped: [{item_id, reason_code}]}."
+        ),
+    )
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path=r"session/(?P<session_id>[^/.]+)/retry-failed",
+        url_name="retry-failed",
+        permission_classes=[IsAuthenticated, IsTeacher, HasCreditBalance],
+    )
+    def retry_failed(self, request, session_id=None):
+        session = self._own_session(request, session_id)
+        reason_codes = request.data.get("reason_codes")
+        if reason_codes is not None and (
+            not isinstance(reason_codes, list)
+            or not all(isinstance(code, str) for code in reason_codes)
+        ):
+            raise ParseError("reason_codes must be a list of reason codes.")
+        retried, skipped = item_retry.retry_failed(
+            session, request.user, reason_codes=reason_codes, request=request
+        )
+        return Response(
+            {"retried": retried, "skipped": skipped}, status=status.HTTP_202_ACCEPTED
+        )
+
+    @staticmethod
+    def _own_session(request, session_id):
+        return get_object_or_404(
+            BatchUploadSession, id=_uuid_or_404(session_id), teacher=request.user
+        )
 
     @extend_schema(
         tags=["Tasks"],

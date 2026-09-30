@@ -18,11 +18,17 @@ from AutoGrader.error_messages import (
     DEFAULT_ERROR_MESSAGE,
     describe_background_task_error,
 )
-from AutoGrader.reason_codes import reason_of
+from AutoGrader.reason_codes import CodedError, reason_of
+from billing.errors import InsufficientCreditsError
 from billing.refusals import is_permanent_refusal, log_refusal
 
-from .exceptions import TaskCancelledError
-from .models import BackgroundProcessingTask, BackgroundTaskStatus, BackgroundTaskType
+from .exceptions import InsufficientCreditsMidBatchError, TaskCancelledError
+from .models import (
+    BackgroundProcessingTask,
+    BackgroundTaskStatus,
+    BackgroundTaskType,
+    BatchUploadSession,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -239,6 +245,9 @@ def mark_processing_task_success(processing_task_id, meta=None):
 def mark_processing_task_failure(
     processing_task_id, error, meta=None, *, fallback_message=None
 ):
+    # FR-A-07 (S7c): a credit refusal after part of the batch already ran is
+    # the mid-batch code, and it stops the rest of the batch.
+    error = batch_credit_refusal(processing_task_id, error)
     if is_permanent_refusal(error):
         log_refusal(logger, f"Background task {processing_task_id}", error)
     elif isinstance(error, BaseException):
@@ -499,3 +508,76 @@ def normalize_processing_task_status(processing_task):
         return processing_task.status
 
     return processing_task.status
+
+
+# -- FR-A-07 S7c: credits running out mid-batch (08a §4.5) -------------------
+
+
+def _mid_batch_error(session_id):
+    items = BackgroundProcessingTask.objects.filter(batch_session_id=session_id)
+    total = (
+        BatchUploadSession.objects.filter(pk=session_id)
+        .values_list("total_files", flat=True)
+        .first()
+    )
+    return InsufficientCreditsMidBatchError(
+        params={
+            "completed": items.filter(status=BackgroundTaskStatus.SUCCESS).count(),
+            "total": total or items.count(),
+        }
+    )
+
+
+def batch_credit_refusal(processing_task_id, error):
+    """`error` itself, unless it is a plain credit refusal inside a batch in
+    which another item has already started or finished. That is the
+    mid-batch refusal (not the pre-flight one): the session is marked, so
+    the items still to run stop before any provider call."""
+    if not isinstance(error, InsufficientCreditsError) or isinstance(error, CodedError):
+        return error
+    session_id = (
+        BackgroundProcessingTask.objects.filter(pk=processing_task_id)
+        .values_list("batch_session_id", flat=True)
+        .first()
+    )
+    if not session_id:
+        return error
+    went_ahead = (
+        BackgroundProcessingTask.objects.filter(
+            batch_session_id=session_id,
+            status__in=(BackgroundTaskStatus.STARTED, BackgroundTaskStatus.SUCCESS),
+        )
+        .exclude(pk=processing_task_id)
+        .exists()
+    )
+    if not went_ahead:
+        return error
+    BatchUploadSession.objects.filter(
+        pk=session_id, credits_exhausted_at__isnull=True
+    ).update(credits_exhausted_at=timezone.now())
+    mid_batch = _mid_batch_error(session_id)
+    mid_batch.__cause__ = error
+    return mid_batch
+
+
+def ensure_batch_has_credits(processing_task_id):
+    """Stop an item whose batch already ran out of credits, BEFORE any
+    provider call (so it is never charged): it fails with the same
+    INSUFFICIENT_CREDITS_MID_BATCH as the item that ran out."""
+    session_id = (
+        BackgroundProcessingTask.objects.filter(pk=processing_task_id)
+        .values_list("batch_session_id", flat=True)
+        .first()
+    )
+    if (
+        session_id
+        and BatchUploadSession.objects.filter(
+            pk=session_id, credits_exhausted_at__isnull=False
+        ).exists()
+    ):
+        raise _mid_batch_error(session_id)
+
+
+def clear_batch_credit_stop(session_id):
+    """A resume (a retry after a top-up) lets the batch run again."""
+    BatchUploadSession.objects.filter(pk=session_id).update(credits_exhausted_at=None)
