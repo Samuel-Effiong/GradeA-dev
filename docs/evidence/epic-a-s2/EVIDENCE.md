@@ -55,7 +55,7 @@ Every run was wrapped in `systemd-run MemoryMax=6G`, `nice -n 10`, a timeout, RA
 | Changed modules | `audit.tests_route_coverage` + `users.tests_auth_audit_doors` + `audit.tests_state_change`: **71 OK** (`changed_modules.txt`). The sweep fires every write route (196 found). |
 | 2 Mutation | `mutate.py`, **8 mutants, 8 killed** (`mutation_log.txt`): a door left out of the registry, the refusal never recorded, a throttled (429) request recorded, a signed-in requester recorded as a door refusal, the refusal written although the door recorded its own, the Stripe exclusion removed, ACCOUNT_REGISTER not emitted, and ACCOUNT_REGISTER naming the new account as actor. |
 | 1 Regression (owning app) | `audit`: **221 OK** (`regression_audit.txt`) |
-| mypy | whole-repo `pre-commit run mypy --all-files`: Passed (commit hooks, on every changed file) |
+| mypy | whole-repo `pre-commit run mypy --all-files`: **Passed** |
 | Migrations | none needed (`action` has no choices) |
 
 **Found while running the gates:** the QA console views answer 404 to anyone but a signed-in superadmin ("no hint this exists"). The guard treated that as reachable; `CONCEALED_ROUTES` now lists them explicitly (stale-checked). A 404 in general stays "reachable", since an open route given a made-up id answers 404 too.
