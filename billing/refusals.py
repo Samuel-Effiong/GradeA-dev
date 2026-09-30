@@ -17,30 +17,11 @@ message text: a layer that rewraps a refusal in a bare Exception is the bug,
 and is fixed at that layer. See docs/evidence/REFUSAL_HANDLING_EVIDENCE.md.
 """
 
-from rest_framework import status
-from rest_framework.response import Response
-
-from AutoGrader.error_messages import describe_user_error
+from AutoGrader.reason_codes import coded_response
 from billing.access_control import AIFeatureNotAvailableError
 from billing.errors import InsufficientCreditsError
 
 PERMANENT_AI_REFUSALS = (AIFeatureNotAvailableError, InsufficientCreditsError)
-
-# (HTTP status, machine-readable code) per refusal. 402 for "can't pay",
-# 403 for "not allowed on this plan" - the convention generate-assignment
-# already used (assignments/views.py).
-_REFUSAL_HTTP = (
-    (
-        InsufficientCreditsError,
-        status.HTTP_402_PAYMENT_REQUIRED,
-        "insufficient_credits",
-    ),
-    (
-        AIFeatureNotAvailableError,
-        status.HTTP_403_FORBIDDEN,
-        "ai_feature_not_available",
-    ),
-)
 
 
 def is_permanent_refusal(error):
@@ -48,16 +29,14 @@ def is_permanent_refusal(error):
 
 
 def refusal_response(error):
-    """The HTTP answer to a refusal: its status, a client-safe message and a
-    stable `code`. Returns None for anything that isn't a refusal, so a
-    caller can fall through to its own handling."""
-    for refusal_type, http_status, code in _REFUSAL_HTTP:
-        if isinstance(error, refusal_type):
-            return Response(
-                {"error": describe_user_error(error), "code": code},
-                status=http_status,
-            )
-    return None
+    """The HTTP answer to a refusal: its status and the coded error body
+    (AutoGrader.reason_codes, FR-A-06), which keeps the client-safe message
+    and the legacy lowercase `code` beside the new `reason_code`. Returns
+    None for anything that isn't a refusal, so a caller can fall through to
+    its own handling."""
+    if not is_permanent_refusal(error):
+        return None
+    return coded_response(error)
 
 
 def log_refusal(logger, what, error, **extra):

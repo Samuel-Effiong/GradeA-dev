@@ -56,8 +56,8 @@ from audit.enums import AuditAction, AuditOutcome
 from AutoGrader.cache_generation import SCOPE_USER, versioned_key
 from AutoGrader.error_messages import describe_user_error, is_user_facing_error
 from AutoGrader.pagination import StandardPageNumberPagination
+from AutoGrader.reason_codes import coded_response
 from AutoGrader.uploads import validate_upload_size
-from billing.refusals import refusal_response
 from classrooms.models import EnrollmentStatusType, teacher_course_access_q
 from classrooms.permissions import IsStudent, IsTeacher
 from users.mixins import UserCacheMixin
@@ -121,12 +121,13 @@ def _submission_closed_response(exc):
 
 
 def _failure_response(exc, fallback_message):
-    """An AI refusal (plan or credits) is a 403/402 with a code; any other
-    refusal the user can act on is a 400 with its own text; anything else is
-    a 500 with the operation's fallback text (never the raw exception)."""
-    refused = refusal_response(exc)
-    if refused is not None:
-        return refused
+    """A coded failure (FR-A-06, including the AI refusals: plan or credits)
+    gets its own status and the coded body; any other refusal the user can
+    act on is a 400 with its own text; anything else is a 500 with the
+    operation's fallback text (never the raw exception)."""
+    coded = coded_response(exc)
+    if coded is not None:
+        return coded
     return Response(
         {"error": describe_user_error(exc, fallback_message=fallback_message)},
         status=(

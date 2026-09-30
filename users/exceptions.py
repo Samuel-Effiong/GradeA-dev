@@ -3,7 +3,8 @@ import logging
 from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
-from billing.refusals import is_permanent_refusal, log_refusal, refusal_response
+from AutoGrader.reason_codes import CodedError, coded_response
+from billing.refusals import is_permanent_refusal, log_refusal
 
 logger = logging.getLogger(__name__)
 
@@ -17,10 +18,19 @@ def custom_exception_handler(exc, context):
         "user": getattr(request.user, "pk", None),
     }
 
-    # ---- A refusal no view caught: 402/403 with a code, never a 500 ----
-    if is_permanent_refusal(exc):
-        log_refusal(logger, "API request", exc, **extra)
-        response = refusal_response(exc)
+    # ---- A coded failure no view caught (FR-A-06): its own status and the
+    # coded body, never a 500. A refusal (credits, plan) is one of these. ----
+    if is_permanent_refusal(exc) or isinstance(exc, CodedError):
+        if is_permanent_refusal(exc):
+            log_refusal(logger, "API request", exc, **extra)
+        else:
+            logger.warning(
+                "API request failed with %s: %s",
+                exc.reason_code,
+                exc.detail or exc,
+                extra=extra,
+            )
+        response = coded_response(exc)
         response._drf_handled = True  # marker for renderer
         return response
 
