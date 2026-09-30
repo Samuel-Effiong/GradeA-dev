@@ -95,5 +95,33 @@ There is no migration, backfill or command use. Tests use it only to create priv
 | `users/views.py`, `users/admin.py` | users.tests_auth_audit_doors, audit.tests_history, plus the `users` regression |
 | `billing/services.py` | billing.tests.test_free_plan_activation_security |
 
-## Gates
-_pending_
+## Gates (rule 15: changed modules + mutation + ONE owning-app regression; logs committed)
+Everything below ran on **`f8267bc`** (0b's merge `3a46781` of phase2/epic-a `be1147a`, with S6b, plus test/doc commits). Every run was wrapped in `systemd-run MemoryMax=6G`, `nice -n 10`, a timeout, RACE_COST 600/200 and `--noinput`, one step at a time in 0b's slot.
+
+**History:** three earlier gated runs stopped at the changed-module step. Each time the script halts before the prefix when that step isn't green, so no red mutation or regression was ever recorded:
+1. `tests_state_change`: privileged fixture accounts.
+2. Widened to the whole `audit` app: the admin-action, query-API, S3 licence-pin and enums tests.
+3. The upload-audit tests: a fixture enrolment.
+
+All three were fixture or pin updates, listed in §3. None were code defects.
+
+| Gate | Result |
+|---|---|
+| Reproduce-first | `be1147a`'s call sites and emitter (`audit/apps.py`, `emitter.py`, and the call sites in students, assignments, classrooms, users and billing), with the new history module kept so the tests import. Against `audit.tests_history`, `audit.tests_history_guard` and `classrooms.tests_epic_a_roster_audit` (`prefix_be1147a_failing.txt`): **50 tests, 17 failures, 8 errors**. All are behavioural: no events written, no before/after narrowing, the guard sees the unrouted bulk writes, and the roster shapes differ. |
+| Changed modules | the whole `audit` app + the 13 mapped labels (§4): **530 OK** (`changed_modules.txt`, trimmed; full log in GAP-evidence-logs) |
+| 2 Mutation | `mutate.py`, **17 mutants, 17 killed**, anchors asserted unique (`mutation_log.txt`, `mutation_results.json`). They cover: registry (H1), diffing (H2), actor rule and `acting_as` (H3, H4), privileged-only creates (H5), deletes (H6), `record_bulk` (H7), school scope (H8), request fields (H9), per-action narrowing (B1), AI suppression and GRADING_COMPLETED before/after (G1, G2), the sign-in actor (R1), the verify actor (P1), publish-all routing (P2, also killed by the guard), an unlisted `suppressed()` (S1, killed by the new guard) and DATA_EXPORT (X1). |
+| 1 Regression (one app) | `users`: **686 OK** (skipped=4) (`regression_users.txt`, trimmed; full log in GAP-evidence-logs). Chosen over `audit` because the audit app is already in the changed set and users has the widest behaviour change (0b agreed). |
+| mypy | whole-repo `pre-commit run mypy --all-files`: **Passed** on `f8267bc` |
+| Migrations | `makemigrations --check --dry-run`: **No changes detected** |
+| 3 Concurrency | `ConcurrentGradeWritesTests` (TransactionTestCase, real threads): a publish (`record_bulk`, row lock) racing a score save. Each records its own change with matching before/after. |
+| 5 Failure | `test_the_grade_is_saved_when_the_audit_store_is_down`: the audit store is down, the grade is still saved and the route answers 200 (FR-A-11) |
+| 6 Stress (SM note 4) | `audit/bench_history.py` on the test DB (`gate6_benchmark.txt`): see below |
+
+**Gate 6: what capture costs** (40 grade saves; 10 imports of 30 students through the real bulk-add route):
+
+| Measure | Capture off (`suppressed()`) | Capture on |
+|---|---|---|
+| one grade save, p50 / p95 | 2.29 / 3.13 ms | 5.68 / 7.06 ms |
+| roster import of 30, p50 / p95 | 869 / 1098 ms | 941 / 1209 ms |
+
+A tracked save costs about **+4 ms p95**. It pays for the `pre_save` read of the stored values, the `post_save` read-back and the event insert. A roster import of 30 costs about **+10%** (30 enrolment creates + 1 aggregate). Saves that write no tracked field (`update_fields` without one) skip both reads. If the +4 ms matters, the `post_save` read-back could use the instance's saved values instead; it doesn't look worth it now.
