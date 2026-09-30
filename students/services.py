@@ -916,138 +916,148 @@ def upload_answers_engine(
         ensure_student_may_submit(assignment, request_user)
 
     ensure_task_not_cancelled(processing_task_id)
-    student_submission = ai_processor.extract_answer_with_retry(
-        request_user,
-        content,
-        assignment_context,
-        assignment_model=assignment,
-        max_retries=3,
-        processing_task_id=processing_task_id,
-    )
-
-    if student_submission is not None:
-        # StudentSubmission.answers is NOT nullable, and both write paths
-        # below read this key. Before this guard, an extraction that came
-        # back without it (or with a non-list under it) reached the DB as
-        # SQL NULL and died there with a bare IntegrityError - AFTER the
-        # teacher had been billed for the call, and with no indication of
-        # what was actually wrong. Validated here, at the boundary, so the
-        # failure is legible and the enclosing refund scope can reclaim
-        # the charge.
-        extracted_answers = student_submission.get("answers")
-        if not isinstance(extracted_answers, list):
-            raise ValueError(
-                "Answer extraction returned no usable `answers` list "
-                f"(got {type(extracted_answers).__name__}); refusing to "
-                "persist an unusable submission."
-            )
-
-        target_student = request_user
-
-        if is_proxy_upload:
-            target_student = _match_enrolled_student(
-                assignment.course,
-                student_submission.get("student_name"),
-                file_name=file_name,
-                teacher=request_user,
-            )
-        else:
-            # Post-extraction re-check. The authoritative check is under
-            # the row lock below; this one exists because the extraction
-            # above took real time, and a grade can have landed meanwhile.
-            ensure_student_may_submit(assignment, request_user)
-
-        # ----------------------------------------------------------------
-        # Atomic submission limit enforcement + get-or-create + increment.
-        #
-        # select_for_update() on the student's row prevents the TOCTOU race
-        # where two concurrent uploads from the same student both pass the
-        # attempt_count guard, each increment the counter, and together
-        # bypass the submission limit. For that to hold, the lock has to
-        # stay held until the increment is COMMITTED - so the save is
-        # inside this block. (It used to be outside: the block released
-        # the lock with the new count only in memory, the second upload
-        # then read the old count from the DB, and both passed the guard.)
-        # What sits under the lock besides the save is CPU-only HTML
-        # rendering, milliseconds, and never a network call.
-        #
-        # attempt_count tracks *total submissions ever made*, starting at 1
-        # on the very first upload and increasing on every subsequent one.
-        # ----------------------------------------------------------------
-        is_student_self_upload = (
-            request_user.user_type == UserTypes.STUDENT and not is_proxy_upload
+    # F1 (S6d, 08a §6.0): every credit charged for this extraction (each
+    # chunk, on every attempt) is refunded if the upload fails before the
+    # submission is persisted, as grading and the raw-text edit already are.
+    # Before this, a mid-chunk failure kept the chunks already charged.
+    # The notification below stays outside: a failed notice must never
+    # refund a submission that was saved.
+    with billing_refund_scope(
+        reason="answer upload failed before the submission was persisted"
+    ):
+        student_submission = ai_processor.extract_answer_with_retry(
+            request_user,
+            content,
+            assignment_context,
+            assignment_model=assignment,
+            max_retries=3,
+            processing_task_id=processing_task_id,
         )
 
-        with transaction.atomic():
-            existing_submission = (
-                StudentSubmission.objects.select_for_update()
-                .filter(assignment=assignment, student=target_student)
-                .first()
-            )
-
-            if existing_submission:
-                # Authoritative: the row is locked, so this decision cannot
-                # race a concurrent upload, a grading claim, or a grade
-                # landing on the row. Applies to proxy uploads too.
-                _check_submission_open(
-                    existing_submission, student_upload=is_student_self_upload
+        if student_submission is not None:
+            # StudentSubmission.answers is NOT nullable, and both write paths
+            # below read this key. Before this guard, an extraction that came
+            # back without it (or with a non-list under it) reached the DB as
+            # SQL NULL and died there with a bare IntegrityError - AFTER the
+            # teacher had been billed for the call, and with no indication of
+            # what was actually wrong. Validated here, at the boundary, so the
+            # failure is legible and the enclosing refund scope can reclaim
+            # the charge.
+            extracted_answers = student_submission.get("answers")
+            if not isinstance(extracted_answers, list):
+                raise ValueError(
+                    "Answer extraction returned no usable `answers` list "
+                    f"(got {type(extracted_answers).__name__}); refusing to "
+                    "persist an unusable submission."
                 )
 
-            if existing_submission:
-                # Re-submission - update answers and increment counter.
-                created = False
-                submission = existing_submission
-                ensure_task_not_cancelled(processing_task_id)
-                submission.answers = student_submission.get(
-                    "answers", submission.answers
-                )
+            target_student = request_user
 
-                if is_student_self_upload:
-                    submission.attempt_count = (submission.attempt_count or 0) + 1
+            if is_proxy_upload:
+                target_student = _match_enrolled_student(
+                    assignment.course,
+                    student_submission.get("student_name"),
+                    file_name=file_name,
+                    teacher=request_user,
+                )
             else:
-                # First submission - create the row and set counter to 1.
-                # submission_date is set explicitly here (rather than left
-                # to auto_now_add) because student_submission_to_html()
-                # below renders this instance before it's ever saved, and
-                # auto_now_add only populates the field on save.
-                created = True
-                submission = StudentSubmission(
-                    assignment=assignment,
-                    student=target_student,
-                    answers=student_submission.get("answers"),
-                    attempt_count=1 if is_student_self_upload else 0,
-                    submission_date=timezone.now(),
+                # Post-extraction re-check. The authoritative check is under
+                # the row lock below; this one exists because the extraction
+                # above took real time, and a grade can have landed meanwhile.
+                ensure_student_may_submit(assignment, request_user)
+
+            # ----------------------------------------------------------------
+            # Atomic submission limit enforcement + get-or-create + increment.
+            #
+            # select_for_update() on the student's row prevents the TOCTOU race
+            # where two concurrent uploads from the same student both pass the
+            # attempt_count guard, each increment the counter, and together
+            # bypass the submission limit. For that to hold, the lock has to
+            # stay held until the increment is COMMITTED - so the save is
+            # inside this block. (It used to be outside: the block released
+            # the lock with the new count only in memory, the second upload
+            # then read the old count from the DB, and both passed the guard.)
+            # What sits under the lock besides the save is CPU-only HTML
+            # rendering, milliseconds, and never a network call.
+            #
+            # attempt_count tracks *total submissions ever made*, starting at 1
+            # on the very first upload and increasing on every subsequent one.
+            # ----------------------------------------------------------------
+            is_student_self_upload = (
+                request_user.user_type == UserTypes.STUDENT and not is_proxy_upload
+            )
+
+            with transaction.atomic():
+                existing_submission = (
+                    StudentSubmission.objects.select_for_update()
+                    .filter(assignment=assignment, student=target_student)
+                    .first()
                 )
 
-            ensure_task_not_cancelled(processing_task_id)
-            answer_html = student_submission_to_html(submission)
-            submission.raw_input = AssignmentProcessingService.html_to_prosemirror_text(
-                answer_html
-            )
-            # Persist the extractor's confidence - the dashboard
-            # threshold-flags low-confidence extractions, which stayed 0
-            # forever while this field was silently dropped on the upload
-            # path.
-            submission.extraction_confidence = _coerce_confidence(
-                student_submission.get("extraction_confidence")
-            )
-            with cancellable_final_save(processing_task_id):
-                if created:
-                    submission.save()
-                else:
-                    # Only the columns this path owns. A full-row save here
-                    # would write back the stale copy of every other column
-                    # (score, feedback, is_published, grading_state...)
-                    # from an instance loaded before the AI extraction ran.
-                    submission.save(
-                        update_fields=[
-                            "answers",
-                            "attempt_count",
-                            "raw_input",
-                            "extraction_confidence",
-                        ]
+                if existing_submission:
+                    # Authoritative: the row is locked, so this decision cannot
+                    # race a concurrent upload, a grading claim, or a grade
+                    # landing on the row. Applies to proxy uploads too.
+                    _check_submission_open(
+                        existing_submission, student_upload=is_student_self_upload
                     )
 
+                if existing_submission:
+                    # Re-submission - update answers and increment counter.
+                    created = False
+                    submission = existing_submission
+                    ensure_task_not_cancelled(processing_task_id)
+                    submission.answers = student_submission.get(
+                        "answers", submission.answers
+                    )
+
+                    if is_student_self_upload:
+                        submission.attempt_count = (submission.attempt_count or 0) + 1
+                else:
+                    # First submission - create the row and set counter to 1.
+                    # submission_date is set explicitly here (rather than left
+                    # to auto_now_add) because student_submission_to_html()
+                    # below renders this instance before it's ever saved, and
+                    # auto_now_add only populates the field on save.
+                    created = True
+                    submission = StudentSubmission(
+                        assignment=assignment,
+                        student=target_student,
+                        answers=student_submission.get("answers"),
+                        attempt_count=1 if is_student_self_upload else 0,
+                        submission_date=timezone.now(),
+                    )
+
+                ensure_task_not_cancelled(processing_task_id)
+                answer_html = student_submission_to_html(submission)
+                submission.raw_input = (
+                    AssignmentProcessingService.html_to_prosemirror_text(answer_html)
+                )
+                # Persist the extractor's confidence - the dashboard
+                # threshold-flags low-confidence extractions, which stayed 0
+                # forever while this field was silently dropped on the upload
+                # path.
+                submission.extraction_confidence = _coerce_confidence(
+                    student_submission.get("extraction_confidence")
+                )
+                with cancellable_final_save(processing_task_id):
+                    if created:
+                        submission.save()
+                    else:
+                        # Only the columns this path owns. A full-row save here
+                        # would write back the stale copy of every other column
+                        # (score, feedback, is_published, grading_state...)
+                        # from an instance loaded before the AI extraction ran.
+                        submission.save(
+                            update_fields=[
+                                "answers",
+                                "attempt_count",
+                                "raw_input",
+                                "extraction_confidence",
+                            ]
+                        )
+
+    if student_submission is not None:
         if upload_outcome is not None:
             # F3: the overwrite of an existing ungraded submission stays, but
             # the item says it happened (informational, never a failure).
