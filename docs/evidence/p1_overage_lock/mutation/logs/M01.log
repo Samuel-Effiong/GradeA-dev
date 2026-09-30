@@ -3,9 +3,9 @@
 # old: '    transaction.on_commit(enqueue, robust=True)'
 # new: '    enqueue()'
 # modules: billing.tests.test_receipt_lookup_outside_transaction billing.tests.test_overage_lock_across_network billing.tests.test_receipts billing.tests.test_overage_cap
-# commit: 91e1626a8c313eb01e698fd80f71f0584001d361
+# commit: af26f3b60e54de90b9a03ed2c79b53db2e4c38c8
 # exit: 1
-# elapsed_s: 89.5
+# elapsed_s: 41.2
 # restored_sha256_matches_commit_blob: True
 
 Found 57 test(s).
@@ -94,6 +94,7 @@ Running migrations:
   Applying assignments.0037_assignment_course_title_index... OK
   Applying assignments.0038_assignment_updated_at... OK
   Applying assignments.0039_assignment_upload_fingerprint... OK
+  Applying assignments.0040_db_defaults_for_rollback... OK
   Applying authtoken.0001_initial... OK
   Applying authtoken.0002_auto_20160226_1747... OK
   Applying authtoken.0003_tokenproxy... OK
@@ -180,10 +181,12 @@ Running migrations:
   Applying billing.0067_stripe_event_recovery... OK
   Applying billing.0068_price_reconciliation... OK
   Applying billing.0069_price_sync_audit... OK
-  Applying billing.0070_stripeevent_auto_replay_attempts_and_more... OK
+  Applying billing.0070_db_defaults_for_rollback... OK
+  Applying billing.0071_stripeevent_auto_replay_attempts_and_more... OK
   Applying dashboard.0001_initial... OK
   Applying dashboard.0002_schoolatrisksnapshot... OK
   Applying dashboard.0003_studentriskalertstate_alert_pending... OK
+  Applying dashboard.0004_db_defaults_for_rollback... OK
   Applying django_celery_beat.0001_initial... OK
   Applying django_celery_beat.0002_auto_20161118_0346... OK
   Applying django_celery_beat.0003_auto_20161209_0049... OK
@@ -286,7 +289,11 @@ Running migrations:
   Applying users.0034_passwordresetotp_attempts_and_more... OK
   Applying users.0035_settings_notify_assignment_edited... OK
   Applying users.0036_customuser_failed_login_attempts_and_more... OK
-Using existing test database for alias 'default' ('test_p1mut_m01')...
+  Applying users.0037_customuser_must_change_password... OK
+  Applying users.0038_alter_customuser_must_change_password... OK
+  Applying users.0039_customuser_token_epoch... OK
+  Applying users.0040_db_defaults_for_rollback... OK
+Using existing test database for alias 'default' ('test_h62_mut')...
 System check identified some issues:
 
 WARNINGS:
@@ -326,16 +333,16 @@ ok
 test_sweep_task_wrapper (billing.tests.test_receipts.SweepMissingReceiptUrlsTests.test_sweep_task_wrapper) ... ok
 test_time_budget_stops_the_run (billing.tests.test_receipts.SweepMissingReceiptUrlsTests.test_time_budget_stops_the_run) ... ok
 test_unresolved_rows_are_retried_by_a_later_sweep (billing.tests.test_receipts.SweepMissingReceiptUrlsTests.test_unresolved_rows_are_retried_by_a_later_sweep) ... ok
-test_cap_already_reached_rejects_even_a_single_block (billing.tests.test_overage_cap.CreateOverageCheckoutCapTests.test_cap_already_reached_rejects_even_a_single_block) ... Cannot activate automatic trial for user t-caf24ca3ef@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+test_cap_already_reached_rejects_even_a_single_block (billing.tests.test_overage_cap.CreateOverageCheckoutCapTests.test_cap_already_reached_rejects_even_a_single_block) ... Cannot activate automatic trial for user t-18efa8cd0a@example.com (validation): Free trial plan not found. Please create one in the admin panel.
 ok
-test_quantity_exceeding_remaining_cap_is_rejected_before_stripe (billing.tests.test_overage_cap.CreateOverageCheckoutCapTests.test_quantity_exceeding_remaining_cap_is_rejected_before_stripe) ... Cannot activate automatic trial for user t-fbdd0666e0@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+test_quantity_exceeding_remaining_cap_is_rejected_before_stripe (billing.tests.test_overage_cap.CreateOverageCheckoutCapTests.test_quantity_exceeding_remaining_cap_is_rejected_before_stripe) ... Cannot activate automatic trial for user t-acdb04b4cd@example.com (validation): Free trial plan not found. Please create one in the admin panel.
 ok
-test_quantity_within_remaining_cap_creates_session (billing.tests.test_overage_cap.CreateOverageCheckoutCapTests.test_quantity_within_remaining_cap_creates_session) ... Cannot activate automatic trial for user t-3b97a64216@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+test_quantity_within_remaining_cap_creates_session (billing.tests.test_overage_cap.CreateOverageCheckoutCapTests.test_quantity_within_remaining_cap_creates_session) ... Cannot activate automatic trial for user t-9979ec0f8d@example.com (validation): Free trial plan not found. Please create one in the admin panel.
 ok
-test_over_cap_at_grant_time_grants_nothing_and_flags_for_refund (billing.tests.test_overage_cap.GrantTimeOverageCapTests.test_over_cap_at_grant_time_grants_nothing_and_flags_for_refund) ... Cannot activate automatic trial for user t-ca969cf52c@example.com (validation): Free trial plan not found. Please create one in the admin panel.
-Overage checkout session cs_grant_test completed for wallet b4a8434d-d1a8-4dca-9d62-839f5119b405 but granting 1 more block(s) would exceed the cap (3 used of 3) — credits NOT granted. Needs manual reconciliation (refund the payment via the Stripe dashboard).
+test_over_cap_at_grant_time_grants_nothing_and_flags_for_refund (billing.tests.test_overage_cap.GrantTimeOverageCapTests.test_over_cap_at_grant_time_grants_nothing_and_flags_for_refund) ... Cannot activate automatic trial for user t-b6220e2234@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+Overage checkout session cs_grant_test completed for wallet a9c07b23-195e-4cb6-99dd-c7348c2b35d0 but granting 1 more block(s) would exceed the cap (3 used of 3) — credits NOT granted. Needs manual reconciliation (refund the payment via the Stripe dashboard).
 ok
-test_within_cap_grants_never_expiring_overage_bucket (billing.tests.test_overage_cap.GrantTimeOverageCapTests.test_within_cap_grants_never_expiring_overage_bucket) ... Cannot activate automatic trial for user t-a3afc1eda8@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+test_within_cap_grants_never_expiring_overage_bucket (billing.tests.test_overage_cap.GrantTimeOverageCapTests.test_within_cap_grants_never_expiring_overage_bucket) ... Cannot activate automatic trial for user t-ad3e44c799@example.com (validation): Free trial plan not found. Please create one in the admin panel.
 ok
 test_individual_checkout_fresh_activation (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_individual_checkout_fresh_activation) ... Cannot activate automatic trial for user fresh.activation@p1.test (validation): Free trial plan not found. Please create one in the admin panel.
 FAIL
@@ -346,7 +353,7 @@ FAIL
 test_individual_upgrade_applied (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_individual_upgrade_applied) ... Cannot activate automatic trial for user upgrade@p1.test (validation): Free trial plan not found. Please create one in the admin panel.
 FAIL
 test_individual_upgrade_subscription_changed (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_individual_upgrade_subscription_changed) ... Cannot activate automatic trial for user upgrade.stale@p1.test (validation): Free trial plan not found. Please create one in the admin panel.
-Upgrade checkout session cs_pi_stale completed for user upgrade.stale@p1.test, but their active subscription has changed since this checkout was created (expected subscription 9479f6d2-8f22-4bc9-9f8d-f70161131852, currently 2c306653-7dc5-4d5c-9051-5559fd67d666) — skipping to avoid overwriting a more recent change. The payment for this session already succeeded on Stripe and needs a manual refund if it shouldn't have gone through.
+Upgrade checkout session cs_pi_stale completed for user upgrade.stale@p1.test, but their active subscription has changed since this checkout was created (expected subscription 59bee41d-6a1e-4fff-98a9-4722ae3184d2, currently eddb275f-d5ce-4d20-a396-8d4d1e3aff03) — skipping to avoid overwriting a more recent change. The payment for this session already succeeded on Stripe and needs a manual refund if it shouldn't have gone through.
 FAIL
 test_overage_block_purchase (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_overage_block_purchase) ... Cannot activate automatic trial for user overage@p1.test (validation): Free trial plan not found. Please create one in the admin panel.
 FAIL
@@ -369,32 +376,32 @@ psycopg2.OperationalError: SSL connection has been closed unexpectedly
 The above exception was the direct cause of the following exception:
 
 Traceback (most recent call last):
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/webhooks.py", line 399, in _run_handler_inline
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/webhooks.py", line 399, in _run_handler_inline
     handler(event["data"]["object"])
   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
     return func(*args, **kwds)
            ^^^^^^^^^^^^^^^^^^^
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/stripe_service.py", line 2752, in handle_checkout_completed
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/stripe_service.py", line 2764, in handle_checkout_completed
     StripeWebhookHandler._handle_overage_checkout_completed(session, metadata)
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/stripe_service.py", line 3003, in _handle_overage_checkout_completed
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/stripe_service.py", line 3015, in _handle_overage_checkout_completed
     schedule_receipt_url_fill(billing_transaction)
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/receipts.py", line 222, in schedule_receipt_url_fill
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/receipts.py", line 225, in schedule_receipt_url_fill
     enqueue()
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/receipts.py", line 220, in enqueue
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/receipts.py", line 223, in enqueue
     safe_delay(fill_billing_transaction_receipt_url, transaction_id)
-  File "/tmp/p1mut-M01-szt1bjjf/wt/AutoGrader/dispatch.py", line 66, in safe_delay
+  File "/tmp/p1mut-M01-fv8oy38n/wt/AutoGrader/dispatch.py", line 66, in safe_delay
     return task.delay(*args, **kwargs)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 88, in delay
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 88, in delay
     return apply_async(task, args, kwargs)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 80, in apply_async
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 80, in apply_async
     return task.run(*(args or ()), **(kwargs or {}))
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tasks.py", line 1620, in fill_billing_transaction_receipt_url
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tasks.py", line 1620, in fill_billing_transaction_receipt_url
     outcome = fill_receipt_url(transaction_id)
               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/receipts.py", line 189, in fill_receipt_url
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/receipts.py", line 192, in fill_receipt_url
     .update(receipt_url=receipt_url, updated_at=timezone.now())
      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 1261, in update
@@ -441,7 +448,7 @@ test_unexpected_enqueue_error_after_commit_does_not_fail_the_caller (billing.tes
 test_broker_down_at_commit_grant_succeeds (billing.tests.test_receipts.WebhookReceiptRecoveryTests.test_broker_down_at_commit_grant_succeeds) ... Cannot activate automatic trial for user receipt.recovery@billing.test (validation): Free trial plan not found. Please create one in the admin panel.
 Could not dispatch task billing.tasks.fill_billing_transaction_receipt_url - broker unavailable
 Traceback (most recent call last):
-  File "/tmp/p1mut-M01-szt1bjjf/wt/AutoGrader/dispatch.py", line 66, in safe_delay
+  File "/tmp/p1mut-M01-fv8oy38n/wt/AutoGrader/dispatch.py", line 66, in safe_delay
     return task.delay(*args, **kwargs)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
@@ -458,32 +465,32 @@ test_crash_after_stripe_answers_but_before_the_local_write (billing.tests.test_r
 The ordering that used to lose money, now inverted: the Stripe call ... Cannot activate automatic trial for user receipt.recovery@billing.test (validation): Free trial plan not found. Please create one in the admin panel.
 receipt recovery test: error processing event evt_crash (checkout.session.completed).
 Traceback (most recent call last):
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/webhooks.py", line 399, in _run_handler_inline
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/webhooks.py", line 399, in _run_handler_inline
     handler(event["data"]["object"])
   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
     return func(*args, **kwds)
            ^^^^^^^^^^^^^^^^^^^
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/stripe_service.py", line 2752, in handle_checkout_completed
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/stripe_service.py", line 2764, in handle_checkout_completed
     StripeWebhookHandler._handle_overage_checkout_completed(session, metadata)
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/stripe_service.py", line 3003, in _handle_overage_checkout_completed
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/stripe_service.py", line 3015, in _handle_overage_checkout_completed
     schedule_receipt_url_fill(billing_transaction)
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/receipts.py", line 222, in schedule_receipt_url_fill
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/receipts.py", line 225, in schedule_receipt_url_fill
     enqueue()
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/receipts.py", line 220, in enqueue
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/receipts.py", line 223, in enqueue
     safe_delay(fill_billing_transaction_receipt_url, transaction_id)
-  File "/tmp/p1mut-M01-szt1bjjf/wt/AutoGrader/dispatch.py", line 66, in safe_delay
+  File "/tmp/p1mut-M01-fv8oy38n/wt/AutoGrader/dispatch.py", line 66, in safe_delay
     return task.delay(*args, **kwargs)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 88, in delay
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 88, in delay
     return apply_async(task, args, kwargs)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 80, in apply_async
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 80, in apply_async
     return task.run(*(args or ()), **(kwargs or {}))
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tasks.py", line 1620, in fill_billing_transaction_receipt_url
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tasks.py", line 1620, in fill_billing_transaction_receipt_url
     outcome = fill_receipt_url(transaction_id)
               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/receipts.py", line 187, in fill_receipt_url
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/receipts.py", line 190, in fill_receipt_url
     BillingTransaction.objects.filter(pk=transaction_id)
   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
     return self._mock_call(*args, **kwargs)
@@ -494,21 +501,21 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1204, in _execute_mock_call
     result = effect(*args, **kwargs)
              ^^^^^^^^^^^^^^^^^^^^^^^
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipts.py", line 87, in wrapper
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipts.py", line 87, in wrapper
     raise RuntimeError("worker killed after Stripe answered")
 RuntimeError: worker killed after Stripe answered
 FAIL
 test_handler_failure_after_record_queues_no_receipt_task (billing.tests.test_receipts.WebhookReceiptRecoveryTests.test_handler_failure_after_record_queues_no_receipt_task) ... Cannot activate automatic trial for user receipt.recovery@billing.test (validation): Free trial plan not found. Please create one in the admin panel.
 receipt recovery test: error processing event evt_boom (checkout.session.completed).
 Traceback (most recent call last):
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/webhooks.py", line 399, in _run_handler_inline
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/webhooks.py", line 399, in _run_handler_inline
     handler(event["data"]["object"])
   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/contextlib.py", line 81, in inner
     return func(*args, **kwds)
            ^^^^^^^^^^^^^^^^^^^
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/stripe_service.py", line 2752, in handle_checkout_completed
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/stripe_service.py", line 2764, in handle_checkout_completed
     StripeWebhookHandler._handle_overage_checkout_completed(session, metadata)
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/stripe_service.py", line 3005, in _handle_overage_checkout_completed
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/stripe_service.py", line 3017, in _handle_overage_checkout_completed
     logger.info(
   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
     return self._mock_call(*args, **kwargs)
@@ -533,10 +540,10 @@ ok
 ERROR: test_license_overage_fulfilled (billing.tests.test_receipt_lookup_outside_transaction.LicenseFlowReceiptTests.test_license_overage_fulfilled)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 510, in test_license_overage_fulfilled
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 510, in test_license_overage_fulfilled
     license_sub = self.create_license()
                   ^^^^^^^^^^^^^^^^^^^^^
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 459, in create_license
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 459, in create_license
     return LicenseSubscription.objects.get(
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
@@ -550,10 +557,10 @@ billing.models.LicenseSubscription.DoesNotExist: LicenseSubscription matching qu
 ERROR: test_license_overage_on_inactive_license (billing.tests.test_receipt_lookup_outside_transaction.LicenseFlowReceiptTests.test_license_overage_on_inactive_license)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 532, in test_license_overage_on_inactive_license
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 532, in test_license_overage_on_inactive_license
     license_sub = self.create_license()
                   ^^^^^^^^^^^^^^^^^^^^^
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 459, in create_license
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 459, in create_license
     return LicenseSubscription.objects.get(
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
@@ -567,7 +574,7 @@ billing.models.LicenseSubscription.DoesNotExist: LicenseSubscription matching qu
 ERROR: test_link_lands_only_on_its_own_row (billing.tests.test_receipts.ReceiptIsolationTests.test_link_lands_only_on_its_own_row)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipts.py", line 748, in test_link_lands_only_on_its_own_row
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipts.py", line 748, in test_link_lands_only_on_its_own_row
     mine = BillingTransaction.objects.get(stripe_payment_intent_id="pi_mine")
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
@@ -581,13 +588,13 @@ billing.models.BillingTransaction.DoesNotExist: BillingTransaction matching quer
 ERROR: test_unexpected_enqueue_error_after_commit_does_not_fail_the_caller (billing.tests.test_receipts.ScheduleReceiptUrlFillTests.test_unexpected_enqueue_error_after_commit_does_not_fail_the_caller)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipts.py", line 338, in test_unexpected_enqueue_error_after_commit_does_not_fail_the_caller
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipts.py", line 338, in test_unexpected_enqueue_error_after_commit_does_not_fail_the_caller
     receipts.schedule_receipt_url_fill(txn)
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/receipts.py", line 222, in schedule_receipt_url_fill
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/receipts.py", line 225, in schedule_receipt_url_fill
     enqueue()
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/receipts.py", line 220, in enqueue
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/receipts.py", line 223, in enqueue
     safe_delay(fill_billing_transaction_receipt_url, transaction_id)
-  File "/tmp/p1mut-M01-szt1bjjf/wt/AutoGrader/dispatch.py", line 66, in safe_delay
+  File "/tmp/p1mut-M01-fv8oy38n/wt/AutoGrader/dispatch.py", line 66, in safe_delay
     return task.delay(*args, **kwargs)
            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1139, in __call__
@@ -604,11 +611,11 @@ RuntimeError: bug
 FAIL: test_individual_checkout_fresh_activation (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_individual_checkout_fresh_activation)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 223, in test_individual_checkout_fresh_activation
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 223, in test_individual_checkout_fresh_activation
     assert_receipts_outside_transaction(self, fake)
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 107, in assert_receipts_outside_transaction
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 107, in assert_receipts_outside_transaction
     assert_no_call_inside_transaction(test, fake, only_receipt_lookups=True)
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/testing_fake_stripe.py", line 195, in assert_no_call_inside_transaction
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/testing_fake_stripe.py", line 195, in assert_no_call_inside_transaction
     test.assertEqual(
 AssertionError: Lists differ: [('get', '/v1/invoices/in_fresh')] != []
 
@@ -623,11 +630,11 @@ First extra element 0:
 FAIL: test_individual_checkout_trial_conversion (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_individual_checkout_trial_conversion)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 193, in test_individual_checkout_trial_conversion
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 193, in test_individual_checkout_trial_conversion
     assert_receipts_outside_transaction(self, fake)
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 107, in assert_receipts_outside_transaction
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 107, in assert_receipts_outside_transaction
     assert_no_call_inside_transaction(test, fake, only_receipt_lookups=True)
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/testing_fake_stripe.py", line 195, in assert_no_call_inside_transaction
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/testing_fake_stripe.py", line 195, in assert_no_call_inside_transaction
     test.assertEqual(
 AssertionError: Lists differ: [('get', '/v1/invoices/in_trial_conv')] != []
 
@@ -642,11 +649,11 @@ First extra element 0:
 FAIL: test_individual_subscribe_replay (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_individual_subscribe_replay)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 354, in test_individual_subscribe_replay
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 354, in test_individual_subscribe_replay
     assert_receipts_outside_transaction(self, fake)
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 107, in assert_receipts_outside_transaction
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 107, in assert_receipts_outside_transaction
     assert_no_call_inside_transaction(test, fake, only_receipt_lookups=True)
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/testing_fake_stripe.py", line 195, in assert_no_call_inside_transaction
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/testing_fake_stripe.py", line 195, in assert_no_call_inside_transaction
     test.assertEqual(
 AssertionError: Lists differ: [('get', '/v1/invoices/in_subscribe')] != []
 
@@ -661,11 +668,11 @@ First extra element 0:
 FAIL: test_individual_upgrade_applied (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_individual_upgrade_applied)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 307, in test_individual_upgrade_applied
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 307, in test_individual_upgrade_applied
     assert_receipts_outside_transaction(self, fake)
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 107, in assert_receipts_outside_transaction
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 107, in assert_receipts_outside_transaction
     assert_no_call_inside_transaction(test, fake, only_receipt_lookups=True)
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/testing_fake_stripe.py", line 195, in assert_no_call_inside_transaction
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/testing_fake_stripe.py", line 195, in assert_no_call_inside_transaction
     test.assertEqual(
 AssertionError: Lists differ: [('get', '/v1/payment_intents/pi_upgrade')] != []
 
@@ -680,11 +687,11 @@ First extra element 0:
 FAIL: test_individual_upgrade_subscription_changed (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_individual_upgrade_subscription_changed)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 327, in test_individual_upgrade_subscription_changed
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 327, in test_individual_upgrade_subscription_changed
     assert_receipts_outside_transaction(self, fake)
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 107, in assert_receipts_outside_transaction
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 107, in assert_receipts_outside_transaction
     assert_no_call_inside_transaction(test, fake, only_receipt_lookups=True)
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/testing_fake_stripe.py", line 195, in assert_no_call_inside_transaction
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/testing_fake_stripe.py", line 195, in assert_no_call_inside_transaction
     test.assertEqual(
 AssertionError: Lists differ: [('get', '/v1/payment_intents/pi_stale')] != []
 
@@ -699,11 +706,11 @@ First extra element 0:
 FAIL: test_overage_block_purchase (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_overage_block_purchase)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 261, in test_overage_block_purchase
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 261, in test_overage_block_purchase
     assert_receipts_outside_transaction(self, fake)
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 107, in assert_receipts_outside_transaction
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 107, in assert_receipts_outside_transaction
     assert_no_call_inside_transaction(test, fake, only_receipt_lookups=True)
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/testing_fake_stripe.py", line 195, in assert_no_call_inside_transaction
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/testing_fake_stripe.py", line 195, in assert_no_call_inside_transaction
     test.assertEqual(
 AssertionError: Lists differ: [('get', '/v1/payment_intents/pi_overage')] != []
 
@@ -718,11 +725,11 @@ First extra element 0:
 FAIL: test_trial_to_paid_replay (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_trial_to_paid_replay)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 388, in test_trial_to_paid_replay
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 388, in test_trial_to_paid_replay
     assert_receipts_outside_transaction(self, fake)
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 107, in assert_receipts_outside_transaction
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 107, in assert_receipts_outside_transaction
     assert_no_call_inside_transaction(test, fake, only_receipt_lookups=True)
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/testing_fake_stripe.py", line 195, in assert_no_call_inside_transaction
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/testing_fake_stripe.py", line 195, in assert_no_call_inside_transaction
     test.assertEqual(
 AssertionError: Lists differ: [('get', '/v1/invoices/in_t2p')] != []
 
@@ -737,11 +744,11 @@ First extra element 0:
 FAIL: test_license_create (billing.tests.test_receipt_lookup_outside_transaction.LicenseFlowReceiptTests.test_license_create)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 467, in test_license_create
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 467, in test_license_create
     assert_receipts_outside_transaction(self, fake)
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 107, in assert_receipts_outside_transaction
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 107, in assert_receipts_outside_transaction
     assert_no_call_inside_transaction(test, fake, only_receipt_lookups=True)
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/testing_fake_stripe.py", line 195, in assert_no_call_inside_transaction
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/testing_fake_stripe.py", line 195, in assert_no_call_inside_transaction
     test.assertEqual(
 AssertionError: Lists differ: [('get', '/v1/invoices/in_lic_new')] != []
 
@@ -756,7 +763,7 @@ First extra element 0:
 FAIL: test_credit_consumption_is_not_blocked_by_slow_receipt_lookup (billing.tests.test_overage_lock_across_network.OverageGrantAcrossSlowStripeTests.test_credit_consumption_is_not_blocked_by_slow_receipt_lookup)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_overage_lock_across_network.py", line 153, in test_credit_consumption_is_not_blocked_by_slow_receipt_lookup
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_overage_lock_across_network.py", line 153, in test_credit_consumption_is_not_blocked_by_slow_receipt_lookup
     self.assertEqual(self.granted_credits(self.wallet), BLOCK)
 AssertionError: 0 != 500
 
@@ -764,7 +771,7 @@ AssertionError: 0 != 500
 FAIL: test_slow_receipt_lookup_does_not_roll_back_paid_grant (billing.tests.test_overage_lock_across_network.OverageGrantAcrossSlowStripeTests.test_slow_receipt_lookup_does_not_roll_back_paid_grant)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_overage_lock_across_network.py", line 128, in test_slow_receipt_lookup_does_not_roll_back_paid_grant
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_overage_lock_across_network.py", line 128, in test_slow_receipt_lookup_does_not_roll_back_paid_grant
     self.assertEqual(
 AssertionError: 0 != 500 : PAID overage grant was lost (event status=FAILED, last_error="OperationalError('SSL connection has been closed unexpectedly\\n')", thread_error=None)
 
@@ -772,7 +779,7 @@ AssertionError: 0 != 500 : PAID overage grant was lost (event status=FAILED, las
 FAIL: test_duplicate_webhook_deliveries_with_slow_stripe_grant_once (billing.tests.test_receipts.ReceiptConcurrencyTests.test_duplicate_webhook_deliveries_with_slow_stripe_grant_once)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipts.py", line 889, in test_duplicate_webhook_deliveries_with_slow_stripe_grant_once
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipts.py", line 889, in test_duplicate_webhook_deliveries_with_slow_stripe_grant_once
     self.assertEqual(
 AssertionError: 0 != 500 : round 0: duplicate deliveries did not grant exactly once
 
@@ -780,7 +787,7 @@ AssertionError: 0 != 500 : round 0: duplicate deliveries did not grant exactly o
 FAIL: test_queued_only_after_commit (billing.tests.test_receipts.ScheduleReceiptUrlFillTests.test_queued_only_after_commit)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipts.py", line 284, in test_queued_only_after_commit
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipts.py", line 284, in test_queued_only_after_commit
     self.assertEqual(seen_in_transaction, [0])
 AssertionError: Lists differ: [1] != [0]
 
@@ -795,19 +802,19 @@ First differing element 0:
 FAIL: test_rollback_queues_nothing (billing.tests.test_receipts.ScheduleReceiptUrlFillTests.test_rollback_queues_nothing)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipts.py", line 295, in test_rollback_queues_nothing
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipts.py", line 295, in test_rollback_queues_nothing
     safe_delay.assert_not_called()
   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 910, in assert_not_called
     raise AssertionError(msg)
 AssertionError: Expected 'safe_delay' to not have been called. Called 1 times.
-Calls: [call(<@task: billing.tasks.fill_billing_transaction_receipt_url of AutoGrader at 0x732b472350a0>, 'bff005e5-cc64-49a6-86fe-6bc3e3325047')].
+Calls: [call(<@task: billing.tasks.fill_billing_transaction_receipt_url of AutoGrader at 0x751f8c49d430>, 'ed73d676-eede-4909-9aca-6a46a347b3eb')].
 
 ======================================================================
 FAIL: test_crash_after_stripe_answers_but_before_the_local_write (billing.tests.test_receipts.WebhookReceiptRecoveryTests.test_crash_after_stripe_answers_but_before_the_local_write)
 The ordering that used to lose money, now inverted: the Stripe call
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipts.py", line 664, in test_crash_after_stripe_answers_but_before_the_local_write
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipts.py", line 664, in test_crash_after_stripe_answers_but_before_the_local_write
     self.assertEqual(response.status_code, 200)
 AssertionError: 500 != 200
 
@@ -815,7 +822,7 @@ AssertionError: 500 != 200
 FAIL: test_handler_failure_after_record_queues_no_receipt_task (billing.tests.test_receipts.WebhookReceiptRecoveryTests.test_handler_failure_after_record_queues_no_receipt_task)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipts.py", line 699, in test_handler_failure_after_record_queues_no_receipt_task
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipts.py", line 699, in test_handler_failure_after_record_queues_no_receipt_task
     self.assertNotIn(RECEIPT_TASK_NAME, queued)
 AssertionError: 'billing.tasks.fill_billing_transaction_receipt_url' unexpectedly found in ['billing.tasks.fill_billing_transaction_receipt_url']
 
@@ -824,7 +831,7 @@ FAIL: test_malformed_stripe_reply_leaves_grant_intact_and_is_backfilled (billing
 The behaviour fix-flaky-test's dropped P2 was to have guaranteed: a
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipts.py", line 622, in test_malformed_stripe_reply_leaves_grant_intact_and_is_backfilled
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipts.py", line 622, in test_malformed_stripe_reply_leaves_grant_intact_and_is_backfilled
     self.assertEqual(self.granted_credits(self.wallet), BLOCK)
 AssertionError: 0 != 500
 
@@ -832,12 +839,12 @@ AssertionError: 0 != 500
 FAIL: test_stripe_down_during_receipt_task_grant_succeeds (billing.tests.test_receipts.WebhookReceiptRecoveryTests.test_stripe_down_during_receipt_task_grant_succeeds)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/tmp/p1mut-M01-szt1bjjf/wt/billing/tests/test_receipts.py", line 586, in test_stripe_down_during_receipt_task_grant_succeeds
+  File "/tmp/p1mut-M01-fv8oy38n/wt/billing/tests/test_receipts.py", line 586, in test_stripe_down_during_receipt_task_grant_succeeds
     self.assertEqual(self.granted_credits(self.wallet), BLOCK)
 AssertionError: 0 != 500
 
 ----------------------------------------------------------------------
-Ran 57 tests in 69.437s
+Ran 57 tests in 20.943s
 
 FAILED (failures=17, errors=4)
-Preserving test database for alias 'default' ('test_p1mut_m01')...
+Preserving test database for alias 'default' ('test_h62_mut')...

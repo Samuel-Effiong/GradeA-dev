@@ -3,9 +3,9 @@
 # old: '    except stripe.StripeError as exc:'
 # new: '    except ZeroDivisionError as exc:'
 # modules: billing.tests.test_receipts.LookupReceiptUrlTests
-# commit: acdd29dca5e3a0a64b288fddd71f2f36f2dcbdb9
+# commit: af26f3b60e54de90b9a03ed2c79b53db2e4c38c8
 # exit: 1
-# elapsed_s: 4.6
+# elapsed_s: 3.2
 # restored_sha256_matches_commit_blob: True
 
 Found 8 test(s).
@@ -17,7 +17,7 @@ Synchronizing apps without migrations:
     Running deferred SQL...
 Running migrations:
   No migrations to apply.
-Using existing test database for alias 'default' ('test_p1mut_m25')...
+Using existing test database for alias 'default' ('test_h62_mut')...
 System check identified some issues:
 
 WARNINGS:
@@ -39,7 +39,7 @@ FAIL: test_stripe_error_returns_none (billing.tests.test_receipts.LookupReceiptU
 A Stripe outage is expected and routine: WARNING, never ERROR. An
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/tmp/p1mut-M25-7giqpvm6/wt/billing/tests/test_receipts.py", line 144, in test_stripe_error_returns_none
+  File "/tmp/p1mut-M25-2t4uufsd/wt/billing/tests/test_receipts.py", line 144, in test_stripe_error_returns_none
     self.assertEqual({r.levelname for r in logs.records}, {"WARNING"})
 AssertionError: Items in the first set but not the second:
 'ERROR'
@@ -47,7 +47,7 @@ Items in the second set but not the first:
 'WARNING'
 
 ----------------------------------------------------------------------
-Ran 8 tests in 0.114s
+Ran 8 tests in 0.054s
 
 FAILED (failures=1)
-Preserving test database for alias 'default' ('test_p1mut_m25')...
+Preserving test database for alias 'default' ('test_h62_mut')...

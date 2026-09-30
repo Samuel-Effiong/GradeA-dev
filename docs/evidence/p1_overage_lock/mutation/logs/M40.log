@@ -3,9 +3,9 @@
 # old: '                    pk=txn.pk, receipt_url__isnull=True\n'
 # new: '                    pk=txn.pk\n'
 # modules: billing.tests.test_receipts.BackfillReceiptUrlsCommandTests
-# commit: acdd29dca5e3a0a64b288fddd71f2f36f2dcbdb9
+# commit: af26f3b60e54de90b9a03ed2c79b53db2e4c38c8
 # exit: 1
-# elapsed_s: 4.7
+# elapsed_s: 4.4
 # restored_sha256_matches_commit_blob: True
 
 Found 2 test(s).
@@ -17,7 +17,7 @@ Synchronizing apps without migrations:
     Running deferred SQL...
 Running migrations:
   No migrations to apply.
-Using existing test database for alias 'default' ('test_p1mut_m40')...
+Using existing test database for alias 'default' ('test_h62_mut')...
 System check identified some issues:
 
 WARNINGS:
@@ -31,7 +31,7 @@ test_uses_bounded_lookup_and_never_overwrites (billing.tests.test_receipts.Backf
 FAIL: test_uses_bounded_lookup_and_never_overwrites (billing.tests.test_receipts.BackfillReceiptUrlsCommandTests.test_uses_bounded_lookup_and_never_overwrites)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/tmp/p1mut-M40-n1nenkua/wt/billing/tests/test_receipts.py", line 484, in test_uses_bounded_lookup_and_never_overwrites
+  File "/tmp/p1mut-M40-ilpfkqz6/wt/billing/tests/test_receipts.py", line 484, in test_uses_bounded_lookup_and_never_overwrites
     self.assertEqual(kept.receipt_url, "https://sweep-won.test/r")
 AssertionError: 'https://invoice.stripe.test/in_backfill_kept' != 'https://sweep-won.test/r'
 - https://invoice.stripe.test/in_backfill_kept
@@ -39,7 +39,7 @@ AssertionError: 'https://invoice.stripe.test/in_backfill_kept' != 'https://sweep
 
 
 ----------------------------------------------------------------------
-Ran 2 tests in 0.058s
+Ran 2 tests in 0.054s
 
 FAILED (failures=1)
-Preserving test database for alias 'default' ('test_p1mut_m40')...
+Preserving test database for alias 'default' ('test_h62_mut')...

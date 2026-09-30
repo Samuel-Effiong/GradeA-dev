@@ -1,11 +1,11 @@
 # M14: store PI: fresh activation
-# file: billing/stripe_service.py line: 2861
+# file: billing/stripe_service.py line: 2873
 # old: 'stripe_payment_intent_id=session.get("payment_intent"),'
 # new: ''
 # modules: billing.tests.test_receipt_lookup_outside_transaction
-# commit: 35756c4d70c8e147a21f0e376d35d404e3204cf9
+# commit: af26f3b60e54de90b9a03ed2c79b53db2e4c38c8
 # exit: 1
-# elapsed_s: 38.5
+# elapsed_s: 8.5
 # restored_sha256_matches_commit_blob: True
 
 Found 10 test(s).
@@ -16,15 +16,16 @@ Synchronizing apps without migrations:
   Creating tables...
     Running deferred SQL...
 Running migrations:
-  Applying billing.0070_stripeevent_auto_replay_attempts_and_more... OK
-Using existing test database for alias 'default' ('test_p1mut_m14')...
+  No migrations to apply.
+Using existing test database for alias 'default' ('test_h62_mut')...
 System check identified some issues:
 
 WARNINGS:
 ?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
 
 System check identified 1 issue (0 silenced).
-test_individual_checkout_fresh_activation (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_individual_checkout_fresh_activation) ... ERROR
+test_individual_checkout_fresh_activation (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_individual_checkout_fresh_activation) ... Cannot activate automatic trial for user fresh.activation@p1.test (validation): Free trial plan not found. Please create one in the admin panel.
+FAIL
 test_individual_checkout_trial_conversion (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_individual_checkout_trial_conversion) ... Cannot activate automatic trial for user trial.convert@p1.test (validation): Free trial plan not found. Please create one in the admin panel.
 ok
 test_individual_subscribe_replay (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_individual_subscribe_replay) ... Cannot activate automatic trial for user subscribe@p1.test (validation): Free trial plan not found. Please create one in the admin panel.
@@ -32,7 +33,7 @@ ok
 test_individual_upgrade_applied (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_individual_upgrade_applied) ... Cannot activate automatic trial for user upgrade@p1.test (validation): Free trial plan not found. Please create one in the admin panel.
 ok
 test_individual_upgrade_subscription_changed (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_individual_upgrade_subscription_changed) ... Cannot activate automatic trial for user upgrade.stale@p1.test (validation): Free trial plan not found. Please create one in the admin panel.
-Upgrade checkout session cs_pi_stale completed for user upgrade.stale@p1.test, but their active subscription has changed since this checkout was created (expected subscription ae920b83-22d3-499d-8c1f-0de4315485cd, currently 692f7e9e-1836-4aa7-9d54-0e85998a480d) — skipping to avoid overwriting a more recent change. The payment for this session already succeeded on Stripe and needs a manual refund if it shouldn't have gone through.
+Upgrade checkout session cs_pi_stale completed for user upgrade.stale@p1.test, but their active subscription has changed since this checkout was created (expected subscription 7955e9b8-fc2b-4ea2-9112-8e7276e1ecb1, currently 88febbd3-074f-410a-a522-856876191f7f) — skipping to avoid overwriting a more recent change. The payment for this session already succeeded on Stripe and needs a manual refund if it shouldn't have gone through.
 ok
 test_overage_block_purchase (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_overage_block_purchase) ... Cannot activate automatic trial for user overage@p1.test (validation): Free trial plan not found. Please create one in the admin panel.
 ok
@@ -42,73 +43,19 @@ test_license_create (billing.tests.test_receipt_lookup_outside_transaction.Licen
 test_license_overage_fulfilled (billing.tests.test_receipt_lookup_outside_transaction.LicenseFlowReceiptTests.test_license_overage_fulfilled) ... Cannot activate automatic trial for user teacher@p1school.test (validation): Free trial plan not found. Please create one in the admin panel.
 ok
 test_license_overage_on_inactive_license (billing.tests.test_receipt_lookup_outside_transaction.LicenseFlowReceiptTests.test_license_overage_on_inactive_license) ... Cannot activate automatic trial for user teacher2@p1school.test (validation): Free trial plan not found. Please create one in the admin panel.
-Overage purchase intent f17bd01b-b0c4-4cf2-a861-c2a3eaf17d2c paid (session cs_pi_lic_inactive) but license 4c91b1b9-17e5-4573-9803-0eca8fddbab1 is no longer active — credits NOT granted. Needs manual refund via the Stripe dashboard.
+Overage purchase intent 5818c2ba-5133-4b8b-b0b1-2bdddda3dbe3 paid (session cs_pi_lic_inactive) but license 9ccc91e3-a360-4b89-8d8a-841d6da29c96 is no longer active — credits NOT granted. Needs manual refund via the Stripe dashboard.
 ok
 
 ======================================================================
-ERROR: test_individual_checkout_fresh_activation (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_individual_checkout_fresh_activation)
+FAIL: test_individual_checkout_fresh_activation (billing.tests.test_receipt_lookup_outside_transaction.IndividualFlowReceiptTests.test_individual_checkout_fresh_activation)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
-    return self.cursor.execute(sql, params)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "billing_subscriptionplan_name_key"
-DETAIL:  Key (name)=(STANDARD) already exists.
-
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "/tmp/p1mut-M14-krfuyyde/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 156, in setUp
-    self.plan = make_individual_plan()
-                ^^^^^^^^^^^^^^^^^^^^^^
-  File "/tmp/p1mut-M14-krfuyyde/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 125, in make_individual_plan
-    return SubscriptionPlan.objects.create(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
-    return getattr(self.get_queryset(), name)(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 663, in create
-    obj.save(force_insert=True, using=self.db)
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/base.py", line 902, in save
-    self.save_base(
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/base.py", line 1008, in save_base
-    updated = self._save_table(
-              ^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/base.py", line 1169, in _save_table
-    results = self._do_insert(
-              ^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/base.py", line 1210, in _do_insert
-    return manager._insert(
-           ^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
-    return getattr(self.get_queryset(), name)(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/query.py", line 1868, in _insert
-    return query.get_compiler(using=using).execute_sql(returning_fields)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1882, in execute_sql
-    cursor.execute(sql, params)
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
-    return self._execute_with_wrappers(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
-    return executor(sql, params, many, context)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
-    with self.db.wrap_database_errors:
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
-    raise dj_exc_value.with_traceback(traceback) from exc_value
-  File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
-    return self.cursor.execute(sql, params)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-django.db.utils.IntegrityError: duplicate key value violates unique constraint "billing_subscriptionplan_name_key"
-DETAIL:  Key (name)=(STANDARD) already exists.
-
+  File "/tmp/p1mut-M14-g2raskt_/wt/billing/tests/test_receipt_lookup_outside_transaction.py", line 233, in test_individual_checkout_fresh_activation
+    self.assertEqual(txn.stripe_payment_intent_id, "pi_fresh")
+AssertionError: None != 'pi_fresh'
 
 ----------------------------------------------------------------------
-Ran 10 tests in 32.812s
+Ran 10 tests in 4.190s
 
-FAILED (errors=1)
-Preserving test database for alias 'default' ('test_p1mut_m14')...
+FAILED (failures=1)
+Preserving test database for alias 'default' ('test_h62_mut')...
