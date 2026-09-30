@@ -50,7 +50,21 @@ class UserCacheMixin:
         # The MD5 of the query params is exactly why targeted key deletion
         # was rejected for this architecture: these keys are not enumerable,
         # so they cannot be found and deleted - only versioned past.
+        extra = list(self.extra_cache_scopes(action))
+        if extra:
+            return versioned_key(base, [(SCOPE_USER, user_id), *extra], batched=True)
         return versioned_key(base, [(SCOPE_USER, user_id)])
+
+    def extra_cache_scopes(self, action):
+        """Generations this viewer's response depends on beyond their own.
+
+        Empty by default: a family whose payload depends on the requesting
+        user alone needs nothing more. A viewset whose payload also carries
+        data another user's write changes (CourseViewSet: a student sees
+        their classmates) overrides this, so that write can invalidate it
+        with one bump instead of one per viewer.
+        """
+        return []
 
     def list(self, request, *args, **kwargs):  # type: ignore
         cache_key = self.get_cache_key("list")

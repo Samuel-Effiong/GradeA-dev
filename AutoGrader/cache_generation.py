@@ -298,7 +298,46 @@ def _bump_pipelined(pairs):
         return None
 
 
-def versioned_key(base, scopes):
+def get_generations(pairs):
+    """Current generations for several entities, in ONE Redis round trip.
+
+    The batched twin of `get_generation`, with the same rule: a missing
+    counter, an unreachable Redis or a corrupted value all read as
+    DEFAULT_GENERATION, and it never raises. Returns a list in `pairs` order.
+    """
+    keys = [generation_key(scope, entity_id) for scope, entity_id in pairs]
+    try:
+        values = cache.get_many(keys)
+    except Exception:
+        logger.error(
+            "Cache generation read failed for %d counters; falling back to "
+            "the default generation, so responses may be served from a "
+            "stale key until Redis recovers.",
+            len(keys),
+            exc_info=True,
+        )
+        return [DEFAULT_GENERATION] * len(keys)
+
+    generations = []
+    for key in keys:
+        value = values.get(key)
+        if value is None:
+            generations.append(DEFAULT_GENERATION)
+            continue
+        try:
+            generations.append(int(value))
+        except (TypeError, ValueError):
+            logger.error(
+                "Cache generation key %s holds a non-integer value %r; using "
+                "the default generation.",
+                key,
+                value,
+            )
+            generations.append(DEFAULT_GENERATION)
+    return generations
+
+
+def versioned_key(base, scopes, *, batched=False):
     """Build a cache key carrying the generations it depends on.
 
     `scopes` is an ordered iterable of (scope, entity_id) pairs. Order is
@@ -311,9 +350,20 @@ def versioned_key(base, scopes):
     A key built this way is unreachable the moment ANY of its generations
     advances, which is what lets one response depend on several entities
     without needing a pattern that spans them.
+
+    `batched=True` reads every generation in one round trip (`get_many`)
+    instead of one GET per scope. It is for keys whose scope list grows with
+    the data, such as one `crs` scope per enrolled course. The key text is
+    identical either way.
     """
+    scopes = list(scopes)
+    if batched:
+        generations = get_generations(scopes)
+    else:
+        generations = [get_generation(scope, entity_id) for scope, entity_id in scopes]
     parts = [
-        f"{scope}={get_generation(scope, entity_id)}" for scope, entity_id in scopes
+        f"{scope}={generation}"
+        for (scope, _), generation in zip(scopes, generations, strict=True)
     ]
     if not parts:
         raise ValueError(

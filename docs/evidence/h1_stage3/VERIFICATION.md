@@ -20,3 +20,11 @@ Code verified at 65202ee. The gate target 168d57e = 65202ee + be0bdbc (docs: fir
 ## Verdict: VERIFIED (steps 1–3)
 H-1 stays OPEN: step 4 (wildcard removal) is founder-approved for a separate branch, with two prerequisites recorded above.
 Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-29.
+
+## Beta-merge tip for batch-2 (241d0c1 + 22389ca): VERIFIED
+- 168d57e (the gated code) to 5dbec08 (the merge base): 0 non-docs files changed.
+- 241d0c1 = 5dbec08 + beta e7e4bdf. My re-merge reproduces tree 73588e9 exactly, so there are no hidden edits; assignments/views.py and dashboard/views.py auto-merged.
+- 22389ca (mypy): the only production change is the annotation `scopes: list[tuple[str, UUID | None]]` (plus the UUID import) in assignments/signals.py's bulk scope helper, with no runtime effect. The rest is test typing (5 files), with no ratchet. The whole-repo `pre-commit run mypy --all-files` passes in my detached checkout of 22389ca.
+- Tests: your 254 (tests_cache* 250 + tests_probe* 4) on 22389ca match my 254 on 65202ee. The merge is tree-identical to beta+stage 3, and the delta is annotations only.
+Full suite: covered by the batch-2 run.
+Verified by Verification Engineer (grade-automator-plus-1a), 2026-09-29.
