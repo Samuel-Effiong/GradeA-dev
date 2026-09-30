@@ -163,6 +163,8 @@ class ReasonCode(models.TextChoices):
     # An anonymous, non-excluded write that crashed (5xx) - one FAILURE, so a
     # crash never leaves zero trace (Epic A S2, the SM's ruling on v2's N1).
     SERVER_ERROR = "SERVER_ERROR", "Server error"
+    # The summary written in place of capped failed sign-ins (Epic A S1b).
+    FAILED_AUTH_CAPPED = "FAILED_AUTH_CAPPED", "Failed sign-ins capped"
 
 
 # The ten FR-A-06 conditions, as QA-ERR-02 lists them.

@@ -1169,6 +1169,12 @@ REGISTER_STUDENT_FAILURE_WINDOW_SECONDS = env.int(
     "REGISTER_STUDENT_FAILURE_WINDOW_SECONDS", default=3600
 )
 
+# Epic A S1b: the bound on failed-sign-in audit rows; see audit.failed_auth_cap.
+FAILED_AUTH_TARGET_FLOOR = env.int("FAILED_AUTH_TARGET_FLOOR", default=5)
+FAILED_AUTH_TARGET_LIMIT = env.int("FAILED_AUTH_TARGET_LIMIT", default=30)
+FAILED_AUTH_GLOBAL_LIMIT = env.int("FAILED_AUTH_GLOBAL_LIMIT", default=300)
+FAILED_AUTH_WINDOW_SECONDS = env.int("FAILED_AUTH_WINDOW_SECONDS", default=3600)
+
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=1),

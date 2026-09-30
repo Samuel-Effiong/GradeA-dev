@@ -232,6 +232,7 @@ AUDIT_ONLY_CODES = frozenset(
         ReasonCode.GOOGLE_EMAIL_UNVERIFIED,
         ReasonCode.INVALID_REQUEST,
         ReasonCode.SERVER_ERROR,
+        ReasonCode.FAILED_AUTH_CAPPED,
     }
 )
 
