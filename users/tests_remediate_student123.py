@@ -143,8 +143,11 @@ class FunctionalTests(RemediationBase):
         self.assertTrue(self.good.check_password(OTHER))
 
     def test_no_deletes_and_nothing_else_changes(self):
+        """Only password and token_epoch change (the epoch bump is pinned in
+        TokenRevocationTests)."""
+        written = ("password", "token_epoch")
         users_before = {
-            u["email"]: {k: v for k, v in u.items() if k != "password"}
+            u["email"]: {k: v for k, v in u.items() if k not in written}
             for u in CustomUser.objects.values()
         }
         counts = (
@@ -166,7 +169,7 @@ class FunctionalTests(RemediationBase):
         self.assertEqual(subs, list(StudentSubmission.objects.order_by("id").values()))
         self.assertEqual(enrols, list(StudentCourse.objects.order_by("id").values()))
         users_after = {
-            u["email"]: {k: v for k, v in u.items() if k != "password"}
+            u["email"]: {k: v for k, v in u.items() if k not in written}
             for u in CustomUser.objects.values()
         }
         self.assertEqual(users_before, users_after)
@@ -266,6 +269,74 @@ class AdversarialLoginEndpointTests(RemediationBase):
         self.assertEqual(still, [])
 
 
+class TokenRevocationTests(RemediationBase):
+    """A reset account's live tokens die with its password: the reset bumps
+    token_epoch in the same compare-and-set, so a session opened with the
+    literal before --execute cannot outlive it."""
+
+    def open_session(self, email, password):
+        body = self.login(email, password).json()["data"]
+        return body["access"], body["refresh"]
+
+    def use_access(self, access, user):
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
+        try:
+            return self.client.get(reverse("user-detail", kwargs={"pk": user.pk}))
+        finally:
+            self.client.credentials()
+
+    def use_refresh(self, refresh):
+        cache.clear()
+        return self.client.post(reverse("refresh"), {"refresh": refresh}, format="json")
+
+    def test_matched_account_access_token_rejected_after_execute(self):
+        access, _ = self.open_session("one@student.local", LITERAL)
+        self.assertEqual(self.use_access(access, self.bad1).status_code, 200)
+
+        run("--execute", "--report", self.report)
+
+        self.assertEqual(
+            self.use_access(access, self.bad1).status_code,
+            status.HTTP_401_UNAUTHORIZED,
+        )
+
+    def test_matched_account_refresh_token_rejected_after_execute(self):
+        _, refresh = self.open_session("real.person@gmail.com", LITERAL)
+
+        run("--execute", "--report", self.report)
+
+        r = self.use_refresh(refresh)
+        self.assertEqual(r.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertNotIn("access", r.json().get("data") or {})
+
+    def test_unmatched_account_tokens_still_work_after_execute(self):
+        access, refresh = self.open_session("good@example.com", OTHER)
+
+        run("--execute", "--report", self.report)
+
+        self.assertEqual(self.use_access(access, self.good).status_code, 200)
+        self.assertEqual(self.use_refresh(refresh).status_code, 200)
+
+    def test_epoch_bumped_once_for_each_reset_account_only(self):
+        before = dict(CustomUser.objects.values_list("pk", "token_epoch"))
+
+        run("--execute", "--report", self.report)
+
+        after = dict(CustomUser.objects.values_list("pk", "token_epoch"))
+        reset = {self.bad1.pk, self.bad2.pk}
+        for pk, epoch in before.items():
+            with self.subTest(pk=pk):
+                self.assertEqual(after[pk], epoch + (1 if pk in reset else 0))
+
+    def test_rerun_does_not_bump_again(self):
+        run("--execute", "--report", self.report)
+        after_first = dict(CustomUser.objects.values_list("pk", "token_epoch"))
+        run("--execute", "--report", self.report)
+        self.assertEqual(
+            dict(CustomUser.objects.values_list("pk", "token_epoch")), after_first
+        )
+
+
 class FailureTests(RemediationBase):
     def test_interrupted_mid_run_is_consistent_and_rerunnable(self):
         calls = {"n": 0}
@@ -325,3 +396,6 @@ class FailureTests(RemediationBase):
         self.assertEqual(self.bad1.password, new_hash)
         self.assertTrue(self.bad1.check_password(OTHER))
         self.assertIn("Skipped (password changed since scan): 1", out)
+        # The epoch bump rides the same compare-and-set, so a skipped account
+        # keeps its sessions.
+        self.assertEqual(self.bad1.token_epoch, 0)

@@ -719,6 +719,9 @@ class CourseViewSetTest(ClassroomBaseAPITest):
         )
         student.user_type = UserTypes.STUDENT
         student.is_active = True
+        # Has signed in before: an existing student who hasn't is re-sent
+        # credentials instead (enrollment.has_signed_in).
+        student.last_login = timezone.now()
         student.save()
 
         course = Course.objects.create(

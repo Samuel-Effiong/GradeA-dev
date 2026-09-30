@@ -10,7 +10,9 @@ profile.
 """
 
 import logging
+import math
 from datetime import timedelta
+from datetime import timezone as dt_timezone
 
 from django.conf import settings
 from django.core.cache import cache
@@ -111,7 +113,7 @@ from users.serializers import (  # BatchSessionResultTaskEntrySerializer,; TaskC
     VerifyCustomUserSerializer,
     WaitlistSerializer,
 )
-from users.services import send_user_activation_email
+from users.services import send_user_activation_email, stamp_last_login
 from users.tasks import sync_user_to_mailerlite
 from users.throttling import (
     GoogleAuthThrottle,
@@ -128,6 +130,15 @@ from users.throttling import (
 from users.tokens import EpochRefreshToken
 
 logger = logging.getLogger(__name__)
+
+# Founder-approved wording (2026-09-28) for the password-reset email.
+# Wording only: no link.
+RESET_EMAIL_WARNING = (
+    "Didn't ask for this? Someone may be trying to get into your account. "
+    "Don't share this code with anyone, including Grade A+ staff. Your "
+    "password hasn't been changed. If you didn't request this, you can ignore "
+    "this email."
+)
 
 # Create your views here.
 
@@ -625,6 +636,38 @@ class SettingsViewSet(UserCacheMixin, viewsets.ModelViewSet):
         return Response(data)
 
 
+def _reset_locked_response(otp_obj):
+    """429 for POST /auth/reset-password while the reset code is locked.
+
+    Informative by founder decision (2026-09-28): the person resetting is
+    usually the owner, so they're told why, when and that nothing changed.
+    /auth/otp stays generic while locked (anti-enumeration).
+    """
+    locked_until = otp_obj.locked_until.astimezone(dt_timezone.utc)
+    retry_after = max(1, math.ceil((locked_until - timezone.now()).total_seconds()))
+    minutes = max(1, math.ceil(retry_after / 60))
+    message = (
+        "For your security, password reset is paused on this account because "
+        f"the code was entered incorrectly {PasswordResetOTP.MAX_ATTEMPTS} times. "
+        f"You can request a new code after {locked_until:%H:%M} UTC "
+        f"(in {minutes} minute{'' if minutes == 1 else 's'}). "
+        "Your password has not been changed, and you can still sign in with "
+        "your current password. If you didn't try to reset your password, "
+        "someone else may have. Your account is still safe."
+    )
+    response = Response(
+        {
+            "code": "RESET_LOCKED",
+            "message": message,
+            "locked_until": locked_until.isoformat(),
+            "retry_after_seconds": retry_after,
+        },
+        status=status.HTTP_429_TOO_MANY_REQUESTS,
+    )
+    response["Retry-After"] = str(retry_after)
+    return response
+
+
 class AuthViewSet(viewsets.ViewSet):
     """
     Handles user authentication actions
@@ -753,6 +796,15 @@ class AuthViewSet(viewsets.ViewSet):
 
             otp_obj, created = PasswordResetOTP.objects.get_or_create(user=user)
             otp_code = otp_obj.generate_code()
+            if otp_code is None:
+                # Locked out (AUTHZ-L2): no new code and no email, but the
+                # same reply as a send, so this is not an enumeration signal.
+                return Response(
+                    {
+                        "detail": "An OTP has been sent if an account with that email exists."
+                    },
+                    status=status.HTTP_202_ACCEPTED,
+                )
 
             message = f"""
 Hello {user.first_name},
@@ -761,8 +813,9 @@ We received a request to reset your Grade A+ password
 
 Your Password reset code is: {otp_code}
 
-Enter this code in the app to continue. If you did not request a password reset,
-you can ignore this email and your account will remain secure.
+Enter this code in the app to continue.
+
+{RESET_EMAIL_WARNING}
 
 The Grade A+ Team
 
@@ -823,9 +876,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             raise ParseError("Invalid email, OTP code, or new password.") from Exception
 
         if otp_obj.is_locked():
-            raise ParseError(
-                "Too many incorrect codes. Request a new code and try again later."
-            )
+            return _reset_locked_response(otp_obj)
 
         if not otp_obj.is_valid():
             otp_obj.delete()
@@ -837,6 +888,10 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         # / password was the wrong one.
         if not constant_time_compare(str(otp_obj.code), str(otp)):
             otp_obj.register_failure()
+            # The guess that spends the budget gets the lockout answer
+            # straight away, not one more generic 400.
+            if otp_obj.is_locked():
+                return _reset_locked_response(otp_obj)
             raise ParseError("Invalid email, OTP code, or new password.")
 
         user.set_password(new_password)
@@ -1670,6 +1725,9 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                     },
                 )
 
+            # A Google sign-in is a sign-in too (has_signed_in), and it mints
+            # tokens here rather than through the login serializer.
+            stamp_last_login(user)
             refresh = EpochRefreshToken.for_user(user)
 
             return Response(
