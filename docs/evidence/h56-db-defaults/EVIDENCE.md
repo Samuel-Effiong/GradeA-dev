@@ -12,7 +12,7 @@ Code older than a migration omits that migration's new column from INSERT. Nine 
   - `Assignment.updated_at` gets `db_default=Now()`.
   - The two JSON fields get a typed `models.Value`.
 - Four `*_db_defaults_for_rollback` migrations: users 0040, billing 0070, assignments 0040, dashboard 0004.
-  - Their `sqlmigrate` output matches the tested stop-gap, `GAP-rollback-set-defaults.sql` (kept outside the repo), statement for statement.
+  - For the nine columns the tested stop-gap `GAP-rollback-set-defaults.sql` (kept outside the repo) covers, their `sqlmigrate` output matches it statement for statement. The stop-gap has no statements for the other five.
   - One exception: `Now()` renders as `STATEMENT_TIMESTAMP()` where the stop-gap used `now()`.
 - `makemigrations --check`: clean.
 
