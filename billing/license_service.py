@@ -764,9 +764,11 @@ class LicenseSubscriptionService:
                 "error": None,
             }
         except (IndividualSubscriptionConflictError, ValueError) as exc:
+            # No address here: this line used to carry the email next to a
+            # refusal that named another school. The refusals it can log
+            # for a cross-tenant case are generic now.
             logger.warning(
-                "Skipped enrolling %s in license %s: %s",
-                email,
+                "Skipped enrolling a teacher in license %s: %s",
                 license_sub.id,
                 exc,
             )
@@ -1159,11 +1161,13 @@ class LicenseSubscriptionService:
         if user:
             # 2. Validate user type
             if user.user_type != UserTypes.TEACHER:
-                error_msg = f"Email {email} already belongs to a {user.user_type} account, not a teacher."
-
+                # Generic on purpose (SM ruling): naming the account's role
+                # told any school admin what kind of account an arbitrary
+                # address has on the platform. The log carries ids only.
+                error_msg = "This email can't be added as a teacher."
+                logger.warning("User %s is not a teacher: not enrolled.", user.id)
                 if raise_on_conflict:
                     raise ValueError(error_msg)
-                logger.warning(error_msg)
                 return None
 
             # 3. Check for active individual subscription
@@ -1183,14 +1187,18 @@ class LicenseSubscriptionService:
 
             # 4. School validation
             if user.school and user.school != school:
-                error_msg = (
-                    f"Teacher {email!r} already belongs to school {user.school.name!r}. "
-                    f"Cannot enroll under {school.name!r}."
+                # Generic on purpose: naming the other school told any school
+                # admin which school an arbitrary address belongs to (a
+                # cross-tenant disclosure). The log carries ids only.
+                error_msg = "This teacher already belongs to another school."
+                logger.warning(
+                    "Teacher %s belongs to school %s, not %s: not enrolled.",
+                    user.id,
+                    user.school_id,
+                    school.id,
                 )
-
                 if raise_on_conflict:
                     raise ValueError(error_msg)
-                logger.warning(error_msg)
                 return None
 
             # Associate the teacher with the school if they don't have one
