@@ -60,6 +60,22 @@ class FailedAuthFloorCheckTests(SimpleTestCase):
         ):
             self.assertEqual(check_failed_auth_floor_covers_every_lock(None), [])
 
+    def test_a_limit_equal_to_a_threshold_is_an_error(self):
+        """v2's N2: at LIMIT == threshold, the first refusal after the lock
+        (attempt threshold + 1) is past the per-target limit and summarised."""
+        largest = max(lock_thresholds().values())
+        with override_settings(FAILED_AUTH_TARGET_LIMIT=largest):
+            errors = e001(check_failed_auth_floor_covers_every_lock(None))
+        self.assertEqual(len(errors), 1)
+        self.assertIn("FAILED_AUTH_TARGET_LIMIT", errors[0].msg)
+
+    def test_a_limit_one_above_the_largest_threshold_passes(self):
+        largest = max(lock_thresholds().values())
+        with override_settings(
+            FAILED_AUTH_TARGET_FLOOR=largest, FAILED_AUTH_TARGET_LIMIT=largest + 1
+        ):
+            self.assertEqual(check_failed_auth_floor_covers_every_lock(None), [])
+
     def test_each_threshold_raised_above_the_floor_is_caught(self):
         above = settings.FAILED_AUTH_TARGET_FLOOR + 1
         raised: dict[str, AbstractContextManager] = {

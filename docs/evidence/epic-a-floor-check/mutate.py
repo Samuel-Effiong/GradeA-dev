@@ -33,10 +33,21 @@ MUTANTS = {
         "        from . import checks  # noqa: F401 - registers the audit system checks\n",
         "",
     ),
+    # v2's N2 (SM ruling): the per-target limit must exceed every threshold.
+    "F6_limit_may_equal_a_threshold": (
+        CHK,
+        "if value >= limit\n",
+        "if value > limit\n",
+    ),
+    "F7_limit_not_checked": (
+        CHK,
+        "    if not_under_limit:\n",
+        "    if False:\n",
+    ),
     "F5_error_without_its_id": (
         CHK,
-        '            id="audit.E001",\n',
-        '            id="audit.E999",\n',
+        '                id="audit.E001",\n            )\n        )\n    not_under_limit',
+        '                id="audit.E999",\n            )\n        )\n    not_under_limit',
     ),
 }
 
