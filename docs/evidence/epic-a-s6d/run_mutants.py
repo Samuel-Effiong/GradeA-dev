@@ -116,6 +116,18 @@ MUTANTS = [
         "        if False:",
         1,
     ),
+    # S11 SURVIVED at 3c5aa16 as an equivalent mutant: on the PATCH route
+    # the shared service raises the same SUBMISSION_EMPTY (422, before any
+    # extraction or charge). S11b is update-async's check, the one that
+    # stops a task being queued.
+    (
+        "S11b",
+        "update-async refuses empty text before queuing",
+        SV,
+        "        if not str(raw_input).strip():",
+        "        if False:",
+        2,
+    ),
     (
         "S12",
         "the service refuses empty text as SUBMISSION_EMPTY",
