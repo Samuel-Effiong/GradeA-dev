@@ -181,7 +181,11 @@ NON_RESPONSE_CACHE_WRITES = {
     "billing/license_service.py": (2, "idempotency locks"),
     "billing/tasks.py": (1, "task lock"),
     "users/middleware.py": (1, "activity heartbeat throttle"),
-    "users/throttling.py": (2, "register-student failure budget"),
+    "users/throttling.py": (
+        5,
+        "register-student failure budget (H-47); /auth/verify per-address "
+        "budget + lock (H-53)",
+    ),
 }
 
 SCOPE_CONSTANTS = {
