@@ -249,91 +249,94 @@
       "atomic_opened_at": null
     }
   ],
-  "atomic_blocks_total": 15,
+  "atomic_blocks_total": 66,
   "risky_atomic_blocks": [
     {
-      "file": "billing/services.py",
-      "line": 1224,
-      "func": "refund_credits",
+      "file": "billing/stripe_service.py",
+      "line": 2784,
+      "func": "handle_checkout_completed",
+      "kind": "decorator",
       "callees": [
-        "F",
-        "Greatest",
-        "Value",
-        "append",
-        "atomic",
-        "build",
-        "bulk_create",
-        "defaultdict",
+        "_handle_individual_checkout",
+        "_handle_individual_subscribe",
+        "_handle_individual_upgrade_checkout_completed",
+        "_handle_license_convert_to_stripe",
+        "_handle_license_create",
+        "_handle_license_overage_checkout_completed",
+        "_handle_overage_checkout_completed",
+        "_handle_trial_to_paid",
+        "get",
+        "warning"
+      ],
+      "select_for_update": false,
+      "reaching_callees": [
+        "_handle_individual_upgrade_checkout_completed"
+      ],
+      "callee_defs": {
+        "_handle_individual_upgrade_checkout_completed": "billing/stripe_service.py:3318"
+      }
+    },
+    {
+      "file": "billing/stripe_service.py",
+      "line": 3719,
+      "func": "handle_invoice_payment_succeeded",
+      "kind": "decorator",
+      "callees": [
+        "_extract_invoice_subscription_id",
+        "_handle_individual_invoice_succeeded",
         "filter",
         "first",
         "get",
-        "in_bulk",
-        "items",
-        "list",
-        "max",
-        "min",
-        "now",
-        "only",
-        "order_by",
-        "record_refund",
+        "info",
+        "process_license_renewal",
+        "record",
         "save",
         "select_for_update",
-        "select_related",
-        "sorted",
-        "str",
-        "update"
+        "warning"
       ],
       "select_for_update": true,
       "reaching_callees": [
-        "list"
+        "_handle_individual_invoice_succeeded"
       ],
       "callee_defs": {
-        "list": "billing/payment_method_views.py:196"
+        "_handle_individual_invoice_succeeded": "billing/stripe_service.py:3812"
       }
     },
     {
       "file": "billing/license_service.py",
-      "line": 1761,
-      "func": "process_license_renewal",
+      "line": 2062,
+      "func": "change_license_plan",
+      "kind": "decorator",
       "callees": [
-        "_rollover_and_grant_monthly_bucket",
-        "atomic",
-        "isoformat",
-        "relativedelta",
+        "ValueError",
+        "_resolve_effective_price",
+        "change_license_price",
+        "count",
+        "create",
+        "filter",
+        "get",
+        "info",
+        "int",
+        "now",
+        "record",
         "save",
-        "str"
+        "select_for_update",
+        "str",
+        "sync_teachers_under_license_to_mailerlite"
       ],
-      "select_for_update": false,
+      "select_for_update": true,
       "reaching_callees": [
-        "_rollover_and_grant_monthly_bucket"
+        "change_license_price"
       ],
       "callee_defs": {
-        "_rollover_and_grant_monthly_bucket": "billing/license_service.py:386"
-      }
-    },
-    {
-      "file": "billing/license_service.py",
-      "line": 3357,
-      "func": "process_offline_renewal",
-      "callees": [
-        "_rollover_and_grant_monthly_bucket",
-        "atomic",
-        "relativedelta",
-        "save",
-        "str"
-      ],
-      "select_for_update": false,
-      "reaching_callees": [
-        "_rollover_and_grant_monthly_bucket"
-      ],
-      "callee_defs": {
-        "_rollover_and_grant_monthly_bucket": "billing/license_service.py:386"
+        "change_license_price": "billing/stripe_service.py:1582"
       }
     },
     {
       "file": "billing/views.py",
       "line": 726,
       "func": "cancel",
+      "kind": "with",
       "callees": [
         "Response",
         "append",
@@ -356,134 +359,45 @@
       "callee_defs": {
         "release_schedule": "billing/stripe_service.py:2078"
       }
-    },
-    {
-      "file": "billing/views.py",
-      "line": 2450,
-      "func": "custom_ai_prompt",
-      "callees": [
-        "CustomAIReply",
-        "Response",
-        "append_dashboard_chat_message",
-        "atomic",
-        "custom_ai_prompt_retry"
-      ],
-      "select_for_update": false,
-      "reaching_callees": [
-        "append_dashboard_chat_message"
-      ],
-      "callee_defs": {
-        "append_dashboard_chat_message": "billing/views.py:113"
-      }
-    },
-    {
-      "file": "billing/license_views.py",
-      "line": 248,
-      "func": "create",
-      "callees": [
-        "atomic",
-        "create",
-        "get_serializer",
-        "save"
-      ],
-      "select_for_update": false,
-      "reaching_callees": [
-        "create"
-      ],
-      "callee_defs": {
-        "create": "billing/payment_method_views.py:323"
-      }
-    },
-    {
-      "file": "billing/license_views.py",
-      "line": 324,
-      "func": "add_teachers",
-      "callees": [
-        "add_teachers_batch",
-        "atomic"
-      ],
-      "select_for_update": false,
-      "reaching_callees": [
-        "add_teachers_batch"
-      ],
-      "callee_defs": {
-        "add_teachers_batch": "billing/license_service.py:1549"
-      }
-    },
-    {
-      "file": "billing/license_views.py",
-      "line": 428,
-      "func": "process_renewal",
-      "callees": [
-        "atomic",
-        "process_license_renewal"
-      ],
-      "select_for_update": false,
-      "reaching_callees": [
-        "process_license_renewal"
-      ],
-      "callee_defs": {
-        "process_license_renewal": "billing/license_service.py:1685"
-      }
-    },
-    {
-      "file": "billing/tasks.py",
-      "line": 269,
-      "func": "process_license_renewals",
-      "callees": [
-        "atomic",
-        "get",
-        "info",
-        "process_license_renewal",
-        "select_for_update"
-      ],
-      "select_for_update": true,
-      "reaching_callees": [
-        "process_license_renewal"
-      ],
-      "callee_defs": {
-        "process_license_renewal": "billing/license_service.py:1685"
-      }
-    },
-    {
-      "file": "billing/tasks.py",
-      "line": 526,
-      "func": "reconcile_subscription_renewals",
-      "callees": [
-        "atomic",
-        "extract_invoice_billing_period",
-        "get",
-        "info",
-        "process_rollover_and_renewal",
-        "save",
-        "select_for_update"
-      ],
-      "select_for_update": true,
-      "reaching_callees": [
-        "process_rollover_and_renewal"
-      ],
-      "callee_defs": {
-        "process_rollover_and_renewal": "billing/services.py:709"
-      }
-    },
-    {
-      "file": "billing/tasks.py",
-      "line": 996,
-      "func": "process_license_monthly_credit_refreshes",
-      "callees": [
-        "_refresh_teacher_credits",
-        "atomic",
-        "get",
-        "select_for_update"
-      ],
-      "select_for_update": true,
-      "reaching_callees": [
-        "_refresh_teacher_credits"
-      ],
-      "callee_defs": {
-        "_refresh_teacher_credits": "billing/license_service.py:3236"
-      }
     }
+  ],
+  "ambiguous_names_not_propagated": [
+    "__init__",
+    "_dispatch",
+    "add",
+    "add_arguments",
+    "all",
+    "append",
+    "apply",
+    "bulk_create",
+    "cancel",
+    "change_plan",
+    "count",
+    "create",
+    "delete",
+    "exists",
+    "filter",
+    "first",
+    "format",
+    "get",
+    "get_or_create",
+    "get_permissions",
+    "get_queryset",
+    "handle",
+    "join",
+    "last",
+    "list",
+    "purchase_overage",
+    "record",
+    "remove",
+    "save",
+    "select_for_update",
+    "select_plan",
+    "set",
+    "update",
+    "update_or_create",
+    "update_seats",
+    "values"
   ],
   "mutating_funcs": [
     "_apply_upgrade_directly",
@@ -513,70 +427,18 @@
   ],
   "reaching_funcs": [
     "<module>",
-    "_apply_to_credits",
     "_apply_upgrade_directly",
-    "_backfill_checkout_session",
-    "_backfill_from_license_billing_records",
-    "_backfill_from_stripe_events",
-    "_backfill_invoice",
-    "_backfill_refund",
-    "_blocks_last_card_deletion",
-    "_build_offline_overage_teacher_breakdown",
-    "_carry_forward_teacher_allocations",
     "_create_fresh_schedule",
     "_create_overage_checkout",
-    "_dispatch",
-    "_enroll_teacher_internal",
-    "_find_new_period_paid_invoice",
-    "_get_or_create_payment_methods_only_portal_configuration",
-    "_get_or_invite_teacher",
-    "_grant_admin_allocation",
-    "_grant_overage_blocks",
-    "_grant_overage_offline",
-    "_handle_individual_checkout",
     "_handle_individual_invoice_succeeded",
-    "_handle_individual_subscribe",
     "_handle_individual_upgrade_checkout_completed",
-    "_handle_license_convert_to_stripe",
-    "_handle_license_create",
-    "_handle_license_overage_checkout_completed",
-    "_handle_overage_checkout_completed",
-    "_handle_trial_to_paid",
-    "_invite_and_enroll_one_teacher",
-    "_notify_super_admins_offline_overage_pending",
-    "_on_lost",
-    "_on_won",
-    "_process_stripe_event",
-    "_record",
-    "_refresh_teacher_credits",
-    "_refund_all",
-    "_restore_reversed_credits",
-    "_reverse_credits",
-    "_reverse_via_payment_attribution",
     "_revert_to_previous_price",
-    "_rollover_and_grant_monthly_bucket",
-    "_select_events",
-    "_validate_overage_purchase_request",
     "_void_or_refund_side_effect_invoice",
-    "activate_automatic_free_trial",
-    "activate_free_trial",
-    "activate_subscription",
-    "add_teacher_to_license",
-    "add_teachers",
-    "add_teachers_batch",
-    "append_dashboard_chat_message",
-    "apply",
-    "apply_immediate_plan_change",
-    "approve",
-    "approve_overage_offline_request",
-    "billing_refund_scope",
     "cancel",
     "cancel_license_subscription",
     "change_license_plan",
     "change_license_price",
     "change_plan",
-    "cleanup_expired_credit_buckets",
-    "compute_capped_rollover",
     "convert_license_to_offline",
     "convert_to_offline",
     "convert_to_stripe",
@@ -585,72 +447,30 @@
     "create_custom_price",
     "create_individual_checkout_session",
     "create_license_conversion_session",
-    "create_license_session",
     "create_license_setup_intent",
-    "create_license_subscription",
     "create_overage_checkout_session",
     "create_setup_intent_for_request_user",
     "create_upgrade_checkout_session",
-    "custom_ai_prompt",
     "destroy",
-    "expire_active_trials",
-    "expire_bucket",
-    "expire_trial",
-    "feature_mix_across_groups",
-    "finalize_trial_conversion_via_stripe",
-    "finalize_trial_to_paid_conversion",
     "get_customer_for_request_user",
     "get_or_create_customer",
     "get_or_create_license_customer",
-    "get_teacher_breakdown",
-    "grant",
-    "grant_manual_teacher_overage",
-    "grant_overage_bucket",
-    "grant_teacher_overage",
-    "handle",
-    "handle_charge_refunded",
     "handle_checkout_completed",
-    "handle_dispute_event",
-    "handle_invoice_payment_failed",
     "handle_invoice_payment_succeeded",
-    "handle_payment_intent_succeeded",
-    "handle_refund",
     "handle_setup_intent_succeeded",
-    "handle_subscription_deleted",
     "initiate_overage_purchase",
     "list",
-    "live_carry_over_total",
-    "nightly_stripe_live_qa",
     "portal_session",
-    "process_annual_plan_credit_grants",
-    "process_license_monthly_credit_refreshes",
-    "process_license_renewal",
     "process_license_renewals",
-    "process_mid_cycle_credit_grant",
-    "process_offline_renewal",
-    "process_renewal",
-    "process_rollover_and_renewal",
     "purchase_overage",
     "reactivate_if_cancelling",
-    "reconcile_prices",
-    "reconcile_stripe_prices",
-    "reconcile_subscription_prices",
-    "reconcile_subscription_renewals",
-    "record",
-    "refund_credits",
     "release_schedule",
-    "renew_offline",
-    "request_overage_offline",
-    "restore_credits_for_payment",
     "resume",
-    "reverse_credits_for_payment",
     "schedule_plan_change_on_stripe",
     "select_plan",
     "set_default",
     "setup_payment_method",
     "sync_price",
-    "top_up_credits",
-    "update_license_plan",
     "update_seats"
   ]
 }

@@ -209,24 +209,78 @@ Trivially cheap — one `Subscription.retrieve`, rate limit irrelevant at this s
 the same transaction as the delete, so a death mid-flight leaves none — a zero is
 consistent with both "never ran" and "ran and died".
 
-## B. Transitive candidates — atomic wrapping a mutation across a call boundary
+## B. Transitive candidates — SUPERSEDED. My v1 figures were WRONG BOTH WAYS.
 
-Over-inclusive; `list()` / `create()` rows are probable name collisions.
-**Not yet triaged.**
+**Correcting my own earlier numbers before anyone quotes them.** The "15 atomic blocks,
+11 risky" figures published in the first commit (`5ba468e`) are withdrawn. The v1 tool was
+wrong in **both** directions:
 
-| Site | SFU | Reaches |
-|---|---|---|
-| `billing/views.py:726` `cancel()` | **yes** | `release_schedule()` -> `stripe_service.py:2078` |
-| `billing/tasks.py:269` `process_license_renewals()` | **yes** | `process_license_renewal()` -> `license_service.py:1685` |
-| `billing/tasks.py:526` `reconcile_subscription_renewals()` | **yes** | `process_rollover_and_renewal()` -> `services.py:709` |
-| `billing/tasks.py:996` `process_license_monthly_credit_refreshes()` | **yes** | `_refresh_teacher_credits()` -> `license_service.py:3236` |
-| `billing/license_views.py:428` `process_renewal()` | no | `process_license_renewal()` |
-| `billing/license_views.py:324` `add_teachers()` | no | `add_teachers_batch()` -> `license_service.py:1549` |
-| `billing/license_views.py:248` `create()` | no | `create()` — likely collision |
-| `billing/license_service.py:1761` `process_license_renewal()` | no | `_rollover_and_grant_monthly_bucket()` |
-| `billing/license_service.py:3357` `process_offline_renewal()` | no | `_rollover_and_grant_monthly_bucket()` |
-| `billing/services.py:1224` `refund_credits()` | **yes** | `list()` — likely collision |
-| `billing/views.py:2450` `custom_ai_prompt()` | no | `append_dashboard_chat_message()` — likely collision |
+1. **UNDER-reported: it ignored `@transaction.atomic` DECORATORS in the transitive pass.**
+   Only `with` blocks were recorded. A decorator is an atomic block over the whole function
+   body, so every decorated handler was invisible. Real count: **66 atomic blocks, not 15.**
+   **This gap hid the board's own priority site** — `stripe_service.py:3399` sits in a helper
+   called by the `@transaction.atomic`-decorated `handle_checkout_completed`.
+2. **OVER-reported: the name-based call graph manufactured false paths.** A bare `create()`,
+   `record()` or `list()` cannot be told from Django's ORM methods, and `create` *is* also
+   the name of a function that calls `stripe.SetupIntent.create` — so "reaches a mutation"
+   propagated through half of `billing/`. Unfiltered, the fixed tool reported **52** rows,
+   nearly all false.
+
+Fix: names that are ORM/builtin-shaped or defined more than once are **not propagated and
+not reported**, and are listed separately in the JSON as `ambiguous_names_not_propagated`.
+This trades recall for credibility — a name collision could in principle hide a real path,
+so the lexical pass (section A) remains the authority and section B is a supplement.
+
+Current output: **4 transitive paths, all unambiguous** (JSON sha256
+`59dc9b12913c359d94b29dd5996c38c78aa839f292da13af8962899a05b358b7`):
+
+| Atomic block | kind | SFU | Reaches |
+|---|---|---|---|
+| `stripe_service.py:2784` `handle_checkout_completed()` | decorator | no | `_handle_individual_upgrade_checkout_completed()` :3318 |
+| `stripe_service.py:3719` `handle_invoice_payment_succeeded()` | decorator | **yes** | `_handle_individual_invoice_succeeded()` :3812 |
+| `license_service.py:2062` `change_license_plan()` | decorator | **yes** | `change_license_price()` -> `stripe_service.py:1582` |
+| `views.py:726` `cancel()` | with | **yes** | `release_schedule()` -> `stripe_service.py:2078` |
+
+### B1 — `handle_checkout_completed` — THE BOARD'S PRIORITY SITE, CONFIRMED
+
+`@transaction.atomic` at **:2783** on `handle_checkout_completed` (:2784), which dispatches
+to `_handle_individual_upgrade_checkout_completed` (:3318) at :2791. That helper carries
+`release_schedule` (:3397), **`Subscription.modify` (:3399)** and the void/refund invoice
+(:3406). So the board's originally-listed sites **are** inside a transaction — reached via
+the decorator, which is why a lexical-only pass missed them. **The board was right that
+these are defects; its line number (3442) and its implied location were both wrong.**
+
+### B2 — `handle_invoice_payment_succeeded` (:3719, decorator, holds SFU)
+
+Reaches `_handle_individual_invoice_succeeded` (:3812), the region carrying the `sync_price`
+calls (:3927, :3991) — the board's sites 4. Path is unambiguous; **individual hand-confirm
+still outstanding.**
+
+### B3 — `change_license_plan` — NEW, NOT ON THE BOARD, NOT IN MY LEXICAL 7
+
+`@transaction.atomic` at :2061 on `change_license_plan` (:2062) + `select_for_update`, which
+calls `change_license_price()` at :2127 -> `stripe_service.py:1582`. That function does
+**`Subscription.modify` at :1680** with a compensating revert at :1713, and the custom-price
+path can additionally **`stripe.Price.create` (:2257)** — creating a Stripe object that a DB
+rollback cannot remove. Same money shape as `update_seats`: "always_invoice for upgrades"
+means **the school is charged**. **CONFIRMED sixth defect site.**
+
+## CONFIRMED-DEFECT REGISTER (Phase 1, as it stands)
+
+| # | Site | Layer | Why it matters |
+|---|---|---|---|
+| 1 | `license_service.py:3465` `convert_license_to_offline` | view/admin | **Worst.** Irreversible `Subscription.delete`; school silently unbilled |
+| 2 | `license_service.py:2224`/`:2249` `update_seats` | view | School charged; compensator inside the doomed transaction |
+| 3 | `license_service.py:2062` -> `stripe_service.py:1680` `change_license_plan` | view | School charged; may also create an orphan Stripe Price |
+| 4 | `license_service.py:1969` `cancel_license_subscription` | view | Stripe stops renewing, app says it will |
+| 5 | `views.py:754`/`:766` `cancel` | view | Two irreversible calls under one atomic + SFU |
+| 6 | `stripe_service.py:3397`/`:3399`/`:3406` via `handle_checkout_completed` | webhook | The board's priority site; redeliverable, unlike 1-5 |
+
+Outstanding: `sync_price` (:3927/:3991) hand-confirm. Not defects: `stripe_service.py:1054`
+(reference pattern), `:4691` (low/benign).
+
+**Five of the six are VIEW-layer — never redelivered.** Only #6 is a webhook. That ratio is
+the argument against one uniform remedy.
 
 ## C. Headline: the board's 6 sites were the wrong 6
 

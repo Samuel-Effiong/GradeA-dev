@@ -1634,3 +1634,60 @@ changes — H-1 spans four apps, H-2 lives in `users`/`assignments`/`students`,
 H-5 is Section 7. They were deliberately kept out of the security work so
 that diff stayed reviewable. That decision is what this document exists to
 make safe: the work was postponed, not dropped.
+
+---
+
+## H-28 — irreversible Stripe mutations inside `transaction.atomic` (P1b)
+
+**Owner:** fix-p1b. **Gate-8 class:** environment-sensitive / billing.
+**Status:** Phase 1 (investigation) in progress; no code written; design
+proposal owed to the Fixes Coordinator and then the Senior Manager before
+any implementation.
+
+**Scope.** Not a fixed list of sites: the whole class across `billing/` —
+every irreversible Stripe mutation running inside a `transaction.atomic`
+and/or while holding a `select_for_update`, at the webhook layer AND the
+view layer. Scope widened by the Senior Manager, 2026-09-17, after the
+view-layer site below was found outside the original audit.
+
+**The bug.** Django rolls back the DB half of a failed operation; Stripe
+does not. A mutation that succeeds inside a transaction that later aborts
+leaves Stripe changed and the DB unchanged — permanently, with no retry
+that repairs it.
+
+**Two failure modes, deliberately not given one remedy.** Webhook-layer
+sites die by the Postgres 60 s `idle_in_transaction_session_timeout`
+(shorter than stripe-python's 80 s default) and **can be redelivered**.
+View-layer sites die by gunicorn's request timeout and are **never
+redelivered**, so divergence there is silent and permanent. Five of the six
+confirmed sites are view-layer.
+
+**Confirmed sites** (read against `b744c9f`; not yet reproduced by test):
+`license_service.py:3465` `convert_license_to_offline` (worst —
+irreversible `Subscription.delete`); `:2224`/`:2249` `update_seats`;
+`:2062` `change_license_plan` -> `stripe_service.py:1680`; `:1969`
+`cancel_license_subscription`; `views.py:754`/`:766` `cancel`;
+`stripe_service.py:3397`/`:3399`/`:3406` via the `@transaction.atomic`
+`handle_checkout_completed`.
+
+**In-tree reference pattern.** `stripe_service.py:975-1070`
+(`reactivate_if_cancelling`) already does it correctly: Stripe mutation
+OUTSIDE the transaction, a short local transaction, a compensating revert
+on local-save failure, and a loud `MANUAL RECONCILIATION NEEDED` log when
+the compensation itself fails. The design applies this pattern rather than
+inventing one.
+
+**Acceptance:** every confirmed site either moves its mutation out of the
+transaction, becomes idempotent, or becomes reconcilable, with the choice
+justified per flow; runtime proof via
+`assert_no_call_inside_transaction` that no mutation executes inside an
+open transaction; permanent regression tests; the full 10 gates at the
+environment-sensitive bar (Gate 8 DEPLOYED-REAL).
+
+**Companion deliverable:** `docs/evidence/h28_p1b/SPEC_audit_stripe_divergence.md`
+— a read-only `audit_*` command cross-checking both subscription models
+against Stripe. Dual-purpose: the P1b "has this already happened?"
+detector, and a permanent reconciliation safety net. Build-ready; blocked
+only on production read access. Writes nothing to Stripe, repairs nothing.
+
+**Evidence:** `docs/evidence/h28_p1b/`.

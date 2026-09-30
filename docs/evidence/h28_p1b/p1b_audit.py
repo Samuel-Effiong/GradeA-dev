@@ -123,6 +123,30 @@ class Walker(ast.NodeVisitor):
         self.func_def_line[node.name] = node.lineno
         if deco_atomic:
             self.atomic_stack.append(("decorator", node.lineno))
+            # A @transaction.atomic DECORATOR is an atomic block over the
+            # whole function body, so it must be recorded for the transitive
+            # pass exactly as a `with` block is. Omitting this was a real gap:
+            # it hid billing/stripe_service.py:3399, where the mutation sits
+            # in a helper called by the decorated handle_checkout_completed.
+            inner_calls = set()
+            sfu = False
+            for sub in ast.walk(node):
+                if isinstance(sub, ast.Call):
+                    c = simple_callee(sub)
+                    if c:
+                        inner_calls.add(c)
+                    if c == "select_for_update":
+                        sfu = True
+            self.atomic_blocks.append(
+                {
+                    "file": self.path,
+                    "line": node.lineno,
+                    "func": node.name,
+                    "kind": "decorator",
+                    "callees": sorted(inner_calls),
+                    "select_for_update": sfu,
+                }
+            )
         self.generic_visit(node)
         if deco_atomic:
             self.atomic_stack.pop()
@@ -158,6 +182,7 @@ class Walker(ast.NodeVisitor):
                     "file": self.path,
                     "line": node.lineno,
                     "func": self.stack[-1] if self.stack else "<module>",
+                    "kind": "with",
                     "callees": sorted(inner_calls),
                     "select_for_update": sfu,
                 }
@@ -206,6 +231,7 @@ def main(root):
     calls = defaultdict(set)
     mutating_funcs = set()
     def_file = {}
+    def_counts = defaultdict(int)
 
     for p in files:
         try:
@@ -223,8 +249,48 @@ def main(root):
         mutating_funcs |= w.func_mutates
         for fn, ln in w.func_def_line.items():
             def_file.setdefault(fn, f"{rel}:{ln}")
+            def_counts[fn] += 1
 
-    # transitive closure: which functions can REACH a stripe mutation
+    # --- resolution honesty -------------------------------------------
+    # The call graph is NAME-based, so a bare `create()` / `record()` /
+    # `list()` cannot be told apart from Django's ORM methods or from a
+    # same-named method on another class. Propagating "reaches a Stripe
+    # mutation" through such a name manufactures false paths wholesale:
+    # before this filter, `record()` alone dragged in most of billing/.
+    #
+    # So a name is propagated ONLY when it is unambiguous: not an ORM or
+    # builtin-shaped name, and defined exactly once across the scanned
+    # files. Ambiguous names are reported separately rather than silently
+    # trusted or silently dropped.
+    ORM_OR_BUILTIN = {
+        "create",
+        "get",
+        "filter",
+        "list",
+        "update",
+        "delete",
+        "save",
+        "record",
+        "apply",
+        "add",
+        "remove",
+        "count",
+        "exists",
+        "first",
+        "last",
+        "all",
+        "values",
+        "append",
+        "format",
+        "join",
+        "set",
+        "bulk_create",
+        "get_or_create",
+        "update_or_create",
+        "select_for_update",
+    }
+    ambiguous = {n for n, c in def_counts.items() if c > 1} | ORM_OR_BUILTIN
+
     reaches = set(mutating_funcs)
     changed = True
     while changed:
@@ -232,14 +298,14 @@ def main(root):
         for fn, callees in calls.items():
             if fn in reaches:
                 continue
-            if callees & reaches:
+            if (callees - ambiguous) & reaches:
                 reaches.add(fn)
                 changed = True
 
     # atomic blocks that reach a mutation, directly or transitively
     risky = []
     for b in all_blocks:
-        hits = sorted(set(b["callees"]) & reaches)
+        hits = sorted((set(b["callees"]) - ambiguous) & reaches)
         if hits:
             b = dict(b)
             b["reaching_callees"] = hits
@@ -252,6 +318,9 @@ def main(root):
                 "mutations": all_mut,
                 "atomic_blocks_total": len(all_blocks),
                 "risky_atomic_blocks": risky,
+                "ambiguous_names_not_propagated": sorted(
+                    n for n in ambiguous if n in def_counts or n in ORM_OR_BUILTIN
+                ),
                 "mutating_funcs": sorted(mutating_funcs),
                 "reaching_funcs": sorted(reaches),
             },
