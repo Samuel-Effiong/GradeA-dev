@@ -17,6 +17,7 @@ from billing.serializers import CreditWalletSerializer
 from billing.services import AnalyticsService
 from classrooms.models import School
 from users.auth_audit import failure_actor
+from users.exceptions import EnvelopedAuthenticationFailed
 from users.models import (
     BetaWhitelist,
     CustomUser,
@@ -481,7 +482,14 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
                 error_class=ErrorClass.USER,
                 reason_code="ACCOUNT_LOCKED",
             )
-            raise AuthenticationFailed(self.LOCKED_MESSAGE, "account_locked")
+            # v2's S6a N3 (SM ruling): the same 401, message and
+            # "account_locked" code, with the coded envelope added.
+            raise EnvelopedAuthenticationFailed(
+                self.LOCKED_MESSAGE,
+                "account_locked",
+                reason_code="ACCOUNT_LOCKED",
+                code_value="account_locked",
+            )
 
         try:
             data = super().validate(attrs)

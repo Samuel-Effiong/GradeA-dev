@@ -44,6 +44,7 @@ The two NOT NULL columns carry a `db_default`, so a code-only rollback still ins
 ## Frontend contract changes (F7: the frontend confirms on staging before beta)
 - **Batch routes no longer answer a whole-request 413.** `students/<assignment>/batch-upload` and `assignments/upload-async` always answer **202** with every file in `tasks`, even when every file is refused. A refused file's entry has `task_id: null` and an `item_id`, and its failure (`FILE_TOO_LARGE` or `FILE_UNREADABLE`) is in session-results. **A client that treated 413 as "this batch was refused" must read the item list instead.** The SM approved this on 2026-09-30.
 - **`item_index` is 1-based**: the file's position in the upload as the teacher sent it (1..n), matching user-facing row numbers. Grading batches number their submissions in dispatch order. Rows from before S7a have none (null).
+- **Every per-item list (`success_list`, `failure_list`, `cancelled_list`, `pending_list`) is sorted by `item_index` ascending**: upload order, whatever order the items were created or finished in. Items with no index (rows from before S7a) come last, oldest first. This is v2's N1, and the SM ruled deterministic order part of the contract; `EveryListIsInUploadOrder` pins it.
 - **`reference` is the hex server trace id**, the same string as the response's `X-Request-ID` and a sync body's `reference`; `uuid.UUID(reference)` is the item's `AuditEvent.trace_id`.
 - session-results adds the item and session fields listed above; every key it had keeps its meaning.
 
@@ -89,3 +90,6 @@ The two NOT NULL columns carry a `db_default`, so a code-only rollback still ins
 | S9 no UNCLASSIFIED sentinel | the unclassified test |
 | S10 no trace recorded | the item-model test and the shape test |
 | S11 a scheduled batch untracked again | `test_a_scheduled_batch_creates_tracked_items` |
+
+## N1 fix (v2's note; SM ruling, 2026-09-30)
+v2 verified S7a at `a9dd8bd` with N1: the per-item lists followed the model's default ordering (newest first), not upload order. session-results now sorts tracked items by `item_index` ascending, nulls last, then `created_at` (`users/views.py`), and the contract above says so. `EveryListIsInUploadOrder` creates items in the order 3, 1, 2 and finishes them 2, 3, 1; the failure and success lists come back 1, 2, 3 and 4, 5, 6. Touched module: **Ran 11, OK**. A mutant with the sort removed is **killed** by that test (restore checked). Log: `n1_run.txt`. v2's record is `VERIFICATION_v2_a9dd8bd.md`.
