@@ -1,0 +1,4 @@
+T9	expiry re-checks on the credits (force=True) path too (1a's X1)	KILLED	FAILED (failures=1)	True	22.1
+
+1/1 killed with verified restore
+exit=0
