@@ -88,6 +88,11 @@ EXEMPT_BEAT_TASKS = {
     "AutoGrader.beat_health.check_beat_health": "the watchdog itself",
 }
 
+#: Every lock name this process has created (a BeatLock or a decorated
+#: task), so the test runner can clear exactly those keys before each test
+#: (AutoGrader/testing/beat_locks.py) without walking the keyspace.
+_known_names: set[str] = set()
+
 SKIPPED_HELD = "another run already holds the lock; skipping this one"
 SKIPPED_CACHE_ERROR = (
     "the lock could not be checked (cache error), so this run fails closed " "and skips"
@@ -141,6 +146,7 @@ class SingleInstance:
 
 class BeatLock:
     def __init__(self, name, ttl_seconds, max_hold_seconds):
+        _known_names.add(name)
         self.name = name
         self.key = lock_key(name)
         self.ttl_ms = ttl_seconds * 1000
@@ -217,6 +223,7 @@ def single_instance(*, max_hold, ttl=DEFAULT_TTL_SECONDS):
 
     def decorate(fn):
         name = f"{fn.__module__}.{fn.__name__}"
+        _known_names.add(name)
 
         @functools.wraps(fn)
         def run(*args, **kwargs):
@@ -284,6 +291,11 @@ def single_instance(*, max_hold, ttl=DEFAULT_TTL_SECONDS):
         return run
 
     return decorate
+
+
+def known_lock_names():
+    """Every lock name this process has created."""
+    return frozenset(_known_names)
 
 
 def declared_lock(task) -> SingleInstance | None:

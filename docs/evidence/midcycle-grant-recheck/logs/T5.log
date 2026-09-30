@@ -1,0 +1,12 @@
+# T5: expiry: the row lock
+# file: billing/services.py (occurrence 1)
+# old: '        locked = UserSubscription.objects.select_for_update().get(\n'
+# new: '        locked = UserSubscription.objects.get(\n'
+# commit: ae944e9664f7cb27d116f20f49b3230dda9f4f9c
+# exit: 1
+# elapsed_s: 4.7
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_expiry_blocked_behind_a_conversion_leaves_it_paid (billing.tests.test_overlapping_run_rechecks.TrialConversionRealLockTests.test_expiry_blocked_behind_a_conversion_leaves_it_paid)
+
+FAILED (failures=1)

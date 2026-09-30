@@ -66,6 +66,8 @@ from .models import (  # CONVERSION_FACTOR,; UserSubscription,
     SubscriptionPlan,
 )
 from .overage_pricing import assert_overage_price_in_sync
+from .refresh_timing import monthly_bucket_expiry as grace_expiry
+from .refresh_timing import refresh_due_by
 
 logger = logging.getLogger(__name__)
 
@@ -686,7 +688,7 @@ class LicenseSubscriptionService:
             bucket_type=CreditBucketType.MONTHLY,
             total_credits=raw_amount,
             used_credits=0,
-            expires_at=next_refresh,
+            expires_at=grace_expiry(next_refresh, license_sub.billing_cycle_end),
         )
 
         CreditLedger.record(
@@ -764,9 +766,11 @@ class LicenseSubscriptionService:
                 "error": None,
             }
         except (IndividualSubscriptionConflictError, ValueError) as exc:
+            # No address here: this line used to carry the email next to a
+            # refusal that named another school. The refusals it can log
+            # for a cross-tenant case are generic now.
             logger.warning(
-                "Skipped enrolling %s in license %s: %s",
-                email,
+                "Skipped enrolling a teacher in license %s: %s",
                 license_sub.id,
                 exc,
             )
@@ -1159,11 +1163,13 @@ class LicenseSubscriptionService:
         if user:
             # 2. Validate user type
             if user.user_type != UserTypes.TEACHER:
-                error_msg = f"Email {email} already belongs to a {user.user_type} account, not a teacher."
-
+                # Generic on purpose (SM ruling): naming the account's role
+                # told any school admin what kind of account an arbitrary
+                # address has on the platform. The log carries ids only.
+                error_msg = "This email can't be added as a teacher."
+                logger.warning("User %s is not a teacher: not enrolled.", user.id)
                 if raise_on_conflict:
                     raise ValueError(error_msg)
-                logger.warning(error_msg)
                 return None
 
             # 3. Check for active individual subscription
@@ -1183,14 +1189,18 @@ class LicenseSubscriptionService:
 
             # 4. School validation
             if user.school and user.school != school:
-                error_msg = (
-                    f"Teacher {email!r} already belongs to school {user.school.name!r}. "
-                    f"Cannot enroll under {school.name!r}."
+                # Generic on purpose: naming the other school told any school
+                # admin which school an arbitrary address belongs to (a
+                # cross-tenant disclosure). The log carries ids only.
+                error_msg = "This teacher already belongs to another school."
+                logger.warning(
+                    "Teacher %s belongs to school %s, not %s: not enrolled.",
+                    user.id,
+                    user.school_id,
+                    school.id,
                 )
-
                 if raise_on_conflict:
                     raise ValueError(error_msg)
-                logger.warning(error_msg)
                 return None
 
             # Associate the teacher with the school if they don't have one
@@ -1536,7 +1546,7 @@ class LicenseSubscriptionService:
             bucket_type=CreditBucketType.MONTHLY,
             total_credits=grant_amount,
             used_credits=0,
-            expires_at=next_refresh,
+            expires_at=grace_expiry(next_refresh, license_sub.billing_cycle_end),
         )
 
         # 7. Create audit ledger entry with the actual grant amount
@@ -1884,7 +1894,9 @@ class LicenseSubscriptionService:
                         wallet=wallet,
                         plan=license_sub.plan,
                         grant_amount=allocation.monthly_allocation,
-                        new_expiry=now + relativedelta(months=1),
+                        new_expiry=grace_expiry(
+                            now + relativedelta(months=1), renewal_end
+                        ),
                         now=now,
                         reference=(
                             f"Renewal allocation for LICENSE subscription {license_sub.id} "
@@ -3634,17 +3646,18 @@ class LicenseSubscriptionService:
 
     @staticmethod
     @transaction.atomic
-    def _refresh_teacher_credits(allocation: SchoolCreditAllocation) -> None:
+    def _refresh_teacher_credits(allocation: SchoolCreditAllocation, now=None) -> None:
         """
         Refresh a teacher's monthly credits: expire current monthly bucket,
         apply rollover, and create a new monthly bucket.
-        Called by the monthly refresh task.
+        Called by the monthly refresh task, which passes its start time as
+        `now` (billing/refresh_timing.py).
         """
 
         teacher = allocation.user
         wallet = teacher.credit_wallet
         license_sub = allocation.license_subscription
-        now = timezone.now()
+        now = now or timezone.now()
         next_refresh = now + relativedelta(months=1)
 
         # Open a new monthly consumption window, at most once per month per
@@ -3663,7 +3676,13 @@ class LicenseSubscriptionService:
         LicenseSubscription.objects.filter(
             Q(pk=license_sub.pk),
             Q(consumption_window_start__isnull=True)
-            | Q(consumption_window_start__lte=now - relativedelta(months=1)),
+            # The same tolerance as the refresh's due check (1a's F1): a run
+            # a few seconds earlier than last month's refreshes the teacher,
+            # so it must reopen the window too.
+            | Q(
+                consumption_window_start__lte=refresh_due_by(now)
+                - relativedelta(months=1)
+            ),
         ).update(
             total_credits_consumed=0,
             consumption_window_start=now,
@@ -3675,7 +3694,7 @@ class LicenseSubscriptionService:
             wallet=wallet,
             plan=license_sub.plan,
             grant_amount=allocation.monthly_allocation,
-            new_expiry=next_refresh,
+            new_expiry=grace_expiry(next_refresh, license_sub.billing_cycle_end),
             now=now,
             reference=f"Monthly grant for license {license_sub.id}",
             metadata={
@@ -3764,7 +3783,9 @@ class LicenseSubscriptionService:
                         wallet=wallet,
                         plan=license_sub.plan,
                         grant_amount=allocation.monthly_allocation,
-                        new_expiry=now + relativedelta(months=1),
+                        new_expiry=grace_expiry(
+                            now + relativedelta(months=1), new_billing_cycle_end
+                        ),
                         now=now,
                         reference=f"Offline renewal allocation for license {license_sub.id}",
                         metadata={

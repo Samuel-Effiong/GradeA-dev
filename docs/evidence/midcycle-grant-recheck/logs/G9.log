@@ -1,0 +1,15 @@
+# G9: task counts a skip as a skip
+# file: billing/tasks.py (occurrence 1)
+# old: '            if SubscriptionService.process_mid_cycle_credit_grant(sub) is None:\n'
+# new: '            if SubscriptionService.process_mid_cycle_credit_grant(sub) is not None:\n'
+# commit: ae944e9664f7cb27d116f20f49b3230dda9f4f9c
+# exit: 1
+# elapsed_s: 3.9
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_monthly_grants_a_month_apart_are_not_reported (billing.tests.test_overlapping_run_rechecks.DoubleGrantDetectionQueryTests.test_monthly_grants_a_month_apart_are_not_reported)
+FAIL: test_a_due_subscription_is_still_granted (billing.tests.test_overlapping_run_rechecks.MidCycleGrantOverlapTests.test_a_due_subscription_is_still_granted)
+FAIL: test_an_overlapping_run_does_not_grant_the_month_again (billing.tests.test_overlapping_run_rechecks.MidCycleGrantOverlapTests.test_an_overlapping_run_does_not_grant_the_month_again)
+FAIL: test_run_b_blocked_behind_run_a_does_not_grant_again (billing.tests.test_overlapping_run_rechecks.MidCycleGrantRealLockTests.test_run_b_blocked_behind_run_a_does_not_grant_again)
+
+FAILED (failures=4)

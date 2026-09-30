@@ -16,8 +16,10 @@ runs before each test. The project's test runner installs it:
   * in spawned parallel workers too, through the parallel suite's
     `process_setup` hook (a spawned worker starts from a fresh import).
 
-The keys live under this process's own cache prefix (H-9), so a
-concurrent run's locks are never touched.
+It deletes exact keys: one per lock name this process has created (every
+lock goes through BeatLock or the decorator, which record the name), so it
+never walks the keyspace. The keys live under this process's own cache
+prefix (H-9), so a concurrent run's locks are never touched.
 """
 
 from django.test import SimpleTestCase
@@ -26,17 +28,17 @@ _MARKER = "_clears_beat_locks"
 
 
 def clear_beat_locks():
-    """Delete every beat-lock key under this process's cache prefix."""
-    from django.core.cache import cache
+    """Delete this process's beat-lock keys: exactly the ones for every lock
+    name the process has created (no keyspace walk), under its own cache
+    prefix. Returns how many existed."""
     from django_redis import get_redis_connection
 
-    from AutoGrader.beat_locks import KEY_ROOT
+    from AutoGrader.beat_locks import known_lock_names, lock_key
 
-    client = get_redis_connection("default")
-    keys = list(client.scan_iter(match=cache.make_key(f"{KEY_ROOT}:*"), count=500))
-    if keys:
-        client.delete(*keys)
-    return len(keys)
+    keys = [lock_key(name) for name in sorted(known_lock_names())]
+    if not keys:
+        return 0
+    return get_redis_connection("default").delete(*keys)
 
 
 def isolate_beat_locks_per_test():

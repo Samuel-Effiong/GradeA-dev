@@ -255,6 +255,20 @@ class SingleInstanceTests(LockTestCase):
         self.assertEqual(self.calls, [1])
         self.assertIsNone(self.holder())
 
+    def test_a_lapsed_run_cannot_extend_a_newer_runs_lock(self):
+        """Compare-and-extend: the heartbeat of a run whose lock lapsed must
+        not keep a newer run's lock alive."""
+        lapsed = BeatLock(self.name, 60, 60)
+        self.assertTrue(lapsed.acquire("lapsed-run"))
+        beat_locks._redis().delete(lock_key(self.name))
+        newer = BeatLock(self.name, 1, 1)
+        self.assertTrue(newer.acquire("newer-run"))
+        ttl_before = beat_locks._redis().pttl(lock_key(self.name))
+
+        self.assertFalse(lapsed.extend())
+        self.assertLessEqual(beat_locks._redis().pttl(lock_key(self.name)), ttl_before)
+        self.assertEqual(self.holder(), "newer-run")
+
     def test_every_run_has_its_own_token(self):
         tokens = []
 
