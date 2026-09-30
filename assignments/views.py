@@ -36,6 +36,7 @@ from rest_framework.response import Response
 
 from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor  # pdf_service
+from audit import history
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome
 from AutoGrader.error_messages import describe_user_error
@@ -1804,7 +1805,9 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # bypasses post_save, so unlike the single-publish endpoint nothing
         # else would notify them or invalidate caches.
         newly_published = list(graded_submissions.filter(is_published=False))
-        updated_count = graded_submissions.update(is_published=True)
+        # Epic A S4 (D3): one GRADE_CHANGE per submission this actually
+        # publishes; already-published rows are updated but unchanged.
+        updated_count = history.record_bulk(graded_submissions, is_published=True)
 
         for submission in newly_published:
             # The snapshot was taken before the bulk write, so the in-memory
@@ -1943,6 +1946,17 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+        # Epic A S4 (FR-A-01 "data export"): what left the system, how big.
+        # This renders the assignment's questions (and, for its teacher, the
+        # rubric) - no student work. No route exports student data yet.
+        emit(
+            AuditAction.DATA_EXPORT,
+            actor=request.user,
+            request=request,
+            target_type="Assignment",
+            target_id=assignment.id,
+            metadata={"file_count": 1, "file_size_bytes": len(pdf_bytes)},
+        )
         return self._assignment_pdf_response(assignment, pdf_bytes)
 
     @staticmethod

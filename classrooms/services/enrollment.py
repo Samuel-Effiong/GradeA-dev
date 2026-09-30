@@ -16,6 +16,7 @@ import logging
 from django.db import transaction
 from django.utils import timezone
 
+from audit import history
 from users.models import ACTIVATION_TOKEN_VALIDITY, CustomUser, UserActivity, UserTypes
 from users.services import generate_temporary_password
 
@@ -373,9 +374,18 @@ def activate_pending_enrollments_on_login(student):
     to several courses before ever logging in has all of them activate
     together.
     """
-    StudentCourse.objects.filter(
-        student=student, enrollment_status=EnrollmentStatusType.PENDING
-    ).update(enrollment_status=EnrollmentStatusType.ENROLLED)
+    # Epic A S4 (SM R3): one ROSTER_CHANGE per activated enrolment. The
+    # sign-in request has no user yet, so the actor is passed explicitly:
+    # `student` is the account the credential check just authenticated,
+    # never a value from the request. A second sign-in finds nothing
+    # PENDING and records nothing.
+    return history.record_bulk(
+        StudentCourse.objects.filter(
+            student=student, enrollment_status=EnrollmentStatusType.PENDING
+        ),
+        actor=student,
+        enrollment_status=EnrollmentStatusType.ENROLLED,
+    )
 
 
 def remove_student_from_course(*, course, student_id):

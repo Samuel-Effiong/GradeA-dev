@@ -8,6 +8,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ParseError
 
 from ai_processor.services import GRADING_ASSIGNMENT_PROMPT, ai_processor
+from audit import history
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome, ErrorClass
 from AutoGrader.error_messages import (
@@ -29,6 +30,7 @@ from students.exceptions import (
 from students.models import BatchUploadSession, BatchUploadType, StudentSubmission
 from students.services import (
     GRADING_TASK_TIME_LIMIT_SECONDS,
+    emit_grading_completed,
     grade_engine,
     update_submission_from_raw_text,
     upload_answers_engine,
@@ -496,6 +498,9 @@ def grade_engine_async(
         self.update_state(state="PROGRESS", meta={"step": "Grading"})
         update_processing_task(processing_task_id, meta={"step": "Grading"})
         ensure_task_not_cancelled(processing_task_id)
+        # Epic A S4: the grade as stored before this run, for the
+        # before/after on GRADING_COMPLETED.
+        grade_before = history.snapshot(submission)
         # grade_engine performs the final (cancellation-guarded) save
         # itself; a second full save here would race formatted_grade_async's
         # write to the same row and clobber formatted_grade (H4).
@@ -512,33 +517,11 @@ def grade_engine_async(
                 "batch_id": str(batch_id) if batch_id else None,
             },
         )
-        # BE-A-09 #2: the model that actually served THIS grading run - not
-        # necessarily MAIN_MODEL, since OpenRouter may have routed to one of
-        # GRADING_FALLBACK_MODELS - is already captured on the graded
-        # result as `grading_model` (ai_processor/services.py) and threaded
-        # onto the submission via `submission.feedback = grading`. Reading
-        # it back here is the only way this emit call, which only sees the
-        # already-persisted submission, learns it too.
-        grading_model = (
-            submission.feedback.get("grading_model")
-            if isinstance(submission.feedback, dict)
-            else None
-        )
-        emit(
-            AuditAction.GRADING_COMPLETED,
+        emit_grading_completed(
+            submission,
             actor=completed_task.requested_by if completed_task else None,
-            request=None,
-            target_type="StudentSubmission",
-            target_id=submission.id,
-            outcome=AuditOutcome.SUCCESS,
-            metadata={
-                "assignment_id": str(submission.assignment_id),
-                "submission_id": str(submission.id),
-                "task_id": str(processing_task_id) if processing_task_id else None,
-                "model": grading_model,
-                # S5 (NFR-OBS-04): the exact grading prompt behind this grade.
-                "prompt_version": GRADING_ASSIGNMENT_PROMPT.version,
-            },
+            before=grade_before,
+            task_id=processing_task_id,
         )
 
         if batch_id:

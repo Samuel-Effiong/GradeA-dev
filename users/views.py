@@ -60,6 +60,7 @@ from rest_framework_simplejwt.views import (
 )
 from rest_framework_simplejwt.views import TokenRefreshView as BaseTokenRefreshView
 
+from audit import history
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome, ErrorClass
 from AutoGrader.cache_generation import SCOPE_USER, versioned_key
@@ -2162,10 +2163,17 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                         # and Google has just proven mailbox ownership of
                         # the exact address the teacher invited - strictly
                         # stronger evidence than the emailed code.
-                        promoted = StudentCourse.objects.filter(
-                            student=user,
-                            enrollment_status=EnrollmentStatusType.PENDING,
-                        ).update(enrollment_status=EnrollmentStatusType.ENROLLED)
+                        # Epic A S4 (SM R3): one ROSTER_CHANGE per promoted
+                        # enrolment, naming `user` - the account Google's
+                        # token check just established, not request input.
+                        promoted = history.record_bulk(
+                            StudentCourse.objects.filter(
+                                student=user,
+                                enrollment_status=EnrollmentStatusType.PENDING,
+                            ),
+                            actor=user,
+                            enrollment_status=EnrollmentStatusType.ENROLLED,
+                        )
                         if promoted:
                             logger.info(
                                 "Promoted %s pending enrollment(s) to ENROLLED "
