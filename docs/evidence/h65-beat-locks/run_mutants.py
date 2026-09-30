@@ -23,9 +23,31 @@ WORKTREE = os.path.join(os.path.dirname(REPO), "Grade-Automator-Plus-h65-mut")
 TEST_DB = "test_h65_mut"
 
 BL = "AutoGrader/beat_locks.py"
-TESTS = ["AutoGrader.tests_beat_locks", "billing.tests.test_beat_lock_catch_up"]
+TESTS = [
+    "AutoGrader.tests_beat_locks",
+    "billing.tests.test_beat_lock_catch_up",
+    # 0b: the adapted overlap helper (a lapsed lock) must still prove the
+    # per-row re-checks; M1/M2 remove them.
+    "billing.tests.test_overlapping_run_rechecks",
+]
 
 MUTANTS = [
+    (
+        "M1",
+        "mid-cycle grant: the next_credit_grant_at re-check (lapsed lock)",
+        "billing/services.py",
+        "            or user_subscription.next_credit_grant_at > refresh_due_by(now)\n",
+        "",
+        1,
+    ),
+    (
+        "M2",
+        "expire_trial: the active-trial re-check (lapsed lock)",
+        "billing/services.py",
+        "        if not (locked.is_trial and locked.is_active):\n",
+        "        if False:\n",
+        1,
+    ),
     (
         "L1",
         "the lock is released after the run (0b)",
