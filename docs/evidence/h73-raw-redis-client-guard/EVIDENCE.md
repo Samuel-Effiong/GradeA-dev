@@ -167,7 +167,7 @@ The counts are the same at 2e9dcb0 and at d5's e5a94d0.
   - beat_locks + pipeline/lock goes (1, 5) → **(1, 7)**;
   - `newmod_attr` (F2) → (1, 1).
   - Still MISS, as documented limits: `caches['default'].client` and the `cache as dc` alias, in a module with no acquisition. The standalone "module-attribute factory" shape needs `raw_client_uses`, which resolves it (the `newmod_attr` row).
-- **Kill prediction for all 22 mutants** with the same stub, on an e5a94d0 copy: **22/22 killed**, each by a named test (`r3_static_kill_prediction.txt`; harness: `static_harness.py`). It predicts the gate; it is not the gate.
+- **Kill prediction for all 22 mutants** with the same stub, on an e5a94d0 copy: **22/22 killed**, each by a named test (`r3_static_kill_prediction.txt`; harness: `static_harness.py`). It predicts the gate; it is not the gate. The prediction ran before flake8 C419 made me replace three `any([...])` calls in `_RawClientScan` with explicit loops (same behaviour: every binding still runs). The 10 tests pass on the committed version (95593ae), and all 22 anchors are unique there.
 
 ### Round 3 gates: ONE run on the new base (after 0b merges H-65 9887b25 into H-73)
 
