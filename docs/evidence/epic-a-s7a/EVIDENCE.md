@@ -41,9 +41,15 @@ The two NOT NULL columns carry a `db_default`, so a code-only rollback still ins
 - Auto-grade's task result used to return `str(e)` plus a traceback (QA-ERR-03). It now logs the exception and returns a fixed line.
 - grade-all numbers its items.
 
+## Frontend contract changes (F7: the frontend confirms on staging before beta)
+- **Batch routes no longer answer a whole-request 413.** `students/<assignment>/batch-upload` and `assignments/upload-async` always answer **202** with every file in `tasks`, even when every file is refused. A refused file's entry has `task_id: null` and an `item_id`, and its failure (`FILE_TOO_LARGE` or `FILE_UNREADABLE`) is in session-results. **A client that treated 413 as "this batch was refused" must read the item list instead.** The SM approved this on 2026-09-30.
+- **`item_index` is 1-based**: the file's position in the upload as the teacher sent it (1..n), matching user-facing row numbers. Grading batches number their submissions in dispatch order. Rows from before S7a have none (null).
+- **`reference` is the hex server trace id**, the same string as the response's `X-Request-ID` and a sync body's `reference`; `uuid.UUID(reference)` is the item's `AuditEvent.trace_id`.
+- session-results adds the item and session fields listed above; every key it had keeps its meaning.
+
 ## Design decisions for the verifier and the SM
-1. `item_index` is **1-based**, in upload or dispatch order (08a §4.3's example "p07 → item_index 7").
-2. A batch whose files are **all** refused still answers **202** with every item FAILURE. A batch endpoint always answers per item, rather than switching to a whole-request 413 when nothing is left.
+1. `item_index` is **1-based**, in upload or dispatch order (08a §4.3's example "p07 → item_index 7"). **Approved by the SM.**
+2. A batch whose files are **all** refused still answers **202** with every item FAILURE. A batch endpoint always answers per item, rather than switching to a whole-request 413 when nothing is left. **Approved by the SM**, as a frontend change (above).
 3. `trace_id` is recorded **when the item is created**, not when it fails. So a refused-before-dispatch item has one, and an item created by a beat task gets the worker's propagated or fresh id.
 4. UNCLASSIFIED is a sentinel key in `failure_codes` only. The item's own `reason_code` stays null.
 
