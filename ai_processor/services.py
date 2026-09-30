@@ -145,6 +145,32 @@ WEEKLY_SCHOOL_ADMIN_SUMMARY_PROMPT = _load_prompt(
     "WEEKLY_SCHOOL_ADMIN_SUMMARY_PROMPT.txt"
 )
 
+# Built in code rather than a file; versioned the same way, over the template
+# text before `{numbers}` is filled in.
+_BLANK_VERIFICATION_TEXT = (
+    "You are re-checking ONE narrow thing about a scanned student "
+    "submission. A first pass reported that the student wrote "
+    "nothing for question(s) {numbers}.\n\n"
+    "For EACH of those question numbers, look at the pages and say "
+    "whether there is ANY student writing responding to it - any "
+    "mark, working, crossing-out, marginal note or continuation "
+    "elsewhere on the page counts.\n\n"
+    "Describe what you can see in `observed` BEFORE you decide "
+    "`content_found`. If you do find writing, quote a short "
+    "verbatim fragment of it in `verbatim_fragment` and give the "
+    "page in `page`; otherwise set both to null.\n\n"
+    "Do not transcribe the full answer and do not grade anything. "
+    "Answer only the question of whether something is there.\n\n"
+    "Be honest in both directions: saying content exists when it "
+    "does not sends a teacher on a pointless hunt, and saying it "
+    "does not exist when it does leaves a student wrongly scored "
+    "zero."
+)
+BLANK_VERIFICATION_INSTRUCTION = Prompt(
+    _BLANK_VERIFICATION_TEXT,
+    prompt_version_of("BLANK_VERIFICATION_INSTRUCTION", _BLANK_VERIFICATION_TEXT),
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -822,6 +848,7 @@ Do not include any explanatory text before or after the JSON
         try:
 
             response = self.execute_graded_task(
+                prompt_version=system_prompt.version,
                 user=user,
                 feature="Assignment Extraction",
                 task_type="extract_assignment",
@@ -880,6 +907,7 @@ Do not include any explanatory text before or after the JSON
         try:
             ensure_task_not_cancelled(processing_task_id)
             response = self.execute_graded_task(
+                prompt_version=system_prompt.version,
                 user=user,
                 feature="Assignment Extraction",
                 task_type="extract_assignment",
@@ -1023,6 +1051,7 @@ Do not include any explanatory text before or after the JSON
                 ensure_task_not_cancelled(processing_task_id)
                 try:
                     response = self.execute_graded_task(
+                        prompt_version=ASSIGNMENT_EXTRACTION_PROMPT.version,
                         user=user,
                         feature="Assignment Extraction",
                         task_type="extract_assignment",
@@ -1199,6 +1228,7 @@ Do not include any explanatory text before or after the JSON
                 ensure_task_not_cancelled(processing_task_id)
                 try:
                     response = self.execute_graded_task(
+                        prompt_version=system_prompt.version,
                         user=user,
                         feature="Assignment Extraction",
                         task_type="extract_assignment",
@@ -1666,6 +1696,7 @@ Do not include any explanatory text before or after the JSON
                 ensure_task_not_cancelled(processing_task_id)
                 try:
                     response = self.execute_graded_task(
+                        prompt_version=ANSWERS_EXTRACTION_PROMPT.version,
                         user=user,
                         feature="Answer Extraction",
                         task_type="extract_answer",
@@ -1892,6 +1923,7 @@ Do not include any explanatory text before or after the JSON
         try:
             ensure_task_not_cancelled(processing_task_id)
             response = self.execute_graded_task(
+                prompt_version=ANSWERS_EXTRACTION_PROMPT.version,
                 user=user,
                 feature="Answer Extraction",
                 task_type="extract_answer",
@@ -2039,25 +2071,7 @@ Do not include any explanatory text before or after the JSON
             return answers
 
         numbers = [entry.get("question_number") for entry in blanks]
-        instruction = (
-            "You are re-checking ONE narrow thing about a scanned student "
-            "submission. A first pass reported that the student wrote "
-            f"nothing for question(s) {numbers}.\n\n"
-            "For EACH of those question numbers, look at the pages and say "
-            "whether there is ANY student writing responding to it - any "
-            "mark, working, crossing-out, marginal note or continuation "
-            "elsewhere on the page counts.\n\n"
-            "Describe what you can see in `observed` BEFORE you decide "
-            "`content_found`. If you do find writing, quote a short "
-            "verbatim fragment of it in `verbatim_fragment` and give the "
-            "page in `page`; otherwise set both to null.\n\n"
-            "Do not transcribe the full answer and do not grade anything. "
-            "Answer only the question of whether something is there.\n\n"
-            "Be honest in both directions: saying content exists when it "
-            "does not sends a teacher on a pointless hunt, and saying it "
-            "does not exist when it does leaves a student wrongly scored "
-            "zero."
-        )
+        instruction = BLANK_VERIFICATION_INSTRUCTION.format(numbers=numbers)
 
         override_model = (
             getattr(settings, "ANSWER_BLANK_VERIFICATION_MODEL", "") or None
@@ -2066,6 +2080,7 @@ Do not include any explanatory text before or after the JSON
         try:
             ensure_task_not_cancelled(processing_task_id)
             response = self.execute_graded_task(
+                prompt_version=BLANK_VERIFICATION_INSTRUCTION.version,
                 user=user,
                 feature="Answer Extraction",
                 task_type="extract_answer",
@@ -2658,6 +2673,7 @@ Do not include any explanatory text before or after the JSON
             ensure_task_not_cancelled(processing_task_id)
             try:
                 response = self.execute_graded_task(
+                    prompt_version=GRADING_ASSIGNMENT_PROMPT.version,
                     user=user,
                     feature="Grading Assignment",
                     task_type="grade_assignment",
@@ -2928,6 +2944,7 @@ Do not include any explanatory text before or after the JSON
             ensure_task_not_cancelled(processing_task_id)
             try:
                 response = self.execute_graded_task(
+                    prompt_version=GRADING_ASSIGNMENT_PROMPT.version,
                     user=user,
                     feature="Grading Assignment",
                     task_type="grade_assignment",
@@ -3877,6 +3894,7 @@ Do not include any explanatory text before or after the JSON
             system_prompts = [{"type": "text", "text": system_prompt}]
 
             response = self.execute_graded_task(
+                prompt_version=GRADING_ASSIGNMENT_PROMPT.version,
                 user=user,
                 feature="Grading Assignment",
                 task_type="grade_assignment",
@@ -4267,6 +4285,7 @@ Now, respond to the following teacher's instruction using the rules above
 
         for round_index in range(MAX_TOOL_CALL_ROUNDS):
             response = self.execute_graded_task(
+                prompt_version=GENERATE_ASSIGNMENT_PROMPT.version,
                 user=user,
                 feature="Assignment Generation",
                 task_type="generate_assignment",
@@ -4373,6 +4392,7 @@ Now, respond to the following teacher's instruction using the rules above
             system_prompts = [{"type": "text", "text": system_prompt}]
 
             response = self.execute_graded_task(
+                prompt_version=GRADE_FORMATTER.version,
                 user=user,
                 feature="Formatted Grade",
                 task_type="formatted_grade",
@@ -4744,6 +4764,7 @@ Now, respond to the following teacher's instruction using the rules above
 
         try:
             response = self.execute_graded_task(
+                prompt_version=system_prompt.version,
                 user=user,
                 feature=feature,
                 task_type=task_type,
@@ -4896,6 +4917,7 @@ Based on the data above, write a short personalised summary for the teacher."""
         ]
 
         response = self.execute_graded_task(
+            prompt_version=STUDENT_SUMMARY_PROMPT.version,
             user=teacher,
             feature="Student Summary",
             task_type="student_summary",
@@ -4942,6 +4964,7 @@ Turn this data into concise teacher-facing narration.
         ]
 
         response = self.execute_graded_task(
+            prompt_version=WEEKLY_COURSE_SUMMARY_PROMPT.version,
             user=teacher,
             feature="Weekly Course Summary",
             task_type="weekly_course_summary",
@@ -5005,6 +5028,7 @@ Turn this data into concise school-admin-facing narration.
         ]
 
         response = self.execute_graded_task(
+            prompt_version=WEEKLY_SCHOOL_ADMIN_SUMMARY_PROMPT.version,
             user=admin,
             feature="Weekly School Admin Summary",
             task_type="weekly_school_admin_summary",
