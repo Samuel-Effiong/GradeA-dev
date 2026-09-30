@@ -175,6 +175,213 @@ questions. P4 stays verify-only for H-28.
 
 §1 said "Six of the seven". Leftover from before site 7. Now: five view-layer, two webhook.
 
+## 9. Change 1 — compensation-step design (for d4's H11.1 read)
+
+Approved so far (d4, 2026-09-18, via 95): the direction; Change 1 = P0 + the three licence
+P1s **+ F1-F5** (`FINDING_licence_payment_failure_paths.md`); F1's behaviour change in
+principle, conditional on the 4-point record; the money-aware branching rule; the bounded
+retry. **Items marked NEW below have not yet been seen by d4.**
+
+### 9a. Four phases per operation
+
+| Phase | Transaction | Does |
+|---|---|---|
+| A | short, `atomic(durable=True)` | lock licence, validate, INSERT intent `PENDING` (the per-licence guard fires here), COMMIT — **lock released before any network call** |
+| B | **none** | the Stripe call(s), each with its own `idempotency_key` |
+| C | short, `atomic(durable=True)` | intent -> `STRIPE_APPLIED`, COMMIT **immediately** — before any other local work |
+| D | short, `atomic(durable=True)`, retried per 9e | re-lock, re-validate, apply local writes, intent -> `COMPLETE`, COMMIT; then MailerLite sync **after** the commit |
+
+**NEW — `durable=True` as enforcement.** Django 5.2's `atomic(durable=True)` raises
+`RuntimeError` if it is ever opened inside another transaction. I checked every production
+caller (`license_views.py:650/852/886`, `select_plan` at `license_service.py:3604` via
+`license_views.py:595`): none wraps these functions in an outer transaction today, and
+`ATOMIC_REQUESTS` is enforced off. `durable=True` makes that **a guarantee rather than an
+observation** — a future caller that wraps one of these in a transaction fails loudly
+instead of silently putting the Stripe call back inside a transaction. Django exempts the
+test-case wrapper, so existing `TestCase` tests keep working. No precedent in-tree yet.
+
+### 9b. The per-licence guard
+
+A conditional `UniqueConstraint` on `license_subscription`, **across all operations**, while
+the intent is non-terminal. Deviation from the design's "(subscription, operation)" wording,
+endorsed by 95 and d4: the old `select_for_update` serialised every one of these functions on
+the same row, so a per-operation guard would let a seat change and a conversion-to-offline
+interleave where they never could before. Per-licence reproduces the old mutual exclusion
+without holding a DB lock across the network. A blocked caller gets a `ValueError` (the
+views' existing 400 contract): *another billing change for this licence is still in
+progress or awaiting reconciliation.*
+
+**Consequence, stated plainly:** a stuck non-terminal row blocks **all** further Stripe
+changes on that licence until a human resolves it. For a licence whose Stripe state is
+unknown, blocking further mutations is the safe failure. The cost is a support ticket.
+
+### 9c. The full state set
+
+| State | Terminal? | Blocks guard? | Meaning |
+|---|---|---|---|
+| `PENDING` | no | yes | recorded; Stripe not yet called, **or outcome unknown** if the process died during the call |
+| `STRIPE_APPLIED` | no | yes | Stripe mutation succeeded; local not yet finalised |
+| `COMPLETE` | **yes** | no | both sides agree, forward |
+| `COMPENSATED` | **yes** | no | Stripe was reverted after a failure where no money moved; both sides agree, back where they started |
+| `FAILED` | **yes** | no | Stripe never applied the change (rejected, or a payment failure reverted via F1-F5); local untouched |
+| `ESCALATED` | no | yes | code gave up; a human has been alerted and must roll forward or resolve |
+
+**Naming:** the approved P0 wording `STRIPE_DELETED` is `STRIPE_APPLIED` with
+`operation=CONVERT_TO_OFFLINE`. One state for all operations keeps the detector's classes
+uniform.
+
+**NEW — `COMPENSATED` is a sixth state** beyond d4's list. "Applied at Stripe then
+reverted" differs from "never applied" for audit: Stripe saw two mutations and possibly a
+voided invoice. Folding it into `FAILED` would lose that.
+
+**What a stale row means**, which is what the detector classifies on: stale `PENDING` =
+outcome unknown, check Stripe. Stale `STRIPE_APPLIED` = Stripe done, local not, **and no
+alert was sent** (see 9g). `ESCALATED` = alert sent, awaiting a human.
+
+### 9d. The money-aware branching rule (approved)
+
+After Stripe applied and the local finalise then fails for good:
+- **no money moved** (`cancel_at_period_end` toggle; seat decrease; plan downgrade with
+  `proration_behavior="none"`) -> **auto-revert** at Stripe -> `COMPENSATED`; if the revert
+  itself fails -> `ESCALATED`;
+- **money moved or an object was destroyed** (P0 delete; a PAID seat increase or plan
+  upgrade) -> **never auto-revert** -> `ESCALATED`, a human rolls **forward**. Reverting a paid
+  change would need a refund too — two more irreversible money movements to compensate for
+  one. **Failure direction chosen deliberately: under-served-pending-human (recoverable,
+  visible) over over-charged-silently (neither).**
+
+The payment-**failure** paths F1-F5 are the other branch: Stripe applied the change but the
+payment did not go through, so nothing was collected -> revert **and void the open invoice**
+via the in-tree `_revert_to_previous_price` (and a quantity equivalent for `update_seats`),
+matching the individual path exactly -> `FAILED`.
+
+### 9e. Bounded retry of the local finalise (approved)
+
+- **Retries only on transient classes: `OperationalError`, `InterfaceError`.** Anything else —
+  `IntegrityError`, a re-validation `ValueError` — escalates at once. Retrying a logic failure
+  only delays the page.
+- **Bounded:** a fixed small number of attempts with short backoff; never an unbounded spin.
+- **NAMED GATE-5 ASSERTION (binding, d4's wording):** *after the 60 s idle-in-transaction
+  kill, the retry discards the dead connection, opens a fresh transaction outside the failed
+  atomic block, and the injection proves the retry SUCCEEDS on the fresh connection — not
+  merely that a retry happened.* Implementation: `connection.close()` before each retry so
+  Django reconnects on next use; each attempt is its own top-level `atomic(durable=True)`,
+  never nested in the one that failed.
+- **Requires the local finalise to be idempotent** — each attempt re-reads, re-validates and
+  writes absolute values (the new plan / quantity / flags), never deltas. A test proves it.
+
+### 9f. Idempotency keys (condition 1)
+
+Every Stripe mutation carries `idempotency_key=f"h28-licence-{intent.id}-{step}"`, with a
+**distinct `step` per distinct call** (`apply`, `revert`, `void`). Stripe rejects a reused key
+with different parameters, so apply and revert can never share one. Precedent:
+`interval-change-refund-{pi_id}` in `_void_or_refund_side_effect_invoice`.
+
+### 9g. The layered safety net — d4's words
+
+(i) **bounded auto-retry = seconds**; (ii) **alert with an owner = minutes to hours**;
+(iii) **the reconciliation detector = the backstop** that catches any `STRIPE_APPLIED` row
+that fell through both.
+
+**Alert channels (in-tree precedent, not invented):** an ERROR log, which becomes a Sentry
+event where Sentry is initialised (`AutoGrader/settings.py:139-145`); and a best-effort email
+to every active super admin, following `_notify_super_admins_offline_overage_pending`
+(`license_service.py:3030`) — money-related, so not gated on notification preferences, and
+never raises.
+
+### 9h. Open items — NOT decided by this design
+
+1. **Alerting depends on `SENTRY_DSN` being set in production; unverified from this
+   environment.** If it is not, the super-admin email is the only live channel.
+2. **Who owns money-reconciliation alerts, and what is the response time?** Organisational;
+   with the user via d4. The code guarantees a human is **told**, not that one **acts**.
+3. **Proper 3DS support for licence upgrades** (async confirmation instead of revert) —
+   pre-existing gap on both paths; d4 is noting it for the user as a possible feature.
+4. **H-32** (resume-and-finish sweeper for stuck intents) — registered, **not** in Change 1;
+   priority contingent on the user's alert-ownership answer.
+
+### 9i. The hard-kill case — correction accepted, two additions APPROVED INTO Change 1
+
+**The premise corrected:** moving the Stripe call out of the transaction removes the 60 s
+Postgres kill; the next wall is gunicorn's `--timeout 100` (`Dockerfile:84`, mirrored by
+`WEBHOOK_REQUEST_HARD_TIMEOUT_SECONDS = 100`, `webhooks.py:74`). stripe-python 14.4.1 (as
+installed) defaults to an 80 s timeout and `max_network_retries = 2`, ~240 s worst case per
+call; `billing/imports.py` overrides neither. These functions make up to four calls in
+sequence. **A killed worker runs no code, so no alert fires.** Change 1 turns a silent
+*unrecorded* divergence into a *recorded but unalerted* one. d4: the doctrine does not accept
+a fix that introduces a new silent-failure state, so both of the following are **required**.
+
+**(1) Stale-intent check — APPROVED, required for Change 1 to land.** A periodic Celery task
+on the existing infrastructure: list intents in `PENDING` / `STRIPE_APPLIED` older than
+**~10 minutes** and alert through 9g's channels. **One DB query, zero Stripe calls.** It
+restores "a human is TOLD" for the hard-kill case; whether a human ACTS remains the user's
+question.
+
+**(2) Per-REQUEST Stripe budget — APPROVED.**
+- **Per request, not per call** (95): four calls at 15 s with one retry each is already
+  4 x 30 = 120 s. A shared request deadline is passed down; each call's timeout is what
+  remains of it.
+- **Target the Stripe work at ~70-80 s, well under 100 s** (d4): a budget that uses the full
+  100 s leaves no time for the local finalise, the compensation and the alert to run —
+  recreating the problem it exists to solve.
+- **NAMED GATE-5 ASSERTION:** make Stripe slow on **every** call in the sequence and assert
+  the handler reaches its own error branch **and completes its alert** before 100 s. A single
+  slow call cannot catch the multiplication.
+
+### 9j. NEW — which layer supplies the idempotency key (verified in stripe-python 14.4.1)
+
+95 asked whether stripe-python's own retries of a mutation carry an idempotency key. Read
+from the installed library:
+
+- **POST (`Subscription.modify`, `Refund.create`, `Invoice.void_invoice`, `Price.create`):**
+  `_api_requestor.py:548-550` sets a **random** `Idempotency-Key` on every POST, once per
+  logical call; `_http_client.py` builds `headers` once, **before** the retry loop, so every
+  internal retry reuses it. **stripe-python's own retries are therefore already safe.**
+- **But each logical call gets a FRESH random key**, so any re-attempt by **our** code — or a
+  user re-submitting — is not deduplicated. Our intent-derived key (9f) is what covers that
+  layer. Both layers are needed; they protect against different repeats.
+- **V1 DELETE — P0's `Subscription.delete` — gets NO automatic key**: the same line applies it
+  only to V2 deletes. **To verify in Stripe test mode (Gate 7), not asserted here:** my
+  understanding is that Stripe ignores idempotency keys on DELETE entirely. If so, a retry of
+  a delete whose first attempt succeeded but whose response was lost may come back as an
+  **error** — making a successful, irreversible delete look like a failure.
+
+**Consequence — the unknown-outcome rule (NEW, applies to every site):** a Stripe exception
+does **not** always mean the mutation failed.
+- **Definitive** (the request was processed and refused — e.g. `InvalidRequestError`): Stripe
+  did not apply it -> `FAILED`. (`CardError` on an invoiced modify is **not** definitive — the
+  in-tree individual path treats the swap as possibly live — so it takes the F1-F5 branch.)
+- **Indeterminate** (`APIConnectionError` including timeouts, and 5xx `APIError`): **outcome
+  unknown**. The intent stays `PENDING`; the code **reads Stripe** (`retrieve`) and compares
+  against the target state — reached -> proceed as `STRIPE_APPLIED`; not reached -> `FAILED`;
+  the read itself fails -> left `PENDING` for the stale-intent check to alert on.
+
+**This is also a P1b trigger in today's code, not only a design detail:** every one of these
+functions currently turns any `StripeError` — including a timeout whose request actually
+landed — into `ValueError` and leaves local state unchanged. A timed-out-but-applied mutation
+diverges today, deterministically, with no Postgres kill involved.
+
+### 9k. Keeping a large change reviewable — commit sequence
+
+Change 1 is large, and d4 reads line by line. Each commit carries the tests for its own
+piece, so every commit is green on its own:
+
+| # | Commit | Tests landing with it |
+|---|---|---|
+| 1 | **Reproduce-first tests only** — must FAIL on `b744c9f` (H2.1); output recorded | the reproductions themselves |
+| 2 | Intent model + migration + admin registration; no behaviour change | model constraints, per-licence guard |
+| 3 | Phase plumbing (A-D, `durable=True`, keys, unknown-outcome rule) on `cancel_license_subscription` — the simplest, compensable flow | its reproductions go green; 4 injection points |
+| 4 | `update_seats` + F4/F5 + quantity revert helper | its reproductions; `requires_action` on seats |
+| 5 | `change_license_plan`/`change_license_price` + F1/F2/F3 + F1's 4-point record | its reproductions; licence-path `requires_action` |
+| 6 | P0 `convert_license_to_offline` | its reproductions; the unknown-outcome delete case |
+| 7 | Bounded retry of the local finalise | **named assertion: succeeds on a fresh connection** |
+| 8 | Alerting + stale-intent periodic check | alert fires; stale rows found; best-effort never raises |
+| 9 | Per-request Stripe budget | **named assertion: slow on every call, alert completes < 100 s** |
+| 10 | Detector-spec amendment (docs) | — |
+
+**Gated as one change** (constraint (d)); the sequence is for reading, not for landing
+piecemeal.
+
 ## 7. What is NOT claimed here
 
 No code written. No test run. No gate run. The seven sites are **confirmed by code reading
