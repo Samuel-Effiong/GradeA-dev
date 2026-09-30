@@ -22,6 +22,10 @@ Plan: `08_epic_a_completion_plan.md` §4 (gaps G5, G6, G7; decisions D4, D6), pl
 
 **Updated on purpose:** `billing/tests/test_credit_transaction_audit.py` pinned "actor = owner, target = ledger row". Outside a request it now expects actor SYSTEM, target the owner, and `ledger_id` in metadata.
 
+**What this means for readers of the trail (v2's N2 and N3, SM order):**
+- **N2.** User-initiated work that runs in Celery is recorded as **actor SYSTEM, with the teacher as target**. For example, a grading run's credit CONSUME happens in the worker, where there is no request. The initiator is recoverable by joining on `trace_id` to the request's own event (for grading, its GRADING_REQUESTED), because S5 carries the server trace id through the Celery hop.
+- **N3.** A teacher is the **target, not the actor**, of credit events made by an admin or by the system (grants, renewals, expiries, the licence clawback). A consumer that lists "my events" by `actor_id` must also match `target_id` for CREDIT_TRANSACTION.
+
 ## 2. The sweeps record themselves (G6, D6)
 `audit.tasks.sweep_audit_retention` and `sweep_audit_pii_short_retention` each emit one `AUDIT_RETENTION_SWEEP` per run:
 - a new action, GENERAL retention, actor SYSTEM, counts only;
