@@ -29,9 +29,9 @@ be put back to epoch 1, reviving any token still held from epoch 1.
 
 | Gate | Result | Log |
 |---|---|---|
-| Changed module: `users.tests_remediate_student123` | see log | `changed_modules.txt` |
-| Mutation: M1 set-to-1 (the target), M2 +2, M3 no bump | see log | `mutation_log.txt`, `mutation_results.json` |
-| Regression | see below | n/a |
+| Changed module: `users.tests_remediate_student123` | 21 OK | `changed_modules.txt` |
+| Mutation: M1 set-to-1 (the target), M2 +2, M3 no bump | 3/3 killed. M1 is killed ONLY by the new test, which is the gap H-55 closes | `mutation_log.txt`, `mutation_results.json` |
+| Regression | not run: test-only change (0b's rule-15 call) | n/a |
 
 Reproduce-first for a test-only change is the mutation run itself. M1 is
 the exact code the old tests could not tell from the fix, so it must now
