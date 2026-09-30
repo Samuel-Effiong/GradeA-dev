@@ -225,7 +225,7 @@ class EnrolmentBumpCostTests(RosterBase):
             classrooms.signals, "bump_many", recording_bump_many
         ), redis_commands_sent_by_this_process() as sent:
             enroll_student_by_email(course=self.course, email=newcomer.email)
-        return newcomer, bumped, sum(sent.values())
+        return newcomer, bumped, dict(sent)
 
     def test_one_enrolment_bumps_five_scopes_at_a_class_of_30_and_of_300(self):
         results = {}
@@ -255,11 +255,19 @@ class EnrolmentBumpCostTests(RosterBase):
                 "scopes and no classmate",
             )
             results[size] = commands
+            print(
+                f"\n[roster-scope write cost] one enrolment, class of {size}: "
+                f"{sum(commands.values())} Redis commands {commands}",
+                flush=True,
+            )
         self.assertEqual(
             results[30],
             results[300],
             f"Redis commands for one enrolment must not grow with the class: {results}",
         )
+        # Pinned exactly: one pipeline of SET NX + INCR per scope. The old
+        # per-classmate fan-out sent 2 per enrolled student on top.
+        self.assertEqual(results[30], {"SET": 5, "INCR": 5})
 
 
 class StudentCourseKeyShapeTests(RosterBase):
@@ -304,6 +312,19 @@ class StudentCourseKeyShapeTests(RosterBase):
     def test_a_students_list_key_carries_every_enrolled_course(self):
         [key] = self.cache_keys_set_by(self.student, reverse("course-list"))
         self.assertEqual(key.count(f"{SCOPE_COURSE}="), 2, key)
+
+    def test_a_silent_withdrawal_moves_the_students_list_key(self):
+        """The list key names the courses the student can see, read live.
+        So a withdrawal that bumps nothing (QuerySet.update) still moves the
+        key: the student never sees a course they have left, even from the
+        cache. The matrix self-test uses a rename instead for that reason."""
+        [before] = self.cache_keys_set_by(self.student, reverse("course-list"))
+        StudentCourse.objects.filter(student=self.student, course=self.second).update(
+            enrollment_status=EnrollmentStatusType.WITHDRAWN
+        )
+        [after] = self.cache_keys_set_by(self.student, reverse("course-list"))
+        self.assertNotEqual(after, before)
+        self.assertEqual(after.count(f"{SCOPE_COURSE}="), 1, after)
 
     def test_a_teachers_keys_do_not(self):
         for url in (

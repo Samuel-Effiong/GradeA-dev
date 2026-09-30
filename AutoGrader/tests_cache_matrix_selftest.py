@@ -112,19 +112,26 @@ class MatrixFixtureBase(FreshnessMatrixMixin, TransactionTestCase):
             Read("other teacher course list", self.other_teacher, self.course_list),
         ]
 
-    def withdraw_without_invalidation(self):
-        updated = StudentCourse.objects.filter(
-            student=self.student, course=self.course
-        ).update(enrollment_status=EnrollmentStatusType.WITHDRAWN)
+    def rename_without_invalidation(self):
+        """A course rename through QuerySet.update(): no signal, no bump.
+
+        A rename, not a withdrawal. A student's course list key carries a
+        scope per course they can see (CourseViewSet.extra_cache_scopes,
+        the stage 3 rework), so a withdrawal moves that key by itself and
+        reads FRESH with no bump at all
+        (classrooms/tests_cache_course_roster_scope.py pins that). A
+        rename leaves the student's course set alone, so nothing but a
+        bump can make either viewer's read fresh."""
+        updated = Course.objects.filter(pk=self.course.pk).update(name="MX 101 renamed")
         self.assertEqual(updated, 1)
 
 
 class MatrixDetectsStalenessTests(MatrixFixtureBase):
     def test_an_uninvalidated_write_is_reported_stale(self):
         result = self.run_matrix(
-            "withdraw via .update(), no bump",
+            "rename via .update(), no bump",
             self.reads(),
-            self.withdraw_without_invalidation,
+            self.rename_without_invalidation,
         )
         verdicts = {o.label: o.verdict for o in result.outcomes}
         self.assertEqual(
@@ -142,13 +149,11 @@ class MatrixDetectsStalenessTests(MatrixFixtureBase):
         self.assertIn("teacher course list", str(caught.exception))
 
     def test_invalidating_exactly_the_affected_viewers_is_reported_fresh(self):
-        def withdraw_and_bump():
-            self.withdraw_without_invalidation()
+        def rename_and_bump():
+            self.rename_without_invalidation()
             bump_many([(SCOPE_USER, self.student.pk), (SCOPE_USER, self.teacher.pk)])
 
-        result = self.run_matrix(
-            "withdraw + precise bump", self.reads(), withdraw_and_bump
-        )
+        result = self.run_matrix("rename + precise bump", self.reads(), rename_and_bump)
         verdicts = {o.label: o.verdict for o in result.outcomes}
         self.assertEqual(
             verdicts,
