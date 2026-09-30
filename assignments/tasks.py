@@ -55,9 +55,11 @@ from .services import AssignmentProcessingService
 
 logger = logging.getLogger(__name__)
 
-#: H-38: shown on a grading run refused because its course is no longer
-#: reachable by the teacher it would run as.
-COURSE_NOT_REACHABLE = "This course is no longer available to you."
+#: H-38: stored on a grading run (and an auto-grade skip) refused because its
+#: course is not reachable by the teacher it would run as. The same plain
+#: "not found" as S7b's run-time check (SM ruling, N2): it doesn't tell the
+#: reader that they once had access.
+COURSE_NOT_FOUND = "This course wasn't found."
 
 # Final answers about one upload - never retried, always reported with the
 # exception's own (user-facing) message. See upload_answers_engine_async.
@@ -500,12 +502,12 @@ def grade_engine_async(
                 processing_task_id,
                 None,
                 meta={"step": "Refused"},
-                fallback_message=COURSE_NOT_REACHABLE,
+                fallback_message=COURSE_NOT_FOUND,
             )
             return {
                 "status": states.FAILURE,
                 "submission_id": submission_id,
-                "message": COURSE_NOT_REACHABLE,
+                "message": COURSE_NOT_FOUND,
             }
 
         self.update_state(state="PROGRESS", meta={"step": "Grading"})
@@ -1081,7 +1083,7 @@ def grade_batch_async(
             assignment_id,
             user_id,
         )
-        return COURSE_NOT_REACHABLE
+        return COURSE_NOT_FOUND
 
     try:
         assignment = Assignment.objects.get(id=assignment_id)
@@ -1137,7 +1139,7 @@ def auto_grade_due_assignment(assignment_id):
                 assignment.course_id,
                 assignment.course.teacher_id,
             )
-            return "Auto-grade skipped: the course's teacher can no longer reach it."
+            return COURSE_NOT_FOUND
 
         session = BatchUploadSession.objects.create(
             teacher=assignment.course.teacher,

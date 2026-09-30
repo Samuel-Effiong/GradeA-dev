@@ -66,6 +66,27 @@ MUTANTS = {
         "        and not teacher_may_reach(batch_user, batch_assignment)\n",
         "        and False\n",
     ),
+    # 1a's N1 re-check (the helper must refuse a teacher who no longer owns
+    # the course, and still defer for non-teachers) and V2 (404 wording).
+    "M9_non_owner_deferral_restored": (
+        A,
+        "    if course is None or user is None or user.user_type != UserTypes.TEACHER:\n",
+        "    if course is None or user is None or course.teacher_id != user.id:\n",
+    ),
+    "M10_rule_applied_to_non_teachers": (
+        A,
+        "    if course is None or user is None or user.user_type != UserTypes.TEACHER:\n",
+        "    if course is None or user is None:\n",
+    ),
+    "M11_session_results_404_says_more": (
+        V,
+        SESSION_GUARD + "        tracked_tasks = list(\n",
+        SESSION_GUARD.replace(
+            "No BatchUploadSession matches the given query.",
+            "This session is no longer available to you.",
+        )
+        + "        tracked_tasks = list(\n",
+    ),
 }
 
 TESTS = [
@@ -95,7 +116,7 @@ finally:
     for path, src in originals.items():
         open(path, "w").write(src)
 
-with open("docs/evidence/h38-tasks-namespace/mutation_results.json", "w") as f:
+with open("docs/evidence/h38-tasks-namespace/r2_mutation_results.json", "w") as f:
     json.dump(results, f, indent=2)
     f.write("\n")
 print("SURVIVORS:", [k for k, v in results.items() if not v["killed"]])

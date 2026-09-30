@@ -34,7 +34,7 @@ work is scoped on its *own* owner, and ownership never stops being true:
   - `grade_engine_async` is the chokepoint for every dispatch that runs as
     the course's teacher (grade-all, scheduled grading, the beat, batch items).
     It refuses before grading when the helper says no. The task is marked
-    FAILURE with "This course is no longer available to you." Nothing is
+    FAILURE with "This course wasn't found." (round 2 wording; see below). Nothing is
     graded and nothing is charged. This also covers work queued *before*
     the removal.
   - `grade_batch_async` refuses at the top as well.
@@ -98,3 +98,58 @@ present on beta:
 | M6 | the `grade_engine_async` chokepoint off |
 | M7 | the auto-grade beat guard off |
 | M8 | the `grade_batch_async` guard off |
+
+## Round 2: 1a's N1 and the SM's N2 ruling
+
+1a verified round 1 as VERIFIED-WITH-NOTES
+(`VERIFICATION_h38_tasks_namespace.md`). The SM asked for N1 to be fixed
+before any fold-in, and ruled on the wording (N2).
+
+- **N1:** `teacher_may_reach` deferred to the caller's ownership check
+  whenever the user was not the course's current teacher. After a removal,
+  if a super admin reassigned the course to a colleague, the ex-owner
+  regained T1/T2 (the student named) and T3/T4, and queued grading ran and
+  billed as them (1a's Q7).
+  - **Fix:** for a TEACHER user, the helper now always answers with
+    `teacher_can_reach_course`, which requires the current owner AND H-38
+    reachability. This matches `teacher_course_access_q` (own & reachable)
+    on every course route.
+  - The deferral is kept only for non-teacher users: an admin's own task
+    is still judged by its ownership check.
+  - The helper's `course.teacher_id != user.id` line is gone, so its
+    sweep ALLOWED entry is removed.
+- **N2:** the SM's ruling:
+  - A 404 body stays byte-identical to a nonexistent resource's, as before.
+  - Every stored or shown refusal (the task record, the grading result,
+    `grade_batch_async`'s result and the auto-grade skip) now reads
+    `COURSE_NOT_FOUND = "This course wasn't found."`, S7b's wording. It
+    replaces "This course is no longer available to you." and the
+    auto-grade skip's own sentence.
+- **Tests added:**
+  - 1a's Q1: all four routes' 404 is byte-identical to a missing id's.
+    This replaces round 1's T2-only message check.
+  - 1a's Q6: every logger at every level; no student name or email.
+  - 1a's Q7 as `ReassignedCourseTests`:
+    - the ex-owner gets 404 on T1–T4, and the task stays STARTED;
+    - queued grading does not run and nothing is charged;
+    - control: the beat now grades as the new owner.
+  - `AdminsOwnTasksTests`: a super admin's own task on the school course
+    still answers 200 after the teacher's removal.
+  - The round-1 tests now sit on a `TasksFixture` base with no tests of
+    its own.
+- **Mutants added:**
+  - M9: the non-owner deferral restored (round 1's helper).
+  - M10: the rule applied to non-teachers.
+  - M11: session-results' 404 says more than a missing id's (1a's V2).
+
+### Round 2 gates
+
+The SM's scope is the touched modules plus the guards, the prefix and
+mutation. There is no regression (round 1's users + assignments regression
+stands).
+
+| Gate | Result | Log |
+|---|---|---|
+| Changed modules and all repo-wide guards on beta | see log | `r2_changed_modules.txt` |
+| Reproduce-first: 0fbac49's helper, the rest as now | see log | `r2_prefix_0fbac49_failing.txt` |
+| Mutation M1–M11 | see log | `r2_mutation_log.txt`, `r2_mutation_results.json` |

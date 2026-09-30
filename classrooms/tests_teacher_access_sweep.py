@@ -51,11 +51,6 @@ HELPER_FILE = "classrooms/models.py"
 # (file, stripped line) -> why direct scoping is correct there.
 ALLOWED = {
     (
-        "students/task_access.py",
-        "if course is None or user is None or course.teacher_id != user.id:",
-    ): "the tasks/ reachability helper deciding whether H-38 applies (the user "
-    "is the course's own teacher); it then defers to teacher_can_reach_course",
-    (
         "classrooms/signals.py",
         "if Course.objects.filter(teacher=teacher).count() != 1:",
     ): "system signal counting the teacher's own courses; not an access decision",

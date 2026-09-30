@@ -7,11 +7,14 @@ true, so a teacher removed from a school kept reading their past jobs'
 results (which name the school's students), cancelling the school's grading,
 and having the school's students graded - and billed - in their name.
 
-The rule is `classrooms.models.teacher_can_reach_course`. It applies where
-H-38 applies: when the user is the course's own teacher, the course must
-still be reachable. Work with no course (nothing to leak or act on), or a
-user who is not the course's teacher (their own ownership check still
-decides, unchanged), is left as it was.
+The rule is `classrooms.models.teacher_can_reach_course`: the teacher must
+be the course's CURRENT owner and the course must still be reachable by
+H-38. For a teacher it decides even when they are not the owner, because
+the work's own ownership (`requested_by`) outlives a course reassignment: a
+removed teacher whose old course a super admin gives to a colleague must
+not regain it (1a's N1). Work with no course (nothing to leak or act on),
+or a user who is not a teacher (an admin's own tasks; their ownership check
+still decides, unchanged), is left as it was.
 
 One place, so the tasks/ routes, the grading dispatches and later callers
 (Epic A's per-item retry, S7b) all ask the same question.
@@ -24,6 +27,7 @@ from typing import Any, Optional
 from django.http import Http404
 
 from classrooms.models import Course, teacher_can_reach_course
+from users.models import UserTypes
 
 
 def course_of(work: Any) -> Optional[Course]:
@@ -47,10 +51,10 @@ def course_of(work: Any) -> Optional[Course]:
 
 
 def teacher_may_reach(user, work) -> bool:
-    """False only when `user` is the course's teacher and can no longer
-    reach it (H-38)."""
+    """False when `user` is a teacher who can't reach the work's course now:
+    not its current owner, or no longer in its school (H-38)."""
     course = course_of(work)
-    if course is None or user is None or course.teacher_id != user.id:
+    if course is None or user is None or user.user_type != UserTypes.TEACHER:
         return True
     return teacher_can_reach_course(user, course)
 
