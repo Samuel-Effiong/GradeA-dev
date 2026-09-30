@@ -153,6 +153,62 @@ in-tree reference — mutate Stripe outside the transaction, keep the transactio
 local, compensate on failure, log loudly when compensation fails — rather than inventing a
 pattern. Cheaper to approve, consistent with house style.
 
+## RECONCILIATION HALF 1 — "has this already happened?" (read-only, 2026-09-18)
+
+Approved by d4 via 95. Script `reconcile_half1_readonly.py`; log
+`reconcile_half1_beta_20260918_1008.log`
+(sha256 `37ab2161e17bd248cefed2541a338f3ed3f9b0d901c59f2962152f7582deb746`).
+Read-only psycopg2 session (`set_session(readonly=True)`), SELECTs only, no writes,
+no Stripe calls. (A first attempt failed on a wrong table name — `schools_school`;
+the model lives in `classrooms`. Re-run after correction; only the complete run is kept.)
+
+### !! WHAT THIS DOES AND DOES NOT ANSWER — READ BEFORE QUOTING IT !!
+
+**1. This is the QA BETA database, NOT production.** `DATABASE_URI` resolves to
+`switchback.proxy.rlwy.net` = `grade-automator-beta-production`, the deployed QA beta.
+**There is no production DB credential in `.env` at all.** So this result says nothing
+about whether a real *paying* school has been hit. **It cannot answer the meeting
+question** ("has a real school already lost its subscription?") — only the beta-stage
+version of it.
+
+**2. The query is blind to the actual fingerprint, by construction.** If
+`convert_license_to_offline()` dies after the Stripe delete, the local writes never run,
+so the row rolls back to **`billing_method=STRIPE` with `stripe_subscription_id` STILL
+POPULATED** — indistinguishable in the DB from a perfectly healthy licence. The "STRIPE
+but no id" shape this query looks for is therefore *not* what the bug leaves behind.
+**An empty or clean half-1 result is NOT an all-clear.** Only half 2 (live
+`Subscription.retrieve` per school) can answer it.
+
+### Results (beta)
+
+| billing_method | is_active | count | missing `stripe_subscription_id` |
+|---|---|---|---|
+| OFFLINE | true | 5 | 5 |
+| STRIPE | false | 1 | 0 |
+| STRIPE | true | 1 | **1** |
+
+The one "STRIPE but no id" row: licence `9f83df46-6159-420f-96bc-4633ef4616e7`,
+school `Unperplexed Consulting`, active, auto_renew, `stripe_status=None`,
+**`has_customer_id=False`**, updated 2026-07-18.
+
+**This row is NOT a P1b victim, and I am not reporting it as one.**
+`convert_license_to_offline()` clears `billing_method`, `stripe_subscription_id` and
+`stripe_status` but **never touches `stripe_customer_id`** (:3471-3481). A school that
+had ever been Stripe-billed would therefore still hold a customer id. This row has none,
+and no `stripe_status` — it looks like a licence that was never wired to Stripe at all
+(incomplete setup), not a conversion that died. **Flagged as a separate data anomaly,
+outside H-28.**
+
+### Half-2 sizing (for d4, before any Stripe call)
+
+**1 candidate row** (`billing_method=STRIPE` with a non-blank id), of which **0 active**.
+Trivially cheap — one `Subscription.retrieve`, rate limit irrelevant at this size.
+**Not started; awaiting d4's go per the stated condition.**
+
+`CONVERTED_TO_OFFLINE` audit records on beta: **0**. Note this row is written *inside*
+the same transaction as the delete, so a death mid-flight leaves none — a zero is
+consistent with both "never ran" and "ran and died".
+
 ## B. Transitive candidates — atomic wrapping a mutation across a call boundary
 
 Over-inclusive; `list()` / `create()` rows are probable name collisions.
