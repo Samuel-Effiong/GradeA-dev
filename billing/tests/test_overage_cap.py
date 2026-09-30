@@ -18,7 +18,8 @@ Run with:
     python manage.py test billing.tests.test_overage_cap
 """
 
-from unittest.mock import MagicMock, patch
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from billing.models import CreditBucketType, CreditWallet, PlanType
 from billing.stripe_service import StripeOverageService, StripeWebhookHandler
@@ -49,7 +50,9 @@ class CreateOverageCheckoutCapTests(OverageCapTestBase):
         self, mock_session_create, mock_customer
     ):
         mock_customer.return_value = "cus_test"
-        mock_session_create.return_value = MagicMock(id="cs_test", url="https://x")
+        mock_session_create.return_value = SimpleNamespace(
+            id="cs_test", url="https://x"
+        )
         self._set_blocks_used(1)
 
         # The checkout now confirms with Stripe that the price it is about
