@@ -304,3 +304,51 @@ class DjangoAdminTests(TestCase):
         events = AuditEvent.objects.filter(actor_id=admin.pk)
         self.assertEqual(events.count(), 1)
         self.assertEqual(events.get().metadata.get("route"), "admin:users_waitlist_add")
+
+
+class AnonymousDoorRefusalUnitTests(TestCase):
+    """`emit_anonymous_door_refusal` in isolation: only a 4xx other than 429,
+    for an anonymous request, on a registered door."""
+
+    def request_to(self, route, user=None):
+        from django.contrib.auth.models import AnonymousUser
+
+        return SimpleNamespace(
+            user=user or AnonymousUser(),
+            resolver_match=SimpleNamespace(view_name=route),
+            META={},
+            method="POST",
+        )
+
+    def refuse(self, request, status_code):
+        from audit.request_audit import emit_anonymous_door_refusal
+
+        emit_anonymous_door_refusal(request, SimpleNamespace(status_code=status_code))
+        return list(AuditEvent.objects.values_list("reason_code", flat=True))
+
+    def test_a_refused_door_request_records_one_invalid_request(self):
+        self.assertEqual(
+            self.refuse(self.request_to("auth-verify"), 400), [INVALID_REQUEST]
+        )
+
+    def test_a_throttled_request_records_nothing(self):
+        """The throttle refused it before the view ran; recording it would let
+        a throttled caller write unlimited rows."""
+        self.assertEqual(self.refuse(self.request_to("auth-verify"), 429), [])
+
+    def test_a_server_error_is_not_a_malformed_request(self):
+        self.assertEqual(self.refuse(self.request_to("auth-verify"), 500), [])
+
+    def test_a_route_that_is_not_a_door_records_nothing(self):
+        self.assertEqual(self.refuse(self.request_to("auth-otp"), 400), [])
+
+    def test_a_signed_in_requester_is_left_to_the_generic_event(self):
+        user = User.objects.create_user(
+            email="door.signed.in@example.com",
+            password="Door-pw-1",  # pragma: allowlist secret
+            first_name="Door",
+            last_name="SignedIn",
+            user_type=UserTypes.TEACHER,
+            is_active=True,
+        )
+        self.assertEqual(self.refuse(self.request_to("auth-verify", user), 400), [])
