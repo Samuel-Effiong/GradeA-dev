@@ -12,6 +12,7 @@ Any school admin could learn which school an arbitrary address belongs to: a **c
 ## The fix
 - The refusal stays. Its text is now **"This teacher already belongs to another school."** (SM wording; the QA proposal's `TEACHER_IN_OTHER_SCHOOL` matches it).
 - The log line carries **ids only**: teacher, their school, the licence's school.
+- `add_teachers_batch`'s per-teacher "Skipped enrolling <email> in license …: <refusal>" log line no longer carries the email. It used to log the address next to the refusal that named the other school. The first gated run caught it through the test's log assertion. **Not changed here:** two other refusal texts, the business-email check and the individual-subscription one, still quote the address in that logged text. They are pre-existing, in H-23's grandfathered email-log territory.
 
 ## Checked for the same pattern (SM)
 - **remove_teachers:** its messages name nothing of another tenant ("This teacher isn't an active teacher on this licence.", or the generic fallback).

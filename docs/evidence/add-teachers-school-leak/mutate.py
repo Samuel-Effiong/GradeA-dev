@@ -35,6 +35,14 @@ MUTANTS = {
         '                error_msg = "This email can\'t be added as a teacher."\n',
         '                error_msg = f"This email belongs to a {user.user_type} account."\n',
     ),
+    "N5_batch_log_carries_the_email_again": (
+        LS,
+        '                "Skipped enrolling a teacher in license %s: %s",\n'
+        "                license_sub.id,\n",
+        '                "Skipped enrolling %s in license %s: %s",\n'
+        "                email,\n"
+        "                license_sub.id,\n",
+    ),
 }
 
 TESTS = ["billing.tests.test_add_teachers_other_school_not_disclosed"]

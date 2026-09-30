@@ -762,9 +762,11 @@ class LicenseSubscriptionService:
                 "error": None,
             }
         except (IndividualSubscriptionConflictError, ValueError) as exc:
+            # No address here: this line used to carry the email next to a
+            # refusal that named another school. The refusals it can log
+            # for a cross-tenant case are generic now.
             logger.warning(
-                "Skipped enrolling %s in license %s: %s",
-                email,
+                "Skipped enrolling a teacher in license %s: %s",
                 license_sub.id,
                 exc,
             )
