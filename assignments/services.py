@@ -24,6 +24,7 @@ from ai_processor.services import (
     ai_processor,
 )
 from ai_processor.tools import (
+    IMAGE_COMPRESSION_HARD_CAP_BYTES,
     ImageCompressionError,
     compress_image_for_upload,
     encode_image,
@@ -236,21 +237,22 @@ def _too_many_pixels(file_name, size=None):
 
 def _too_large_after_compression(file_name, error):
     """FILE_TOO_LARGE for an image no compression brings under the cap."""
-    smallest, cap = error.smallest_bytes, error.cap_bytes
-    params = {"file_name": file_name, "dimension": "bytes"}
+    smallest = error.smallest_bytes
+    # `limit` is always present (the FILE_TOO_LARGE contract): the cap the
+    # compressor enforces, even if a raiser left it off the error.
+    cap = error.cap_bytes or IMAGE_COMPRESSION_HARD_CAP_BYTES
+    params = {"file_name": file_name, "limit": int(cap), "dimension": "bytes"}
     display = {
         "actual": (
             f"{human_size(smallest)} even after compression"
             if smallest
             else "too large even after compression"
         ),
-        "limit": human_size(cap) if cap else "the upload limit",
+        "limit": human_size(cap),
     }
-    # Numbers only when known; an unknown size is absent, never invented.
+    # `actual` only when known; an unknown size is absent, never invented.
     if smallest:
         params["actual"] = int(smallest)
-    if cap:
-        params["limit"] = int(cap)
     return FileTooLargeError(params=params, display=display)
 
 

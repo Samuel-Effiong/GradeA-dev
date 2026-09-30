@@ -128,10 +128,15 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         "Split the file, remove blank pages or scan at a lower resolution, "
         "then upload again.",
         retryable=False,
-        # dimension: "bytes" | "pages" | "pixels"; actual/limit are NUMBERS
-        # in that unit (SM ruling on S6b N1, 08a §4.2). The message shows
-        # them through `display` ("63.2 MB" / "50 MB"). `actual` is absent
-        # only when the size is unknown (never a made-up number).
+        # The client contract (SM ruling on S6b N1, 08a §4.2):
+        #   dimension: always present, one of "bytes" | "pages" | "pixels";
+        #   limit:     always present, an int in that unit (bytes as integer
+        #              bytes, pixels as a pixel count);
+        #   actual:    OPTIONAL, an int in that unit when the size is known;
+        #              absent when it is genuinely unknown (Pillow refusing a
+        #              decompression bomb before it reports dimensions), never
+        #              a made-up number.
+        # The message shows them formatted, through `display` ("63.2 MB").
         params=_FILE | {"actual", "limit", "dimension"},
     ),
     ReasonCode.SUBMISSION_EMPTY: ReasonSpec(

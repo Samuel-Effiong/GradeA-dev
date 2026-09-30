@@ -101,6 +101,16 @@ v2 verified the slice at `46c8c15` with N1: `FILE_TOO_LARGE`'s `params.actual` a
 | Pages: `actual=page_count`, `limit=MAX_PAGE_COUNT`; pixels: `actual=width*height`, `limit=MAX_IMAGE_PIXELS`; compression: `actual=smallest`, `limit=cap` | `assignments/services.py` |
 | **An unknown size is absent, never invented.** Pillow refuses a decompression bomb before it reports dimensions, and in rare cases no compression attempt produces output. In both, `actual` is left out of `params`, and the message states the bound ("over 179 MP", "too large even after compression"). | `assignments/services.py` |
 
+### The FILE_TOO_LARGE client contract (SM, 2026-09-30; for the staging package's frontend note)
+| Key in `params` | Presence | Value |
+|---|---|---|
+| `file_name` | always | the uploaded file's name |
+| `dimension` | **always** | one of `"bytes"`, `"pages"`, `"pixels"` |
+| `limit` | **always** | an int in that unit: integer bytes, a page count, or a pixel count |
+| `actual` | **optional** | an int in that unit when the size is known. **Absent** when it is genuinely unknown: Pillow refusing a decompression bomb before it reports dimensions, or no compression attempt producing any output. Never a made-up number |
+
+Formatted values ("63.2 MB", "3 pages", "9000x9000 px", "50 MP") appear only in `error` / `message`. The same text is in the `FILE_TOO_LARGE` spec comment (`AutoGrader/reason_codes.py`). `limit` is guaranteed on the compression path even when a raiser leaves the cap off the error: it falls back to `IMAGE_COMPRESSION_HARD_CAP_BYTES` (`test_limit_is_always_present_even_when_the_raiser_omits_the_cap`).
+
 Tests: each `FILE_TOO_LARGE` test asserts `type(...) is int` and the exact value, plus the formatted text in the message (`assertSizeParams`). The security tests assert the int pixel counts, and `actual` absent for Pillow's own refusal. `AutoGrader.tests_reason_codes` covers the display rules (4 tests).
 
 | Run (0b's slot, 6G, `nice -n 10`, `timeout`) | Result | Log |

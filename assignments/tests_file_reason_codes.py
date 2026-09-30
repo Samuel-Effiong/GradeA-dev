@@ -339,6 +339,29 @@ class StudentUploadAnswersWithItsOwnCode(APITestCase):
                 )
                 self.assertNoInternals(response)
 
+    def test_limit_is_always_present_even_when_the_raiser_omits_the_cap(self):
+        from ai_processor.tools import IMAGE_COMPRESSION_HARD_CAP_BYTES
+
+        with patch(
+            "assignments.services.compress_image_for_upload",
+            side_effect=ImageCompressionError("no size fits"),
+        ):
+            response = self.post(upload("scan.png", image_bytes("PNG"), "image/png"))
+
+        body = self.assertCoded(
+            response,
+            ReasonCode.FILE_TOO_LARGE,
+            status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            "scan.png",
+        )
+        params = body["params"]
+        self.assertEqual(params["dimension"], "bytes")
+        self.assertIs(type(params["limit"]), int)
+        self.assertEqual(params["limit"], IMAGE_COMPRESSION_HARD_CAP_BYTES)
+        # Unknown size: absent, never invented.
+        self.assertNotIn("actual", params)
+        self.assertIn("too large even after compression", body["error"])
+
     # -- #6 SUBMISSION_EMPTY (empty FILES only: §6.1's final ruling) -------------
 
     def test_a_pdf_with_no_pages_is_empty(self):
