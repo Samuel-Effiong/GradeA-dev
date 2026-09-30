@@ -85,3 +85,17 @@ Every run was wrapped in `systemd-run MemoryMax=6G`, `nice -n 10`, a timeout, `E
 | Changed modules | `audit.tests_failed_auth_cap` + `audit.tests_route_coverage` + `users.tests_auth_audit_doors` + `audit.tests_state_change` + `AutoGrader.tests_reason_codes`: **123 OK** (`changed_modules.txt`) |
 | 2 Mutation | **15 mutants, 15 killed** (`mutation_log.txt`). New: successes capped; lock denials under the global cap; lock denials uncapped; crashes uncapped. |
 | 1 Regression (owning app) | `audit`: **246 OK** (`regression_audit.txt`) |
+
+## Follow-up: v2's notes on `65aab2e` (VERIFIED-WITH-NOTES, `VERIFICATION_v2_s2r1_s1b_s5r.md`)
+Test and doc only; no behaviour changes.
+- **N1 (school scoping pinned).** v2's mutant B1 (a summary's `school_id` set to None) survived my labels. v2's probe P1 is adopted as `LockThenSprayThroughTheLoginTests`: a locked account in a school, sprayed 25 times from 25 IPs through the real `/auth/login` with small caps (floor 2, target 4, global 6). It gives exactly 4 individual DENIED rows and DENIED summaries at `suppressed_so_far` 1 and 10, each naming the account **and its school**. B1 joins `mutate.py`, so the harness now has 16 mutants.
+- **N2 (stale docstring).** `audit/failed_auth_cap.py` no longer says DENIED is never capped. It now describes DENIED sharing the per-target counter (floor, then target cap, no global cap) and anonymous crashes under the global cap. It also says a summary keeps the outcome, error class and school of what it stands for.
+- **N3 (bounded lock-then-spray).** FAILURE and DENIED events for one account share one per-target counter. Once the floor is spent, a lock-then-spray (a locked account hammered from many addresses) writes at most the target limit of individual rows per window, plus summaries at 1, 10, 100 … suppressed. This is intended (SM ruling): the lock is always visible through its first FLOOR rows and the summaries, and its volume is bounded.
+
+**Follow-up gates** (rule 15: only the touched module and the harness):
+
+| Gate | Result |
+|---|---|
+| Reproduce-first | B1 applied (a summary's school dropped): **killed only by the new** `test_a_locked_account_sprayed_from_many_ips_is_bounded_and_school_scoped` (`followup_mutation_log.txt`). |
+| Changed module | `audit.tests_failed_auth_cap`: **17 OK** on `e1e0374` (`followup_changed_module.txt`) |
+| 2 Mutation | **16 mutants, 16 killed** (`followup_mutation_log.txt`, `mutation_results.json`). The new test also kills C2, C5, C6, C7, E3, E5 and M1. |

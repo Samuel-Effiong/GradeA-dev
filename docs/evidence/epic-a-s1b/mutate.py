@@ -93,6 +93,12 @@ MUTANTS = {
         "            record_suppressed_event()\n",
         "",
     ),
+    # v2's B1 (S1b N1): the summary loses its school scoping.
+    "B1_summary_school_dropped": (
+        EM,
+        "        school_id=school_id,\n        outcome=outcome,\n",
+        "        school_id=None,\n        outcome=outcome,\n",
+    ),
     "M1_door_fallback_ignores_suppression": (
         MW,
         "            if not a_stored_event_survives(state) and not state.suppressed:\n",

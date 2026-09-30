@@ -3,11 +3,14 @@
 Per-IP throttles bound one address, not a spray from many. Without this, a
 distributed attack could write an unbounded number of failed-auth rows.
 
-What is capped: failed AUTH_LOGIN / ACCOUNT_REGISTER events (outcome FAILURE)
-whose requester is ANONYMOUS. Never capped:
+What is capped: failed AUTH_LOGIN / ACCOUNT_REGISTER events whose requester
+is ANONYMOUS - outcome FAILURE, and outcome DENIED (a locked or deactivated
+account; SM re-ruling). DENIED shares the account's per-target counter but is
+not under the global cap, so a lock-then-spray is bounded at the target
+limit, while its first FLOOR denials (the signal an account is under attack)
+are always written. An anonymous request that crashed (FAILURE,
+SERVER_ERROR) has no account and is under the global cap. Never capped:
 - a success;
-- a DENIED event (a locked or deactivated account - the signal an account is
-  under attack);
 - a failure by a signed-in requester (change-password): it needs a valid
   session and is already bounded by the throttles and the login lock, and a
   suppressed event would make S1's middleware fall back to an uncapped
@@ -24,8 +27,9 @@ The caps, per fixed window of FAILED_AUTH_WINDOW_SECONDS (default 1 h):
 Keys hold the account id, never an email.
 
 A suppressed event is not written. Instead, a summary event (the same action,
-FAILURE, reason FAILED_AUTH_CAPPED, metadata cap / suppressed_so_far / limit /
-window_seconds) is written when a bucket's suppressed count reaches 1, 10,
+outcome and error class as the event it stands for, reason
+FAILED_AUTH_CAPPED, metadata cap / suppressed_so_far / limit /
+window_seconds, scoped to the account's school) is written when a bucket's suppressed count reaches 1, 10,
 100, 1000 ... in the window. The latest summary is therefore a LOWER bound on
 what was suppressed (within x10); the exact count is the
 `audit_failed_auth_suppressed_total` metric. A fixed window lets up to twice a
