@@ -57,4 +57,13 @@ Logs are in `port_runs/<tip>/`, trimmed to one outcome line per test with emails
 
 **60 of 60 mutants are killed**, each restore sha256-checked against the commit blob. The first regression ran 61 fewer tests because `test_overage_refund_lifecycle`'s `setUpModule` failed before its tests ran.
 
-The regression scope is `billing` alone, because H-62 changes only `StripeEvent` (read only in `billing`) and `BillingTransaction` writes in `billing`. `AutoGrader.tests_migration_rollback_defaults` is the only test outside `billing` that reads the new migration, and it ran with the changed modules.
+**Regression scope (the rule 15 addendum for model changes): `billing` alone.** Checked by grepping every file type on the tip for the model, its table, the two fields and the two settings:
+
+- **Migration 0071** adds exactly two fields, `StripeEvent.auto_replay_attempts` and `auto_replay_note`, and changes nothing else. Outside `billing` and `docs`, the only code that names `StripeEvent` or its table is `AutoGrader.tests_migration_rollback_defaults` (the H-56 guard). It ran with the changed modules. No app outside `billing` reads the two fields.
+- **`BillingTransaction`**: H-62 changes only when `receipt_url` is written (after commit), and nothing outside `billing` names the model.
+- **`AutoGrader/settings.py`** gains two `CELERY_BEAT_SCHEDULE` entries and their two `BEAT_HEALTH_EXPECTATIONS` thresholds. These are new keys, and no existing key changes. The readers outside `billing` do not look at them:
+  - `AutoGrader.tests_beat_health` overrides `BEAT_HEALTH_EXPECTATIONS` with its own;
+  - `AutoGrader.test_health` sets up only the watchdog's own row;
+  - `dashboard/tests.py` reads its three named entries only.
+
+  `billing.tests.test_event_replay` and `test_receipts` assert that the new entries exist, and both ran.
