@@ -88,8 +88,16 @@ MUTANTS = [
         "S09",
         "a scheduled batch re-checks at run time",
         AT,
-        "    if assignment is not None and rubric_missing(assignment.questions):",
+        "    if batch_assignment is not None and rubric_missing(batch_assignment.questions):",
         "    if False:",
+        1,
+    ),
+    (
+        "S17",
+        "a run-time refusal records S7a's coded tracked item",
+        AT,
+        "        if actor is not None:\n            item = record_refused_item(",
+        "        if False:\n            item = record_refused_item(",
         1,
     ),
     (
