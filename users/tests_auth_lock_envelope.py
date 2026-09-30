@@ -24,12 +24,7 @@ from django.utils import timezone
 from rest_framework.test import APITestCase
 
 from audit.enums import ReasonCode
-from AutoGrader.reason_codes import (
-    AUDIT_ONLY_CODES,
-    ENVELOPE_KEYS,
-    REASON_CODES,
-    add_coded_envelope,
-)
+from AutoGrader.reason_codes import AUDIT_ONLY_CODES, ENVELOPE_KEYS, REASON_CODES
 from users.models import PasswordResetOTP, UserTypes
 from users.serializers import CustomTokenObtainPairSerializer
 
@@ -220,6 +215,8 @@ class CatalogueTests(APITestCase):
                 self.assertNotIn(ReasonCode(code), AUDIT_ONLY_CODES)
 
     def test_the_envelope_is_added_never_replacing_a_key(self):
+        from AutoGrader.reason_codes import add_coded_envelope
+
         data = {"code": "RESET_LOCKED", "message": "keep me", "reference": "mine"}
         add_coded_envelope(data, "RESET_LOCKED", "ignored", code_value="other")
         self.assertEqual(data["message"], "keep me")
