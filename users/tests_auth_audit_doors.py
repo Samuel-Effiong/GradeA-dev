@@ -224,28 +224,30 @@ class ResetPasswordDoorTests(DoorBase):
     def test_the_guess_that_spends_the_budget_is_a_failure_that_set_the_lock(self):
         """SM ruling for the 2a merge: that guess answers 429 at once (L2),
         and is recorded as what it was - a wrong code - flagged
-        lock_triggered. One event per attempt."""
+        lock_triggered. One event per attempt, checked request by request
+        (v2's N1: event pks are random, so ordering the rows can't recover
+        which request wrote which)."""
         wrong = "000000" if self.code != "000000" else "111111"
-        statuses = [
-            self.reset(self.user.email, wrong).status_code
-            for _ in range(PasswordResetOTP.MAX_ATTEMPTS)
-        ]
+        for attempt in range(1, PasswordResetOTP.MAX_ATTEMPTS + 1):
+            with self.subTest(attempt=attempt):
+                before = set(AuditEvent.objects.values_list("pk", flat=True))
+                response = self.reset(self.user.email, wrong)
+                new = AuditEvent.objects.exclude(pk__in=before)
 
-        self.assertEqual(statuses, [400] * (PasswordResetOTP.MAX_ATTEMPTS - 1) + [429])
-        events = list(AuditEvent.objects.order_by("occurred_at", "pk"))
-        self.assertEqual(len(events), PasswordResetOTP.MAX_ATTEMPTS)
-        for event in events:
-            self.assert_event(
-                event,
-                outcome=AuditOutcome.FAILURE,
-                method="password_reset",
-                account=self.user,
-                reason="INVALID_CODE",
-            )
-        self.assertEqual(
-            [event.metadata.get("lock_triggered") for event in events],
-            [None] * (PasswordResetOTP.MAX_ATTEMPTS - 1) + [True],
-        )
+                last = attempt == PasswordResetOTP.MAX_ATTEMPTS
+                self.assertEqual(response.status_code, 429 if last else 400)
+                self.assertEqual(new.count(), 1)
+                event = new.get()
+                self.assert_event(
+                    event,
+                    outcome=AuditOutcome.FAILURE,
+                    method="password_reset",
+                    account=self.user,
+                    reason="INVALID_CODE",
+                )
+                self.assertEqual(
+                    event.metadata.get("lock_triggered"), True if last else None
+                )
 
     def test_unknown_email(self):
         self.assertEqual(self.reset("ghost@example.com", "123456").status_code, 400)
