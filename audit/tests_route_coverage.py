@@ -354,6 +354,21 @@ class DjangoAdminTests(TestCase):
         self.assertEqual(events.get().metadata.get("route"), "admin:users_waitlist_add")
 
 
+class ReasonCodeCatalogueTests(TestCase):
+    """The SM's merge-order ruling: S6a's emitter refuses any reason code
+    outside audit.enums.ReasonCode, so every code S2 emits must be in it -
+    or a refused or crashed request would silently leave zero events."""
+
+    def test_every_code_s2_emits_is_in_the_catalogue(self):
+        from audit.enums import ReasonCode
+        from AutoGrader.reason_codes import AUDIT_ONLY_CODES
+
+        for code in (INVALID_REQUEST, SERVER_ERROR):
+            with self.subTest(code=code):
+                self.assertIn(code, ReasonCode.values)
+                self.assertIn(ReasonCode(code), AUDIT_ONLY_CODES)
+
+
 class AnonymousDoorRefusalUnitTests(TestCase):
     """`emit_anonymous_refusal` in isolation: a 4xx other than 429 on a
     registered door, or a 5xx on any non-excluded write - for an anonymous

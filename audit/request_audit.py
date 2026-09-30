@@ -31,7 +31,7 @@ import uuid
 
 from .admin_action import _outcome_for_status
 from .emitter import emit
-from .enums import AuditAction, AuditOutcome, ErrorClass
+from .enums import AuditAction, AuditOutcome, ErrorClass, ReasonCode
 
 logger = logging.getLogger(__name__)
 
@@ -91,8 +91,10 @@ ANONYMOUS_AUDITED_ROUTES = {
     "auth-google-auth": (AuditAction.AUTH_LOGIN, "google"),
     "auth-register": (AuditAction.ACCOUNT_REGISTER, "self_registration"),
 }
-INVALID_REQUEST = "INVALID_REQUEST"
-SERVER_ERROR = "SERVER_ERROR"
+# Audit-only reason codes, from the FR-A-06 catalogue (S6a): the emitter
+# refuses any code outside audit.enums.ReasonCode.
+INVALID_REQUEST = ReasonCode.INVALID_REQUEST.value
+SERVER_ERROR = ReasonCode.SERVER_ERROR.value
 
 
 def _target(match):

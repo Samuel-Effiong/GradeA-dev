@@ -160,6 +160,9 @@ class ReasonCode(models.TextChoices):
     # audit.request_audit.INVALID_REQUEST). Listed ahead of S2 landing so
     # the emitter does not reject it.
     INVALID_REQUEST = "INVALID_REQUEST", "Invalid request"
+    # An anonymous, non-excluded write that crashed (5xx) - one FAILURE, so a
+    # crash never leaves zero trace (Epic A S2, the SM's ruling on v2's N1).
+    SERVER_ERROR = "SERVER_ERROR", "Server error"
 
 
 # The ten FR-A-06 conditions, as QA-ERR-02 lists them.
