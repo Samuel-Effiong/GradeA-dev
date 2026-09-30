@@ -90,3 +90,10 @@ Probes and the mutant script are in `GAP-1a-records/`: `h62_test_vf_h62_probe.py
 **N7 (depends on Gate 4 (b), still open).** Layer 2 of Focus 3 runs `_overage_already_granted` only `if payment_intent_id`. With a null `payment_intent`, the handler still takes the wallet lock but has no idempotency key, so two different event ids for the same paid session would both grant. The claim still covers the same event id. A null payment intent with `payment_status == "paid"` is exactly the open red-team question (b), the H-40 interaction, in `EVIDENCE.md`'s Gate 4 row. My Focus 3 conclusion holds for every session that carries a payment intent, and that question decides whether any real signed event doesn't. I'm taking the Gate 4 red-team items next (see the handover to the SM); they are not part of this verdict.
 
 **N6.** `docs/evidence/flaky_overage/repro_overage_concurrency_flake.py` still patches the deleted `resolve_stripe_receipt_url`. It is historical, and only runs against a pre-H-62 tree, as `PORT_BUNDLE3.md` says.
+
+## N3 closed @ 1448f14 (tip f3be010), 2026-09-30
+**VERIFIED.** Test-only (`billing/tests/test_event_replay.py`, +161 lines); every other commit in `f3002bc..f3be010` is docs (my two records, committed byte-identical; N2's correction at `4f74845`; the run evidence).
+- P1 adopted as `ReplayConcurrencyTests.test_replays_racing_live_duplicate_events_for_one_session_grant_once` (20 threads × 10 rounds). P2 adopted as `StaleReplayClaimTests`, with my fixed 1.5 s sleep replaced by polling `pg_stat_activity` for a Lock waiter (capped at 20 s, or until the second replay finishes). That's better: with the wallet lock removed, the second replay's wallet UPDATE still waits on the first thread's row lock, so the poll still fires, and the double grant still happens.
+- `pre-commit run --from-ref f3002bc --to-ref f3be010`: rc 0.
+- `billing.tests.test_event_replay` at `f3be010`: **Ran 29, OK** (203 MB, 10 s).
+- My V1 (the overage wallet `select_for_update` removed) against the two new tests: **killed by both**, with 6000 vs 500 and 1000 vs 500. The restore was sha-checked.
