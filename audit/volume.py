@@ -14,20 +14,42 @@ A real day for most teachers is a fraction of this.
 
 from .enums import STUDENT_RECORD_ACTIONS, RetentionClass
 
-# Events one active teacher's busy school day writes, per action.
-PER_TEACHER_DAY: dict[str, float] = {}
+# Events one active teacher's busy school day writes, per action. Measured
+# by the harness on 2026-09-30 at task/epic-a-s8 (phase2/epic-a fda47d7):
+#   roster import of 30      -> 31 ROSTER_CHANGE (30 enrolments + 1 aggregate)
+#   batch upload of 30       ->  1 SUBMISSION_UPLOAD (one per batch)
+#   grade-all of 30          -> 30 GRADING_REQUESTED
+#   the 30 grading runs      -> 30 GRADING_COMPLETED
+#   publish-all of 30        -> 30 GRADE_CHANGE
+#   3 grade edits            ->  3 GRADE_CHANGE
+# DERIVED, not measured: CREDIT_TRANSACTION. The harness patches the AI call
+# (`execute_graded_task`), which is also where a grading consumes credits,
+# so it records none; in production each grading writes one CONSUME per
+# bucket it draws from (usually one).
+PER_TEACHER_DAY: dict[str, float] = {
+    "ROSTER_CHANGE": 31,
+    "SUBMISSION_UPLOAD": 1,
+    "GRADING_REQUESTED": 30,
+    "GRADING_COMPLETED": 30,
+    "GRADE_CHANGE": 33,
+    "CREDIT_TRANSACTION": 30,  # derived: one CONSUME per grading
+}
 
-# Events one active student's school day writes, per action (a sign-in;
-# viewing writes nothing).
-PER_STUDENT_DAY: dict[str, float] = {}
+# Events one active student's school day writes, per action: one sign-in
+# (measured); viewing writes nothing.
+PER_STUDENT_DAY: dict[str, float] = {"AUTH_LOGIN": 1}
 
-# Events the system writes per day whatever the school size (Beat).
-SYSTEM_PER_DAY: dict[str, float] = {}
+# Events the system writes per day whatever the school size: the two audit
+# sweeps' self-records (measured).
+SYSTEM_PER_DAY: dict[str, float] = {"AUDIT_RETENTION_SWEEP": 2}
 
-# Bytes per row (pg_column_size) and index-to-heap ratio from the harness's
-# table, used when the database the report runs against has no rows yet.
-HARNESS_BYTES_PER_ROW = 0.0
-HARNESS_INDEX_RATIO = 0.0
+# Bytes per row (pg_column_size, the harness's 129 rows) and the index-to-heap
+# ratio, used when the database the report runs against has no rows of its
+# own. The ratio is measured on a tiny table, where fixed per-index pages
+# dominate, so it overstates a large table's; the report uses the real
+# table's own ratio whenever it has rows.
+HARNESS_BYTES_PER_ROW = 485.0
+HARNESS_INDEX_RATIO = 1.75
 
 # How long each retention class is kept (audit.tasks.sweep_audit_retention).
 RETENTION_DAYS = {
