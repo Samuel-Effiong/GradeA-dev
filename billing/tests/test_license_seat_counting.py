@@ -14,8 +14,10 @@ quantity 0 and the webhook's positive-seats guard refused the licence AFTER
 payment. The shared seat check now refuses it before checkout.
 """
 
+from types import SimpleNamespace
 from unittest.mock import patch
 
+from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -90,8 +92,8 @@ class LicenseSeatCountingTest(APITestCase):
 
     def post_stripe(self, emails, max_seats):
         with patch("billing.stripe_service.stripe") as mock_stripe:
-            mock_stripe.checkout.Session.create.return_value.url = (
-                "https://checkout.example/session"
+            mock_stripe.checkout.Session.create.return_value = SimpleNamespace(
+                id="cs_test_seat_counting", url="https://checkout.example/session"
             )
             response = self.client.post(
                 reverse("license-subscription-list"),
@@ -188,8 +190,8 @@ class LicenseSeatCountingTest(APITestCase):
         with patch("billing.stripe_service.stripe") as mock_stripe:
             # A real URL: without the fix checkout goes ahead, and a bare
             # MagicMock url would be rendered into the JSON body.
-            mock_stripe.checkout.Session.create.return_value.url = (
-                "https://checkout.example/session"
+            mock_stripe.checkout.Session.create.return_value = SimpleNamespace(
+                id="cs_test_seat_counting", url="https://checkout.example/session"
             )
             response = self.client.post(
                 reverse("license-subscription-list"), payload, format="json"
@@ -317,3 +319,27 @@ class AddTeachersSeatCountingTest(APITestCase):
             .filter(user=existing, is_active=True)
             .exists()
         )
+
+
+class ExactMatchWinsTests(TestCase):
+    """1a's N1 probe, adopted: legacy accounts that differ only by case
+    ("PAIR@" and "pair@") each keep their own account: an exact match wins
+    over the case-insensitive fallback."""
+
+    def teacher(self, email):
+        return CustomUser.objects.create_user(
+            email=email,
+            password="password123",  # pragma: allowlist secret
+            first_name="Case",
+            last_name="Twin",
+            user_type=UserTypes.TEACHER,
+            is_active=True,
+        )
+
+    def test_an_exact_match_wins_over_a_case_twin(self):
+        upper = self.teacher("PAIR@seatcap.edu")
+        lower = self.teacher("pair@seatcap.edu")
+        lookup = LicenseSubscriptionService.teacher_account_for_email
+
+        self.assertEqual(lookup("pair@seatcap.edu"), lower)
+        self.assertEqual(lookup("PAIR@seatcap.edu"), upper)
