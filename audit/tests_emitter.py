@@ -266,23 +266,33 @@ class RequestContextTest(TestCase):
         event = call(actor=self.teacher, request=request(HTTP_USER_AGENT=""))
         self.assertIsNone(event.user_agent)
 
-    def test_the_inbound_request_id_is_kept_as_untrusted_context(self):
-        event = call(actor=self.teacher, request=request(HTTP_X_REQUEST_ID="abc-123"))
-        self.assertEqual(event.client_correlation_id, "abc-123")
+    def test_an_inbound_uuid_is_kept_as_untrusted_context(self):
+        client_id = uuid.uuid4()
+        event = call(
+            actor=self.teacher, request=request(HTTP_X_REQUEST_ID=client_id.hex)
+        )
+        self.assertEqual(event.client_correlation_id, str(client_id))
 
-    def test_the_id_the_middleware_attached_is_used_when_present(self):
+    def test_an_inbound_id_that_is_not_a_uuid_is_not_kept(self):
+        """S5 part 0: a UUID only, no free text. Reversed on purpose."""
+        event = call(actor=self.teacher, request=request(HTTP_X_REQUEST_ID="abc-123"))
+        self.assertIsNone(event.client_correlation_id)
+
+    def test_the_client_id_the_middleware_attached_is_used(self):
+        """Never the server's request id - that is the trace id."""
         req = request()
-        req.request_id = "from-middleware"
+        req.request_id = uuid.uuid4().hex
+        req.client_request_id = "c2f1a8e4-0000-4000-8000-000000000001"
         self.assertEqual(
             call(actor=self.teacher, request=req).client_correlation_id,
-            "from-middleware",
+            "c2f1a8e4-0000-4000-8000-000000000001",
         )
 
     def test_an_unusable_client_id_is_dropped_not_stored(self):
         for bad in ("has space", "x" * 65, "line\nbreak", "trailing\n", "<script>"):
             with self.subTest(bad=bad):
                 req = request()
-                req.request_id = bad
+                req.client_request_id = bad
                 self.assertIsNone(
                     call(actor=self.teacher, request=req).client_correlation_id
                 )
@@ -303,7 +313,7 @@ class TraceIdTest(TestCase):
         forged = request(HTTP_X_REQUEST_ID=victim.trace_id.hex)
         event = call(request=forged)
         self.assertNotEqual(event.trace_id, victim.trace_id)
-        self.assertEqual(event.client_correlation_id, victim.trace_id.hex)
+        self.assertEqual(event.client_correlation_id, str(victim.trace_id))
 
     def test_events_inside_one_trace_context_share_its_id(self):
         with trace_context() as trace_id:

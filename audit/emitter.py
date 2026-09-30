@@ -42,7 +42,7 @@ from typing import Optional
 
 from django.db import transaction
 
-from AutoGrader.request_context import get_request_id
+from AutoGrader.request_context import client_request_id_from_header, get_request_id
 
 from . import metrics as audit_metrics
 from .context import current_trace_id
@@ -92,12 +92,11 @@ def _resolve_trace_id() -> uuid.UUID:
     wins first. Otherwise, the id `AutoGrader.request_context` already
     propagates across the web request and every Celery hop it dispatches
     (`RequestIDMiddleware`, `celery_signals.py` - confirmed wired end to end).
-    That value is a `uuid4().hex` when server-generated, but an INBOUND
-    `X-Request-ID` is accepted on a much broader charset for logging purposes
-    (`is_valid_request_id`), so it is not assumed to be a well-formed UUID
-    just because it passed that check - a value that does not parse is
-    dropped, never used as-is. With neither available, a fresh id is minted
-    so every event still gets one.
+    That id is always minted by the server (S5 part 0): the middleware never
+    adopts an inbound `X-Request-ID`, which it keeps apart as
+    `client_request_id`. Anything else that set it is still parsed, never
+    used as-is: a value that is not a UUID is dropped. With neither
+    available, a fresh id is minted so every event still gets one.
     """
     explicit = current_trace_id()
     if explicit is not None:
@@ -367,7 +366,11 @@ def _request_fields(request, is_student):
     if not isinstance(meta, dict):
         return fields
 
-    client_id = getattr(request, "request_id", None) or meta.get("HTTP_X_REQUEST_ID")
+    # The client's own id (a UUID, or nothing), never the server's request
+    # id, which is this event's trace id (S5 part 0).
+    client_id = getattr(
+        request, "client_request_id", None
+    ) or client_request_id_from_header(meta.get("HTTP_X_REQUEST_ID"))
     if isinstance(client_id, str) and _CLIENT_ID.fullmatch(client_id):
         fields["client_correlation_id"] = client_id
 
