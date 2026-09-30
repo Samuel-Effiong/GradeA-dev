@@ -1,7 +1,4 @@
 Creating test database for alias 'default'...
-Got an error creating the test database: database "test_epic_a_s8" already exists
-
-Destroying old test database for alias 'default'...
 System check identified some issues:
 
 WARNINGS:
@@ -34,7 +31,7 @@ audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not a
 audit event metadata dropped: action=ASSIGNMENT_CREATE keys=assignment_id (not allowed for this action)
 ....
 ----------------------------------------------------------------------
-Ran 9 tests in 0.527s
+Ran 9 tests in 0.784s
 
 OK
 Destroying test database for alias 'default'...

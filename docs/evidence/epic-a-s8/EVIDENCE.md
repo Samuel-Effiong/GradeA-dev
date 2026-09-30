@@ -135,11 +135,17 @@ Expected:
 
 If either count shows `Seq Scan on audit_auditevent` on a large table, don't run the report; send the plan to the team.
 
-**N1 gates** (only the touched module, per the SM; on `690bcef`, 6G):
+**N1 gates** (only the touched module, per the SM; on **`08195fb`**, 6G):
 
 | Gate | Result |
 |---|---|
 | Changed module | `audit.tests_volume_report`: **9 OK** (`n1_changed_module.txt`) |
-| 2 Mutation | **8 mutants, 8 killed** (`n1_mutation_log.txt`, `mutation_results.json`). V8 (the class count without its leading-column equality) is killed by `test_exact_all_time_is_opt_in_and_counts_everything`, `test_it_counts_per_day_per_action_and_per_class`. |
+| 2 Mutation | **8 mutants, 8 killed** (`n1_mutation_log.txt`, `mutation_results.json`). V8 (the class count without its leading-column equality) is killed by `test_every_windowed_count_has_an_index_path`, `test_exact_all_time_is_opt_in_and_counts_everything` and `test_it_counts_per_day_per_action_and_per_class`. |
 
-A first N1 run on `2f1d130` was void: the read-only test's patched stand-in lacked the new argument. It was discarded; the fix and the rework are above.
+**How the EXPLAIN test was tightened inside the slot:**
+- At `690bcef`, V8 was killed only by the count tests, not by the EXPLAIN test. With seq scans off, a count lacking the leading-column equality still plans as an index scan over the whole index, which has an Index node and no Seq Scan.
+- The test now requires the **index condition** to pin the leading column (`Index Cond: … (action)::text = '…'` or `… retention_class = '…'`). The recorded plans are:
+  - `Index Scan using audit_action_time_ix … Index Cond: (((action)::text = 'AUTH_LOGIN'::text) AND (occurred_at >= …))`;
+  - `Index Only Scan using audit_retention_ix … Index Cond: ((retention_class = 'GENERAL'::text) AND (occurred_at >= …))`.
+- Two intermediate commits fixed the regex to Postgres's two spellings (`8d5d2f1`, `a074f68`).
+- A first N1 run on `2f1d130` was void (the read-only test's patched stand-in lacked the new argument).

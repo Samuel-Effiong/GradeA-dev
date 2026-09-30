@@ -45,6 +45,7 @@
   "V8_class_count_scans_the_table": {
     "killed": true,
     "failing_tests": [
+      "test_every_windowed_count_has_an_index_path",
       "test_exact_all_time_is_opt_in_and_counts_everything",
       "test_it_counts_per_day_per_action_and_per_class"
     ]
