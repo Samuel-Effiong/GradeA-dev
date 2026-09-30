@@ -156,6 +156,29 @@ def stripe_id(value):
     return value.get("id")
 
 
+def new_invoice_since(sub_id: str, invoice_before):
+    """The invoice a change raised: the subscription's latest invoice, if it
+    is not the one that was latest before the change. Never an older one,
+    so an unpaid renewal is never mistaken for the change's own invoice.
+    Reads Stripe; a StripeError propagates."""
+    latest = stripe_id(stripe.Subscription.retrieve(sub_id).get("latest_invoice"))
+    return latest if latest and latest != invoice_before else None
+
+
+def record_stripe_result(intent, **values) -> None:
+    """Keep what Stripe returned that a human reconciling this intent would
+    need (a created Price, an invoice), in its own short transaction. Best
+    effort, like every intent write."""
+    intent.stripe_result = {**(intent.stripe_result or {}), **values}
+    try:
+        with transaction.atomic(durable=True):
+            intent.save(update_fields=["stripe_result", "updated_at"])
+    except Exception:  # noqa: BLE001 - a failed record must not mask the cause
+        logger.exception(
+            "Could not record Stripe's result %r on H-28 intent %s.", values, intent.id
+        )
+
+
 def _reconciliation_needed(intent, why: str) -> None:
     logger.error(
         "MANUAL RECONCILIATION NEEDED — Stripe and local state may now "

@@ -44,6 +44,7 @@ from AutoGrader.error_messages import describe_stripe_error
 from classrooms.models import School
 from users.models import CustomUser
 
+from . import license_stripe_mutation
 from .billing_transaction_service import BillingTransactionService
 from .imports import stripe
 from .license_service import (
@@ -1551,164 +1552,215 @@ class StripeSubscriptionMutationService:
         performed_by: Optional[CustomUser] = None,
     ) -> str:
         """
-        Update the Stripe subscription price for a license.
-        Uses smart proration: always_invoice for upgrades, none for downgrades.
+        Move a licence to `new_plan`'s price (or to `new_custom_price_cents`,
+        per month) at Stripe AND in the application.
 
-        Args:
-            license_sub: The license subscription.
-            new_plan: The target plan (must have product_id and either stripe_price_id
-                    or a custom price will be created).
-            new_custom_price_cents: If provided, overrides the plan's default price for
-                                    this license. If None, uses the plan's default stripe_price_id.
+        H-28: this used to change Stripe only, leaving the local plan to its
+        caller inside that caller's transaction, so any failure after the
+        Stripe call left the two disagreeing. A price change at Stripe with
+        no matching local record is exactly the divergence H-28 removes, so
+        this now runs the whole recorded operation,
+        LicenseSubscriptionService.change_license_plan. `new_custom_price_cents`
+        of None means the plan's own price, as it always did here.
 
         Returns:
             str: The Stripe subscription ID (unchanged).
 
         Raises:
-            ValueError: If Stripe update fails, payment fails, or invalid inputs.
+            ValueError: If the change is refused, Stripe refuses it, or the
+                payment for an upgrade is not collected.
         """
-        if not license_sub.stripe_subscription_id:
-            raise ValueError("License has no Stripe subscription ID.")
+        from .license_service import LicenseSubscriptionService
 
-        # Determine old effective price (cents)
-        old_price_cents = license_sub.custom_price_cents or license_sub.plan.price_cents
+        updated = LicenseSubscriptionService.change_license_plan(
+            license_sub,
+            new_plan,
+            custom_price_cents=new_custom_price_cents,
+            remove_custom_price=new_custom_price_cents is None,
+            performed_by=performed_by,
+        )
+        return updated.stripe_subscription_id
 
-        # Determine new effective price
-        if new_custom_price_cents is not None:
-            new_price_cents = new_custom_price_cents
-        else:
-            # If no custom price, we must have stripe_price_id on the plan
-            if not new_plan.stripe_price_id:
-                raise ValueError(
-                    f"Plan {new_plan.name} has no stripe_price_id and no custom price provided."
-                )
-            new_price_cents = new_plan.price_cents
+    @staticmethod
+    def apply_licence_price_at_stripe(
+        intent,
+        new_plan: SubscriptionPlan,
+        new_custom_price_cents: Optional[int],
+        contract_months: int,
+        old_price_cents,
+        new_price_cents,
+    ):
+        """
+        Phases B and C of a licence plan change (H-28; see
+        billing/license_stripe_mutation.py): put the licence's Stripe
+        subscription on the new price, in NO transaction, with the intent's
+        idempotency keys.
 
-        # If prices are identical, we can skip Stripe modification
-        if old_price_cents == new_price_cents:
-            logger.info(
-                "License %s price unchanged (%d cents), skipping Stripe update.",
-                license_sub.id,
-                old_price_cents,
-            )
-            return license_sub.stripe_subscription_id
+        An upgrade is invoiced at once. If that invoice is not paid (declined,
+        or 3D Secure: F1, F3) or the card is refused (F2), the old price is
+        restored and the change's own invoice voided, as the individual
+        upgrade path does (`_revert_to_previous_price`), so Stripe is left
+        with nothing to collect. The intent is then FAILED and a ValueError
+        explains why; if the undo itself fails, it is ESCALATED.
 
-        # Determine proration behavior
-        if new_price_cents > old_price_cents:
-            proration_behavior = "always_invoice"  # upgrade
-        else:
-            proration_behavior = "none"  # downgrade
+        Returns `(paid_invoice, old_price_id, item_id)`: the upgrade's paid
+        invoice, or None when no money moved (a downgrade, or no invoice was
+        raised), then the price the subscription was on and its item, for
+        phase D's compensation.
+        """
+        sub_id = intent.stripe_subscription_id
 
-        # Get subscription item ID
+        # What the change needs from Stripe, read before changing it.
         try:
-            stripe_sub = stripe.Subscription.retrieve(
-                license_sub.stripe_subscription_id
-            )
+            before = stripe.Subscription.retrieve(sub_id)
         except stripe.error.StripeError as exc:
+            license_stripe_mutation.abandon(
+                intent, f"could not read the subscription: {exc}"
+            )
             raise ValueError(f"Could not retrieve Stripe subscription: {exc}") from exc
-
-        items = stripe_sub.get("items", {}).get("data", [])
+        items = before.get("items", {}).get("data", [])
         if not items:
+            license_stripe_mutation.abandon(intent, "the subscription has no items")
             raise ValueError("Stripe subscription has no items.")
         item_id = items[0]["id"]
-
-        # Capture old price ID before modification
         old_price_id = items[0]["price"]["id"]
+        invoice_before = license_stripe_mutation.stripe_id(before.get("latest_invoice"))
 
-        # Determine the price ID to use
-        if new_custom_price_cents is not None:
-            # Create a custom Price for this license
-            try:
-                new_price_id = StripePriceService.create_custom_price(
-                    product_id=new_plan.product_id,
-                    unit_amount=int(
-                        new_custom_price_cents * license_sub.contract_months
-                    ),
-                    interval_count=license_sub.contract_months,  # Deepseek
+        # The price to move to. A contract other than one month, or a custom
+        # amount, needs its own Price. Creating one charges nothing, and an
+        # unused one is harmless, but it is recorded on the intent.
+        if new_custom_price_cents is None and contract_months == 1:
+            if not new_plan.stripe_price_id:
+                license_stripe_mutation.abandon(
+                    intent, f"plan {new_plan.name} has no stripe_price_id"
                 )
-            except ValueError as exc:
-                raise ValueError(f"Custom price creation failed: {exc}") from exc
+                raise ValueError(f"Plan {new_plan.name} has no stripe_price_id")
+            new_price_id = new_plan.stripe_price_id
         else:
-            if license_sub.contract_months == 1:
-                if not new_plan.stripe_price_id:
-                    raise ValueError(f"Plan {new_plan.name} has no stripe_price_id")
-                new_price_id = new_plan.stripe_price_id
-            else:
-                new_price_id = StripePriceService.create_custom_price(
-                    product_id=new_plan.product_id,
-                    unit_amount=int(new_plan.price_cents * license_sub.contract_months),
-                    interval_count=license_sub.contract_months,
+            monthly_cents = (
+                new_custom_price_cents
+                if new_custom_price_cents is not None
+                else new_plan.price_cents
+            )
+            try:
+                price = stripe.Price.create(
+                    product=new_plan.product_id,
+                    unit_amount=int(monthly_cents * contract_months),
+                    currency="usd",
+                    recurring={"interval": "month", "interval_count": contract_months},
+                    idempotency_key=intent.idempotency_key("price"),
                 )
+            except stripe.error.StripeError as exc:
+                license_stripe_mutation.abandon(
+                    intent, f"could not create the new Price: {exc}"
+                )
+                raise ValueError(
+                    f"Custom price creation failed: Failed to create custom price: {exc}"
+                ) from exc
+            new_price_id = price.id
+            license_stripe_mutation.record_stripe_result(
+                intent, created_price_id=new_price_id
+            )
 
-        # Perform the subscription modification
+        proration_behavior = (
+            "always_invoice" if new_price_cents > old_price_cents else "none"
+        )
+
+        def set_price(price_id, proration, **key):
+            return stripe.Subscription.modify(
+                sub_id,
+                items=[{"id": item_id, "price": price_id}],
+                proration_behavior=proration,
+                **key,
+            )
+
+        def price_reached():
+            data = stripe.Subscription.retrieve(sub_id).get("items", {}).get("data", [])
+            return bool(data) and data[0]["price"]["id"] == new_price_id
+
+        def revert(**key):
+            return set_price(old_price_id, "none", **key)
+
+        def payment_failed(why, message):
+            if license_stripe_mutation.undo_unpaid_change(
+                intent,
+                revert,
+                lambda: license_stripe_mutation.new_invoice_since(
+                    sub_id, invoice_before
+                ),
+                why,
+            ):
+                return ValueError(message)
+            return license_stripe_mutation.LicenceStripeChangeNotRecorded(
+                "The plan change could not be paid, and undoing it at our "
+                "payment provider failed. It has been flagged for manual "
+                "reconciliation."
+            )
+
         try:
-            stripe.Subscription.modify(
-                license_sub.stripe_subscription_id,
-                items=[{"id": item_id, "price": new_price_id}],
-                proration_behavior=proration_behavior,
+            license_stripe_mutation.apply_at_stripe(
+                intent,
+                call=lambda **key: set_price(new_price_id, proration_behavior, **key),
+                reached=price_reached,
+                payment_errors=(stripe.error.CardError,),
             )
         except stripe.error.CardError as exc:
-            raise ValueError(f"Card declined: {exc}") from exc
+            raise payment_failed(f"card error: {exc}", f"Card declined: {exc}") from exc
         except stripe.error.StripeError as exc:
             raise ValueError(f"Stripe error: {exc}") from exc
 
-        # For always_invoice, verify the invoice was paid
-        if proration_behavior == "always_invoice":
-            stripe_sub_refreshed = stripe.Subscription.retrieve(
-                license_sub.stripe_subscription_id
+        if proration_behavior != "always_invoice":
+            return None, old_price_id, item_id
+
+        try:
+            invoice_id = license_stripe_mutation.new_invoice_since(
+                sub_id, invoice_before
             )
-            latest_invoice_id = stripe_sub_refreshed.get("latest_invoice")
-            if latest_invoice_id:
-                invoice = stripe.Invoice.retrieve(
-                    latest_invoice_id, expand=INVOICE_PAYMENT_INTENT_EXPAND
+            invoice = (
+                stripe.Invoice.retrieve(
+                    invoice_id, expand=INVOICE_PAYMENT_INTENT_EXPAND
                 )
-                if invoice.get("status") != "paid":
-                    _pi_id, payment_intent = resolve_invoice_payment_intent(invoice)
-                    pi_status = (
-                        _stripe_get(payment_intent, "status")
-                        if payment_intent is not None
-                        else None
-                    )
-                    if pi_status == "requires_action":
-                        raise ValueError(
-                            "Upgrade payment requires additional authentication (3D Secure). "
-                            "Please update your payment method and retry."
-                        )
-                    # Revert and raise
-                    stripe.Subscription.modify(
-                        license_sub.stripe_subscription_id,
-                        items=[{"id": item_id, "price": old_price_id}],
-                        proration_behavior="none",
-                    )
+                if invoice_id
+                else None
+            )
+        except stripe.error.StripeError as exc:
+            # Applied at Stripe, and whether it was paid is unknown: money
+            # may have moved, so nothing is undone automatically.
+            license_stripe_mutation.escalate(
+                intent,
+                f"plan upgrade applied, but its invoice could not be read: {exc}",
+            )
+            raise license_stripe_mutation.LicenceStripeChangeNotRecorded(
+                "The plan change was applied at our payment provider but its "
+                "payment could not be confirmed. It has been flagged for "
+                "manual reconciliation."
+            ) from exc
 
-                    raise ValueError(
-                        f"Upgrade payment failed (invoice status: {invoice['status']}). "
-                        "Plan has not been changed."
-                    )
-
-                BillingTransactionService.record(
-                    source=BillingTransactionSource.LICENSE,
-                    transaction_type=BillingTransactionType.LICENSE_PLAN_CHANGE_CHARGE,
-                    status=BillingTransactionStatus.PAID,
-                    billing_method=BillingTransactionMethod.STRIPE,
-                    amount_cents=invoice.get("amount_paid") or 0,
-                    currency=invoice.get("currency", "usd"),
-                    license_subscription=license_sub,
-                    stripe_invoice_id=latest_invoice_id,
-                    stripe_subscription_id=license_sub.stripe_subscription_id,
-                    receipt_url=invoice.get("hosted_invoice_url"),
-                    performed_by=performed_by,
-                    description=f"License plan change to {new_plan.name}",
+        if invoice is None:
+            return None, old_price_id, item_id
+        if invoice.get("status") != "paid":
+            _pi_id, payment_intent = resolve_invoice_payment_intent(invoice)
+            pi_status = (
+                _stripe_get(payment_intent, "status")
+                if payment_intent is not None
+                else None
+            )
+            why = f"invoice status: {invoice.get('status')}, payment: {pi_status}"
+            if pi_status == "requires_action":
+                # F1 (behaviour change, DESIGN_PROPOSAL.md §9d): licence
+                # upgrades cannot complete 3D Secure, so the upgrade is now
+                # undone and its invoice voided rather than left live.
+                raise payment_failed(
+                    why,
+                    "Upgrade payment requires additional authentication "
+                    "(3D Secure). Please update your payment method and retry.",
                 )
-
-        logger.info(
-            "License %s Stripe price updated: %d cents -> %d cents (proration: %s)",
-            license_sub.id,
-            old_price_cents,
-            new_price_cents,
-            proration_behavior,
-        )
-        return license_sub.stripe_subscription_id
+            raise payment_failed(
+                why,
+                f"Upgrade payment failed (invoice status: {invoice['status']}). "
+                "Plan has not been changed.",
+            )
+        return invoice, old_price_id, item_id
 
     @staticmethod
     def _revert_to_previous_price(

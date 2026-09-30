@@ -1,0 +1,51 @@
+# H-28 Change 1: the port onto H-62, and the commits since
+
+`task/p1b-divergence` was built on `b744c9f`, the same old base as H-62. After H-62 landed in bundle 4, the founder's order was H-62 then H-28. This note records the port and Change 1's commits on the new base. The design is `DESIGN_PROPOSAL.md` §9, and the reproductions are `REPRODUCE_FIRST.md`. Logs from the old base keep their names and say so.
+
+**Branch:** `task/h28-p1b`, off H-62 `f3002bc` (the verified H-62 tip; H-62 later gained only docs and one verified test commit, and is merged before handoff).
+
+## How it was ported
+
+Clean re-apply, not a rebase. Each of the 11 commits that were not WIP was applied with `git cherry-pick -n` and committed through every pre-commit hook, with a `(cherry picked from commit …)` line.
+
+| Original | Ported | Port notes |
+|---|---|---|
+| `5ba468e` … `07d7249` (8 commits: the Phase 1 audit, the design and its reviews, the payment-failure finding) | `3dacca1` … `01ee5e3` | docs only, clean |
+| `90389f0` commit 1, the reproduce-first tests | `f2f10e4` | clean |
+| `a5a6508` commit 2, the intent model | `cb2e657` + `8aada3c` | The migration is **renumbered 0070 → 0072** (`0072_license_stripe_mutation_intent`), after H-56's 0070 and H-62's 0071. It is a `CreateModel`, which the H-56 rollback guard leaves out of scope (the previous release never writes a new table), so no `db_default` is added. `makemigrations --check` is clean. **Known non-bisectable commit: `cb2e657`** was committed with the renamed file still depending on `0069_price_sync_audit` (the dependency edit was made after the rename was staged), which gave `billing` three leaf migrations. `8aada3c`, the next commit, fixes it. No history rewrite (team rule). |
+| `7bd028a` the SM's ruling on ESCALATED intents | `b136236` | docs only, clean |
+| `f3b8d7b`, `cfd8d9e` (WIP save-points for commit 3, both committed on the old branch with `--no-verify`) | consolidated into commit 3, `af43442` | Not cherry-picked as commits. Their changes were applied to the working tree, finished, tested, and committed once through every hook. That fixed the missing imports `f3b8d7b` recorded, and a mypy error in `record_intent` (a licence with no Stripe subscription is now refused there). `commit3_reproduce_first_cancel_fixed.log` is `cfd8d9e`'s run on the old base, kept as found. |
+
+## Change 1 on the new base
+
+| # | Commit | What |
+|---|---|---|
+| 3 | `af43442` | the phase plumbing (`billing/license_stripe_mutation.py`) and `cancel_license_subscription` on it |
+| 4 | `f190771` | `update_seats` on it, with F4 and F5: an unpaid or declined seat increase is reverted and its own invoice voided (`undo_unpaid_change`) |
+| 5 | (the commit adding this note) | `change_license_plan` on it, with F0 and F1–F3; `change_license_price` delegates to it |
+
+## F1: the 4-point behaviour-change record
+
+F1 is the one customer-visible behaviour change in Change 1 (`FINDING_licence_payment_failure_paths.md`; approved in principle, conditional on this record).
+
+1. **Previous behaviour:** a licence plan upgrade whose invoice needed 3D Secure (`requires_action`) raised "Upgrade payment requires additional authentication (3D Secure). Please update your payment method and retry." and did nothing else at Stripe. The new price stayed live at Stripe with its invoice open, while `change_license_plan`'s transaction rolled the local plan back. Stripe billed the new price while the application showed the old one. It was latent until now, because F0 stopped every plan change reaching Stripe.
+2. **New behaviour:** the same message, and the upgrade is undone at Stripe. The old price is restored (`proration_behavior="none"`, idempotency key `h28-licence-<intent>-revert`), and the upgrade's own invoice is voided (`…-void`). The intent ends FAILED, and the licence stays on its old plan on both sides. If the undo fails, the intent is ESCALATED and a human is alerted.
+3. **Why this is correct:** licence upgrades have no 3D Secure completion flow (DESIGN_PROPOSAL.md §9h item 3), so an upgrade left awaiting authentication could never complete through the application. Leaving it live is the divergence H-28 removes. The individual upgrade path already does exactly this (`_revert_to_previous_price`), so both paths now agree. The message already told the customer to retry.
+4. **Tests that prove it:** `test_h28_licence_stripe_divergence.test_F1_plan_upgrade_needing_3d_secure_leaves_both_sides_agreeing` and `test_latent_F1_price_change_needing_3d_secure_is_reverted_and_voided` (reproductions, failing on the old base), and `test_h28_plan_phases.test_F1_an_upgrade_needing_3d_secure_is_reverted_and_voided` (the revert and void keys, FAILED, and nothing left open).
+
+## `change_license_price` now runs the whole operation
+
+Its only production caller was `change_license_plan`. Called on its own, it changed Stripe only and left the local plan to its caller, which is H-28's divergence by construction. It now delegates to `change_license_plan` (`new_custom_price_cents=None` meaning the plan's own price, as before), so nothing can change a licence's price at Stripe without recording it. The latent F1–F3 reproductions still call it directly, unchanged. `test_change_license_price_now_records_the_change_too` pins the new contract.
+
+## Runs
+
+Dev runs, each under rule 13 (`systemd-run` MemoryMax=6G, `nice -n 10`, `timeout`), with logs in `port_h62/`:
+
+| Run | Tree | Result |
+|---|---|---|
+| Reproduce-first: the 18 reproductions at `b136236` (commits 1–2 ported, no fix), disposable worktree | `b136236` | **18 of 18 fail** |
+| Commit 3's modules | commit-3 tree | 58 ran; only the 16 expected failures (sites commits 4–6 fix) |
+| Commit 4's modules | commit-4 tree | 74 ran; only the 11 expected failures (commits 5–6) |
+| Commit 5's modules, with `test_mailerlite_sync` (it calls the rewritten plan change and cancel) | commit-5 tree | 109 ran; only the 2 expected failures (convert to offline, commit 6) |
+
+Rule 15's runs (changed modules, a mutation battery, the `billing` regression) and the whole-range hooks log come at the end of Change 1.

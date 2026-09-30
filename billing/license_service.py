@@ -2240,7 +2240,6 @@ class LicenseSubscriptionService:
         }
 
     @staticmethod
-    @transaction.atomic
     def change_license_plan(
         license_sub: LicenseSubscription,
         new_plan: SubscriptionPlan,
@@ -2248,75 +2247,64 @@ class LicenseSubscriptionService:
         remove_custom_price: bool = False,
         performed_by: Optional[CustomUser] = None,
     ) -> LicenseSubscription:
-        # Lock license
-        license_sub = LicenseSubscription.objects.select_for_update().get(
-            pk=license_sub.pk
-        )
+        """
+        Move a licence to another plan and/or custom monthly price.
 
-        old_plan = license_sub.plan
-        old_effective_price, new_effective_price, new_custom_price_cents = (
-            LicenseSubscriptionService._resolve_effective_price(
-                license_sub, new_plan, custom_price_cents, remove_custom_price
+        H-28: for a STRIPE-billed licence the price change runs in NO
+        transaction (see billing/license_stripe_mutation.py), recorded as an
+        intent first. The old price is read before anything is written: the
+        licence row used to be updated first, so the Stripe step compared
+        the new price with itself and never ran (F0). An upgrade whose
+        payment is not collected is undone at Stripe (F1-F3). If the local
+        write then fails, a downgrade (no money moved) is undone at Stripe;
+        a PAID upgrade is escalated to a human instead of being refunded.
+        """
+
+        def write_plan(licence, old_plan, old_custom_price_cents, prices):
+            old_effective_price, new_effective_price, new_custom_price_cents = prices
+            licence.plan = new_plan
+            licence.custom_price_cents = new_custom_price_cents
+            licence.save(update_fields=["plan", "custom_price_cents", "updated_at"])
+
+            active_allocations = licence.allocations.filter(
+                is_active=True, is_admin_allocation=False
             )
-        )
+            for allocation in active_allocations:
+                allocation.monthly_allocation = new_plan.monthly_credits
+                allocation.save(update_fields=["monthly_allocation", "updated_at"])
 
-        # If the effective price is unchanged and plan is same, maybe skip? But we still need to update plan if changed.
-        if old_plan.id == new_plan.id and old_effective_price == new_effective_price:
-            raise ValueError("License is already on this plan with the same price.")
-
-        # Update local license plan and custom price
-        license_sub.plan = new_plan
-        license_sub.custom_price_cents = new_custom_price_cents
-        license_sub.save(update_fields=["plan", "custom_price_cents", "updated_at"])
-
-        # Update allocations
-        active_allocations = license_sub.allocations.filter(
-            is_active=True, is_admin_allocation=False
-        )
-
-        for allocation in active_allocations:
-            allocation.monthly_allocation = new_plan.monthly_credits
-            allocation.save(update_fields=["monthly_allocation", "updated_at"])
-
-            # Log plan change in ledger
-            CreditLedger.record(
-                user=allocation.user,
-                bucket=None,
-                ledger_type=CreditLedgerType.PLAN_CHANGE,
-                amount=0,
-                reference=f"License plan changed from {old_plan.name} to {new_plan.name}",
-                metadata={
-                    "license_subscription_id": str(license_sub.id),
-                    "old_plan": old_plan.name,
-                    "new_plan": new_plan.name,
-                    "old_monthly_allocation": old_plan.monthly_credits,
-                    "new_monthly_allocation": new_plan.monthly_credits,
-                    "old_custom_price_cents": license_sub.custom_price_cents,  # after update? careful
-                    "new_custom_price_cents": new_custom_price_cents,
-                    "old_effective_price": int(old_effective_price),
-                    "new_effective_price": int(new_effective_price),
-                },
-            )
-
-        # Sync to Stripe ONLY if this license is actually Stripe-billed.
-        # Offline licenses record the change for accounting instead
-
-        if license_sub.billing_method == LicenseBillingMethod.STRIPE:
-            # Call Stripe to change price
-            try:
-                from .stripe_service import StripeSubscriptionMutationService
-
-                StripeSubscriptionMutationService.change_license_price(
-                    license_sub,
-                    new_plan,
-                    new_custom_price_cents,
-                    performed_by=performed_by,
+                # Log plan change in ledger
+                CreditLedger.record(
+                    user=allocation.user,
+                    bucket=None,
+                    ledger_type=CreditLedgerType.PLAN_CHANGE,
+                    amount=0,
+                    reference=f"License plan changed from {old_plan.name} to {new_plan.name}",
+                    metadata={
+                        "license_subscription_id": str(licence.id),
+                        "old_plan": old_plan.name,
+                        "new_plan": new_plan.name,
+                        "old_monthly_allocation": old_plan.monthly_credits,
+                        "new_monthly_allocation": new_plan.monthly_credits,
+                        "old_custom_price_cents": old_custom_price_cents,
+                        "new_custom_price_cents": new_custom_price_cents,
+                        "old_effective_price": int(old_effective_price),
+                        "new_effective_price": int(new_effective_price),
+                    },
                 )
-            except ValueError as e:
-                raise ValueError(f"Stripe price change failed: {e}") from e
-        else:
+
+            logger.info(
+                "License %s plan changed from %s to %s. Custom price: %s. Allocations updated: %d.",
+                licence.id,
+                old_plan.name,
+                new_plan.name,
+                new_custom_price_cents,
+                active_allocations.count(),
+            )
+
+        def record_offline_change(licence, old_plan, new_custom_price_cents):
             billing_record = LicenseBillingRecord.objects.create(
-                license_subscription=license_sub,
+                license_subscription=licence,
                 record_type=LicenseBillingRecordType.PLAN_CHANGE_OFFLINE,
                 amount_paid_cents=new_custom_price_cents,
                 notes=(
@@ -2332,25 +2320,153 @@ class LicenseSubscriptionService:
                 status=BillingTransactionStatus.MANUAL,
                 billing_method=BillingTransactionMethod.OFFLINE,
                 amount_cents=new_custom_price_cents or 0,
-                license_subscription=license_sub,
+                license_subscription=licence,
                 license_billing_record=billing_record,
                 performed_by=performed_by,
                 description=f"Offline plan change {old_plan.name} -> {new_plan.name}",
                 occurred_at=timezone.now(),
             )
 
-        logger.info(
-            "License %s plan changed from %s to %s. Custom price: %s. Allocations updated: %d.",
-            license_sub.id,
-            old_plan.name,
-            new_plan.name,
-            new_custom_price_cents,
-            active_allocations.count(),
+        # Phase A — or the whole operation, where Stripe is not involved.
+        try:
+            with transaction.atomic(durable=True):
+                licence = LicenseSubscription.objects.select_for_update().get(
+                    pk=license_sub.pk
+                )
+                old_plan = licence.plan
+                old_custom_price_cents = licence.custom_price_cents
+                prices = LicenseSubscriptionService._resolve_effective_price(
+                    licence, new_plan, custom_price_cents, remove_custom_price
+                )
+                old_effective_price, new_effective_price, new_custom_price_cents = (
+                    prices
+                )
+                if (
+                    old_plan.id == new_plan.id
+                    and old_effective_price == new_effective_price
+                ):
+                    raise ValueError(
+                        "License is already on this plan with the same price."
+                    )
+
+                is_stripe = licence.billing_method == LicenseBillingMethod.STRIPE
+                if is_stripe and not licence.stripe_subscription_id:
+                    raise ValueError(
+                        "Stripe price change failed: "
+                        "License has no Stripe subscription ID."
+                    )
+                if is_stripe and new_custom_price_cents is None:
+                    if licence.contract_months == 1 and not new_plan.stripe_price_id:
+                        raise ValueError(
+                            f"Stripe price change failed: Plan {new_plan.name} "
+                            "has no stripe_price_id and no custom price provided."
+                        )
+
+                # Nothing to change at Stripe: an OFFLINE licence, or the same
+                # price on another plan.
+                if not is_stripe or old_effective_price == new_effective_price:
+                    write_plan(licence, old_plan, old_custom_price_cents, prices)
+                    if not is_stripe:
+                        record_offline_change(licence, old_plan, new_custom_price_cents)
+                    else:
+                        logger.info(
+                            "License %s price unchanged (%d cents), skipping "
+                            "Stripe update.",
+                            licence.id,
+                            old_effective_price,
+                        )
+                    stripe_intent = None
+                else:
+                    stripe_intent = license_stripe_mutation.record_intent(
+                        licence,
+                        LicenseStripeMutationOperation.CHANGE_PLAN,
+                        {
+                            "old_plan_id": str(old_plan.id),
+                            "new_plan_id": str(new_plan.id),
+                            "old_custom_price_cents": old_custom_price_cents,
+                            "new_custom_price_cents": new_custom_price_cents,
+                            "old_effective_price_cents": int(old_effective_price),
+                            "new_effective_price_cents": int(new_effective_price),
+                        },
+                        performed_by,
+                    )
+        except IntegrityError as exc:
+            if license_stripe_mutation.is_guard_violation(exc):
+                raise license_stripe_mutation.busy_error() from exc
+            raise
+
+        if stripe_intent is None:
+            sync_teachers_under_license_to_mailerlite(licence)
+            return licence
+        intent = stripe_intent
+        sub_id = intent.stripe_subscription_id
+
+        # Phases B and C.
+        from .stripe_service import StripeSubscriptionMutationService
+
+        try:
+            paid_invoice, old_price_id, item_id = (
+                StripeSubscriptionMutationService.apply_licence_price_at_stripe(
+                    intent,
+                    new_plan,
+                    new_custom_price_cents,
+                    licence.contract_months,
+                    old_effective_price,
+                    new_effective_price,
+                )
+            )
+        except ValueError as exc:
+            raise ValueError(f"Stripe price change failed: {exc}") from exc
+
+        # Phase D.
+        def revalidate(current):
+            if (
+                current.plan_id != old_plan.id
+                or current.custom_price_cents != old_custom_price_cents
+                or current.billing_method != LicenseBillingMethod.STRIPE
+                or current.stripe_subscription_id != sub_id
+            ):
+                raise license_stripe_mutation.LicenceMovedOn(
+                    f"licence {current.id} changed while Stripe was being updated"
+                )
+
+        def write(current):
+            write_plan(current, old_plan, old_custom_price_cents, prices)
+            if paid_invoice is not None:
+                BillingTransactionService.record(
+                    source=BillingTransactionSource.LICENSE,
+                    transaction_type=BillingTransactionType.LICENSE_PLAN_CHANGE_CHARGE,
+                    status=BillingTransactionStatus.PAID,
+                    billing_method=BillingTransactionMethod.STRIPE,
+                    amount_cents=paid_invoice.get("amount_paid") or 0,
+                    currency=paid_invoice.get("currency", "usd"),
+                    license_subscription=current,
+                    stripe_invoice_id=paid_invoice.get("id"),
+                    stripe_subscription_id=sub_id,
+                    receipt_url=paid_invoice.get("hosted_invoice_url"),
+                    performed_by=performed_by,
+                    description=f"License plan change to {new_plan.name}",
+                )
+
+        def compensate(**key):
+            return stripe.Subscription.modify(
+                sub_id,
+                items=[{"id": item_id, "price": old_price_id}],
+                proration_behavior="none",
+                **key,
+            )
+
+        updated = license_stripe_mutation.finalise(
+            intent,
+            revalidate=revalidate,
+            write=write,
+            # Undo at Stripe only where no money moved (DESIGN_PROPOSAL.md
+            # §9d): a downgrade, or an upgrade that raised no invoice. A paid
+            # upgrade escalates; a human rolls it forward.
+            compensate=compensate if paid_invoice is None else None,
         )
-
-        sync_teachers_under_license_to_mailerlite(license_sub)
-
-        return license_sub
+        sync_teachers_under_license_to_mailerlite(updated)
+        return updated
 
     @staticmethod
     def update_seats(
@@ -2470,12 +2586,7 @@ class LicenseSubscriptionService:
             return set_quantity(old_seats, "none", **key)
 
         def invoice_of_this_change():
-            """The change's own invoice: the subscription's latest, if it is
-            not the one that was latest before the change."""
-            latest = license_stripe_mutation.stripe_id(
-                stripe.Subscription.retrieve(sub_id).get("latest_invoice")
-            )
-            return latest if latest and latest != invoice_before else None
+            return license_stripe_mutation.new_invoice_since(sub_id, invoice_before)
 
         def payment_failed(why):
             if license_stripe_mutation.undo_unpaid_change(
