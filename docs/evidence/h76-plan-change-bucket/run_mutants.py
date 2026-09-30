@@ -23,6 +23,7 @@ WORKTREE = os.path.join(os.path.dirname(REPO), "Grade-Automator-Plus-h76-mut")
 TEST_DB = "test_h76_mut"
 
 SV = "billing/services.py"
+LS = "billing/license_service.py"
 TESTS = ["billing.tests.test_plan_change_retires_old_bucket"]
 
 MUTANTS = [
@@ -43,6 +44,28 @@ MUTANTS = [
         "        # --- Grant",
         'update_fields=["expires_at", "updated_at"]\n            )\n\n'
         "        # --- Grant",
+        1,
+    ),
+    (
+        "P3",
+        "the licence enrolment marks the old bucket processed (1a's N1)",
+        LS,
+        "            existing_monthly.is_processed = True\n",
+        "",
+        1,
+    ),
+    (
+        "P4",
+        "the licence enrolment saves is_processed (1a's N1)",
+        LS,
+        'update_fields=["expires_at", "is_processed", "updated_at"]\n'
+        "            )\n"
+        "            logger.info(\n"
+        '                "Expired old MONTHLY bucket',
+        'update_fields=["expires_at", "updated_at"]\n'
+        "            )\n"
+        "            logger.info(\n"
+        '                "Expired old MONTHLY bucket',
         1,
     ),
 ]
