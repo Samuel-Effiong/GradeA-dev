@@ -585,7 +585,8 @@ class BulkAndUploadAbuseAttacks(AttackBase):
         payload.name = "roster.csv"
         self.as_(self.teacher_a)
         response = self.client.post(self.url, {"file": payload}, format="multipart")
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        # Epic A S7d (catalogue D1): FILE_TOO_LARGE is 413 (it was 400).
+        self.assertEqual(response.status_code, status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
         self.assertEqual(StudentCourse.objects.filter(course=self.course_a).count(), 1)
 
     def test_a_binary_file_renamed_to_csv_is_a_400(self):

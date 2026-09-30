@@ -291,6 +291,31 @@ def _find_existing_student_by_name(*, course, row):
 
 SUCCEEDED, FAILED, SKIPPED = "succeeded", "failed", "skipped"
 
+#: StudentCourse.clean()'s refusal of a second student with exactly the same
+#: first, middle and last name in one course (case-insensitive). Its text is
+#: built by the model, so it is matched by these fixed ends.
+_NAME_CLASH_TEXT = (
+    "A student with the exact name ",
+    " is already enrolled in this course.",
+)
+
+
+class _RowRefused(Exception):
+    """Raised inside a row's transaction to roll back whatever the row
+    wrote before it was refused, and still report the row's own code."""
+
+    def __init__(self, result):
+        super().__init__()
+        self.result = result
+
+
+def _is_name_clash(exc):
+    return any(
+        message.startswith(_NAME_CLASH_TEXT[0])
+        and message.endswith(_NAME_CLASH_TEXT[1])
+        for message in exc.messages
+    )
+
 
 def _added(row, student, status, kind):
     return {
@@ -310,6 +335,15 @@ def _not_added(row, code, outcome, **params):
         coded_entry(error, row=row.row, name=row.display_name, status=status),
         outcome,
     )
+
+
+def _name_clashes(course, row):
+    return StudentCourse.find_name_conflicts(
+        course=course,
+        first_name=row.first_name,
+        last_name=row.last_name,
+        middle_name=row.middle_name,
+    ).exists()
 
 
 def _full_display(row):
@@ -346,6 +380,20 @@ def _import_row_with_email(*, course, row):
             student_display=row.display_name,
         )
 
+    # One course can't hold two students with exactly the same name, email
+    # or not (StudentCourse.clean). For a NEW account the row's names are
+    # the account's, so it is checked before anything is created. An
+    # existing account is checked by the model itself, after the staff and
+    # cross-school gates, so the clash can never reveal another school's
+    # student's stored name.
+    if existing is None and _name_clashes(course, row):
+        return _not_added(
+            row,
+            ReasonCode.ROW_NAME_CLASH,
+            FAILED,
+            student_display=_full_display(row),
+        )
+
     try:
         student, invited = enroll_student_by_email(
             course=course,
@@ -358,6 +406,19 @@ def _import_row_with_email(*, course, row):
         # A deactivated account is left exactly as it is (no reactivation,
         # no email, no enrollment); the row says so rather than failing.
         return _not_added(row, ReasonCode.ROW_ACCOUNT_DISABLED, SKIPPED)
+    except DjangoValidationError as exc:
+        if not _is_name_clash(exc):
+            raise
+        # Raised, not returned: the row's transaction rolls back anything
+        # the enrolment wrote before the model refused it.
+        raise _RowRefused(
+            _not_added(
+                row,
+                ReasonCode.ROW_NAME_CLASH,
+                FAILED,
+                student_display=_full_display(row),
+            )
+        ) from exc
     except EnrollmentError as exc:
         # The staff and cross-school refusals are the row's own codes, both
         # neutral (no role, no school). Anything else is the generic
@@ -402,12 +463,7 @@ def _import_row_without_email(*, course, row):
     # Another student of this course with exactly this name: a new account
     # would be indistinguishable from them (the direct-add serializer's own
     # rule, checked here so the row gets its code).
-    if StudentCourse.find_name_conflicts(
-        course=course,
-        first_name=row.first_name,
-        last_name=row.last_name,
-        middle_name=row.middle_name,
-    ).exists():
+    if _name_clashes(course, row):
         return _not_added(
             row,
             ReasonCode.ROW_NAME_CLASH,
@@ -506,6 +562,8 @@ def _import_one(course, row):
             if row.email:
                 return _import_row_with_email(course=course, row=row)
             return _import_row_without_email(course=course, row=row)
+    except _RowRefused as refused:
+        return refused.result
     except Exception as exc:
         logger.error(
             "Failed to bulk-add student at row %s of course %s",

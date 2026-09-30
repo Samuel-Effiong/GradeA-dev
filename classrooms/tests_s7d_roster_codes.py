@@ -17,6 +17,8 @@ query.
 """
 
 import io
+import logging
+from contextlib import contextmanager
 from unittest.mock import patch
 
 from django.db import connection
@@ -38,6 +40,28 @@ from users.models import CustomUser, UserTypes
 PASSWORD = "Str0ng-s7d-roster!"  # pragma: allowlist secret
 SENTINEL = "SENTINEL_s7d_division"
 ROLE_WORDS = ("teacher", "admin", "staff", "super")
+
+
+@contextmanager
+def every_log_line():
+    """Every record any logger emits, at every level, as formatted text
+    (a real handler on the root logger, not a mock)."""
+    lines = []
+
+    class Keep(logging.Handler):
+        def emit(self, record):
+            lines.append(f"{record.name} {record.getMessage()} {record.__dict__}")
+
+    handler = Keep(level=logging.DEBUG)
+    root = logging.getLogger()
+    old_level = root.level
+    root.addHandler(handler)
+    root.setLevel(logging.DEBUG)
+    try:
+        yield lines
+    finally:
+        root.removeHandler(handler)
+        root.setLevel(old_level)
 
 
 class Sent:
@@ -193,6 +217,18 @@ class RowCodeTests(RosterFixture):
         self.assertEqual(rows[1]["params"], {"row": 1, "email": "abc"})
         self.assertEqual(CustomUser.objects.count(), before)
         self.assertEqual(self.sent.calls, [])
+
+    def test_the_invalid_address_reaches_no_log_line(self):
+        """SM condition (b): the sync-only email param goes to the requester
+        in the row, and nowhere else."""
+        address = "s7d-not-an-address@@nowhere"
+
+        with every_log_line() as lines:
+            rows = self.rows(f"first_name,last_name,email\nEve,Five,{address}\n")
+
+        self.assertEqual(rows[1]["reason_code"], "ROW_EMAIL_INVALID")
+        self.assertEqual(rows[1]["params"]["email"], address)
+        self.assertNotIn(address, "\n".join(lines))
 
     def test_an_enrolled_student_is_skipped_on_both_paths(self):
         student = CustomUser.objects.create_user(
@@ -370,14 +406,60 @@ class DuplicateRowTests(RosterFixture):
         self.assertEqual(rows[2]["reason_code"], "ROW_DUPLICATE")
         self.assertEqual(rows[2]["params"]["first_row"], 1)
 
-    def test_the_same_name_with_different_emails_is_not_a_repeat(self):
+    def test_the_same_name_with_different_emails_is_not_a_repeat_but_a_clash(self):
+        """Different addresses are different students (not ROW_DUPLICATE),
+        but one course can't hold two students of exactly the same name
+        (StudentCourse.clean), so the second is ROW_NAME_CLASH, and no
+        account is created for it."""
         rows = self.rows(
             "first_name,last_name,email\n"
             "Sam,Same,sam1@s7d.example.org\n"
             "Sam,Same,sam2@s7d.example.org\n"
         )
 
-        self.assertEqual([rows[1]["status"], rows[2]["status"]], ["invited", "invited"])
+        self.assertEqual(rows[1]["status"], "invited")
+        self.assertEqual(rows[2]["reason_code"], "ROW_NAME_CLASH")
+        self.assertEqual(
+            rows[2]["message"],
+            "Row 2: a student named Sam Same is already in this course.",
+        )
+        self.assertFalse(
+            CustomUser.objects.filter(email="sam2@s7d.example.org").exists()
+        )
+        self.assertNotIn("sam2@s7d.example.org", self.sent_to())
+
+    def test_an_existing_account_with_a_clashing_name_is_refused_and_untouched(self):
+        """The model's own check, after the gates: nothing it wrote stays."""
+        StudentCourse.objects.create(
+            student=CustomUser.objects.create_user(
+                email="first@s7d.example.org",
+                password=PASSWORD,
+                first_name="Kim",
+                last_name="Twin",
+                user_type=UserTypes.STUDENT,
+            ),
+            course=self.course,
+            enrollment_status=EnrollmentStatusType.ENROLLED,
+        )
+        second = CustomUser.objects.create_user(
+            email="second@s7d.example.org",
+            password=PASSWORD,
+            first_name="Kim",
+            last_name="Twin",
+            user_type=UserTypes.STUDENT,
+            school=self.school,
+        )
+        password_before = second.password
+
+        rows = self.rows(
+            "first_name,last_name,email\nKim,Twin,second@s7d.example.org\n"
+        )
+
+        self.assertEqual(rows[1]["reason_code"], "ROW_NAME_CLASH")
+        self.assertEqual(self.enrolled(), 1)
+        second.refresh_from_db()
+        self.assertEqual(second.password, password_before)
+        self.assertEqual(self.sent.calls, [])
 
 
 class RowFailureIsolationTests(RosterFixture):

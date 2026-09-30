@@ -75,6 +75,7 @@ def sample_params(code):
 
 class RaiseCoded(APIView):
     authentication_classes: list = []
+    throttle_classes: list = []
     permission_classes = [AllowAny]
 
     def get(self, request, code):
@@ -88,6 +89,7 @@ class RaiseCoded(APIView):
 
 class RaiseRefusal(APIView):
     authentication_classes: list = []
+    throttle_classes: list = []
     permission_classes = [AllowAny]
 
     def get(self, request, kind):
@@ -103,6 +105,7 @@ class CaughtInView(APIView):
     students.views._failure_response does."""
 
     authentication_classes: list = []
+    throttle_classes: list = []
     permission_classes = [AllowAny]
 
     def get(self, request):
@@ -116,6 +119,7 @@ class GatedView(APIView):
     """A view behind billing.access_control.require_ai_access."""
 
     authentication_classes: list = []
+    throttle_classes: list = []
     permission_classes = [AllowAny]
 
     @require_ai_access
@@ -127,6 +131,7 @@ class CodedSeeingTheClientId(APIView):
     """Records the client id the middleware kept, then fails coded."""
 
     authentication_classes: list = []
+    throttle_classes: list = []
     permission_classes = [AllowAny]
     seen: dict = {}
 
@@ -137,6 +142,7 @@ class CodedSeeingTheClientId(APIView):
 
 class PlainSerializerError(APIView):
     authentication_classes: list = []
+    throttle_classes: list = []
     permission_classes = [AllowAny]
 
     def get(self, request):
@@ -501,17 +507,19 @@ class QaCatalogueAdditionsTests(SimpleTestCase):
                     self.assertIn("{row}", spec.message)
 
     def test_no_neutral_code_names_a_role_or_a_school(self):
-        for value in (
-            "ROW_STAFF_EMAIL",
-            "ROW_OTHER_SCHOOL",
-            "TEACHER_EMAIL_OTHER_ROLE",
-            "TEACHER_IN_OTHER_SCHOOL",
-        ):
+        for value in ("ROW_STAFF_EMAIL", "TEACHER_EMAIL_OTHER_ROLE"):
             with self.subTest(code=value):
                 spec = REASON_CODES[ReasonCode(value)]
                 self.assertLessEqual(spec.params, {"row"})
-                for word in ("admin", "staff", "super", "{school"):
-                    self.assertNotIn(word, spec.message.lower())
+                for word in ("admin", "staff", "super", "{"):
+                    self.assertNotIn(word, spec.message.lower().replace("{row}", ""))
+        # The school ones may say "your school administrator"; they name no
+        # school and take no param but the row.
+        for value in ("ROW_OTHER_SCHOOL", "TEACHER_IN_OTHER_SCHOOL"):
+            with self.subTest(code=value):
+                spec = REASON_CODES[ReasonCode(value)]
+                self.assertLessEqual(spec.params, {"row"})
+                self.assertNotIn("{", spec.message.replace("{row}", ""))
 
 
 class RemediationChoiceTests(SimpleTestCase):
