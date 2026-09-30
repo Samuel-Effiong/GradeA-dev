@@ -1697,6 +1697,32 @@ class StudentCourseSummaryAPITest(APITestCase):
         # a2 moved from Submitted to Graded.
         self.assertEqual(response.data["assignment_submitted"], 0)
 
+    def test_a_published_but_unscored_submission_stays_submitted(self):
+        """Graded is a grade the student can see: published AND scored. A
+        submission published without a score has no grade to show, so it
+        stays under Submitted (the Verification Engineer's N1 on f908aaf:
+        without this, Graded could drop its score condition unnoticed)."""
+        unscored = Assignment.objects.create(
+            title="A6 Published Unscored",
+            course=self.course,
+            status=AssignmentStatus.PUBLISHED,
+            due_date=self.now - timedelta(days=1),
+        )
+        StudentSubmission.objects.create(
+            assignment=unscored,
+            student=self.student,
+            answers={"q1": "a"},
+            is_published=True,
+        )
+        url = reverse("student-summary", kwargs={"course_id": self.course.id})
+        data = self.client.get(url).data
+
+        # a2 (graded, unpublished) and a6 (published, unscored) are
+        # Submitted; only a1 is Graded.
+        self.assertEqual(data["assignment_submitted"], 2)
+        self.assertEqual(data["assignment_graded"], 1)
+        self.assertEqual(data["assignment_assigned"], 5)
+
     def test_completion_rate_counts_graded_and_ungraded_submissions(self):
         """Submitted no longer includes Graded, so the completion rate must
         count both, and a release must not change it: 2 of 4 assignments
