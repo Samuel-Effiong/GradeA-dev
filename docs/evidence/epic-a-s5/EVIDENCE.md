@@ -58,5 +58,20 @@ So a client that sent another action's trace id as its `X-Request-ID` placed its
 
 `assignments.tests_grading_audit_events` pins `prompt_version` on both grading events. The 23 existing direct calls in tests pass a test version.
 
-## Gates
-_pending_ (runs through 0b, rules 12–14).
+## Gates (rule 15: changed modules + mutation + ONE owning-app regression; logs committed)
+Every run was wrapped in `systemd-run MemoryMax=6G`, `nice -n 10`, a timeout, RACE_COST 600/200, `EXEMPT_EMAIL_DOMAINS=` and `--noinput`, one at a time, on `95fb748` + the merge `cb41156`.
+
+| Gate | Result |
+|---|---|
+| Reproduce-first | d7f2737's source for the 7 changed files against the new tests (`prefix_d7f2737_failing.txt`). **The 4 X-5 tests fail** (a client can join a trail; the header is the client's id; a non-UUID id is kept; the log carries no client id). `tests_ai_call_trace` fails to import (`Prompt` doesn't exist there). |
+| Changed modules | `tests_ai_call_trace`, `tests_trace_server_owned`, `AutoGrader.tests_middleware`, `AutoGrader.tests_request_context`, `audit.tests_emitter`, `assignments.tests_grading_audit_events`, `billing.tests.test_execute_graded_task`: **146 OK** (`changed_modules.txt`) |
+| 2 Mutation | `mutate.py`, **15 mutants, 15 killed**, anchors asserted unique (`mutation_log.txt`, `mutation_results.json`). X1–X4 cover part 0; T1–T6 the AI call; P1–P5 prompt versions and the grading events. |
+| 1 Regression (owning app) | `ai_processor`: **816 OK** (skipped=6) (`regression_ai_processor.txt`) |
+| mypy | whole-repo `pre-commit run mypy --all-files`: **Passed** (on the merge `cb41156`) |
+| Migrations | `makemigrations --check --dry-run`: **No changes detected** |
+| 3 Concurrency | the Celery hop, with a real in-memory worker in its own thread |
+| 7 Real infra | Celery: the real signal handlers and a real (in-memory broker) worker. Provider: faked by design; the H-39 guard blocks real calls. |
+
+**Found and fixed while running the gates:**
+- The version separator "@" was dropped as email-shaped by the audit metadata sanitiser; it is now ":".
+- The Celery-hop test first used `assertLogs`, which never saw the worker thread's record because starting a worker reconfigures logging; it now records `_log_ai_call`'s arguments.
