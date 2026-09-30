@@ -1692,7 +1692,7 @@ def fill_billing_transaction_receipt_url(self, transaction_id):
 
 
 @shared_task(bind=True, max_retries=0)
-@single_instance(max_hold=beat_locks.EVERY_5_MIN)
+@single_instance(max_hold=beat_locks.EVERY_5_MIN, ttl=beat_locks.EVERY_5_MIN_TTL)
 def escalate_stale_licence_stripe_intents(self):
     """
     Every 5 minutes: escalate licence Stripe-change intents abandoned
