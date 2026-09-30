@@ -21,10 +21,13 @@ These tests are therefore weighted towards what must NOT happen:
 """
 
 import threading
+import time
+from datetime import timedelta
 from unittest import mock
 
 from django.db import connection
 from django.test import RequestFactory, TestCase, TransactionTestCase
+from django.utils import timezone
 
 from billing import event_replay
 from billing.event_replay import (
@@ -487,6 +490,164 @@ class ReplayConcurrencyTests(TransactionTestCase, ReplayFixture):
                 BLOCK,
                 f"round {round_no}: a sweep and a redelivery both granted",
             )
+
+    def test_replays_racing_live_duplicate_events_for_one_session_grant_once(self):
+        """
+        Stripe's documented duplicate: DIFFERENT event ids carrying the SAME
+        checkout session. Each id is its own ledger row, so the claim cannot
+        help; only the handler's wallet lock and its already-granted check
+        stand between this and a double grant (1a's probe P1, H-62 N3).
+        """
+        from billing.webhooks import _claim_stripe_event, _run_handler_inline
+
+        for round_no in range(self.ROUNDS):
+            session = self.checkout_session(
+                self.wallet,
+                self.plan,
+                session_id=f"cs_dup_{round_no}",
+                payment_intent=f"pi_dup_{round_no}",
+            )
+            for copy in ("a", "b"):
+                self.failed_event(f"evt_dup_{round_no}_{copy}", session=session)
+            before = self.granted_credits(self.wallet)
+            buckets_before = self.overage_buckets(self.wallet).count()
+
+            def deliver_live(i, round_no=round_no, session=session):
+                event = {
+                    "id": f"evt_dup_{round_no}_live_{i}",
+                    "type": "checkout.session.completed",
+                    "data": {"object": session},
+                }
+                _, token = _claim_stripe_event(event)
+                if token is None:
+                    return
+                _run_handler_inline(
+                    event,
+                    StripeWebhookHandler.handle_checkout_completed,
+                    token,
+                    log_prefix="duplicate-event test",
+                )
+
+            def worker(i):
+                if i % 2:
+                    replay_safe_failed_events()
+                else:
+                    deliver_live(i)
+
+            with fake_stripe(), run_receipt_tasks_inline():
+                errors = self._run(worker, self.THREADS)
+
+            self.assertEqual(errors, [], f"round {round_no}: {errors!r}")
+            self.assertEqual(
+                self.granted_credits(self.wallet) - before,
+                BLOCK,
+                f"round {round_no}: replays and live duplicates granted more than once",
+            )
+            self.assertEqual(
+                self.overage_buckets(self.wallet).count() - buckets_before, 1
+            )
+
+
+class StaleReplayClaimTests(TransactionTestCase, ReplayFixture):
+    """
+    A replay whose claim goes stale while its handler is still running:
+    sweep_stale_stripe_events settles the row FAILED, the next replay
+    re-claims it and runs the handler again, concurrently with the first.
+    The claim no longer separates them; the wallet lock must (1a's probe
+    P2, H-62 N3).
+    """
+
+    reset_sequences = True
+    WAIT_SECONDS = 20
+
+    def setUp(self):
+        self.plan = make_plan(max_blocks=100)
+        self.user, self.wallet = self.build(email="stale@replay.test")
+
+    def _wait_for_a_lock_waiter_or(self, thread):
+        """Until a session in this test database waits on a lock (the second
+        replay at the wallet lock) or `thread` has finished (which it does at
+        once if nothing makes it wait). Never a fixed sleep."""
+        deadline = time.monotonic() + self.WAIT_SECONDS
+        while time.monotonic() < deadline and thread.is_alive():
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT count(*) FROM pg_stat_activity "
+                    "WHERE datname = current_database() AND wait_event_type = 'Lock'"
+                )
+                if cursor.fetchone()[0]:
+                    return
+            time.sleep(0.05)
+
+    def test_a_replay_whose_claim_went_stale_mid_handler_grants_once(self):
+        from billing.tasks import sweep_stale_stripe_events
+
+        row = self.failed_event("evt_stale", payment_intent="pi_stale")
+        entered, release = threading.Event(), threading.Event()
+        results = {}
+
+        def schedule(billing_transaction):
+            # The first replay stops here: its grant is written, uncommitted.
+            if threading.current_thread().name == "stale-first":
+                entered.set()
+                release.wait(timeout=30)
+
+        def run(name, fn):
+            try:
+                results[name] = fn()
+            except Exception as exc:  # noqa: BLE001 - asserted below
+                results[name] = exc
+            finally:
+                connection.close()
+
+        first = threading.Thread(
+            target=run,
+            args=(
+                "first",
+                lambda: event_replay.replay_one(StripeEvent.objects.get(pk=row.pk)),
+            ),
+            name="stale-first",
+        )
+        second = threading.Thread(
+            target=run, args=("second", replay_safe_failed_events), name="stale-second"
+        )
+
+        with mock.patch(
+            "billing.stripe_service.schedule_receipt_url_fill", side_effect=schedule
+        ), fake_stripe():
+            first.start()
+            try:
+                self.assertTrue(
+                    entered.wait(self.WAIT_SECONDS),
+                    "the first replay never reached its grant",
+                )
+                StripeEvent.objects.filter(pk=row.pk).update(
+                    claimed_at=timezone.now() - timedelta(days=1)
+                )
+                sweep_stale_stripe_events.run()
+                self.assertEqual(
+                    StripeEvent.objects.get(pk=row.pk).status,
+                    StripeEventStatus.FAILED,
+                    "precondition: the sweep settled the stale claim",
+                )
+                second.start()
+                self._wait_for_a_lock_waiter_or(second)
+            finally:
+                release.set()
+            first.join(30)
+            second.join(30)
+
+        self.assertFalse(first.is_alive() or second.is_alive())
+        self.assertIsInstance(results["second"], dict, results)
+        self.assertEqual(results["second"]["replayed"], 1, results)
+        self.assertEqual(
+            self.granted_credits(self.wallet),
+            BLOCK,
+            f"a stale replay and its re-claim both granted: {results!r}",
+        )
+        self.assertEqual(
+            StripeEvent.objects.get(pk=row.pk).status, StripeEventStatus.SUCCEEDED
+        )
 
 
 class ReplayTaskWiringTests(TestCase, ReplayFixture):
