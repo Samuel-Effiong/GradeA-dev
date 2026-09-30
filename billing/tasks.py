@@ -384,12 +384,15 @@ def process_annual_plan_credit_grants(self):
     ).select_related("user", "plan")
 
     granted_count = 0
+    already_granted_count = 0
     failed_count = 0
 
     for sub in due_subs:
         try:
-            SubscriptionService.process_mid_cycle_credit_grant(sub)
-            granted_count += 1
+            if SubscriptionService.process_mid_cycle_credit_grant(sub) is None:
+                already_granted_count += 1
+            else:
+                granted_count += 1
         except Exception as exc:
             failed_count += 1
             logger.error(
@@ -402,7 +405,9 @@ def process_annual_plan_credit_grants(self):
 
     summary = (
         f"Annual plan mid-cycle credit grants: "
-        f"{granted_count} granted, {failed_count} failed."
+        f"{granted_count} granted, "
+        f"{already_granted_count} already granted by another run, "
+        f"{failed_count} failed."
     )
     logger.info(summary)
     return summary
@@ -623,6 +628,7 @@ def expire_active_trials(self):
 
     expired_by_time_count = 0
     expired_by_credits_count = 0
+    already_handled_count = 0
     failed_count = 0
     skipped_still_valid = 0
 
@@ -635,7 +641,9 @@ def expire_active_trials(self):
             if trial_end and trial_end <= now:
                 # Time window expired — expire it
 
-                SubscriptionService.expire_trial(trial_sub)
+                if not SubscriptionService.expire_trial(trial_sub):
+                    already_handled_count += 1
+                    continue
                 expired_by_time_count += 1
                 logger.info(
                     "Trial expired (14-day window passed) for user %s "
@@ -668,7 +676,9 @@ def expire_active_trials(self):
                 # User has no credits left - expire the trial immediately
                 # even if the 14-day window hasn't closed yet.
 
-                SubscriptionService.expire_trial(trial_sub, force=True)
+                if not SubscriptionService.expire_trial(trial_sub, force=True):
+                    already_handled_count += 1
+                    continue
                 expired_by_credits_count += 1
 
                 logger.info(
@@ -708,6 +718,7 @@ def expire_active_trials(self):
         f"{expired_by_time_count} expired (14-day limit), "
         f"{expired_by_credits_count} expired (credits exhausted), "
         f"{skipped_still_valid} still valid, "
+        f"{already_handled_count} already expired or converted, "
         f"{failed_count} failed."
     )
     logger.info(summary)

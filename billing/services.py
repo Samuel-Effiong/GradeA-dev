@@ -651,6 +651,9 @@ class SubscriptionService:
         that happens until the real annual renewal at billing_cycle_end.
         Rollover of unused credits between months follows the same
         carry_over_percent/carry_over_max rules as a normal full renewal.
+
+        Returns the subscription after a grant, or None when, under the row
+        lock, the subscription is no longer due (see below).
         """
         user_subscription = UserSubscription.objects.select_for_update().get(
             id=user_subscription.id
@@ -665,6 +668,30 @@ class SubscriptionService:
         user = user_subscription.user
         now = timezone.now()
         wallet = user.credit_wallet
+
+        # Re-check, under the lock, what process_annual_plan_credit_grants
+        # selected on without one. Two overlapping runs (a redeploy overlap,
+        # a second Beat, a manual run) both select a due subscription; the
+        # second waits here on the row lock while the first grants and moves
+        # next_credit_grant_at a month on. Without this check the second then
+        # granted the same month again: it retired the bucket just granted,
+        # rolled part of it over as an unearned CARRY_OVER bucket, and wrote
+        # a second GRANT row.
+        if (
+            not user_subscription.is_active
+            or user_subscription.is_trial
+            or user_subscription.next_credit_grant_at is None
+            or user_subscription.next_credit_grant_at > now
+            or user_subscription.billing_cycle_end <= now
+        ):
+            logger.info(
+                "Mid-cycle credit grant skipped for subscription %s: no longer "
+                "due under the row lock (next grant at %s), so another run "
+                "already granted it.",
+                user_subscription.id,
+                user_subscription.next_credit_grant_at,
+            )
+            return None
 
         # is_processed=False + explicit ordering, matching the two sibling
         # rollover implementations (process_rollover_and_renewal below, and
@@ -1199,6 +1226,11 @@ class SubscriptionService:
                 trial_end — once its credits run out. Time-based expiry
                 (the default, force=False) should never bypass this guard.
 
+        Returns:
+            bool: True if it expired the trial; False if, under the row lock,
+                  the subscription was no longer an active trial (another run
+                  expired it, or it was converted to paid), so nothing was done.
+
         Raises:
             ValueError: If the subscription is not a trial, or if the trial has not
                         yet ended (unless force=True).
@@ -1207,6 +1239,27 @@ class SubscriptionService:
             raise ValueError(
                 f"Subscription {user_subscription.id} is not a trial subscription."
             )
+
+        # Lock and re-read the row. Callers pass an object read without a
+        # lock (expire_active_trials reads every trial up front, then works
+        # through them), so by now another run may have expired it, or the
+        # user may have converted it to paid on the same row
+        # (finalize_trial_conversion_via_stripe). Acting on the stale copy
+        # wrote a second EXPIRE row and, after a conversion, deactivated the
+        # subscription the user had just paid for.
+        locked = UserSubscription.objects.select_for_update().get(
+            pk=user_subscription.pk
+        )
+        if not (locked.is_trial and locked.is_active):
+            logger.info(
+                "Trial expiry skipped for subscription %s: under the row lock "
+                "it is no longer an active trial (is_trial=%s, is_active=%s).",
+                locked.id,
+                locked.is_trial,
+                locked.is_active,
+            )
+            return False
+        user_subscription = locked
 
         now = timezone.now()
 
@@ -1222,11 +1275,14 @@ class SubscriptionService:
 
         user = user_subscription.user
 
-        # Expire any remaining TRIAL bucket
+        # Expire any remaining TRIAL bucket. Only an unprocessed one: the
+        # bucket expires at trial_end, so cleanup_expired_credit_buckets
+        # often reaches it first, and it has then already written the EXPIRE
+        # row for this remainder.
         wallet = user.credit_wallet
         trial_bucket = (
             wallet.buckets.select_for_update()
-            .filter(bucket_type=CreditBucketType.TRIAL)
+            .filter(bucket_type=CreditBucketType.TRIAL, is_processed=False)
             .first()
         )
 
@@ -1278,6 +1334,7 @@ class SubscriptionService:
             user.email,
             user_subscription.id,
         )
+        return True
 
     @staticmethod
     def refund_credits(task_id, reason=None):
