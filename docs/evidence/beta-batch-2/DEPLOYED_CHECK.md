@@ -9,6 +9,16 @@ there before the beta package goes. The founder may run them via Railway.
 - **Sections 1–4** (H-1 stage 3, H-1 step 4, H-25): the Hardening Engineer
   (grade-automator-plus-d5).
 
+> **Batch-2a scope (SM split, 2026-09-30).** Batch-2 was split. Batch-2a
+> (`task/beta-batch-2a`) carries H-25, L2, H-3 token_epoch, retire (A), the
+> email wording and the backlog docs. It does **not** carry H-1 stage 3 or
+> step 4: stage 3's G5 fan-out is being reworked.
+> - **For batch-2a, run G, §0, §3 and §4.**
+> - **§1 and §2 are DEFERRED to batch-2b** and are not run on the batch-2a
+>   deployment. Their expectations (stage 3 targeted bumps, step 4's
+>   no-wildcard behaviour) don't hold without that code.
+> - §0 setup is still needed for §3.
+
 Every result is recorded as **counts, statuses, ids and timestamps only**.
 Never paste response bodies, email addresses or tokens into this file.
 
@@ -117,6 +127,8 @@ look exactly like a PASS, so copy the paths exactly.
 
 ## 1. Cache invalidation on the deployment (H-1 stage 3 + step 4)
 
+> **DEFERRED to batch-2b.** Do not run this on the batch-2a deployment (see the scope note at the top).
+
 **Method.** For each row:
 1. Warm the viewer's read: call it twice and record the status plus a
    sha256 of the body, not the body itself.
@@ -139,6 +151,8 @@ writes. Because the counters live in the shared Redis, a web read after a
 worker write goes through the same path, and R4 is the direct proof of that.
 
 ## 2. No wildcard or whole-cache operation on the deployment (step 4)
+
+> **DEFERRED to batch-2b.** Do not run this on the batch-2a deployment: without step 4, wildcard invalidation is still expected there.
 
 Run both, bracketing the §1 writes. The static guard
 (`AutoGrader/tests_no_wildcard_invalidation.py`) already proves the deployed
@@ -258,11 +272,11 @@ means 40 emails to the team-controlled test address.
 | G3 `/health` 200, `/health/beat` 200, worker pongs | | |
 | G4 Sentry new issues / spikes in window | | |
 | Topology (web replicas / workers) | | |
-| §1 R1 | | |
-| §1 R2 | | |
-| §1 R3 | | |
-| §1 R4 (optional) | | |
-| §2a commandstats deltas (scan / keys / flushdb / flushall) | | |
-| §2b MONITOR SCAN patterns | | |
+| §1 R1 | deferred to batch-2b | |
+| §1 R2 | deferred to batch-2b | |
+| §1 R3 | deferred to batch-2b | |
+| §1 R4 (optional) | deferred to batch-2b | |
+| §2a commandstats deltas (scan / keys / flushdb / flushall) | deferred to batch-2b | |
+| §2b MONITOR SCAN patterns | deferred to batch-2b | |
 | §3 rounds with a post-DELETE 200 (of 20) | | |
 | §3 control (optional) | | |
