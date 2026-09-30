@@ -40,7 +40,7 @@ In the first battery, M02 and M26 were marked BROKEN, although they were caught 
 
 The marker is now `unittest.loader._FailedTest`, which is how unittest reports a class or module it cannot load. No other battery log contains any load-failure marker, so the change reclassifies only these two, and both were re-run with the fixed runner.
 
-**Hooks over the whole range:** `pre-commit run --from-ref 6212ce9 --to-ref HEAD` passes every hook (`port_range_hooks.log`), as the SM required because of the `--no-verify` commit.
+**Hooks over the whole range:** `pre-commit run --from-ref 6212ce9 --to-ref HEAD` at `fa05589` passes every hook (`port_range_hooks.log`), as the SM required because of the `--no-verify` commit. That range covers every port commit, the two fixes above, the merge of beta `abeda10` and this evidence. Every commit after `81c913f` was made through the hooks.
 
 ## Runs (rule 15; every run under `systemd-run` MemoryMax=6G, `nice -n 10`, `timeout`)
 
