@@ -1,0 +1,12 @@
+# R9: licence task: due tolerance
+# file: billing/tasks.py (occurrence 2)
+# old: '        next_credit_grant_at__lte=refresh_due_by(now),\n'
+# new: '        next_credit_grant_at__lte=now,\n'
+# commit: 47bdc73e5fc740f2904d9a339dad0c5b4c870a31
+# exit: 0
+# elapsed_s: 6.3
+# restored_sha256_matches_commit_blob: True
+
+
+
+OK
