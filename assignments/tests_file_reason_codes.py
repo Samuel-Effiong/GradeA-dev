@@ -28,6 +28,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 import assignments.tasks as upload_tasks
+from ai_processor.tools import ImageCompressionError
 from assignments import tests_upload_task_retry_policy as retry_policy
 from assignments.exceptions import InvalidUploadFileError
 from assignments.models import Assignment, AssignmentStatus
@@ -292,6 +293,34 @@ class StudentUploadAnswersWithItsOwnCode(APITestCase):
         self.assertEqual(body["params"]["actual"], "200x120 px")
         self.assertIn("200x120 px", body["error"])
         self.assertIn(body["params"]["limit"], body["error"])
+
+    def test_an_image_too_large_even_compressed_is_too_large(self):
+        refusal = ImageCompressionError(
+            "no size fits",
+            smallest_bytes=6 * 1024 * 1024 + 512 * 1024,
+            cap_bytes=5 * 1024 * 1024,
+        )
+        for target, name, data, content_type in (
+            ("assignments.services", "scan.png", image_bytes("PNG"), "image/png"),
+            ("ai_processor.services", "scan.pdf", pdf_bytes(), "application/pdf"),
+        ):
+            with self.subTest(path=name), patch(
+                f"{target}.compress_image_for_upload", side_effect=refusal
+            ):
+                response = self.post(upload(name, data, content_type))
+
+                body = self.assertCoded(
+                    response,
+                    ReasonCode.FILE_TOO_LARGE,
+                    status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                    name,
+                )
+                self.assertEqual(body["params"]["dimension"], "bytes")
+                self.assertEqual(
+                    body["params"]["actual"], "6.5 MB even after compression"
+                )
+                self.assertEqual(body["params"]["limit"], "5 MB")
+                self.assertNoInternals(response)
 
     # -- #6 SUBMISSION_EMPTY (empty FILES only: §6.1's final ruling) -------------
 

@@ -1,0 +1,65 @@
+# Trimmed from the full -v2 log: every test id that ran (unique, in order), then the FAIL/ERROR headings and the summary; emails redacted.
+test_the_teacher_sees_the_unreadable_message (assignments.tests_file_reason_codes.AnAssignmentFileWithNoPagesIsUnreadableNotAnEmptySubmission.test_the_teacher_sees_the_unreadable_message)
+test_a_pdf_the_library_cannot_open_never_shows_the_library_text (assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode.test_a_pdf_the_library_cannot_open_never_shows_the_library_text)
+test_a_pdf_the_rasterizer_rejects_never_shows_the_rasterizer_text (assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode.test_a_pdf_the_rasterizer_rejects_never_shows_the_rasterizer_text)
+test_a_pdf_with_no_pages_is_empty (assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode.test_a_pdf_with_no_pages_is_empty)
+test_a_photo_labelled_as_a_pdf_is_unreadable_as_a_pdf (assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode.test_a_photo_labelled_as_a_pdf_is_unreadable_as_a_pdf)
+test_a_text_file_is_an_unsupported_type_listing_every_accepted_type (assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode.test_a_text_file_is_an_unsupported_type_listing_every_accepted_type)
+test_a_truncated_pdf_is_unreadable (assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode.test_a_truncated_pdf_is_unreadable)
+test_a_type_without_an_extension_names_its_declared_type (assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode.test_a_type_without_an_extension_names_its_declared_type)
+test_a_zero_byte_file_is_empty (assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode.test_a_zero_byte_file_is_empty)
+test_an_empty_file_of_an_unsupported_type_is_the_type_first (assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode.test_an_empty_file_of_an_unsupported_type_is_the_type_first)
+test_an_image_whose_bytes_are_garbage_is_unreadable (assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode.test_an_image_whose_bytes_are_garbage_is_unreadable)
+test_too_many_bytes_is_too_large_with_actual_and_limit (assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode.test_too_many_bytes_is_too_large_with_actual_and_limit)
+test_too_many_pages_is_too_large_with_actual_and_limit (assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode.test_too_many_pages_is_too_large_with_actual_and_limit)
+test_too_many_pixels_is_too_large_with_actual_and_limit (assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode.test_too_many_pixels_is_too_large_with_actual_and_limit)
+test_the_item_fails_with_the_coded_refusal_itself (assignments.tests_file_reason_codes.TheBackgroundUploadKeepsTheCode.test_the_item_fails_with_the_coded_refusal_itself)
+test_the_cap_is_read_at_call_time (assignments.tests_file_reason_codes.ThePayloadTooLargeOfTheBatchIsCoded.test_the_cap_is_read_at_call_time)
+test_each_condition_raises_its_own_coded_type (assignments.tests_file_reason_codes.TheCodesAreDistinctAndStayRefusals.test_each_condition_raises_its_own_coded_type)
+test_every_too_large_is_a_payload_too_large_answered_413 (assignments.tests_file_reason_codes.TheCodesAreDistinctAndStayRefusals.test_every_too_large_is_a_payload_too_large_answered_413)
+test_the_library_text_stays_on_the_cause (assignments.tests_file_reason_codes.TheCodesAreDistinctAndStayRefusals.test_the_library_text_stays_on_the_cause)
+test_a_parser_failure_reads_as_unreadable_only (assignments.tests_file_reason_codes.TheInfraClassifierNoLongerConflatesUnreadableWithUnsupported.test_a_parser_failure_reads_as_unreadable_only)
+ERROR: test_the_item_fails_with_the_coded_refusal_itself (assignments.tests_file_reason_codes.TheBackgroundUploadKeepsTheCode.test_the_item_fails_with_the_coded_refusal_itself)
+ERROR: test_each_condition_raises_its_own_coded_type (assignments.tests_file_reason_codes.TheCodesAreDistinctAndStayRefusals.test_each_condition_raises_its_own_coded_type)
+ERROR: test_every_too_large_is_a_payload_too_large_answered_413 (assignments.tests_file_reason_codes.TheCodesAreDistinctAndStayRefusals.test_every_too_large_is_a_payload_too_large_answered_413)
+ERROR: test_the_library_text_stays_on_the_cause (assignments.tests_file_reason_codes.TheCodesAreDistinctAndStayRefusals.test_the_library_text_stays_on_the_cause)
+FAIL: test_the_teacher_sees_the_unreadable_message (assignments.tests_file_reason_codes.AnAssignmentFileWithNoPagesIsUnreadableNotAnEmptySubmission.test_the_teacher_sees_the_unreadable_message)
+FAIL: test_a_pdf_the_library_cannot_open_never_shows_the_library_text (assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode.test_a_pdf_the_library_cannot_open_never_shows_the_library_text)
+FAIL: test_a_pdf_the_rasterizer_rejects_never_shows_the_rasterizer_text (assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode.test_a_pdf_the_rasterizer_rejects_never_shows_the_rasterizer_text)
+FAIL: test_a_pdf_with_no_pages_is_empty (assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode.test_a_pdf_with_no_pages_is_empty)
+FAIL: test_a_photo_labelled_as_a_pdf_is_unreadable_as_a_pdf (assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode.test_a_photo_labelled_as_a_pdf_is_unreadable_as_a_pdf)
+FAIL: test_a_text_file_is_an_unsupported_type_listing_every_accepted_type (assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode.test_a_text_file_is_an_unsupported_type_listing_every_accepted_type)
+FAIL: test_a_truncated_pdf_is_unreadable (assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode.test_a_truncated_pdf_is_unreadable)
+FAIL: test_a_type_without_an_extension_names_its_declared_type (assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode.test_a_type_without_an_extension_names_its_declared_type)
+FAIL: test_a_zero_byte_file_is_empty (assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode.test_a_zero_byte_file_is_empty)
+FAIL: test_an_empty_file_of_an_unsupported_type_is_the_type_first (assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode.test_an_empty_file_of_an_unsupported_type_is_the_type_first)
+FAIL: test_an_image_whose_bytes_are_garbage_is_unreadable (assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode.test_an_image_whose_bytes_are_garbage_is_unreadable)
+FAIL: test_too_many_bytes_is_too_large_with_actual_and_limit (assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode.test_too_many_bytes_is_too_large_with_actual_and_limit)
+FAIL: test_too_many_pages_is_too_large_with_actual_and_limit (assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode.test_too_many_pages_is_too_large_with_actual_and_limit)
+FAIL: test_too_many_pixels_is_too_large_with_actual_and_limit (assignments.tests_file_reason_codes.StudentUploadAnswersWithItsOwnCode.test_too_many_pixels_is_too_large_with_actual_and_limit)
+FAIL: test_the_cap_is_read_at_call_time (assignments.tests_file_reason_codes.ThePayloadTooLargeOfTheBatchIsCoded.test_the_cap_is_read_at_call_time)
+FAIL: test_a_parser_failure_reads_as_unreadable_only (assignments.tests_file_reason_codes.TheInfraClassifierNoLongerConflatesUnreadableWithUnsupported.test_a_parser_failure_reads_as_unreadable_only)
+Ran 20 tests in 1.662s
+FAILED (failures=16, errors=4)
+AttributeError: 'PngStream' object has no attribute 'chunk_bage'. Did you mean: 'chunk_PLTE'?
+AttributeError: 'PngStream' object has no attribute 'chunk_bage'. Did you mean: 'chunk_PLTE'?
+AttributeError: module 'assignments.exceptions' has no attribute 'FileUnreadableError'
+AttributeError: module 'assignments.exceptions' has no attribute 'FileUnreadableError'
+AttributeError: module 'assignments.exceptions' has no attribute 'FileTooLargeError'
+AttributeError: module 'assignments.exceptions' has no attribute 'FileUnreadableError'
+AssertionError: "couldn't read quiz.pdf" not found in '{"success":false,"message":"1. File name: quiz.pdf\\n 2. Error: This PDF has no pages.\\n","error":{}}'
+AssertionError: 400 != 422 : b'{"success":false,"message":"Could not read this PDF: SENTINEL-library-internals-0x7f3a","error":{"field_errors":{"detail":"Could not read this PDF: SENTINEL-library-internals-0x7f3a"}}}'
+AssertionError: 400 != 422 : b'{"success":false,"message":"Could not read this PDF: SENTINEL-library-internals-0x7f3a","error":{"field_errors":{"detail":"Could not read this PDF: SENTINEL-library-internals-0x7f3a"}}}'
+AssertionError: 400 != 422 : b'{"success":false,"message":"This PDF has no pages.","error":{"field_errors":{"detail":"This PDF has no pages."}}}'
+AssertionError: 400 != 422 : b'{"success":false,"message":"This file is not a PDF. If it is a photo or scan, upload it as an image instead.","error":{"field_errors":{"detail":"This file is not a PDF. If it is a photo or scan, upload it as an image instead."}}}'
+AssertionError: 400 != 415 : b'{"success":false,"message":"Unsupported format: notes.txt. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed.","error":{"field_errors":{"detail":"Unsupported format: notes.txt. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed."}}}'
+AssertionError: 400 != 422 : b'{"success":false,"message":"Could not read this PDF: Unable to get page count.\\nSyntax Error: Couldn\'t find trailer dictionary\\nSyntax Error: Couldn\'t find trailer dictionary\\nSyntax Error: Couldn\'t read xref table\\n","error":{"field_errors":{"detail":"Could not read this PDF:
+AssertionError: 400 != 415 : b'{"success":false,"message":"Unsupported format: answers. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed.","error":{"field_errors":{"detail":"Unsupported format: answers. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed."}}}'
+AssertionError: 400 != 422 : b'{"success":false,"message":"blank.png could not be read as an image. It may be corrupted, or not actually be the format its name suggests. Please re-export it and try again.","error":{"field_errors":{"detail":"blank.png could not be read as an image. It may be corrupted, or not actual
+AssertionError: 400 != 415 : b'{"success":false,"message":"Unsupported format: blank.txt. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed.","error":{"field_errors":{"detail":"Unsupported format: blank.txt. Only images (JPEG, PNG, GIF, WebP) and PDFs are allowed."}}}'
+AssertionError: 400 != 422 : b'{"success":false,"message":"scan.png could not be read as an image. It may be corrupted, or not actually be the format its name suggests. Please re-export it and try again.","error":{"field_errors":{"detail":"scan.png could not be read as an image. It may be corrupted, or not actually
+AssertionError: 400 != 413 : b'{"success":false,"message":"Could not read this PDF: cannot open broken document","error":{"field_errors":{"detail":"Could not read this PDF: cannot open broken document"}}}'
+AssertionError: 400 != 413 : b'{"success":false,"message":"PDF has 3 pages, which exceeds the maximum of 2 pages allowed per upload.","error":{"field_errors":{"detail":"PDF has 3 pages, which exceeds the maximum of 2 pages allowed per upload."}}}'
+AssertionError: 400 != 413 : b'{"success":false,"message":"huge.png is 200x120 pixels, which is larger than the 0 megapixel limit. Please downscale it and try again.","error":{"field_errors":{"detail":"huge.png is 200x120 pixels, which is larger than the 0 megapixel limit. Please downscale it and try again."}}}'
+AssertionError: PayloadTooLarge not raised
+AssertionError: 'unsupported' unexpectedly found in "we couldn't read this file — it may be corrupted, password-protected, or in an unsupported format."
