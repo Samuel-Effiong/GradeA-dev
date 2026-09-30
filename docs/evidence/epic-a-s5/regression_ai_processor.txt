@@ -1,157 +1,158 @@
-# Trimmed: the last 200 lines. Full log (1.3 MB, over the repo's 500 KB limit):
-# ~/Documents/Projects/GAP-evidence-logs/epic-a-s5_regression_ai_processor_full.txt
-
-ai_processor.services INFO 2026-09-30 13:50:29,240 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+# Trimmed: the last 200 lines. Full log (1.4 MB, over the repo's 500 KB limit):
+# ~/Documents/Projects/GAP-evidence-logs/epic-a-s5_regression_ai_processor_6fef60a_full.txt
 
 
-
-
-ai_processor.services INFO 2026-09-30 13:50:29,240 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+ai_processor.services INFO 2026-09-30 14:56:03,517 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
 
 
 
 
-ai_processor.services INFO 2026-09-30 13:50:29,241 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] Batch 1/1 complete — 1 question(s) graded.
+ai_processor.services INFO 2026-09-30 14:56:03,518 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
 
 
 
 
-ai_processor.services INFO 2026-09-30 13:50:29,241 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] Second opinion (second-model): 1 question(s) re-graded — 0 agreement(s), 1 disagreement(s).
+ai_processor.services INFO 2026-09-30 14:56:03,519 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] Batch 1/1 complete — 1 question(s) graded.
 
 
 
 
-ai_processor.services WARNING 2026-09-30 13:50:29,242 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] grader_disagreement count=1 model_a=primary-model model_b=second-model tiers=['critical'] processing_task_id=None
-
-
-.
-
-ai_processor.services INFO 2026-09-30 13:50:29,250 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] Partition: 2 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 2 subjective.
+ai_processor.services INFO 2026-09-30 14:56:03,519 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] Second opinion (second-model): 1 question(s) re-graded — 0 agreement(s), 1 disagreement(s).
 
 
 
 
-ai_processor.services INFO 2026-09-30 13:50:29,250 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] 2 question(s) for the AI (0 already graded deterministically) - using single pass grading
-
-
-
-
-ai_processor.services INFO 2026-09-30 13:50:29,252 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] Batch 1/1 complete — 1 question(s) graded.
-
-
-
-
-ai_processor.services INFO 2026-09-30 13:50:29,252 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] Second opinion (second-model): 1 question(s) re-graded — 1 agreement(s), 0 disagreement(s).
+ai_processor.services WARNING 2026-09-30 14:56:03,519 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] grader_disagreement count=1 model_a=primary-model model_b=second-model tiers=['critical'] processing_task_id=None
 
 
 .
 
-ai_processor.services INFO 2026-09-30 13:50:29,260 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+ai_processor.services INFO 2026-09-30 14:56:03,526 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] Partition: 2 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 2 subjective.
 
 
 
 
-ai_processor.services INFO 2026-09-30 13:50:29,260 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+ai_processor.services INFO 2026-09-30 14:56:03,526 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] 2 question(s) for the AI (0 already graded deterministically) - using single pass grading
 
 
 
 
-ai_processor.services INFO 2026-09-30 13:50:29,264 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] Batch 1/1 complete — 1 question(s) graded.
+ai_processor.services INFO 2026-09-30 14:56:03,530 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] Batch 1/1 complete — 1 question(s) graded.
 
 
 
 
-ai_processor.services INFO 2026-09-30 13:50:29,264 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] Second opinion (second-model): 1 question(s) re-graded — 1 agreement(s), 0 disagreement(s).
-
-
-.
-
-ai_processor.services INFO 2026-09-30 13:50:29,272 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
-
-
-
-
-ai_processor.services INFO 2026-09-30 13:50:29,272 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+ai_processor.services INFO 2026-09-30 14:56:03,530 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] Second opinion (second-model): 1 question(s) re-graded — 1 agreement(s), 0 disagreement(s).
 
 
 .
 
-ai_processor.services INFO 2026-09-30 13:50:29,279 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+ai_processor.services INFO 2026-09-30 14:56:03,537 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
 
 
 
 
-ai_processor.services INFO 2026-09-30 13:50:29,280 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+ai_processor.services INFO 2026-09-30 14:56:03,537 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
 
 
 
 
-ai_processor.services INFO 2026-09-30 13:50:29,281 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] Batch 1/1 complete — 1 question(s) graded.
+ai_processor.services INFO 2026-09-30 14:56:03,538 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] Batch 1/1 complete — 1 question(s) graded.
 
 
 
 
-ai_processor.services INFO 2026-09-30 13:50:29,281 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] Second opinion (second-model): 1 question(s) re-graded — 1 agreement(s), 0 disagreement(s).
-
-
-.
-
-ai_processor.services INFO 2026-09-30 13:50:29,288 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
-
-
-
-
-ai_processor.services INFO 2026-09-30 13:50:29,289 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
-
-
-
-
-ai_processor.services WARNING 2026-09-30 13:50:29,290 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] Second opinion skipped: out of credits. Grader A's result stands, flagged for review. processing_task_id=None
+ai_processor.services INFO 2026-09-30 14:56:03,539 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] Second opinion (second-model): 1 question(s) re-graded — 1 agreement(s), 0 disagreement(s).
 
 
 .
 
-ai_processor.services INFO 2026-09-30 13:50:29,298 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+ai_processor.services INFO 2026-09-30 14:56:03,546 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
 
 
 
 
-ai_processor.services INFO 2026-09-30 13:50:29,298 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
-
-
-
-
-ai_processor.services WARNING 2026-09-30 13:50:29,299 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] Second opinion skipped: no candidate model differs from grader A's (second-model). processing_task_id=None
+ai_processor.services INFO 2026-09-30 14:56:03,546 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
 
 
 .
 
-ai_processor.services INFO 2026-09-30 13:50:29,306 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+ai_processor.services INFO 2026-09-30 14:56:03,553 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
 
 
 
 
-ai_processor.services INFO 2026-09-30 13:50:29,306 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+ai_processor.services INFO 2026-09-30 14:56:03,553 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
 
 
 
 
-ai_processor.services WARNING 2026-09-30 13:50:29,307 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] Batch 1, attempt 1: AI call failed — second model exploded
+ai_processor.services INFO 2026-09-30 14:56:03,554 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] Batch 1/1 complete — 1 question(s) graded.
 
 
 
 
-ai_processor.services WARNING 2026-09-30 13:50:29,307 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] Batch 1, attempt 2: AI call failed — second model exploded
+ai_processor.services INFO 2026-09-30 14:56:03,554 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] Second opinion (second-model): 1 question(s) re-graded — 1 agreement(s), 0 disagreement(s).
+
+
+.
+
+ai_processor.services INFO 2026-09-30 14:56:03,561 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
 
 
 
 
-ai_processor.services WARNING 2026-09-30 13:50:29,307 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] Batch 1, attempt 3: AI call failed — second model exploded
+ai_processor.services INFO 2026-09-30 14:56:03,561 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
 
 
 
 
-ai_processor.services ERROR 2026-09-30 13:50:29,307 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] Second-opinion pass failed — grader A's result stands unflagged.
+ai_processor.services WARNING 2026-09-30 14:56:03,562 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] Second opinion skipped: out of credits. Grader A's result stands, flagged for review. processing_task_id=None
+
+
+.
+
+ai_processor.services INFO 2026-09-30 14:56:03,569 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 14:56:03,569 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+ai_processor.services WARNING 2026-09-30 14:56:03,570 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] Second opinion skipped: no candidate model differs from grader A's (second-model). processing_task_id=None
+
+
+.
+
+ai_processor.services INFO 2026-09-30 14:56:03,576 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 14:56:03,576 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+ai_processor.services WARNING 2026-09-30 14:56:03,577 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] Batch 1, attempt 1: AI call failed — second model exploded
+
+
+
+
+ai_processor.services WARNING 2026-09-30 14:56:03,577 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] Batch 1, attempt 2: AI call failed — second model exploded
+
+
+
+
+ai_processor.services WARNING 2026-09-30 14:56:03,577 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] Batch 1, attempt 3: AI call failed — second model exploded
+
+
+
+
+ai_processor.services ERROR 2026-09-30 14:56:03,578 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] Second-opinion pass failed — grader A's result stands unflagged.
 
 Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/ai_processor/services.py", line 3501, in _maybe_run_second_opinion
@@ -161,41 +162,41 @@ Traceback (most recent call last):
 Exception: [Grading] Batch 1/1 failed after 3 attempts. Last error: second model exploded
 .
 
-ai_processor.services INFO 2026-09-30 13:50:29,315 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+ai_processor.services INFO 2026-09-30 14:56:03,584 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
 
 
 
 
-ai_processor.services INFO 2026-09-30 13:50:29,315 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+ai_processor.services INFO 2026-09-30 14:56:03,585 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
 
 
 
 
-ai_processor.services INFO 2026-09-30 13:50:29,317 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] Batch 1/1 complete — 1 question(s) graded.
+ai_processor.services INFO 2026-09-30 14:56:03,586 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] Batch 1/1 complete — 1 question(s) graded.
 
 
 
 
-ai_processor.services INFO 2026-09-30 13:50:29,317 services 3323133 136143824784320 [request_id=- client_request_id=-] [Grading] Second opinion (second-model): 1 question(s) re-graded — 1 agreement(s), 0 disagreement(s).
+ai_processor.services INFO 2026-09-30 14:56:03,586 services 3438432 130372714519488 [request_id=- client_request_id=-] [Grading] Second opinion (second-model): 1 question(s) re-graded — 1 agreement(s), 0 disagreement(s).
 
 
 .............................s
 
-ai_processor.tools WARNING 2026-09-30 13:50:29,326 tools 3323133 136143824784320 [request_id=- client_request_id=-] Blocked unsafe fetch_url_content request for http://internal.test/secret: 'internal.test' resolves to a restricted address and cannot be fetched.
+ai_processor.tools WARNING 2026-09-30 14:56:03,597 tools 3438432 130372714519488 [request_id=- client_request_id=-] Blocked unsafe fetch_url_content request for http://internal.test/secret: 'internal.test' resolves to a restricted address and cannot be fetched.
 
 
 ..
 
-ai_processor.tools WARNING 2026-09-30 13:50:29,331 tools 3323133 136143824784320 [request_id=- client_request_id=-] Blocked unsafe fetch_url_content request for http://internal.test/secret: 'internal.test' resolves to a restricted address and cannot be fetched.
+ai_processor.tools WARNING 2026-09-30 14:56:03,599 tools 3438432 130372714519488 [request_id=- client_request_id=-] Blocked unsafe fetch_url_content request for http://internal.test/secret: 'internal.test' resolves to a restricted address and cannot be fetched.
 
 
 ................
 ----------------------------------------------------------------------
-Ran 816 tests in 172.827s
+Ran 818 tests in 217.624s
 
 OK (skipped=6)
 Destroying test database for alias 'default'...
-Found 816 test(s).
+Found 818 test(s).
 
   backfilled identity on 0 ledger row(s) and 0 usage log row(s)
 

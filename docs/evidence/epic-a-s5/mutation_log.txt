@@ -1,4 +1,4 @@
-X1_inbound_id_adopted {'killed': True, 'failing_tests': ['test_a_client_cannot_join_another_actions_trail', 'test_a_non_uuid_inbound_id_is_not_kept_at_all', 'test_an_inbound_id_that_is_not_a_uuid_is_dropped', 'test_generates_new_id_when_inbound_header_is_malformed', 'test_log_lines_carry_the_server_id_and_the_client_id_apart', 'test_the_ai_call_carries_the_server_id_not_the_inbound_one', 'test_the_response_header_is_the_server_trace_id']}
+X1_inbound_id_adopted {'killed': True, 'failing_tests': ['test_a_client_cannot_join_another_actions_trail', 'test_a_non_uuid_inbound_id_is_not_kept_at_all', 'test_an_inbound_id_that_is_not_a_uuid_is_dropped', 'test_generates_new_id_when_inbound_header_is_malformed', 'test_log_lines_carry_the_server_id_and_the_client_id_apart', 'test_the_ai_call_carries_the_server_id_not_the_inbound_one', 'test_the_error_reference_is_the_server_id', 'test_the_response_header_is_the_server_trace_id']}
 X2_client_id_any_text {'killed': True, 'failing_tests': ['test_a_client_cannot_choose_the_trace_id_by_sending_one', 'test_a_client_cannot_join_another_actions_trail', 'test_a_non_uuid_inbound_id_is_not_kept_at_all', 'test_an_inbound_id_that_is_not_a_uuid_is_dropped', 'test_an_inbound_id_that_is_not_a_uuid_is_not_kept', 'test_an_inbound_uuid_is_kept_as_untrusted_context']}
 X3_client_id_not_logged {'killed': True, 'failing_tests': ['test_log_lines_carry_the_server_id_and_the_client_id_apart']}
 X4_audit_client_id_is_the_server_id {'killed': True, 'failing_tests': ['test_a_client_cannot_join_another_actions_trail', 'test_an_inbound_id_that_is_not_a_uuid_is_dropped', 'test_the_client_id_the_middleware_attached_is_used']}
@@ -9,8 +9,10 @@ T4_prompt_text_logged {'killed': True, 'failing_tests': ['test_one_log_line_per_
 T5_failure_logged_as_ok {'killed': True, 'failing_tests': ['test_a_failed_call_is_logged_with_its_error_class_and_still_raises']}
 T6_attempt_always_1 {'killed': True, 'failing_tests': ['test_a_retried_task_logs_its_attempt_number']}
 P1_prompt_version_optional {'killed': True, 'failing_tests': ['test_omitting_it_is_refused']}
-P2_a_caller_omits_it {'killed': True, 'failing_tests': ['test_every_call_passes_a_prompt_version']}
+P2_a_caller_omits_it {'killed': True, 'failing_tests': ['test_each_caller_passes_its_own_prompts_version', 'test_every_call_passes_a_prompt_version', 'test_the_grading_sites_send_the_grading_prompts_version']}
 P3_version_ignores_the_text {'killed': True, 'failing_tests': ['test_editing_the_text_changes_the_version']}
 P4_grading_completed_without_prompt_version {'killed': True, 'failing_tests': ['test_a_successful_grade_emits_exactly_one_completed_event']}
 P5_grading_failed_prompt_version_not_allowed {'killed': True, 'failing_tests': ['test_a_system_error_emits_exactly_one_failed_event_classed_system']}
+V1_grading_site_passes_none {'killed': True, 'failing_tests': ['test_each_caller_passes_its_own_prompts_version', 'test_the_grading_sites_send_the_grading_prompts_version']}
+V2_grading_site_passes_another_prompt {'killed': True, 'failing_tests': ['test_each_caller_passes_its_own_prompts_version', 'test_the_grading_sites_send_the_grading_prompts_version']}
 SURVIVORS: []

@@ -1,6 +1,6 @@
 # Epic A completion S5: the trace id reaches every AI call; model and prompt version on every call
 
-Branch `task/epic-a-s5`. Cut from phase2/epic-a `cc34081` (plan 08 says S5 has no dependency on S1), then merged with phase2/epic-a `d7f2737` (S1 + the batch-2a merge-down) as `cb41156`, so the gates run on the combined tree. Phase 2 only. The verifier is v2. No migration.
+Branch `task/epic-a-s5`. Cut from phase2/epic-a `cc34081` (plan 08 says S5 has no dependency on S1), then merged with phase2/epic-a `d7f2737` (S1 + the batch-2a merge-down) as `cb41156`, so the gates run on the combined tree. After v2's VERIFIED-WITH-NOTES at `424ca49` (`VERIFICATION_v2_424ca49.md`): `44dac06` closes N1, then phase2/epic-a `75bf91a` (S6a) is merged in and `6fef60a` pins the error reference. The gates below are re-run on `6fef60a`. Phase 2 only. The verifier is v2. No migration.
 
 Plan: `08_epic_a_completion_plan.md` §6 (FR-A-03, NFR-OBS-04), plus **part 0 (X-5)**, ordered by the SM because S5 is the trace-id slice.
 
@@ -21,7 +21,8 @@ So a client that sent another action's trace id as its `X-Request-ID` placed its
 
   Anything else is dropped, so no free text reaches the logs or the audit.
 - The response `X-Request-ID` header is the server id, which is the audit trace id (the QA-ERR-04 join).
-- This tree has no error body carrying a `reference`, so the header is the only place the id goes back to the client.
+- **With S6a merged:** a coded error body's `reference` (QA-ERR-04) is read from the request id, so before S5 it echoed the client's inbound id. On S5 it is the server id, the same as the response header and the audit trace (`CodedErrorReferenceTests`).
+- `docs/backend/BACKEND_REFERENCE.md`: the inbound `X-Request-ID` is no longer echoed. This is a Phase 2 contract change for the frontend.
 
 **Beta.** `RequestIDMiddleware` is the same on beta. Beta has no audit trace, so there the inbound id only reaches log correlation (and Sentry's tag). That goes to the backlog, not a hotfix, per the SM.
 
@@ -54,20 +55,21 @@ So a client that sent another action's trace id as its `X-Request-ID` placed its
 - the AI call carries the server id, not an inbound one (X-5 through the real middleware);
 - **the Celery hop**: a real in-memory worker, the pattern of `AutoGrader.tests_celery_signals`. The log call's own arguments are recorded, because starting a worker reconfigures logging;
 - an AST check that every `execute_graded_task` call passes `prompt_version`, and that omitting it is refused;
+- **v2's N1:** an AST value map (`EXPECTED`) pins **which** prompt's `.version` each of the 16 callers passes, and a grading-site test pins the grading prompt's version on the three grading calls;
 - prompt versions: format, and a text edit changes the version.
 
 `assignments.tests_grading_audit_events` pins `prompt_version` on both grading events. The 23 existing direct calls in tests pass a test version.
 
 ## Gates (rule 15: changed modules + mutation + ONE owning-app regression; logs committed)
-Every run was wrapped in `systemd-run MemoryMax=6G`, `nice -n 10`, a timeout, RACE_COST 600/200, `EXEMPT_EMAIL_DOMAINS=` and `--noinput`, one at a time, on `95fb748` + the merge `cb41156`.
+Re-run on `6fef60a` (S5 + S6a `75bf91a`). Every run was wrapped in `systemd-run MemoryMax=6G`, `nice -n 10`, a timeout, RACE_COST 600/200, `EXEMPT_EMAIL_DOMAINS=` and `--noinput`, one at a time.
 
 | Gate | Result |
 |---|---|
-| Reproduce-first | d7f2737's source for the 7 changed files against the new tests (`prefix_d7f2737_failing.txt`). **The 4 X-5 tests fail** (a client can join a trail; the header is the client's id; a non-UUID id is kept; the log carries no client id). `tests_ai_call_trace` fails to import (`Prompt` doesn't exist there). |
-| Changed modules | `tests_ai_call_trace`, `tests_trace_server_owned`, `AutoGrader.tests_middleware`, `AutoGrader.tests_request_context`, `audit.tests_emitter`, `assignments.tests_grading_audit_events`, `billing.tests.test_execute_graded_task`: **146 OK** (`changed_modules.txt`) |
-| 2 Mutation | `mutate.py`, **15 mutants, 15 killed**, anchors asserted unique (`mutation_log.txt`, `mutation_results.json`). X1–X4 cover part 0; T1–T6 the AI call; P1–P5 prompt versions and the grading events. |
-| 1 Regression (owning app) | `ai_processor`: **816 OK** (skipped=6) (`regression_ai_processor.txt`) |
-| mypy | whole-repo `pre-commit run mypy --all-files`: **Passed** (on the merge `cb41156`) |
+| Reproduce-first | `75bf91a`'s source for the 7 changed files against the new tests (`prefix_75bf91a_failing.txt`): **5 failures, 1 error**. The 4 X-5 tests fail, and so does the error-reference test (S6a's `reference` is the client's id there). `tests_ai_call_trace` fails to import (`Prompt` doesn't exist there). The first prefix, on `d7f2737`, is kept (`prefix_d7f2737_failing.txt`). |
+| Changed modules | `tests_ai_call_trace`, `tests_trace_server_owned`, `AutoGrader.tests_middleware`, `AutoGrader.tests_request_context`, `audit.tests_emitter`, `assignments.tests_grading_audit_events`, `billing.tests.test_execute_graded_task`: **150 OK** (`changed_modules.txt`) |
+| 2 Mutation | `mutate.py`, **17 mutants, 17 killed**, anchors asserted unique (`mutation_log.txt`, `mutation_results.json`). X1–X4 cover part 0; T1–T6 the AI call; P1–P5 prompt versions and the grading events; V1–V2 are v2's two survivors (a grading site passing `None`, or another prompt's version). |
+| 1 Regression (owning app) | `ai_processor`: **818 OK** (skipped=6). The repo copy is trimmed to its last 200 lines; full log in `~/Documents/Projects/GAP-evidence-logs/epic-a-s5_regression_ai_processor_6fef60a_full.txt` |
+| mypy | whole-repo `pre-commit run mypy --all-files`: **Passed** (on `6fef60a`) |
 | Migrations | `makemigrations --check --dry-run`: **No changes detected** |
 | 3 Concurrency | the Celery hop, with a real in-memory worker in its own thread |
 | 7 Real infra | Celery: the real signal handlers and a real (in-memory broker) worker. Provider: faked by design; the H-39 guard blocks real calls. |

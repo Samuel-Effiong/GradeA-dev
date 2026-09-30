@@ -121,42 +121,43 @@ Traceback (most recent call last):
 rest_framework.exceptions.AuthenticationFailed: No active account found with the given credentials
 .
 
-ai_processor.services INFO 2026-09-30 13:42:15,639 services 3304172 131793080895168 [request_id=3901f3f9a07c4648b7c406b62f0f7568 client_request_id=-] ai_call trace_id=3901f3f9-a07c-4648-b7c4-06b62f0f7568 model=provider/served-model prompt_version=GRADING_ASSIGNMENT_PROMPT_5:0123abcd task_type=grade_assignment attempt=1 latency_ms=0 outcome=ok
+ai_processor.services INFO 2026-09-30 14:48:17,094 services 3430587 140251344750272 [request_id=a105b3423f024817919e41350a52b9dd client_request_id=-] ai_call trace_id=a105b342-3f02-4817-919e-41350a52b9dd model=provider/served-model prompt_version=GRADING_ASSIGNMENT_PROMPT_5:0123abcd task_type=grade_assignment attempt=1 latency_ms=0 outcome=ok
 
 
-......[2026-09-30 13:42:19,825: ERROR/MainProcess] audit event metadata dropped: action=ASSIGNMENT_COPY keys=credits (not allowed for this action)
-...[2026-09-30 13:42:19,838: ERROR/MainProcess] audit event metadata dropped: action=ASSIGNMENT_COPY keys=answer_text (not on the allow-list)
-...[2026-09-30 13:42:19,877: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=error_class: a non-success needs one
-[2026-09-30 13:42:19,879: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=error_class: a non-success needs one
-.[2026-09-30 13:42:19,882: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=school_id: not a UUID
-[2026-09-30 13:42:19,883: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=department_id: not a UUID
-.[2026-09-30 13:42:19,886: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a valid code
-[2026-09-30 13:42:19,888: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a valid code
-[2026-09-30 13:42:19,890: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a valid code
-[2026-09-30 13:42:19,893: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a valid code
-.[2026-09-30 13:42:19,896: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
-[2026-09-30 13:42:19,899: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
-[2026-09-30 13:42:19,901: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
-[2026-09-30 13:42:19,903: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
-[2026-09-30 13:42:19,904: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
-..[2026-09-30 13:42:19,909: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=error_class: a success has no error class
-.[2026-09-30 13:42:19,914: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=target_id: not a UUID
-.[2026-09-30 13:42:19,917: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=actor: unknown user type
-..[2026-09-30 13:42:19,923: ERROR/MainProcess] audit event rejected: action=MADE_UP_ACTION detail=action: not a known action
-.[2026-09-30 13:42:19,931: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=error_class: not a valid class
-.[2026-09-30 13:42:19,934: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=outcome: not a valid outcome
-.[2026-09-30 13:42:19,942: ERROR/MainProcess] audit event metadata dropped: action=ASSIGNMENT_COPY keys=* (not an object)
-[2026-09-30 13:42:19,944: ERROR/MainProcess] audit event metadata dropped: action=ASSIGNMENT_COPY keys=* (not an object)
-[2026-09-30 13:42:19,946: ERROR/MainProcess] audit event metadata dropped: action=ASSIGNMENT_COPY keys=* (not an object)
-[2026-09-30 13:42:19,949: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=unexpected AttributeError
-[2026-09-30 13:42:19,950: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
-[2026-09-30 13:42:19,950: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=school_id: not a UUID
-.[2026-09-30 13:42:19,952: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=outcome: not a valid outcome
-[2026-09-30 13:42:19,952: ERROR/MainProcess] audit event rejected: action=MADE_UP detail=action: not a known action
-...................[2026-09-30 13:42:20,325: ERROR/MainProcess] audit event metadata dropped: action=ASSIGNMENT_COPY keys=assignment_id (looks like an email address)
+......[2026-09-30 14:48:21,185: ERROR/MainProcess] audit event metadata dropped: action=ASSIGNMENT_COPY keys=credits (not allowed for this action)
+...[2026-09-30 14:48:21,196: ERROR/MainProcess] audit event metadata dropped: action=ASSIGNMENT_COPY keys=answer_text (not on the allow-list)
+...[2026-09-30 14:48:21,229: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=error_class: a non-success needs one
+[2026-09-30 14:48:21,230: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=error_class: a non-success needs one
+.[2026-09-30 14:48:21,234: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=school_id: not a UUID
+[2026-09-30 14:48:21,235: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=department_id: not a UUID
+.[2026-09-30 14:48:21,237: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a known code
+[2026-09-30 14:48:21,238: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a known code
+[2026-09-30 14:48:21,239: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a known code
+[2026-09-30 14:48:21,240: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a known code
+.[2026-09-30 14:48:21,242: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+[2026-09-30 14:48:21,243: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+[2026-09-30 14:48:21,245: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+[2026-09-30 14:48:21,247: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+[2026-09-30 14:48:21,248: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+..[2026-09-30 14:48:21,253: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=error_class: a success has no error class
+.[2026-09-30 14:48:21,255: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=target_id: not a UUID
+.[2026-09-30 14:48:21,257: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=actor: unknown user type
+.[2026-09-30 14:48:21,259: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=reason_code: not a known code
+..[2026-09-30 14:48:21,264: ERROR/MainProcess] audit event rejected: action=MADE_UP_ACTION detail=action: not a known action
+.[2026-09-30 14:48:21,268: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=error_class: not a valid class
+.[2026-09-30 14:48:21,271: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=outcome: not a valid outcome
+.[2026-09-30 14:48:21,274: ERROR/MainProcess] audit event metadata dropped: action=ASSIGNMENT_COPY keys=* (not an object)
+[2026-09-30 14:48:21,276: ERROR/MainProcess] audit event metadata dropped: action=ASSIGNMENT_COPY keys=* (not an object)
+[2026-09-30 14:48:21,278: ERROR/MainProcess] audit event metadata dropped: action=ASSIGNMENT_COPY keys=* (not an object)
+[2026-09-30 14:48:21,281: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=unexpected AttributeError
+[2026-09-30 14:48:21,281: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=target_type: must be a model name
+[2026-09-30 14:48:21,281: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=school_id: not a UUID
+.[2026-09-30 14:48:21,283: ERROR/MainProcess] audit event rejected: action=ASSIGNMENT_COPY detail=outcome: not a valid outcome
+[2026-09-30 14:48:21,284: ERROR/MainProcess] audit event rejected: action=MADE_UP detail=action: not a known action
+...................[2026-09-30 14:48:21,674: ERROR/MainProcess] audit event metadata dropped: action=ASSIGNMENT_COPY keys=assignment_id (looks like an email address)
 ........................
 
-students.task_tracking ERROR 2026-09-30 13:42:20,835 task_tracking 3304172 131793650305984 [request_id=23465ea3ccc44d928c901c5871b66ce6 client_request_id=-] Background task 7d6decc0-2345-48a4-9852-1982fd913d1c failed
+students.task_tracking ERROR 2026-09-30 14:48:22,168 task_tracking 3430587 140251917970368 [request_id=fa8ffed82aa24d3d964ae732ab948da4 client_request_id=-] Background task cdf7b949-b9f9-45cb-8582-a29698572980 failed
 
 Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/students/task_tracking.py", line 72, in launch_processing_task
@@ -171,7 +172,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
     raise effect
 ConnectionError: broker unreachable
-[2026-09-30 13:42:20,843: ERROR/MainProcess] API Exception
+[2026-09-30 14:48:22,175: ERROR/MainProcess] API Exception
 Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/students/task_tracking.py", line 72, in launch_processing_task
     async_result = task_callable.delay(*args, **kwargs)
@@ -192,7 +193,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/rest_framework/views.py", line 512, in dispatch
     response = handler(request, *args, **kwargs)
                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/students/views.py", line 846, in grade_async
+  File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/students/views.py", line 847, in grade_async
     task = launch_processing_task(
            ^^^^^^^^^^^^^^^^^^^^^^^
   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/students/task_tracking.py", line 78, in launch_processing_task
@@ -200,16 +201,16 @@ Traceback (most recent call last):
 AutoGrader.dispatch.ProcessingTemporarilyUnavailable: Processing is temporarily unavailable right now. Please try again in a few minutes.
 
 
-django.request ERROR 2026-09-30 13:42:20,851 log 3304172 131793650305984 [request_id=- client_request_id=-] Service Unavailable: /api/v1/submissions/2074e31b-4632-440f-802e-74a832d5dc24/grade-async
+django.request ERROR 2026-09-30 14:48:22,183 log 3430587 140251917970368 [request_id=- client_request_id=-] Service Unavailable: /api/v1/submissions/b8985596-c77a-42d4-8f0f-1c023c841929/grade-async
 
 
-[2026-09-30 13:42:20,851: ERROR/MainProcess] Service Unavailable: /api/v1/submissions/2074e31b-4632-440f-802e-74a832d5dc24/grade-async
+[2026-09-30 14:48:22,183: ERROR/MainProcess] Service Unavailable: /api/v1/submissions/b8985596-c77a-42d4-8f0f-1c023c841929/grade-async
 ..
 
-students.task_tracking WARNING 2026-09-30 13:42:21,042 refusals 3304172 131793650305984 [request_id=- client_request_id=-] Background task ab8df914-07ba-433a-92ac-9e4c35c0df95 refused: AIFeatureNotAvailableError: content policy refusal
+students.task_tracking WARNING 2026-09-30 14:48:22,377 refusals 3430587 140251917970368 [request_id=- client_request_id=-] Background task 7049b1a5-16b9-4fde-a600-a63266620e5e refused: AIFeatureNotAvailableError: content policy refusal
 
 
-[2026-09-30 13:42:21,051: ERROR/MainProcess] Task assignments.tasks.grade_engine_async[92425d1a-37aa-4738-b80c-34f584425ef0] raised unexpected: AIFeatureNotAvailableError('content policy refusal')
+[2026-09-30 14:48:22,387: ERROR/MainProcess] Task assignments.tasks.grade_engine_async[29aa003c-2dcf-4ee1-ac5e-9abc3417d473] raised unexpected: AIFeatureNotAvailableError('content policy refusal')
 Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/celery/app/trace.py", line 453, in trace_task
     R = retval = fun(*args, **kwargs)
@@ -228,7 +229,7 @@ Traceback (most recent call last):
 billing.access_control.AIFeatureNotAvailableError: content policy refusal
 .
 
-students.task_tracking ERROR 2026-09-30 13:42:21,134 task_tracking 3304172 131793650305984 [request_id=- client_request_id=-] Background task fa42e4fa-cf4f-42ed-828b-7b452e195564 failed
+students.task_tracking ERROR 2026-09-30 14:48:22,457 task_tracking 3430587 140251917970368 [request_id=- client_request_id=-] Background task caaf727d-320d-4aa4-a4f3-8f0c896cfe88 failed
 
 Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/assignments/tasks.py", line 502, in grade_engine_async
@@ -243,7 +244,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
     raise effect
 ConnectionError: lost connection to grading service
-[2026-09-30 13:42:21,144: ERROR/MainProcess] Task assignments.tasks.grade_engine_async[dfae1d10-f758-416e-8b82-7b9e60616980] raised unexpected: ConnectionError('lost connection to grading service')
+[2026-09-30 14:48:22,465: ERROR/MainProcess] Task assignments.tasks.grade_engine_async[7dfe9462-c294-45fc-8529-f7cffee915ba] raised unexpected: ConnectionError('lost connection to grading service')
 Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/celery/app/trace.py", line 453, in trace_task
     R = retval = fun(*args, **kwargs)
@@ -262,7 +263,7 @@ Traceback (most recent call last):
 ConnectionError: lost connection to grading service
 ...
 
-students.task_tracking ERROR 2026-09-30 13:42:21,401 task_tracking 3304172 131793650305984 [request_id=- client_request_id=-] Background task b4ef5541-05d6-4f44-8f80-24a5535f2b68 failed
+students.task_tracking ERROR 2026-09-30 14:48:22,675 task_tracking 3430587 140251917970368 [request_id=- client_request_id=-] Background task e146e80e-695c-47bb-9f17-fb058c8179df failed
 
 Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Projects/Grade-Automator-Plus-phase2-epic-a-epic-a-s5/assignments/tasks.py", line 502, in grade_engine_async
@@ -277,7 +278,7 @@ Traceback (most recent call last):
   File "/home/bond-servant-in-training/.pyenv/versions/3.12.10/lib/python3.12/unittest/mock.py", line 1198, in _execute_mock_call
     raise effect
 RuntimeError: unexpected grading failure
-[2026-09-30 13:42:21,411: ERROR/MainProcess] Task assignments.tasks.grade_engine_async[5fbf7784-81fe-4dbb-9d70-ec0ea5113628] raised unexpected: RuntimeError('unexpected grading failure')
+[2026-09-30 14:48:22,685: ERROR/MainProcess] Task assignments.tasks.grade_engine_async[c0cce0d5-6f3a-4d52-8f42-ddfe4d6462c2] raised unexpected: RuntimeError('unexpected grading failure')
 Traceback (most recent call last):
   File "/home/bond-servant-in-training/Documents/Virtualenvs/AutoGrader_env/lib/python3.12/site-packages/celery/app/trace.py", line 453, in trace_task
     R = retval = fun(*args, **kwargs)
@@ -296,71 +297,71 @@ Traceback (most recent call last):
 RuntimeError: unexpected grading failure
 .......
 
-ai_processor.services WARNING 2026-09-30 13:42:22,315 services 3304172 131793650305984 [request_id=- client_request_id=-] Attempt 1 failed: Error during AI model: flaky
+ai_processor.services WARNING 2026-09-30 14:48:23,555 services 3430587 140251917970368 [request_id=- client_request_id=-] Attempt 1 failed: Error during AI model: flaky
 
 
 
 
-ai_processor.services INFO 2026-09-30 13:42:22,315 services 3304172 131793650305984 [request_id=- client_request_id=-] Retrying...
+ai_processor.services INFO 2026-09-30 14:48:23,555 services 3430587 140251917970368 [request_id=- client_request_id=-] Retrying...
 
 
 
 
-ai_processor.services WARNING 2026-09-30 13:42:22,315 services 3304172 131793650305984 [request_id=- client_request_id=-] Attempt 2 failed: Error during AI model: flaky
+ai_processor.services WARNING 2026-09-30 14:48:23,555 services 3430587 140251917970368 [request_id=- client_request_id=-] Attempt 2 failed: Error during AI model: flaky
 
 
 
 
-ai_processor.services INFO 2026-09-30 13:42:22,315 services 3304172 131793650305984 [request_id=- client_request_id=-] Retrying...
+ai_processor.services INFO 2026-09-30 14:48:23,555 services 3430587 140251917970368 [request_id=- client_request_id=-] Retrying...
 
 
 
 
-ai_processor.services WARNING 2026-09-30 13:42:22,316 services 3304172 131793650305984 [request_id=- client_request_id=-] Attempt 3 failed: Error during AI model: flaky
+ai_processor.services WARNING 2026-09-30 14:48:23,556 services 3430587 140251917970368 [request_id=- client_request_id=-] Attempt 3 failed: Error during AI model: flaky
 
 
 ...
 
-ai_processor.services WARNING 2026-09-30 13:42:22,433 services 3304172 131793650305984 [request_id=- client_request_id=-] Attempt 1 failed: transient network blip
+ai_processor.services WARNING 2026-09-30 14:48:23,661 services 3430587 140251917970368 [request_id=- client_request_id=-] Attempt 1 failed: transient network blip
 
 
 
 
-ai_processor.services INFO 2026-09-30 13:42:22,434 services 3304172 131793650305984 [request_id=- client_request_id=-] Retrying...
+ai_processor.services INFO 2026-09-30 14:48:23,661 services 3430587 140251917970368 [request_id=- client_request_id=-] Retrying...
 
 
 
 
-ai_processor.services WARNING 2026-09-30 13:42:22,434 services 3304172 131793650305984 [request_id=- client_request_id=-] Attempt 2 failed: transient network blip
+ai_processor.services WARNING 2026-09-30 14:48:23,662 services 3430587 140251917970368 [request_id=- client_request_id=-] Attempt 2 failed: transient network blip
 
 
 
 
-ai_processor.services INFO 2026-09-30 13:42:22,434 services 3304172 131793650305984 [request_id=- client_request_id=-] Retrying...
+ai_processor.services INFO 2026-09-30 14:48:23,662 services 3430587 140251917970368 [request_id=- client_request_id=-] Retrying...
 
 
 
 
-ai_processor.services WARNING 2026-09-30 13:42:22,434 services 3304172 131793650305984 [request_id=- client_request_id=-] Attempt 3 failed: transient network blip
+ai_processor.services WARNING 2026-09-30 14:48:23,662 services 3430587 140251917970368 [request_id=- client_request_id=-] Attempt 3 failed: transient network blip
 
 
 ..........
 
-ai_processor.services WARNING 2026-09-30 13:42:23,115 services 3304172 131793650305984 [request_id=- client_request_id=-] AI access denied for assignment <MagicMock name='mock.id' id='131793071884672'> (teacher b5684d13-a704-4683-9c9d-9d8956a63e91): No credits remaining. Please purchase more credits to continue using AI features.
+ai_processor.services WARNING 2026-09-30 14:48:24,389 services 3430587 140251917970368 [request_id=- client_request_id=-] AI access denied for assignment <MagicMock name='mock.id' id='140251333678032'> (teacher 3be930ae-aecf-430e-91f6-6c50efe0e562): No credits remaining. Please purchase more credits to continue using AI features.
 
 
-...............
+..................
 
-ai_processor.services INFO 2026-09-30 13:42:23,597 services 3304172 131793650305984 [request_id=- client_request_id=-] ai_call trace_id=c89023fa-4ce9-49e5-9016-2ca696bec329 model=provider/served-model prompt_version=GRADING_ASSIGNMENT_PROMPT_5:0123abcd task_type=grade_assignment attempt=1 latency_ms=0 outcome=ok
+ai_processor.services INFO 2026-09-30 14:48:24,877 services 3430587 140251917970368 [request_id=- client_request_id=-] ai_call trace_id=03e33a2d-20e2-47e3-b3c6-bee022330c2d model=provider/served-model prompt_version=GRADING_ASSIGNMENT_PROMPT_5:0123abcd task_type=grade_assignment attempt=1 latency_ms=0 outcome=ok
 
 
 .................................
 ----------------------------------------------------------------------
-Ran 146 tests in 9.879s
+Ran 150 tests in 9.341s
 
 OK
 Destroying test database for alias 'default'...
-Found 146 test(s).
+Found 150 test(s).
 
   backfilled identity on 0 ledger row(s) and 0 usage log row(s)
 
