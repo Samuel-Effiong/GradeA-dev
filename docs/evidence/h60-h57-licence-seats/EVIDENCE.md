@@ -268,6 +268,10 @@ v2 verified round 2 as VERIFIED-WITH-NOTES (`VERIFICATION_h60_h57.md`).
 
 | Gate | Result | Log |
 |---|---|---|
-| Changed modules and guards | see log | `r3_changed_modules.txt` |
-| Mutation: A1–A11, B1–B6, N1–N5, C1–C2, W1 (own DB) | see log | `r3_mutation_log.txt`, `r3_mutation_results.json` |
-| ONE billing regression (timestamped, `--verbosity 2`) | see log | `r3_regression_billing.txt` |
+| Changed modules and guards | 216 tests OK (89.1 s) | `r3_changed_modules.txt` |
+| Mutation: A1–A11, B1–B6, N1–N5, C1–C2, W1 (own DB `test_h60_h57_licence_seats_mut`, dropped afterwards) | 25/25 killed by named tests, no survivors; source clean afterwards | `r3_mutation_log.txt`, `r3_mutation_results.json` |
+| ONE billing regression (rule 15: production code in `serializers.py` and `license_service.py` changed; timestamped, `--verbosity 2`) | **Run.** 1912 tests OK (259.2 s). Wall clock 22:03:55 create → 22:08:35 end, no stall | `r3_regression_billing.txt` (last 200 lines; the full log is `h60-h57_r3_regression_billing_66f92cd_full.txt` in `GAP-evidence-logs`, chmod 600) |
+
+`pg_stat_activity` snapshots were taken before the modules and before the
+regression (`r3_pg_activity_before_*.txt`). Neither showed another
+session's rows.
