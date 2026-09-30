@@ -583,7 +583,13 @@ class SubscriptionService:
                     )
 
             active_monthly.expires_at = now
-            active_monthly.save(update_fields=["expires_at", "updated_at"])
+            # H-76: retired, like the three sibling rollovers. Without it
+            # the 05:00 cleanup expired this bucket's unused credits again,
+            # after they had been rolled over above.
+            active_monthly.is_processed = True
+            active_monthly.save(
+                update_fields=["expires_at", "is_processed", "updated_at"]
+            )
 
         # --- Grant the new plan's MONTHLY bucket, on the EXISTING clock ---
         new_bucket_expiry = user_sub.next_credit_grant_at or user_sub.billing_cycle_end
