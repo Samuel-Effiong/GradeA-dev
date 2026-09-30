@@ -19,6 +19,14 @@ there before the beta package goes. The founder may run them via Railway.
 >   no-wildcard behaviour) don't hold without that code.
 > - §0 setup is still needed for §3.
 
+> **Founder decision, 2026-09-30: staging deployed check reduced to web-only.** Every step that needs
+> Railway (G2 `migrate --plan`, G3 worker ping, G4 Sentry, topology) or staging test logins
+> (§0 setup, §3 H-25 race replay, §4 cleanup) is **SKIPPED**. The founder will give access when it's
+> needed for security testing. Only G1 (version) and G3's `/api/v1/health` + `/api/v1/health/beat`
+> remain, and they run only once the staging backend host is known (not guessed or probed).
+> **H-25 race replay: done in the test suite only** (`AutoGrader.tests_cache_commit_race`, plus the
+> local discriminating replay on `task/cache-race-gate4`). The beta package does not wait on this check.
+
 Every result is recorded as **counts, statuses, ids and timestamps only**.
 Never paste response bodies, email addresses or tokens into this file.
 
