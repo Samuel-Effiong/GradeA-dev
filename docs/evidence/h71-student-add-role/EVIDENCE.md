@@ -53,10 +53,10 @@ Also:
 
 | Gate | Result | Log |
 |---|---|---|
-| Reproduce-first on abeda10 (serializers + enrollment reverted; only the unused constant appended so the tests import) | see log | `prefix_abeda10_failing.txt` |
-| Changed modules, the enrolment/add suites and all repo-wide guards present on beta | see log | `changed_modules.txt` |
-| Mutation (M1–M5) | see log | `mutation_log.txt`, `mutation_results.json` |
-| ONE owning-app regression: classrooms | see log | `regression_classrooms.txt` |
+| Reproduce-first on abeda10 (serializers + enrollment reverted; only the unused constant appended so the tests import) | 15 FAIL of 5 tests (subtests): the role is named on every route for every role (except school/super admin on direct add, which instead differ from the teacher answer by status: a 500). The student control passes on the prefix. | `prefix_abeda10_failing.txt` |
+| Changed modules, the enrolment/add suites and all repo-wide guards present on beta | 167 OK (run 2, 3fec037). Run 1 at 98e5090 stopped here on one test that pinned the role word; see the behaviour change below. Log: `changed_modules_run1_stopped_98e5090.txt` | `changed_modules.txt` |
+| Mutation (M1–M5) | 5/5 killed, 0 survivors, source clean after | `mutation_log.txt`, `mutation_results.json` |
+| ONE owning-app regression: classrooms | 383 OK | `regression_classrooms.txt` (trimmed; full log in GAP-evidence-logs) |
 | `pre-commit run mypy --all-files`, `makemigrations --check` | pass (at 5a5e4c3) | n/a |
 
 The changed set follows rule 15 addendum 2, since this adds a test module:
@@ -77,3 +77,19 @@ The changed set follows rule 15 addendum 2, since this adds a test module:
 | M3 | direct add refuses only teachers again (admins reach the 500 path) |
 | M4 | direct add names the role again |
 | M5 | the refusal log drops the account id |
+
+## Behaviour change: an existing test's expected message
+
+| | |
+|---|---|
+| Test | `classrooms.tests_security_penetration.BulkAndUploadAbuseAttacks.test_bulk_import_cannot_hijack_an_existing_teacher_account` |
+| Old expectation | the bulk row error contains "teacher" (the message was "This email belongs to a teacher account and cannot be added as a student.") |
+| New expectation | the bulk row error equals `NOT_A_STUDENT_MESSAGE`, "This email can't be added as a student." (03bebb3) |
+| Why | the old assertion pinned the very role disclosure H-71 removes |
+| What did NOT change | the hijack is still refused exactly as before: the row still fails (`failure_count == 1`), the teacher is still a TEACHER, and no enrolment is created. The test's other three assertions are untouched. Only the wording changed. |
+
+The single-add refusal keeps its 400. Direct add now refuses every
+non-student with a 400 at validation. Before, school admins and super admins
+got a 500 from the create path, and teachers got a 400. That status change
+is the intended fix (widening b, SM-approved), and it is pinned by
+`test_every_role_gets_the_same_answer`.
