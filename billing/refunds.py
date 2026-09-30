@@ -45,6 +45,14 @@ def record_billing_task_id(task_id):
         ids.append(task_id)
 
 
+def charges_in_open_scope() -> bool:
+    """Whether the innermost open refund scope has registered a charge,
+    which it refunds if its block raises. A failure raised inside the
+    scope uses this to tell the user whether credits were refunded or none
+    were charged (FR-A-06 PROVIDER_FAILURE's credit_clause, F1)."""
+    return bool(_active_task_ids.get())
+
+
 @contextlib.contextmanager
 def billing_refund_scope(*, reason="task failed"):
     """

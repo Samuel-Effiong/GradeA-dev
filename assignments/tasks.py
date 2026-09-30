@@ -15,7 +15,7 @@ from AutoGrader.error_messages import (
     classify_infra_error,
     describe_background_task_error,
 )
-from AutoGrader.reason_codes import REASON_CODES, CodedError
+from AutoGrader.reason_codes import REASON_CODES, CodedError, reason_of
 from AutoGrader.tasks import send_email_task
 from billing.refusals import PERMANENT_AI_REFUSALS
 from classrooms.models import EnrollmentStatusType, Topic, reachable_courses
@@ -454,15 +454,22 @@ def extract_answer_background_task(
 
 def _grading_failure_error_class(exc):
     """FR-A-05's fixed taxonomy, applied to what grade_engine_async's except
-    block actually sees: an AI content-policy refusal is the model
-    declining to grade, a recognized infra failure (timeout, rate limit,
-    dropped connection, unreadable file) is the provider's fault, and
-    anything else is an unclassified system fault. A coded failure
-    (FR-A-06) carries its own class."""
-    if isinstance(exc, CodedError):
-        return REASON_CODES[exc.reason_code].error_class
-    if isinstance(exc, PERMANENT_AI_REFUSALS):
-        return ErrorClass.MODEL
+    block actually sees. A coded failure (FR-A-06) and the two AI refusals
+    (credits, plan: the user's to resolve, so USER; they used to be
+    misfiled as MODEL, 08a §2.2) carry their own class. PROVIDER_FAILURE
+    is the provider's fault when its cause is a recognised infra failure
+    (timeout, rate limit, dropped connection, 5xx), and the model's when
+    it is not (unusable output). Any other recognised infra failure is the
+    provider's, and anything else an unclassified system fault."""
+    reason = reason_of(exc)
+    if reason is not None:
+        code = reason[0]
+        if (
+            code == ReasonCode.PROVIDER_FAILURE
+            and classify_infra_error(exc.__cause__) is None
+        ):
+            return ErrorClass.MODEL
+        return REASON_CODES[code].error_class
     if classify_infra_error(exc) is not None:
         return ErrorClass.PROVIDER
     return ErrorClass.SYSTEM
