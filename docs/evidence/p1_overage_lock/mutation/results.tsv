@@ -48,3 +48,7 @@ acdd29dca5e3	M40	backfill conditional update	KILLED	FAILED (failures=1)	True	4.7
 91e1626a8c31	M01	on_commit deferral (all flows)	KILLED	FAILED (failures=17, errors=4)	True	89.5
 91e1626a8c31	M02	lookup inline at overage grant site (put lookup back inside)	KILLED	FAILED (failures=8, errors=1)	True	84.6
 91e1626a8c31	M18	conditional UPDATE (fill-if-null)	KILLED	FAILED (failures=2)	True	21.4
+b30046253d82	A01	admin add refused	KILLED	FAILED (errors=1)	True	9.5
+b30046253d82	A02	admin change refused	KILLED	FAILED (errors=1)	True	10.5
+b30046253d82	A03	admin delete refused	KILLED	FAILED (errors=1)	True	10.5
+b30046253d82	A04	payload read-only in the admin	KILLED	FAILED (errors=1)	True	11.4

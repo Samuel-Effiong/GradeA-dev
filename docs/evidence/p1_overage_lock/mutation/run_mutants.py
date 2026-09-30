@@ -48,6 +48,7 @@ RC = "billing/receipts.py"
 ST = "AutoGrader/settings.py"
 BF = "billing/management/commands/backfill_receipt_urls.py"
 ER = "billing/event_replay.py"
+AD = "billing/admin.py"
 
 # P1c test classes. None of them is the 20-thread ReplayConcurrencyTests,
 # so the P1c battery can run without a 20-thread slot.
@@ -58,6 +59,7 @@ WIDENED = f"{REPLAY}.WidenedAllowListTests"
 GUARDS = f"{REPLAY}.ReplayOneGuardTests"
 ALLOWED = f"{REPLAY}.ReplayTheAllowedFlowTests"
 WIRING = f"{REPLAY}.ReplayTaskWiringTests"
+LOCKDOWN = f"{REPLAY}.StripeEventAdminLockdownTests"
 
 # (id, guard, file, line or None, old, new, test modules)
 # `line` pins a replacement to one line where the text repeats; otherwise
@@ -580,6 +582,45 @@ MUTANTS = [
         '        "task": "billing.tasks.sweep_stale_stripe_events",',
         [WIRING],
     ),
+    # -- the admin lockdown P1c depends on (red-team recommendation) -------
+    (
+        "A01",
+        "admin add refused",
+        AD,
+        None,
+        "        # Rows are only ever created by an authenticated Stripe delivery.\n"
+        "        return False",
+        "        # Rows are only ever created by an authenticated Stripe delivery.\n"
+        "        return True",
+        [LOCKDOWN],
+    ),
+    (
+        "A02",
+        "admin change refused",
+        AD,
+        None,
+        "        # View-only: the ledger decides whether money-moving handlers run.\n        return False",
+        "        # View-only: the ledger decides whether money-moving handlers run.\n        return True",
+        [LOCKDOWN],
+    ),
+    (
+        "A03",
+        "admin delete refused",
+        AD,
+        None,
+        "        # prove happened.\n        return False",
+        "        # prove happened.\n        return True",
+        [LOCKDOWN],
+    ),
+    (
+        "A04",
+        "payload read-only in the admin",
+        AD,
+        None,
+        '        "last_error",\n        "payload",\n',
+        '        "last_error",\n',
+        [LOCKDOWN],
+    ),
 ]
 
 
@@ -670,10 +711,27 @@ def run_one(commit, mutant, out_dir):
             ),
             "NO SUMMARY",
         )
-        killed = proc.returncode != 0 and "Ran " in output
-        status = (
-            "KILLED" if killed else ("SURVIVED" if proc.returncode == 0 else "BROKEN")
+        # A test that could not even be loaded (the target class or module
+        # is missing at this commit, or the mutant broke an import) fails the
+        # run without any assertion having caught anything. That is not a
+        # kill: it would let a mutant "die" against tests that do not exist.
+        load_failure = any(
+            marker in output
+            for marker in (
+                "has no attribute",
+                "ImportError",
+                "ModuleNotFoundError",
+                "SyntaxError",
+                "Failed to import test module",
+            )
         )
+        killed = proc.returncode != 0 and "Ran " in output and not load_failure
+        if killed:
+            status = "KILLED"
+        elif proc.returncode == 0:
+            status = "SURVIVED"
+        else:
+            status = "BROKEN"
         return mid, guard, status, summary, restored_ok, f"{elapsed:.1f}"
     finally:
         subprocess.run(

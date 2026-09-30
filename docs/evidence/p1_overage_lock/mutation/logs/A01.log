@@ -1,0 +1,24 @@
+# A01: admin add refused
+# file: billing/admin.py line: None
+# old: '    def has_add_permission(self, request):\n        # Rows are only ever created by an authenticated Stripe delivery.\n        return False'
+# new: '    def has_add_permission(self, request):\n        # Rows are only ever created by an authenticated Stripe delivery.\n        return True'
+# modules: billing.tests.test_event_replay.StripeEventAdminLockdownTests
+# commit: b30046253d82d1e4db29ab8aeb06281877a89b14
+# exit: 1
+# elapsed_s: 9.5
+# restored_sha256_matches_commit_blob: True
+
+Found 1 test(s).
+Skipping setup of unused database(s): default.
+System check identified no issues (0 silenced).
+StripeEventAdminLockdownTests (unittest.loader._FailedTest.StripeEventAdminLockdownTests) ... ERROR
+
+======================================================================
+ERROR: StripeEventAdminLockdownTests (unittest.loader._FailedTest.StripeEventAdminLockdownTests)
+----------------------------------------------------------------------
+AttributeError: module 'billing.tests.test_event_replay' has no attribute 'StripeEventAdminLockdownTests'
+
+----------------------------------------------------------------------
+Ran 1 test in 0.005s
+
+FAILED (errors=1)

@@ -24,7 +24,7 @@ import threading
 from unittest import mock
 
 from django.db import connection
-from django.test import TestCase, TransactionTestCase
+from django.test import RequestFactory, TestCase, TransactionTestCase
 
 from billing import event_replay
 from billing.event_replay import (
@@ -509,3 +509,104 @@ class ReplayTaskWiringTests(TestCase, ReplayFixture):
         from billing.tasks import replay_safe_failed_stripe_events
 
         self.assertIn("nothing eligible", replay_safe_failed_stripe_events.run())
+
+
+class StripeEventAdminLockdownTests(TestCase, ReplayFixture):
+    """
+    P1c's load-bearing control, pinned permanently.
+
+    The auto-replay grants credits to whatever wallet a FAILED
+    checkout.session.completed row's STORED payload names, and its
+    idempotency guard keys on that payload's payment intent - so a fresh
+    fake intent is not blocked by it. The only thing between "someone can
+    write a StripeEvent row" and "credits are minted automatically" is that
+    nobody can write one except an authenticated Stripe delivery. The red
+    team confirmed the Django admin is that control (red-team-tenancy,
+    1f11dcd: add, change and delete all refused over HTTP for a real
+    superuser). If a future change makes the ledger writable in the admin,
+    these tests fail before the hole ships.
+
+    Driven over HTTP as a real superuser (created through the manager's
+    create_superuser, both flags set), not by calling the permission
+    methods, so a replaced ModelAdmin or a second registration is caught.
+    """
+
+    def setUp(self):
+        from django.contrib.auth import get_user_model
+
+        self.plan = make_plan()
+        self.user, self.wallet = self.build(email="ledger.owner@replay.test")
+        self.admin_user = get_user_model().objects.create_superuser(
+            email="root@replay.test",
+            password="adminpass123",  # pragma: allowlist secret
+            user_type="SUPER_ADMIN",
+        )
+        self.client.force_login(self.admin_user)
+        self.row = self.failed_event("evt_admin_target", payment_intent="pi_admin")
+
+    def url(self, action, *args):
+        from django.urls import reverse
+
+        return reverse(f"admin:billing_stripeevent_{action}", args=args)
+
+    def test_superuser_cannot_add_a_ledger_row(self):
+        before = StripeEvent.objects.count()
+        self.assertEqual(self.client.get(self.url("add")).status_code, 403)
+        response = self.client.post(
+            self.url("add"),
+            {
+                "stripe_event_id": "evt_forged",
+                "event_type": "checkout.session.completed",
+                "status": StripeEventStatus.FAILED,
+                "payload": '{"object": {"metadata": {"flow": '
+                '"overage_block_purchase_checkout"}}}',
+            },
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(StripeEvent.objects.count(), before)
+
+    def test_superuser_cannot_change_status_or_payload(self):
+        original = StripeEvent.objects.values().get(pk=self.row.pk)
+        response = self.client.post(
+            self.url("change", self.row.pk),
+            {
+                "status": StripeEventStatus.FAILED,
+                "payload": '{"object": {"metadata": {"flow": '
+                '"overage_block_purchase_checkout", "wallet_id": "attacker"}}}',
+            },
+        )
+        # A view-only admin answers the change URL with the read-only page
+        # (200) or a 403 depending on the view permission; either way the
+        # write must not happen.
+        self.assertIn(response.status_code, (200, 302, 403))
+        self.assertEqual(StripeEvent.objects.values().get(pk=self.row.pk), original)
+
+    def test_superuser_cannot_delete_a_ledger_row(self):
+        response = self.client.post(self.url("delete", self.row.pk), {"post": "yes"})
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(StripeEvent.objects.filter(pk=self.row.pk).exists())
+
+    def test_every_writable_field_is_read_only(self):
+        from django.contrib import admin
+
+        model_admin = admin.site._registry[StripeEvent]
+        editable = {
+            f.name
+            for f in StripeEvent._meta.get_fields()
+            if getattr(f, "editable", False) and not f.auto_created
+        }
+        self.assertEqual(
+            editable - set(model_admin.readonly_fields),
+            {
+                "auto_replay_attempts",
+                "auto_replay_note",
+                "recovery_attempts",
+                "handler_started_at",
+            }
+            & editable,
+            "a StripeEvent field other than the replay/recovery bookkeeping "
+            "is editable in the admin",
+        )
+        self.assertFalse(
+            model_admin.has_change_permission(RequestFactory().get("/admin/"))
+        )
