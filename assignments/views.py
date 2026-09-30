@@ -105,6 +105,22 @@ from .tasks import (  # grade_all_submissions,
 logger = logging.getLogger(__name__)
 
 
+def _not_graded_entries(submissions):
+    """publish-all's skipped list (catalogue F, Epic A S7d): one coded entry
+    per submission not yet graded (no graded_at, or no score), ids only."""
+    return [
+        coded_entry(
+            CodedError(ReasonCode.SUBMISSION_NOT_GRADED),
+            submission_id=str(submission_id),
+            student_id=str(student_id),
+            status="skipped",
+        )
+        for submission_id, student_id in submissions.order_by(
+            "submission_date", "pk"
+        ).values_list("pk", "student_id")
+    ]
+
+
 @extend_schema_view(
     list=extend_schema(
         tags=["Assignments"],
@@ -274,22 +290,6 @@ logger = logging.getLogger(__name__)
         },
     ),
 )
-def _not_graded_entries(submissions):
-    """publish-all's skipped list (catalogue F, Epic A S7d): one coded entry
-    per submission not yet graded (no graded_at, or no score), ids only."""
-    return [
-        coded_entry(
-            CodedError(ReasonCode.SUBMISSION_NOT_GRADED),
-            submission_id=str(submission_id),
-            student_id=str(student_id),
-            status="skipped",
-        )
-        for submission_id, student_id in submissions.order_by(
-            "submission_date", "pk"
-        ).values_list("pk", "student_id")
-    ]
-
-
 class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
     """
     API endpoint for managing assignments.
