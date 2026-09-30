@@ -44,7 +44,6 @@ from rest_framework.exceptions import (
     NotFound,
     ParseError,
     PermissionDenied,
-    Throttled,
     ValidationError,
 )
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -63,12 +62,12 @@ from rest_framework_simplejwt.views import TokenRefreshView as BaseTokenRefreshV
 
 from audit import history
 from audit.emitter import emit
-from audit.enums import AuditAction, AuditOutcome, ErrorClass
+from audit.enums import AuditAction, AuditOutcome, ErrorClass, ReasonCode
 from AutoGrader.cache_generation import SCOPE_USER, versioned_key
 from AutoGrader.dispatch import safe_delay
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
-from AutoGrader.reason_codes import add_coded_envelope
+from AutoGrader.reason_codes import REASON_CODES, add_coded_envelope
 from AutoGrader.tasks import send_email_task
 from billing.services import AnalyticsService
 from classrooms.models import (
@@ -1709,14 +1708,16 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
         if register_student_failure_budget_spent():
             log_register_student_refused_by_budget()
             # `wait` sets Retry-After and appends "Expected available in N
-            # seconds." to the message.
-            raise Throttled(
+            # seconds." to the message. S7d (catalogue B, H-68): the same 429,
+            # text and Retry-After, plus `code` and the coded envelope
+            # REGISTRATION_PAUSED, so a client can tell this pause from the
+            # per-network RegisterThrottle (whose 429 carries neither). The
+            # text is the approved one, from the catalogue.
+            raise EnvelopedThrottled(
                 wait=register_student_budget_retry_after(),
-                detail=(
-                    "Student registration is paused for a short while because "
-                    "of too many invalid activation codes. Please try again "
-                    "later; if your code has expired by then, ask for a new one."
-                ),
+                detail=REASON_CODES[ReasonCode.REGISTRATION_PAUSED].message,
+                reason_code="REGISTRATION_PAUSED",
+                code_value="REGISTRATION_PAUSED",
             )
         # A refused code is recorded after the atomic block has rolled back,
         # never inside it (the event would roll back too).
