@@ -26,6 +26,7 @@ from classrooms.models import (
     teacher_can_reach_course,
     teacher_course_access_q,
 )
+from students.tests_item_retry_h38 import H38RetryFixture
 from users.models import CustomUser, UserTypes
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -253,3 +254,23 @@ class HelperAgreementTests(TestCase):
                             by_object,
                             expected[name] and name != "own in my school",
                         )
+
+
+class TasksNamespaceRoutesFollowTheRule(H38RetryFixture):
+    """H-38 on the tasks/ routes that act on a batch's items. The batch
+    session stays the removed teacher's own, so these must check the item's
+    course, not the session's owner (v2's H1 on S7b 923b2b8). The full cases
+    are in students.tests_item_retry_h38; these keep the routes on the
+    sweep's list."""
+
+    def test_retry_item_is_not_found_for_a_removed_teacher(self):
+        self.removed_and_funded()
+        self.assertEqual(self.retry(self.grade_item).status_code, 404)
+        self.assertEqual(self.launched, [])
+
+    def test_retry_failed_retries_nothing_for_a_removed_teacher(self):
+        self.removed_and_funded()
+        response = self.retry_failed()
+        self.assertEqual(response.status_code, 202)
+        self.assertEqual(response.json()["data"]["retried"], [])
+        self.assertEqual(self.launched, [])

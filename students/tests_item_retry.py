@@ -19,13 +19,15 @@ FR-A-07 S7b: per-item retry (08a §4.4, §5; F4).
 
 import pickle
 import threading
+import time
 import uuid
 from types import SimpleNamespace
 from typing import Any, Callable
 from unittest.mock import patch
 
 from django.core.cache import cache
-from django.db import connection
+from django.db import connection, transaction
+from django.db.models import F
 from django.test import TestCase, TransactionTestCase
 from django.urls import reverse
 from rest_framework.test import APIClient
@@ -374,3 +376,81 @@ class TwoRetriesOfOneItemAtOnce(RetryFixture, TransactionTestCase):
         item.refresh_from_db()
         self.assertEqual(item.retry_count, 1)
         self.assertEqual(len(self.launched), 1)
+
+
+def _another_backend_waits_on_a_lock(timeout=20.0):
+    """True once another backend of this test database waits on a lock.
+    pg_stat_activity is snapshotted per transaction, so clear it each look."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT pg_stat_clear_snapshot()")
+            cursor.execute(
+                "SELECT count(*) FROM pg_stat_activity "
+                "WHERE datname = current_database() AND pid <> pg_backend_pid() "
+                "AND wait_event_type = 'Lock'"
+            )
+            if cursor.fetchone()[0]:
+                return True
+        time.sleep(0.05)
+    return False
+
+
+class AClaimWaitingOnTheLockSeesTheRowItFinallyGets(RetryFixture, TransactionTestCase):
+    """The claim takes only the exact state that was judged retryable, as
+    of the row it finally locks: status, code AND retry_count are
+    re-checked on that row version. Here the row returns to the SAME code
+    with a new retry_count (claimed and failed again) while retry B waits
+    on the lock, so B must lose. With the state read only in a subquery,
+    B's statement snapshot (taken before A committed) would still match."""
+
+    reset_sequences = True
+
+    def setUp(self):
+        self.build()
+
+    def test_same_code_new_retry_count_is_not_claimed_again(self):
+        from students.item_retry import ItemNotRetryable, retry_item
+
+        item = self.item(code="PROVIDER_FAILURE")
+        stale = BackgroundProcessingTask.objects.get(pk=item.pk)
+        locked = threading.Event()
+        outcome = {}
+
+        def run_a():
+            try:
+                with transaction.atomic():
+                    BackgroundProcessingTask.objects.filter(pk=item.pk).update(
+                        status=BackgroundTaskStatus.FAILURE,
+                        reason_code="PROVIDER_FAILURE",
+                        retry_count=F("retry_count") + 1,
+                    )
+                    locked.set()
+                    outcome["b_waited"] = _another_backend_waits_on_a_lock()
+            finally:
+                connection.close()
+
+        def run_b():
+            try:
+                if not locked.wait(timeout=10):
+                    outcome["b"] = "A never locked"
+                    return
+                try:
+                    retry_item(stale, self.teacher)
+                    outcome["b"] = "claimed"
+                except ItemNotRetryable:
+                    outcome["b"] = "refused"
+            finally:
+                connection.close()
+
+        threads = [threading.Thread(target=run_a), threading.Thread(target=run_b)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=30)
+
+        self.assertTrue(outcome.get("b_waited"), "B never waited on A's row lock")
+        self.assertEqual(outcome.get("b"), "refused")
+        item.refresh_from_db()
+        self.assertEqual(item.retry_count, 1)
+        self.assertEqual(self.launched, [])

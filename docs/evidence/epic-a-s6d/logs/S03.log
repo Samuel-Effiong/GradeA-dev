@@ -1,0 +1,17 @@
+# S03: ANY question without a guide is missing
+# file: students/grading_gates.py (occurrence 1)
+# old: '    return not all(_has_marking_guide(question) for question in questions)'
+# new: '    return not any(_has_marking_guide(question) for question in questions)'
+# commit: 3c5aa16c4d0ac96214b835d228787f5c9d4b2889
+# exit: 1
+# elapsed_s: 11.1
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_r3_a_question_with_no_marking_guide (students.tests_s6d_rubric_gate.RubricGateRouteTests.test_r3_a_question_with_no_marking_guide) (case='R3', route='H1 grade')
+FAIL: test_r3_a_question_with_no_marking_guide (students.tests_s6d_rubric_gate.RubricGateRouteTests.test_r3_a_question_with_no_marking_guide) (case='R3', route='H2 grade-async')
+FAIL: test_r3_a_question_with_no_marking_guide (students.tests_s6d_rubric_gate.RubricGateRouteTests.test_r3_a_question_with_no_marking_guide) (case='R3', route='H3 schedule-grade-async')
+FAIL: test_r3_a_question_with_no_marking_guide (students.tests_s6d_rubric_gate.RubricGateRouteTests.test_r3_a_question_with_no_marking_guide) (case='R3', route='H4 grade-all')
+FAIL: test_r3_a_question_with_no_marking_guide (students.tests_s6d_rubric_gate.RubricGateRouteTests.test_r3_a_question_with_no_marking_guide) (case='R3', route='H5 schedule-grade-all')
+FAIL: test_one_question_without_a_guide_among_many_is_missing (students.tests_s6d_rubric_gate.RubricMissingDefinitionTests.test_one_question_without_a_guide_among_many_is_missing)
+
+FAILED (failures=6, skipped=1)

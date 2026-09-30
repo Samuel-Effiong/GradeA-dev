@@ -1,0 +1,16 @@
+# S11b: update-async refuses empty text before queuing
+# file: students/views.py (occurrence 2)
+# old: '        if not str(raw_input).strip():'
+# new: '        if False:'
+# commit: 5eea5596d63d5f0fccc2e9b76cd25343c5d8127f
+# exit: 1
+# elapsed_s: 19.4
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_empty_text_is_submission_empty_on_both_routes (students.tests_s6d_submission_empty.EmptyTextSubmissionTests.test_empty_text_is_submission_empty_on_both_routes) (route='update-async', text="''")
+FAIL: test_empty_text_is_submission_empty_on_both_routes (students.tests_s6d_submission_empty.EmptyTextSubmissionTests.test_empty_text_is_submission_empty_on_both_routes) (route='update-async', text="'   '")
+FAIL: test_empty_text_is_submission_empty_on_both_routes (students.tests_s6d_submission_empty.EmptyTextSubmissionTests.test_empty_text_is_submission_empty_on_both_routes) (route='update-async', text="'\\n\\t '")
+FAIL: test_empty_text_is_submission_empty_on_both_routes (students.tests_s6d_submission_empty.EmptyTextSubmissionTests.test_empty_text_is_submission_empty_on_both_routes)
+FAIL: test_empty_or_missing_text_and_unpublished_assignment_are_refused (students.tests_async_edit_path.UpdateAsyncRouteTest.test_empty_or_missing_text_and_unpublished_assignment_are_refused)
+
+FAILED (failures=5, skipped=1)

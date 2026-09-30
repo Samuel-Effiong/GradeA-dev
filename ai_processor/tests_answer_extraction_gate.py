@@ -21,6 +21,7 @@ from unittest.mock import patch
 from django.test import SimpleTestCase, override_settings
 
 from ai_processor.answer_completeness import MODE_LOG, MODE_OFF, MODE_STRICT
+from ai_processor.exceptions import ProviderFailureError
 from ai_processor.extraction_schemas import (
     ANSWER_EXTRACTION_RESPONSE_SCHEMA,
     ANSWERED,
@@ -135,9 +136,10 @@ class ExtractionGateTest(SimpleTestCase):
         self.assertEqual(len(result["answers"]), 2)
 
     def test_exhausted_transport_errors_still_raise(self):
-        with self.assertRaises(Exception) as ctx:
+        # S6d: coded PROVIDER_FAILURE; the attempts are in the log-only detail.
+        with self.assertRaises(ProviderFailureError) as ctx:
             self._run([RuntimeError("blip")] * 3)
-        self.assertIn("All 3 attempts failed", str(ctx.exception))
+        self.assertIn("All 3 attempts failed", ctx.exception.detail)
 
 
 class GateDisabledTest(SimpleTestCase):

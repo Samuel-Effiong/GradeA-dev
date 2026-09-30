@@ -1,0 +1,12 @@
+# S09: a scheduled batch re-checks at run time
+# file: assignments/tasks.py (occurrence 1)
+# old: '    if batch_assignment is not None and rubric_missing(batch_assignment.questions):'
+# new: '    if False:'
+# commit: 3c5aa16c4d0ac96214b835d228787f5c9d4b2889
+# exit: 1
+# elapsed_s: 11.8
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_t2_a_scheduled_batch_refuses_when_it_runs (students.tests_s6d_rubric_gate.RubricGateAtRunTimeTests.test_t2_a_scheduled_batch_refuses_when_it_runs)
+
+FAILED (failures=1, skipped=1)

@@ -170,7 +170,14 @@ def classroom(teacher):
         title="A",
         course=course,
         status=AssignmentStatus.PUBLISHED,
-        questions=[{"question_number": 1, "question_text": "2 + 2?", "points": 10}],
+        questions=[
+            {
+                "question_number": 1,
+                "question_text": "2 + 2?",
+                "points": 10,
+                "model_answer": "4",
+            }
+        ],
     )
     return course, student, assignment
 

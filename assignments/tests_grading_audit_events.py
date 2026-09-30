@@ -42,7 +42,14 @@ def make_classroom(prefix):
         title="A",
         course=course,
         status=AssignmentStatus.PUBLISHED,
-        questions=[{"question_number": 1, "question_text": "Q1?", "points": 10}],
+        questions=[
+            {
+                "question_number": 1,
+                "question_text": "Q1?",
+                "points": 10,
+                "model_answer": "4",
+            }
+        ],
     )
     wallet, _ = CreditWallet.objects.get_or_create(user=teacher)
     CreditBucket.objects.create(
@@ -246,15 +253,27 @@ class GradeEngineAsyncOutcomeAuditEventTest(TestCase):
         self.assertEqual(events.get().error_class, ErrorClass.PROVIDER)
 
     @patch("assignments.tasks.grade_engine")
-    def test_a_model_refusal_emits_exactly_one_failed_event_classed_model(
+    def test_a_credits_or_plan_refusal_emits_exactly_one_failed_event_classed_user(
         self, mock_grade
     ):
-        refusal_type = next(iter(PERMANENT_AI_REFUSALS))
-        mock_grade.side_effect = refusal_type("content policy refusal")
+        # S6d (behaviour change, 4-point record in the S6d EVIDENCE): the
+        # credits and plan refusals are the user's to resolve, so USER, as
+        # their catalogue entries say. They were misfiled as MODEL (08a §2.2).
+        for refusal_type in PERMANENT_AI_REFUSALS:
+            with self.subTest(refusal=refusal_type.__name__):
+                # AuditEvent is append-only: assert on this run's events only.
+                earlier = set(
+                    AuditEvent.objects.filter(
+                        action=AuditAction.GRADING_FAILED
+                    ).values_list("id", flat=True)
+                )
+                mock_grade.side_effect = refusal_type("refused")
 
-        outcome = self.run_task()
+                outcome = self.run_task()
 
-        self.assertTrue(outcome.failed())
-        events = AuditEvent.objects.filter(action=AuditAction.GRADING_FAILED)
-        self.assertEqual(events.count(), 1)
-        self.assertEqual(events.get().error_class, ErrorClass.MODEL)
+                self.assertTrue(outcome.failed())
+                events = AuditEvent.objects.filter(
+                    action=AuditAction.GRADING_FAILED
+                ).exclude(id__in=earlier)
+                self.assertEqual(events.count(), 1)
+                self.assertEqual(events.get().error_class, ErrorClass.USER)

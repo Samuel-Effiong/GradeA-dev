@@ -1,0 +1,13 @@
+# S04: a one-level rubric is a guide
+# file: students/grading_gates.py (occurrence 1)
+# old: '    if isinstance(rubric, (list, tuple)) and any('
+# new: '    if isinstance(rubric, (list, tuple)) and len(rubric) >= 2 and any('
+# commit: 3c5aa16c4d0ac96214b835d228787f5c9d4b2889
+# exit: 1
+# elapsed_s: 8.8
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_r4_a_one_level_rubric_is_accepted (students.tests_s6d_rubric_gate.RubricGateRouteTests.test_r4_a_one_level_rubric_is_accepted)
+FAIL: test_a_one_level_rubric_is_not_missing (students.tests_s6d_rubric_gate.RubricMissingDefinitionTests.test_a_one_level_rubric_is_not_missing)
+
+FAILED (failures=2, skipped=1)

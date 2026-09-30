@@ -30,6 +30,14 @@ class StudentNotOnRosterError(CodedError, CannotAssociateStudentError):
     status_code = REASON_CODES[ReasonCode.STUDENT_NOT_ON_ROSTER].http_status
 
 
+class RubricMissingError(CodedError):
+    """#7 RUBRIC_MISSING (409): the assignment has nothing to grade against.
+    Refused before any claim, AI call or charge (08a F5; students.grading_gates)."""
+
+    reason_code = ReasonCode.RUBRIC_MISSING
+    status_code = REASON_CODES[ReasonCode.RUBRIC_MISSING].http_status
+
+
 class SubmissionAlreadyGradedError(Exception):
     """
     Product rule (owner, 2026-09-13): once a student's submission for an
@@ -112,3 +120,14 @@ class InsufficientCreditsMidBatchError(CodedError, InsufficientCreditsError):
     the wallet's own text (balance, estimate)."""
 
     reason_code = ReasonCode.INSUFFICIENT_CREDITS_MID_BATCH
+
+
+class CourseNotReachableError(Exception):
+    """H-38 at run time: the teacher a grading run acts for can no longer
+    reach the submission's course (removed from the school whose session it
+    sits in). Raised before any provider call, so nothing is charged.
+    Uncoded (SM ruling), and its message is a plain "not found": never the
+    removal, the course or the school. User-facing."""
+
+    def __init__(self, message="This course wasn't found."):
+        super().__init__(message)
