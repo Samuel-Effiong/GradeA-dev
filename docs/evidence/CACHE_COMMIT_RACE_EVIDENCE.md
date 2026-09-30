@@ -93,7 +93,7 @@ Reproduced before the fix: `01_reproduce_on_unfixed_beta.log` (see §4, Gate 1).
 | Gate | Status | Evidence |
 | --- | --- | --- |
 | 1 Baseline / Regression | PARTIAL | reproduce-first done: 8/13 fail on `b744c9f`, 13/13 pass on the fix; after the rebase onto `4b902fc` the module passes 14/14 (13 + the crash-safety test), 2026-09-26; the full strict suite (twice) is still pending |
-| 2 Mutation | PASS | `04_mutation_battery.log`: 3/3 mutants killed, sha256-verified restores, control 10/10 |
+| 2 Mutation | PASS | `04_mutation_battery.log`: 3/3 mutants killed, sha256-verified restores, control 10/10; **re-run on the rebased tip `c5d1a6e`** (`07_mutation_battery_rebased.log`): control 14/14, a/b/c killed (8/1/9 failures), mutant c now also killed by the behavioural crash-safety test |
 | 3 Concurrency | PASS | 20 writers + 20 readers, 10 rounds, real threads/Postgres/Redis; `02_after_fix.log` |
 | 4 Adversarial | PASS on `bd2f016` (re-run on the rebased tip owed) | Security Lead's independent replay, `task/cache-race-gate4` @ `3ea4e5e`: removed student served a cached 200 in 4/5 rounds on beta `4b902fc`, 0/5 on `bd2f016`; the re-run on the rebased tip is with the Verification Engineer |
 | 5 Failure / Recovery | PASS | Redis refused and timing out, at the first bump and at commit; `02_after_fix.log` |
@@ -124,6 +124,15 @@ before this document is offered for review.
   recorded from the Security Lead's replay. Landing order (Senior Manager):
   H-1 stage 3, then this change, then H-1 step 4, which removes the wildcards
   and so makes generation bumps the only invalidation.
+- 2026-09-29: whole-repo mypy on the rebased tree found 4 errors (django-redis
+  `ttl`/`expire` in the test file) and they were fixed test-only (`c5d1a6e`).
+  The mutation battery was re-run on `c5d1a6e` in a disposable detached
+  worktree with its own database, under `nice`
+  (`scripts/race_mutants_rebased.sh`, `07_mutation_battery_rebased.log`).
+  `cache_generation.py` hashes to the same blob as the original battery
+  (`3fca9ec5…`). Control: `AutoGrader.tests_cache_commit_race` 14/14 OK.
+  Mutants a/b/c: 8/1/9 failures, all killed. Every restore matched by
+  sha256, and the worktree was removed.
 
 ## 4. Gate by gate
 
@@ -327,9 +336,11 @@ different failures.
   pre-write entry live for the full TTL. This is now tested behaviourally:
   `CrashAfterCommitTests` (added in `ca463c0`, formerly `362f100`) drops the
   `on_commit` callbacks, standing in for a crash after `COMMIT`, and asserts
-  that the pre-write entry is still orphaned. It is aimed at mutant c. The
-  mutation battery in `04_mutation_battery.log` predates it and has not been
-  re-run, so the claim that this test kills mutant c is not yet measured.
+  that the pre-write entry is still orphaned. It is aimed at mutant c, and on
+  the rebased tip `c5d1a6e` it kills it:
+  `test_pre_write_entries_are_orphaned_even_if_on_commit_never_runs` fails
+  under mutant c (`07_mutation_battery_rebased.log`), so crash safety is now
+  measured, not only argued.
 - The **post-commit** bump is race safety. It orphans whatever a reader cached
   in the pre-commit window.
 
@@ -450,6 +461,7 @@ for multi-write transactions.
 | `03_autograder_app_after_fix.log` | the whole `AutoGrader` app suite; the single failure is the harness defect described in Gate 6, fixed in `0bbd8d1` |
 | `scripts/` | the scripts that produced the logs (mutation battery, reproduce, strict gate) |
 | `04_mutation_battery.log` | mutants a/b/c plus control, disposable worktree |
+| `07_mutation_battery_rebased.log` | the same battery on the rebased tip `c5d1a6e`, control first; mutant c now killed by the crash-safety test too |
 | `05_double_bump_cost.log` | Gate 6 cost measurement |
 | `05a_quiet_run_shared_course_confound.log` | the quiet run whose wall-clock comparison was confounded by the shared course; kept as the record of that artefact |
 | `06_async_variant_probe.log` | §4a: the race tests against a non-blocking post-commit bump |
