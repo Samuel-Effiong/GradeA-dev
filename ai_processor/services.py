@@ -47,6 +47,7 @@ from .answer_completeness import MODE_OFF as ANSWER_MODE_OFF
 from .answer_completeness import MODE_STRICT as ANSWER_MODE_STRICT
 from .answer_completeness import enforce_answer_completeness, infer_answer_status
 from .evidence import MODE_LOG, MODE_STRICT, enforce_evidence
+from .exceptions import provider_failure
 from .extraction_schemas import (
     ANSWER_EXTRACTION_RESPONSE_SCHEMA,
     ANSWER_STATUSES,
@@ -2286,11 +2287,10 @@ Do not include any explanatory text before or after the JSON
 
                 if attempt < max_retries - 1:
                     logger.info("Retrying...")
-        # `from last_error` keeps the real failure on __cause__, which is what
-        # classify_infra_error walks to tell a timeout from a corrupt file.
-        raise Exception(
-            f"All {max_retries} attempts failed. Last error: {last_error}"
-        ) from last_error
+        # FR-A-06 #9 (S6d): PROVIDER_FAILURE, coded. `from last_error` keeps
+        # the real failure on __cause__, which is what classify_infra_error
+        # walks to tell a timeout from a corrupt file.
+        raise provider_failure(last_error, max_retries) from last_error
 
     @staticmethod
     def _question_number_key(value):
@@ -4173,7 +4173,10 @@ Do not include any explanatory text before or after the JSON
                 if attempt < max_retries - 1:
                     logger.info("[Grading] Retrying...")
 
-        raise Exception(f"All {max_retries} attempts failed. Last error: {last_error}")
+        # FR-A-06 #9 (S6d): PROVIDER_FAILURE, coded, and now `from
+        # last_error`: the bare Exception left no __cause__, so a grading
+        # timeout could not be told from a code fault.
+        raise provider_failure(last_error, max_retries) from last_error
 
     @staticmethod
     def _execute_assignment_generation_tool_call(tool):

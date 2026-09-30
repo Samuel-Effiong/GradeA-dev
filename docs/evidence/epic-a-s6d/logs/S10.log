@@ -1,0 +1,12 @@
+# S10: auto-grade re-checks at run time
+# file: assignments/tasks.py (occurrence 1)
+# old: '        if rubric_missing(assignment.questions):'
+# new: '        if False:'
+# commit: 3c5aa16c4d0ac96214b835d228787f5c9d4b2889
+# exit: 1
+# elapsed_s: 9.0
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_t1_auto_grade_refuses_when_it_runs (students.tests_s6d_rubric_gate.RubricGateAtRunTimeTests.test_t1_auto_grade_refuses_when_it_runs)
+
+FAILED (failures=1, skipped=1)
