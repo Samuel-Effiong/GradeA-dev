@@ -118,9 +118,10 @@ class AdvancingClock:
 
     def __init__(self, start):
         self.moment = start
+        self.step = self.STEP
 
     def __call__(self):
-        self.moment += self.STEP
+        self.moment += self.step
         return self.moment
 
     def at(self, moment):
@@ -240,6 +241,31 @@ class RefreshRaceFixture(_MixinBase):
             "was not granted",
         )
 
+    def test_a_run_starting_a_little_earlier_than_last_months_still_refreshes(self):
+        """Beat dispatch and worker pickup jitter from day to day: this
+        month's run starts 2 s earlier than last month's did. The due
+        tolerance keeps the row due on it."""
+        self.use_month_1()
+        before = self.monthly_buckets_granted()
+        self.clock.at(
+            DAY_0 + relativedelta(months=1) + self.refresh_at - timedelta(seconds=2)
+        )
+        self.refresh_task()
+        self.assertEqual(self.monthly_buckets_granted() - before, 1)
+
+    def test_a_row_processed_late_in_a_slow_run_is_due_on_next_months_run(self):
+        """A long batch: the row is processed minutes after the run started
+        (the clock steps 4 minutes per call here). Its next due time comes
+        from the run's start, not from when it was processed, so next
+        month's run still finds it due."""
+        self.use_month_1()
+        self.clock.step = timedelta(minutes=4)
+        self.run_refresh_on(DAY_0 + relativedelta(months=1))
+        self.clock.step = AdvancingClock.STEP
+        before = self.monthly_buckets_granted()
+        self.run_refresh_on(DAY_0 + relativedelta(months=2))
+        self.assertEqual(self.monthly_buckets_granted() - before, 1)
+
     def test_the_monthly_bucket_outlives_its_due_time_by_the_grace(self):
         from billing.refresh_timing import MONTHLY_BUCKET_GRACE
 
@@ -326,7 +352,20 @@ class AnnualMidCycleGrantRaceTests(RefreshRaceFixture, TestCase):
             next_credit_grant_at=sub.billing_cycle_end
         )
         self.clock.at(sub.billing_cycle_end - timedelta(minutes=3))
-        self.assertIn("0 granted", process_annual_plan_credit_grants())
+        self.assertIn(
+            "0 granted, 0 already granted", process_annual_plan_credit_grants()
+        )
+
+    def test_the_service_refuses_a_due_time_capped_at_the_cycle_end(self):
+        sub = UserSubscription.objects.get(user=self.user)
+        UserSubscription.objects.filter(pk=sub.pk).update(
+            next_credit_grant_at=sub.billing_cycle_end
+        )
+        almost = sub.billing_cycle_end - timedelta(minutes=3)
+        self.clock.at(almost)
+        self.assertIsNone(
+            SubscriptionService.process_mid_cycle_credit_grant(sub, now=almost)
+        )
 
 
 class LicenceMonthlyRefreshRaceTests(RefreshRaceFixture, TestCase):
