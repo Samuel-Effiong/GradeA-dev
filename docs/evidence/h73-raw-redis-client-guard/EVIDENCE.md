@@ -111,5 +111,12 @@ at debd2ab:
 
 | Gate | Result | Log |
 |---|---|---|
-| Changed module `AutoGrader.tests_cache_invalidation_coverage` | see log | `r2_changed_module.txt` |
-| Mutation P1–P2, S1–S5 (own DB, dropped) | see log | `r2_mutation_log.txt`, `r2_mutation_results.json` |
+| Changed module `AutoGrader.tests_cache_invalidation_coverage` (run at a721a83 = debd2ab + round-1 docs) | 17 tests OK (18.7 s) | `r2_changed_module.txt` |
+| Mutation P1–P2, S1–S5 (own DB `test_h73_raw_redis_client_guard_mut`, dropped) | **7/7 killed** by named tests; S5 is killed by `test_a_factory_imported_from_another_module_is_found_across_modules`; source clean afterwards | `r2_mutation_log.txt`, `r2_mutation_results.json` |
+
+**Still owed: the guard step on the new base.** d5 fixed H-65 at e5a94d0
+(exact-key delete, no `scan_iter`). H-73's scanner, run statically over
+e5a94d0's files, still counts 1/4, 1/2, 1/1, 1/1, matching
+`RAW_CLIENT_USERS` exactly. 0b will update H-73's base onto H-65's tip
+after bundle 4 is merged into it. Then all the repo-wide guards run again
+in their own targeted slot, before the merge (addendum 2).
