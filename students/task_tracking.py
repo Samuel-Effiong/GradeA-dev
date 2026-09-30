@@ -520,11 +520,15 @@ def _mid_batch_error(session_id):
         .values_list("total_files", flat=True)
         .first()
     )
+    completed = items.filter(status=BackgroundTaskStatus.SUCCESS).count()
     return InsufficientCreditsMidBatchError(
-        params={
-            "completed": items.filter(status=BackgroundTaskStatus.SUCCESS).count(),
-            "total": total or items.count(),
-        }
+        params={"completed": completed, "total": total or items.count()},
+        # QA-approved (Epic A S7d, 2026-10-01): with nothing finished yet the
+        # item says credits ran out before any item finished, rather than
+        # after 0 of N (the none_finished template). Both S7c raise sites
+        # build the error here. The count is taken at each raise, so a later
+        # item of the same batch can read 1 of N if one finished meanwhile.
+        variant="none_finished" if completed == 0 else None,
     )
 
 

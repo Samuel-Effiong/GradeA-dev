@@ -40,6 +40,12 @@ from users.models import CustomUser, UserTypes
 PASSWORD = "Str0ng-s7d-roster!"  # pragma: allowlist secret
 SENTINEL = "SENTINEL_s7d_division"
 ROLE_WORDS = ("teacher", "admin", "staff", "super")
+#: ROW_NAME_CLASH's QA-approved remediation for a row with an email.
+EMAILED_CLASH = (
+    "Two students in one course can't have exactly the same name, because "
+    "papers are matched to students by name. Add a middle name or initial to "
+    "tell them apart."
+)
 
 
 @contextmanager
@@ -423,6 +429,7 @@ class DuplicateRowTests(RosterFixture):
             rows[2]["message"],
             "Row 2: a student named Sam Same is already in this course.",
         )
+        self.assertEqual(rows[2]["remediation"], EMAILED_CLASH)
         self.assertFalse(
             CustomUser.objects.filter(email="sam2@s7d.example.org").exists()
         )
@@ -477,6 +484,7 @@ class DuplicateRowTests(RosterFixture):
         )
 
         self.assertEqual(rows[1]["reason_code"], "ROW_NAME_CLASH")
+        self.assertEqual(rows[1]["remediation"], EMAILED_CLASH)
         self.assertEqual(self.enrolled(), 1)
         second.refresh_from_db()
         self.assertEqual(second.password, password_before)

@@ -263,6 +263,8 @@ class CatalogueCompletenessTests(SimpleTestCase):
                 for alternative in spec.alternative_remediations:
                     self.assertNotIn("{", alternative)
                     self.assertTrue(alternative.strip())
+                for variant in spec.alternative_messages:
+                    self.assertLessEqual(spec.placeholders(variant), spec.params)
                 if spec.http_status == 503:
                     self.assertIsNotNone(spec.retry_after)
 
@@ -520,6 +522,74 @@ class QaCatalogueAdditionsTests(SimpleTestCase):
                 spec = REASON_CODES[ReasonCode(value)]
                 self.assertLessEqual(spec.params, {"row"})
                 self.assertNotIn("{", spec.message.replace("{row}", ""))
+
+
+class ApprovedAlternativesTests(SimpleTestCase):
+    """The two wordings QA (the founder) approved on 2026-10-01, exactly."""
+
+    def test_the_emailed_row_clash_remediation(self):
+        self.assertEqual(
+            REASON_CODES[ReasonCode.ROW_NAME_CLASH].alternative_remediations,
+            (
+                "Two students in one course can't have exactly the same name, "
+                "because papers are matched to students by name. Add a middle "
+                "name or initial to tell them apart.",
+            ),
+        )
+
+    def test_the_nothing_finished_mid_batch_message(self):
+        self.assertEqual(
+            REASON_CODES[
+                ReasonCode.INSUFFICIENT_CREDITS_MID_BATCH
+            ].alternative_messages,
+            {
+                "none_finished": (
+                    "Credits ran out before any of the {total} items were finished."
+                )
+            },
+        )
+
+
+class MessageVariantTests(SimpleTestCase):
+    """S7d: a second approved template, picked by the raiser."""
+
+    def test_the_variant_renders_its_own_template(self):
+        error = CodedError(
+            ReasonCode.INSUFFICIENT_CREDITS_MID_BATCH,
+            params={"completed": 0, "total": 4},
+            variant="none_finished",
+        )
+        self.assertEqual(
+            str(error), "Credits ran out before any of the 4 items were finished."
+        )
+        default = CodedError(
+            ReasonCode.INSUFFICIENT_CREDITS_MID_BATCH,
+            params={"completed": 2, "total": 4},
+        )
+        self.assertEqual(
+            str(default),
+            "Credits ran out after 2 of 4 items. The finished items are saved.",
+        )
+
+    def test_an_unapproved_variant_is_refused(self):
+        with self.assertRaises(ValueError):
+            CodedError(
+                ReasonCode.INSUFFICIENT_CREDITS_MID_BATCH,
+                params={"completed": 0, "total": 4},
+                variant=SENTINEL,
+            )
+        with self.assertRaises(ValueError):
+            CodedError(ReasonCode.RUBRIC_MISSING, variant="none_finished")
+
+    def test_a_variant_survives_being_rebuilt_from_its_args(self):
+        error = CodedError(
+            ReasonCode.INSUFFICIENT_CREDITS_MID_BATCH,
+            params={"completed": 0, "total": 4},
+            variant="none_finished",
+        )
+        rebuilt = CodedError(*error.args)
+        self.assertEqual(str(rebuilt), str(error))
+        self.assertEqual(rebuilt.params, error.params)
 
 
 class RemediationChoiceTests(SimpleTestCase):

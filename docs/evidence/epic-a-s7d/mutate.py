@@ -263,6 +263,54 @@ BATCHES = {
             "billing.tests.test_license_teacher_changes_400",
         ],
     ),
+    # The two wordings QA approved on 2026-10-01, folded in after run 2.
+    "4": (
+        {
+            "V1_variant_never_picked": (
+                "students/task_tracking.py",
+                '        variant="none_finished" if completed == 0 else None,\n',
+                "        variant=None,\n",
+            ),
+            "V2_variant_always_picked": (
+                "students/task_tracking.py",
+                '        variant="none_finished" if completed == 0 else None,\n',
+                '        variant="none_finished",\n',
+            ),
+            "V3_render_ignores_the_variant": (
+                RC,
+                "        self._message = spec.render(params, display, variant)\n",
+                "        self._message = spec.render(params, display)\n",
+            ),
+            "V4_variant_lost_from_args": (
+                RC,
+                "            extra = (remediation, variant)\n",
+                "            extra = (remediation,)\n",
+            ),
+            "V5_any_variant_accepted": (
+                RC,
+                "        if variant is not None and variant not in spec.alternative_messages:\n",
+                "        if False:\n",
+            ),
+            "V6_new_account_clash_default_remediation": (
+                RI,
+                "            remediation=EMAILED_CLASH_REMEDIATION,\n"
+                "            student_display=_full_display(row),\n",
+                "            student_display=_full_display(row),\n",
+            ),
+            "V7_existing_account_clash_default_remediation": (
+                RI,
+                "                remediation=EMAILED_CLASH_REMEDIATION,\n"
+                "                student_display=_full_display(row),\n",
+                "                student_display=_full_display(row),\n",
+            ),
+        },
+        [
+            "AutoGrader.tests_reason_codes",
+            "AutoGrader.tests_codederror_serialization",
+            "students.tests_s7d_mid_batch_wording",
+            "classrooms.tests_s7d_roster_codes",
+        ],
+    ),
 }
 
 batch = os.environ["MUT_BATCH"]

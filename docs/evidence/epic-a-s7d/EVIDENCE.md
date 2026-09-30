@@ -85,6 +85,15 @@ If any source changes before the merge-down, the copy here is re-synced.
 - The single publish of a submission that isn't fully graded answers a coded 400.
 - publish-all lists every unpublishable submission in `skipped` (ids only, the code); `ungraded_count` is kept. "Nothing to publish" is still a 200 and carries `skipped` too.
 
+## Two wordings QA approved after gate run 2 (the founder, 2026-10-01)
+
+Folded in at the SM's instruction. Step 4's first attempt was **stopped** at about 00:40, after ~7 minutes, with no result claimed, so that the regression runs once on the final text.
+
+1. **ROW_NAME_CLASH on an emailed row** gets its own remediation: "Two students in one course can't have exactly the same name, because papers are matched to students by name. Add a middle name or initial to tell them apart." It is carried as an approved `alternative_remediations` entry and chosen on both emailed clash paths. A row without an email keeps "Add an email address to tell the two students apart.".
+2. **INSUFFICIENT_CREDITS_MID_BATCH with nothing finished** reads "Credits ran out before any of the {total} items were finished." instead of "after 0 of N". **This touches S7c's already-merged message** (1a's code; the SM told 1a):
+   - It is a new, small spec mechanism: `alternative_messages` (a named second approved template), with `CodedError(variant=)` to pick it. A variant rides as the 6th arg only when present, so every existing error keeps its 4-tuple, and Celery's json and pickle round-trips keep it (tests).
+   - The variant is picked in `students.task_tracking._mid_batch_error`, the one place both S7c raise sites build the error (1a's pointer). `completed` is recounted at each raise, so a later item of the same batch can truthfully read "after 1 of N".
+
 ## SM rulings applied
 - **Q1:** the other-school check runs before the individual-subscription check (H-78, copied).
 - **Q2:** one savepoint per teacher unit, with the on_commit invite inside it.
@@ -125,7 +134,9 @@ If any source changes before the merge-down, the copy here is re-synced.
 |---|---|---|
 | Reproduce-first: S7d's new test modules with S7d's production files reverted to the epic tip 830bf8d (S7c included) | **Fails, as expected**, at import (`ReasonCode` has no `REGISTRATION_PAUSED`). The new modules name the new codes, so on the base they cannot load. That is the weak, import-level form, accepted as before | `prefix_830bf8d_failing.txt` |
 | Changed and updated modules (23) + all 11 repo-wide guards (the 8 Epic A guards, `assignments`/`users.tests_schema_extension`, `AutoGrader.tests_error_messages`), at **023a51a** | **509 tests OK** (88.4 s) | `changed_modules_and_guards.txt` (last 200 lines; the full log is `epic-a-s7d_changed_modules_and_guards_023a51a_full.txt` in GAP-evidence-logs, chmod 600) |
-| Mutation, 39 mutants in 3 batches (≤1800 s each, own DB `test_epic_a_s7d_mut`, dropped) at 023a51a | **39/39 killed** by named tests, no survivors. Batch 1 (catalogue, B, C, F): 12/12. Batch 2 (D): 14/14. Batch 3 (E): 13/13. Source clean after each batch. 4 min 7 s in all | `mutation_log_batch{1,2,3}.txt`, `mutation_results_batch{1,2,3}.json` |
+| Mutation, 39 mutants in 3 batches (≤1800 s each, own DB `test_epic_a_s7d_mut`, dropped) at 023a51a, before the two wordings | **39/39 killed** by named tests, no survivors. Batch 1 (catalogue, B, C, F): 12/12. Batch 2 (D): 14/14. Batch 3 (E): 13/13. Source clean after each batch. 4 min 7 s in all | `mutation_log_batch{1,2,3}.txt`, `mutation_results_batch{1,2,3}.json` |
+| After the two wordings: the modules they touch (incl. S7c's `students.tests_credits_mid_batch`, `tests_item_retry`, `tests_batch_item_results`) + `tests_reason_codes` / `tests_error_messages` / `tests_codederror_serialization` + all guards | see log | `wording_modules_and_guards.txt` |
+| Mutation batch 4: the two wordings, 7 mutants (own DB, dropped) | see log | `mutation_log_batch4.txt`, `mutation_results_batch4.json` |
 | ONE combined regression over every app whose production code S7d changes (SM ruling): students, classrooms, billing, users, assignments, ai_processor. ai_processor is included because C's change there is more than text: a new `PDFNotAPdfError`, and `PDFService.extract` raises it. Run in the 12G slot, timeout 1800 | see log | `regression_combined.txt` |
 
 **Runs before this record, disclosed:**

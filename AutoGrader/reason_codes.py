@@ -74,16 +74,25 @@ class ReasonSpec:
     #: two routes: TEACHER_LIST_EMPTY on add and on remove). An empty
     #: `remediation` means "nothing to do" and reaches the body as null.
     alternative_remediations: tuple[str, ...] = ()
+    #: Other approved message templates, by name, that a raiser picks with
+    #: `CodedError(variant=)` (INSUFFICIENT_CREDITS_MID_BATCH when nothing
+    #: had finished yet). Each takes its placeholders from `params`.
+    alternative_messages: dict = field(default_factory=dict)
 
-    def placeholders(self):
+    def template(self, variant=None):
+        return self.message if variant is None else self.alternative_messages[variant]
+
+    def placeholders(self, variant=None):
         return {
             name
-            for _, name, _, _ in string.Formatter().parse(self.message)
+            for _, name, _, _ in string.Formatter().parse(self.template(variant))
             if name is not None
         }
 
-    def render(self, params, display=None):
-        return self.message.format(**{**self.defaults, **params, **(display or {})})
+    def render(self, params, display=None, variant=None):
+        return self.template(variant).format(
+            **{**self.defaults, **params, **(display or {})}
+        )
 
 
 _FILE = frozenset({"file_name"})
@@ -98,7 +107,9 @@ TEACHER_HAS_INDIVIDUAL_SUBSCRIPTION_MESSAGE = (
 )
 
 
-def _item_spec(message, remediation, *, params=(), retryable=False):
+def _item_spec(
+    message, remediation, *, params=(), retryable=False, alternative_remediations=()
+):
     """A per-item code of a sync batch route (S7d): USER, reported in the
     route's result list, 422 if one is ever answered directly."""
     return ReasonSpec(
@@ -108,13 +119,20 @@ def _item_spec(message, remediation, *, params=(), retryable=False):
         remediation,
         retryable=retryable,
         params=frozenset(params),
+        alternative_remediations=tuple(alternative_remediations),
     )
 
 
-def _row_spec(message, remediation, *, params=(), retryable=False):
+def _row_spec(
+    message, remediation, *, params=(), retryable=False, alternative_remediations=()
+):
     """A roster-import row's code: every one carries its `row` number."""
     return _item_spec(
-        message, remediation, params={"row", *params}, retryable=retryable
+        message,
+        remediation,
+        params={"row", *params},
+        retryable=retryable,
+        alternative_remediations=alternative_remediations,
     )
 
 
@@ -223,6 +241,15 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         "need their files uploaded again.",
         retryable=True,
         params=frozenset({"completed", "total"}),
+        # Approved by QA (the founder), 2026-10-01: when not one item had
+        # finished, "after 0 of N" read wrong. Picked by
+        # students.task_tracking._mid_batch_error, the one place both S7c
+        # raise sites build this error.
+        alternative_messages={
+            "none_finished": (
+                "Credits ran out before any of the {total} items were finished."
+            )
+        },
     ),
     ReasonCode.INSUFFICIENT_CREDITS: ReasonSpec(
         ErrorClass.USER,
@@ -359,9 +386,17 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         params={"student_display"},
     ),
     ReasonCode.ROW_NAME_CLASH: _row_spec(
-        "Row {row}: a student named {student_display} is already in this " "course.",
+        "Row {row}: a student named {student_display} is already in this course.",
         "Add an email address to tell the two students apart.",
         params={"student_display"},
+        # A row that already HAS an email (approved by QA, the founder,
+        # 2026-10-01): one course can't hold two students of exactly the
+        # same name, email or not.
+        alternative_remediations=(
+            "Two students in one course can't have exactly the same name, "
+            "because papers are matched to students by name. Add a middle "
+            "name or initial to tell them apart.",
+        ),
     ),
     # Neutral on purpose (H-71): no role, no `account_type` param. Naming
     # the role let a teacher learn who on the platform is staff.
@@ -535,7 +570,13 @@ class CodedError(Exception):
     reason_code: ReasonCode | None = None
 
     def __init__(
-        self, reason_code=None, params=None, detail=None, display=None, remediation=None
+        self,
+        reason_code=None,
+        params=None,
+        detail=None,
+        display=None,
+        remediation=None,
+        variant=None,
     ):
         code = reason_code or type(self).reason_code
         if code is None:
@@ -551,14 +592,18 @@ class CodedError(Exception):
         not_scalar = [k for k, v in params.items() if not isinstance(v, _SCALARS)]
         if not_scalar:
             raise TypeError(f"{code}: params must be scalars: {sorted(not_scalar)}")
+        if variant is not None and variant not in spec.alternative_messages:
+            raise ValueError(f"{code}: not an approved message variant: {variant!r}")
         display = dict(display or {})
-        stray = set(display) - spec.placeholders()
+        stray = set(display) - spec.placeholders(variant)
         if stray:
             raise ValueError(f"{code}: display for no placeholder: {sorted(stray)}")
         not_text = [k for k, v in display.items() if not isinstance(v, str)]
         if not_text:
             raise TypeError(f"{code}: display values must be text: {sorted(not_text)}")
-        missing = spec.placeholders() - set(params) - set(spec.defaults) - set(display)
+        missing = (
+            spec.placeholders(variant) - set(params) - set(spec.defaults) - set(display)
+        )
         if missing:
             raise ValueError(f"{code}: params missing: {sorted(missing)}")
         if remediation is not None and remediation not in (
@@ -569,16 +614,20 @@ class CodedError(Exception):
         self.params = params
         self.detail = detail
         self._spec = spec
-        self._message = spec.render(params, display)
+        self._message = spec.render(params, display, variant)
         self._remediation = remediation
+        self._variant = variant
         super().__init__(self._message)
         # After super().__init__: Exception.__init__ would set args to the
         # message, and a DRF APIException base sets none at all. A chosen
-        # remediation rides as a 5th arg only when there is one, so every
-        # existing error keeps its 4-tuple.
-        self.args = (code.value, params, None, display or None) + (
-            (remediation,) if remediation is not None else ()
-        )
+        # remediation (5th) and message variant (6th) ride only when there
+        # is one, so every existing error keeps its 4-tuple.
+        extra: tuple = ()
+        if variant is not None:
+            extra = (remediation, variant)
+        elif remediation is not None:
+            extra = (remediation,)
+        self.args = (code.value, params, None, display or None) + extra
 
     def __str__(self):
         return self._message

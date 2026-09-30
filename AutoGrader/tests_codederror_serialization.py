@@ -264,6 +264,24 @@ def sync_only_violations(sources):
     return found
 
 
+class MessageVariantThroughCeleryTests(SimpleTestCase):
+    """S7d: a picked message variant (INSUFFICIENT_CREDITS_MID_BATCH with
+    nothing finished) keeps its wording through the result backend."""
+
+    def test_the_variant_survives_json_and_pickle(self):
+        from students.exceptions import InsufficientCreditsMidBatchError
+
+        error = InsufficientCreditsMidBatchError(
+            params={"completed": 0, "total": 4}, variant="none_finished"
+        )
+        for serializer in JSON_AND_PICKLE:
+            with self.subTest(serializer=serializer):
+                _stored, rebuilt = through_celery(error, serializer)
+                self.assertIsInstance(rebuilt, InsufficientCreditsMidBatchError)
+                self.assertEqual(str(rebuilt), str(error))
+                self.assertEqual(rebuilt.params, {"completed": 0, "total": 4})
+
+
 class StoredFormPersonalDataTests(SimpleTestCase):
     """The SM's conditions on storing params in the result backend."""
 

@@ -22,7 +22,7 @@ from django.core.validators import validate_email
 from django.db import transaction
 
 from audit.enums import ReasonCode
-from AutoGrader.reason_codes import CodedError, coded_entry
+from AutoGrader.reason_codes import REASON_CODES, CodedError, coded_entry
 from AutoGrader.uploads import file_name_of, validate_upload_size
 from users.models import CustomUser, UserTypes
 
@@ -291,6 +291,12 @@ def _find_existing_student_by_name(*, course, row):
 
 SUCCEEDED, FAILED, SKIPPED = "succeeded", "failed", "skipped"
 
+#: ROW_NAME_CLASH's approved remediation for a row that already has an email
+#: (QA, 2026-10-01): an address doesn't tell two same-named students apart.
+EMAILED_CLASH_REMEDIATION = REASON_CODES[
+    ReasonCode.ROW_NAME_CLASH
+].alternative_remediations[0]
+
 #: StudentCourse.clean()'s refusal of a second student with exactly the same
 #: first, middle and last name in one course (case-insensitive). Its text is
 #: built by the model, so it is matched by these fixed ends.
@@ -326,10 +332,10 @@ def _added(row, student, status, kind):
     }, SUCCEEDED
 
 
-def _not_added(row, code, outcome, **params):
+def _not_added(row, code, outcome, remediation=None, **params):
     """A row that wasn't added: its coded entry (catalogue D2). The message
     comes from the approved template and these params only (QA-ERR-03)."""
-    error = CodedError(code, params={"row": row.row, **params})
+    error = CodedError(code, params={"row": row.row, **params}, remediation=remediation)
     status = "skipped" if outcome == SKIPPED else "failed"
     return (
         coded_entry(error, row=row.row, name=row.display_name, status=status),
@@ -391,6 +397,7 @@ def _import_row_with_email(*, course, row):
             row,
             ReasonCode.ROW_NAME_CLASH,
             FAILED,
+            remediation=EMAILED_CLASH_REMEDIATION,
             student_display=_full_display(row),
         )
 
@@ -416,6 +423,7 @@ def _import_row_with_email(*, course, row):
                 row,
                 ReasonCode.ROW_NAME_CLASH,
                 FAILED,
+                remediation=EMAILED_CLASH_REMEDIATION,
                 student_display=_full_display(row),
             )
         ) from exc
