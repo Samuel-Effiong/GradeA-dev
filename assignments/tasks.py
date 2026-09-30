@@ -811,6 +811,10 @@ def upload_answers_engine_async(
             content = AssignmentProcessingService.prepare_ai_content(
                 uploaded_file, prompt
             )
+        except InvalidUploadFileError:
+            # A coded file refusal (FR-A-06 S6b) goes on as itself, so the
+            # item keeps its reason code.
+            raise
         except ParseError as exc:
             # An unreadable or mislabelled file fails the same way on every
             # attempt: a final refusal (UPLOAD_REFUSALS), never a retry.

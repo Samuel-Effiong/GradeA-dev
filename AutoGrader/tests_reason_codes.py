@@ -314,6 +314,43 @@ class CodedErrorTests(SimpleTestCase):
         )
         self.assertIn("PDF, JPEG, PNG, GIF, WebP", str(error))
 
+    def test_display_shapes_the_message_but_never_the_params(self):
+        # S6b N1: params are numbers; the message shows them formatted.
+        error = CodedError(
+            ReasonCode.FILE_TOO_LARGE,
+            params={
+                "file_name": "big.pdf",
+                "actual": 66_270_003,
+                "limit": 52_428_800,
+                "dimension": "bytes",
+            },
+            display={"actual": "63.2 MB", "limit": "50 MB"},
+        )
+        self.assertEqual(str(error), "big.pdf is 63.2 MB and the limit is 50 MB.")
+        self.assertEqual(error.params["actual"], 66_270_003)
+        self.assertEqual(error.params["limit"], 52_428_800)
+
+    def test_display_may_stand_in_for_an_unknown_param(self):
+        error = CodedError(
+            ReasonCode.FILE_TOO_LARGE,
+            params={"file_name": "x.png", "limit": 50, "dimension": "pixels"},
+            display={"actual": "over 179 MP", "limit": "50 MP"},
+        )
+        self.assertNotIn("actual", error.params)
+        self.assertIn("over 179 MP", str(error))
+
+    def test_display_for_no_placeholder_is_refused(self):
+        with self.assertRaises(ValueError):
+            CodedError(ReasonCode.RUBRIC_MISSING, display={"raw": SENTINEL})
+
+    def test_display_values_must_be_text(self):
+        with self.assertRaises(TypeError):
+            CodedError(
+                ReasonCode.FILE_UNREADABLE,
+                params={"file_name": "a.pdf"},
+                display={"file_name": 7},
+            )
+
     def test_detail_stays_out_of_the_message(self):
         error = CodedError(ReasonCode.RUBRIC_MISSING, detail=SENTINEL)
         self.assertNotIn(SENTINEL, str(error))

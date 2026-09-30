@@ -56,7 +56,9 @@ from students.models import (
 from users.models import CustomUser, UserTypes
 
 WAIT = 45  # seconds; generous for a contended host, never reached when healthy
-NOT_A_PDF = "not a PDF"
+# The coded FILE_UNREADABLE message for the photo labelled as a PDF (FR-A-06
+# S6b): its own text naming the file, never the generic fallback.
+NOT_A_PDF = "couldn't read photo.pdf"
 
 
 def payload(name, data, content_type):

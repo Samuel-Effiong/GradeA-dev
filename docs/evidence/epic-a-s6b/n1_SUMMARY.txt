@@ -1,0 +1,20 @@
+=== touched modules at 49ff6ca 17:31:56
+rc=0
+Ran 163 tests in 12.905s
+OK
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:16.54
+	Maximum resident set size (kbytes): 322432
+=== N1 mutants 17:32:13
+N1a_bytes_actual_text KILLED FAILED (failures=1) ['test_too_many_bytes_is_too_large_with_actual_and_limit']
+  restore ok
+N1b_pages_actual_text KILLED FAILED (failures=1) ['test_too_many_pages_is_too_large_with_actual_and_limit']
+  restore ok
+N1c_pixels_actual_text KILLED FAILED (failures=3) ['test_a_decompression_bomb_is_refused_before_its_pixels_are_allocated', 'test_a_real_decompression_bomb_is_refused_without_allocating_it', 'test_too_many_pixels_is_too_large_with_actual_and_limit']
+  restore ok
+N1d_compression_actual_text KILLED FAILED (failures=2) ['test_an_image_too_large_even_compressed_is_too_large']
+  restore ok
+N1e_display_ignored KILLED FAILED (failures=6, errors=1) ['test_an_image_too_large_even_compressed_is_too_large', 'test_display_may_stand_in_for_an_unknown_param', 'test_display_shapes_the_message_but_never_the_params', 'test_too_many_bytes_is_too_large_with_actual_and_limit', 'test_too_many_pages_is_too_large_with_actual_and_limit', 'test_too_many_pixels_is_too_large_with_actual_and_limit']
+  restore ok
+N1f_unknown_size_invented KILLED FAILED (failures=1) ['test_a_bomb_beyond_pillows_own_limit_is_a_400_not_a_500']
+  restore ok
+=== done 17:33:00
