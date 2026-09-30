@@ -12,6 +12,7 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 
 from audit import metrics as audit_metrics
+from audit.context import current_request_actor
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome
 
@@ -1252,26 +1253,39 @@ def _credit_transaction_action(ledger_type):
     return AuditAction.CREDIT_TRANSACTION
 
 
-def _emit_credit_transaction(row, actor):
+def _emit_credit_transaction(row, owner):
     """One `CREDIT_TRANSACTION` audit event for one written `CreditLedger`
     row. Called from both `record()` (the ~18 `billing/services.py` sites)
     and `after_bulk_create()` (the consume/batch-refund paths that bypass
     `record()` - see docs/decisions and §0.6 of the epic A plan). Never
     called for the paired `CreditUsageLog` row: that row is the same
     economic event as its `CreditLedger` row, not a second transaction.
+
+    Epic A S3 (G5): the ACTOR is whoever made it happen - the signed-in
+    user of the request being handled, or SYSTEM in Celery / Beat - and the
+    wallet OWNER is the target. It used to name the owner as actor, so a
+    Celery grant looked like the teacher's own action, and a school admin's
+    add_teachers left no event naming the admin. Scoped to the owner's
+    school, as the owner's own events are.
     """
+    owner_id = getattr(owner, "pk", None) or row.user_id
     emit(
         _credit_transaction_action(row.ledger_type),
-        actor=actor,
-        target_type="CreditLedger",
-        target_id=row.id,
+        actor=current_request_actor(),
+        target_type="CustomUser",
+        target_id=owner_id,
+        school_id=getattr(owner, "school_id", None),
         outcome=AuditOutcome.SUCCESS,
-        metadata={"ledger_type": row.ledger_type, "credits": row.amount},
+        metadata={
+            "ledger_type": row.ledger_type,
+            "credits": row.amount,
+            "ledger_id": str(row.id),
+        },
     )
-    _check_ledger_anomaly(row, actor)
+    _check_ledger_anomaly(row, owner)
 
 
-def _check_ledger_anomaly(row, actor):
+def _check_ledger_anomaly(row, owner):
     """BE-A-09 #3: alert on a wallet left with a negative running balance
     by this row. Reuses CreditWallet.total_remaining_credits() - the same
     aggregate the rest of the app already reads the balance through -
@@ -1279,14 +1293,14 @@ def _check_ledger_anomaly(row, actor):
 
     Best-effort, not a strict invariant check: this reads the wallet AFTER
     the ledger row (and, for CONSUME, the bucket update that normally goes
-    with it) have been written, and only when `actor` is the wallet's own
-    user - `after_bulk_create`'s batch resolution can leave `actor` None for
-    a row whose user no longer exists. A negative balance that briefly
+    with it) have been written, and only when the wallet's `owner` is known
+    - `after_bulk_create`'s batch resolution can leave `owner` None for a
+    row whose user no longer exists. A negative balance that briefly
     exists mid-transaction and self-corrects before the next check is
     outside what this can see; that trade-off is acceptable for an ALERT
     (false negatives on a transient dip), not for enforcement.
     """
-    wallet = getattr(actor, "credit_wallet", None)
+    wallet = getattr(owner, "credit_wallet", None)
     if wallet is None:
         return
     try:

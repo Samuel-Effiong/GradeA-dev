@@ -1,0 +1,5 @@
+# billing regression at 200d34a: summary (the full 2.2 MB log exceeds the 500 KB large-file hook; kept at ~/Documents/Projects/GAP-1a-records/epic-a-merge-s3/runs/s3m_billing_regression.log)
+# command: python manage.py test --settings=settings_worktree --noinput billing --parallel 2 (6G scope, nice 10, timeout -k 60 1800), 16:51:01-16:52:59 WAT
+10:Found 1682 test(s).
+25378:Ran 1682 tests in 98.457s
+25380:OK
