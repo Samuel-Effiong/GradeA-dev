@@ -155,6 +155,27 @@ class ARemovedTeacherRetrying(H38RetryFixture):
         self.assertNotIn(b"replace_file", response.content)
         self.assert_untouched(self.upload_item, "FILE_UNREADABLE")
 
+    def test_an_item_with_no_assignment_is_judged_by_its_batchs_course(self):
+        """An assignment upload that failed before creating its assignment
+        has none: the batch session's course decides."""
+        orphan = BackgroundProcessingTask.objects.create(
+            requested_by=self.teacher,
+            task_type=BackgroundTaskType.BATCH_ASSIGNMENT_UPLOAD,
+            batch_session=self.session,
+            file_name="item 3",
+            item_index=3,
+            status=BackgroundTaskStatus.FAILURE,
+            reason_code="FILE_UNREADABLE",
+            error="This item failed.",
+        )
+        fund_wallet(self.teacher)
+        response = self.retry(orphan)
+        self.assertEqual(response.status_code, 409, response.content[:400])
+        self.assertIn(b"replace_file", response.content)
+
+        self.removed_and_funded()
+        self.assertEqual(self.retry(orphan).status_code, 404)
+
     def test_retry_failed_skips_every_item_without_saying_why(self):
         self.removed_and_funded()
         for body in (None, {"reason_codes": ["PROVIDER_FAILURE"]}):
