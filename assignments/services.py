@@ -18,6 +18,7 @@ from PIL.Image import DecompressionBombError
 
 from ai_processor.services import (
     PDFEmptyError,
+    PDFNotAPdfError,
     PDFService,
     PDFTooManyPagesError,
     PDFUnreadableError,
@@ -30,6 +31,7 @@ from ai_processor.tools import (
     encode_image,
 )
 from assignments.exceptions import (
+    FileNotAPdfError,
     FileTooLargeError,
     FileTypeUnsupportedError,
     FileUnreadableError,
@@ -528,6 +530,9 @@ class AssignmentProcessingService:
                 ) from exc
             except ImageCompressionError as exc:
                 raise _too_large_after_compression(file_name, exc) from exc
+            except PDFNotAPdfError as exc:
+                # Catalogue C (S7d): say it is a photo, not that it's damaged.
+                raise FileNotAPdfError(params={"file_name": file_name}) from exc
             except (PDFUnreadableError, ValueError) as exc:
                 raise FileUnreadableError(params={"file_name": file_name}) from exc
 
