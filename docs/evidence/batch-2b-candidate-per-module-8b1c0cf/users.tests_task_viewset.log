@@ -1,0 +1,16 @@
+users.tests_task_viewset.TaskViewSetTest.test_cancel_assignment_extraction_deletes_placeholder_assignment ... ok
+users.tests_task_viewset.TaskViewSetTest.test_cancel_assignment_reextraction_keeps_existing_assignment ... ok
+users.tests_task_viewset.TaskViewSetTest.test_cancel_batch_assignment_upload_deletes_saved_upload_artifact ... ok
+users.tests_task_viewset.TaskViewSetTest.test_cancel_endpoint_marks_tracked_task_cancelled ... ok
+users.tests_task_viewset.TaskViewSetTest.test_cancel_endpoint_rejects_task_owned_by_another_user ... ok
+users.tests_task_viewset.TaskViewSetTest.test_cancel_endpoint_reports_cancelled_for_pending_task ... ok
+users.tests_task_viewset.TaskViewSetTest.test_cancel_endpoint_reports_cancelled_for_started_task ... ok
+users.tests_task_viewset.TaskViewSetTest.test_cancel_endpoint_reports_true_status_for_already_cancelled_task ... ok
+users.tests_task_viewset.TaskViewSetTest.test_cancel_endpoint_reports_true_status_for_already_failed_task ... ok
+users.tests_task_viewset.TaskViewSetTest.test_cancel_endpoint_reports_true_status_for_already_succeeded_task ... ok
+users.tests_task_viewset.TaskViewSetTest.test_cancel_session_cancels_only_remaining_tasks ... ok
+users.tests_task_viewset.TaskViewSetTest.test_cancel_session_rejects_other_users_session ... ok
+users.tests_task_viewset.TaskViewSetTest.test_session_results_uses_tracked_processing_tasks ... ok
+users.tests_task_viewset.TaskViewSetTest.test_task_status_returns_cancelled_for_tracked_cancelled_task ... ok
+Ran 14 tests in 1.214s
+OK

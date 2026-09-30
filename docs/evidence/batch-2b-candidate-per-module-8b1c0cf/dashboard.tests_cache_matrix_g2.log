@@ -1,0 +1,3 @@
+dashboard.tests_cache_matrix_g2.StudentAdminSummaryFreshnessTests.test_withdrawal_now_revokes_the_withdrawn_students_cached_access ... ok
+Ran 1 test in 1.090s
+OK
