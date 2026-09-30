@@ -1,0 +1,6 @@
+047c4f645c84	P1	display travels in args	KILLED	FAILED (failures=3)	True	5.5
+047c4f645c84	P2	args are in constructor order	KILLED	FAILED (failures=18, errors=40)	True	5.2
+047c4f645c84	P3	the constructor takes args positionally	KILLED	FAILED (failures=18, errors=40)	True	4.5
+047c4f645c84	P4	args are replaced (not the message)	KILLED	FAILED (failures=18, errors=48)	True	5.0
+047c4f645c84	P5	str() is the rendered message	KILLED	FAILED (failures=16)	True	5.4
+047c4f645c84	P6	the log-only detail stays out of args	KILLED	FAILED (failures=8)	True	5.3

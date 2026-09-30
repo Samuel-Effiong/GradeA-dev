@@ -1,0 +1,511 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (billing.W001) PlanFeature catalogue is missing (or not marked is_gating_feature=True for) gating key(s): ['AI_PROMPT_ANALYTICS_SUMMARY', 'AI_PROMPT_ASSIGNMENT_CREATION']. Every user in this environment will be DENIED the corresponding AI feature(s) - see AI_FEATURE_GATING_MAP in billing/access_control.py - until `manage.py seed_plan_features` is run.
+
+System check identified 1 issue (0 silenced).
+Cannot activate automatic trial for user volume.teacher@example.com (validation): Free trial plan not found. Please create one in the admin panel.
+
+
+ai_processor.services INFO 2026-09-30 17:28:03,737 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:03,737 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+ai_processor.services WARNING 2026-09-30 17:28:03,739 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Attempt 1 failed: [Grading] Single-pass evidence check failed: question 1: none of the 1 evidence quote(s) appear in the student's answer (fabricated evidence)
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:03,739 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Retrying...
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:03,739 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:03,739 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+ai_processor.services WARNING 2026-09-30 17:28:03,741 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Attempt 2 failed: [Grading] Single-pass evidence check failed: question 1: none of the 1 evidence quote(s) appear in the student's answer (fabricated evidence)
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:03,741 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Retrying...
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:03,741 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:03,741 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] 1 question(s) for the AI (0 already graded deterministically) - using single pass grading
+
+
+
+
+ai_processor.services WARNING 2026-09-30 17:28:03,742 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] evidence_degraded single-pass — strict evidence relaxed to 'log' on the final attempt so the submission still receives a grade. processing_task_id=None
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:03,814 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:03,814 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:03,814 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:03,873 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:03,873 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:03,873 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:03,919 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:03,919 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:03,919 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:03,972 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:03,973 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:03,973 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,024 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,024 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,024 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,075 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,076 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,076 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,117 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,117 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,117 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,158 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,158 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,158 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,200 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,200 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,200 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,239 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,239 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,239 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,283 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,283 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,284 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,325 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,325 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,325 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,365 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,365 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,365 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,404 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,404 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,404 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,443 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,443 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,443 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,489 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,489 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,489 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,560 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,560 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,560 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,622 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,622 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,622 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,687 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,687 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,687 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,735 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,735 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,735 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,783 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,784 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,784 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,826 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,827 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,827 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,870 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,871 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,871 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,912 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,912 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,912 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,967 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,968 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:04,968 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:05,019 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:05,019 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:05,019 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:05,085 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:05,086 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:05,086 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:05,187 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:05,187 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:05,187 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:05,275 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] Partition: 1 question(s) — 0 graded deterministically, 0 ambiguous objective(s) deferred to the AI, 1 subjective.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:05,276 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] answer_cache_hit count=1 of 1 LLM-bound question(s) reused from a prior identical grade.
+
+
+
+
+ai_processor.services INFO 2026-09-30 17:28:05,276 services 3760503 134344085138368 [request_id=- client_request_id=-] [Grading] All questions claimed without an AI call (0 deterministic, 1 cached).
+
+
+.
+----------------------------------------------------------------------
+Ran 1 test in 3.554s
+
+OK
+Destroying test database for alias 'default'...
+Found 1 test(s).
+
+  backfilled identity on 0 ledger row(s) and 0 usage log row(s)
+
+  attributed 0 ledger row(s) to their Stripe payment
+
+S8_VOLUME {"PER_STUDENT_DAY": {"AUTH_LOGIN": 1}, "PER_TEACHER_DAY": {"GRADE_CHANGE": 33, "GRADING_COMPLETED": 30, "GRADING_REQUESTED": 30, "ROSTER_CHANGE": 31, "SUBMISSION_UPLOAD": 1}, "SYSTEM_PER_DAY": {"AUDIT_RETENTION_SWEEP": 2}, "bytes_per_row": 485.1, "heap_bytes": 65536, "index_bytes": 114688, "rows": 129, "student_day_flows": {"student sign-in": {"actions": {"AUTH_LOGIN": 1}, "classes": {"GENERAL": 1}}}, "system_day_flows": {"Beat: the two audit sweeps": {"actions": {"AUDIT_RETENTION_SWEEP": 2}, "classes": {"GENERAL": 2}}}, "teacher_day_flows": {"3 grade edits": {"actions": {"GRADE_CHANGE": 3}, "classes": {"STUDENT_RECORD": 3}}, "batch upload of 30": {"actions": {"SUBMISSION_UPLOAD": 1}, "classes": {"STUDENT_RECORD": 1}}, "grade-all of 30 (the request)": {"actions": {"GRADING_REQUESTED": 30}, "classes": {"STUDENT_RECORD": 30}}, "grading runs of 30 (Celery)": {"actions": {"GRADING_COMPLETED": 30}, "classes": {"STUDENT_RECORD": 30}}, "publish-all of 30": {"actions": {"GRADE_CHANGE": 30}, "classes": {"STUDENT_RECORD": 30}}, "roster import of 30": {"actions": {"ROSTER_CHANGE": 31}, "classes": {"STUDENT_RECORD": 31}}}}
