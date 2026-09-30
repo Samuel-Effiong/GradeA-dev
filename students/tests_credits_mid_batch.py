@@ -122,7 +122,9 @@ class MidBatchFixture:
         return response.json()["data"]
 
 
-class AGradingBatchThatRunsOutOfCredits(MidBatchFixture, TestCase):
+class GradingBatchFixture(MidBatchFixture):
+    """A 4-item grading batch, with a fake grade_engine that runs out."""
+
     def setUp(self):
         self.build(students=4)
         self.session = BatchUploadSession.objects.create(
@@ -173,6 +175,8 @@ class AGradingBatchThatRunsOutOfCredits(MidBatchFixture, TestCase):
             },
         )
 
+
+class AGradingBatchThatRunsOutOfCredits(GradingBatchFixture, TestCase):
     def test_the_rest_of_the_batch_stops_uncharged_with_its_own_code(self):
         with self.fake_grading(credits_for=2) as grade:
             for item in self.items:
@@ -255,6 +259,136 @@ class AGradingBatchThatRunsOutOfCredits(MidBatchFixture, TestCase):
         self.session.refresh_from_db()
         self.assertIsNone(self.session.credits_exhausted_at)
         self.assertIsNone(self.session_results(self.session.id)["stopped_at_item"])
+
+
+class AnyRetryInAStoppedBatchResumesIt(GradingBatchFixture, TestCase):
+    """v2's pre-read of S7c: the stop mark was cleared only by a retry of an
+    INSUFFICIENT_CREDITS_MID_BATCH item, so any other failed item retried
+    after a top-up (a PROVIDER_FAILURE, say) was stopped by the stale mark
+    and relabelled a credits failure, spending a retry. Any retry that wins
+    its claim now clears it; a real shortfall re-marks it before any
+    charge."""
+
+    def setUp(self):
+        super().setUp()
+        # Item 1 failed at the provider (as S6d codes it); then the batch
+        # ran out: item 2 graded, item 3 refused, item 4 stopped.
+        BackgroundProcessingTask.objects.filter(pk=self.items[0].pk).update(
+            status=BackgroundTaskStatus.FAILURE,
+            reason_code="PROVIDER_FAILURE",
+            error="The grading service couldn't finish this item.",
+            finished_at=timezone.now(),
+        )
+        with self.fake_grading(credits_for=1):
+            for item in self.items[1:]:
+                self.run_item(item)
+        self.assertEqual(
+            self.states(),
+            [
+                (BackgroundTaskStatus.FAILURE, "PROVIDER_FAILURE"),
+                (BackgroundTaskStatus.SUCCESS, ""),
+                (BackgroundTaskStatus.FAILURE, MID),
+                (BackgroundTaskStatus.FAILURE, MID),
+            ],
+        )
+        self.assertTrue(self.stopped())
+        self.graded.clear()
+
+    def states(self):
+        return [
+            (t.status, t.reason_code)
+            for t in (BackgroundProcessingTask.objects.get(pk=i.pk) for i in self.items)
+        ]
+
+    def stopped(self):
+        return BatchUploadSession.objects.filter(
+            pk=self.session.pk, credits_exhausted_at__isnull=False
+        ).exists()
+
+    def inline(self):
+        return patch(
+            "students.item_retry.launch_processing_task", side_effect=run_inline
+        )
+
+    def retry_failed(self, body=None):
+        return self.api.post(
+            reverse("task-retry-failed", kwargs={"session_id": str(self.session.id)}),
+            body or {},
+            format="json",
+        )
+
+    def test_a_provider_failure_retried_after_a_top_up_is_graded(self):
+        with self.fake_grading(credits_for=10), self.inline():
+            response = self.api.post(
+                reverse(
+                    "task-retry-item",
+                    kwargs={
+                        "session_id": str(self.session.id),
+                        "item_id": str(self.items[0].id),
+                    },
+                )
+            )
+        self.assertEqual(response.status_code, 202, response.content[:400])
+        first = BackgroundProcessingTask.objects.get(pk=self.items[0].pk)
+        self.assertEqual(
+            (first.status, first.reason_code), (BackgroundTaskStatus.SUCCESS, "")
+        )
+        self.assertEqual(first.retry_count, 1)
+        self.assertEqual(self.graded, [self.items[0].submission_id])
+        self.assertFalse(self.stopped())
+
+    def test_retry_failed_with_a_lower_index_provider_failure_first_grades_them_all(
+        self,
+    ):
+        # Item 1 (PROVIDER_FAILURE) is launched before item 3 (MID_BATCH),
+        # and inline here, as a fast worker would run it.
+        with self.fake_grading(credits_for=10), self.inline():
+            response = self.retry_failed()
+        self.assertEqual(response.status_code, 202, response.content[:400])
+        self.assertEqual(
+            response.json()["data"]["retried"],
+            [str(self.items[i].id) for i in (0, 2, 3)],
+        )
+        self.assertEqual(self.states(), [(BackgroundTaskStatus.SUCCESS, "")] * 4)
+        self.assertEqual(
+            [
+                BackgroundProcessingTask.objects.get(pk=i.pk).retry_count
+                for i in self.items
+            ],
+            [1, 0, 1, 1],
+        )
+        self.assertFalse(self.stopped())
+
+    def test_a_real_shortfall_after_the_clear_re_marks_and_charges_nothing(self):
+        # No top-up: every retried item is refused again.
+        with self.fake_grading(credits_for=0) as grade, self.inline():
+            response = self.retry_failed()
+        self.assertEqual(response.status_code, 202, response.content[:400])
+        self.assertEqual(self.graded, [])  # nothing graded, nothing charged
+        self.assertEqual(grade.call_count, 3)  # each refused at the credit check
+        self.assertEqual(
+            self.states(),
+            [
+                (BackgroundTaskStatus.FAILURE, MID),
+                (BackgroundTaskStatus.SUCCESS, ""),
+                (BackgroundTaskStatus.FAILURE, MID),
+                (BackgroundTaskStatus.FAILURE, MID),
+            ],
+        )
+        self.assertTrue(self.stopped(), "a real shortfall must stop the batch again")
+        self.assertEqual(self.session_results(self.session.id)["stopped_at_item"], 1)
+
+    def test_a_losing_claim_leaves_the_mark(self):
+        from students.item_retry import ItemNotRetryable, retry_item
+
+        stale = BackgroundProcessingTask.objects.get(pk=self.items[0].pk)
+        # Another retry claimed and finished it in between.
+        BackgroundProcessingTask.objects.filter(pk=stale.pk).update(
+            retry_count=stale.retry_count + 1
+        )
+        with self.inline(), self.assertRaises(ItemNotRetryable):
+            retry_item(stale, self.teacher)
+        self.assertTrue(self.stopped())
 
 
 class AnUploadBatchThatRunsOutOfCredits(MidBatchFixture, TestCase):

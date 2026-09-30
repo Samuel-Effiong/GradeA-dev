@@ -112,7 +112,6 @@ def retry_item(item, requested_by, request=None):
     if refusal is not None:
         raise refusal
 
-    refusal_code = item.reason_code
     # The claim: only a row still in the state that was judged retryable,
     # and still reachable (a removal between the check above and here).
     # Reachability is a subquery on the pk, so the state conditions stay on
@@ -140,8 +139,12 @@ def retry_item(item, requested_by, request=None):
     if not claimed:
         # Another retry (or the item's own worker) got there first.
         raise ItemNotRetryable()
-    if refusal_code == ReasonCode.INSUFFICIENT_CREDITS_MID_BATCH:
-        # S7c: a resume after a top-up lets the batch run again.
+    if item.batch_session_id:
+        # S7c: any retry that won its claim resumes a batch stopped for
+        # credits, whatever this item failed with (a PROVIDER_FAILURE item
+        # retried after a top-up must not be stopped by the old mark). A
+        # real shortfall re-marks it (batch_credit_refusal) before any
+        # charge.
         clear_batch_credit_stop(item.batch_session_id)
     item.refresh_from_db()
 
