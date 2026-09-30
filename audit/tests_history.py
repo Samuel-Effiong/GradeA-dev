@@ -235,6 +235,8 @@ class GradeChangeRouteTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         event = self.the_grade_change()
         self.assertEqual(event.metadata["source"], "save")
+        # The request's own fields ride along, as on any explicit emit.
+        self.assertEqual(event.source_ip, "127.0.0.1")
         self.assertEqual(event.before["score"], "15.00")
         self.assertEqual(event.after["score"], "10.00")
         self.assertEqual(
