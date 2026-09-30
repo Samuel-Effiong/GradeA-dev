@@ -138,3 +138,32 @@ Tests prove these events survive the rollback.
 | 5 Failure | an erroring existence check writes the generic event (test + G4) |
 
 **Note on mypy.** The first mypy run flagged the new test mixin, whose attributes are untyped. It now uses the repo's `_MixinBase` idiom, which is `object` at runtime. `audit.tests_state_change` was re-run after that change: 30 OK.
+
+## R2 fix: only an event naming the requester stands in for the generic one (after v2's REJECTED at f300c6b)
+v2's record is committed verbatim as `VERIFICATION_v2_f300c6b.md`.
+
+**Defect (V1).** A school admin's successful `POST license-subscriptions/<id>/add_teachers` left exactly one event: the teacher's CREDIT_TRANSACTION, whose actor is the wallet owner. Any surviving event suppressed the generic STATE_CHANGE, so nothing named the admin who acted. That is the route plan 08 G1 names as S1's motivating gap.
+
+**N2 (v2's note).** My R1 route trace covered this route's rollback exposure but missed V1 on its success path.
+
+**Fix (the SM-endorsed invariant).**
+- `audit.context.a_surviving_event_names(state, user)`: the generic event is written unless a stored event **still exists and has `actor_id` = the requester** (`pk__in=stored_ids, actor_id=user.pk`).
+- Still fail-safe: an erroring check answers False, so the generic event is written.
+- The middleware passes `request.user`, read after the view, as before.
+
+**Wording.** The S1 guarantee is now **"exactly one event naming the requester"**: their surviving named event, or the generic STATE_CHANGE. Events naming other actors are side effects recorded in addition, not duplicates.
+
+**Tests**
+- `audit/tests_license_admin_attribution.py` (adapted from v2's probe; real JWT and middleware; a plan with a credit grant):
+  - add_teachers: the teacher's CREDIT_TRANSACTION is still there, and exactly one event names the admin (STATE_CHANGE SUCCESS, route `license-subscription-add-teachers`);
+  - remove_teachers: the control.
+- `audit/tests_state_change.py`, in both the savepoint and the real-commit variants:
+  - "an event naming someone else does not stand in": the generic event is written for the requester;
+  - 1a's two-event cases, adopted per v2's N1: first kept/second rolled back, and first rolled back/second kept.
+
+**Mutants.**
+- V1: drop the actor condition.
+- 1a's M4 (last id only), M5 (first id only) and M7 (all ids must survive).
+- G1, G2 and R1 re-anchored onto the new check.
+
+**R2 gates:** _pending_ (runs through 0b, rule 13).

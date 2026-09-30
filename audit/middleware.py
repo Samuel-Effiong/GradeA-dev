@@ -12,11 +12,12 @@ For every request, `AuditMiddleware`:
    with the view instance (`admin_action.REQUEST_ATTR`) because the outcome
    isn't known until the view has run, and the event is written here (see
    `audit/admin_action.py`);
-3. if no event stored during the request still exists (none was stored, or
-   the transaction it was stored in rolled back), writes the generic STATE_CHANGE
+3. if no event stored during the request still exists AND names the
+   requester as actor (none was stored, the transaction it was stored in
+   rolled back, or it names someone else), writes the generic STATE_CHANGE
    event for a state-changing request by an authenticated user
    (`audit/request_audit.py`). So each such request ends with exactly one
-   event: its named one, or this.
+   event naming the requester: its named one, or this.
 
 Registered LAST in MIDDLEWARE (AutoGrader/settings.py): it reads
 `request.user` after the view has run, and DRF's `Request` writes the

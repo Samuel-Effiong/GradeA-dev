@@ -19,12 +19,12 @@ MUTANTS = {
     # --- generic event and exactly-one ---
     "G1_generic_never_written": (
         MW,
-        "            if not a_stored_event_survives(state):\n",
+        '            if not a_surviving_event_names(state, getattr(request, "user", None)):\n',
         "            if False:\n",
     ),
     "G2_generic_always_written": (
         MW,
-        "            if not a_stored_event_survives(state):\n",
+        '            if not a_surviving_event_names(state, getattr(request, "user", None)):\n',
         "            if True:\n",
     ),
     "G3_emitter_does_not_record_the_event": (
@@ -43,8 +43,36 @@ MUTANTS = {
     ),
     "R1_rolled_back_event_still_counts": (
         CTX,
-        "        return AuditEvent.objects.filter(pk__in=state.stored_event_ids).exists()\n",
+        "        return AuditEvent.objects.filter(\n"
+        '            pk__in=state.stored_event_ids, actor_id=getattr(user, "pk", None)\n'
+        "        ).exists()\n",
         "        return True\n",
+    ),
+    # --- R2 (v2's V1): only an event naming the requester stands in ---
+    "V1_any_actor_counts": (
+        CTX,
+        '            pk__in=state.stored_event_ids, actor_id=getattr(user, "pk", None)\n',
+        "            pk__in=state.stored_event_ids\n",
+    ),
+    # 1a's M4 / M5 / M7 (killed only by their two-event cases, now adopted).
+    "M4_last_id_only": (
+        CTX,
+        '            pk__in=state.stored_event_ids, actor_id=getattr(user, "pk", None)\n',
+        '            pk__in=state.stored_event_ids[-1:], actor_id=getattr(user, "pk", None)\n',
+    ),
+    "M5_first_id_only": (
+        CTX,
+        '            pk__in=state.stored_event_ids, actor_id=getattr(user, "pk", None)\n',
+        '            pk__in=state.stored_event_ids[:1], actor_id=getattr(user, "pk", None)\n',
+    ),
+    "M7_all_ids_must_survive": (
+        CTX,
+        "        return AuditEvent.objects.filter(\n"
+        '            pk__in=state.stored_event_ids, actor_id=getattr(user, "pk", None)\n'
+        "        ).exists()\n",
+        "        return AuditEvent.objects.filter(\n"
+        '            pk__in=state.stored_event_ids, actor_id=getattr(user, "pk", None)\n'
+        "        ).count() == len(state.stored_event_ids)\n",
     ),
     "G5_exclusions_ignored": (
         RA,
@@ -172,6 +200,7 @@ MUTANTS = {
 
 TESTS = [
     "audit.tests_state_change",
+    "audit.tests_license_admin_attribution",
     "users.tests_auth_audit_doors",
     "users.tests_auth_audit_events",
     "audit.tests_emitter",

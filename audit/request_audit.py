@@ -3,11 +3,13 @@
 The founder's standard is that every action any user can take is traceable.
 Named events (login, grading, credit, CRUD, roster, upload, admin ...) cover
 the actions FR-A-01 lists; this covers everything else. When an authenticated
-request with a state-changing method finishes and NO event was stored for it
-(`audit.context.RequestAuditState`), `AuditMiddleware` writes exactly one
-STATE_CHANGE event naming the route, method and outcome. Together that is
-FR-A-01's "exactly one well-formed event" for every write, with no per-view
-code, including routes added later.
+request with a state-changing method finishes and no surviving event stored
+for it names the requester as actor (`audit.context.RequestAuditState`),
+`AuditMiddleware` writes exactly one STATE_CHANGE event naming the route,
+method and outcome. Together that is FR-A-01's "exactly one well-formed
+event" naming the requester for every write, with no per-view code,
+including routes added later. Events naming other people (a teacher's credit
+grant during an admin's write) are side effects, recorded in addition.
 
 Never recorded: the request body, the query string or the path itself. The
 route's URL name and the method are enough to say what was done, and the
