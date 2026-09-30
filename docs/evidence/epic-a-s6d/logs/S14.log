@@ -1,0 +1,13 @@
+# S14: the grading failure keeps its cause
+# file: ai_processor/services.py (occurrence 2)
+# old: 'raise provider_failure(last_error, max_retries) from last_error'
+# new: 'raise provider_failure(last_error, max_retries) from None'
+# commit: 3c5aa16c4d0ac96214b835d228787f5c9d4b2889
+# exit: 1
+# elapsed_s: 11.2
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_async_grading_audits_provider_or_model_with_the_code (students.tests_s6d_provider_failure.ProviderFailureTests.test_async_grading_audits_provider_or_model_with_the_code) (failure='timeout')
+FAIL: test_the_grading_failure_keeps_its_cause (students.tests_s6d_provider_failure.ProviderFailureTests.test_the_grading_failure_keeps_its_cause)
+
+FAILED (failures=2, skipped=1)

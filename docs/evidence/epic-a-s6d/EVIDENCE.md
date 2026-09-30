@@ -1,6 +1,6 @@
 # Epic A S6d: the grading gates (FR-A-06 #7, #6 for empty text, #9; F1)
 
-**Branch:** `task/epic-a-s6d`, off the epic tip `4124d73` (S4 and S6c in). Its base is updated by 0b once the CodedError serialization slice lands. **Author:** Hardening (d5). **Verifier:** v2. **Design:** `docs/phase2/architecture/08a_epic_a_s6_s7_reason_codes_and_batch_design.md` §1, §5 (the S6d row), §6.0 (F1, F5), and §6.1 (the final ruling on F6).
+**Branch:** `task/epic-a-s6d`, off the epic tip `4124d73` (S4 and S6c in). Base updates by 0b: epic-a `3d6575c` (`63f47f7`: the CodedError serialization slice and auth-lock) and epic-a `fc52af3` (`fd292d1`: S7a and the bench move; the conflict is resolved below). **Author:** Hardening (d5). **Verifier:** v2. **Design:** `docs/phase2/architecture/08a_epic_a_s6_s7_reason_codes_and_batch_design.md` §1, §5 (the S6d row), §6.0 (F1, F5), and §6.1 (the final ruling on F6).
 
 ## What S6d delivers
 
@@ -10,6 +10,15 @@
 | 2. SUBMISSION_EMPTY for empty text (#6, 422) | A raw-text edit (`PATCH submissions/<id>`, `POST …/update-async`, and the service they and the background task share) whose text is present but empty or whitespace: 422 with the coded envelope, "The submitted text has no student answers to grade.", before the billed extraction. A **missing** `raw_input` field stays a 400 validation error. Empty FILES were S6b's. |
 | 3. PROVIDER_FAILURE (#9, 503 + Retry-After, retryable) | `ai_processor/exceptions.py`. When grading (`extract_grade_with_retry`) or answer extraction (`extract_answer_with_retry`) cannot finish after its retries, it raises `ProviderFailureError` **`from` the last attempt's error**. The grading retry used to raise a bare `Exception` with no `__cause__`, so a grading timeout couldn't be told from a code fault. The synchronous routes (grade; the raw-text edit) answer 503 with `Retry-After: 30` and the coded envelope, with no provider text in the body. The message's credit clause is "The credits were refunded." when the run's refund scope holds a charge (`billing.refunds.charges_in_open_scope`), otherwise "No credits were charged." (F1: a failed call itself is never charged). The async audit event carries `reason_code=PROVIDER_FAILURE`, and is PROVIDER when the cause is a recognised infra failure and MODEL when it is not (unusable output). Assignment extraction and generation are outside S6d. |
 | 4. F1: the extraction refund scope | `upload_answers_engine` now runs its extraction and the submission's save inside one `billing_refund_scope`, as grading and the raw-text edit already did. Every chunk charged (on every outer attempt) is refunded if the upload fails before the submission is persisted. The teacher notification stays outside the scope, so a failed notice never refunds a saved submission. `students/tests_s6d_extraction_refund.py`: a six-page upload whose chunk 2 times out on every attempt, while chunk 1 is charged three times, **nets the ledger to zero**, and says "The credits were refunded."; a successful upload keeps its charges. |
+
+## The merge with S7a (`fd292d1`, the SM's ruling)
+
+S7a (`a52d133`) rewrote batch-grading dispatch into `_dispatch_tracked_grading` (a tracked processing task per item, `item_index` 1..n), exactly where S6d part 1 put the run-time RUBRIC_MISSING re-check. So `assignments/tasks.py` conflicted (4 hunks). The SM ruled:
+
+1. **HTTP routes:** RUBRIC_MISSING is an assignment-level condition, so it gets a whole-request 409 before `_dispatch_tracked_grading`, with **zero** tracked rows, no claim and no charge. That is not S7a's per-item shape. The route checks already did this, and the tests now assert zero tracked rows.
+2. **The run-time re-check** (`grade_batch_async`, `auto_grade_due_assignment`, when the rubric was removed after scheduling): it runs before `_dispatch_tracked_grading`, and records each submission as a refused tracked item in S7a's per-item shape through S7a's `record_refused_item` (`item_index` 1..n, `reason_code` RUBRIC_MISSING, never dispatched). It keeps the legacy results entry that a failed tracked item also gets, and audits `GRADING_FAILED` with the item's id.
+
+The resolution was made and tested in a disposable worktree (d63792f + the merge; 48 OK: `rule15/merge_check_d63792f+fc52af3.log`). 0b applied the three resolved files byte-identical: `assignments/tasks.py`, `students/tests_s6d_rubric_gate.py`, and S7a's `students/tests_batch_item_results.py`, whose fixture question gained a `model_answer` (1a agreed) or the gate would refuse its batch tests. 1a (S7a's author) also agreed the S7c boundary: S7c's credits check runs first in `grade_engine_async`, then this gate inside `grade_engine`.
 
 ## Behaviour change: the 4-point record (part 2)
 
@@ -50,3 +59,42 @@ Dev runs, each under `systemd-run` MemoryMax=6G, `nice -n 10` and `timeout`, wit
 | Part 2: those two modules after the assertion update | 21 ran, OK | `c2_recheck.log` |
 | Parts 3 and 4: the 40 modules that reach the changed code, plus the repo-wide guards (rule 15 addendum 2: `tests_no_wildcard_invalidation`, `tests_cache_invalidation_coverage`, `tests_migration_rollback_defaults`, `audit.tests_history_guard`, `audit.tests_route_coverage`) | 570 ran, **5 not passing**: 4 errors were my two audit tests deleting `AuditEvent` rows, which the append-only model refuses (they now assert only on new events); 1 was the wildcard guard naming `audit/bench_volume.py`, the epic base's known S8 harness issue (ed's `47b21e1` moves it; not S6d) | `c34_modules.log` |
 | The two audit-test modules after the fix | 14 ran, OK | `c34_recheck.log` |
+
+## Rule 15: the author's gates (at `3c5aa16`, after the S7a merge)
+
+| Run | Result | Log |
+|---|---|---|
+| Changed modules after the merge: the repo-wide guards (addendum 2: `tests_no_wildcard_invalidation`, `tests_cache_invalidation_coverage`, `tests_migration_rollback_defaults`, `audit.tests_history_guard`, `audit.tests_route_coverage`), the four S6d modules, S7a's `tests_batch_item_results` and `tests_grading_audit_events` | **105 ran, OK**; the wildcard guard is green with the bench move | `rule15/guards_and_s6d_3c5aa16.log` |
+| Mutation battery (`run_mutants.py`): 17 mutants, then S11b | **16 of 17 killed** at `3c5aa16`; S11b (added at `5eea559`) killed. **17 of 18, with one equivalent** | `rule15/mutation_battery_3c5aa16.log`, `rule15/mutation_S11b_5eea559.log`, `results.tsv`, `logs/` |
+| **ONE owning-app regression: `students`** (it owns `grade_engine`, the gates, the upload/extraction service and both S6d route sets; the `ai_processor`, `assignments` and `billing` changes are covered by the dev runs' 40 modules) | **311 ran, OK** (1 skipped, pre-existing) | `rule15/app_students_3c5aa16.log` |
+
+**The equivalent mutant.** S11 removes the empty-text check from the PATCH route. The shared service (`update_submission_from_raw_text`) raises the same SUBMISSION_EMPTY before any extraction or charge, and the route turns it into the same coded 422, so nothing observable changes; the route check is defence in depth there. On `update-async`, the route check is what stops a task being queued: S11b removes it and is killed.
+
+| Mutant | Guard | Result |
+|---|---|---|
+| S01 | grade_engine refuses before the claim | KILLED (FAILED (failures=16, skipped=1)) |
+| S02 | a model answer is a marking guide | KILLED (FAILED (failures=8, skipped=1)) |
+| S03 | ANY question without a guide is missing | KILLED (FAILED (failures=6, skipped=1)) |
+| S04 | a one-level rubric is a guide | KILLED (FAILED (failures=2, skipped=1)) |
+| S05 | grade-async refuses before queuing | KILLED (FAILED (failures=12, skipped=1)) |
+| S06 | schedule-grade-async refuses before scheduling | KILLED (FAILED (failures=9, skipped=1)) |
+| S07 | grade-all refuses before queuing | KILLED (FAILED (failures=6, skipped=1)) |
+| S08 | schedule-grade-all refuses before scheduling | KILLED (FAILED (failures=3, skipped=1)) |
+| S09 | a scheduled batch re-checks at run time | KILLED (FAILED (failures=1, skipped=1)) |
+| S17 | a run-time refusal records S7a's coded tracked item | KILLED (FAILED (errors=2, skipped=1)) |
+| S10 | auto-grade re-checks at run time | KILLED (FAILED (failures=1, skipped=1)) |
+| S11 | empty text is SUBMISSION_EMPTY at the route | **SURVIVED**: an equivalent mutant (below) |
+| S12 | the service refuses empty text as SUBMISSION_EMPTY | KILLED (FAILED (errors=3, skipped=1)) |
+| S13 | the credit clause says refunded when a charge is in scope | KILLED (FAILED (failures=2, skipped=1)) |
+| S14 | the grading failure keeps its cause | KILLED (FAILED (failures=2, skipped=1)) |
+| S15 | an upload's chunk charges are refunded (F1) | KILLED (FAILED (failures=1, skipped=1)) |
+| S16 | a non-infra provider failure is MODEL | KILLED (FAILED (failures=1, skipped=1)) |
+| S11b | update-async refuses empty text before queuing | KILLED (FAILED (failures=5, skipped=1)) |
+
+## For the verifier (v2)
+
+- **The S7a merge** (`fd292d1`): check the remerge diff and both behaviours (the 409 with zero tracked rows; the run-time coded items).
+- **F5's definition:** a model answer counts as a marking guide (the SM confirmed; the founder is told).
+- **Behaviour changes** carrying 4-point records: whitespace text 400 → 422; exhausted retries give a coded PROVIDER_FAILURE (the old text is now in `detail`); the credits/plan refusals' audit class MODEL → USER.
+- **Not in S6d, by the founder's final ruling:** blank-answer detection; a free manual 0 (`update-grade`).
+- **Epic-base items, not S6d:** the bench wildcard (fixed by ed's move, and green here).
