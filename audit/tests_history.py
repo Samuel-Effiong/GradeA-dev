@@ -597,7 +597,10 @@ class PermissionChangeTests(APITestCase):
         )
 
     def assert_own_activation(self, user):
-        flip = events(AuditAction.PERMISSION_CHANGE).get(target_id=user.id)
+        # The activation save; a privileged invitee also has its create event.
+        flip = events(AuditAction.PERMISSION_CHANGE).get(
+            target_id=user.id, metadata__source="save"
+        )
         self.assertEqual(flip.actor_id, user.id)
         self.assertEqual(
             (flip.before["is_active"], flip.after["is_active"]), (False, True)

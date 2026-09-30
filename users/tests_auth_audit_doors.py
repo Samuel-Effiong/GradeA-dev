@@ -59,7 +59,9 @@ class DoorBase(APITestCase):
         else). Updated on purpose for Epic A S4: a privileged account made in
         setUp leaves its own history create event, which is not the
         request's."""
-        requested = AuditEvent.objects.exclude(metadata__source="create")
+        # `contains`, not `metadata__source=`: a key lookup is NULL on an
+        # event without the key, and exclude() would drop those too.
+        requested = AuditEvent.objects.exclude(metadata__contains={"source": "create"})
         self.assertEqual(requested.count(), 1)
         return requested.get()
 
