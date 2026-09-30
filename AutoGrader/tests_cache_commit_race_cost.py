@@ -70,7 +70,10 @@ User = get_user_model()
 # default is capped because a per-classmate fan-out, which stage 3 had until
 # cc14bb0, turned 6,000 into a 19-hour run that nothing stopped. The
 # per-row assertions hold at any size.
-SINGLE_TRANSACTION_STUDENTS = int(os.environ.get("RACE_COST_ENROLLMENTS", 600))
+DEFAULT_SINGLE_TRANSACTION_STUDENTS = 600
+SINGLE_TRANSACTION_STUDENTS = int(
+    os.environ.get("RACE_COST_ENROLLMENTS", DEFAULT_SINGLE_TRANSACTION_STUDENTS)
+)
 ROSTER_IMPORT_ROWS = int(os.environ.get("RACE_COST_ROWS", 2000))
 # Wall-clock budget per test, in seconds. A test over budget fails with
 # the budget in its message instead of hanging the run: a cost regression
@@ -547,3 +550,15 @@ class WallClockBudgetTests(SimpleTestCase):
         with wall_clock_budget(5):
             pass
         self.assertEqual(signal.alarm(0), 0)
+
+
+class CappedScaleDefaultTests(SimpleTestCase):
+    def test_the_single_transaction_scale_defaults_to_600_at_most(self):
+        """6,000 is opt-in. It costs little memory (about 244 MB), so a
+        default set back to 6,000 would pass every other assertion here and
+        be caught only by the 900 s budget, 15 minutes into the run."""
+        self.assertLessEqual(DEFAULT_SINGLE_TRANSACTION_STUDENTS, 600)
+        if "RACE_COST_ENROLLMENTS" not in os.environ:
+            self.assertEqual(
+                SINGLE_TRANSACTION_STUDENTS, DEFAULT_SINGLE_TRANSACTION_STUDENTS
+            )
