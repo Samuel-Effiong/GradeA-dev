@@ -280,6 +280,11 @@ class BatchUploadSession(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     total_files = models.IntegerField(default=0)
+    # FR-A-07 (S7c, 08a §4.5): set when credits run out mid-batch. Items
+    # still to run check it before any provider call and stop, uncharged,
+    # with INSUFFICIENT_CREDITS_MID_BATCH; a resume (S7b retry) clears it.
+    # Nullable, so a code-only rollback still inserts sessions (H-56).
+    credits_exhausted_at = models.DateTimeField(null=True, blank=True)
 
     results = models.JSONField(default=list)
 
