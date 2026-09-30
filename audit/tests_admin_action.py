@@ -138,7 +138,7 @@ class AutomaticCoverageTests(_Users):
         self.assertEqual(AuditEvent.objects.count(), 1)
         event = AuditEvent.objects.get()
         self.assertEqual(event.outcome, "DENIED")
-        self.assertEqual(event.actor_role, "SYSTEM")
+        self.assertEqual(event.actor_role, "ANONYMOUS")
 
     def test_a_view_defining_get_audit_target_is_honoured(self):
         target_id = uuid.uuid4()

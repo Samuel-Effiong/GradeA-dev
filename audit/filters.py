@@ -24,6 +24,9 @@ class _BaseAuditEventFilter(django_filters.FilterSet):
     )
     actor_role = django_filters.ChoiceFilter(choices=ActorRole.choices)
     outcome = django_filters.ChoiceFilter(choices=AuditOutcome.choices)
+    # Plan 08 D1: a STATE_CHANGE event names its route in metadata, so the
+    # route is searchable without widening the closed action vocabulary.
+    route = django_filters.CharFilter(field_name="metadata__route")
 
     class Meta:
         model = AuditEvent

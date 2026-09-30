@@ -15,11 +15,11 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
-from rest_framework_simplejwt.tokens import RefreshToken
 
 from audit.enums import ActorRole, AuditAction, AuditOutcome, ErrorClass
 from audit.models import AuditEvent
 from users.models import UserTypes
+from users.tokens import EpochRefreshToken
 
 User = get_user_model()
 
@@ -81,6 +81,9 @@ class LoginAuditEventTests(APITestCase):
         self.assertEqual(event.error_class, ErrorClass.USER)
         self.assertEqual(event.reason_code, "WRONG_PASSWORD")
         self.assertEqual(event.target_id, self.user.id)
+        # SM ruling: the account holder is the target, never the actor.
+        self.assertEqual(event.actor_role, ActorRole.ANONYMOUS)
+        self.assertIsNone(event.actor_id)
 
     def test_an_unknown_email_emits_exactly_one_failure_event_with_no_target(self):
         response = self.client.post(
@@ -114,6 +117,8 @@ class LoginAuditEventTests(APITestCase):
         self.assertEqual(event.error_class, ErrorClass.USER)
         self.assertEqual(event.reason_code, "ACCOUNT_LOCKED")
         self.assertEqual(event.target_id, self.user.id)
+        self.assertEqual(event.actor_role, ActorRole.ANONYMOUS)
+        self.assertIsNone(event.actor_id)
 
 
 @override_settings(CACHES=LOCMEM_CACHE)
@@ -126,7 +131,7 @@ class LogoutAuditEventTests(APITestCase):
         self.url = reverse("auth-logout")
 
     def test_a_successful_logout_emits_exactly_one_success_event(self):
-        refresh = RefreshToken.for_user(self.user)
+        refresh = EpochRefreshToken.for_user(self.user)
 
         response = self.client.post(self.url, {"refresh": str(refresh)}, format="json")
 
@@ -141,7 +146,7 @@ class LogoutAuditEventTests(APITestCase):
         self.assertEqual(event.target_id, self.user.id)
 
     def test_a_successful_logout_revokes_sessions_before_recording_success(self):
-        refresh = RefreshToken.for_user(self.user)
+        refresh = EpochRefreshToken.for_user(self.user)
         epoch_before = self.user.token_epoch
 
         self.client.post(self.url, {"refresh": str(refresh)}, format="json")
@@ -155,7 +160,7 @@ class LogoutAuditEventTests(APITestCase):
         )
 
     def test_a_failed_session_revocation_is_recorded_as_a_failure_not_success(self):
-        refresh = RefreshToken.for_user(self.user)
+        refresh = EpochRefreshToken.for_user(self.user)
         self.client.raise_request_exception = False
 
         with patch.object(

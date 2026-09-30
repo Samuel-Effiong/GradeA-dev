@@ -1,0 +1,263 @@
+{
+  "G1_generic_never_written": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_failed_named_event_falls_back_to_the_generic_one",
+      "test_a_failed_write_records_one_failure",
+      "test_a_missing_target_records_its_id_from_the_url",
+      "test_a_plain_write_with_no_named_event_records_one_state_change",
+      "test_a_refused_write_records_one_denied",
+      "test_a_rolled_back_named_event_leaves_exactly_the_generic_one",
+      "test_a_students_write_is_a_student_record_without_address_or_email",
+      "test_add_teachers_names_the_admin_and_keeps_the_teachers_credit_grant",
+      "test_an_event_naming_someone_else_does_not_stand_in",
+      "test_remove_teachers_names_the_admin",
+      "test_the_request_body_is_never_recorded",
+      "test_the_route_is_searchable_through_the_query_api"
+    ]
+  },
+  "G2_generic_always_written": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_denied_superadmin_route_records_only_its_admin_action",
+      "test_a_route_with_a_named_event_records_only_that_event",
+      "test_a_superadmin_write_records_only_its_admin_action",
+      "test_a_surviving_named_event_is_the_only_one",
+      "test_success",
+      "test_the_first_event_is_rolled_back_and_the_second_survives",
+      "test_the_first_event_survives_and_the_second_is_rolled_back",
+      "test_wrong_current_password_is_one_event_not_two"
+    ]
+  },
+  "G3_emitter_does_not_record_the_event": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_denied_superadmin_route_records_only_its_admin_action",
+      "test_a_route_with_a_named_event_records_only_that_event",
+      "test_a_superadmin_write_records_only_its_admin_action",
+      "test_a_surviving_named_event_is_the_only_one",
+      "test_success",
+      "test_the_first_event_is_rolled_back_and_the_second_survives",
+      "test_the_first_event_survives_and_the_second_is_rolled_back",
+      "test_wrong_current_password_is_one_event_not_two"
+    ]
+  },
+  "G4_survival_check_fails_unsafe": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_failing_existence_check_writes_the_generic_event"
+    ]
+  },
+  "R1_rolled_back_event_still_counts": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_failing_existence_check_writes_the_generic_event",
+      "test_a_rolled_back_named_event_leaves_exactly_the_generic_one",
+      "test_add_teachers_names_the_admin_and_keeps_the_teachers_credit_grant",
+      "test_an_event_naming_someone_else_does_not_stand_in"
+    ]
+  },
+  "V1_any_actor_counts": {
+    "killed": true,
+    "failing_tests": [
+      "test_add_teachers_names_the_admin_and_keeps_the_teachers_credit_grant",
+      "test_an_event_naming_someone_else_does_not_stand_in"
+    ]
+  },
+  "M4_last_id_only": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_first_event_survives_and_the_second_is_rolled_back"
+    ]
+  },
+  "M5_first_id_only": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_first_event_is_rolled_back_and_the_second_survives"
+    ]
+  },
+  "M7_all_ids_must_survive": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_first_event_is_rolled_back_and_the_second_survives",
+      "test_the_first_event_survives_and_the_second_is_rolled_back"
+    ]
+  },
+  "G5_exclusions_ignored": {
+    "killed": true,
+    "failing_tests": [
+      "test_an_excluded_route_records_nothing"
+    ]
+  },
+  "G6_reads_recorded": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_read_records_nothing"
+    ]
+  },
+  "G7_anonymous_recorded": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_deactivated_account_is_denied_and_named",
+      "test_a_failure_is_scoped_to_the_targets_school",
+      "test_an_anonymous_write_records_nothing",
+      "test_expired_code",
+      "test_google_unreachable_is_a_provider_failure",
+      "test_locked_is_denied",
+      "test_school_admin_bad_code_survives_the_rollback",
+      "test_school_admin_invitation_success",
+      "test_student_invitation_bad_code_survives_the_rollback",
+      "test_success",
+      "test_success_for_an_existing_account",
+      "test_superadmin_can_filter_anonymous_events",
+      "test_unknown_email",
+      "test_unknown_email_stores_no_account_and_no_email",
+      "test_unverified_google_email",
+      "test_wrong_code",
+      "test_wrong_code_names_the_account"
+    ]
+  },
+  "G8_throttled_recorded": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_throttled_request_is_not_recorded"
+    ]
+  },
+  "G9_student_write_not_student_record": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_students_write_is_a_student_record_without_address_or_email"
+    ]
+  },
+  "G10_request_state_leaks": {
+    "killed": true,
+    "failing_tests": [
+      "test_marking_outside_a_request_is_a_no_op",
+      "test_state_is_per_request_and_restored_on_exception"
+    ]
+  },
+  "G11_route_not_recorded": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_missing_target_records_its_id_from_the_url",
+      "test_a_plain_write_with_no_named_event_records_one_state_change",
+      "test_add_teachers_names_the_admin_and_keeps_the_teachers_credit_grant",
+      "test_the_route_is_searchable_through_the_query_api"
+    ]
+  },
+  "G12_route_filter_removed": {
+    "killed": true,
+    "failing_tests": [
+      "test_the_route_is_searchable_through_the_query_api"
+    ]
+  },
+  "A1_verify_success_not_recorded": {
+    "killed": true,
+    "failing_tests": [
+      "test_success"
+    ]
+  },
+  "A2_verify_wrong_code_not_recorded": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_failure_is_scoped_to_the_targets_school",
+      "test_wrong_code_names_the_account"
+    ]
+  },
+  "A3_reset_lock_not_denied": {
+    "killed": true,
+    "failing_tests": [
+      "test_locked_is_denied"
+    ]
+  },
+  "A4_school_admin_failure_dropped": {
+    "killed": true,
+    "failing_tests": [
+      "test_school_admin_bad_code_survives_the_rollback"
+    ]
+  },
+  "A5_google_failure_not_recorded": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_deactivated_account_is_denied_and_named",
+      "test_google_unreachable_is_a_provider_failure",
+      "test_unverified_google_email"
+    ]
+  },
+  "A6_google_deactivated_account_not_named": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_deactivated_account_is_denied_and_named"
+    ]
+  },
+  "A7_google_exchange_not_a_provider_failure": {
+    "killed": true,
+    "failing_tests": [
+      "test_google_unreachable_is_a_provider_failure"
+    ]
+  },
+  "A8_change_password_wrong_password_not_recorded": {
+    "killed": true,
+    "failing_tests": [
+      "test_wrong_current_password_is_one_event_not_two"
+    ]
+  },
+  "A9_door_failure_names_the_account_holder": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_deactivated_account_is_denied_and_named",
+      "test_expired_code",
+      "test_google_unreachable_is_a_provider_failure",
+      "test_locked_is_denied",
+      "test_school_admin_bad_code_survives_the_rollback",
+      "test_student_invitation_bad_code_survives_the_rollback",
+      "test_unknown_email",
+      "test_unknown_email_stores_no_account_and_no_email",
+      "test_unverified_google_email",
+      "test_wrong_code",
+      "test_wrong_code_names_the_account"
+    ]
+  },
+  "A10_anonymous_recorded_as_system": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_deactivated_account_is_denied_and_named",
+      "test_a_failure_is_anonymous_and_carries_the_targets_school",
+      "test_a_locked_account_emits_exactly_one_denied_event_and_never_checks_the_password",
+      "test_a_wrong_password_emits_exactly_one_failure_event",
+      "test_an_anonymous_visitor_is_recorded_as_no_identity",
+      "test_expired_code",
+      "test_google_unreachable_is_a_provider_failure",
+      "test_locked_is_denied",
+      "test_school_admin_bad_code_survives_the_rollback",
+      "test_student_invitation_bad_code_survives_the_rollback",
+      "test_superadmin_can_filter_anonymous_events",
+      "test_unknown_email",
+      "test_unknown_email_stores_no_account_and_no_email",
+      "test_unverified_google_email",
+      "test_wrong_code",
+      "test_wrong_code_names_the_account"
+    ]
+  },
+  "A11_login_failure_names_the_account_holder": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_failure_is_anonymous_and_carries_the_targets_school",
+      "test_a_wrong_password_emits_exactly_one_failure_event",
+      "test_superadmin_can_filter_anonymous_events"
+    ]
+  },
+  "A12_login_failure_not_scoped_to_the_target_school": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_failure_is_anonymous_and_carries_the_targets_school",
+      "test_school_admin_sees_attempts_on_its_own_accounts"
+    ]
+  },
+  "A13_door_failure_not_scoped_to_the_target_school": {
+    "killed": true,
+    "failing_tests": [
+      "test_a_failure_is_scoped_to_the_targets_school"
+    ]
+  }
+}
