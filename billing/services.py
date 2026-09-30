@@ -597,7 +597,9 @@ class SubscriptionService:
             bucket_type=CreditBucketType.MONTHLY,
             total_credits=new_plan.monthly_credits,
             used_credits=0,
-            expires_at=new_bucket_expiry,
+            # A grace past the next grant's due time (billing/refresh_timing.py);
+            # for a MONTHLY plan both are billing_cycle_end, so nothing changes.
+            expires_at=grace_expiry(new_bucket_expiry, user_sub.billing_cycle_end),
         )
 
         CreditLedger.record(

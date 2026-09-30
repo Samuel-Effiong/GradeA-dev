@@ -172,6 +172,14 @@ MUTANTS = [
         1,
     ),
     (
+        "R19",
+        "immediate plan change: bucket grace",
+        SV,
+        "expires_at=grace_expiry(new_bucket_expiry, user_sub.billing_cycle_end),",
+        "expires_at=new_bucket_expiry,",
+        1,
+    ),
+    (
         "R18",
         "cleanup: an overdue refresh is logged",
         TK,

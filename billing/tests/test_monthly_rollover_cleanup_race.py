@@ -556,6 +556,35 @@ class FirstMonthGraceTests(TestCase):
             sub.next_credit_grant_at + MONTHLY_BUCKET_GRACE,
         )
 
+    def test_an_annual_immediate_plan_change_gets_the_grace(self):
+        from billing.refresh_timing import MONTHLY_BUCKET_GRACE
+
+        sub = SubscriptionService.activate_subscription(self.user, make_annual_plan())
+        bigger = SubscriptionPlan.objects.create(
+            name=PlanType.PRO_ANNUAL,
+            display_name="Pro Annual",
+            category=PlanCategory.INDIVIDUAL,
+            tier=PlanTier.PRO,
+            interval=BillingInterval.ANNUAL,
+            price_cents=149_900,
+            monthly_credits=MONTHLY_CREDITS * 2,
+            carry_over_percent=CARRY_PERCENT,
+            carry_over_expiry_months=6,
+            max_bank=None,
+            is_active=True,
+        )
+        SubscriptionService.apply_immediate_plan_change(sub, bigger)
+
+        sub.refresh_from_db()
+        [bucket] = CreditBucket.objects.filter(
+            wallet__user=self.user,
+            bucket_type=CreditBucketType.MONTHLY,
+            is_processed=False,
+        )
+        self.assertEqual(
+            bucket.expires_at, sub.next_credit_grant_at + MONTHLY_BUCKET_GRACE
+        )
+
     def test_a_monthly_activation_is_unchanged(self):
         sub = SubscriptionService.activate_subscription(
             self.user, make_individual_plan()
