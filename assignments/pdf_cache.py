@@ -41,6 +41,7 @@ single-flight the first caller renders and the rest wait for its result.
 
 import logging
 import threading
+from datetime import datetime
 
 from django.conf import settings
 from django.core.cache import cache
@@ -50,11 +51,11 @@ logger = logging.getLogger(__name__)
 # Deliberately OUTSIDE the "assignments:" namespace.
 #
 # "assignments:*" belongs to the per-user DRF list/retrieve JSON that
-# users/mixins.py UserCacheMixin stores, and seven modules sweep it with
-# delete_pattern on every save of an Assignment, Course, Session, Topic,
-# StudentCourse or StudentSubmission. That sweep is correct for those
-# entries: they are keyed by user + query params only, so nothing in the
-# key can tell you they went stale.
+# users/mixins.py UserCacheMixin stores. Until H-1 step 4 seven modules
+# swept it with delete_pattern on every save of an Assignment, Course,
+# Session, Topic, StudentCourse or StudentSubmission; those entries are now
+# generation-versioned and the sweep is gone, but this prefix still keeps
+# the two families apart.
 #
 # A rendered PDF is the opposite kind of entry. Its key carries the
 # assignment's own updated_at, so a superseded render can never be read
@@ -95,14 +96,13 @@ def _max_bytes():
 
 
 def build_cache_key(assignment, view_type: str) -> str:
-    # updated_at can be None for an in-memory instance that was never
-    # saved; such an assignment has no stable identity to cache against,
-    # so fall back to a literal that simply never matches a stored entry.
-    stamp = (
-        assignment.updated_at.isoformat()
-        if getattr(assignment, "updated_at", None)
-        else "unsaved"
-    )
+    # An in-memory instance that was never saved has no stable identity to
+    # cache against, so it falls back to a literal that never matches a
+    # stored entry. Its updated_at is not a datetime: None, or, since H-56
+    # gave the column db_default=Now(), Django's DatabaseDefault placeholder
+    # (which is truthy, so a plain truth test is not enough).
+    updated_at = getattr(assignment, "updated_at", None)
+    stamp = updated_at.isoformat() if isinstance(updated_at, datetime) else "unsaved"
     return f"{CACHE_KEY_PREFIX}:{CACHE_VERSION}:{assignment.id}:{view_type}:{stamp}"
 
 
@@ -155,7 +155,9 @@ def invalidate_assignment_pdfs(assignment_id) -> None:
     answers included) would outlive the row itself.
 
     Scoped to `assignment_id`, which is the whole point: the wildcard this
-    replaces took out every other assignment's PDFs as collateral. The
+    replaced took out every other assignment's PDFs as collateral. This is
+    the ONE pattern delete H-1 kept (plan section 2), and the allowlisted
+    exception in AutoGrader/tests_no_wildcard_invalidation.py. The
     view type and timestamp are what the trailing "*" covers, so both
     views and every superseded render of this one assignment go together.
 

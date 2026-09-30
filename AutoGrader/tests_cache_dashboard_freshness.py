@@ -23,8 +23,6 @@ Real Redis + real Postgres, per the H-1 verification gate. `TransactionTestCase`
 because the signal receivers that bump generations run on commit paths.
 """
 
-from unittest.mock import patch
-
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.test import TransactionTestCase, override_settings
@@ -316,10 +314,11 @@ class DashboardCrossTenantAndFailureTests(TransactionTestCase):
             "a cache-generation failure rolled back the assignment",
         )
 
-    def test_the_legacy_wildcards_cannot_destroy_a_school_generation(self):
+    def test_no_live_pattern_delete_can_destroy_a_school_generation(self):
         """Coexistence guard, at the dashboard level.
 
-        The counters must survive a full legacy sweep - a destroyed counter
+        The counters must survive every pattern delete production still
+        issues (since H-1 step 4, only the PDF clear) - a destroyed counter
         resets the generation and makes superseded dashboard entries
         readable again.
         """
@@ -336,63 +335,40 @@ class DashboardCrossTenantAndFailureTests(TransactionTestCase):
         self.assertEqual(
             get_generation(SCOPE_SCHOOL, self.school_a.id),
             expected,
-            "a legacy wildcard sweep reset the school generation",
+            "a pattern delete reset the school generation",
         )
 
 
 @override_settings(CACHES=REDIS_CACHE)
-class LegacyDisabledFreshnessTests(DashboardFreshnessBase):
-    """Families 30-33 with the LEGACY mechanism switched off.
+class GenerationOnlyFreshnessTests(DashboardFreshnessBase):
+    """Families 30-33 with no wildcard mechanism at all.
 
     Why this class exists, and it is the most important one in the file.
 
-    While both mechanisms run, a freshness test cannot tell you WHICH one
-    refreshed the data. These four keys are now named
+    While both mechanisms ran, a freshness test could not tell WHICH one
+    refreshed the data. These four keys are named
     `dashboards:school_id__<id>:...`, which contains the substring "school",
     so the legacy `delete_pattern("*school*")` fired by `clear_user_cache`
-    and `clear_course_cache` still sweeps them. Measured directly: with the
+    and `clear_course_cache` swept them. Measured directly: with the
     generation deliberately removed from the teacher-detail key, a teacher
     rename STILL refreshed the response - the legacy sweep had deleted the
     entry. The test passed while proving nothing about the new mechanism.
 
-    So these tests neutralise `delete_cache_patterns` and require the
-    generation counters to carry the freshness guarantee alone. That is
-    precisely the state stage 3 creates permanently, which makes this class
-    the de-risking evidence for stage 3 as well as the honest proof for
-    stage 2.
+    So until H-1 step 4 these tests patched `delete_cache_patterns` out of
+    every signal module. Step 4 deleted it, so they now run against the
+    real code and the generation counters carry the guarantee alone.
     """
 
-    def setUp(self):
-        super().setUp()
-        # Patch every module that holds a reference to the helper. Patching
-        # one leaves the others live and silently restores the masking.
-        self._patches = [
-            patch(f"{module}.delete_cache_patterns", lambda *a, **k: None)
-            for module in (
-                "classrooms.signals",
-                "users.signals",
-                "students.signals",
-                "assignments.signals",
-            )
-        ]
-        for p in self._patches:
-            p.start()
-        self.addCleanup(self._stop_patches)
-
-    def _stop_patches(self):
-        for p in self._patches:
-            p.stop()
-
-    def test_the_legacy_mechanism_really_is_disabled(self):
-        """Guard on the guard: if the patch missed, every test below would
-        be masked exactly as before and would prove nothing."""
+    def test_no_wildcard_sweep_runs_on_a_mutation(self):
+        """Formerly the guard on the patch: if a sweep still ran, every test
+        below would be masked exactly as before and would prove nothing."""
         cache.set("courses:user_id__sentinel:query__x", "cached", 300)
         self.teacher.first_name = "Trigger"
         self.teacher.save(update_fields=["first_name"])
         self.assertEqual(
             cache.get("courses:user_id__sentinel:query__x"),
             "cached",
-            "a legacy wildcard sweep still ran - the patch did not take",
+            "a wildcard sweep ran on a user save",
         )
 
     def test_teacher_performance_refreshes_on_generation_alone(self):
@@ -509,8 +485,9 @@ class SubmissionBumpIsLoadBearingTests(DashboardFreshnessBase):
     protects is not observable in families 30-33's payloads, and inventing a
     freshness assertion against them would be testing the wrong thing.
 
-    When families 8 and 12 are proved with the legacy mechanism disabled,
-    this link gets its freshness test and this class can be reduced.
+    Families 8 and 12 are now proved with no wildcard mechanism at all
+    (H-1 Stage 3 P1/G3 matrices and step 4), so this link has its freshness
+    test there; this class is kept as the generation-level check.
     """
 
     def test_an_ungraded_submission_bumps_the_school_generation(self):

@@ -1,0 +1,20 @@
+users.tests_mailerlite_sync.MailerLiteServiceTests.test_an_unconfigured_group_id_is_omitted_rather_than_sent_empty ... ok
+users.tests_mailerlite_sync.MailerLiteServiceTests.test_each_user_type_is_sent_to_its_own_group ... ok
+users.tests_mailerlite_sync.MailerLiteServiceTests.test_payload_carries_the_subscription_fields ... ok
+users.tests_mailerlite_sync.MailerLiteServiceTests.test_request_carries_a_timeout ... ok
+users.tests_mailerlite_sync.MailerLiteServiceTests.test_request_targets_the_api_with_a_bearer_token ... ok
+users.tests_mailerlite_sync.MailerLiteServiceTests.test_returns_false_on_a_non_2xx_response ... ok
+users.tests_mailerlite_sync.MailerLiteServiceTests.test_returns_false_on_request_failure_so_the_task_can_retry ... ok
+users.tests_mailerlite_sync.MailerLiteServiceTests.test_returns_none_and_makes_no_call_without_an_api_key ... ok
+users.tests_mailerlite_sync.MailerLiteServiceTests.test_returns_true_on_success ... ok
+users.tests_mailerlite_sync.MailerLiteServiceTests.test_super_admin_has_no_group_and_the_key_is_omitted ... ok
+users.tests_mailerlite_sync.QueueSyncBrokerOutageTests.test_an_active_user_is_queued ... ok
+users.tests_mailerlite_sync.QueueSyncBrokerOutageTests.test_an_inactive_user_is_never_queued ... ok
+users.tests_mailerlite_sync.QueueSyncBrokerOutageTests.test_broker_outage_does_not_propagate_to_the_caller ... ok
+users.tests_mailerlite_sync.SyncUserToMailerliteTaskTests.test_a_deleted_user_is_logged_and_dropped_not_retried ... ok
+users.tests_mailerlite_sync.SyncUserToMailerliteTaskTests.test_a_failed_sync_is_retried ... ok
+users.tests_mailerlite_sync.SyncUserToMailerliteTaskTests.test_a_skipped_sync_is_not_retried ... ok
+users.tests_mailerlite_sync.SyncUserToMailerliteTaskTests.test_a_successful_sync_runs_once ... ok
+users.tests_mailerlite_sync.SyncUserToMailerliteTaskTests.test_retries_stop_at_max_retries ... ok
+Ran 18 tests in 0.616s
+OK

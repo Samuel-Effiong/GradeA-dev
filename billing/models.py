@@ -620,6 +620,7 @@ class CreditWallet(models.Model):
     # really cost us; hiding it would make the ledger lie.
     dispute_deficit_credits = models.PositiveIntegerField(
         default=0,
+        db_default=0,
         help_text=(
             "Credits owed back after a lost chargeback that were already "
             "consumed and so could not be reclaimed from a bucket."
@@ -633,6 +634,7 @@ class CreditWallet(models.Model):
     # identical. See billing/payment_refunds.py.
     refund_deficit_credits = models.PositiveIntegerField(
         default=0,
+        db_default=0,
         help_text=(
             "Credits owed back after a refund that were already consumed "
             "and so could not be reclaimed from a bucket."
@@ -645,6 +647,7 @@ class CreditWallet(models.Model):
     # clear each other's block.
     is_consumption_blocked = models.BooleanField(
         default=False,
+        db_default=False,
         help_text=(
             "Blocks further credit consumption while an unsettled dispute "
             "or refund deficit exists. Cleared by hand once the account is "
@@ -2299,6 +2302,7 @@ class StripeEvent(models.Model):
     )
     recovery_attempts = models.PositiveIntegerField(
         default=0,
+        db_default=0,
         help_text=_(
             "How many times the sweeper has re-dispatched this event after "
             "a worker abandoned its claim. Capped, so a task that dies the "
@@ -2676,7 +2680,11 @@ class PaymentDispute(models.Model):
     #: answer there, being one teacher at best and null for a license
     #: payment. Without this, a won chargeback would leave teachers
     #: permanently unable to spend.
-    deficit_by_wallet = models.JSONField(default=dict, blank=True)
+    deficit_by_wallet = models.JSONField(
+        default=dict,
+        blank=True,
+        db_default=models.Value({}, output_field=models.JSONField()),
+    )
 
     opened_at = models.DateTimeField(null=True, blank=True)
     closed_at = models.DateTimeField(null=True, blank=True)
@@ -2997,7 +3005,7 @@ class PriceReconciliationRun(models.Model):
     plans_checked = models.PositiveIntegerField(default=0)
     prices_checked = models.PositiveIntegerField(default=0)
     matched_count = models.PositiveIntegerField(default=0)
-    synced_count = models.PositiveIntegerField(default=0)
+    synced_count = models.PositiveIntegerField(default=0, db_default=0)
     alert_count = models.PositiveIntegerField(default=0)
     unavailable_count = models.PositiveIntegerField(default=0)
     summary = models.TextField(blank=True, default="")
@@ -3060,10 +3068,16 @@ class PriceReconciliationResult(models.Model):
     #: what the application used to charge, which is why it is stored
     #: rather than merely logged: a log line rotates away, and this is the
     #: answer to "when did this price change, and from what?".
-    synced = models.BooleanField(default=False)
-    synced_fields = models.JSONField(default=list, blank=True)
+    synced = models.BooleanField(default=False, db_default=False)
+    synced_fields = models.JSONField(
+        default=list,
+        blank=True,
+        db_default=models.Value([], output_field=models.JSONField()),
+    )
     previous_local_amount = models.IntegerField(null=True, blank=True)
-    previous_local_product = models.CharField(max_length=255, blank=True, default="")
+    previous_local_product = models.CharField(
+        max_length=255, blank=True, default="", db_default=""
+    )
 
     error_code = models.CharField(max_length=100, blank=True, default="")
     error_message = models.TextField(blank=True, default="")

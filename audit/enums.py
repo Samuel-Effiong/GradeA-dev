@@ -148,6 +148,9 @@ class ReasonCode(models.TextChoices):
     CODE_MISSING = "CODE_MISSING", "Code missing"
     CODE_NOT_REQUESTED = "CODE_NOT_REQUESTED", "Code not requested"
     RESET_LOCKED = "RESET_LOCKED", "Password reset locked"
+    # /auth/verify refused while the address is locked (beta H-53, merged
+    # into Epic A: one DENIED event per locked attempt).
+    VERIFY_LOCKED = "VERIFY_LOCKED", "Email verification locked"
     REFRESH_TOKEN_MISSING = "REFRESH_TOKEN_MISSING", "Refresh token missing"
     REFRESH_TOKEN_INVALID = "REFRESH_TOKEN_INVALID", "Refresh token invalid"
     SESSION_REVOKE_FAILED = "SESSION_REVOKE_FAILED", "Session revoke failed"

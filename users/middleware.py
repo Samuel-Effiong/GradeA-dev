@@ -13,8 +13,10 @@ ACTIVE_WINDOW_SECONDS = 300
 
 # Both keys below are DELIBERATELY named without the substring "user".
 #
-# users/signals.py clear_user_cache fires on every CustomUser and Settings
-# save/delete and calls cache.delete_pattern("*user*"). That glob matches
+# HISTORY (the sweep described here was removed in H-1 step 4; the names
+# stay because they are harmless and renaming would reset presence):
+# users/signals.py clear_user_cache fired on every CustomUser and Settings
+# save/delete and called cache.delete_pattern("*user*"). That glob matches
 # any key containing "user" - which the old names ("active_user:<type>:<id>"
 # and "online_users_set") both did. Verified against real Redis: one
 # unrelated user saving their settings wiped BOTH, every time.
@@ -40,11 +42,8 @@ ACTIVE_WINDOW_SECONDS = 300
 # than narrowing the sweep, because that sweep legitimately has to clear
 # the per-user list/detail JSON it was written for.
 #
-# Anything added here must stay clear of every pattern swept in
-# users/signals.py, classrooms/signals.py, assignments/signals.py and
-# students/signals.py - see
-# users/tests_activity_middleware.py::HeartbeatKeyNamespaceTests, which
-# asserts exactly that.
+# No pattern sweep exists any more:
+# AutoGrader/tests_no_wildcard_invalidation.py fails if one is added.
 HEARTBEAT_KEY_PREFIX = "presence:beat"
 ONLINE_SET_KEY = "presence:online"
 
@@ -104,8 +103,7 @@ class UserActivityMiddleware:
                 UserActivity.objects.create(user=user)
                 CreditWallet.objects.get_or_create(user=user)
 
-                # Guarded like AutoGrader.cache_utils does for
-                # delete_pattern: `sadd` is a django-redis extension, so a
+                # Guarded because `sadd` is a django-redis extension, so a
                 # non-Redis backend (LocMem in tests) simply has no presence
                 # index. That is a missing feature, not a failure worth
                 # logging on every single request.

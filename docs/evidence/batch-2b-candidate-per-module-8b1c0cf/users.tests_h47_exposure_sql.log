@@ -1,0 +1,4 @@
+users.tests_h47_exposure_sql.ExposureQueryTests.test_both_selects_run_and_find_the_expected_rows ... ok
+users.tests_h47_exposure_sql.ExposureQueryTests.test_no_query_selects_personal_data_or_secrets ... ok
+Ran 2 tests in 0.073s
+OK

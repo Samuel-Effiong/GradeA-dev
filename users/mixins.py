@@ -15,8 +15,8 @@ class UserCacheMixin:
     Mixin to handle per-user caching for List and Retrieve actions.
 
     Keys carry the requesting user's cache GENERATION (H-1 stage 2), so a
-    mutation invalidates them with a single INCR instead of a wildcard
-    `delete_pattern` sweep across the whole keyspace. This one mixin backs
+    mutation invalidates them with a single INCR instead of the wildcard
+    `delete_pattern` sweep across the whole keyspace that H-1 removed. This one mixin backs
     nine of the project's 35 cache families - every viewset that mixes it in
     across classrooms, students and users - so migrating it moves the
     largest single block of the cache surface at once.
@@ -27,10 +27,9 @@ class UserCacheMixin:
     generation (see the receivers in classrooms/users signals).
 
     The old `<model>s:user_id__<id>:...` prefix is retained ahead of the
-    generation segment. That is deliberate: the wildcard receivers are still
-    live during the migration, so these keys stay reachable by BOTH
-    mechanisms until stage 3 removes the old one. It is what makes a
-    read-site revert safe.
+    generation segment. It kept these keys reachable by the legacy wildcard
+    receivers while both mechanisms ran; those were removed in H-1 step 4,
+    and the prefix stays so existing entries simply age out.
     """
 
     request: Request
@@ -51,7 +50,21 @@ class UserCacheMixin:
         # The MD5 of the query params is exactly why targeted key deletion
         # was rejected for this architecture: these keys are not enumerable,
         # so they cannot be found and deleted - only versioned past.
+        extra = list(self.extra_cache_scopes(action))
+        if extra:
+            return versioned_key(base, [(SCOPE_USER, user_id), *extra], batched=True)
         return versioned_key(base, [(SCOPE_USER, user_id)])
+
+    def extra_cache_scopes(self, action):
+        """Generations this viewer's response depends on beyond their own.
+
+        Empty by default: a family whose payload depends on the requesting
+        user alone needs nothing more. A viewset whose payload also carries
+        data another user's write changes (CourseViewSet: a student sees
+        their classmates) overrides this, so that write can invalidate it
+        with one bump instead of one per viewer.
+        """
+        return []
 
     def list(self, request, *args, **kwargs):  # type: ignore
         cache_key = self.get_cache_key("list")

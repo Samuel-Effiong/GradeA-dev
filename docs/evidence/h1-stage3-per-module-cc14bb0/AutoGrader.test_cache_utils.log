@@ -1,0 +1,14 @@
+AutoGrader.test_cache_utils.BatchedCacheInvalidationTest.test_batch_state_does_not_leak_after_exit ... ok
+AutoGrader.test_cache_utils.BatchedCacheInvalidationTest.test_defers_and_dedupes_until_batch_exit ... ok
+AutoGrader.test_cache_utils.BatchedCacheInvalidationTest.test_empty_batch_deletes_nothing ... ok
+AutoGrader.test_cache_utils.BatchedCacheInvalidationTest.test_flushes_on_exception ... ok
+AutoGrader.test_cache_utils.BatchedCacheInvalidationTest.test_nested_batches_flush_once_at_outermost_exit ... ok
+AutoGrader.test_cache_utils.DeleteCachePatternsTest.test_backend_errors_are_swallowed_and_other_patterns_still_deleted ... ok
+AutoGrader.test_cache_utils.DeleteCachePatternsTest.test_dedupes_patterns_within_a_call ... ok
+AutoGrader.test_cache_utils.DeleteCachePatternsTest.test_deletes_each_pattern_immediately_outside_batch ... ok
+AutoGrader.test_cache_utils.DeleteCachePatternsTest.test_noop_when_backend_lacks_delete_pattern ... ok
+AutoGrader.test_cache_utils.DeleteCachePatternsTest.test_noop_with_no_patterns ... ok
+AutoGrader.test_cache_utils.RedisCacheSettingsTest.test_cache_keys_are_prefixed_away_from_celery_keys ... ok
+AutoGrader.test_cache_utils.RedisCacheSettingsTest.test_scan_itersize_is_configured_far_above_default ... ok
+Ran 12 tests in 0.016s
+OK

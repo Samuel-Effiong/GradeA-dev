@@ -166,6 +166,18 @@ def _claim_submission_for_grading(submission_id):
         )
         .update(grading_state=GradingState.RUNNING, grading_started_at=now)
     )
+    if claimed:
+        # H-1 Stage 3 (pre-existing staleness P1): .update() bypasses
+        # post_save, and only the FAILED release path below invalidated -
+        # a successful claim left the teacher's cached submission list
+        # showing the pre-grading state for the whole run.
+        submission = (
+            StudentSubmission.objects.select_related("assignment__course__teacher")
+            .filter(pk=submission_id)
+            .first()
+        )
+        if submission is not None:
+            invalidate_submission_caches(submission)
     return bool(claimed)
 
 
@@ -180,8 +192,8 @@ def _mark_grading_claim_failed(submission_id):
     # without this a failed submission keeps serving its cached
     # pre-failure detail (grading_state RUNNING) for up to CACHE_TTL, and
     # nobody sees that the run needs retrying. Uses the receiver's own
-    # helper so the generation bumps and wildcard families can't drift
-    # from what a normal save() would have cleared.
+    # helper so the generation bumps can't drift from what a normal save()
+    # would have invalidated.
     submission = (
         StudentSubmission.objects.select_related("assignment__course__teacher")
         .filter(pk=submission_id)

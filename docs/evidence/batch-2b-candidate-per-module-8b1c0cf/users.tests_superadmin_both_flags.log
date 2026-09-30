@@ -1,0 +1,12 @@
+users.tests_superadmin_both_flags.MonthlyTokenUsageGateTest.test_half_superadmin_cannot_read_any_schools_usage ... ok
+users.tests_superadmin_both_flags.MonthlyTokenUsageGateTest.test_school_admin_cannot_name_another_school ... ok
+users.tests_superadmin_both_flags.MonthlyTokenUsageGateTest.test_school_admin_still_reads_own_school_without_school_id ... ok
+users.tests_superadmin_both_flags.MonthlyTokenUsageGateTest.test_true_superadmin_can_read_any_schools_usage ... ok
+users.tests_superadmin_both_flags.SettingsGateTest.test_create_superuser_leaves_user_type_teacher ... ok
+users.tests_superadmin_both_flags.SettingsGateTest.test_half_superadmin_cannot_edit_another_users_settings ... ok
+users.tests_superadmin_both_flags.SettingsGateTest.test_half_superadmin_cannot_read_another_users_settings ... ok
+users.tests_superadmin_both_flags.SettingsGateTest.test_half_superadmin_still_reaches_own_settings ... ok
+users.tests_superadmin_both_flags.SettingsGateTest.test_teacher_can_edit_own_settings ... ok
+users.tests_superadmin_both_flags.SettingsGateTest.test_true_superadmin_can_read_and_edit_another_users_settings ... ok
+Ran 10 tests in 0.779s
+OK

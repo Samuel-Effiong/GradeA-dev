@@ -222,6 +222,7 @@ AUDIT_ONLY_CODES = frozenset(
         ReasonCode.CODE_MISSING,
         ReasonCode.CODE_NOT_REQUESTED,
         ReasonCode.RESET_LOCKED,
+        ReasonCode.VERIFY_LOCKED,
         ReasonCode.REFRESH_TOKEN_MISSING,
         ReasonCode.REFRESH_TOKEN_INVALID,
         ReasonCode.SESSION_REVOKE_FAILED,
