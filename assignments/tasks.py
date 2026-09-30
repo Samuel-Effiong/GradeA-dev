@@ -11,7 +11,12 @@ from ai_processor.services import ai_processor
 from AutoGrader.error_messages import describe_background_task_error
 from AutoGrader.tasks import send_email_task
 from billing.refusals import PERMANENT_AI_REFUSALS
-from classrooms.models import EnrollmentStatusType, Topic, reachable_courses
+from classrooms.models import (
+    EnrollmentStatusType,
+    Topic,
+    reachable_courses,
+    teacher_can_reach_course,
+)
 from students.exceptions import (
     AssignmentNotOpenError,
     CannotAssociateStudentError,
@@ -28,6 +33,7 @@ from students.services import (
     update_submission_from_raw_text,
     upload_answers_engine,
 )
+from students.task_access import teacher_may_reach
 from students.task_tracking import (
     cancellable_final_save,
     claim_processing_task_start,
@@ -48,6 +54,10 @@ from .models import Assignment, AssignmentStatus
 from .services import AssignmentProcessingService
 
 logger = logging.getLogger(__name__)
+
+#: H-38: shown on a grading run refused because its course is no longer
+#: reachable by the teacher it would run as.
+COURSE_NOT_REACHABLE = "This course is no longer available to you."
 
 # Final answers about one upload - never retried, always reported with the
 # exception's own (user-facing) message. See upload_answers_engine_async.
@@ -474,6 +484,29 @@ def grade_engine_async(
             submission.save(update_fields=["scheduled_grading_at", "grading_task_name"])
 
         user = CustomUser.objects.get(id=user_id)
+
+        # H-38: never grade - or charge - as a teacher who can no longer
+        # reach the course. This is the one chokepoint every grading route,
+        # the scheduled grading and the auto-grade beat go through, so work
+        # queued before a teacher's removal is refused too. Ids only.
+        if not teacher_may_reach(user, submission):
+            logger.warning(
+                "Grading refused (H-38): submission %s, user %s can no longer "
+                "reach its course.",
+                submission.id,
+                user.id,
+            )
+            mark_processing_task_failure(
+                processing_task_id,
+                None,
+                meta={"step": "Refused"},
+                fallback_message=COURSE_NOT_REACHABLE,
+            )
+            return {
+                "status": states.FAILURE,
+                "submission_id": submission_id,
+                "message": COURSE_NOT_REACHABLE,
+            }
 
         self.update_state(state="PROGRESS", meta={"step": "Grading"})
         update_processing_task(processing_task_id, meta={"step": "Grading"})
@@ -1031,6 +1064,25 @@ def grade_batch_async(
     )
 
     # Clear assignment-level scheduling info and create BatchUploadSession if missing
+    # H-38: refuse the whole batch up front when the requester can no longer
+    # reach the course (grade_engine_async also refuses each item).
+    batch_user = CustomUser.objects.filter(id=user_id).first()
+    batch_assignment = (
+        Assignment.objects.select_related("course").filter(id=assignment_id).first()
+    )
+    if (
+        batch_user is not None
+        and batch_assignment is not None
+        and not teacher_may_reach(batch_user, batch_assignment)
+    ):
+        logger.warning(
+            "Batch grading refused (H-38): assignment %s, user %s can no longer "
+            "reach its course.",
+            assignment_id,
+            user_id,
+        )
+        return COURSE_NOT_REACHABLE
+
     try:
         assignment = Assignment.objects.get(id=assignment_id)
         if assignment.scheduled_grading_at or assignment.grading_task_name:
@@ -1073,6 +1125,19 @@ def auto_grade_due_assignment(assignment_id):
 
         if not ungraded_submissions.exists():
             return "No ungraded submissions."
+
+        # H-38: the course's teacher (a permanent owner) may have left the
+        # school. Grading the school's students in their name - and billing
+        # them - is exactly what removal must stop. Ids only.
+        if not teacher_can_reach_course(assignment.course.teacher, assignment.course):
+            logger.warning(
+                "Auto-grade skipped (H-38): assignment %s, course %s is no "
+                "longer reachable by its teacher %s.",
+                assignment.id,
+                assignment.course_id,
+                assignment.course.teacher_id,
+            )
+            return "Auto-grade skipped: the course's teacher can no longer reach it."
 
         session = BatchUploadSession.objects.create(
             teacher=assignment.course.teacher,
