@@ -348,6 +348,28 @@ def is_guard_violation(exc: IntegrityError) -> bool:
     return GUARD_CONSTRAINT in str(exc)
 
 
+#: Appended to every fixed message a licence route shows when Stripe fails.
+TRY_AGAIN = " Please try again; if it keeps failing, contact support."
+
+
+def log_provider_error(intent, exc: Exception) -> None:
+    """H-60: a Stripe failure behind a licence change, for the server log.
+
+    The client is shown fixed text instead of Stripe's message: that text
+    names provider internals (request and object ids, parameter names) and
+    is QA-ERR-03's "raw library text". Stripe's full message is already on
+    the intent's failure_reason, for the reconciliation screens. This line
+    carries ids only."""
+    logger.warning(
+        "Licence %s, intent %s: Stripe failed (%s, code=%s, request=%s)",
+        intent.license_subscription_id,
+        intent.id,
+        type(exc).__name__,
+        getattr(exc, "code", None),
+        getattr(exc, "request_id", None),
+    )
+
+
 def busy_error() -> LicenceBillingChangeInProgress:
     return LicenceBillingChangeInProgress(
         "Another billing change for this licence is still in progress or "
