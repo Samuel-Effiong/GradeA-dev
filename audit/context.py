@@ -120,7 +120,11 @@ def a_surviving_event_names(state, user) -> bool:
 
     On any error this answers False, so the generic event is written: a
     second event is better than none."""
-    if not state.stored_event_ids:
+    # An anonymous requester has no pk, and filtering on actor_id=None would
+    # match NULL-actor events. Answer False without asking: harmless, since
+    # the generic event is never written for an anonymous request
+    # (request_audit.should_record), but it keeps the check honest.
+    if not state.stored_event_ids or not getattr(user, "is_authenticated", False):
         return False
     try:
         from .models import AuditEvent

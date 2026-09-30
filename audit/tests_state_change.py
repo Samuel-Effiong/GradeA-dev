@@ -569,10 +569,25 @@ class SurvivalCheckFailsSafeTests(SimpleTestCase):
 
         state = audit_context.RequestAuditState()
         state.stored_event_ids.append(uuid.uuid4())
+        requester = SimpleNamespace(is_authenticated=True, pk=uuid.uuid4())
         with patch.object(
             AuditEvent.objects, "filter", side_effect=DatabaseError("db down")
-        ):
-            self.assertFalse(audit_context.a_surviving_event_names(state, None))
+        ) as query:
+            self.assertFalse(audit_context.a_surviving_event_names(state, requester))
+        query.assert_called_once()
+
+    def test_an_anonymous_requester_needs_no_query(self):
+        """v2's pre-read: AnonymousUser.pk is None, which must never be
+        matched against NULL-actor events."""
+        from django.contrib.auth.models import AnonymousUser
+
+        state = audit_context.RequestAuditState()
+        state.stored_event_ids.append(uuid.uuid4())
+        with patch.object(AuditEvent.objects, "filter") as query:
+            self.assertFalse(
+                audit_context.a_surviving_event_names(state, AnonymousUser())
+            )
+        query.assert_not_called()
 
     def test_no_stored_event_needs_no_query(self):
         state = audit_context.RequestAuditState()
