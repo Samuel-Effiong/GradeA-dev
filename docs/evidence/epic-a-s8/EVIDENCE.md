@@ -135,4 +135,11 @@ Expected:
 
 If either count shows `Seq Scan on audit_auditevent` on a large table, don't run the report; send the plan to the team.
 
-**N1 gates** (only the touched module, per the SM): _pending_
+**N1 gates** (only the touched module, per the SM; on `690bcef`, 6G):
+
+| Gate | Result |
+|---|---|
+| Changed module | `audit.tests_volume_report`: **9 OK** (`n1_changed_module.txt`) |
+| 2 Mutation | **8 mutants, 8 killed** (`n1_mutation_log.txt`, `mutation_results.json`). V8 (the class count without its leading-column equality) is killed by `test_exact_all_time_is_opt_in_and_counts_everything`, `test_it_counts_per_day_per_action_and_per_class`. |
+
+A first N1 run on `2f1d130` was void: the read-only test's patched stand-in lacked the new argument. It was discarded; the fix and the rework are above.

@@ -27,8 +27,7 @@
   "V5_window_ignored": {
     "killed": true,
     "failing_tests": [
-      "test_older_events_are_outside_the_window",
-      "test_size_comes_from_a_bounded_sample_never_a_full_scan"
+      "test_older_events_are_outside_the_window"
     ]
   },
   "V6_student_rate_dropped": {
@@ -41,6 +40,13 @@
     "killed": true,
     "failing_tests": [
       "test_rows_per_day_steady_size_and_sweep_volume"
+    ]
+  },
+  "V8_class_count_scans_the_table": {
+    "killed": true,
+    "failing_tests": [
+      "test_exact_all_time_is_opt_in_and_counts_everything",
+      "test_it_counts_per_day_per_action_and_per_class"
     ]
   }
 }
