@@ -428,6 +428,27 @@ class DuplicateRowTests(RosterFixture):
         )
         self.assertNotIn("sam2@s7d.example.org", self.sent_to())
 
+    def test_a_new_accounts_clash_is_refused_before_anything_is_created(self):
+        """The pre-check for a NEW account: the row never reaches
+        enroll_student_by_email, so no account, however briefly, and no
+        invitation is ever queued for it."""
+        real = roster_import.enroll_student_by_email
+        reached = []
+
+        def enroll(**kwargs):
+            reached.append(kwargs["email"])
+            return real(**kwargs)
+
+        with patch.object(roster_import, "enroll_student_by_email", new=enroll):
+            rows = self.rows(
+                "first_name,last_name,email\n"
+                "Sam,Same,sam1@s7d.example.org\n"
+                "Sam,Same,sam2@s7d.example.org\n"
+            )
+
+        self.assertEqual(rows[2]["reason_code"], "ROW_NAME_CLASH")
+        self.assertEqual(reached, ["sam1@s7d.example.org"])
+
     def test_an_existing_account_with_a_clashing_name_is_refused_and_untouched(self):
         """The model's own check, after the gates: nothing it wrote stays."""
         StudentCourse.objects.create(
