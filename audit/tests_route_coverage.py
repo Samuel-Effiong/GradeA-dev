@@ -29,16 +29,27 @@ from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.db import transaction
 from django.test import TestCase, override_settings
-from django.urls import URLPattern, URLResolver, get_resolver, reverse
+from django.urls import (
+    URLPattern,
+    URLResolver,
+    clear_url_caches,
+    get_resolver,
+    path,
+    reverse,
+)
 from django.utils import timezone
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
 from rest_framework.test import APIClient
+from rest_framework.views import APIView
 
-from audit.enums import ActorRole, AuditAction, AuditOutcome
+from audit.enums import ActorRole, AuditAction, AuditOutcome, ErrorClass
 from audit.models import AuditEvent
 from audit.request_audit import (
     ANONYMOUS_AUDITED_ROUTES,
     EXCLUDED_ROUTES,
     INVALID_REQUEST,
+    SERVER_ERROR,
 )
 from users.models import UserTypes
 
@@ -79,31 +90,42 @@ def _walk(patterns, prefix="", namespace=None):
             yield prefix + str(pattern.pattern), name, pattern.callback
 
 
+def _write_methods(callback):
+    view_cls = getattr(callback, "cls", None) or getattr(callback, "view_class", None)
+    actions = getattr(callback, "actions", None)
+    if actions:
+        return [m for m in WRITE_METHODS if m in actions]
+    if view_cls is not None:
+        return [m for m in WRITE_METHODS if hasattr(view_cls, m)]
+    return ["post"]  # a function view has no method map: probe it with POST
+
+
+def unnamed_write_routes():
+    """Paths of write routes with no URL name, outside the Django admin.
+    The guard keys every decision on the name, so an unnamed write route
+    would be outside it altogether (v2's G1): every one must be named."""
+    return sorted(
+        route_path
+        for route_path, name, callback in _walk(get_resolver().url_patterns)
+        if not name and not route_path.startswith("admin/") and _write_methods(callback)
+    )
+
+
 def write_routes():
-    """{(url_name, method): [path kwarg names]} for every write route,
-    except the Django admin (D7; see DjangoAdminTests). A function view has
-    no method map, so it is probed with POST."""
+    """{(url_name, method): [path kwarg names]} for every named write route,
+    except the Django admin (D7; see DjangoAdminTests). Unnamed routes are
+    refused by `unnamed_write_routes`."""
     routes = {}
-    for path, name, callback in _walk(get_resolver().url_patterns):
+    for route_path, name, callback in _walk(get_resolver().url_patterns):
         if not name or name.startswith("admin:"):
             continue
         kwargs = sorted(
-            set(re.findall(r"\(\?P<(\w+)>", path))
-            | {seg.split(":")[-1] for seg in re.findall(r"<([^>]+)>", path)}
+            set(re.findall(r"\(\?P<(\w+)>", route_path))
+            | {seg.split(":")[-1] for seg in re.findall(r"<([^>]+)>", route_path)}
         )
         if "format" in kwargs:  # DRF's format-suffix twin of a real route
             continue
-        view_cls = getattr(callback, "cls", None) or getattr(
-            callback, "view_class", None
-        )
-        actions = getattr(callback, "actions", None)
-        if actions:
-            methods = [m for m in WRITE_METHODS if m in actions]
-        elif view_cls is not None:
-            methods = [m for m in WRITE_METHODS if hasattr(view_cls, m)]
-        else:
-            methods = ["post"]
-        for method in methods:
+        for method in _write_methods(callback):
             routes[(name, method)] = kwargs
     return routes
 
@@ -144,6 +166,10 @@ class RouteCoverageTests(TestCase):
 
     def test_there_are_write_routes_to_guard(self):
         self.assertGreater(len(self.routes), 100)
+
+    def test_every_write_route_outside_the_admin_is_named(self):
+        """v2's G1: an unnamed write route would be outside every check."""
+        self.assertEqual(unnamed_write_routes(), [])
 
     def test_every_anonymous_write_route_is_a_door_or_excluded(self):
         """Fired anonymously: anything not refused with 401/403 (or sent to
@@ -329,23 +355,24 @@ class DjangoAdminTests(TestCase):
 
 
 class AnonymousDoorRefusalUnitTests(TestCase):
-    """`emit_anonymous_door_refusal` in isolation: only a 4xx other than 429,
-    for an anonymous request, on a registered door."""
+    """`emit_anonymous_refusal` in isolation: a 4xx other than 429 on a
+    registered door, or a 5xx on any non-excluded write - for an anonymous
+    request only."""
 
     def request_to(self, route, user=None):
         from django.contrib.auth.models import AnonymousUser
 
         return SimpleNamespace(
             user=user or AnonymousUser(),
-            resolver_match=SimpleNamespace(view_name=route),
+            resolver_match=SimpleNamespace(view_name=route, func=None, kwargs={}),
             META={},
             method="POST",
         )
 
     def refuse(self, request, status_code):
-        from audit.request_audit import emit_anonymous_door_refusal
+        from audit.request_audit import emit_anonymous_refusal
 
-        emit_anonymous_door_refusal(request, SimpleNamespace(status_code=status_code))
+        emit_anonymous_refusal(request, SimpleNamespace(status_code=status_code))
         return list(AuditEvent.objects.values_list("reason_code", flat=True))
 
     def test_a_refused_door_request_records_one_invalid_request(self):
@@ -358,8 +385,30 @@ class AnonymousDoorRefusalUnitTests(TestCase):
         a throttled caller write unlimited rows."""
         self.assertEqual(self.refuse(self.request_to("auth-verify"), 429), [])
 
-    def test_a_server_error_is_not_a_malformed_request(self):
-        self.assertEqual(self.refuse(self.request_to("auth-verify"), 500), [])
+    def test_a_crashed_door_records_one_server_error(self):
+        """SM ruling on v2's N1: a crash must not leave zero trace."""
+        self.assertEqual(
+            self.refuse(self.request_to("auth-verify"), 500), [SERVER_ERROR]
+        )
+        event = AuditEvent.objects.get()
+        self.assertEqual(event.action, AuditAction.AUTH_LOGIN)
+        self.assertEqual(event.error_class, ErrorClass.SYSTEM)
+
+    def test_any_crashed_anonymous_write_records_one_server_error(self):
+        self.assertEqual(
+            self.refuse(self.request_to("some-open-route"), 502), [SERVER_ERROR]
+        )
+        event = AuditEvent.objects.get()
+        self.assertEqual(event.action, AuditAction.STATE_CHANGE)
+        self.assertEqual(event.metadata["route"], "some-open-route")
+
+    def test_an_excluded_route_that_crashes_records_nothing(self):
+        self.assertEqual(self.refuse(self.request_to("stripe-webhook"), 500), [])
+
+    def test_a_crashed_read_records_nothing(self):
+        request = self.request_to("some-open-route")
+        request.method = "GET"
+        self.assertEqual(self.refuse(request, 500), [])
 
     def test_a_route_that_is_not_a_door_records_nothing(self):
         self.assertEqual(self.refuse(self.request_to("auth-otp"), 400), [])
@@ -374,3 +423,71 @@ class AnonymousDoorRefusalUnitTests(TestCase):
             is_active=True,
         )
         self.assertEqual(self.refuse(self.request_to("auth-verify", user), 400), [])
+
+
+class _OpenWrite(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes: list = []
+
+    def post(self, request):
+        return Response({"ok": True}, status=201)
+
+
+def _probe_urlconf():
+    """The real URLconf plus one unnamed and one named open write route (v2's
+    probe)."""
+    from AutoGrader import urls as root
+
+    return SimpleNamespace(
+        urlpatterns=list(root.urlpatterns)
+        + [
+            path("route-coverage-probe/unnamed/", _OpenWrite.as_view()),
+            path(
+                "route-coverage-probe/named/",
+                _OpenWrite.as_view(),
+                name="route-coverage-probe-named",
+            ),
+        ]
+    )
+
+
+@override_settings(CACHES=LOCMEM_CACHE, ROOT_URLCONF=_probe_urlconf())
+class UnnamedRouteGuardTests(TestCase):
+    """The guard itself catches an unnamed write route (G1), and still sees
+    a named one."""
+
+    def setUp(self):
+        clear_url_caches()
+        self.addCleanup(clear_url_caches)
+
+    def test_an_unnamed_write_route_is_caught(self):
+        self.assertEqual(unnamed_write_routes(), ["route-coverage-probe/unnamed/"])
+
+    def test_a_named_one_is_in_the_guard(self):
+        self.assertIn(("route-coverage-probe-named", "post"), write_routes())
+
+
+@override_settings(CACHES=LOCMEM_CACHE)
+class CrashedDoorTests(TestCase):
+    """v2's P1, through the real stack: a door that crashes records one
+    SERVER_ERROR failure, not nothing."""
+
+    def test_a_crashed_registration_records_one_server_error(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        client = APIClient(raise_request_exception=False, REMOTE_ADDR="10.9.0.1")
+        with patch(
+            "users.views.CustomUserSerializer.is_valid",
+            side_effect=RuntimeError("boom"),
+        ):
+            response = client.post(
+                reverse("auth-register"), {"email": "x@example.com"}, format="json"
+            )
+
+        self.assertEqual(response.status_code, 500)
+        event = AuditEvent.objects.get()
+        self.assertEqual(event.action, AuditAction.ACCOUNT_REGISTER)
+        self.assertEqual(event.reason_code, SERVER_ERROR)
+        self.assertEqual(event.error_class, ErrorClass.SYSTEM)
+        self.assertEqual(event.actor_role, ActorRole.ANONYMOUS)
+        self.assertNotIn("x@example.com", str(event.metadata))

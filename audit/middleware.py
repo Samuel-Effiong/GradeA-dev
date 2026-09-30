@@ -32,7 +32,7 @@ from .context import (
     a_surviving_event_names,
     request_audit_state,
 )
-from .request_audit import emit_anonymous_door_refusal, emit_generic_state_change
+from .request_audit import emit_anonymous_refusal, emit_generic_state_change
 
 
 class AuditMiddleware:
@@ -50,9 +50,9 @@ class AuditMiddleware:
             # (a teacher's credit grant) are side effects, not their trace.
             if not a_surviving_event_names(state, getattr(request, "user", None)):
                 emit_generic_state_change(request, response)
-            # S2: an anonymous sign-in door refused before its own event.
+            # S2: an anonymous write refused or crashed before any event.
             if not a_stored_event_survives(state):
-                emit_anonymous_door_refusal(request, response)
+                emit_anonymous_refusal(request, response)
         return response
 
 

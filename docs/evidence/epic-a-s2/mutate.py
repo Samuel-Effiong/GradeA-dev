@@ -12,6 +12,7 @@ import sys
 RA = "audit/request_audit.py"
 MW = "audit/middleware.py"
 VIEWS = "users/views.py"
+TESTS_FILE = "audit/tests_route_coverage.py"
 
 MUTANTS = {
     "D1_a_door_left_out_of_the_registry": (
@@ -21,18 +22,36 @@ MUTANTS = {
     ),
     "D2_refusal_never_recorded": (
         RA,
-        "        if door is None:\n            return\n",
+        "        if door is None and not crashed:\n            return\n",
         "        return\n",
     ),
     "D3_throttled_request_recorded": (
         RA,
-        "        if not 400 <= status_code < 500 or status_code == 429:\n",
-        "        if not 400 <= status_code < 500:\n",
+        "        if status_code < 400 or status_code == 429:\n",
+        "        if status_code < 400:\n",
     ),
-    "D4_signed_in_requester_recorded_as_a_door_refusal": (
+    "D4_signed_in_requester_recorded_as_a_refusal": (
         RA,
-        "        if user is not None and user.is_authenticated:\n            return\n",
-        "",
+        "        if user is not None and user.is_authenticated:\n            return\n"
+        '        match = getattr(request, "resolver_match", None)\n'
+        "        view_name = ",
+        '        match = getattr(request, "resolver_match", None)\n'
+        "        view_name = ",
+    ),
+    "N1_crash_not_recorded": (
+        RA,
+        "        crashed = status_code >= 500\n",
+        "        crashed = False\n",
+    ),
+    "N2_excluded_route_crash_recorded": (
+        RA,
+        "        if match is None or view_name in EXCLUDED_ROUTES:\n",
+        "        if match is None:\n",
+    ),
+    "G1_unnamed_routes_skipped_again": (
+        TESTS_FILE,
+        '        if not name and not route_path.startswith("admin/") and _write_methods(callback)\n',
+        "        if False\n",
     ),
     "D5_refusal_recorded_even_when_the_door_recorded_its_own": (
         MW,
