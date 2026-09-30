@@ -45,7 +45,7 @@ from django.apps import apps
 from django.db import transaction
 from django.db.models.signals import post_save, pre_delete, pre_save
 
-from .context import current_request_actor
+from .context import current_request, current_request_actor
 from .emitter import emit
 from .enums import AuditAction
 from .metadata import BEFORE_AFTER_ALLOWLIST
@@ -209,9 +209,28 @@ def suppressed():
         _suppressed.reset(token)
 
 
+_acting_as: ContextVar[Any] = ContextVar("audit_history_acting_as", default=None)
+
+
+@contextmanager
+def acting_as(user):
+    """Name `user` as the actor of history events written inside the block,
+    for a save on a request that has no signed-in user yet: the account
+    activation at /auth/verify and the Google sign-in resurrection (SM
+    ruling). `user` must be the account THIS request just authenticated -
+    the one that proved the code or the Google identity - never a value
+    taken from request input."""
+    token = _acting_as.set(user)
+    try:
+        yield
+    finally:
+        _acting_as.reset(token)
+
+
 def _actor():
-    """S3's actor rule: the request's signed-in user, or None (SYSTEM)."""
-    return current_request_actor()
+    """The actor for a signal-written event: `acting_as`'s user if set, else
+    S3's rule - the request's signed-in user, or None (SYSTEM)."""
+    return _acting_as.get() or current_request_actor()
 
 
 # ---------------------------------------------------------------------------
@@ -281,6 +300,7 @@ def _emit(spec, pk, context_row, change, *, actor, source):
     return emit(
         spec.action,
         actor=actor,
+        request=current_request(),
         target_type=spec.target_type,
         target_id=pk,
         school_id=context_row.get(spec.school) if spec.school else None,
@@ -425,14 +445,33 @@ def record_bulk(queryset, *, actor=_REQUEST_ACTOR, **changes) -> int:
         raise ValueError(f"{queryset.model._meta.label} is not a tracked model")
     who = _actor() if actor is _REQUEST_ACTOR else actor
     with transaction.atomic():
-        pks = list(
-            queryset.select_for_update(of=("self",)).values_list("pk", flat=True)
-        )
+        # The caller's queryset may be DISTINCT or annotated (the admin
+        # changelist can be), and Postgres refuses FOR UPDATE on those. So
+        # the rows are locked through the base manager by pk, in pk order
+        # (no lock-order deadlock between two bulk writers), and the update
+        # below still carries the caller's own filter: a conditional claim
+        # (publish's is_published=False) is re-checked after the lock.
+        pks = list(queryset.order_by().values_list("pk", flat=True))
         if not pks:
             return 0
+        pks = list(
+            spec.model_class()
+            ._base_manager.select_for_update()
+            .filter(pk__in=pks)
+            .order_by("pk")
+            .values_list("pk", flat=True)
+        )
         before = _stored(spec, pks)
         with suppressed():
-            count = queryset.filter(pk__in=pks).update(**changes)
+            # The caller's filter rides along as a subquery (DISTINCT and
+            # GROUP BY are fine there), evaluated now, after the lock.
+            count = (
+                spec.model_class()
+                ._base_manager.filter(
+                    pk__in=queryset.filter(pk__in=pks).order_by().values("pk")
+                )
+                .update(**changes)
+            )
         after = _stored(spec, pks)
         for pk in pks:
             if pk not in before or pk not in after:

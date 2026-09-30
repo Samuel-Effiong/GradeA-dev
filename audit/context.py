@@ -109,6 +109,14 @@ def request_audit_state(request=None):
         _request_state_var.reset(token)
 
 
+def current_request():
+    """The Django request being handled, or None outside a request. Epic A
+    S4's history events pass it to the emitter for the request fields (trace
+    id, source address), as the explicit call sites do."""
+    state = _request_state_var.get()
+    return getattr(state, "request", None)
+
+
 def current_request_actor():
     """S3's actor rule: the signed-in user of the request being handled, or
     None - which the emitter records as SYSTEM - outside a request (Celery,
