@@ -125,7 +125,9 @@ class MeasuredTests(TestCase):
                 # column (action or retention_class) so only the window's
                 # range is read.
                 self.assertRegex(
-                    plan, r"Index Cond: .*\b(action|retention_class) = '", sql
+                    plan,
+                    r"Index Cond: .*\b(action|retention_class)\)?(::text)? = '",
+                    sql,
                 )
 
     def test_exact_all_time_is_opt_in_and_counts_everything(self):
