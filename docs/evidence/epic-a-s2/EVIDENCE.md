@@ -59,3 +59,20 @@ Every run was wrapped in `systemd-run MemoryMax=6G`, `nice -n 10`, a timeout, RA
 | Migrations | none needed (`action` has no choices) |
 
 **Found while running the gates:** the QA console views answer 404 to anyone but a signed-in superadmin ("no hint this exists"). The guard treated that as reachable; `CONCEALED_ROUTES` now lists them explicitly (stale-checked). A 404 in general stays "reachable", since an open route given a made-up id answers 404 too.
+
+## R1: after v2's REJECTED at 883ee93, and the SM's rulings
+v2's record is committed verbatim as `VERIFICATION_v2_883ee93.md`.
+
+- **G1: unnamed write routes.** `write_routes()` skipped any pattern with no URL name, so an unnamed open POST route was outside the guard and left zero events (v2's probe). Now `unnamed_write_routes()` lists every unnamed write route outside `admin/`, and `test_every_write_route_outside_the_admin_is_named` requires the list to be empty. `UnnamedRouteGuardTests` proves the check catches one, using v2's URLconf trick: this test module is itself the probe URLconf, a real module path, because `get_resolver()` caches on it.
+- **N1, decided: a crash is recorded.** An anonymous, non-excluded write that answers 5xx records one FAILURE: actor ANONYMOUS, `error_class` SYSTEM, reason `SERVER_ERROR`, no body. A door keeps its own action; any other route is a STATE_CHANGE naming the route. `emit_anonymous_door_refusal` becomes `emit_anonymous_refusal`. A 429, a read, an excluded route or a signed-in requester records nothing.
+- **N2:** the guard sees **153 (route, method) write pairs over 117 named routes**. The earlier "196" counted DRF's format-suffix twins.
+- **On S6a (the SM's merge order):** the branch is merged with phase2/epic-a `75bf91a`. `SERVER_ERROR` joins `audit.enums.ReasonCode`, and `INVALID_REQUEST` is already there, both in `AUDIT_ONLY_CODES`. `request_audit` takes both codes from the enum. `ReasonCodeCatalogueTests` pins that every code S2 emits is in the catalogue, so a refused or crashed request can never be silently dropped by S6a's emitter.
+
+**R1 gates** (rule 15; on 0737583):
+
+| Gate | Result |
+|---|---|
+| Reproduce-first | 883ee93's `request_audit.py` and `middleware.py`: the test module can't import on the old source (`SERVER_ERROR` doesn't exist there). The crash fix's reproduction is mutant N1 (crash not recorded), killed by the door-crash and any-route-crash tests; G1's is mutant G1 (the skip restored), killed by `test_an_unnamed_write_route_is_caught`. |
+| Changed modules | `audit.tests_route_coverage` + `users.tests_auth_audit_doors` + `audit.tests_state_change` + `AutoGrader.tests_reason_codes`: **107 OK** (`changed_modules.txt`) |
+| 2 Mutation | **11 mutants, 11 killed** (`mutation_log.txt`): the eight above, re-anchored, plus N1 (a crash not recorded), N2 (an excluded route's crash recorded) and G1 (the unnamed-route skip restored) |
+| 1 Regression (owning app) | `audit`: **230 OK** (`regression_audit.txt`) |
