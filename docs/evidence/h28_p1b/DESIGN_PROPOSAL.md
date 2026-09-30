@@ -191,6 +191,15 @@ retry. **Items marked NEW below have not yet been seen by d4.**
 | C | short, `atomic(durable=True)` | intent -> `STRIPE_APPLIED`, COMMIT **immediately** — before any other local work |
 | D | short, `atomic(durable=True)`, retried per 9e | re-lock, re-validate, apply local writes, intent -> `COMPLETE`, COMMIT; then MailerLite sync **after** the commit |
 
+**Seam for H-37 (7d's cache-invalidation fix, lands after Change 1).** H-37 found that the
+licence and allocation models have no cache-invalidation receiver, so `wallet
+monthly_credit_total` goes stale. Different concern (cache freshness, not Stripe ordering),
+same file. **Phase D's commit is exactly where that invalidation belongs**: the moment local
+state becomes true. Change 1 will not add it — H-37 is 7d's — but Phase D's post-commit step
+(where the MailerLite sync already runs after commit) is written as one clearly named
+function, so H-37 adds its call in one place on restructured code rather than onto code about
+to be rewritten.
+
 **NEW — `durable=True` as enforcement.** Django 5.2's `atomic(durable=True)` raises
 `RuntimeError` if it is ever opened inside another transaction. I checked every production
 caller (`license_views.py:650/852/886`, `select_plan` at `license_service.py:3604` via

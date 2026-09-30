@@ -1,5 +1,34 @@
 # FINDING — licence payment-failure paths diverge on ORDINARY customer behaviour
 
+> ## CORRECTION + NEW F0 (2026-09-18, from the reproduce-first run)
+>
+> **F0 — a licence plan change never reaches Stripe at all. PROVEN by test on `b744c9f`,
+> not inferred.** `change_license_plan()` writes the NEW plan onto the licence row
+> (`license_service.py:2086-2088`), THEN calls `change_license_price()`, which reads the
+> "old" price from that same row (`stripe_service.py:1609`), finds it equal to the new
+> price, logs *"price unchanged, skipping Stripe update"* and returns (`:1623-1629`). This
+> follows from the call order alone, for any plans and any custom price. **No failure is
+> needed: every licence plan change leaves the app on the new plan while Stripe keeps billing
+> the old price.** Nothing else pushes a licence price to Stripe — no renewal or sync path —
+> so it never heals. Test: `test_F0_plan_change_with_no_failure_updates_the_stripe_price`,
+> failing with *"Stripe bills 12000 per 12-month cycle, app says plan POWER at 2000.00/month."*
+>
+> **Why no test caught it:** the only existing test of `change_license_plan`
+> (`test_mailerlite_sync.py:307`) uses an **OFFLINE** licence, so the Stripe branch has never
+> been exercised by any test.
+>
+> **CORRECTION to what I reported earlier:** I said F1-F5 fire on ordinary customer
+> behaviour and are *"more likely to have already fired in production than anything else in
+> the register."* **That is wrong for F1, F2 and F3.** They live in `change_license_price`,
+> whose only production caller is `change_license_plan`, which F0 always short-circuits. **F1-F3
+> are latent — currently unreachable — not live.** F4 and F5 (`update_seats`) are live.
+> F1-F3 are still real defects in the function, proven by calling it directly in the state it
+> will see once F0 is fixed (`test_latent_F1/F2/F3_*`). **Fixing F0 alone would make F1-F3
+> live** — the strongest reason they are fixed together in Change 1.
+>
+> (Per the user, 2026-09-18: no schools are in production yet, so neither F0 nor any other
+> licence-path defect here has affected anyone.)
+
 **Found 2026-09-18 while studying Change 1 before writing code. Confirmed by reading
 `b744c9f`; NOT reproduced by a test; NOT fixed.** Raised to fixes-coordinator (95) and the
 Senior Manager (d4) as a scope question before any implementation.
