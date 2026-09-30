@@ -18,7 +18,8 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from django.test import override_settings
+from django.http import HttpResponse
+from django.test import SimpleTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APITestCase
@@ -107,3 +108,31 @@ class TraceIdIsServerOwnedTests(APITestCase):
         self.assertEqual(len(records), 1)
         self.assertEqual(records[0].request_id, event.trace_id.hex)
         self.assertEqual(records[0].client_request_id, client_id)
+
+
+class CodedErrorReferenceTests(SimpleTestCase):
+    """The SM's X-5 ruling, joined with S6a: a coded error body's
+    `reference` (QA-ERR-04) is the SERVER id - the one on the response header
+    and in the audit trail - never an inbound X-Request-ID."""
+
+    def test_the_error_reference_is_the_server_id(self):
+        from django.test import RequestFactory
+
+        from audit.enums import ReasonCode
+        from AutoGrader.middleware import RequestIDMiddleware
+        from AutoGrader.reason_codes import CodedError, coded_response
+
+        inbound = str(uuid.uuid4())
+        seen = {}
+
+        def view(request):
+            response = coded_response(CodedError(ReasonCode.RUBRIC_MISSING))
+            seen["reference"] = response.data["reference"]
+            return HttpResponse("ok")
+
+        request = RequestFactory().post("/", HTTP_X_REQUEST_ID=inbound)
+        response = RequestIDMiddleware(view)(request)
+
+        self.assertEqual(seen["reference"], response[REQUEST_ID_HEADER])
+        self.assertNotEqual(seen["reference"], inbound)
+        self.assertNotEqual(seen["reference"], uuid.UUID(inbound).hex)
