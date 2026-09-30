@@ -844,10 +844,10 @@ Sends one of two emails, chosen by `otp_type`:
 | `VERIFY_EMAIL` | a new activation link, valid 15 min (replaces the old code) | `POST /auth/verify` |
 | `RESET_PASSWORD` | a 6-digit password-reset code (valid 15 min) | `POST /auth/reset-password` |
 
-**Always 202 when the request is well formed**, whether or not the email has an
-account. The frontend must show the same neutral confirmation (e.g. "If an account
-exists for that address, we've sent an email") for every 202 and must **not**
-branch on the exact `message` text.
+**An unknown address always gets 202.** Show the same neutral confirmation (e.g.
+"If an account exists for that address, we've sent an email") for every 202 and
+never branch on `message`: its wording can differ between cases. The two 400s
+below only happen for existing accounts in the wrong state.
 
 **Values**
 - `email`: string, required, must be a valid email address.
@@ -882,7 +882,7 @@ Rate limit: **5 requests per hour per IP** → 429 with a `Retry-After` header.
         responses={
             202: OpenApiResponse(
                 response=OpenApiTypes.OBJECT,
-                description="Accepted. Same neutral answer whether or not the account exists.",
+                description="Accepted. Show one neutral confirmation for every 202; don't branch on `message`.",
                 examples=[
                     OpenApiExample(
                         "Accepted",
