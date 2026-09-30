@@ -3793,15 +3793,20 @@ def _assignment_status_counts(student, assignments, now):
     course) so none of the three ever compute this differently from each
     other.
 
-    The four counts are mutually exclusive and sum to `assignments.count()`:
-    Not Submitted explicitly excludes anything already counted as Overdue,
-    rather than the two being independent, overlapping views over the same
-    "no submission" set.
+    The four counts partition the student's assignments: they are mutually
+    exclusive and sum to `assignments.count()`.
+      * Graded: a submission whose grade is released to the student.
+      * Submitted: a submission whose grade the student cannot see yet
+        (not graded, or graded but unpublished). Graded work is NOT also
+        counted here (founder decision 2026-09-30, reversing 7246b65, which
+        kept Graded as a subset of Submitted).
+      * Overdue: no submission, due date passed.
+      * Not Submitted: no submission, not overdue.
     """
     submissions = StudentSubmission.objects.filter(
         student=student, assignment__in=assignments
     )
-    assignments_submitted = submissions.count()
+    with_a_submission = submissions.count()
 
     submitted_assignment_ids = submissions.values_list("assignment_id", flat=True)
     pending_assignments = assignments.exclude(id__in=submitted_assignment_ids)
@@ -3819,6 +3824,9 @@ def _assignment_status_counts(student, assignments, now):
     assignments_graded = submissions.filter(
         is_published=True, score_percentage__isnull=False
     ).count()
+    # One submission per student per assignment (a unique constraint), so
+    # the submissions not yet released are the rest.
+    assignments_submitted = with_a_submission - assignments_graded
 
     return {
         "assignments_submitted": assignments_submitted,
@@ -3909,9 +3917,12 @@ class StudentAdminDashboardView(viewsets.ViewSet):
             not_submitted_count = status_counts["assignments_not_submitted"]
             overdue_count = status_counts["assignments_due_no_submission"]
 
-            # 6. Completion rate
+            # 6. Completion rate: every assignment with a submission, graded
+            # or not. Submitted no longer includes Graded (the tiles
+            # partition the total), so both are counted here.
+            completed_count = submitted_count + status_counts["assignments_graded"]
             completion_rate = (
-                (submitted_count / total_assigned) * 100 if total_assigned > 0 else 0
+                (completed_count / total_assigned) * 100 if total_assigned > 0 else 0
             )
 
             # 7. Average grade (course)
