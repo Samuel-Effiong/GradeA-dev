@@ -58,3 +58,22 @@ My probes are in `midcycle_probe_test_vf1a_midcycle_probe.py`, and the harness i
 `git merge-tree --write-tree 8de3078 fc6d0b6` (bundle 4's tip) is **clean**. It shares no files with the add_teachers fix (`license_service.py`) or the H-38 tasks fix (`assignments/tasks.py`, `users/views.py`). If the founder picks the fold-in, it needs one strict full re-run and my Gate 1 refresh.
 
 Logs: `runs/midcycle_{baseline_fc6d0b6,prefix_abeda10,mutant_X1}.log`.
+
+---
+
+## Re-check (test-only follow-up for N2 + N3, narrow) @ **128adf5**, 2026-09-30: **VERIFIED**
+The delta `4256772..128adf5` is **test and docs only**: no file outside `billing/tests/` and `docs/` changed.
+- **6f8c536:**
+  - `convert_via_checkout` drives the production path through the real `_handle_individual_checkout`. With no invoice or payment intent in the session, `resolve_stripe_receipt_url` returns None without any Stripe call.
+  - Two tests go through the real `expire_active_trials`, with the checkout conversion landing after the task's read: the ended-trial (time) branch and the credits-exhausted (`force=True`) branch. Each asserts that the subscription is still active and paid (`stripe_status` ACTIVE), that the switched-off query is empty, and that the task's summary counts the skip.
+  - Mutant T9 (my X1 shape) is added to the battery.
+  - N3: the waiter check now requires `query ILIKE '%billing_usersubscription%'`. This is still valid on both trees. On the fixed tree the expiry waits on the subscription row's `SELECT … FOR UPDATE`. On the pre-fix tree it waits on the bucket, but the detection assert, which runs first, still fails there and shows the harm.
+- **128adf5:** logs and an EVIDENCE addendum.
+
+| Check | Result |
+|---|---|
+| d5's module @ 128adf5 (without my probe) | **23 OK** |
+| X1 / T9 (`if not force and not (...)`) against d5's module alone | **KILLED** by `test_a_checkout_conversion_is_not_undone_on_the_credits_path`, independently of my probe; sha-checked restore |
+| Hooks | `pre-commit run --from-ref 4256772 --to-ref 128adf5` passes, and each of the 2 commits passes |
+
+Logs: `runs/midcycle_delta_128adf5.log`, `runs/midcycle_delta_X1_128adf5.log`.
