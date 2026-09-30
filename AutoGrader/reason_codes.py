@@ -231,6 +231,7 @@ AUDIT_ONLY_CODES = frozenset(
         ReasonCode.GOOGLE_TOKEN_INVALID,
         ReasonCode.GOOGLE_EMAIL_UNVERIFIED,
         ReasonCode.INVALID_REQUEST,
+        ReasonCode.SERVER_ERROR,
     }
 )
 

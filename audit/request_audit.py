@@ -31,7 +31,7 @@ import uuid
 
 from .admin_action import _outcome_for_status
 from .emitter import emit
-from .enums import AuditAction
+from .enums import AuditAction, AuditOutcome, ErrorClass, ReasonCode
 
 logger = logging.getLogger(__name__)
 
@@ -54,9 +54,47 @@ EXCLUDED_ROUTES = {
         "Requests a change-password code by email; changes no state a user "
         "can see. Using it is audited through change-password."
     ),
+    "course-renew-activation-token": (
+        "Requests a new student invitation code by email; anonymous and "
+        "rate-limited. Using the code is audited through register/student. "
+        "Scheduled for removal by retire (B) (register/student and "
+        "renew-student-token go after the prod backfill); the route "
+        "coverage guard fails when the route is gone, so this entry goes "
+        "with it."
+    ),
+    "stripe-webhook": (
+        "Server-to-server from Stripe, signature-verified; no user acts. "
+        "The billing effects it causes are recorded by named events "
+        "(CREDIT_TRANSACTION); S3 gives them a system actor."
+    ),
+    "stripe-webhook-thin": (
+        "Server-to-server from Stripe (thin events), signature-verified; no "
+        "user acts. Its billing effects are recorded by named events; S3 "
+        "gives them a system actor."
+    ),
 }
 
 _TARGET_ID_KWARGS = ("pk", "id", "object_id")
+
+# S2: the anonymous doors that sign in or create an account. Each records its
+# own named event on success and on a refused attempt it recognises; when a
+# request is refused before that (a malformed body, a missing field), no event
+# exists, so `AuditMiddleware` records one FAILURE here instead: actor
+# ANONYMOUS, no target, reason INVALID_REQUEST, never the body.
+# Route (URL name) -> (action, metadata.auth_method).
+ANONYMOUS_AUDITED_ROUTES = {
+    "login": (AuditAction.AUTH_LOGIN, "password"),
+    "auth-verify": (AuditAction.AUTH_LOGIN, "email_verification"),
+    "auth-reset-password": (AuditAction.AUTH_LOGIN, "password_reset"),
+    "auth-register-school-admin": (AuditAction.AUTH_LOGIN, "school_admin_invitation"),
+    "auth-register-student": (AuditAction.AUTH_LOGIN, "student_invitation"),
+    "auth-google-auth": (AuditAction.AUTH_LOGIN, "google"),
+    "auth-register": (AuditAction.ACCOUNT_REGISTER, "self_registration"),
+}
+# Audit-only reason codes, from the FR-A-06 catalogue (S6a): the emitter
+# refuses any code outside audit.enums.ReasonCode.
+INVALID_REQUEST = ReasonCode.INVALID_REQUEST.value
+SERVER_ERROR = ReasonCode.SERVER_ERROR.value
 
 
 def _target(match):
@@ -90,6 +128,77 @@ def should_record(request, response) -> bool:
     if match is None:
         return False
     return match.view_name not in EXCLUDED_ROUTES
+
+
+def emit_anonymous_refusal(request, response) -> None:
+    """Record an anonymous write that left no event (S2). Called by the
+    middleware only when no event stored during the request survives.
+
+    - A sign-in door refused with a 4xx (a malformed body, a missing field)
+      records one FAILURE, reason INVALID_REQUEST.
+    - ANY non-excluded write that crashed (5xx) records one FAILURE,
+      error_class SYSTEM, reason SERVER_ERROR (SM ruling on v2's N1): a
+      crash must not leave zero trace. A door keeps its own action; any
+      other route is a STATE_CHANGE naming the route.
+
+    Actor ANONYMOUS, no body, never a 429 (the throttle refused it before the
+    view ran). Never raises."""
+    try:
+        status_code = response.status_code
+        if status_code < 400 or status_code == 429:
+            return
+        if request.method not in STATE_CHANGING_METHODS:
+            return
+        user = getattr(request, "user", None)
+        if user is not None and user.is_authenticated:
+            return
+        match = getattr(request, "resolver_match", None)
+        view_name = getattr(match, "view_name", "") or ""
+        if match is None or view_name in EXCLUDED_ROUTES:
+            return
+        door = ANONYMOUS_AUDITED_ROUTES.get(view_name)
+        crashed = status_code >= 500
+        if door is None and not crashed:
+            return
+
+        if crashed:
+            outcome, error_class, reason = (
+                AuditOutcome.FAILURE,
+                ErrorClass.SYSTEM,
+                SERVER_ERROR,
+            )
+        else:
+            outcome, error_class = _outcome_for_status(status_code)
+            reason = INVALID_REQUEST
+        if door is not None:
+            action, auth_method = door
+            target_type, target_id = "CustomUser", None
+            metadata = {"auth_method": auth_method, "http_status": status_code}
+        else:
+            action = AuditAction.STATE_CHANGE
+            target_type, target_id = _target(match)
+            metadata = {
+                "route": view_name,
+                "method": request.method,
+                "http_status": status_code,
+            }
+        emit(
+            action,
+            actor=user,
+            request=request,
+            target_type=target_type,
+            target_id=target_id,
+            outcome=outcome,
+            error_class=error_class,
+            reason_code=reason,
+            metadata=metadata,
+        )
+    except Exception as exc:  # noqa: BLE001 - FR-A-11: never fail the response
+        logger.error(
+            "audit anonymous refusal event failed: %s",
+            type(exc).__name__,
+            extra={"audit_kind": "generic_failed"},
+        )
 
 
 def emit_generic_state_change(request, response) -> None:

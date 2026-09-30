@@ -82,6 +82,10 @@ class AuditAction(models.TextChoices):
     # Epic A completion S1: the generic event for a state-changing request
     # that recorded no named event. `metadata.route` says which route.
     STATE_CHANGE = "STATE_CHANGE", "State-changing request"
+    # Epic A completion S2: a new account from self-registration
+    # (POST /auth/register). Not AUTH_LOGIN - nobody is signed in until the
+    # address is verified, and that /auth/verify success is the AUTH_LOGIN.
+    ACCOUNT_REGISTER = "ACCOUNT_REGISTER", "Account registered"
 
 
 # Actions that always touch a student's record, so they are kept 3 years.
@@ -156,6 +160,9 @@ class ReasonCode(models.TextChoices):
     # audit.request_audit.INVALID_REQUEST). Listed ahead of S2 landing so
     # the emitter does not reject it.
     INVALID_REQUEST = "INVALID_REQUEST", "Invalid request"
+    # An anonymous, non-excluded write that crashed (5xx) - one FAILURE, so a
+    # crash never leaves zero trace (Epic A S2, the SM's ruling on v2's N1).
+    SERVER_ERROR = "SERVER_ERROR", "Server error"
 
 
 # The ten FR-A-06 conditions, as QA-ERR-02 lists them.
