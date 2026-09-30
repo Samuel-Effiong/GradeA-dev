@@ -7,7 +7,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from rest_framework.exceptions import ParseError
 
-from ai_processor.services import ai_processor
+from ai_processor.services import GRADING_ASSIGNMENT_PROMPT, ai_processor
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome, ErrorClass
 from AutoGrader.error_messages import (
@@ -536,6 +536,8 @@ def grade_engine_async(
                 "submission_id": str(submission.id),
                 "task_id": str(processing_task_id) if processing_task_id else None,
                 "model": grading_model,
+                # S5 (NFR-OBS-04): the exact grading prompt behind this grade.
+                "prompt_version": GRADING_ASSIGNMENT_PROMPT.version,
             },
         )
 
@@ -638,6 +640,7 @@ def grade_engine_async(
                 ),
                 "submission_id": str(submission_id),
                 "task_id": str(processing_task_id) if processing_task_id else None,
+                "prompt_version": GRADING_ASSIGNMENT_PROMPT.version,
             },
         )
         if batch_id:

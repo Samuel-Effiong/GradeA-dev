@@ -22,3 +22,23 @@
 **N1 (deploy time).** 2a ships `backfill_pending_student_invites` and `remediate_student123_passwords`. Running either against production is a production action: it needs founder approval, and the founder runs it via Railway. FULL_SUITE.md already says so; repeated here so it isn't missed at push time.
 
 **N2 (forward, for H-53).** H-53 (7997dea) is based on beta e7e4bdf and changes `users/throttling.py` and `AuthViewSet.verify`/`otp` in `users/views.py`. 2a changes both files: L2's OTP budget, retire (A) and the wording all touch the `/auth/otp` area. When H-53 is rebased onto beta after 2a lands, I'll re-verify the rebased delta with `range-diff` and patch-id, and re-run its tests on the combined tree.
+
+## Gate 1 refresh @ 755aa27 (for the beta push). Verification Engineer 1a, 2026-09-30
+**Verdict for the tip 755aa27: VERIFIED.** Nothing is required. The push still needs the founder's confirmation of that specific push.
+
+**What changed since my Gate 1 at ddfca77 (and the docs-only check at 0d8b095):**
+
+| Check | Result |
+|---|---|
+| Ancestry | 0d8b095 is an ancestor of 755aa27. First-parent commits: 9dbb96e, d510786, 605510a, 3847540, 755aa27. |
+| Evil merges | For all 3 merges (9dbb96e → 4ed4ee5, 605510a → fa2d351, 3847540 → 644588e), `git merge-tree --write-tree <p1> <p2>` equals the merge's own tree. |
+| Code | The only non-docs files in 0d8b095..755aa27 are `users/views.py` and `AutoGrader/tests_cache_commit_race_cost.py`. At 755aa27 they are **identical** to the verified 4ed4ee5 (auth docs, VERIFIED) and fa2d351 (cost cap, VERIFIED-WITH-NOTES). |
+| After 605510a | **Docs only:** FULL_SUITE.md, DEPLOYED_CHECK.md and the cost cap's VERIFICATION record. The confirmation run's tree (605510a) therefore equals the push tip's code. |
+| Records | `docs/evidence/auth-otp-verify-docs/VERIFICATION.md` (including the D1-closed addendum) and `docs/evidence/cache_commit_race/VERIFICATION_h25_cost_cap_2a.md` match my copies **byte for byte**. |
+| Migrations | None in beta 463e222..755aa27. |
+| Confirmation run (0b, FULL_SUITE.md) | At 605510a, **no `RACE_COST_*` env** (this exercises the code defaults), under a 12G cap: **Ran 4973, OK (skipped=28)**, 0 blocked outbound, 562 s. That is 4970 plus the cap's 3 new tests (2 budget, 1 default pin), as expected. |
+
+**Notes (not blocking):**
+- **R1.** Whole-repo mypy was last recorded at d510786, before the cap merge. fa2d351 is test-only, and its author reports that the hooks passed. If mypy is a push-gate item, one run at 755aa27 would close it.
+- **R2.** DEPLOYED_CHECK's "staging check reduced to web-only" is recorded as a **founder decision**. I haven't verified it and can't; it isn't a code change. The H-25 race replay is covered by `AutoGrader.tests_cache_commit_race`, which passed in the confirmation run.
+- **R3 (carried from my Gate 1).** Running `backfill_pending_student_invites` or `remediate_student123_passwords` against production is a production action and needs founder approval. H-53 is **not** in 2a.

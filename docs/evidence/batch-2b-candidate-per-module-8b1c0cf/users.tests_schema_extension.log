@@ -1,0 +1,4 @@
+users.tests_schema_extension.MustChangePasswordJWTSchemeRegistrationTest.test_extension_is_registered_for_the_wrapper_authenticator ... ok
+users.tests_schema_extension.MustChangePasswordJWTSchemeRegistrationTest.test_extension_targets_the_wrapper_class_exactly ... ok
+Ran 2 tests in 0.002s
+OK

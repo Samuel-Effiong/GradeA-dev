@@ -666,9 +666,9 @@ class HighConcurrencyCounterTests(SimpleTestCase):
 
 @override_settings(CACHES=REDIS_CACHE)
 class CounterNamespaceSafetyTests(SimpleTestCase):
-    """The counter namespace must not be reachable by the OLD mechanism.
+    """The counter namespace must not be reachable by any pattern delete.
 
-    Both mechanisms run side by side through stage 2. The legacy wildcards
+    Both mechanisms ran side by side through stages 2-3. The legacy wildcards
     are substring globs, so a counter named `gen:user:<id>` is matched and
     DELETED by `delete_pattern("*user*")` - and a deleted counter resets to
     the default generation, reviving every superseded entry it guarded.
@@ -679,27 +679,17 @@ class CounterNamespaceSafetyTests(SimpleTestCase):
     every matched substring; this test is what keeps that true, so adding a
     new wildcard pattern that reaches the counters fails here rather than
     silently reviving stale data in production.
+
+    H-1 step 4 removed the 16 legacy wildcard patterns (every one of them
+    was checked here until then). The only pattern delete production still
+    issues is the PDF cache's exact-prefix clear of one assignment
+    (`assignments/pdf_cache.py`), so that is the live set now; a new
+    pattern delete anywhere else fails
+    `AutoGrader/tests_no_wildcard_invalidation.py` before it can get here.
     """
 
-    #: Every wildcard pattern any live receiver fires today.
-    LIVE_PATTERNS = [
-        "*superadmin*",
-        "*schooladmin*",
-        "*teacheradmin*",
-        "*studentadmin*",
-        "*user*",
-        "*school*",
-        "*course*",
-        "*studentcourse*",
-        "*settings*",
-        "schools:*",
-        "sessions:*",
-        "courses:*",
-        "studentcourses:*",
-        "topics:*",
-        "assignments:*",
-        "studentsubmissions:*",
-    ]
+    #: Every pattern production still deletes by (H-1 step 4: only this one).
+    LIVE_PATTERNS = [f"assignmentpdf:v1:{A}:*"]
 
     def setUp(self):
         cache.clear()

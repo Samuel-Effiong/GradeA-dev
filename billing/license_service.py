@@ -309,29 +309,38 @@ class LicenseSubscriptionService:
         and the Stripe checkout, so an impossible seat count is refused
         before the school pays, not in the webhook after.
 
+        Every address is compared lower-cased and counted once (H-58): the
+        same teacher listed twice, or listed again under a differently-cased
+        stored address when carried forward, is one seat.
+
         Raises:
-            LicenseRequestError: more teachers than seats (max_seats > 0).
+            LicenseRequestError: no seats (H-59: refused here so the Stripe
+                checkout refuses it before payment, not the webhook after),
+                or more teachers than seats.
         """
+        if max_seats <= 0:
+            raise LicenseRequestError("max_seats must be a positive integer")
+
         carry_forward_emails: set = set()
         if existing_license and carry_forward_teachers:
             carried_user_ids = existing_license.allocations.filter(
                 is_active=True, is_admin_allocation=False
             ).values_list("user_id", flat=True)
-            carry_forward_emails = set(
-                CustomUser.objects.filter(id__in=list(carried_user_ids)).values_list(
-                    "email", flat=True
-                )
-            )
+            carry_forward_emails = {
+                email.strip().lower()
+                for email in CustomUser.objects.filter(
+                    id__in=list(carried_user_ids)
+                ).values_list("email", flat=True)
+            }
 
-        normalized_new_emails = [
-            e.strip().lower() for e in (teacher_emails or []) if e and e.strip()
-        ]
         genuinely_new_emails = [
-            e for e in normalized_new_emails if e not in carry_forward_emails
+            e
+            for e in LicenseSubscriptionService.normalize_teacher_emails(teacher_emails)
+            if e not in carry_forward_emails
         ]
 
         total_requested = len(carry_forward_emails) + len(genuinely_new_emails)
-        if max_seats > 0 and total_requested > max_seats:
+        if total_requested > max_seats:
             seats = f"{max_seats} seat{'' if max_seats == 1 else 's'}"
             added = (
                 f"{total_requested} teacher{'' if total_requested == 1 else 's'} "
@@ -348,6 +357,27 @@ class LicenseSubscriptionService:
             )
 
         return carry_forward_emails, genuinely_new_emails
+
+    @staticmethod
+    def normalize_teacher_emails(teacher_emails: Optional[List[str]]) -> List[str]:
+        """Lower-cased, stripped, blanks dropped, each address once, in the
+        order given - so one teacher is only ever counted as one seat."""
+        return list(
+            dict.fromkeys(
+                e.strip().lower() for e in (teacher_emails or []) if e and e.strip()
+            )
+        )
+
+    @staticmethod
+    def teacher_account_for_email(email: str) -> Optional[CustomUser]:
+        """The account for `email`, matched case-insensitively: an address
+        stored with capitals ("T@x.edu") is the same person as "t@x.edu",
+        and must not get a second account. An exact match wins if legacy
+        rows differ only by case."""
+        return (
+            CustomUser.objects.filter(email=email).first()
+            or CustomUser.objects.filter(email__iexact=email).order_by("email").first()
+        )
 
     @staticmethod
     def validate_admin_user(admin_user: CustomUser, school: School) -> None:
@@ -900,7 +930,8 @@ class LicenseSubscriptionService:
                 has several.
             teacher_emails: Optional list of teacher emails to enroll immediately
             contract_months: Billing period length (9, 10, or 12). Default 12.
-            max_seats: Maximum number of teacher seats (0 = unlimited). Default 0.
+            max_seats: Maximum number of teacher seats; must be positive
+                (check_seat_capacity refuses 0).
             carry_forward_teachers: If this school already has an active
                 license, re-enroll its currently-active teachers (and the
                 admin's analytics allocation stays untouched — a fresh
@@ -921,9 +952,6 @@ class LicenseSubscriptionService:
         # case anyway.
         LicenseSubscriptionService.validate_license_plan(plan)
         admin_user = LicenseSubscriptionService.resolve_admin_user(school, admin_user)
-
-        if max_seats <= 0:
-            raise LicenseRequestError("max_seats must be a positive integer")
 
         now = timezone.now()
         # Use contract_months to compute the billing window (e.g. 12 months for annual)
@@ -1125,8 +1153,8 @@ class LicenseSubscriptionService:
 
             return None
 
-        # Check if user with this email already exists
-        user = CustomUser.objects.filter(email=email).first()
+        # Check if user with this email already exists, whatever its case
+        user = LicenseSubscriptionService.teacher_account_for_email(email)
 
         if user:
             # 2. Validate user type
@@ -1653,11 +1681,14 @@ class LicenseSubscriptionService:
             )
         )
 
-        # Determine which emails are NOT already active
+        # Determine which emails are NOT already active. Each address once,
+        # matched case-insensitively (H-58), so one teacher is one seat.
         new_teacher_emails = []
 
-        for email in teacher_emails:
-            user = CustomUser.objects.filter(email=email).first()
+        for email in LicenseSubscriptionService.normalize_teacher_emails(
+            teacher_emails
+        ):
+            user = LicenseSubscriptionService.teacher_account_for_email(email)
             if user and user.id in active_teacher_ids:
                 # Already active - skip (they won't consume a seat)
                 continue

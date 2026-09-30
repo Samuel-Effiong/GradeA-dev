@@ -303,8 +303,8 @@ class UnrelatedUserSaveDoesNotClearPresenceTests(TestCase):
     The production defect behind this suite's long-standing flakiness,
     pinned against real Redis.
 
-    users.signals.clear_user_cache runs delete_pattern("*user*") on every
-    CustomUser and Settings save. The heartbeat throttle key and the
+    users.signals.clear_user_cache ran delete_pattern("*user*") on every
+    CustomUser and Settings save (removed in H-1 step 4). The heartbeat throttle key and the
     concurrent-users presence set both used to contain "user", so ANY
     unrelated user save - registration, a profile edit, a settings change,
     or the create_default_settings_and_wallet signal chain - wiped both:
@@ -363,22 +363,36 @@ class UnrelatedUserSaveDoesNotClearPresenceTests(TestCase):
             "an unrelated user save wiped the concurrent-users presence set",
         )
 
-    def test_the_per_user_json_cache_is_still_swept(self):
+    def test_the_per_user_json_cache_is_still_invalidated(self):
         """
         The other half: moving these keys out of the way must not stop
-        clear_user_cache doing its actual job.
+        clear_user_cache doing its actual job. Since H-1 step 4 that job is a
+        generation bump, not a "*user*" sweep: the saved user's cached
+        payload becomes unreachable (its live key moves), nothing is
+        deleted, and the presence keys are untouched.
         """
-        cache.set("users:user_id__1:query__abc", {"stale": True}, 300)
-        self._claim_window()
+        from AutoGrader.cache_generation import SCOPE_USER, versioned_key
 
         other = make_user("presence.unrelated3@gmail.com")
+
+        def live_key():
+            return versioned_key(
+                f"customusers:user_id__{other.id}:query__abc",
+                [(SCOPE_USER, other.id)],
+            )
+
+        before = live_key()
+        cache.set(before, {"stale": True}, 300)
+        self._claim_window()
+
         other.first_name = "Renamed"
         other.save()
 
-        self.assertIsNone(
-            cache.get("users:user_id__1:query__abc"),
-            "clear_user_cache stopped clearing the payloads it exists for",
+        self.assertNotEqual(
+            live_key(), before, "clear_user_cache stopped invalidating the user"
         )
+        self.assertIsNone(cache.get(live_key()))
+        self.assertEqual(cache.get(before), {"stale": True})
 
 
 __all__ = [

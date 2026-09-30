@@ -12,6 +12,7 @@ endpoints they guard are reached before the caller has a token. Rates are
 defined in `REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]`.
 """
 
+import hashlib
 import logging
 import time
 
@@ -129,3 +130,107 @@ def record_register_student_failure(reason):
             },
         )
     return count
+
+
+# ---------------------------------------------------------------------------
+# H-53: per-address budget of attempts on POST /auth/verify.
+#
+# VerifyEmailThrottle is per IP only, so with enough addresses an attacker
+# who registered with someone else's email could keep guessing that
+# account's 6-digit code. Like AUTHZ-L2's reset budget, this one belongs to
+# the ADDRESS: after VERIFY_EMAIL_MAX_FAILURES attempts that don't verify,
+# from any number of IPs, the address is locked for
+# VERIFY_EMAIL_LOCK_SECONDS, and every verify attempt (a correct code or a
+# freshly re-sent one included) is refused until the lock ends. A re-sent
+# code never refills the budget, which was L2's lesson.
+#
+# Unlike L2, the lock does NOT clear the stored code: activation_token also
+# holds student and school-admin invitations, which anyone could otherwise
+# destroy with a few wrong guesses. VERIFY_EMAIL_LOCK_SECONDS must stay
+# longer than a sign-up code's 15 minutes, so that code is dead when the
+# lock ends; a 24-hour invitation code gets at most MAX_FAILURES guesses
+# per lock period.
+#
+# The attempt is spent BEFORE the code is checked (`reserve_verify_attempt`)
+# and refunded only by a successful verify. Counting failures afterwards
+# would let a burst of simultaneous guesses from many IPs all pass the
+# check before the one that locks the address has finished.
+#
+# Keyed on the normalised address, NOT the account, and applied to unknown
+# addresses too, so a lock says nothing about whether an account exists.
+# Counters live in the cache (atomic add + incr, as H-47's budget does); if
+# the cache is unavailable the budget fails open and logs, rather than
+# refusing every sign-up.
+
+
+def _verify_address_key(kind, email):
+    digest = hashlib.sha256((email or "").strip().lower().encode()).hexdigest()
+    return f"verify_email:{kind}:{digest[:32]}"
+
+
+def verify_lock_until(email):
+    """The epoch second the address's lock ends, or None if not locked."""
+    try:
+        until = cache.get(_verify_address_key("locked", email))
+    except Exception:  # noqa: BLE001 - fail open, see above
+        logger.error("verify_email budget unavailable (cache read failed)")
+        return None
+    if until and until > time.time():
+        return until
+    return None
+
+
+def reserve_verify_attempt(email):
+    """Spend one attempt from `email`'s budget before its code is checked.
+    Returns the attempt's number in the window, or None if the cache is
+    unavailable (fail open)."""
+    window = settings.VERIFY_EMAIL_LOCK_SECONDS
+    key = _verify_address_key("attempts", email)
+    try:
+        cache.add(key, 0, timeout=window)
+        try:
+            return cache.incr(key)
+        except ValueError:
+            cache.set(key, 1, timeout=window)
+            return 1
+    except Exception:  # noqa: BLE001 - fail open, see above
+        logger.error("verify_email budget unavailable (cache write failed)")
+        return None
+
+
+def verify_budget_spent(attempt):
+    return attempt is not None and attempt >= settings.VERIFY_EMAIL_MAX_FAILURES
+
+
+def verify_attempt_over_budget(attempt):
+    return attempt is not None and attempt > settings.VERIFY_EMAIL_MAX_FAILURES
+
+
+def lock_verify_address(email):
+    """The budget is spent: lock `email` for VERIFY_EMAIL_LOCK_SECONDS. The
+    attempt counter needs no reset: its window began at the first attempt,
+    so it has expired by the time the lock ends."""
+    window = settings.VERIFY_EMAIL_LOCK_SECONDS
+    try:
+        if not cache.add(
+            _verify_address_key("locked", email), time.time() + window, timeout=window
+        ):
+            return
+    except Exception:  # noqa: BLE001 - fail open, see above
+        logger.error("verify_email budget unavailable (cache write failed)")
+        return
+    # No address or code in the log: the event is enough to see a guessing run.
+    logger.warning(
+        "verify_email address locked after too many attempts",
+        extra={
+            "event": "verify_email.locked",
+            "limit": settings.VERIFY_EMAIL_MAX_FAILURES,
+        },
+    )
+
+
+def clear_verify_failures(email):
+    try:
+        cache.delete(_verify_address_key("attempts", email))
+    except Exception:  # noqa: BLE001
+        pass

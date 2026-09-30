@@ -2,6 +2,7 @@ import uuid
 
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
+from django.db.models.functions import Now
 from django.utils.translation import gettext_lazy as _
 
 from users.models import CustomUser
@@ -48,7 +49,7 @@ class Assignment(models.Model):
     # next download is a natural miss and the stale entry simply ages out
     # under its TTL - there is no invalidation hook to keep in sync with
     # future write paths.
-    updated_at = models.DateTimeField(auto_now=True)
+    updated_at = models.DateTimeField(auto_now=True, db_default=Now())
 
     # AI GENERATED FIELDS
     instructions = models.TextField(null=True, blank=True, default="")

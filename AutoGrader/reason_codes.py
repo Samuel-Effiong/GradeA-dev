@@ -23,7 +23,7 @@ The body, which the renderer wraps in `error.field_errors` (F7):
      "remediation": <what to do next>,
      "retryable": false,
      "params": {<whitelisted scalars>},
-     "reference": <the request's X-Request-ID>,   # QA-ERR-04
+     "reference": <the server's X-Request-ID>,    # QA-ERR-04; never an inbound id (X-5)
      "code": "insufficient_credits"}      # legacy, the two refusals only (F8)
 
 QA-ERR-03: the message comes from the spec template and whitelisted scalar
@@ -222,6 +222,7 @@ AUDIT_ONLY_CODES = frozenset(
         ReasonCode.CODE_MISSING,
         ReasonCode.CODE_NOT_REQUESTED,
         ReasonCode.RESET_LOCKED,
+        ReasonCode.VERIFY_LOCKED,
         ReasonCode.REFRESH_TOKEN_MISSING,
         ReasonCode.REFRESH_TOKEN_INVALID,
         ReasonCode.SESSION_REVOKE_FAILED,
@@ -231,6 +232,8 @@ AUDIT_ONLY_CODES = frozenset(
         ReasonCode.GOOGLE_TOKEN_INVALID,
         ReasonCode.GOOGLE_EMAIL_UNVERIFIED,
         ReasonCode.INVALID_REQUEST,
+        ReasonCode.SERVER_ERROR,
+        ReasonCode.FAILED_AUTH_CAPPED,
     }
 )
 

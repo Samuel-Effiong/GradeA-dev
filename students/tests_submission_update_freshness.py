@@ -4,20 +4,19 @@ Cache freshness for the submission paths that write with QuerySet.update().
 `post_save` never fires for a queryset update, so
 students.signals.clear_student_submission_cache never runs for these
 writes; each call site must invoke `invalidate_submission_caches` itself.
-While the legacy wildcard sweeps still run they would mask a missing call
-(a `studentsubmissions:*` delete rescues the stale entry), so - exactly as
-AutoGrader/tests_cache_dashboard_freshness.py::LegacyDisabledFreshnessTests
-does - these tests neutralise `delete_cache_patterns` in every signal module
-and require the generation counters alone to carry the freshness. Real
-Redis, real endpoints. Removing any of the three `invalidate_submission_caches`
-calls turns its test red.
+While the legacy wildcard sweeps ran they would have masked a missing call
+(a `studentsubmissions:*` delete rescued the stale entry), so these tests
+patched `delete_cache_patterns` out of every signal module. H-1 step 4
+deleted the sweeps; the tests now run against the real code, and the
+generation counters alone carry the freshness. Real Redis, real endpoints.
+Removing any of the three `invalidate_submission_caches` calls turns its
+test red.
 
 Run with:
     python manage.py test students.tests_submission_update_freshness
 """
 
 from datetime import timedelta
-from unittest.mock import patch
 
 from django.core.cache import cache
 from django.test import TransactionTestCase, override_settings
@@ -75,25 +74,6 @@ class SubmissionUpdatePathFreshnessTest(TransactionTestCase):
         self.client = APIClient()
         self.client.force_authenticate(self.teacher)
 
-        # Legacy sweeps OFF in every module that holds a reference - the
-        # generation counters must do the work alone.
-        self._patches = [
-            patch(f"{module}.delete_cache_patterns", lambda *a, **k: None)
-            for module in (
-                "classrooms.signals",
-                "users.signals",
-                "students.signals",
-                "assignments.signals",
-            )
-        ]
-        for p in self._patches:
-            p.start()
-        self.addCleanup(self._stop_patches)
-
-    def _stop_patches(self):
-        for p in self._patches:
-            p.stop()
-
     def tearDown(self):
         cache.clear()
 
@@ -102,13 +82,13 @@ class SubmissionUpdatePathFreshnessTest(TransactionTestCase):
         self.assertEqual(response.status_code, 200)
         return response.data
 
-    def test_the_legacy_mechanism_really_is_disabled(self):
+    def test_no_wildcard_sweep_runs_on_a_mutation(self):
         cache.set("studentsubmissions:user_id__sentinel:instance_id__x", "cached", 300)
         self.submission.save(update_fields=["score"])
         self.assertEqual(
             cache.get("studentsubmissions:user_id__sentinel:instance_id__x"),
             "cached",
-            "a legacy wildcard sweep still ran - the patch did not take",
+            "a wildcard sweep ran on a submission save",
         )
 
     def test_publish_refreshes_the_cached_detail(self):

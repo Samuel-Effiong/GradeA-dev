@@ -42,10 +42,10 @@ User = get_user_model()
 
 LOCMEM = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
 
-#: Cache invalidation in this app is done with `delete_pattern`, which ONLY
-#: django-redis provides - `delete_cache_patterns` silently no-ops on any
-#: other backend. Testing revocation on LocMem therefore proves nothing
-#: about production, so the cache attacks below run against a real Redis.
+#: Cache invalidation used to be `delete_pattern`, which ONLY django-redis
+#: provides, so revocation tests on LocMem proved nothing about production.
+#: Since H-1 step 4 it is a generation bump (standard incr/add), but the
+#: cache attacks below still run against a real Redis, as production does.
 #: The dedicated database number (15) is not what isolates them from a
 #: concurrent test run - every run of this module picks 15. The per-process
 #: key prefix and prefix-scoped clear() in real_redis_caches() do (H-9).

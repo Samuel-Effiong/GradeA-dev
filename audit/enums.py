@@ -82,6 +82,10 @@ class AuditAction(models.TextChoices):
     # Epic A completion S1: the generic event for a state-changing request
     # that recorded no named event. `metadata.route` says which route.
     STATE_CHANGE = "STATE_CHANGE", "State-changing request"
+    # Epic A completion S2: a new account from self-registration
+    # (POST /auth/register). Not AUTH_LOGIN - nobody is signed in until the
+    # address is verified, and that /auth/verify success is the AUTH_LOGIN.
+    ACCOUNT_REGISTER = "ACCOUNT_REGISTER", "Account registered"
     # Epic A completion S3 (D6): a retention sweep's record of its own run,
     # zero-count runs included, so a stopped sweep shows as a gap.
     AUDIT_RETENTION_SWEEP = "AUDIT_RETENTION_SWEEP", "Audit retention sweep"
@@ -147,6 +151,9 @@ class ReasonCode(models.TextChoices):
     CODE_MISSING = "CODE_MISSING", "Code missing"
     CODE_NOT_REQUESTED = "CODE_NOT_REQUESTED", "Code not requested"
     RESET_LOCKED = "RESET_LOCKED", "Password reset locked"
+    # /auth/verify refused while the address is locked (beta H-53, merged
+    # into Epic A: one DENIED event per locked attempt).
+    VERIFY_LOCKED = "VERIFY_LOCKED", "Email verification locked"
     REFRESH_TOKEN_MISSING = "REFRESH_TOKEN_MISSING", "Refresh token missing"
     REFRESH_TOKEN_INVALID = "REFRESH_TOKEN_INVALID", "Refresh token invalid"
     SESSION_REVOKE_FAILED = "SESSION_REVOKE_FAILED", "Session revoke failed"
@@ -159,6 +166,11 @@ class ReasonCode(models.TextChoices):
     # audit.request_audit.INVALID_REQUEST). Listed ahead of S2 landing so
     # the emitter does not reject it.
     INVALID_REQUEST = "INVALID_REQUEST", "Invalid request"
+    # An anonymous, non-excluded write that crashed (5xx) - one FAILURE, so a
+    # crash never leaves zero trace (Epic A S2, the SM's ruling on v2's N1).
+    SERVER_ERROR = "SERVER_ERROR", "Server error"
+    # The summary written in place of capped failed sign-ins (Epic A S1b).
+    FAILED_AUTH_CAPPED = "FAILED_AUTH_CAPPED", "Failed sign-ins capped"
 
 
 # The ten FR-A-06 conditions, as QA-ERR-02 lists them.

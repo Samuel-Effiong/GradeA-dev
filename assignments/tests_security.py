@@ -1261,13 +1261,23 @@ class ConcurrentAccessRevocationTest(TenancyAttackFixture, TransactionTestCase):
                 client.force_authenticate(user=self.subject)
                 start.wait(timeout=30)
                 for _ in range(6):
+                    # Labelled when the request is ISSUED, which is what the
+                    # assertion below means ("issued strictly after the
+                    # revocation was visible"). Labelling on completion
+                    # counted a request whose access check ran before the
+                    # commit, but which finished after the flag, as "late" -
+                    # a false failure, seen once in a run after H-1 step 4
+                    # removed the wildcard SCANs that used to sit between
+                    # the commit and `withdrawn.set()` and so shrank that
+                    # gap. The access check itself is a DB `get_object()`.
+                    issued_after = withdrawn.is_set()
                     with patch(
                         "assignments.views.render_assignment_pdf",
                         return_value=b"%PDF-x",
                     ):
                         response = client.get(url)
                     with lock:
-                        results.append((withdrawn.is_set(), response.status_code))
+                        results.append((issued_after, response.status_code))
             finally:
                 connection.close()
 
@@ -1304,6 +1314,8 @@ class ConcurrentAccessRevocationTest(TenancyAttackFixture, TransactionTestCase):
 
 @unittest.skipUnless(
     hasattr(cache, "delete_pattern"),
+    # Detects a django-redis backend (the extension exists there, whether
+    # or not anything calls it - since H-1 step 4 only the PDF cache does).
     "needs a Redis-backed cache for the per-user list cache",
 )
 class PerUserCachePoisoningTest(TenancyAttackFixture, APITestCase):

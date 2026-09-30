@@ -37,11 +37,6 @@ class ClassroomBaseAPITest(APITestCase):
         # Clear cache before each test
         cache.clear()
 
-        # Mock delete_pattern since it's a django-redis specific method
-        # and might not be available in the test cache backend.
-        if not hasattr(cache, "delete_pattern"):
-            cache.delete_pattern = lambda x: None
-
         # Create a superuser
         self.superadmin = User.objects.create_superuser(
             email="superadmin@example.com",
@@ -105,8 +100,11 @@ class SchoolViewSetTest(ClassroomBaseAPITest):
         self.authenticate(self.superadmin)
         url = reverse("school-list")
 
-        # Mock cache.delete_pattern to simulate invalidation
-        with patch.object(cache, "delete_pattern") as mock_delete:
+        # H-1 step 4: invalidation is a generation bump, never a pattern
+        # delete, and the cached list refreshes with no manual clear.
+        with patch.object(
+            cache, "delete_pattern", create=True, side_effect=AssertionError
+        ) as mock_delete:
             # First call caches the response
             response1 = self.client.get(url)
             self.assertEqual(len(response1.data["results"]), 1)
@@ -114,15 +112,10 @@ class SchoolViewSetTest(ClassroomBaseAPITest):
             # Create a new school via API
             self.client.post(url, {"name": "New API School"})
 
-            # Check if delete_pattern was called
-            mock_delete.assert_called()
-
-            # Manually clear cache to simulate invalidation effect
-            cache.clear()
-
-            # Second call should reflect the new school
+            # Second call reflects the new school, from the cache path
             response2 = self.client.get(url)
             self.assertEqual(len(response2.data["results"]), 2)
+            mock_delete.assert_not_called()
 
     def test_list_schools_teacher_denied(self):
         # SchoolViewSet is superadmin-only: teachers (and school admins)
@@ -552,8 +545,11 @@ class SessionViewSetTest(ClassroomBaseAPITest):
         self.authenticate(self.teacher1)
         url = reverse("session-list")
 
-        # Mock cache.delete_pattern to simulate invalidation
-        with patch.object(cache, "delete_pattern") as mock_delete:
+        # H-1 step 4: invalidation is a generation bump, never a pattern
+        # delete, and the cached list refreshes with no manual clear.
+        with patch.object(
+            cache, "delete_pattern", create=True, side_effect=AssertionError
+        ) as mock_delete:
             # First GET call
             response1 = self.client.get(url)
             self.assertEqual(len(response1.data["results"]), 0)
@@ -563,15 +559,10 @@ class SessionViewSetTest(ClassroomBaseAPITest):
             create_response = self.client.post(url, new_session_data)
             self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
 
-            # Check if delete_pattern was called
-            mock_delete.assert_called()
-
-            # Manually clear cache to simulate invalidation effect
-            cache.clear()
-
-            # Second GET call should reflect new session
+            # Second GET call reflects the new session, from the cache path
             response2 = self.client.get(url)
             self.assertEqual(len(response2.data["results"]), 1)
+            mock_delete.assert_not_called()
 
     def test_session_isolation(self):
         # Teacher 1 creates a session
@@ -603,8 +594,11 @@ class CourseViewSetTest(ClassroomBaseAPITest):
         self.authenticate(self.teacher1)
         url = reverse("course-list")
 
-        # Mock cache.delete_pattern to simulate invalidation
-        with patch.object(cache, "delete_pattern") as mock_delete:
+        # H-1 step 4: invalidation is a generation bump, never a pattern
+        # delete, and the cached list refreshes with no manual clear.
+        with patch.object(
+            cache, "delete_pattern", create=True, side_effect=AssertionError
+        ) as mock_delete:
             # First GET call
             response1 = self.client.get(url)
             self.assertEqual(len(response1.data["results"]), 0)
@@ -614,15 +608,10 @@ class CourseViewSetTest(ClassroomBaseAPITest):
             create_response = self.client.post(url, new_course_data)
             self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
 
-            # Check if delete_pattern was called
-            mock_delete.assert_called()
-
-            # Manually clear cache to simulate invalidation
-            cache.clear()
-
-            # Second GET call should reflect the new course
+            # Second GET call reflects the new course, from the cache path
             response2 = self.client.get(url)
             self.assertEqual(len(response2.data["results"]), 1)
+            mock_delete.assert_not_called()
 
     def test_hacker_enroll_same_student_twice(self):
         course = Course.objects.create(
