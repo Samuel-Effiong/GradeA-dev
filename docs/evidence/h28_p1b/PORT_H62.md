@@ -25,7 +25,8 @@ Clean re-apply, not a rebase. Each of the 11 commits that were not WIP was appli
 | 5 | `318c7d8` | `change_license_plan` on it, with F0 and F1–F3; `change_license_price` delegates to it |
 | 6 | `83dd6c2` | `convert_license_to_offline` (P0) on it: no compensation, and a refused or lost delete is read back |
 | — | `8e450e6` | merge of bundle 4 (`bd29d1f`: H-62's final tip and the `expire_bucket` race fix), so H-28's rule-15 runs cover what it lands beside; then `04314f6` logs H-67 (backlog only) |
-| 7 | (next) | the bounded retry of the local write (§9e); the named Gate-5 assertion is `test_h28_finalise_retry.test_after_the_connection_is_killed_the_retry_succeeds_on_a_fresh_one` |
+| 7 | `f3e8d4d` | the bounded retry of the local write (§9e); the named Gate-5 assertion is `test_h28_finalise_retry.test_after_the_connection_is_killed_the_retry_succeeds_on_a_fresh_one` (see *The kill in commit 7's test* below) |
+| 8 | (next) | a human is told (§9g–§9i): every reconciliation alert also emails every active super admin; the stale-intent periodic task `escalate-stale-licence-stripe-intents` (every 5 min, one query, no Stripe call; beat entry and health expectation added); and `manage.py resolve_licence_stripe_intent` (§9h-bis) |
 
 ## F1: the 4-point behaviour-change record
 
@@ -40,6 +41,14 @@ F1 is the one customer-visible behaviour change in Change 1 (`FINDING_licence_pa
 
 Its only production caller was `change_license_plan`. Called on its own, it changed Stripe only and left the local plan to its caller, which is H-28's divergence by construction. It now delegates to `change_license_plan` (`new_custom_price_cents=None` meaning the plan's own price, as before), so nothing can change a licence's price at Stripe without recording it. The latent F1–F3 reproductions still call it directly, unchanged. `test_change_license_price_now_records_the_change_too` pins the new contract.
 
+## The kill in commit 7's test
+
+The named Gate-5 assertion needs Postgres to really end a session, as the 60 s idle-in-transaction timeout does. Every session's test database lives on the same Postgres server, so the kill must never reach anyone else's backend (0b's condition):
+
+- It runs `SELECT pg_terminate_backend(pg_backend_pid())` on the raw connection being killed, so it can only end that very session. It never looks up a pid in `pg_stat_activity`.
+- Just before, it reads that session's `(pg_backend_pid(), current_database())`. The test asserts the database is the test's own (`connection.settings_dict["NAME"]`, starting `test_`), and that the retry then committed on a **different** backend pid.
+- It fires only on phase D's row lock (`FOR UPDATE`) after Stripe applied the change, so it tests the retry of the local write, not phase C's status write.
+
 ## Runs
 
 Dev runs, each under rule 13 (`systemd-run` MemoryMax=6G, `nice -n 10`, `timeout`), with logs in `port_h62/`:
@@ -52,5 +61,6 @@ Dev runs, each under rule 13 (`systemd-run` MemoryMax=6G, `nice -n 10`, `timeout
 | Commit 5's modules, with `test_mailerlite_sync` (it calls the rewritten plan change and cancel) | commit-5 tree | 109 ran; only the 2 expected failures (convert to offline, commit 6) |
 | Commit 6's modules | commit-6 tree | **119 ran, OK: all 18 reproductions pass** |
 | Commit 7's modules | commit-7 tree, over `04314f6` | 123 ran, OK |
+| Commit 8's modules, with `AutoGrader.tests_beat_health` and `AutoGrader.test_health` (a new beat entry) | commit-8 tree | 165 ran, OK |
 
 Rule 15's runs (changed modules, a mutation battery, the `billing` regression) and the whole-range hooks log come at the end of Change 1.

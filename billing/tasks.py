@@ -1622,6 +1622,25 @@ def fill_billing_transaction_receipt_url(self, transaction_id):
 
 
 @shared_task(bind=True, max_retries=0)
+def escalate_stale_licence_stripe_intents(self):
+    """
+    Every 5 minutes: escalate licence Stripe-change intents abandoned
+    mid-flight (a killed worker sends no alert), and alert a human. One
+    query, no Stripe call; see
+    billing.license_stripe_mutation.escalate_stale_intents (H-28).
+    """
+    from .license_stripe_mutation import escalate_stale_intents
+
+    escalated = escalate_stale_intents()
+    summary = f"Stale licence Stripe intents escalated: {escalated}"
+    if escalated:
+        logger.error(summary)
+    else:
+        logger.info(summary)
+    return summary
+
+
+@shared_task(bind=True, max_retries=0)
 def sweep_missing_receipt_urls(self):
     """
     Hourly safety net for receipt links the on_commit task never filled

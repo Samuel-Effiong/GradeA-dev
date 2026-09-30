@@ -48,6 +48,7 @@ refusal (the request was processed and turned down) counts as not applied.
 
 import logging
 import time
+from datetime import timedelta
 
 from django.db import (
     IntegrityError,
@@ -77,6 +78,11 @@ TRANSIENT_DB_ERRORS = (OperationalError, InterfaceError)
 FINALISE_ATTEMPTS = 3
 #: Seconds to wait before the 2nd and 3rd attempts.
 FINALISE_BACKOFF_SECONDS = (0.2, 1.0)
+
+#: An intent still PENDING or STRIPE_APPLIED after this long was abandoned
+#: mid-flight: its worker was killed (gunicorn's 100 s timeout, a deploy)
+#: and ran no code, so no alert was sent (DESIGN_PROPOSAL.md §9i).
+STALE_AFTER = timedelta(minutes=10)
 
 
 class LicenceBillingChangeInProgress(ValueError):
@@ -196,6 +202,9 @@ def record_stripe_result(intent, **values) -> None:
 
 
 def _reconciliation_needed(intent, why: str) -> None:
+    """Tell a human, through both channels of DESIGN_PROPOSAL.md §9g: an
+    ERROR log (a Sentry event where Sentry is set up) and an email to every
+    active super admin."""
     logger.error(
         "MANUAL RECONCILIATION NEEDED — Stripe and local state may now "
         "disagree for licence %s (intent %s, %s on Stripe subscription %s): %s",
@@ -205,6 +214,108 @@ def _reconciliation_needed(intent, why: str) -> None:
         intent.stripe_subscription_id,
         why,
     )
+    _email_super_admins(intent, why)
+
+
+def _email_super_admins(intent, why: str) -> None:
+    """
+    Best effort, and never raises: the caller is already handling a
+    failure, and a failed alert must not mask it. Money-related, so not
+    gated on any notification preference, like
+    LicenseSubscriptionService._notify_super_admins_offline_overage_pending.
+    """
+    try:
+        from django.conf import settings
+
+        from AutoGrader.dispatch import safe_delay
+        from AutoGrader.tasks import send_email_task
+        from users.models import CustomUser, UserTypes
+
+        recipients = list(
+            CustomUser.objects.filter(
+                user_type=UserTypes.SUPER_ADMIN,
+                is_superuser=True,
+                is_active=True,
+                email__isnull=False,
+            )
+            .exclude(email="")
+            .values_list("email", flat=True)
+        )
+        message = (
+            "A billing change to a school licence may have left Stripe and "
+            "the application disagreeing, and needs a human.\n\n"
+            f"Licence: {intent.license_subscription_id}\n"
+            f"Intent: {intent.id} ({intent.operation}, now {intent.status})\n"
+            f"Stripe subscription: {intent.stripe_subscription_id}\n"
+            f"Why: {why}\n\n"
+            "Reconcile Stripe and the licence, then close the intent with:\n"
+            f"  python manage.py resolve_licence_stripe_intent {intent.id}\n"
+            "(a dry run; it explains how to apply). Until then, no further "
+            "Stripe change can be made to this licence."
+        )
+        for email in recipients:
+            try:
+                safe_delay(
+                    send_email_task,
+                    subject="Manual reconciliation needed: licence billing change",
+                    message=message,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[email],
+                )
+            except Exception:  # noqa: BLE001 - one address must not stop the rest
+                logger.exception(
+                    "Could not queue the reconciliation alert for H-28 intent %s "
+                    "to one super admin.",
+                    intent.id,
+                )
+    except Exception:  # noqa: BLE001 - an alert must never raise
+        logger.exception(
+            "Could not send the reconciliation alert emails for H-28 intent %s.",
+            intent.id,
+        )
+
+
+def escalate_stale_intents(now=None) -> int:
+    """
+    The stale-intent check (DESIGN_PROPOSAL.md §9i (1)): one query, no
+    Stripe call. Every intent still PENDING or STRIPE_APPLIED after
+    STALE_AFTER was abandoned by a worker that ran no code, so nobody was
+    told. Each becomes ESCALATED and a human is alerted, once: ESCALATED is
+    not picked up again. Returns how many were escalated.
+    """
+    now = now or timezone.now()
+    stale = list(
+        LicenseStripeMutationIntent.objects.filter(
+            status__in=[
+                LicenseStripeMutationStatus.PENDING,
+                LicenseStripeMutationStatus.STRIPE_APPLIED,
+            ],
+            updated_at__lt=now - STALE_AFTER,
+        )
+    )
+    escalated = 0
+    for intent in stale:
+        was = intent.status
+        why = (
+            "left PENDING: the outcome at Stripe is unknown; check Stripe"
+            if was == LicenseStripeMutationStatus.PENDING
+            else "left STRIPE_APPLIED: Stripe applied the change, the "
+            "application never recorded it"
+        )
+        # Conditional, so a flow that finishes meanwhile is never overwritten.
+        claimed = LicenseStripeMutationIntent.objects.filter(
+            pk=intent.pk, status=was, updated_at=intent.updated_at
+        ).update(
+            status=LicenseStripeMutationStatus.ESCALATED,
+            escalated_at=now,
+            failure_reason=f"Stale for over {STALE_AFTER}: {why}",
+            updated_at=now,
+        )
+        if claimed:
+            intent.status = LicenseStripeMutationStatus.ESCALATED
+            escalated += 1
+            _reconciliation_needed(intent, f"stale intent, {why}")
+    return escalated
 
 
 def abandon(intent, why: str) -> None:
