@@ -1,0 +1,14 @@
+# L18: the local write is retried
+# file: billing/license_stripe_mutation.py (occurrence 1)
+# old: 'FINALISE_ATTEMPTS = 3'
+# new: 'FINALISE_ATTEMPTS = 1'
+# commit: 2e770c2d7e421fc96aed3a25d450c41ade9bc323
+# exit: 1
+# elapsed_s: 35.2
+# restored_sha256_matches_commit_blob: True
+
+ERROR: test_a_retry_after_a_commit_whose_reply_was_lost_writes_nothing_twice (billing.tests.test_h28_finalise_retry.FinaliseRetryTests.test_a_retry_after_a_commit_whose_reply_was_lost_writes_nothing_twice)
+ERROR: test_after_the_connection_is_killed_the_retry_succeeds_on_a_fresh_one (billing.tests.test_h28_finalise_retry.FinaliseRetryTests.test_after_the_connection_is_killed_the_retry_succeeds_on_a_fresh_one)
+FAIL: test_a_persistent_transient_failure_stops_after_three_attempts (billing.tests.test_h28_finalise_retry.FinaliseRetryTests.test_a_persistent_transient_failure_stops_after_three_attempts)
+
+FAILED (failures=1, errors=2)

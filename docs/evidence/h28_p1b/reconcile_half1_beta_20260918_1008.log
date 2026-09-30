@@ -1,0 +1,26 @@
+TARGET (DATABASE_URI): postgresql://<redacted>@switchback.proxy.rlwy.net:49129/railway
+
+=== 0. sanity: is this the database I think it is? ===
+database=railway server=10.250.23.72/32 PostgreSQL 18.6 (Debian 18.6-1.pgdg13+2) on x86_64-pc-linux-gnu
+
+=== 1. licence population ===
+  billing_method=OFFLINE  is_active=True  count=5     missing_stripe_subscription_id=5
+  billing_method=STRIPE   is_active=False count=1     missing_stripe_subscription_id=0
+  billing_method=STRIPE   is_active=True  count=1     missing_stripe_subscription_id=1
+
+=== 2. THE SHAPE: billing_method=STRIPE but no stripe_subscription_id ===
+  ROWS: 1
+    licence=9f83df46-6159-420f-96bc-4633ef4616e7 school='Unperplexed Consulting' active=True auto_renew=True stripe_status=None has_customer_id=False updated=2026-07-18 00:00:00.396385+00:00
+
+=== 3. HALF-2 SIZING: STRIPE licences that DO hold an id ===
+    (these are the ones needing a live Subscription.retrieve;
+     d4 wants this number BEFORE any Stripe call is made)
+  half-2 candidate rows: 1 (of which active: 0)
+
+=== 4. CONVERTED_TO_OFFLINE audit trail (did a conversion ever run?) ===
+  CONVERTED_TO_OFFLINE records: 0 latest=None
+  NOTE: this row is written INSIDE the same transaction as the
+  Stripe delete, so a death mid-flight leaves NO record here.
+  A zero here is consistent with both 'never ran' and 'ran and died'.
+
+read-only session closed; no writes issued, no Stripe calls made.

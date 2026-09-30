@@ -1,0 +1,12 @@
+# R17: cleanup: an active licence allocation entitles
+# file: billing/tasks.py (occurrence 1)
+# old: '        SchoolCreditAllocation.objects.filter(\n            is_active=True,\n            license_subscription__is_active=True,\n'
+# new: '        SchoolCreditAllocation.objects.none().filter(\n            is_active=True,\n            license_subscription__is_active=True,\n'
+# commit: 47bdc73e5fc740f2904d9a339dad0c5b4c870a31
+# exit: 1
+# elapsed_s: 6.3
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_a_licence_teacher_is_entitled_too (billing.tests.test_monthly_rollover_cleanup_race.CleanupKeepsOwedMonthlyBucketsTests.test_a_licence_teacher_is_entitled_too)
+
+FAILED (failures=1)

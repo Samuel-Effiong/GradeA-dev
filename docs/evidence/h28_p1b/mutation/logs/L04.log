@@ -1,0 +1,12 @@
+# L04: a CardError is not a refusal (payment_errors)
+# file: billing/license_stripe_mutation.py (occurrence 1)
+# old: '    except payment_errors:\n        raise\n'
+# new: '    except ():\n        raise\n'
+# commit: e70d641a3025571021dd1c9baddb5df0fdc58011
+# exit: 1
+# elapsed_s: 54.0
+# restored_sha256_matches_commit_blob: True
+
+FAIL: test_the_licence_stays_guarded_while_a_card_error_is_undone (billing.tests.test_h28_seat_phases.SeatPhaseTests.test_the_licence_stays_guarded_while_a_card_error_is_undone)
+
+FAILED (failures=1)
