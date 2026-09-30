@@ -110,6 +110,13 @@ def _resolve_trace_id() -> uuid.UUID:
     return uuid.uuid4()
 
 
+def resolve_trace_id() -> uuid.UUID:
+    """The server trace id for the current request or task (see
+    `_resolve_trace_id`). Public for other layers that log against the same
+    trace, e.g. the AI provider call (S5)."""
+    return _resolve_trace_id()
+
+
 def emit(
     action,
     *,
