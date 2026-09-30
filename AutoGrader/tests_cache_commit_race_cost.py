@@ -552,6 +552,22 @@ class WallClockBudgetTests(SimpleTestCase):
         self.assertEqual(signal.alarm(0), 0)
 
 
+class BudgetIsArmedForCostTests(RosterScaleCostBase):
+    def test_a_cost_test_runs_with_the_budget_armed(self):
+        """WallClockBudgetTests checks the context manager on its own; this
+        checks that RosterScaleCostBase.setUp really arms it, so dropping
+        that line fails here (the Verification Engineer's N1 on fa2d351,
+        adopted from their probe)."""
+        remaining = signal.alarm(0)
+        signal.alarm(remaining)  # put it back
+        self.assertTrue(0 < remaining <= TEST_BUDGET_SECONDS, remaining)
+        handler = signal.getsignal(signal.SIGALRM)
+        self.assertEqual(
+            getattr(handler, "__qualname__", None),
+            "wall_clock_budget.<locals>.over_budget",
+        )
+
+
 class CappedScaleDefaultTests(SimpleTestCase):
     def test_the_single_transaction_scale_defaults_to_600_at_most(self):
         """6,000 is opt-in. It costs little memory (about 244 MB), so a

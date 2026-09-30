@@ -1,0 +1,4 @@
+AutoGrader.tests_probe_h1s3_commit_race.CommitRaceProbe.test_probe_bump_inside_the_transaction ... ok
+AutoGrader.tests_probe_h1s3_commit_race.CommitRaceProbe.test_probe_control_bump_deferred_to_commit ... ok
+Ran 2 tests in 4.502s
+OK

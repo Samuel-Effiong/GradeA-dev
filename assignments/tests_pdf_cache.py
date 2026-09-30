@@ -72,11 +72,12 @@ class BuildCacheKeyTest(RigorFixtureMixin, APITestCase):
         A rendered PDF must not be collateral damage of somebody else's
         cache invalidation.
 
-        Seven modules call delete_pattern with these patterns to clear the
-        per-user DRF list/retrieve JSON that users/mixins.py stores. Those
-        entries are keyed by user + query params alone, so a wildcard is
-        the only way to clear them - but a PDF key already carries the
-        assignment's updated_at, so sweeping it away buys nothing and
+        Until H-1 step 4, seven modules called delete_pattern with these
+        patterns to clear the per-user DRF list/retrieve JSON that
+        users/mixins.py stores. Those sweeps are gone (the JSON is now
+        generation-versioned), and this keeps a PDF key out of their
+        namespaces should anyone reintroduce one: a PDF key already carries
+        the assignment's updated_at, so sweeping it away buys nothing and
         throws out every other assignment's renders too.
         """
         key = pdf_cache.build_cache_key(self.assignment, "teacher")
@@ -361,11 +362,11 @@ class InvalidationScopeTest(RigorFixtureMixin, APITestCase):
         Invalidation is an optimisation, not a correctness requirement -
         it must never turn a Redis hiccup into a failed assignment save.
 
-        This covers BOTH invalidation paths that run in post_save: the
-        targeted PDF delete and the wildcard sweep of the per-user list
-        JSON. The sweep used to let the exception straight through, so a
-        degraded Redis meant a teacher could not save an assignment at
-        all - a cache problem taking down writing.
+        This covers the targeted PDF delete, the one pattern delete left in
+        post_save after H-1 step 4 removed the wildcard sweep of the
+        per-user list JSON. That sweep used to let the exception straight
+        through, so a degraded Redis meant a teacher could not save an
+        assignment at all - a cache problem taking down writing.
         """
         with patch.object(
             cache, "delete_pattern", side_effect=RuntimeError("redis down")

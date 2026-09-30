@@ -3870,7 +3870,16 @@ class StudentAdminDashboardView(viewsets.ViewSet):
         url_path=r"dashboard/summary/(?P<course_id>[-\w]+)",
     )
     def summary(self, request, course_id, *args, **kwargs):
-        cache_key = f"studentadmins:user_id__{request.user.id}:instance_id__{course_id}:view__summary"
+        # H-1 Stage 3 (gap G2): versioned on the student. These keys were
+        # unversioned, so only the legacy `*studentadmin*` wildcard cleared
+        # them; without it a withdrawn student's cached summary would keep
+        # returning course data after the access check below starts to 404.
+        # usr(student) is bumped by every change this summary reads.
+        cache_key = versioned_key(
+            f"studentadmins:user_id__{request.user.id}:instance_id__{course_id}"
+            ":view__summary",
+            [(SCOPE_USER, request.user.id)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -4012,9 +4021,12 @@ class StudentAdminDashboardView(viewsets.ViewSet):
         paginator = StandardPageNumberPagination()
         page_number = request.query_params.get(paginator.page_query_param, "1")
         page_size = request.query_params.get(paginator.page_size_query_param, "")
-        cache_key = (
+        # H-1 Stage 3 (gap G2): see the summary action above - same
+        # unversioned-key gap, same fix.
+        cache_key = versioned_key(
             f"studentadmins:user_id__{request.user.id}:view__assignments"
-            f":{page_number}:{page_size}"
+            f":{page_number}:{page_size}",
+            [(SCOPE_USER, request.user.id)],
         )
         data = cache.get(cache_key)
 
@@ -4107,7 +4119,12 @@ class StudentAdminDashboardView(viewsets.ViewSet):
         url_path="dashboard/overview",
     )
     def overview(self, request, *args, **kwargs):
-        cache_key = f"studentadmins:user_id__{request.user.id}:view__overview"
+        # H-1 Stage 3 (gap G2): see the summary action above - same
+        # unversioned-key gap, same fix.
+        cache_key = versioned_key(
+            f"studentadmins:user_id__{request.user.id}:view__overview",
+            [(SCOPE_USER, request.user.id)],
+        )
         data = cache.get(cache_key)
 
         if data is None:
@@ -4275,6 +4292,17 @@ class StudentAdminDashboardView(viewsets.ViewSet):
         now = timezone.now()
         course_id = request.query_params.get("course")
 
+        # H-1 step 4: versioned on the student, exactly like the sibling
+        # overview/summary/assignments keys above (gap G2). These keys were
+        # raw, so only the legacy `*studentadmin*` wildcard ever cleared
+        # them. The counts read published assignments, the student's own
+        # submissions and their active enrolments; every write to any of
+        # those bumps usr(student) (assignment fan-out G1, submission and
+        # publish-all receivers G3, enrolment and course receivers G5), so
+        # usr(student) is the whole dependency.
+        #
+        # The `?course=` access check stays BEFORE the cache lookup: a
+        # student who lost access gets a live 404, never a cached body.
         if course_id:
             course = get_object_or_404(
                 Course.objects.filter(
@@ -4284,15 +4312,19 @@ class StudentAdminDashboardView(viewsets.ViewSet):
                 ),
                 id=course_id,
             )
-            cache_key = (
+            cache_key = versioned_key(
                 f"studentadmins:user_id__{student.id}"
-                f":view__status_summary:course__{course.id}"
+                f":view__status_summary:course__{course.id}",
+                [(SCOPE_USER, student.id)],
             )
             assignments = Assignment.objects.filter(
                 course=course, status=AssignmentStatus.PUBLISHED
             )
         else:
-            cache_key = f"studentadmins:user_id__{student.id}:view__status_summary:all"
+            cache_key = versioned_key(
+                f"studentadmins:user_id__{student.id}:view__status_summary:all",
+                [(SCOPE_USER, student.id)],
+            )
             active_courses = Course.objects.filter(
                 enrollments__student=student,
                 enrollments__in=StudentCourse.objects.active(),

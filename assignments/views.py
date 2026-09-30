@@ -1702,7 +1702,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # (models/tasks), so importing it at module level here would create
         # an import cycle.
         from students.services import notify_student_of_graded_submission
-        from students.signals import clear_student_submission_cache
+        from students.signals import invalidate_submission_caches_bulk
 
         assignment = self.get_object()
 
@@ -1742,9 +1742,9 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 )
 
         # .update() skips post_save, so fire the submission cache
-        # invalidation once for the whole batch.
-        if newly_published:
-            clear_student_submission_cache(sender=None, instance=newly_published[0])
+        # invalidation once for the whole batch - every newly-published
+        # student, not just the first (H-1 Stage 3, gap G3).
+        invalidate_submission_caches_bulk(newly_published)
 
         total_submissions = assignment.submissions.count()
         ungraded_count = total_submissions - total_graded

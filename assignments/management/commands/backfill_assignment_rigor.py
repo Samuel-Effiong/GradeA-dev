@@ -60,7 +60,11 @@ class Command(BaseCommand):
             self.stderr.write(self.style.ERROR("--batch-size must be at least 1"))
             return
 
-        queryset = Assignment.objects.all().only("id", "questions", *RIGOR_FIELDS)
+        # "course" is loaded because _flush bumps each row's course scopes;
+        # left deferred, reading course_id cost one query per assignment.
+        queryset = Assignment.objects.all().only(
+            "id", "course", "questions", *RIGOR_FIELDS
+        )
         if school_id:
             queryset = queryset.filter(course__teacher__school_id=school_id)
 
@@ -110,3 +114,10 @@ class Command(BaseCommand):
     def _flush(self, batch):
         with transaction.atomic():
             Assignment.objects.bulk_update(batch, RIGOR_FIELDS)
+
+        # H-1 Stage 3 (pre-existing staleness P4): bulk_update fires no
+        # signal, so without this the backfill never reached any cached
+        # assignment list/retrieve.
+        from assignments.signals import bump_assignment_course_scopes_bulk
+
+        bump_assignment_course_scopes_bulk(a.course_id for a in batch)

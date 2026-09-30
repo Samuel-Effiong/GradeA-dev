@@ -1,0 +1,7 @@
+AutoGrader.tests_cache_invalidation_coverage.InvalidationCoverageTests.test_every_cache_key_is_reachable_by_some_invalidation ... ok
+AutoGrader.tests_cache_invalidation_coverage.InvalidationCoverageTests.test_how_many_patterns_match_a_single_key ... ok
+AutoGrader.tests_cache_invalidation_coverage.InvalidationCoverageTests.test_over_invalidation_one_users_key_is_cleared_by_another ... ok
+AutoGrader.tests_cache_invalidation_coverage.InvalidationCoverageTests.test_the_four_dashboard_keys_are_ttl_only ... ok
+AutoGrader.tests_cache_invalidation_coverage.InvalidationCoverageTests.test_the_pdf_and_grading_caches_have_their_own_invalidation ... ok
+Ran 5 tests in 3.011s
+OK
