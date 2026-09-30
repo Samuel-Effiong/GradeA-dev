@@ -40,3 +40,24 @@ Every run was wrapped (6G, `MemorySwapMax=0`, `nice -n 10`, `timeout -k 60 1800`
 - **N2 (already stated by the author).** The 400 → 415/422/413 status changes ship to staging first for the F7 frontend check before any beta merge.
 
 Logs: `runs/s6b_run1.log`, `runs/s6b_run2_mutants.log`.
+
+---
+
+## Re-check (N1, SM ruling: numeric params) @ **104dc01**, 2026-09-30: **VERIFIED**
+**Tip verified:** task/epic-a-s6b **104dc01**. Code: 49ff6ca (N1) + 7965615 (the `limit` contract); fd82dec and 104dc01 are evidence only. Runs were wrapped (6G, `MemorySwapMax=0`, `nice -n 10`, timeout) in 0b's slot.
+
+**What changed:**
+- `CodedError(..., display=)` carries a placeholder's message text only. It is refused for a non-placeholder key or a non-text value, and never enters `params`.
+- FILE_TOO_LARGE's `params` are now **ints** in the unit `dimension` names; the message shows the formatted text.
+- The contract (SM): `dimension` ∈ {bytes, pages, pixels} always; `limit` an int, **always** (the compression path falls back to `IMAGE_COMPRESSION_HARD_CAP_BYTES`); `actual` an optional int, never invented.
+
+| Check | Result |
+|---|---|
+| @ fd82dec: v2 probes (asserts updated to ints) + `tests_file_reason_codes`, `tests_security`, `AutoGrader.tests_uploads`, **`AutoGrader.tests_reason_codes`** (S6a's `CodedError` changed), the S6a probe, `tests_pdf_type_validation` | **135 OK**. Bytes: `{"actual": 460, "limit": 10, "dimension": "bytes"}`, message "…460 bytes and the limit is 10 bytes." Pages: `(3, 2)`, message "…3 pages and the limit is 2 pages." |
+| @ **104dc01**: v2 probes + `tests_file_reason_codes`, `tests_reason_codes`, `tests_uploads` | **69 OK** |
+| v2 mutants @ 104dc01 (`vf_s6b_final_mutants.py`) | **5/5 KILLED**: Y1 empty-before-type; Y2 bytes `dimension` dropped; Y3 pages `dimension` dropped; **Y4 N1 reverted** (bytes `actual` as text); **Y5 the `limit` fallback removed** (by `test_limit_is_always_present_even_when_the_raiser_omits_the_cap`) |
+| 1a's gates | 49ff6ca: 163 OK, 6/6 N1 mutants; 7965615: 54 OK, N1g killed (committed) |
+
+N1 is closed. N2 (the F7 staging check before beta) stands.
+
+Logs: `runs/s6b_n1_run1.log`, `runs/s6b_n1_run2_mutants.log`, `runs/s6b_final_run1.log`, `runs/s6b_final_run2_mutants.log`.
