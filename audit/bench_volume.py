@@ -13,8 +13,10 @@ Those numbers are copied into `audit/volume.py`, which the
 """
 
 import json
+import uuid
 from collections import Counter
 from datetime import timedelta
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
@@ -159,7 +161,14 @@ class BusySchoolDay(APITestCase):
 
         def grade_all():
             with patch("assignments.views.grade_engine_async") as task:
-                task.delay.return_value.id = "volume-celery-task-id"
+                # A distinct real-string id per dispatch (rule 14: no mock
+                # values reach the database or a response), since the
+                # processing-task table keeps celery_task_id unique.
+                def dispatched(*args, **kwargs):
+                    return SimpleNamespace(id=f"volume-celery-{uuid.uuid4()}")
+
+                task.delay.side_effect = dispatched
+                task.apply_async.side_effect = dispatched
                 response = self.client.post(
                     reverse("assignment-grade-all", kwargs={"pk": assignment.pk})
                 )

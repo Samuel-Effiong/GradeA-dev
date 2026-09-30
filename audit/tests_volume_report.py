@@ -17,6 +17,7 @@ from audit.emitter import emit
 from audit.enums import AuditAction
 from audit.management.commands import audit_volume_report
 from audit.models import AuditEvent
+from billing.immutable import allow_unsafe_mutation
 from users.models import CustomUser, UserTypes
 
 PRIVATE_EMAIL = "volume.private.person@example.com"
@@ -58,9 +59,12 @@ class MeasuredTests(TestCase):
         self.assertRegex(output, r"table_total_bytes \d+")
 
     def test_older_events_are_outside_the_window(self):
-        AuditEvent.objects.filter(action=AuditAction.GRADE_CHANGE).update(
-            occurred_at=timezone.now() - timedelta(days=40)
-        )
+        # AuditEvent is append-only; the guard's own escape hatch (the one
+        # the retention sweep uses) lets the test age a row.
+        with allow_unsafe_mutation():
+            AuditEvent.objects.filter(action=AuditAction.GRADE_CHANGE).update(
+                occurred_at=timezone.now() - timedelta(days=40)
+            )
         output = run("--days", "30")
         self.assertNotIn("total GRADE_CHANGE", output)
 
