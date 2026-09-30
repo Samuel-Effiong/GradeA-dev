@@ -204,7 +204,10 @@ class ClawbackThroughTheLedgerTests(TestCase):
         )
         self.teacher = make_user("s3.clawback.teacher@example.com", school=self.school)
         SchoolCreditAllocation.objects.create(
-            license_subscription=self.licence, user=self.teacher, is_active=True
+            license_subscription=self.licence,
+            user=self.teacher,
+            monthly_allocation=1000,
+            is_active=True,
         )
         self.wallet, _ = CreditWallet.objects.get_or_create(user=self.teacher)
         self.monthly = bucket(self.wallet, total=1000, used=300)
