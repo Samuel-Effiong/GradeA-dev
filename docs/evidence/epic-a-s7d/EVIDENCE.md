@@ -123,7 +123,7 @@ If any source changes before the merge-down, the copy here is re-synced.
 
 | Gate | Result | Log |
 |---|---|---|
-| Reproduce-first: S7d's new test modules on ca35971's production files | see log | `prefix_ca35971_failing.txt` |
+| Reproduce-first: S7d's new test modules with S7d's production files reverted to the epic tip 830bf8d (S7c included) | see log | `prefix_830bf8d_failing.txt` |
 | Changed and updated modules + all 11 repo-wide guards | see log | `changed_modules_and_guards.txt` |
 | Mutation, 39 mutants in 3 batches (≤1800 s each, own DB, dropped) | see log | `mutation_log_batch{1,2,3}.txt`, `mutation_results_batch{1,2,3}.json` |
 | ONE combined regression over every app whose production code S7d changes (SM ruling): students, classrooms, billing, users, assignments, ai_processor. ai_processor is included because C's change there is more than text: a new `PDFNotAPdfError`, and `PDFService.extract` raises it. Run in the 12G slot, timeout 1800 | see log | `regression_combined.txt` |
