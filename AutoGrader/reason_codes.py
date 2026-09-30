@@ -215,12 +215,39 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         "Fix what its failure message describes first, then try again.",
         retryable=False,
     ),
+    # The three sign-in locks (v2's S6a N3, SM ruling). PENDING QA CATALOGUE
+    # APPROVAL (staging only until QA agrees). Their responses keep every
+    # field the auth docs promise; the envelope is ADDED beside them
+    # (`add_coded_envelope`), and each keeps its own display text - these
+    # messages are what a raised CodedError would show.
+    ReasonCode.RESET_LOCKED: ReasonSpec(
+        ErrorClass.USER,
+        status.HTTP_429_TOO_MANY_REQUESTS,
+        "Password reset is paused on this account for a while, because the "
+        "code was entered incorrectly too many times.",
+        "Wait until the time shown, then request a new code. Your password "
+        "has not been changed.",
+        retryable=True,
+    ),
+    ReasonCode.VERIFY_LOCKED: ReasonSpec(
+        ErrorClass.USER,
+        status.HTTP_429_TOO_MANY_REQUESTS,
+        "Too many incorrect codes for this email address.",
+        "Wait, then request a new verification email.",
+        retryable=True,
+    ),
+    ReasonCode.ACCOUNT_LOCKED: ReasonSpec(
+        ErrorClass.USER,
+        status.HTTP_401_UNAUTHORIZED,
+        "Too many failed login attempts. Please try again later.",
+        "Wait a few minutes and try again, or reset your password.",
+        retryable=True,
+    ),
 }
 
 #: Recorded in the audit trail only; the auth views shape their responses.
 AUDIT_ONLY_CODES = frozenset(
     {
-        ReasonCode.ACCOUNT_LOCKED,
         ReasonCode.ACCOUNT_DEACTIVATED,
         ReasonCode.WRONG_PASSWORD,
         ReasonCode.INVALID_CREDENTIALS,
@@ -228,8 +255,6 @@ AUDIT_ONLY_CODES = frozenset(
         ReasonCode.CODE_EXPIRED,
         ReasonCode.CODE_MISSING,
         ReasonCode.CODE_NOT_REQUESTED,
-        ReasonCode.RESET_LOCKED,
-        ReasonCode.VERIFY_LOCKED,
         ReasonCode.REFRESH_TOKEN_MISSING,
         ReasonCode.REFRESH_TOKEN_INVALID,
         ReasonCode.SESSION_REVOKE_FAILED,
@@ -351,6 +376,23 @@ def coded_body(code, params, message):
     if code in LEGACY_CODES:
         body["code"] = LEGACY_CODES[code]
     return body
+
+
+def add_coded_envelope(data, code, message, *, code_value=None):
+    """ADD the coded envelope to a body a view or DRF already built (the F8
+    pattern): every key the body has - the fields its docs promise - stays
+    exactly as it was. `code_value` sets `code` only if the body has none.
+
+    `error` (the envelope's display sentence) is NOT added: these bodies
+    already carry their text as `message` or `detail`, and a second text key
+    would change what the renderer shows."""
+    body = coded_body(code, {}, message)
+    for key in ENVELOPE_KEYS:
+        if key in body and key not in data:
+            data[key] = body[key]
+    if code_value is not None and "code" not in data:
+        data["code"] = code_value
+    return data
 
 
 def coded_response(error):
